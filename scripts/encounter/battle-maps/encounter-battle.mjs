@@ -457,7 +457,7 @@ async function abandon(scene, record) {
 
 async function setUpBattle({
   encounter = null, terrain = null, mapId = null, sceneId = null, variant = null, night = false, camping = false,
-  originSceneId = globalThis.canvas?.scene?.id ?? null, hex = null, view = true,
+  originSceneId = globalThis.canvas?.scene?.id ?? null, hex = null, view = true, travelling = false,
 } = {}) {
   if (!gmOnly()) return null;
   return guarded(async () => {
@@ -507,7 +507,7 @@ async function setUpBattle({
 
     const record = newBattleRecord({
       encounter, terrain, map, variant: variantName({ camp: choice.camp, night: choice.night }), originSceneId, hex,
-      sceneId: scene.id, presentTokenIds: present, gmId: game.user.id,
+      sceneId: scene.id, presentTokenIds: present, gmId: game.user.id, travelling,
     });
     const ctx = { scene, battleId: record.id };
     const names = foe ? foeNames(foe, scene, count) : null;
@@ -807,6 +807,8 @@ export const BattleMaps = {
    * @param {"day"|"night"|"camp"|null} [opts.variant]
    * @param {boolean} [opts.night]
    * @param {boolean} [opts.camping]
+   * @param {boolean} [opts.travelling]         the party is on Overland travel: Return to travel puts the travel back
+   *   if bringing the table turned it into a crawl
    * @param {string|null} [opts.originSceneId]  the scene Return to travel goes back to (default: the viewed one)
    * @param {*} [opts.hex]                      the hex the party was in, kept in the record
    * @param {boolean} [opts.view]               look at the scene afterwards (default true)

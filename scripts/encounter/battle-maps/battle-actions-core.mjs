@@ -51,8 +51,8 @@ export function pickAnswer(pick, now = {}) {
 }
 
 /** What BattleMaps.setUp takes: the encounter, where the party stands, the table's conditions, and the GM's pick if they made one. */
-export function setUpArgs({ enc, terrain = null, hex = null, originSceneId = null, night = false, camping = false, pick = null }) {
-  const args = { encounter: cardEncounter(enc), terrain, hex, ...(pick ? pickAnswer(pick, { night, camping }) : { night: !!night, camping: !!camping }) };
+export function setUpArgs({ enc, terrain = null, hex = null, originSceneId = null, night = false, camping = false, travelling = false, pick = null }) {
+  const args = { encounter: cardEncounter(enc), terrain, hex, travelling: !!travelling, ...(pick ? pickAnswer(pick, { night, camping }) : { night: !!night, camping: !!camping }) };
   // No scene to come back to given: leave it out, so setUp's own default (the viewed scene) applies.
   if (originSceneId) args.originSceneId = originSceneId;
   return args;

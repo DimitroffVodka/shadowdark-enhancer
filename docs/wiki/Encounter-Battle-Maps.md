@@ -91,12 +91,16 @@ there, tells you, and keeps the battle (listing only the tokens that are left), 
 you can press **Return to travel** again. You can return from a battle that is only
 set up, or from one that is live.
 
-After a fight, returning also carries the travel on, the way **Continue** does: the
-encounter that stopped the clock is cleared and the move it interrupted is finished,
-so the party moves, time passes and the checks roll again. Until then a held
-encounter holds the clock, and the party can be dragged about the hex map with
-nothing happening. If the battle was only set up and you never brought the table,
-the encounter stays held and **Continue** is yours to press, as it was before.
+After a fight, returning also carries the travel on. Bringing the table moves
+everyone to a scene that is not a hex map, and where the table's active scene
+decides between travel and crawl, that turns the travel into a crawl. Returning
+puts the party back on the road (only when they were travelling as the battle was
+set up, and only from that crawl: travel you ended yourself stays ended). Then it
+does what **Continue** does: the encounter that stopped the clock is cleared and the
+move it interrupted is finished, so the party moves, time passes and the checks roll
+again. Without that the party could be dragged about the hex map with nothing
+happening. If the battle was only set up and you never brought the table, nothing
+changes: the encounter stays held and **Continue** is yours to press, as before.
 
 ### Keep this battle
 

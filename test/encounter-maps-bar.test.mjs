@@ -47,7 +47,7 @@ const io = {
     returnToTravel: async (id, opts) => { fake.returns.push({ id, ...opts }); return fake.returnAnswer; },
     bringTable: async (id) => { fake.calls.push(["bringTable", id]); return { ok: true }; },
   }),
-  continueTravel: async () => { fake.calls.push(["continueTravel"]); return null; },
+  continueTravel: async (battle) => { fake.calls.push(["continueTravel", battle]); return null; },
 };
 const staged = (over = {}) => ({ id: "b1", status: "staged", mapId: "forest-woods", sceneId: "S1", terrain: "forest", encounter: { name: "Wolf", count: 3 }, ...over });
 const live = (over = {}) => staged({ status: "live", combatId: "c1", ...over });
@@ -186,7 +186,7 @@ test("Return with Keep ticked: when the copy could not be made and nothing came 
   fake.record = null;
   await finished;
   assert.deepEqual([fake.returns.map((r) => r.keep), TravelBar._keep], [[true, true, true], false]);
-  assert.deepEqual(fake.calls.filter(([name]) => name === "continueTravel"), [["continueTravel"]], "the travel carried on once, when the battle came down, not on the returns that did not");
+  assert.deepEqual(fake.calls.filter(([name]) => name === "continueTravel"), [["continueTravel", { travelling: false }]], "the travel carried on once, when the battle came down, not on the returns that did not");
 });
 
 test("Return from a battle that was only set up leaves the held encounter alone; from a live one the travel carries on", async () => {
@@ -203,7 +203,14 @@ test("Return from a battle that was only set up leaves the held encounter alone;
   TravelBar.render();
   await click("open", { id: "battle" });
   await click("returnToTravel");
-  assert.deepEqual(fake.calls, [["continueTravel"]], "live: the fight is over and the clock goes on");
+  assert.deepEqual(fake.calls, [["continueTravel", { travelling: false }]], "live: the fight is over and the clock goes on");
+  reset();
+  fake.record = live({ travelling: true });
+  fake.returnAnswer = { ok: true };
+  TravelBar.render();
+  await click("open", { id: "battle" });
+  await click("returnToTravel");
+  assert.deepEqual(fake.calls, [["continueTravel", { travelling: true }]], "a battle set up on the road says so, and the travel is put back");
 });
 
 test("Return without Keep does not ask for a copy, and one battle step runs at a time", async () => {

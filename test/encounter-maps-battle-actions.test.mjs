@@ -27,7 +27,7 @@ globalThis.canvas = { scene: { id: "viewed" } };
 globalThis.foundry = { applications: { handlebars: { renderTemplate: async (template, data) => JSON.stringify({ template, battleMap: !!data.battleMap }) } } };
 
 const actions = await import("../scripts/encounter/battle-maps/battle-actions.mjs");
-const { openBattleMap, changeBattleMap, bringTheTable, returnToTravel, describeBattle, loadBattleParts, partyContext, wireBattleCard, registerBattleChatButtons } = actions;
+const { openBattleMap, changeBattleMap, bringTheTable, returnToTravel, continueTravel, describeBattle, loadBattleParts, partyContext, wireBattleCard, registerBattleChatButtons } = actions;
 const { postEncounter } = await import("../scripts/encounter/encounter-draw.mjs");
 
 const wolves = { kind: "monster", uuid: "Actor.wolf", name: "Wolf", count: 3, distanceRoll: 4, activityRoll: 8, reactionRoll: 7, img: "wolf.webp", chain: [{ name: "x" }] };
@@ -76,8 +76,9 @@ test("setUp's arguments: the trimmed encounter, the terrain and the table's look
   const args = setUpArgs({ enc: wolves, terrain: "forest", hex: 1203, originSceneId: "hexes", night: true, camping: false });
   assert.deepEqual(args, {
     encounter: { kind: "monster", uuid: "Actor.wolf", name: "Wolf", count: 3, distanceRoll: 4, activityRoll: 8, reactionRoll: 7, img: "wolf.webp" },
-    terrain: "forest", hex: 1203, night: true, camping: false, originSceneId: "hexes",
+    terrain: "forest", hex: 1203, night: true, camping: false, travelling: false, originSceneId: "hexes",
   });
+  assert.equal(setUpArgs({ enc: wolves, terrain: "forest", travelling: true }).travelling, true, "the party was on Overland travel");
   const noScene = setUpArgs({ enc: wolves, terrain: null, originSceneId: null });
   assert.ok(!("originSceneId" in noScene) && noScene.hex === null && noScene.terrain === null);
   const picked = setUpArgs({ enc: wolves, terrain: "forest", pick: { mapId: "forest-woods", variant: "night", night: true } });
@@ -252,7 +253,7 @@ test("a subscription that returns nothing to undo is still only made once", () =
 // ─── The flows, against fakes ───────────────────────────────────────────────
 
 /** Fakes for the parts the flows reach; `calls` is what they were asked, in order. */
-function fakes({ current = null, hasDefault = true, pick = null, night = false, camping = false, confirm = true, returned = { ok: "returnToTravel" }, resumed = null, resumeThrows = false } = {}) {
+function fakes({ current = null, hasDefault = true, pick = null, night = false, camping = false, confirm = true, returned = { ok: "returnToTravel" }, resumed = null, resumeThrows = false, travelling } = {}) {
   const calls = [];
   const note = (name) => async (...args) => { calls.push([name, ...args]); return { ok: name }; };
   const BattleMaps = {
@@ -264,10 +265,10 @@ function fakes({ current = null, hasDefault = true, pick = null, night = false, 
     battle: async () => BattleMaps,
     picker: async () => ({ pick: async (args) => { calls.push(["pick", args]); return pick; } }),
     maps: async () => ({ normalizePrefs: (raw) => raw, resolveDefaultMap: (terrain) => { calls.push(["default", terrain]); return hasDefault ? { id: "forest-woods" } : null; } }),
-    conditions: () => ({ night, camping }),
+    conditions: () => ({ night, camping, ...(travelling === undefined ? {} : { travelling }) }),
     prefs: () => ({}),
     confirm: async (names) => { calls.push(["confirm", names]); return confirm; },
-    continueTravel: async () => { calls.push(["continueTravel"]); if (resumeThrows) throw new Error("the clock would not go"); return resumed; },
+    continueTravel: async (battle) => { calls.push(["continueTravel", battle]); if (resumeThrows) throw new Error("the clock would not go"); return resumed; },
   };
   return { calls, io };
 }
@@ -280,9 +281,18 @@ test("Battle map on a terrain with a default map: no picker, one setUp with the 
   assert.equal(calls[0][1], "salt_flat", "the terrain as the library keys it");
   assert.deepEqual(calls[1][1], {
     encounter: { kind: "monster", uuid: "Actor.wolf", name: "Wolf", count: 3, distanceRoll: 4, activityRoll: 8, reactionRoll: 7, img: "wolf.webp" },
-    terrain: "salt_flat", hex: 1203, night: true, camping: true, originSceneId: "hexes",
+    terrain: "salt_flat", hex: 1203, night: true, camping: true, travelling: false, originSceneId: "hexes",
   });
   assert.deepEqual(done, { ok: "setUp" });
+});
+
+test("Battle map while the party is travelling: the setUp says so, to put the travel back afterwards", async () => {
+  const travelling = fakes({ travelling: true });
+  await openBattleMap({ enc: wolves, terrain: "forest" }, travelling.io);
+  assert.equal(travelling.calls.find(([name]) => name === "setUp")[1].travelling, true);
+  const still = fakes({ travelling: false });
+  await openBattleMap({ enc: wolves, terrain: "forest" }, still.io);
+  assert.equal(still.calls.find(([name]) => name === "setUp")[1].travelling, false);
 });
 
 test("Choose map: the picker opens on the table's night and camp, and its answer is what is set up", async () => {
@@ -409,7 +419,10 @@ test("Return to travel: from staged or live, with Keep it saves under a name, wi
   const battle = { id: "b1", status: "live", label: "Forest Woods", encounter: { name: "Wolf", count: 3 } };
   const plain = fakes();
   await returnToTravel({ battle }, plain.io);
-  assert.deepEqual(plain.calls, [["returnToTravel", "b1", { keep: false, label: undefined }], ["continueTravel"]], "a fight is over: the travel carries on");
+  assert.deepEqual(plain.calls, [["returnToTravel", "b1", { keep: false, label: undefined }], ["continueTravel", { travelling: false }]], "a fight is over: the travel carries on");
+  const onTheRoad = fakes();
+  await returnToTravel({ battle: { ...battle, travelling: true } }, onTheRoad.io);
+  assert.deepEqual(onTheRoad.calls[1], ["continueTravel", { travelling: true }], "the battle says the party was travelling, so the travel is put back");
   const kept = fakes();
   await returnToTravel({ battle, keep: true }, kept.io);
   assert.deepEqual(kept.calls[0][2], { keep: true, label: 'SDE.encounterMaps.hud.savedLabel{"count":3,"name":"Wolf","map":"Forest Woods"}' });
@@ -437,6 +450,52 @@ test("Return to travel from a live battle continues the travel only once the bat
   assert.deepEqual(answer, { ok: "returnToTravel" }, "the battle is down all the same");
   assert.deepEqual(warned, ["SDE.encounterMaps.hud.continueFailed"], "and the GM is told to press Continue");
   assert.ok(!errored.includes("SDE.encounterMaps.hud.failed"), "not the generic failure: the return worked");
+});
+
+/** The crawl state and Overland as continueTravel reads them: a mode that can change as the combat's end hands it back, and what is held. */
+function travelWorld({ mode = "crawl", held = {}, flipAfter = null, resumed = { ok: true } } = {}) {
+  const calls = [];
+  let reads = 0;
+  const crawl = {
+    get mode() { reads++; return flipAfter !== null && reads > flipAfter ? "crawl" : mode; },
+    startOverland: async () => { calls.push("startOverland"); },
+  };
+  const overland = { overlandState: () => ({ encounter: null, pending: null, ...held }), resume: async () => { calls.push("resume"); return resumed; } };
+  return { calls, modules: { crawl, overland } };
+}
+
+test("continueTravel: a party that was travelling and was left in a crawl by the battle's scene is put back on the road, then Continue runs", async () => {
+  const world = travelWorld({ mode: "crawl", held: { encounter: { name: "Wolf" } } });
+  assert.deepEqual(await continueTravel({ travelling: true }, world.modules), { ok: true });
+  assert.deepEqual(world.calls, ["startOverland", "resume"], "the travel first, so what Continue finishes has a travel to finish");
+});
+
+test("continueTravel: travel is only put back from the crawl the battle caused: not when it never left, was not there, or the GM ended it", async () => {
+  for (const [label, world, travelling] of [
+    ["still travelling (the module does not follow the scene)", travelWorld({ mode: "overland" }), true],
+    ["never travelling: a crawl the GM started", travelWorld({ mode: "crawl" }), false],
+    ["the GM ended the travel", travelWorld({ mode: "off" }), true],
+  ]) {
+    await continueTravel({ travelling }, world.modules);
+    assert.ok(!world.calls.includes("startOverland"), label);
+  }
+});
+
+test("continueTravel: waits for the combat's end to hand the mode back before it looks", async () => {
+  const world = travelWorld({ mode: "combat", flipAfter: 3, held: { pending: { until: 1 } } });
+  await continueTravel({ travelling: true }, world.modules);
+  assert.deepEqual(world.calls, ["startOverland", "resume"], "the mode read as combat at first, crawl a moment later");
+});
+
+test("continueTravel: Continue runs only for something held, and its answer comes back", async () => {
+  const nothing = travelWorld({ mode: "overland" });
+  assert.equal(await continueTravel({ travelling: true }, nothing.modules), null);
+  assert.deepEqual(nothing.calls, [], "nothing held, nothing to do");
+  for (const held of [{ encounter: { name: "Wolf" } }, { pending: { until: 5, reason: "walk" } }]) {
+    const world = travelWorld({ mode: "overland", held, resumed: { ok: false, error: "no" } });
+    assert.deepEqual(await continueTravel({}, world.modules), { ok: false, error: "no" });
+    assert.deepEqual(world.calls, ["resume"]);
+  }
 });
 
 test("a battle keeps what the panel tells of its foes, and nothing that is not a roll or a picture", () => {

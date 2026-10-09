@@ -1048,7 +1048,7 @@
   "SDE.encounterMaps.hud.panelFold": "Fold the battle map controls",
   "SDE.encounterMaps.hud.panelOpen": "Open the battle map controls",
   "SDE.encounterMaps.hud.return": "Return to travel",
-  "SDE.encounterMaps.hud.returnHint": "Go back to the hex map and take down this battle's tokens and combat. After a fight, travel carries on as if you had pressed Continue; a battle you only set up leaves the encounter held.",
+  "SDE.encounterMaps.hud.returnHint": "Go back to the hex map and take down this battle's tokens and combat. After a fight, travel carries on: the party is put back on the road if the battle's scene turned it into a crawl, and what Continue does is done. A battle you only set up leaves the encounter held.",
   "SDE.encounterMaps.hud.running": "A battle map is already set up. Return to travel first.",
   "SDE.encounterMaps.hud.savedLabel": "{count} {name} ({map})",
   "SDE.encounterMaps.hud.staged": "Only you can see this map. The players are still on the hex map.",

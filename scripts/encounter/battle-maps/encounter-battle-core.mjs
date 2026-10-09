@@ -370,6 +370,8 @@ function randomId(length = 16) {
  * @property {string[]} presentTokenIds  party tokens that were on the scene already, so none was placed: they are put
  *   in the combat and are never deleted. Absent from records written before they existed, which read as none.
  * @property {string|null} combatId the combat made by Bring the table
+ * @property {boolean} travelling  the party was on Overland travel when the battle was set up, so Return to travel puts the
+ *   travel back if bringing the table turned it into a crawl (absent from older records: false)
  * @property {{name:string, uuid:string|null, count:number, distanceRoll:number|null, activityRoll?:number|null,
  *   reactionRoll?:number|null, img?:string|null}} encounter  what the GM was told of the creatures: the last three are
  *   absent from records written before the battle's panel showed them, and the panel then says what it has
@@ -387,7 +389,7 @@ const rollOrNull = (v) => (v == null || v === "" || !Number.isFinite(Number(v)) 
  */
 export function newBattleRecord({
   encounter = null, terrain = null, map = null, variant = "day", originSceneId = null, hex = null,
-  now = Date.now(), id = randomId(), sceneId = null, tokenIds = [], presentTokenIds = [], gmId = null,
+  now = Date.now(), id = randomId(), sceneId = null, tokenIds = [], presentTokenIds = [], gmId = null, travelling = false,
 } = {}) {
   const uuid = encounter?.uuid ?? null;
   return {
@@ -404,6 +406,7 @@ export function newBattleRecord({
     tokenIds: [...tokenIds],
     presentTokenIds: [...presentTokenIds],
     combatId: null,
+    travelling: !!travelling,
     encounter: {
       name: String(encounter?.name ?? ""),
       uuid,

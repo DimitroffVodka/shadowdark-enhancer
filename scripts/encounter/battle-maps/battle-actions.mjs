@@ -24,9 +24,13 @@ import {
   canBattle, needsConfirm, needsPick, pickAnswer, pickerArgs, readStash, recordOf, setUpArgs, stillLoading,
 } from "./battle-actions-core.mjs";
 
-/** The table's conditions: night by the fixed hours the encounter tables use, and whether Overland has tonight's camp made. */
+/**
+ * The table's conditions: night by the fixed hours the encounter tables use, whether Overland has tonight's camp made, and
+ * whether the party is travelling (the battle keeps that, to put the travel back when it is over).
+ */
 function liveConditions() {
-  return { night: isNight(worldClock().hour), camping: !!game.shadowdarkEnhancer?.overland?.state?.()?.camp };
+  const overland = game.shadowdarkEnhancer?.overland;
+  return { night: isNight(worldClock().hour), camping: !!overland?.state?.()?.camp, travelling: !!overland?.isActive?.() };
 }
 
 /** Bringing the table before everyone has the map: who is still loading, and whether to go ahead anyway. */
@@ -54,12 +58,21 @@ const live = {
 };
 
 /**
- * Carry the travel on the way the Continue button does: the encounter that stopped the clock is cleared and the advance it
+ * Carry the travel on after a fight. Bringing the table activated a scene that is not a hex map, and where the module
+ * follows the active scene that turned the travel into a crawl, which nothing turns back: the party was left on the hex
+ * map with no travel, no time and no checks. A party that was travelling is put back (only from a crawl: travel the GM
+ * ended is theirs). Then what the Continue button does: the encounter that stopped the clock is cleared and the advance it
  * stopped is finished. Nothing held (a battle made from a posted card, an encounter already continued) is nothing to do.
+ * @param {{travelling?:boolean}} [battle]  the battle's own record of whether the party was travelling
+ * @param {{crawl?:object, overland?:object}} [modules]  the crawl state and Overland, instead of the real ones (tests)
  * @returns {Promise<{ok:boolean, error?:string}|null>}
  */
-async function continueTravel() {
-  const overland = await import("../../overland/overland.mjs");
+export async function continueTravel({ travelling = false } = {}, modules = {}) {
+  const CrawlState = modules.crawl ?? (await import("../../crawl-strip/crawl-state.mjs")).CrawlState;
+  const overland = modules.overland ?? await import("../../overland/overland.mjs");
+  // The combat's end hands the mode back a moment after it is deleted.
+  for (let i = 0; i < 20 && CrawlState.mode === "combat"; i++) await new Promise((resolve) => setTimeout(resolve, 150));
+  if (travelling && CrawlState.mode === "crawl") await CrawlState.startOverland();
   const held = overland.overlandState();
   return held.pending || held.encounter ? overland.resume() : null;
 }
@@ -180,7 +193,7 @@ export async function returnToTravel({ battle, keep = false }, io = {}) {
     if (done && battle.status === BATTLE_STATUS.live) {
       // The battle is down either way: a travel that cannot be continued says so and leaves Continue to the GM.
       try {
-        const result = await x.continueTravel();
+        const result = await x.continueTravel({ travelling: !!battle.travelling });
         if (result?.ok === false) ui.notifications?.warn(result.error);
       } catch (err) {
         console.error(`${MODULE_ID} | battle map: travel could not be continued`, err);
