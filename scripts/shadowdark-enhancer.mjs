@@ -4,6 +4,7 @@
 
 export { MODULE_ID } from "./shared/module-id.mjs";
 import { MODULE_ID } from "./shared/module-id.mjs";
+import { registerAdventurePackImport } from "./importer/adventure/adventure-pack.mjs";
 import { registerA0Prompt } from "./hex-map/a0-prompt.mjs";
 import { hexNumberAt, hasHexNumbering } from "./hex-map/hex-number-api.mjs";
 import { registerHexCoordinates } from "./hex-map/coordinate-overlay.mjs";
@@ -146,7 +147,7 @@ const STYLESHEET_REV = "d2974b9b48b6";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "3a6370da9adf";
+const BUILD_REV = "fe5f2aaba782";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -323,6 +324,7 @@ Hooks.once("init", () => {
   // synchronous cache operation with a fire-and-forget notification.
   initRivalClassTable({ game });
   registerSettings();
+  registerAdventurePackImport();
   // This client's Show weather effects switch (#294), before the first canvas draw.
   registerWeatherVisuals();
   // timeAdvanced: the active GM reports what each world-time change crossed (#227).
