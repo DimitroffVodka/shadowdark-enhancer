@@ -155,6 +155,9 @@ export function overlandState() {
   };
 }
 
+/** The party's region, for the sky. Cheap: every screen asks on each frame of a paced clock. */
+export const travelRegion = () => _state.hex?.region ?? null;
+
 /** Today's weather kind while it holds, else null. Cheap: the crawl bar asks on every clock move. */
 export const weatherNow = () => (weatherHolds(_state.weather, game.time.worldTime) ? _state.weather.kind : null);
 
@@ -450,6 +453,12 @@ async function rollCheck(c, chance, travel) {
  * @returns {Promise<{stopped:boolean}>}
  */
 export async function advanceTravel(target, reason, ms = 0) {
+  // A paced advance holds the real-time clock from start to end, the checks rolled between its stretches
+  // included: a tick there would end every screen's slide and set the sky animating against it.
+  return ms > 0 ? holdClock(() => travelTo(target, reason, ms)) : travelTo(target, reason, ms);
+}
+
+async function travelTo(target, reason, ms) {
   const perSecond = target > game.time.worldTime ? ms / (target - game.time.worldTime) : 0;
   // One deadline for the whole advance: each stretch of clock owns its share of the ms, and what a slice
   // leaves of it is waited out before the next check, so a check that misses can't shorten the walk (#324 review).
@@ -798,8 +807,14 @@ function onMoveToken(doc, movement, operation) {
   const dest = movement.passed.waypoints.at(-1);
   const priced = dest && priceTravelMove(doc, movement.origin, movement.passed.waypoints);
   // Even a move within one hex goes through: it may start from an unpaid spot.
-  if (priced) recordMove(doc, movement.origin, dest, priced, movement.passed.waypoints);
+  if (priced) recordMove(doc, movement.origin, dest, priced, movement.passed.waypoints, performance.now());
 }
+
+/**
+ * How long before a walked hex's slide ends its clock is done and the next hex is sent, so core chains
+ * the two slides and the party doesn't stop at each hex: core's own margin for continuing a move.
+ */
+export const chainLeadMs = () => 2 * (game.time?.averageLatency || 0) + 50;
 
 /**
  * Where the token was sent back from, and to (#245 review). The server has
@@ -823,8 +838,9 @@ const posKey = (p) => `${Math.round(p.x)}:${Math.round(p.y)}:${p.elevation ?? 0}
  * last position that was paid for, displaced.
  * @param {{x:number, y:number, elevation?:number}} origin  where this move started
  * @param {{x:number, y:number, elevation?:number}} dest    where it ended
+ * @param {number} [movedAt]  performance.now() when the move came in, when its slide began
  */
-export function recordMove(doc, origin, dest, priced, waypoints = [dest]) {
+export function recordMove(doc, origin, dest, priced, waypoints = [dest], movedAt = performance.now()) {
   return serialize(async () => {
     const back = _unpaid.get(posKey(origin));
     const why = back ? "dependent" : moveVerdict(_state, priced);
@@ -848,12 +864,15 @@ export function recordMove(doc, origin, dest, priced, waypoints = [dest]) {
     if (first && _state.spent > 0 && !_state.pushed) {
       for (const id of [..._state.members]) { const actor = game.actors.get(id); if (actor) await tryForage(actor, true); }
     }
-    // The walk is on this screen: the clock keeps pace with it. Nothing to pace against when the token isn't drawn here.
-    if (priced.cost > 0) await advanceTravel(game.time.worldTime + priced.cost * _state.pointSeconds, "move", doc.object ? walkMs(priced) : 0);
-    if (ownsHexFog(doc.parent)) {
-      const path = doc.parent.grid.getDirectPath([origin, ...waypoints].map(p => doc.getCenterPoint(p))).slice(1);
-      await revealParty(doc, { path, committed: true, weather: _state.weather });
-    }
+    // The walk is on this screen: the clock keeps pace with its slide, counted from when the move came in and
+    // done a beat before it ends (chainLeadMs). Nothing to pace against when the token isn't drawn here.
+    const walk = doc.object ? Math.max(0, walkMs(priced) - (performance.now() - movedAt) - chainLeadMs()) : 0;
+    const path = ownsHexFog(doc.parent) && doc.parent.grid.getDirectPath([origin, ...waypoints].map(p => doc.getCenterPoint(p))).slice(1);
+    // The fog lifts while the party walks in, not in a pause after it.
+    await Promise.all([
+      priced.cost > 0 && advanceTravel(game.time.worldTime + priced.cost * _state.pointSeconds, "move", walk),
+      path && revealParty(doc, { path, committed: true, weather: _state.weather }),
+    ]);
     return true;
   });
 }

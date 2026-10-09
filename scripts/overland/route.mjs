@@ -16,8 +16,9 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { CrawlState } from "../crawl-strip/crawl-state.mjs";
 import { isHexMapScene, hexReader } from "../encounter/encounter-terrain.mjs";
 import { cheapestRoute } from "./overland-state-core.mjs";
-import { overlandState, travelStepCost, travelSettled, fastTravel } from "./overland.mjs";
+import { overlandState, travelStepCost, travelSettled, fastTravel, chainLeadMs } from "./overland.mjs";
 import { ownsHexFog, hexDisclosure } from "../hex-map/hex-fog.mjs";
+import { readPass } from "../hex-map/hex-records.mjs";
 import { L as t } from "../shared/i18n.mjs";
 
 const offsetKey = (o) => `${o.i},${o.j}`;
@@ -49,7 +50,10 @@ function travelToken() {
  */
 export function unknownTo(grid) {
   if (game.user.isGM) return () => false;
-  if (ownsHexFog(canvas.scene)) return o => !hexDisclosure(canvas.scene, o);
+  if (ownsHexFog(canvas.scene)) {
+    const pass = readPass(canvas.scene);
+    return o => !hexDisclosure(canvas.scene, o, "terrain", {}, pass);
+  }
   const extras = game.modules.get("shadowdark-extras");
   if (!extras?.active) return () => false;
   const revealed = extras.api?.hex?.isPositionRevealed;
@@ -276,6 +280,8 @@ async function walk(token, path) {
   const hits = () => overlandState().checks.filter((c) => c.hit).length;
   const before = hits();
   let moved = 0;
+  // When the slides sent so far end on this screen: core chains a move sent while the token still slides.
+  let slideEnd = performance.now();
   try {
     for (let n = 1; n < path.length; n++) {
       if (moveBlocked(token)) break;
@@ -286,12 +292,14 @@ async function walk(token, path) {
       // Resolves once the move is saved; the token is still sliding into the hex.
       if (!(await doc.move({ x, y }))) break;
       moved++;
+      slideEnd = Math.max(slideEnd, performance.now()) + (doc.object ? doc.movement?.animation?.duration ?? 0 : 0);
       // After the active GM has priced, charged and clocked this hex, and rolled its checks.
       await travelSettled();
       // An encounter: one that holds the clock, or one that hit at the step's very end.
       if (overlandState().pending || hits() > before) break;
-      // Hex by hex on screen: the next step starts when this one's slide ends.
-      await doc.object?.movementAnimationPromise;
+      // The next hex goes a beat before this slide ends, so the party walks on without a stop.
+      const wait = slideEnd - chainLeadMs() - performance.now();
+      if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
     }
     const s = overlandState();
     if (moved && !s.pending && hits() === before && s.hex) {

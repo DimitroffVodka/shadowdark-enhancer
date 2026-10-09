@@ -454,17 +454,18 @@ export function priceMove(steps, costOf) {
 }
 
 /** How long a hex takes on screen, real ms: a share of the cost and a share flat, so a difficult hex drags. */
-export const WALK_MS_PER_POINT = 650;
-export const WALK_MS_PER_HEX = 250;
+export const WALK_MS_PER_POINT = 1100;
+export const WALK_MS_PER_HEX = 400;
 /** The clock moves in slices this long while the token walks or a camp runs, so the bar, the sky and the lights keep pace. */
 export const WALK_SLICE_MS = 150;
 
 /**
- * A camp's or Continue's time-lapse in real ms: a beat and a share of the span, never long,
- * so a night takes about 3 s and a few minutes half a second (0: no clock to move).
+ * A camp's or Continue's time-lapse in real ms: a beat and a share of the span, long enough to watch
+ * the dusk fall and the dawn lift, so a 12-hour night takes about 8 s and a few minutes just over one
+ * (0: no clock to move).
  * @param {number} seconds  the clock the advance covers
  */
-export const lapseMs = (seconds) => (seconds > 0 ? Math.min(3200, Math.round(400 + seconds / 18)) : 0);
+export const lapseMs = (seconds) => (seconds > 0 ? Math.min(10000, Math.round(1000 + seconds / 6)) : 0);
 
 /**
  * How long the travel token takes to walk a priced move on screen, in ms (0: nothing to walk).

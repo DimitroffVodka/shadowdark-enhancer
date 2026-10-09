@@ -261,10 +261,10 @@ test("a move of a token drawn on this screen runs the clock in slices over its w
   const took = performance.now() - started;
   const { advanced } = globalThis.game.time;
   assert.equal(ok, true);
-  assert.equal(advanced.length, 6, "one hex is 0.9 s, a slice every 150 ms");
+  assert.equal(advanced.length, 10, "one hex is 1.5 s less the chain lead, a slice every 150 ms");
   assert.equal(advanced.reduce((sum, dt) => sum + dt, 0), 8 * 3600 / 5, "the whole hex, 1.6 hours");
   assert.ok(globalThis.game.time.options.every((o) => o?.["shadowdark-enhancer"]?.paceMs === 150), "each slice tells the sky its pace");
-  assert.ok(took >= 700 && took < 1800, `it took the walk's time, ${Math.round(took)} ms`);
+  assert.ok(took >= 1300 && took < 2400, `it took the walk's time, ${Math.round(took)} ms`);
 });
 
 test("the mover's client stretches the walk to the clock's time, and leaves a move that asked for its own animation", () => {
@@ -277,7 +277,7 @@ test("the mover's client stretches the walk to the clock's time, and leaves a mo
     const doc = { id: "t" };
     const options = {};
     slowWalk(doc, move, options, { cost: 2, steps: [{}] });
-    assert.deepEqual(options.animation, { duration: 1550 });
+    assert.deepEqual(options.animation, { duration: 2600 });
     assert.deepEqual(configured[0].slice(0, 3), [options, move.origin, [{ x: 1 }, { x: 2 }]], "core turns the duration into a speed over the whole path");
     const own = { animation: { duration: 0 } };
     slowWalk(doc, move, own, { cost: 2, steps: [{}] });
@@ -519,10 +519,10 @@ test("Continue runs the rest of a move as a time-lapse when the party's scene is
     assert.equal((await applyAction({ action: "resume" }, gm)).ok, true);
     const took = performance.now() - started;
     assert.equal(times.worldTime, at(1301, 6, 21, 16));
-    assert.equal(times.advanced.length, 5, "2 hours is 800 ms, a slice every 150");
+    assert.equal(times.advanced.length, 15, "2 hours is 2.2 s, a slice every 150");
     assert.equal(times.advanced.reduce((sum, dt) => sum + dt, 0), 2 * 3600);
     assert.ok(times.options.every((o) => o?.["shadowdark-enhancer"]?.paceMs === 150), "the sky is told the pace");
-    assert.ok(took >= 600 && took < 1800, `it took the time-lapse, ${Math.round(took)} ms`);
+    assert.ok(took >= 2000 && took < 3400, `it took the time-lapse, ${Math.round(took)} ms`);
   } finally {
     delete globalThis.canvas;
     globalThis.fromUuidSync = savedLookup;

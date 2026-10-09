@@ -193,9 +193,12 @@ export async function publishHexProjection(target) {
   if (!journal) return;
   assertPrivateJournal(journal);
   const cells = {};
+  // One pass for every cell: a lone read decodes all ~4,800 tags (6 ms each in Firefox), and this runs on every
+  // reveal, once for each recorded hex (a second a walked hex on the Western Reaches map before it had one).
+  const pass = readPass(scene);
   for (const key of Object.keys(journal.flags[MODULE_ID][RECORD_FLAG].cells ?? {})) {
     const [i, j] = key.split("_").map(Number);
-    const projection = playerProjection(HexRecords.read({ i, j }, scene));
+    const projection = playerProjection(HexRecords.read({ i, j }, scene, pass));
     if (projection) cells[key] = projection;
   }
   const value = { version: 1, sceneUuid: sceneUuid(scene), cells };

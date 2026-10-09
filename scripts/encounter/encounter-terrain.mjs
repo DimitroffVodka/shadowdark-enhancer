@@ -23,7 +23,7 @@ import { findSuitePack } from "../shared/compendium-suite.mjs";
 import { cellNumber, foundryOffsetToCube } from "../hex-map/geometry.mjs";
 import { decodeTags, readCell, FEATURES, NOT_GROUND } from "../hex-map/tag-store.mjs";
 import { extrasRecordsByOffset } from "../hex-map/extras-records.mjs";
-import { HexRecords, isHexAdopted, recordJournal, RECORD_FLAG, PUBLIC_FLAG } from "../hex-map/hex-records.mjs";
+import { HexRecords, isHexAdopted, readPass, recordJournal, RECORD_FLAG, PUBLIC_FLAG } from "../hex-map/hex-records.mjs";
 import { moonPhase } from "../time/time-core.mjs";
 import { moonEpoch } from "../time/time.mjs";
 import { Party } from "../party/party.mjs";
@@ -400,12 +400,15 @@ export function hexReader(canvasRef = globalThis.canvas) {
   const scene = canvasRef?.scene;
   if (isHexAdopted(scene)) {
     const rect = scene?.dimensions?.sceneRect;
+    // One pass for the reader's life: a lone read decodes all ~4,800 tags and scans every pin, and a
+    // route search reads hundreds of hexes (seconds of a frozen tab on the A0 map).
+    const pass = readPass(scene);
     return offset => {
       if (rect) {
         const at = grid.getCenterPoint(offset);
         if (!rect.contains(at.x, at.y)) return null;
       }
-      const record = HexRecords.read(offset, scene);
+      const record = HexRecords.read(offset, scene, pass);
       // Unknown native cells remain traversable on-map; never reveal their real terrain or price.
       if (!record) return { num: null, terrain: null, features: [] };
       return { num: record.num, terrain: record.terrain, features: (record.features ?? []).map(f => f?.type).filter(type => FEATURES.includes(type)) };

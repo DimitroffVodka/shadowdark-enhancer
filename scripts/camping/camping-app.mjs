@@ -26,6 +26,9 @@ export class CampingApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
   async change(action, data = {}) {
     const run = (this.writes ?? Promise.resolve()).catch(() => {}).then(async () => {
+      // The night plays as a time-lapse on the map: the window folds away for it and opens again at dawn.
+      const win = this.host ?? this, fold = action === "night" && win.rendered && !win.minimized ? win : null;
+      if (fold) await fold.minimize();
       try {
         const overland = action === "night" ? await import("../overland/overland.mjs") : null;
         const result = overland ? await (overland.overlandState().pending?.reason === "camp" ? overland.resume(this.party) : overland.makeCamp(this.party, data.acceptShortages === true)) : await requestCamp(this.party, action, data);
@@ -33,7 +36,7 @@ export class CampingApp extends HandlebarsApplicationMixin(ApplicationV2) {
         if (!result.ok && !this.host) ui.notifications.warn(result.error);
         return result;
       }
-      finally { (this.host ?? this).render(); }
+      finally { if (fold?.minimized) await fold.maximize(); (this.host ?? this).render(); }
     });
     this.writes = run;
     return run;

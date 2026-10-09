@@ -228,6 +228,7 @@ function stubGame(t, { gm = true, active = true, calendar } = {}) {
   globalThis.CONFIG = { queries: {} };
   globalThis.Hooks = {
     on: (name, fn) => { handlers[name] = fn; },
+    once() {},
     callAll: (name, payload) => calls.push({ name, payload }),
   };
   const user = { id: "u1", isGM: gm };
@@ -332,4 +333,38 @@ test("Session Recap's entry stamp carries the in-game time", async () => {
   delete globalThis.game.time;
   const bare = SessionRecap._stamp();
   assert.deepEqual([bare.worldTime, bare.gameTime], [null, null], "no clock: the keys are there, empty");
+});
+
+test("a paced clock step slides the time this screen shows; a tick rides along, a real move ends the slide where the clock is (#257)", async () => {
+  const { registerTimeHooks, shownTime, onShownTime } = await import("../scripts/time/time.mjs");
+  const t0 = at(1301, 6, 21, 12);
+  stubGame(t0);
+  const hooks = [], frames = [], painted = [];
+  globalThis.Hooks.on = (name, fn) => { if (name === "updateWorldTime") hooks.push(fn); };
+  globalThis.requestAnimationFrame = (fn) => frames.push(fn);
+  onShownTime((time, done) => painted.push([time, done]));
+  const step = (dt, options = {}) => { globalThis.game.time.worldTime += dt; for (const fn of hooks) fn(globalThis.game.time.worldTime, dt, options, "u1"); };
+  const paced = { "shadowdark-enhancer": { paceMs: 1000 } };
+  const near = (a, b, why) => assert.ok(Math.abs(a - b) < 15, `${why}: ${a - t0} s, not ${b - t0}`);
+  try {
+    registerTimeHooks();
+    step(600, paced);
+    const began = performance.now();
+    near(shownTime(began), t0, "it starts from the time the clock just left");
+    near(shownTime(began + 1000), t0 + 300, "half way through, over two paces");
+    assert.equal(shownTime(began + 5000), t0 + 600, "and stops at the clock");
+    assert.equal(frames.length, 1, "one frame asked for");
+    step(600, paced);
+    near(shownTime(), t0, "the next slice slides on from where it had got");
+    near(shownTime(performance.now() + 2000), t0 + 1200, "to the new clock");
+    step(1);
+    assert.ok(shownTime() < t0 + 1201, "a real-time light tick rides along with the slide");
+    assert.equal(shownTime(performance.now() + 2000), t0 + 1201, "and moves where it ends");
+    step(3600);
+    assert.equal(shownTime(), t0 + 4801, "an ordinary move: the clock, at once");
+    frames.shift()();
+    assert.deepEqual(painted.at(-1), [t0 + 4801, true], "the painters hear the slide end");
+  } finally {
+    delete globalThis.requestAnimationFrame;
+  }
 });

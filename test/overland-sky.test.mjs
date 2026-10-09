@@ -172,9 +172,31 @@ test("the active GM darkens a hex map at night to its cap, animated for a short 
   const jump = scene();
   await applySky(jump, { dt: 86400 });
   assert.deepEqual(jump.writes[0].options, {}, "a long jump isn't animated");
-  const walked = scene();
-  await applySky(walked, { dt: 5000, paceMs: 150 });
-  assert.deepEqual(walked.writes[0].options, { animateDarkness: 150 }, "a slice of a walk is followed at the walk's pace, even a long one");
+});
+
+test("a walk's paced slices leave the darkness to every screen; it is written once, when they stop", async () => {
+  sky();
+  const s = scene();
+  const handlers = {};
+  const { on } = globalThis.Hooks;
+  globalThis.Hooks.on = (name, fn) => { handlers[name] = fn; };
+  try {
+    registerSky();                                               // no scene yet: the ready pass writes nothing
+    globalThis.game.scenes = { active: s };
+    for (let n = 0; n < 3; n++) {
+      handlers.updateWorldTime(0, 600, { "shadowdark-enhancer": { paceMs: 50 } });
+      handlers[OVERLAND_CHANGED]();                              // a check's commit mid-walk
+      await new Promise((r) => setTimeout(r, 40));
+    }
+    assert.deepEqual(s.writes, [], "nothing while the slices run");
+    await new Promise((r) => setTimeout(r, 700));
+    assert.deepEqual(s.writes, [], "nor while they may resume: a check rolled between two stretches of the night");
+    await new Promise((r) => setTimeout(r, 2000));
+    assert.deepEqual(s.writes, [{ changes: { "environment.darknessLevel": 0.6 }, options: {} }], "one write, not animated: every screen is already there");
+  } finally {
+    globalThis.Hooks.on = on;
+    delete globalThis.game.scenes;
+  }
 });
 
 test("any hex grid follows the sky, tagged or not; the scene's own choice still wins (#298)", async () => {

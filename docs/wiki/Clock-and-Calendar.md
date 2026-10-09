@@ -59,11 +59,13 @@ there, and the steps wait until the encounter is continued.
 ### Walking a hex takes its time
 
 The party token walks as long as the clock takes to move it. A normal hex is
-about a second on screen, and a difficult hex, which costs two points, is
-about a second and a half. The clock runs alongside, in small steps,
-so the date and time on the bar, the sky's darkness and the burning torches
-all keep pace with the token instead of jumping at the start. A route across
-several hexes walks them one after another.
+about a second and a half on screen, and a difficult hex, which costs two
+points, is about two and a half seconds. The clock runs alongside, and on
+every screen the bar's dial turns, its time ticks over and the sky darkens or
+lightens smoothly with the token instead of jumping; the burning torches keep
+pace too, and the fog lifts from a hex as the party walks into it. A route
+across several hexes walks them in one unbroken stride; it stops only where a
+check rolls an encounter or the day's points run out.
 
 **Fast travel** (GM): with the party token selected, **Shift-click** the end of the
 route the cursor shows and the party is there at once. No day has to be open, and
@@ -73,10 +75,12 @@ yourself from the bar if the trip should take time. It is refused while an
 encounter is held, until you press Continue. Players' Shift-clicks do nothing.
 
 **Make camp** and **Continue** run the rest of the night, or of a stopped move, as
-a time-lapse: a beat plus a share of the span, never more than about three
-seconds. The bar's time, the sky's darkness (dusk falling, dawn lifting) and the
-torches all run through it, and an encounter check still rolls at its hour and
-stops the clock there.
+a time-lapse: a beat plus a share of the span, about eight seconds for a whole
+night and never more than ten. The camp window folds away while the night runs,
+so you watch it on the map, and opens again at dawn with the results. The bar's
+time, the sky's darkness (dusk falling, dawn lifting) and the torches all run
+through it, and an encounter check still rolls at its hour and stops the clock
+there.
 
 When the party's scene is not the one on the GM's screen there is nothing to
 keep pace with, and the clock moves in one step as before. So do the clock bar's
