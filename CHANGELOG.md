@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Added
+- **Hide the hex hover card.** A switch at the end of the Hex map toolbar group stops the card that follows the mouse over the hex map. It is per GM and stays off across reloads.
 - **Right-click a hex with the Hex Brush open to copy its terrain and features.** The brush picks up whatever the hex under the cursor says (a terrain the map's list lacks lands in the Other box), so a good result can be painted straight over a bad one. A right-drag still pans the map.
 - **The Hexplorer's terrain is a dropdown, not a text box.** It offers the map's own terrains (the same list as the on-map editor, alphabetical); to name a new one you pick "other…" and type it there. Nothing is typed by default any more.
 - **The hex tagger's terrain dropdowns are alphabetical.** The review sheet, the Legend cards and the import wizard's hex check listed terrains in the book's printed order; they now sort like the on-map editor's list, with (untagged) first and other... last.
@@ -122,6 +123,7 @@
   earlier "Include mounts" had already placed on a scene is still recalled by Place / Recall.
 
 ### Fixed
+- **The GM's hex hover card shows the terrain.** On a hex the players have not found, the card used to say "Concealed from players" with no terrain; the GM now sees the hex's real terrain there. Players still see the concealed line.
 - **No more "failed to register sdeVehicleBody partial" error in the console at start-up.** The Mount and Boat sheets stopped using that shared tabs template, but a merge put its registration back; it is gone again. Nothing on screen changed.
 - **Building an adventure map again no longer undoes hand-corrected walls and lights.** Tools → Adventure map on a scene that was already built, or the placer's From book button, used to delete every wall and light the module had made and put the shipped ones back. Now, once a scene has them, they are left exactly as they are.
 - **A merchant sale never pays for more than the seller holds.** Typing a quantity larger than the stack in the Sell tab paid for that many and restocked the merchant with them; the sale now stops at what the character carries.

@@ -12,6 +12,7 @@
 
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { HexTagOverlay, TOOLS_HOOK } from "./tag-overlay.mjs";
+import { hexTooltipHidden, toggleHexTooltip } from "./hex-explorer.mjs";
 
 const BRUSH_ID = "sde-hex-brush";
 
@@ -25,7 +26,7 @@ export const refreshOptions = (selected, stays) => (selected === "sdeHexMap" && 
 const refresh = () => ui.controls?.render(refreshOptions(ui.controls?.control?.name, !!hexMapTools(canvas?.scene, { isGM: !!game.user?.isGM })));
 
 /** The tools for a scene, or null when it has no hex numbering (nothing to show, paint or review). */
-export function hexMapTools(scene, { mode = "", brush = false, isGM = false } = {}) {
+export function hexMapTools(scene, { mode = "", brush = false, isGM = false, tooltipHidden = false } = {}) {
   if (!isGM || !scene?.getFlag?.(MODULE_ID, "hexTags")?.origin) return null;
   const overlay = (name, picked, icon, title, order) => ({
     name, title, icon, order, toggle: true, active: mode === picked,
@@ -52,12 +53,16 @@ export function hexMapTools(scene, { mode = "", brush = false, isGM = false } = 
     name: "hexTagger", title: "SDE.hexMap.controls.tagger", icon: "fa-solid fa-map-location-dot", order: 6, button: true,
     onChange: async () => (await import("./hex-tagger-app.mjs")).HexTaggerApp.open(),
   };
+  tools.hexTooltip = {
+    name: "hexTooltip", title: "SDE.hexMap.controls.tooltip", icon: "fa-solid fa-comment-slash", order: 7, toggle: true, active: tooltipHidden,
+    onChange: async () => { await toggleHexTooltip(); refresh(); },
+  };
   return tools;
 }
 
 export function registerHexMapControls() {
   Hooks.on("getSceneControlButtons", (controls) => {
-    const tools = hexMapTools(canvas?.scene, { mode: HexTagOverlay.current?.mode ?? "", brush: brushOpen(), isGM: !!game.user?.isGM });
+    const tools = hexMapTools(canvas?.scene, { mode: HexTagOverlay.current?.mode ?? "", brush: brushOpen(), isGM: !!game.user?.isGM, tooltipHidden: hexTooltipHidden() });
     if (!tools) return;
     controls.sdeHexMap = { name: "sdeHexMap", title: "SDE.hexMap.controls.title", icon: "fa-solid fa-hexagon-nodes", order: 90, activeTool: "", tools };
   });

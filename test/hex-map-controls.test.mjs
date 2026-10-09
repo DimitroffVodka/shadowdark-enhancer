@@ -13,10 +13,10 @@ test("no toolbar group for a player, or for a scene with no hex numbering", () =
 
 test("a numbered scene gets terrain, brush, review and the tagger; regions and zones only once its borders are read", () => {
   const numbered = scene({ hexTags: { origin: { num: "0000" } } });
-  assert.deepEqual(Object.keys(hexMapTools(numbered, { isGM: true })), ["hexTerrain", "hexBrush", "hexReview", "hexTagger"]);
+  assert.deepEqual(Object.keys(hexMapTools(numbered, { isGM: true })), ["hexTerrain", "hexBrush", "hexReview", "hexTagger", "hexTooltip"]);
   const read = scene({ hexTags: { origin: { num: "0000" } }, hexRegions: { v: 1 } });
   const tools = hexMapTools(read, { isGM: true });
-  assert.deepEqual(Object.keys(tools), ["hexTerrain", "hexRegions", "hexZones", "hexBrush", "hexReview", "hexTagger"]);
+  assert.deepEqual(Object.keys(tools), ["hexTerrain", "hexRegions", "hexZones", "hexBrush", "hexReview", "hexTagger", "hexTooltip"]);
   const order = Object.values(tools).map((t) => t.order);
   assert.deepEqual(order, [...order].sort((a, b) => a - b));
 });
@@ -34,4 +34,10 @@ test("the toolbar falls back to Tokens when the selected Hex map group goes away
   assert.deepEqual(refreshOptions("sdeHexMap", false), { reset: true, control: "tokens" });
   assert.deepEqual(refreshOptions("sdeHexMap", true), { reset: true });
   assert.deepEqual(refreshOptions("tiles", false), { reset: true }, "another group stays where it is");
+});
+
+test("the hover-card switch is last in the group and shows as on while the card is hidden", () => {
+  const numbered = scene({ hexTags: { origin: { num: "0000" } } });
+  assert.equal(hexMapTools(numbered, { isGM: true }).hexTooltip.active, false);
+  assert.equal(hexMapTools(numbered, { isGM: true, tooltipHidden: true }).hexTooltip.active, true);
 });
