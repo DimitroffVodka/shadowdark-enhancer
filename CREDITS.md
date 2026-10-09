@@ -72,6 +72,85 @@ line up as stacked levels. The artwork itself is unchanged.
 
 These products are not affiliated with Shadowdark Enhancer or The Arcane Library.
 
+## Encounter battle maps (`assets/scenes/encounter/`)
+
+The battle maps a hex-travel encounter opens (the Battle map button on the
+Encounter panel) live in this folder: 43 pictures, 36 for the picker and 7 that
+are the camp versions of some of those. All of them are by
+**[2-Minute Tabletop](https://2minutetabletop.com)** and licensed under
+[CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/). They were
+downloaded from the linked product pages and re-encoded to WebP (lossy, quality
+80) for the module, and each has a 480-pixel preview in `thumbs/` (the same
+picture scaled down, quality 75) for the picker's list. Their **non-commercial**
+designation is a licensing boundary of these assets, separate from the module's
+own code license. Supporting the artists is encouraged at their
+[Patreon](https://www.patreon.com/2minutetabletop).
+
+Two kinds of picture are here, and these are the only changes made to them:
+
+- **Built maps** are assembled for this module from the textures and objects of
+  the products listed against them: an adaptation, in which the artwork of each
+  texture and object is unchanged and only its arrangement into a scene is new.
+  The camp version of a built map is the same scene with the objects of
+  [Camp Tokens](https://2minutetabletop.com/product/camp-tokens/) set down
+  around a fire.
+- **Pack maps** are a product's own battle map, rescaled uniformly to 100 pixels
+  a square so every map shares one grid. The artwork is otherwise unchanged.
+
+The picker names each map for what it shows, not for the product it was sold
+as, so the first column is what you see in Foundry and the others are what to
+buy or credit. The authors are as each product page states them (checked
+2026-10-08). Each map in the picker also carries its products as hover text; the
+tables here are the complete list.
+
+Built maps:
+
+| Shown in the picker as | Made from | Author |
+|---|---|---|
+| Forest woods (and its camp) | [Forest Floor Map Assets](https://2minutetabletop.com/product/forest-floor-map-assets/), [Forest Treetop Map Assets](https://2minutetabletop.com/product/forest-treetop-map-assets/) | Ross McConnell |
+| Forest road (and its camp) | [Tiling Grass Textures](https://2minutetabletop.com/product/tiling-grass-textures/), [Forest Floor Map Assets](https://2minutetabletop.com/product/forest-floor-map-assets/), [Forest Treetop Map Assets](https://2minutetabletop.com/product/forest-treetop-map-assets/) | Ross McConnell |
+| Open grassland (and its camp) | [Tiling Grass Textures](https://2minutetabletop.com/product/tiling-grass-textures/), [Forest Floor Map Assets](https://2minutetabletop.com/product/forest-floor-map-assets/), [Forest Treetop Map Assets](https://2minutetabletop.com/product/forest-treetop-map-assets/) | Ross McConnell |
+| Dense jungle (and its camp) | [Forest Floor Map Assets](https://2minutetabletop.com/product/forest-floor-map-assets/), [Forest Treetop Map Assets](https://2minutetabletop.com/product/forest-treetop-map-assets/) | Ross McConnell |
+| Swamp bog (and its camp) | [Forest Floor Map Assets](https://2minutetabletop.com/product/forest-floor-map-assets/), [Forest Treetop Map Assets](https://2minutetabletop.com/product/forest-treetop-map-assets/), [River & Water Assets](https://2minutetabletop.com/product/river-and-water-assets/) | Ross McConnell |
+| Desert dunes (and its camp) | [Desert Map Assets](https://2minutetabletop.com/product/desert-map-assets/) | Ross McConnell |
+| Salt flat (and its camp) | [Desert Map Assets](https://2minutetabletop.com/product/desert-map-assets/) | Ross McConnell |
+| River (rowboat) | [Endless River](https://2minutetabletop.com/product/endless-river/), [Rowboat](https://2minutetabletop.com/product/rowboat/) | Ross McConnell |
+| Calm lake (rowboat) | [River & Water Assets](https://2minutetabletop.com/product/river-and-water-assets/), [Ocean Surface Assets](https://2minutetabletop.com/product/ocean-surface-assets/), [Rowboat](https://2minutetabletop.com/product/rowboat/) | Ross McConnell |
+| Open sea (galleon) | [Ocean Water Textures](https://2minutetabletop.com/product/ocean-water-textures/), [Ocean Surface Assets](https://2minutetabletop.com/product/ocean-surface-assets/), [The Galleon](https://2minutetabletop.com/product/galleon-ship/) | Ross McConnell |
+| Ice floes (longship) | [Ocean Water Textures](https://2minutetabletop.com/product/ocean-water-textures/), [Snowy Winter Assets](https://2minutetabletop.com/product/snowy-winter-assets/), [Viking Longship](https://2minutetabletop.com/product/viking-longship/) | Ross McConnell |
+
+Pack maps:
+
+| Shown in the picker as | Product | Author |
+|---|---|---|
+| Forest: edge of the woods | [Edge of the Woods](https://2minutetabletop.com/product/edge-of-the-woods/) | Ross McConnell |
+| Path: wild road | [Wild Road](https://2minutetabletop.com/product/wild-road/) | Ross McConnell |
+| Path: roadside wilderness | [Roadside Wilderness](https://2minutetabletop.com/product/roadside-wilderness/) | Ross McConnell |
+| Path: cobblestone highway | [Cobblestone Highway](https://2minutetabletop.com/product/cobblestone-highway/) | Ross McConnell |
+| Forest: bandit ambush | [Bandit Ambush](https://2minutetabletop.com/product/bandit-ambush/) | Ross McConnell |
+| Forest: occupied camp | [Forest Camp](https://2minutetabletop.com/product/forest-camp/) | Ross McConnell |
+| Grassland: green hill | [Green Hill](https://2minutetabletop.com/product/green-hill/) | Ross McConnell |
+| Grassland: meadow picnic | [Meadow Picnic](https://2minutetabletop.com/product/meadow-picnic/) | Ross McConnell |
+| Grassland: farmer's fields | [Farmer’s Fields](https://2minutetabletop.com/product/farmers-fields/) | Ross McConnell |
+| Swamp: trail | [Swamp Trail](https://2minutetabletop.com/product/swamp-trail/) | Ross McConnell |
+| Swamp: haunted marsh | [Haunted Marsh](https://2minutetabletop.com/product/haunted-marsh/) | Ross McConnell |
+| Desert: rocky desert | [Rocky Desert](https://2minutetabletop.com/product/rocky-desert/) | Ross McConnell |
+| Mountain: highland pass | [Highland Pass](https://2minutetabletop.com/product/highland-pass/) | Ross McConnell |
+| Canyon: prehistoric creek | [Prehistoric Creek](https://2minutetabletop.com/product/prehistoric-creek/) | Ross McConnell |
+| Canyon: natural stone bridge | [Natural Stone Bridge](https://2minutetabletop.com/product/natural-stone-bridge/) | Ross McConnell |
+| Canyon: rocky fissures | [Rocky Fissures](https://2minutetabletop.com/product/rocky-fissures/) | Ross McConnell |
+| Coast: beach dunes | [Beach Dunes](https://2minutetabletop.com/product/beach-dunes/) | Ross McConnell |
+| Coast: rocky coast | [Rocky Coast](https://2minutetabletop.com/product/rocky-coast/) | Ross McConnell |
+| Coast: driftwood cove | [Driftwood Cove](https://2minutetabletop.com/product/driftwood-cove/) | Ross McConnell |
+| Coast: crab rock | [Crab Rock](https://2minutetabletop.com/product/crab-rock/) | Ross McConnell |
+| Volcano: rock pools | [Rock Pools](https://2minutetabletop.com/product/rock-pools/) | Ross McConnell |
+| Volcano: scattered islands | [Scattered Islands](https://2minutetabletop.com/product/scattered-islands/) | Ross McConnell |
+| Deep tunnels: jagged cave | [Jagged Cave](https://2minutetabletop.com/product/jagged-cave/) | Ross McConnell |
+| Deep tunnels: pooling caverns | [Pooling Caverns](https://2minutetabletop.com/product/pooling-caverns/) | Ross McConnell |
+| Deep tunnels: luminescent cave | [Luminescent Cave](https://2minutetabletop.com/product/luminescent-cave/) | Ross McConnell |
+
+These products are not affiliated with Shadowdark Enhancer or The Arcane Library.
+
 ## Character Builder — ancestry portraits (`assets/ancestries/`)
 
 Black-and-white ancestry portraits (Dwarf, Elf, Goblin, Half-Orc, Kobold; Elf

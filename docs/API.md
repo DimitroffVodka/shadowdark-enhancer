@@ -8,6 +8,7 @@ and Forge & Loot features.
 **Namespaces:** [`import`](#import--universal-dump-segmentation) ·
 [`items`](#items--bulk-items-importer) · [`monsters`](#monsters--bulk-monster-importer) ·
 [`linker`](#linker--name--compendium-resolution) · [`encounter`](#encounter) ·
+[`encounterMaps`](#encountermaps--battle-maps-for-encounters) ·
 [`loot`](#loot) · [`tables`](#tables) · [`bundle`](#bundle--suite-export--import) ·
 [`mutator`](#mutator) · [`monsterCreator`](#monstercreator--forge) ·
 [`monsterSpells`](#monsterspells) · [`forge`](#monstercreator--forge) · [`forgeLoot`](#forgeloot--preview-first-generator-shell) · [`tokenArt`](#tokenart--monster-compendium-art) ·
@@ -281,6 +282,82 @@ so a Myre Swamp hex on a new-moon night rolls *New Moon*. `moon` (`"new"`,
 `"full"`, or `null` to leave it undecided) overrides the clock.
 `scene` names the scene whose region scan answers (default: the one being
 viewed, or the world's only scanned print).
+
+## `encounterMaps` — battle maps for encounters
+
+Takes a travel encounter to a battle map: the scene is made or reused, the
+party's tokens and the rolled monsters are placed on it, and its art starts
+loading on every player's computer. GM-only, except `pick`, which only asks. All
+five calls return promises, and each part of the feature loads the first time
+it is called.
+
+```js
+const api = game.shadowdarkEnhancer;
+
+// The flow the Battle map button runs. `choose: true` opens the picker first;
+// without it the terrain's default map opens, and the picker opens anyway when
+// the terrain is unknown or every map for it is switched off.
+await api.encounterMaps.open({ enc, terrain: "forest", hex, choose: false });
+
+// The picker alone: a promise for the GM's choice.
+const picked = await api.encounterMaps.pick({ terrain: "forest", night: false, camping: false });
+// → { mapId: "forest-woods", variant: "camp", night: true }   a shipped map
+//   { sceneId: "k3Jx9aQz" }                                    a scene already in the world, used as it is
+//   null                                                       the window was closed with nothing chosen
+
+await api.encounterMaps.current();       // the battle in progress, or null
+await api.encounterMaps.bringTable();    // the table moves to the battle map
+await api.encounterMaps.returnToTravel({ keep: true, label: "Ambush at the ford" });
+```
+
+`open({ enc, terrain, hex, choose })` is what both the Encounter panel's
+**Battle map** and **Choose map…** buttons and the posted chat card's button
+run. `enc` is the held encounter (`uuid`, `name`, `count`, `distanceRoll`),
+`terrain` the party's hex terrain key (`forest`, `river`, `arctic_sea` and so
+on), `hex` the hex it is in. It resolves to what the set-up returns, or `null`
+when nothing was set up, which includes the case where a battle is already set
+up: one battle runs at a time.
+
+`pick({ terrain, night, camping })` opens the picker window. `terrain` puts that
+terrain's maps first and `night` and `camping` seed its Night and Camp
+toggles. It resolves to:
+
+- `{ mapId, variant, night }` for a shipped map. `mapId` is always the day map's
+  id. `variant` is `"camp"` when Camp was on and the map has camp art, else
+  `"night"` or `"day"`. `night` is whether Night was on, which a camp can be
+  either way.
+- `{ sceneId }` for a scene already in the world, which is used as it is.
+- `null` when the window was closed without a choice.
+
+Only one picker is open at a time: asking again closes the earlier one, whose
+caller gets `null`.
+
+`current()` resolves to the battle in progress as `{ battle, scene }`: its record
+(`id`, `status`, `mapId`, `sceneId`, `variant`, `terrain`, `tokenIds`, `combatId`,
+`encounter`) and its scene. The battle is *staged* once set up and viewed by the
+GM only, and *live* once the table is brought. It is `null` once the table has
+returned to travel.
+
+`bringTable()` makes the battle's scene the active one for everyone and makes its
+combat, not started. `returnToTravel({ keep, label })` ends the combat, takes down
+the tokens the battle placed and puts the table back on the scene it came from.
+With `keep`, a shipped map is copied first, tokens and all, into the *Saved
+encounters* folder (named `label`), and nothing is taken down if the copy fails; a
+scene from the world is not copied and keeps its tokens. If the combat cannot be
+ended, or some tokens cannot be taken down, it stops and keeps the battle, so the
+call can be made again. Both act on the battle in progress, or on the one a
+`battleId` in their options names, and resolve to `null` when there is none or the
+call was refused or stopped.
+
+The GM's choices are stored in two world settings, which are part of the
+contract (worlds hold them): `encounterMapPrefs`, `{ [terrain]: { pinned: mapId |
+null, disabled: mapId[] } }`, written only by the picker's pin, Pick at random
+and switch-off controls; and `encounterMapPreload`, a boolean in Configure
+Settings. What the Battle map button opens for a terrain follows the saved entry:
+with none saved, the library's first map; with a pin that is switched on, the pin;
+with an entry that has no such pin, a random one of the maps that are switched on
+(the GM's choice of random). The picker marks the same default the button opens,
+and shows Random on each map in the draw when the choice is random.
 
 ## `loot`
 

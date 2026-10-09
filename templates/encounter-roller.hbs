@@ -31,7 +31,7 @@
             <table class="ui-table">
               <tbody>
                 {{#each tablePreview.rows}}
-                <tr class="{{#if this.flavor}}er-flavor{{/if}}" data-result-id="{{this.id}}">
+                <tr class="{{#if this.flavor}}er-flavor{{/if}}" data-result-id="{{this.id}}"{{#if this.actorUuid}} data-actor-uuid="{{this.actorUuid}}"{{/if}}>
                   <td class="num er-range">{{this.range}}</td>
                   <td>{{#if this.flavor}}<i class="fas fa-scroll ui-muted"></i> {{/if}}{{this.name}}{{#if this.appearing}} <span class="ui-chip">{{this.appearing}}</span>{{/if}}</td>
                   <td class="er-acts">

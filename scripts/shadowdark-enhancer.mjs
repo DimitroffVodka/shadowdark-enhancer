@@ -132,7 +132,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "05584e03f087";
+const STYLESHEET_REV = "7883b351acf9";
 
 // The same problem for the SCRIPTS, which cannot be solved the same way: their
 // URLs come from the manifest, which Foundry validates as real package paths,
@@ -147,7 +147,7 @@ const STYLESHEET_REV = "05584e03f087";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "1d783d50747a";
+const BUILD_REV = "f728a0b24df2";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -640,6 +640,26 @@ Hooks.once("init", () => {
       // so Shadowdark Extras' hex fog can roll the same one. { hour } overrides the clock.
       tableForHex: (hex, opts) => tableForHex(hex, opts),
     },
+    // Battle maps for encounters (docs/plans/encounter-battle-maps.md). GM-only, except pick(),
+    // which only asks. Each part loads on first use; all five return promises.
+    encounterMaps: {
+      // The flow the Battle map button runs: { enc, terrain, hex, choose }. `choose` opens the picker first.
+      open: async (opts) => (await import("./encounter/battle-maps/battle-actions.mjs")).openBattleMap(opts),
+      // The picker alone: { terrain, night, camping } -> { mapId, variant, night } | { sceneId } | null.
+      pick: async (opts) => (await import("./encounter/battle-maps/battle-map-picker.mjs")).BattleMapPicker.pick(opts),
+      // The battle in progress (set up or live), or null.
+      current: async () => (await import("./encounter/battle-maps/encounter-battle.mjs")).BattleMaps.current(),
+      // Bring the table to the battle in progress; { battleId } names another.
+      bringTable: async (opts = {}) => {
+        const { BattleMaps, id } = await battleInProgress(opts.battleId);
+        return id ? BattleMaps.bringTable(id) : null;
+      },
+      // Send the table back to the travel map: { keep, label, battleId }.
+      returnToTravel: async (opts = {}) => {
+        const { BattleMaps, id } = await battleInProgress(opts.battleId);
+        return id ? BattleMaps.returnToTravel(id, opts) : null;
+      },
+    },
     monsterCreator: {
       open: () => MonsterCreator.open(),
     },
@@ -1073,6 +1093,30 @@ Hooks.on("quenchReady", async (quench) => {
   }
 });
 
+// Encounter battle maps. Each registration loads its file with a dynamic import in a try of its own:
+// a missing file, or a registration that throws, is logged and the other still runs. That is all this guards:
+// overland-bar.mjs and encounter-draw.mjs import battle-actions.mjs and its core statically.
+async function wireBattleMaps(name, load) {
+  try {
+    (await load())[name]();
+  } catch (err) {
+    console.error(`${MODULE_ID} | encounter battle maps: ${name} failed:`, err);
+  }
+}
+
+// The preload readout answers on EVERY client (a player's computer does the loading), and it must be listening before
+// Foundry replays the socket events it buffered while the game loaded: that replay is the last step before `ready`
+// (Game#activateSocketListeners, client/game.mjs), and the server announces a user the moment their socket opens, so
+// the request the GM's client sends a player who joins mid-preload reaches them during that load. A listener added at
+// `ready` would miss it. Registering reads no setting and no user (only a message that arrives does), so `setup` is
+// early enough and safe. The import starts now, at module load, so the file has landed long before `setup`. A message
+// that arrives after the listener and before the replay is delivered twice (live, then replayed): the player's loop
+// takes each request once, ignoring a repeat while it runs and re-sending how it ended once it has finished, so the
+// repeat starts no second loop.
+const preloadSocket = import("./encounter/battle-maps/encounter-preload.mjs");
+preloadSocket.catch(() => {}); // not an unhandled rejection: wireBattleMaps logs it when `setup` awaits it
+Hooks.once("setup", () => wireBattleMaps("registerPreloadSocket", () => preloadSocket));
+
 Hooks.once("ready", () => {
   console.log(`${MODULE_ID} | ready`);
   // Renown's level-up watcher. GM clients only; the award itself is gated to
@@ -1133,6 +1177,11 @@ Hooks.once("ready", () => {
   TravelBar.init();
   // Outdoor scenes follow the sun, the moon and the weather (#235).
   registerSky();
+  // The posted encounter card's Battle map button is the GM's, and it loses nothing by waiting for `ready`.
+  // (The preload socket is wired at `setup`, above.)
+  wireBattleMaps("registerBattleChatButtons", () => import("./encounter/battle-maps/battle-actions.mjs"));
+  // A GM who reloads with a battle staged gets the players' readout back: it lived in the page they just reloaded.
+  if (game.user.isGM) wireBattleMaps("resumeBattleReadout", () => import("./encounter/battle-maps/encounter-battle.mjs"));
   // If the GM enabled the monster compendium-art overlay, inject it now so every
   // monster drag carries the referenced art (all clients; GM-only settings write).
   MonsterTokenArt.initCompendiumArt();
@@ -1378,6 +1427,12 @@ Hooks.once("ready", () => {
     }, 5000);
   }
 });
+
+/** What an encounterMaps call is about: the battle named, else the one in progress (`current()` is `{ battle, scene }`). */
+async function battleInProgress(battleId) {
+  const { BattleMaps } = await import("./encounter/battle-maps/encounter-battle.mjs");
+  return { BattleMaps, id: battleId ?? BattleMaps.current()?.battle?.id ?? null };
+}
 
 function checkCoexistence() {
   if (!game.settings.get(MODULE_ID, "warnIfCrawlHelperEnabled")) return;

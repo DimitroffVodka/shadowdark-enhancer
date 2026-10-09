@@ -881,6 +881,35 @@ export function registerSettings() {
     default: {},
   });
 
+  // Encounter battle maps (docs/plans/encounter-battle-maps.md). The GM's per-terrain
+  // choices: {[terrain]: {pinned: mapId|null, disabled: mapId[]}}. Internal — written
+  // ONLY by the map picker (pin, Pick at random, switch a map off), and always as the
+  // whole value (a setting, not a document flag, so there is nothing for replaceModuleFlag
+  // to guard). No entry for a terrain means the library's first map is the default; an
+  // entry with no pin that is on means random, on purpose, so a writer that saves an
+  // entry must save the pin the GM sees (resolveDefaultMap in encounter-maps.mjs). Read
+  // through the map library's normalizePrefs, which drops anything the picker did not
+  // write. The key is spelled out here, as constants.mjs SETTINGS.prefs spells it.
+  game.settings.register(MODULE_ID, "encounterMapPrefs", {
+    scope: "world",
+    config: false,
+    type: Object,
+    default: {},
+  });
+
+  // Preload a battle map's art on every player's computer while the GM sets the battle
+  // up, with a readout of who is ready. Written by the GM here; read by every client,
+  // because a player's computer only loads when the world says so. Same spelling as
+  // constants.mjs SETTINGS.preload.
+  game.settings.register(MODULE_ID, "encounterMapPreload", {
+    name: "SDE.settings.encounterMapPreload.name",
+    hint: "SDE.settings.encounterMapPreload.hint",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true,
+  });
+
   // Developer-only hex-map CSV comparison; hidden from the normal settings UI.
   // The GM's own switch (Hex map toolbar) to stop the hover card following the mouse over the hex map.
   game.settings.register(MODULE_ID, "hexTooltipHidden", {
