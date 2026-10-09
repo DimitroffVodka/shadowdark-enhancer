@@ -9,7 +9,7 @@ globalThis.foundry = { applications: { api: { ApplicationV2: class {
   render() { if (this.id) globalThis.foundry.applications.instances.set(this.id, this); }
   bringToFront() {}
   _onRender() {}
-}, HandlebarsApplicationMixin: (base) => base }, sheets: { ActorSheetV2: class { _onRender() {} } }, instances: new Map() } };
+}, HandlebarsApplicationMixin: (base) => base }, sheets: { ActorSheetV2: class { _onRender() {} async _onDropItem(_event, item) { return item.copied ?? null; } } }, instances: new Map() } };
 const { PartyApp, PartySheet, registerParty } = await import("../scripts/party/party-app.mjs");
 function actor(id, type = "NPC", flags = {}, permissions = 3) {
   const a = { id, uuid: `Actor.${id}`, name: id, type, flags, items: { contents: [] }, testUserPermission: (_user, level) => permissions >= ({ OBSERVER: 2, OWNER: 3 })[level],
@@ -613,6 +613,20 @@ test("Remove deletes the whole stack only after a confirm, and gives it to no on
   } finally { delete api.DialogV2; }
   const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
   assert.ok(template.includes('data-action="deleteItem"'));
+});
+
+test("Dropping another actor's item on the party sheet moves it, Ctrl copies, and the party's own rows are draggable", async () => {
+  const t = treasury();
+  const sheet = new PartySheet(); sheet.document = t.p; Object.defineProperty(sheet, "actor", { value: t.p });
+  const gone = [], from = (parent) => ({ copied: {}, parent, delete: async () => { gone.push(parent.id); } });
+  await sheet._onDropItem({ ctrlKey: false }, from(t.pcs[0]));
+  assert.deepEqual(gone, ["a"], "moved off the player");
+  await sheet._onDropItem({ ctrlKey: true }, from(t.pcs[1]));
+  await sheet._onDropItem({ ctrlKey: false }, from(t.p));
+  await sheet._onDropItem({ ctrlKey: false }, { copied: null, parent: t.pcs[2], delete: async () => { gone.push("c"); } });
+  assert.deepEqual(gone, ["a"], "Ctrl copies, a sort in place and a refused drop keep the source");
+  const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
+  assert.ok(template.includes('<li class="item draggable" data-item-id'));
 });
 
 test("Add item: a forged or compendium item is copied onto the party actor", async () => {

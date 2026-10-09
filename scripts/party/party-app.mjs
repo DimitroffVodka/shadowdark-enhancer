@@ -516,6 +516,12 @@ export class PartySheet extends HandlebarsApplicationMixin(foundry.applications.
   openKeys = new Set();
   get title() { return this.actor.name; }
   _onRender(context, options) { super._onRender(context, options); this._bindControls(); }
+  /** A drag from another actor's sheet moves the item (Ctrl copies), as Shadowdark Extras does on the character sheets. */
+  async _onDropItem(event, item) {
+    const source = item.parent, result = await super._onDropItem(event, item);
+    if (result && source && source.uuid !== this.actor.uuid && !event.ctrlKey && (game.user?.isGM || source.isOwner)) await item.delete();
+    return result;
+  }
   async _onFirstRender(context, options) {
     await super._onFirstRender(context, options);
     this._hooks = ["updateActor", "deleteActor", "createItem", "updateItem", "deleteItem", "updateRollTable", "createCombat", "updateCombat", "deleteCombat", "canvasReady", MOVEMENT_CHANGED, QUESTS_CHANGED, DOWNTIME_CHANGED].map(name => [name, Hooks.on(name, () => this._onStateChanged())]);
