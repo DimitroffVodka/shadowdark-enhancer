@@ -151,8 +151,10 @@ export const HexRecords = {
     if (!game.user?.isGM) {
       // Cache the resolved projection, not just the journal: `journal.flags` is a live accessor.
       const projection = reuse ? (reuse.public ??= recordJournal(scene, { publicOnly: true })?.flags?.[MODULE_ID]?.[PUBLIC_FLAG]) : recordJournal(scene, { publicOnly: true })?.flags?.[MODULE_ID]?.[PUBLIC_FLAG];
-      // What everyone knows, and what each party this player's characters belong to has found.
-      const data = bestProjection([projection?.cells?.[key], ...playerPartyIds(projection, reuse).map(id => projection.parties[id]?.cells?.[key])]);
+      // A player's party decides: its copy wins over what everyone knows, so a party's own conceal holds. A missing
+      // entry means it matches the shared cell; null means the party does not see the hex. Only a player in no party reads the shared cell.
+      const mine = playerPartyIds(projection, reuse), shared = projection?.cells?.[key];
+      const data = bestProjection(mine.length ? mine.map(id => { const own = projection.parties[id]?.cells; return own && Object.hasOwn(own, key) ? own[key] : shared; }) : [shared]);
       if (!data) return null;
       const out = clone(data);
       if (locationVisible(out.discovery)) out.keyed = keyedPages(scene, out.num, reuse);
@@ -199,29 +201,30 @@ export function assertPrivateJournal(journal) {
   assertPrivatePack(game.packs?.get(PRIVATE_PACK));
   if (Number(journal.ownership?.default ?? 0) > 0 || Object.entries(journal.ownership ?? {}).some(([id, level]) => id !== "default" && Number(level) > 0 && !game.users?.get?.(id)?.isGM)) throw new Error("SDE.hexRecords.unsafeStore");
 }
+/** The actor ids on a party's roster, as the players' view names them. */
+export function partyMemberIds(actor) {
+  try { return Party.members(actor).map(uuid => String(uuid).replace(/^Actor\./, "")); } catch { return []; } // an unadopted party has no roster
+}
 export async function publishHexProjection(target) {
   if (!game.user?.isGM) return;
   const scene = sceneRef(target), journal = recordJournal(scene);
   if (!journal) return;
   assertPrivateJournal(journal);
-  // Cells hold what every party knows; each party's own finds are projected apart, so one party's map is not another's.
+  // Cells hold what every party knows; each party's own differences are projected apart, so one party's map is not another's.
   const cells = {}, parties = {};
-  for (const actor of Party.list()) {
-    let members = [];
-    try { members = Party.members(actor).map(uuid => String(uuid).replace(/^Actor\./, "")); } catch { /* an unadopted party has no roster */ }
-    parties[actor.id] = { members, cells: {} };
-  }
+  for (const actor of Party.list()) parties[actor.id] = { members: partyMemberIds(actor), cells: {} };
   // One pass for every cell: a lone read decodes all ~4,800 tags (6 ms each in Firefox), and this runs on every
   // reveal, once for each recorded hex (a second a walked hex on the Western Reaches map before it had one).
   const pass = readPass(scene);
   for (const key of Object.keys(journal.flags[MODULE_ID][RECORD_FLAG].cells ?? {})) {
     const [i, j] = key.split("_").map(Number), record = HexRecords.read({ i, j }, scene, pass);
     const shown = (ids) => playerProjection({ ...record, discovery: effectiveDiscovery(record.discovery, ids) });
-    const everyone = shown([]);
+    const everyone = shown([]), same = JSON.stringify(everyone);
     if (everyone) cells[key] = everyone;
+    // A party's cell is stored only where it differs from the shared one (null: the party does not see the hex).
     for (const id of Object.keys(parties)) {
       const own = shown([id]);
-      if (own) parties[id].cells[key] = own;
+      if (JSON.stringify(own) !== same) parties[id].cells[key] = own;
     }
   }
   const value = { version: 1, sceneUuid: sceneUuid(scene), cells, parties };
