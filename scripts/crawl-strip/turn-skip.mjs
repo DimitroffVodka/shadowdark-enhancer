@@ -1,7 +1,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { isActiveGM } from "./crawl-state.mjs";
 import { combatantEntry, shouldSkipTurn } from "./turn-skip-core.mjs";
-import { isChaosRound, isHeldRound, holdChaosRound, chaosReroll } from "../modes-of-play/chaos.mjs";
+import { isChaosRound, isHeldRound, heldPrevious, holdChaosRound, chaosReroll } from "../modes-of-play/chaos.mjs";
 
 /**
  * Auto-skip the turns of combatants the crawl strip doesn't render.
@@ -47,7 +47,7 @@ export function registerTurnSkip() {
     if (isHeldRound(options)) {
       if (isActiveGM()) {
         if (!_held.has(combat.id)) _held.set(combat.id, []);
-        _held.get(combat.id).push({ previous: { ...combat.previous }, round: combat.round, turn: combat.turn });
+        _held.get(combat.id).push({ previous: heldPrevious(options) ?? { ...combat.previous }, round: combat.round, turn: combat.turn });
       }
       void chaosThenSkip(combat);
     } else if (isChaosRound(changes, options) && game.settings.get(MODULE_ID, "modeChaosInitiative") === true) {

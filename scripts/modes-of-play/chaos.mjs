@@ -79,11 +79,23 @@ export function holdChaosRound(combat, updateData, updateOptions) {
   if (game.settings.get(MODULE_ID, "modeChaosInitiative") !== true) return;
   if (game.settings.get("shadowdark", "useClockwiseInitiative") === true) return;
   updateOptions.turnEvents = false;
-  updateOptions[MODULE_ID] = { ...updateOptions[MODULE_ID], chaosHeld: true };
+  // Core records `previous` only for an update that lets its turn events fire
+  // (14.369), so a held update leaves it a turn behind. The state the old round
+  // ended in rides on the update instead: `current` is still it, before the write.
+  updateOptions[MODULE_ID] = { ...updateOptions[MODULE_ID], chaosHeld: true, previous: { ...combat.current } };
 }
 
 /** Did holdChaosRound hold this update's turn events? */
 export const isHeldRound = (options) => options?.[MODULE_ID]?.chaosHeld === true;
+
+/**
+ * Where the old round ended, for a round holdChaosRound held: the turn that just
+ * finished, which `Combat#previous` does not say on a held update. Null for any
+ * other update, whose `previous` is right.
+ * @param {object} [options]  updateCombat's options
+ * @returns {{round:number, turn:number|null, combatantId:string|null, tokenId:string|null}|null}
+ */
+export const heldPrevious = (options) => (isHeldRound(options) ? options[MODULE_ID].previous ?? null : null);
 
 let _clockwiseWarned = false;
 
