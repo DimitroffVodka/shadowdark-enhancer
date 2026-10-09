@@ -99,8 +99,9 @@ export async function applySky(scene = game.scenes?.active, { dt = null } = {}) 
   const updates = {};
   const options = {};
 
+  // The stored value, not the prepared one: a paint (canvas.environment.initialize) moves the prepared one.
   const next = _pacing === null ? skyDarkness(scene, now) : null;
-  if (next !== null && darknessMoved(scene.environment?.darknessLevel, next)) {
+  if (next !== null && darknessMoved(scene._source?.environment?.darknessLevel, next)) {
     updates["environment.darknessLevel"] = next;
     if (Number.isFinite(dt) && Math.abs(dt) < ANIMATE_BELOW) options.animateDarkness = ANIMATE_MS;
   }

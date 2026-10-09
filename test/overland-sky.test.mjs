@@ -137,6 +137,7 @@ function scene({ hex = true, tagged = true, follows, darkness = 0, locked = fals
     writes, weather, flags, id,
     grid: { isHexagonal: hex },
     environment: { darknessLevel: darkness, darknessLock: locked },
+    _source: { environment: { darknessLevel: darkness } },
     // Foundry 14 throws for a scope that isn't an active module; so does this stub (#255).
     getFlag: (ns, key) => {
       if (ns !== "shadowdark-enhancer") throw new Error(`Flag scope "${ns}" is not valid or not currently active`);
@@ -145,7 +146,7 @@ function scene({ hex = true, tagged = true, follows, darkness = 0, locked = fals
     async update(changes, options) {
       writes.push({ changes, options });
       if ("weather" in changes) doc.weather = changes.weather;
-      if ("environment.darknessLevel" in changes) doc.environment.darknessLevel = changes["environment.darknessLevel"];
+      if ("environment.darknessLevel" in changes) doc.environment.darknessLevel = doc._source.environment.darknessLevel = changes["environment.darknessLevel"];
       if ("flags.shadowdark-enhancer.skyWeather" in changes) flags.skyWeather = changes["flags.shadowdark-enhancer.skyWeather"];
       if (changes["flags.shadowdark-enhancer.skyWeather"] === DEL) delete flags.skyWeather;
     },
@@ -160,6 +161,14 @@ function sky({ season = "summer", region = "Lowland Moor", weather = null, clima
     rules: { climate: () => (climate ? { label: climate, harsh: "" } : null) },
   };
 }
+
+test("a screen's own paint moves the prepared darkness, not the stored one, so the settled write still lands (review)", async () => {
+  sky();
+  const s = scene();
+  s.environment.darknessLevel = 0.6;           // v14's canvas.environment.initialize assigns the prepared value
+  await applySky(s, { dt: 60 });
+  assert.deepEqual(s.writes.map((w) => w.changes), [{ "environment.darknessLevel": 0.6 }]);
+});
 
 test("the active GM darkens a hex map at night to its cap, animated for a short step", async () => {
   sky();
