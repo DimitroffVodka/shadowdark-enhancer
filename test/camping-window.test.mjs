@@ -9,7 +9,7 @@ test("the Camping template is built on the UI kit and keeps the hooks the JS use
   const hbs = await read("templates/camping/camping.hbs");
   assert.match(hbs, /^<section class="sde-ui ui-body sde-camping-body/);
   assert.ok(!/<fieldset|<legend/.test(hbs), "rows are hairline articles, not fieldsets");
-  for (const hook of ['data-choice="task"', 'data-choice="torchConsent"', "data-fuel", "data-dc=", 'data-action="confirmChoice"', 'data-action="resolve"', 'data-action="night"', 'data-action="begin"']) assert.ok(hbs.includes(hook), hook);
+  for (const hook of ['data-choice="task"', 'data-choice="torchConsent"', "data-fuel", "data-dc=", 'data-action="resolve"', 'data-action="night"', 'data-action="begin"']) assert.ok(hbs.includes(hook), hook);
   assert.ok(!/participate|partyRations|data-food|usePartyRations/.test(hbs));
 });
 

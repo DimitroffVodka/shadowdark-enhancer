@@ -42,7 +42,7 @@ import { authorizeActorFor, isActiveGM, queryActiveGM, refuseQuery, registerQuer
 import { makeQueue } from "../quests/quest-core.mjs";
 import { hasHexTerrain, hexReader, hexZonesFor, isHexMapScene, partyHex } from "../encounter/encounter-terrain.mjs";
 import { BOAT_TYPE, MOUNT_TYPE } from "../actors/register-actors.mjs";
-import { dawnAfter, dateParts, hourOfDay, startOfDay } from "../time/time-core.mjs";
+import { dawnAfter, dateParts, hourOfDay, secondsPerDay, startOfDay } from "../time/time-core.mjs";
 import { advanceOffDuty } from "../time/off-duty.mjs";
 import { StatRiders } from "../stat-damage/stat-riders.mjs";
 import { esc } from "../shared/esc.mjs";
@@ -54,7 +54,7 @@ import {
   pickTravelToken, forageRefusal, setWeather, weatherHolds, weatherAdvantage, weatherFormula,
   weatherFromRoll, harshToday, WEATHER_RULES, METHODS, openDay, spendMove, priceMove, moveVerdict, hexCost,
   dayChecks, dueChecks, markCheck, setPending, setEncounter, forageDC, closeDay, planRations, partyMethod, setPace,
-  checkSettings, encounterChance, checkHalf, makeCampState, campLightsOut, interruptRest, walkMs, walkSlices, lapseMs, WALK_SLICE_MS,
+  checkSettings, encounterChance, checkHalf, makeCampState, campEndAt, campLightsOut, interruptRest, walkMs, walkSlices, lapseMs, WALK_SLICE_MS,
 } from "./overland-state-core.mjs";
 import { PARTY_FLAG, extrasParties, joinExtras, placePartyToken, wearPartyHex } from "./hex-rules.mjs";
 import { Party, isNativeParty, isLegacyParty } from "../party/party.mjs";
@@ -1016,9 +1016,10 @@ export async function makeCamp(party = null, acceptShortages = false) {
  * checks are the camp's (§5.5 step 2).
  */
 function campEnd() {
-  const dawn = dawnAfter(game.time.calendar, game.time.worldTime);
+  const cal = game.time.calendar, now = game.time.worldTime;
+  const six = startOfDay(cal, now) + 6 * hourSeconds();
   const night = _state.checks.filter((c) => c.half === "night" && !c.rolled).map((c) => c.at);
-  return Math.max(dawn, ...night);
+  return campEndAt(dawnAfter(cal, now), night, six > now ? six : six + secondsPerDay(cal));
 }
 
 /** The native or provider party the persisted travel token stands for, or null. */
