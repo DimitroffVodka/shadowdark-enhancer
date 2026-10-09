@@ -53,6 +53,9 @@ test("starting travel sets the token and members, and resuming keeps an open day
   assert.equal(newToken.state.day, null, "a different party starts a fresh day");
   assert.deepEqual([newToken.state.budget, newToken.state.spent, newToken.state.foraged, newToken.state.hex], [0, 0, [], null]);
   assert.deepEqual(newToken.state.members, ["a"]);
+  const sameActor = startTravel(midDay, { tokenUuid: "Scene.s.Token.u", members: ["a", "b"], sameParty: true });
+  assert.equal(sameActor.state.tokenUuid, "Scene.s.Token.u");
+  assert.deepEqual([sameActor.state.day, sameActor.state.spent, sameActor.state.foraged], [1000, 2, ["a"]], "the same party's recreated token keeps its day");
 });
 
 test("the travel token's hex is kept, and an equal hex is no change", () => {
