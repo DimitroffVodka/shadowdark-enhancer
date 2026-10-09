@@ -21,8 +21,10 @@ export function barModel({ state, isGM, owns, actors }) {
     uuid: actors[id].uuid ?? null,
     rations: actors[id].rations,
     int: actors[id].int ?? 0,
-    foraged: state.foraged.includes(id),
-    canForage: dayOpen && !state.pushed && owns(id) && !state.foraged.includes(id),
+    // The actor's own day flag counts too: the state's list is cleared by a restarted day, the flag is what refuses a second forage.
+    foraged: state.foraged.includes(id) || !!actors[id].foragedToday,
+    found: actors[id].found ?? null,
+    canForage: dayOpen && !state.pushed && owns(id) && !state.foraged.includes(id) && !actors[id].foragedToday,
   }));
   return {
     dayOpen,
@@ -37,6 +39,8 @@ export function barModel({ state, isGM, owns, actors }) {
     climate: state.climate?.label ?? null,
     members,
     mounts: state.mounts,
+    // The pace is the table's: the GM's, or any player whose character travels (applyAction checks it again).
+    canPace: isGM || members.some((m) => owns(m.id)),
     pending: isGM && !!state.pending,
     encounter: isGM && !!state.encounter,
     // When a creature woke the camp: the GM's alone, like the check hours, until the encounter is run.

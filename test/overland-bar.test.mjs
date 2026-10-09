@@ -37,11 +37,19 @@ test("a player sees no check hours, no Continue, and Forage only on a character 
   assert.equal(barModel({ state: woken, isGM: false, owns: () => true, actors: ACTORS }).interrupted, null, "nor when a creature woke the camp");
   assert.equal(barModel({ state: woken, isGM: true, owns: () => true, actors: ACTORS }).interrupted, 79200);
   assert.deepEqual(m.members.map((p) => p.canForage), [true, false]);
+  assert.equal(m.canPace, true, "a player with a travelling character sets the pace");
+  assert.equal(barModel({ state: STATE, isGM: false, owns: () => false, actors: ACTORS }).canPace, false);
   const pushed = barModel({ state: { ...STATE, pushed: true }, isGM: false, owns: () => true, actors: ACTORS });
   assert.deepEqual(pushed.members.map((p) => p.canForage), [false, false], "not on a pushed day");
   const noDay = barModel({ state: { ...STATE, day: null }, isGM: false, owns: () => true, actors: ACTORS });
   assert.equal(noDay.dayOpen, false);
   assert.deepEqual(noDay.members.map((p) => p.canForage), [false, false], "not before the day starts");
+});
+
+test("a forage the actor's day flag records counts, and carries its result", () => {
+  const actors = { mine: { name: "Mine", rations: 0, foragedToday: true, found: true }, theirs: { name: "Theirs", rations: 0 } };
+  const m = barModel({ state: { ...STATE, foraged: [] }, isGM: true, owns: () => true, actors });
+  assert.deepEqual(m.members.map((p) => [p.foraged, p.found, p.canForage]), [[true, true, false], [false, null, true]]);
 });
 
 test("the clock redraws the bar once a minute, and after a jump of whole days too (#249 review)", () => {

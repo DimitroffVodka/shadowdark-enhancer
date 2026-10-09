@@ -16,8 +16,9 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { CrawlState } from "../crawl-strip/crawl-state.mjs";
 import { isHexMapScene, hexReader } from "../encounter/encounter-terrain.mjs";
 import { cheapestRoute } from "./overland-state-core.mjs";
-import { overlandState, travelStepCost, travelSettled } from "./overland.mjs";
+import { overlandState, travelStepCost, travelSettled, fastTravel, chainLeadMs } from "./overland.mjs";
 import { ownsHexFog, hexDisclosure } from "../hex-map/hex-fog.mjs";
+import { readPass } from "../hex-map/hex-records.mjs";
 import { L as t } from "../shared/i18n.mjs";
 
 const offsetKey = (o) => `${o.i},${o.j}`;
@@ -49,7 +50,10 @@ function travelToken() {
  */
 export function unknownTo(grid) {
   if (game.user.isGM) return () => false;
-  if (ownsHexFog(canvas.scene)) return o => !hexDisclosure(canvas.scene, o);
+  if (ownsHexFog(canvas.scene)) {
+    const pass = readPass(canvas.scene);
+    return o => !hexDisclosure(canvas.scene, o, "terrain", {}, pass);
+  }
   const extras = game.modules.get("shadowdark-extras");
   if (!extras?.active) return () => false;
   const revealed = extras.api?.hex?.isPositionRevealed;
@@ -174,6 +178,7 @@ function showTip(event, route) {
       text = t(hexes === 1 ? "SDE.route.tipOne" : "SDE.route.tip", { hexes, miles, units, cost: route.cost, hours });
       if (route.cost > left) text += t("SDE.route.over", { left });
     }
+    if (game.user.isGM) text += t("SDE.route.fastHint");
   }
   _tip.textContent = text;
   _tip.hidden = false;
@@ -237,11 +242,12 @@ function onUp(event) {
   if (!p || event.button !== 0 || _walking || p.key !== _hovered) return;
   if (Math.hypot(event.global.x - p.x, event.global.y - p.y) > 5) return;
   if (event.timeStamp - p.at >= LONG_PRESS) return;
-  if (event.shiftKey || event.ctrlKey || event.metaKey || event.altKey) return;
+  // Shift is the GM's fast travel; any other modifier is core's.
+  if (event.ctrlKey || event.metaKey || event.altKey || (event.shiftKey && !game.user.isGM)) return;
   const { token, route } = p.armed;
   _armed = null;
   if (moveBlocked(token)) return;
-  void walk(token, route.path);
+  void (event.shiftKey ? jump : walk)(token, route.path);
 }
 
 /**
@@ -274,6 +280,8 @@ async function walk(token, path) {
   const hits = () => overlandState().checks.filter((c) => c.hit).length;
   const before = hits();
   let moved = 0;
+  // When the slides sent so far end on this screen: core chains a move sent while the token still slides.
+  let slideEnd = performance.now();
   try {
     for (let n = 1; n < path.length; n++) {
       if (moveBlocked(token)) break;
@@ -284,12 +292,14 @@ async function walk(token, path) {
       // Resolves once the move is saved; the token is still sliding into the hex.
       if (!(await doc.move({ x, y }))) break;
       moved++;
+      slideEnd = Math.max(slideEnd, performance.now()) + (doc.object ? doc.movement?.animation?.duration ?? 0 : 0);
       // After the active GM has priced, charged and clocked this hex, and rolled its checks.
       await travelSettled();
       // An encounter: one that holds the clock, or one that hit at the step's very end.
       if (overlandState().pending || hits() > before) break;
-      // Hex by hex on screen: the next step starts when this one's slide ends.
-      await doc.object?.movementAnimationPromise;
+      // The next hex goes a beat before this slide ends, so the party walks on without a stop.
+      const wait = slideEnd - chainLeadMs() - performance.now();
+      if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
     }
     const s = overlandState();
     if (moved && !s.pending && hits() === before && s.hex) {
@@ -304,6 +314,26 @@ async function walk(token, path) {
     _walking = false;
     _hovered = null;
     if (doc.parent === canvas.scene) token.control?.({ releaseOthers: true });
+  }
+}
+
+/** Fast travel (GM): the party arrives at the end of `path` at once, nothing priced (overland.fastTravel). */
+async function jump(token, path) {
+  _walking = true;
+  clear();
+  try {
+    const reply = await fastTravel(path.at(-1));
+    if (!reply?.ok) ui.notifications?.warn(reply?.error ?? t("SDE.overland.notify.fastNowhere"));
+    else {
+      const hex = overlandState().hex;
+      ui.notifications?.info(t("SDE.route.fastReached", { region: hex?.region ?? "", terrain: (hex?.terrain ?? "").replace(/_/g, " ") }));
+    }
+  } catch (err) {
+    console.error(`${MODULE_ID} | the party's fast travel failed`, err);
+  } finally {
+    _walking = false;
+    _hovered = null;
+    if (token.document.parent === canvas.scene) token.control?.({ releaseOthers: true });
   }
 }
 

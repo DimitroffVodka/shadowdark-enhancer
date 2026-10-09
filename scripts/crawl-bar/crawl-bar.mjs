@@ -178,7 +178,9 @@ export const CrawlBar = {
     // in its Tools panel (§4.3).
     const mode = state.mode === "overland" ? "overland" : state.isActive ? "crawl" : "off";
     const day = mode === "overland" ? overlandState() : null;
-    const items = barItems({ mode, hexScene: mode === "off" && isHexMapScene(), pending: !!day?.pending });
+    // A running crawl turns into travel only on the active scene (followActiveScene's), not on one the GM is just viewing.
+    const hexScene = mode !== "overland" && isHexMapScene() && (mode !== "crawl" || !!game.scenes?.active?.grid?.isHexagonal);
+    const items = barItems({ mode, hexScene, pending: !!day?.pending, dayOpen: Number.isFinite(day?.day) });
     const hasBastion = game.actors.some((a) => a.type === BASTION_TYPE);
 
     const badge = () => {

@@ -24,6 +24,7 @@ import {
   oocOrderComplete,
   freeCrawlActive,
   startOverland,
+  overlandToCrawl,
   endOverland,
   isFutureState,
 } from "../scripts/crawl-strip/crawl-state-core.mjs";
@@ -641,12 +642,29 @@ test("startCrawl clears a leftover OoC order AND its pointer", () => {
 
 // ── Overland travel (#229) ─────────────────────────────────────────────────
 
-test("overland starts only from off, and ends back to off", () => {
+test("a crawl becomes travel on a hex map, its roster and turn dropped", () => {
+  const crawl = { ...normalizeCrawlState({}), mode: "crawl", crawlTurn: 4, members: ["a"] };
+  const r = startOverland(crawl);
+  assert.equal(r.changed, true);
+  assert.deepEqual([r.state.mode, r.state.crawlTurn, r.state.members], ["overland", 0, []]);
+});
+
+test("travel turns back into a crawl off a hex map, from overland only", () => {
+  const off = normalizeCrawlState({});
+  const back = overlandToCrawl(startOverland(off).state);
+  assert.equal(back.changed, true);
+  assert.equal(back.state.mode, "crawl");
+  for (const mode of ["off", "crawl", "combat"]) {
+    assert.equal(overlandToCrawl({ ...off, mode }).changed, false, `not from ${mode}`);
+  }
+});
+
+test("overland starts from off or a crawl, and ends back to off", () => {
   const off = normalizeCrawlState({});
   const on = startOverland(off);
   assert.equal(on.changed, true);
   assert.equal(on.state.mode, "overland");
-  for (const mode of ["crawl", "combat", "overland"]) {
+  for (const mode of ["combat", "overland"]) {
     assert.equal(startOverland({ ...off, mode }).changed, false, `not from ${mode}`);
   }
   assert.equal(endOverland(on.state).state.mode, "off");

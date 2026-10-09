@@ -77,7 +77,7 @@
     {{/if}}
 
     {{#if awaitingRest}}<p class="ui-muted cp-hint">{{localize "SDE.camping.awaitingRest"}}</p>{{/if}}
-    {{#if canNight}}{{#if shortageWarning}}<div class="ui-note bad">{{localize "SDE.camping.shortageWarning"}}</div>{{/if}}{{/if}}
+    {{#if canNight}}{{#if shortageWarning}}<div class="ui-note bad">{{localize "SDE.camping.shortageWarning"}}{{#if unfedNames}} <b>{{unfedNames}}</b>{{/if}}</div>{{/if}}{{/if}}
 
     <div class="ui-actions">
       {{#if canResolve}}<button type="button" class="ui-btn ghost" data-action="cancel">{{localize "SDE.camping.cancel"}}</button>{{/if}}

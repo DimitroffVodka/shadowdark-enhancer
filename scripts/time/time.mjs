@@ -12,7 +12,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { isActiveGM, registerQuery } from "../shared/gm-relay.mjs";
 import * as core from "./time-core.mjs";
 import { nightWithOverride, skyOverride } from "../overland/sky-core.mjs";
-import { advanceOffDuty, handleOffDutyQuery, OFF_DUTY_QUERY } from "./off-duty.mjs";
+import { advanceOffDuty, claimLightTracker, handleOffDutyQuery, OFF_DUTY_QUERY } from "./off-duty.mjs";
 
 /** World setting: a worldTime at which the moon was new. The phases count from it. */
 export const MOON_EPOCH = "moonEpoch";
@@ -69,6 +69,11 @@ export const timeApi = {
  */
 export function registerTimeHooks() {
   registerQuery(OFF_DUTY_QUERY, (data, { user } = {}) => handleOffDutyQuery(data, user));
+  Hooks.on("updateWorldTime", slideShownTime);
+  // The active GM runs the real-time clock its own clock moves hold (claimLightTracker), whoever else is on.
+  const claim = () => claimLightTracker().catch((err) => console.error(`${MODULE_ID} | taking the light tracker`, err));
+  Hooks.once("ready", claim);
+  Hooks.on("userConnected", (user) => { if (user?.isGM) claim(); });
   Hooks.on("updateWorldTime", (worldTime, dt, options) => {
     if (!isActiveGM()) return;
     const from = worldTime - dt;
@@ -78,4 +83,57 @@ export function registerTimeHooks() {
       crossed: core.crossings(calendar(), from, worldTime),
     });
   });
+}
+
+// ── The time this screen shows (#257) ──────────────────────────────────────
+
+/**
+ * While Overland runs the clock in paced slices (a walk, a camp's or Continue's
+ * time-lapse), each slice's advance carries `paceMs`. Every screen then slides
+ * the time it shows from where it is to the new worldTime over twice the pace,
+ * so the pause between two hexes or a late slice doesn't stop it, and
+ * the bar's dial and the sky's darkness are painted from it every frame
+ * (onShownTime). A small unpaced step (the system's real-time light tracking
+ * ticks a second at a time) moves the slide's end; a bigger one ends the slide
+ * where the clock is.
+ */
+const SLIDE_OVER_PACE = 2;
+const RIDES_ALONG = 60;
+let slide = null;
+let slideFrame = null;
+const shownPainters = new Set();
+
+/** True for an advance that is one paced slice of a walk or a time-lapse. */
+export const isPacedStep = (options) => Number(options?.[MODULE_ID]?.paceMs) > 0;
+
+/** The time this screen shows: the world clock, or how far its slide to it has got. */
+export function shownTime(now = performance.now()) {
+  if (!slide) return game.time.worldTime;
+  return slide.from + (slide.to - slide.from) * Math.min(1, (now - slide.start) / slide.ms);
+}
+
+/** `fn(time, done)` on every frame of a slide, and once with `done` true when it ends. */
+export const onShownTime = (fn) => shownPainters.add(fn);
+
+function paintShown() {
+  slideFrame = null;
+  const done = !slide || performance.now() - slide.start >= slide.ms;
+  if (done) slide = null;
+  const time = shownTime();
+  for (const paint of shownPainters) {
+    try { paint(time, done); } catch (err) { console.error(`${MODULE_ID} | painting the clock`, err); }
+  }
+  if (!done) slideFrame = requestAnimationFrame(paintShown);
+}
+
+function slideShownTime(worldTime, dt, options) {
+  if (isPacedStep(options) && dt > 0) {
+    // The first slice starts from the time shown before it, which the clock has just left.
+    slide = { from: slide ? shownTime() : worldTime - dt, to: worldTime, start: performance.now(), ms: options[MODULE_ID].paceMs * SLIDE_OVER_PACE };
+  } else if (slide && Math.abs(dt) <= RIDES_ALONG) {
+    slide.to = worldTime;
+    return;
+  } else if (slide) slide = null;
+  else return;
+  slideFrame ??= requestAnimationFrame(paintShown);
 }

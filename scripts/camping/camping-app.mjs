@@ -2,7 +2,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { Party } from "../party/party.mjs";
 import { requestCamp, campOf, campTorchPlan } from "./camping.mjs";
 import { CAMP_LABELS } from "./camping-core.mjs";
-import { foodPreview } from "./camping-nutrition.mjs";
+import { foodPreview, campEaters } from "./camping-nutrition.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const t = (key) => game.i18n.localize(key);
@@ -26,6 +26,9 @@ export class CampingApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
   async change(action, data = {}) {
     const run = (this.writes ?? Promise.resolve()).catch(() => {}).then(async () => {
+      // The night plays as a time-lapse on the map: the window folds away for it and opens again at dawn.
+      const win = this.host ?? this, fold = action === "night" && win.rendered && !win.minimized ? win : null;
+      if (fold) await fold.minimize();
       try {
         const overland = action === "night" ? await import("../overland/overland.mjs") : null;
         const result = overland ? await (overland.overlandState().pending?.reason === "camp" ? overland.resume(this.party) : overland.makeCamp(this.party, data.acceptShortages === true)) : await requestCamp(this.party, action, data);
@@ -33,7 +36,7 @@ export class CampingApp extends HandlebarsApplicationMixin(ApplicationV2) {
         if (!result.ok && !this.host) ui.notifications.warn(result.error);
         return result;
       }
-      finally { (this.host ?? this).render(); }
+      finally { if (fold?.minimized) await fold.maximize(); (this.host ?? this).render(); }
     });
     this.writes = run;
     return run;
@@ -45,9 +48,11 @@ export class CampingApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const { campContext } = await import("../overland/overland.mjs");
     const context = campContext(), food = foodPreview(this.party, camp, camp.each ?? context.each, camp.day ?? context.day);
     this.fuelPreview = plan.deductions;
+    const unfed = campEaters(camp).filter(p => !food.find(f => f.actorId === p.actorId)?.fed)
+      .map(p => game.actors.contents.find(a => a.uuid === p.uuid)?.name ?? t("SDE.party.missing"));
     return { title: this.party.name, embedded: !!this.host, manager, setup, fuel, isGM: game.user.isGM, error: this.error,
       phase: t(CAMP_LABELS.phase[camp.phase]), fire: t(camp.fire?.lit ? "SDE.camping.fireLit" : "SDE.camping.noFire"), hasResults: Object.keys(camp.results).length > 0,
-      awaitingRest: camp.phase === "awaitingRest", complete: camp.phase === "complete", shortageWarning: camp.shortageWarning,
+      awaitingRest: camp.phase === "awaitingRest", complete: camp.phase === "complete", shortageWarning: camp.shortageWarning, unfedNames: unfed.length ? game.i18n.format("SDE.camping.shortageNames", { names: unfed.join(", ") }) : null,
       canNight: manager && camp.phase === "awaitingRest", canResolve: manager && setup, canResume: manager && (camp.phase === "complete" ? !game.messages.has(camp.reportId) : !setup && !fuel && camp.phase !== "awaitingRest"),
       fuelChoices: ["none", "wood", "torches"].map(value => ({ value, label: t(CAMP_LABELS.fuel[value]), selected: camp.fuel === value })),
       available: plan.available, canFuel: manager && plan.ok,

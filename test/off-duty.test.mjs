@@ -98,7 +98,7 @@ test("settle forces a rebuild, and gives up when the tracker never lets go", asy
 function hookWorld(t) {
   const calls = [], handlers = {};
   globalThis.CONFIG = { queries: {} };
-  globalThis.Hooks = { on: (name, fn) => { handlers[name] = fn; }, callAll: (name, payload) => calls.push({ name, payload }) };
+  globalThis.Hooks = { on: (name, fn) => { handlers[name] = fn; }, once() {}, callAll: (name, payload) => calls.push({ name, payload }) };
   const user = { id: "gm", isGM: true };
   globalThis.game = { time: clockAt(t), user, users: { activeGM: user }, settings: { get: () => 0 } };
   registerTimeHooks();
@@ -374,4 +374,32 @@ test("0 seconds puts the lights out, keeping their time, and moves no clock (Ove
   assert.equal((await advanceOffDuty(0)).ok, true);
   assert.deepEqual(off.log.advanced, [], "tracking off: nothing to do at all");
   assert.equal((await advanceOffDuty(-1)).ok, false, "below 0 is refused");
+});
+
+test("the active GM takes the light tracker from another GM left logged in, its own flag first (#257)", async () => {
+  const { claimLightTracker } = await import("../scripts/time/off-duty.mjs");
+  const writes = [];
+  const user = (id, flag, active = true) => {
+    const u = { id, isGM: true, active, flags: { shadowdark: { primaryGM: flag } },
+      getFlag: (scope, key) => u.flags[scope]?.[key], setFlag: async (scope, key, value) => { writes.push([id, value]); u.flags[scope][key] = value; } };
+    return u;
+  };
+  const me = user("me", false), bridge = user("bridge", true), gone = user("gone", true, false);
+  const users = [me, bridge, gone];
+  users.activeGM = me;
+  const saved = globalThis.game;
+  globalThis.game = { user: me, users, shadowdark: { lightSourceTracker: {} } };
+  try {
+    await claimLightTracker();
+    assert.deepEqual(writes, [["me", true], ["bridge", false]], "ours first, so no tick finds nobody; an offline GM's flag is left");
+    writes.length = 0;
+    await claimLightTracker();
+    assert.deepEqual(writes, [], "held already: nothing to write");
+    users.activeGM = bridge;
+    bridge.flags.shadowdark.primaryGM = true;
+    await claimLightTracker();
+    assert.deepEqual(writes, [], "only the active GM takes it");
+  } finally {
+    if (saved === undefined) delete globalThis.game; else globalThis.game = saved;
+  }
 });

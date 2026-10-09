@@ -136,7 +136,7 @@ function stepBody(n, v, sight) {
     case 4: {
       const base = m.dayOpen ? state.base : v.nextBase;
       const push = state.pace === "push";
-      const seg = gm ? `<span class="sde-hud-seg">${
+      const seg = m.canPace ? `<span class="sde-hud-seg">${
         [["normal", "SDE.travel.speed.normal"], ["push", "SDE.travel.speed.pushing"]].map(([id, label]) =>
           `<button type="button" data-action="pace" data-id="${id}" aria-pressed="${(id === "push") === push}">${esc(t(label))}</button>`).join("")}</span>`
         : `<span class="sde-hud-bl">${esc(t(push ? "SDE.travel.speed.pushing" : "SDE.travel.speed.normal"))}</span>`;
@@ -154,7 +154,7 @@ function stepBody(n, v, sight) {
       const why = state.pushed ? "SDE.travel.forage.pushed" : (m.stormy && m.harsh) ? "SDE.travel.forage.storm" : "SDE.travel.forage.about";
       const rows = m.members.map((p) => `<div class="sde-hud-member"><span class="sde-hud-n">${esc(p.name)}</span>
         <span class="sde-hud-need"><b>${esc(t("SDE.travel.forage.int", { mod: signed(p.int ?? 0) }))}</b> · ${t("SDE.travel.forage.dc", { dc: `<b>${dc}</b>` })}</span>
-        ${p.foraged ? `<span class="sde-hud-chip">${esc(t("SDE.overland.bar.foraged"))}</span>` : p.canForage ? key("forage", t("SDE.overland.forage.button"), { id: p.id, cls: "sde-hud-sm" }) : ""}
+        ${p.foraged ? `<span class="sde-hud-chip">${esc(t(p.found === null ? "SDE.overland.bar.foraged" : p.found ? "SDE.travel.forage.found" : "SDE.travel.forage.nothing"))}</span>` : p.canForage ? key("forage", t("SDE.overland.forage.button"), { id: p.id, cls: "sde-hud-sm" }) : ""}
         <span class="sde-hud-r sde-hud-cap"><b>${p.rations}</b> ${esc(t(p.rations === 1 ? "SDE.travel.ration" : "SDE.travel.rations"))}</span></div>`).join("");
       return h3 + `<div class="sde-hud-trow"><span class="sde-hud-cap"><b>${esc(v.methodName(m.method))}</b>${m.pushed ? esc(t("SDE.clock.plate.pushed")) : ""} · ${esc(t("SDE.travel.perPoint", { time: pointTime(state.pointSeconds, v.cal) }))}</span>
           <span class="sde-hud-meter"><span style="width:${Math.round(m.leftShare * 100)}%"></span></span>

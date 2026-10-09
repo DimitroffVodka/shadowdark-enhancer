@@ -45,7 +45,7 @@ export const BUTTONS = {
   startCombat:       { icon: "combat", label: "SDE.crawlBar.combat", cls: "sde-bar-combat-btn" },
   endCrawl:          { icon: "close", label: "SDE.crawlBar.end", tip: "SDE.crawlBar.endTip", cls: "sde-bar-danger-btn" },
   startCrawl:        { icon: "startCrawl", label: "SDE.crawlBar.start", tip: "SDE.crawlBar.startTip", cls: "sde-bar-start-btn" },
-  startTravel:       { icon: "walking", label: "SDE.overland.startTravel", tip: "SDE.overland.startTravelHint" },
+  startTravel:       { icon: "walking", label: "SDE.crawlBar.start", cls: "sde-bar-start-btn", tip: "SDE.overland.startTravelHint" },
   resumeTravel:      { icon: "play", label: "SDE.overland.resume", tip: "SDE.overland.resumeHint", cls: "sde-bar-next-btn" },
   startDay:          { icon: "sunrise", label: "SDE.overland.startDay", tip: "SDE.overland.startDayHint", cls: "sde-bar-next-btn" },
   makeCamp:          { icon: "camp", label: "SDE.overland.makeCamp", tip: "SDE.overland.makeCampHint" },
@@ -60,12 +60,17 @@ export const BUTTONS = {
  * @param {"off"|"crawl"|"overland"} p.mode
  * @param {boolean} [p.hexScene]  the active scene is a hex map
  * @param {boolean} [p.pending]  overland: an encounter stopped the clock mid-move
+ * @param {boolean} [p.dayOpen]  overland: a travel day is open
  * @returns {string[]}  `badge`, `spacer`, `tools`, or the data-action a button runs
  */
-export function barItems({ mode, hexScene = false, pending = false }) {
-  if (mode === "overland") return ["badge", pending ? "resumeTravel" : "startDay", "makeCamp", "spacer", "tools", "endTravel"];
+export function barItems({ mode, hexScene = false, pending = false, dayOpen = false }) {
+  // Days open themselves (travel start, camp's dawn): Start day shows only while none is open.
+  if (mode === "overland") return ["badge", ...(pending ? ["resumeTravel"] : dayOpen ? [] : ["startDay"]), "makeCamp", "spacer", "tools", "endTravel"];
+  // A hex map is overland: its one Start begins travel, and turns a crawl that
+  // walked onto the map into travel. Crawl rounds belong to every other scene.
+  if (hexScene) return ["badge", "addSelectedTokens", "spacer", "tools", "startTravel"];
   if (mode === "crawl") return ["badge", "nextCrawlTurn", "addSelectedTokens", "startCombat", "spacer", "tools", "endCrawl"];
-  return ["badge", "addSelectedTokens", ...(hexScene ? ["startTravel"] : []), "spacer", "tools", "startCrawl"];
+  return ["badge", "addSelectedTokens", "spacer", "tools", "startCrawl"];
 }
 
 /**

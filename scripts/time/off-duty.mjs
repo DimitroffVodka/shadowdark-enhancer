@@ -30,7 +30,7 @@
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
-import { queryActiveGM } from "../shared/gm-relay.mjs";
+import { isActiveGM, queryActiveGM } from "../shared/gm-relay.mjs";
 import { isLightItem } from "../crawl-strip/crawl-lights-core.mjs";
 import { esc } from "../shared/esc.mjs";
 
@@ -57,6 +57,20 @@ export const litCarried = (actors) => actors.flatMap((actor) => Array.from(actor
 
 /** The GMs online whose tabs burn lights: every one holding the system's `primaryGM` flag. */
 export const lightGMs = (users) => users.filter((u) => !!u?.active && !!u.isGM && u.flags?.shadowdark?.primaryGM === true);
+
+/**
+ * The active GM takes the system's light tracker, and with it the real-time clock: the system gives both to
+ * whichever GM holds `primaryGM`, which need not be the active GM that moves Overland's clock, and then a tick
+ * computed before one of those moves lands sets the clock back (a second GM left logged in did, every step).
+ * This GM's flag goes first and the others' after, so no tick finds nobody holding it and promotes itself.
+ */
+export async function claimLightTracker() {
+  if (!isActiveGM() || !game.shadowdark?.lightSourceTracker) return;
+  const others = lightGMs(Array.from(game.users ?? [])).filter((u) => u.id !== game.user.id);
+  if (!others.length && game.user.getFlag("shadowdark", "primaryGM") === true) return;
+  await game.user.setFlag("shadowdark", "primaryGM", true);
+  for (const user of others) await user.setFlag("shadowdark", "primaryGM", false);
+}
 
 /**
  * Where the move runs, given the GMs that hold the flag.

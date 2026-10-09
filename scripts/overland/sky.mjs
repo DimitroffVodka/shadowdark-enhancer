@@ -10,6 +10,9 @@
  *
  * - Darkness (sky-core.mjs darknessAt) is written only when it moves by 0.02
  *   or more, animated for a step under an hour. The hex map stops at 0.6.
+ *   While Overland paces the clock (a walk, a time-lapse), every screen paints
+ *   it from the time it shows, frame by frame, and it is written once the
+ *   slices stop.
  *   Nothing is written when the scene's darkness is locked. No other module
  *   is consulted: a scene set to not follow the sky is the way out.
  * - Weather: Foundry's rainStorm when stormy, its blizzard when stormy in a
@@ -24,8 +27,9 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { isActiveGM } from "../shared/gm-relay.mjs";
 import { isHexRulesScene } from "../encounter/encounter-terrain.mjs";
 import { esc } from "../shared/esc.mjs";
-import { overlandState, travelScene, weatherNow, OVERLAND_CHANGED } from "./overland.mjs";
+import { overlandState, travelRegion, travelScene, weatherNow, OVERLAND_CHANGED } from "./overland.mjs";
 import { hourOfDay } from "../time/time-core.mjs";
+import { isPacedStep, onShownTime } from "../time/time.mjs";
 import {
   HEX_MAP_CAP, darknessAt, darknessMoved, followsSky, skyOverride, skyScenes, weatherEffect, weatherPlan,
 } from "./sky-core.mjs";
@@ -36,6 +40,12 @@ export const SKY_WEATHER = "skyWeather";
 /** A darkness step under this many seconds of clock is animated. */
 const ANIMATE_BELOW = 3600;
 const ANIMATE_MS = 2000;
+/**
+ * How long after the last paced slice the darkness write waits: past every screen's slide (two paces),
+ * and past the check rolled between two stretches of a night or the step between two hexes, so no
+ * write lands while the screens are still painting their own.
+ */
+const PACING_SETTLES_MS = 2000;
 
 const t = (key) => game.i18n.localize(key);
 const FOLLOWS_LABEL = {
@@ -53,13 +63,32 @@ let _running = null;
 let _again = null;
 
 /**
+ * The sky's darkness on `scene` at `time`: null when the scene doesn't follow the sky or its darkness is locked.
+ * The active GM writes it; every screen paints it from the time it shows while the clock is paced.
+ */
+export function skyDarkness(scene, time = game.time.worldTime) {
+  const hex = isHexMap(scene);
+  const api = game.shadowdarkEnhancer?.time;
+  if (!api || scene.environment?.darknessLock || !followsSky(scene.getFlag(MODULE_ID, FOLLOWS_SKY), hex)) return null;
+  return darknessAt({
+    hour: hourOfDay(game.time.calendar, time), ...api.sun(time), illumination: api.moonPhase(time).illumination,
+    cap: hex ? HEX_MAP_CAP : 1, override: skyOverride(travelRegion(), api.season(time)?.key ?? null),
+  });
+}
+
+/**
+ * Set while a walk or a time-lapse moves the clock in paced slices: every screen paints its own
+ * darkness then (paintDarkness), and the active GM writes it once the slices have stopped.
+ */
+let _pacing = null;
+
+/**
  * Work out the sky for `scene` and write what changed (active GM only).
  * @param {Scene} [scene]  the active scene by default
- * @param {{dt?:number|null, paceMs?:number|null}} [options]  the clock step that caused it, for the
- *   animation; `paceMs`: the step is one slice of a walk, so darkness follows over that long, not 2 s behind
+ * @param {{dt?:number|null}} [options]  the clock step that caused it, for the animation
  * @returns {Promise<object|null>} what was written, or null
  */
-export async function applySky(scene = game.scenes?.active, { dt = null, paceMs = null } = {}) {
+export async function applySky(scene = game.scenes?.active, { dt = null } = {}) {
   if (!scene || !isActiveGM()) return null;
   const hex = isHexMap(scene);
   if (!followsSky(scene.getFlag(MODULE_ID, FOLLOWS_SKY), hex)) return null;
@@ -67,20 +96,14 @@ export async function applySky(scene = game.scenes?.active, { dt = null, paceMs 
   if (!api) return null;
   const now = game.time.worldTime;
   const state = overlandState();
-  const override = skyOverride(state.hex?.region, api.season(now)?.key ?? null);
   const updates = {};
   const options = {};
 
-  if (!scene.environment?.darknessLock) {
-    const next = darknessAt({
-      hour: hourOfDay(game.time.calendar, now), ...api.sun(now), illumination: api.moonPhase(now).illumination,
-      cap: hex ? HEX_MAP_CAP : 1, override,
-    });
-    if (darknessMoved(scene.environment?.darknessLevel, next)) {
-      updates["environment.darknessLevel"] = next;
-      if (paceMs > 0) options.animateDarkness = paceMs;
-      else if (Number.isFinite(dt) && Math.abs(dt) < ANIMATE_BELOW) options.animateDarkness = ANIMATE_MS;
-    }
+  // The stored value, not the prepared one: a paint (canvas.environment.initialize) moves the prepared one.
+  const next = _pacing === null ? skyDarkness(scene, now) : null;
+  if (next !== null && darknessMoved(scene._source?.environment?.darknessLevel, next)) {
+    updates["environment.darknessLevel"] = next;
+    if (Number.isFinite(dt) && Math.abs(dt) < ANIMATE_BELOW) options.animateDarkness = ANIMATE_MS;
   }
 
   const plan = weatherPlan({
@@ -134,6 +157,18 @@ function queueSky(options) {
       if (_again) { const { options: o } = _again; _again = null; queueSky(o); }
     });
   return _running;
+}
+
+/**
+ * This screen's darkness at the time it shows, while the clock is paced: on the scene it is viewing,
+ * when that is one the active GM keeps the sky on. Core's own path for a darkness animation's frame.
+ */
+function paintDarkness(time) {
+  const scene = globalThis.canvas?.ready ? canvas.scene : null;
+  if (!scene || !skyScenes({ active: game.scenes?.active, travel: travelScene(), follows: sceneFollows }).includes(scene)) return;
+  const level = skyDarkness(scene, time);
+  if (level === null || Math.abs(level - canvas.environment.darknessLevel) < 0.001) return;
+  canvas.environment.initialize({ environment: { darknessLevel: level } });
 }
 
 /** Scene Configuration's Environment tab gets the "Follows the sky" choice (GM). */
@@ -194,7 +229,16 @@ export function registerWeatherVisuals() {
 
 export function registerSky() {
   Hooks.on("renderSceneConfig", onRenderSceneConfig);
-  Hooks.on("updateWorldTime", (worldTime, dt, options) => { if (isActiveGM()) queueSky({ dt, paceMs: options?.[MODULE_ID]?.paceMs }); });
+  Hooks.on("updateWorldTime", (worldTime, dt, options) => {
+    if (!isActiveGM()) return;
+    if (isPacedStep(options)) {
+      // The darkness is written once the slices stop for a beat, after every screen's slide has ended.
+      clearTimeout(_pacing);
+      _pacing = setTimeout(() => { _pacing = null; queueSky(); }, PACING_SETTLES_MS);
+    }
+    queueSky({ dt });
+  });
+  onShownTime(paintDarkness);
   Hooks.on(OVERLAND_CHANGED, () => { if (isActiveGM()) queueSky(); });
   Hooks.on("updateScene", (scene, changed) => {
     if (!isActiveGM()) return;

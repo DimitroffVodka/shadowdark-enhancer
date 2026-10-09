@@ -20,9 +20,12 @@ Left to right:
 | **⏪** | GM | Opens a column of steps back: a day, 8 hours, an hour, 10 minutes, a round. |
 | **Month** | everyone | Opens the month view (below). |
 | **Time** | GM | Opens the Time panel (below). |
-| **The date** | everyone | Weekday, day, month and year, then the time. **Stopped** follows the time while an encounter holds the travel clock. |
-| **⌃ / ⌄** | everyone | Shows or hides the sky. |
-| **Travel** | on a hex map | The hexes left today while travelling, or **Start travel** for a GM. The party icon opens the Travel panel. |
+| **The date** | everyone | In the middle of the bar: weekday, day, month and year, then the time. |
+| **⌃ / ⌄** | everyone | A small, quiet chevron beside the date: shows or hides the sky. |
+| **Travel** | on a hex map | While travelling, a counter: how the party travels (on foot, mounted, by boat), then the day's movement points left over the day's total, with a double chevron when pushing. Hover it for the words. Before a day is open it reads **No day**, and when an encounter holds the travel clock it is lit and reads **Encounter**; its tooltip says to run it and press Continue. Or **Start travel** for a GM. |
+| **Find the party** (crosshairs) | anyone who can see a party | Pans the map to the party token, pulses on it (on your screen only) and selects it. If the token is on another scene it names the scene. With several parties it finds the selected one, else the one travelling; if neither is known it asks you to select one rather than guess. |
+| **Party sheet** (shield) | anyone who can see a party | Opens the party sheet (the picker when there are several parties). |
+| **Travel panel** (the party icon) | on a hex map | Opens the Travel panel. |
 | **⏩** | GM | Opens a column of steps forward, the same five. |
 
 It hides during a combat and on any scene without a hex grid. **Settings →
@@ -31,12 +34,14 @@ or nobody.
 
 ## The sky
 
-Under the bar, the season, then the dial: a disc that turns once a day, with
-now always at the bottom under the star. Daylight is the light part, the
-twilight around sunrise and sunset is hatched, and night is dark with its
-stars. The day's weather sits on the plate in the middle, with the next
-sunrise or sunset under it; while travelling, the region and terrain too. The
-moon rides the dashed outer track by its phase.
+Under the bar, the season with today's weather beside it, then the dial: a
+half disc that turns once a day inside a ring of hour ticks, with now always
+at the bottom under the star (hover it for the time). Daylight is the light
+part, the twilight around sunrise and sunset is hatched, and night is dark with
+its stars. Sunrise and sunset are badges on the hour ring that turn with the
+disc; hover one for its time. While travelling, the region and terrain are
+written across the disc, wrapping when the name is long. The moon rides the
+dashed outer track by its phase.
 
 The season band fills with a hatch from the right over a season's last 30
 days; hover it for how many days are left.
@@ -59,17 +64,28 @@ there, and the steps wait until the encounter is continued.
 ### Walking a hex takes its time
 
 The party token walks as long as the clock takes to move it. A normal hex is
-about a second on screen, and a difficult hex, which costs two points, is
-about a second and a half. The clock runs alongside, in small steps,
-so the date and time on the bar, the sky's darkness and the burning torches
-all keep pace with the token instead of jumping at the start. A route across
-several hexes walks them one after another.
+about a second and a half on screen, and a difficult hex, which costs two
+points, is about two and a half seconds. The clock runs alongside, and on
+every screen the bar's dial turns, its time ticks over and the sky darkens or
+lightens smoothly with the token instead of jumping; the burning torches keep
+pace too, and the fog lifts from a hex as the party walks into it. A route
+across several hexes walks them in one unbroken stride; it stops only where a
+check rolls an encounter or the day's points run out.
+
+**Fast travel** (GM): with the party token selected, **Shift-click** the end of the
+route the cursor shows and the party is there at once. No day has to be open, and
+nothing is spent: no hexes of the day, no encounter checks, no time, no camp, no
+rations. The fog lifts along the way as a walk would lift it. Move the clock
+yourself from the bar if the trip should take time. It is refused while an
+encounter is held, until you press Continue. Players' Shift-clicks do nothing.
 
 **Make camp** and **Continue** run the rest of the night, or of a stopped move, as
-a time-lapse: a beat plus a share of the span, never more than about three
-seconds. The bar's time, the sky's darkness (dusk falling, dawn lifting) and the
-torches all run through it, and an encounter check still rolls at its hour and
-stops the clock there.
+a time-lapse: a beat plus a share of the span, about eight seconds for a whole
+night and never more than ten. The camp window folds away while the night runs,
+so you watch it on the map, and opens again at dawn with the results. The bar's
+time, the sky's darkness (dusk falling, dawn lifting) and the torches all run
+through it, and an encounter check still rolls at its hour and stops the clock
+there.
 
 When the party's scene is not the one on the GM's screen there is nothing to
 keep pace with, and the clock moves in one step as before. So do the clock bar's

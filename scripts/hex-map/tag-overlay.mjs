@@ -454,7 +454,8 @@ export class HexTagOverlay {
     HexTagOverlay.current = this;
     // A sheet applied in the tagger, a hand-off or a cleared flag all arrive here.
     this._hooks.push(["updateScene", Hooks.on("updateScene", (doc, changed, options) => {
-      if (doc.id !== this.scene.id || options?.[WRITER_OPTION] === this._writerId) return;
+      // What it draws is all in flags: the sky's darkness writes while travelling must not redraw ~4,800 hexes.
+      if (doc.id !== this.scene.id || !("flags" in (changed ?? {})) || options?.[WRITER_OPTION] === this._writerId) return;
       // Mid-write the scene is about to change again under this overlay's own write: read it when that settles.
       if (this._writing) this._heard = true; else this._takeInScene();
     })]);
