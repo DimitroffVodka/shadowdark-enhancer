@@ -689,6 +689,16 @@ test("A party item dropped on a character leaves the party once the sheet has co
     drop(t.pcs[0]);
     await handlers.createItem({ name: "Rope", parent: t.pcs[0] }, {}, "player");
     assert.deepEqual(gone, ["r"], "a light is moved by the system, so the party does not delete it a second time");
+    // An item with Active Effects takes the system's createEmbeddedDocuments branch: nothing else removes it, light or not.
+    rope.effects = { size: 1 };
+    drop(t.pcs[0]);
+    await handlers.createItem({ name: "Rope", parent: t.pcs[0] }, {}, "player");
+    assert.deepEqual(gone, ["r", "r"], "a light with effects is still removed from the party");
+    delete rope.isLight;
+    globalThis.foundry.appv1 = { sheets: { ActorSheet: { prototype: { _sdxCtrlMovePatched: true } } } };
+    drop(t.pcs[0]);
+    await handlers.createItem({ name: "Rope", parent: t.pcs[0] }, {}, "player");
+    assert.deepEqual(gone, ["r", "r", "r"], "with Extras' transfers on, an item with effects is still removed from the party");
   } finally { globalThis.Hooks = saved; delete globalThis.event; delete globalThis.fromUuidSync; delete globalThis.foundry.appv1; }
 });
 
@@ -811,9 +821,18 @@ test("Clicking a member opens a sheet only for a viewer who may see that actor",
 test("Dragging an Extras backpack onto the party moves its contents with it, as Extras' own move does", async () => {
   const t = treasury();
   const sheet = new PartySheet(); sheet.document = t.p; Object.defineProperty(sheet, "actor", { value: t.p });
-  const removed = [], kid = { id: "k", getFlag: (mod, key) => mod === "shadowdark-extras" && key === "containerId" ? "bag" : null, delete: async (opts) => { removed.push(["k", opts]); } };
-  const other = { id: "o", getFlag: () => null, delete: async () => { removed.push(["o"]); } };
-  const bag = { id: "bag", type: "Basic", copied: {}, parent: { uuid: t.pcs[0].uuid, isOwner: true, items: { filter: (fn) => [kid, other].filter(fn) } }, getFlag: (mod, key) => mod === "shadowdark-extras" && key === "isContainer", delete: async (opts) => { removed.push(["bag", opts]); } };
+  const removed = [], kid = { id: "k", flags: { "shadowdark-extras": { containerId: "bag" } }, delete: async (opts) => { removed.push(["k", opts]); } };
+  const other = { id: "o", flags: {}, delete: async () => { removed.push(["o"]); } };
+  const bag = { id: "bag", type: "Basic", copied: {}, parent: { uuid: t.pcs[0].uuid, isOwner: true, items: { filter: (fn) => [kid, other].filter(fn) } }, flags: { "shadowdark-extras": { isContainer: true } }, delete: async (opts) => { removed.push(["bag", opts]); } };
   await sheet._onDropItem({ ctrlKey: false }, bag);
   assert.deepEqual(removed, [["k", { sdxInternal: true }], ["bag", { sdxInternal: true }]], "the children go first, then the pack, none of it released onto the character");
+});
+
+test("Dragging ordinary gear onto the party works without Shadowdark Extras, where getFlag throws for its scope", async () => {
+  const t = treasury();
+  const sheet = new PartySheet(); sheet.document = t.p; Object.defineProperty(sheet, "actor", { value: t.p });
+  const removed = [], getFlag = (scope) => { throw new Error(`Flag scope "${scope}" is not valid or not currently active`); };
+  const rope = { id: "r", type: "Basic", copied: {}, flags: {}, getFlag, parent: { uuid: t.pcs[0].uuid, isOwner: true, items: { filter: () => [] } }, delete: async () => { removed.push("r"); } };
+  await sheet._onDropItem({ ctrlKey: false }, rope);
+  assert.deepEqual(removed, ["r"], "the rope leaves the character");
 });
