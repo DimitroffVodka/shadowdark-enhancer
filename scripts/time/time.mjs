@@ -12,7 +12,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { isActiveGM, registerQuery } from "../shared/gm-relay.mjs";
 import * as core from "./time-core.mjs";
 import { nightWithOverride, skyOverride } from "../overland/sky-core.mjs";
-import { advanceOffDuty, handleOffDutyQuery, OFF_DUTY_QUERY } from "./off-duty.mjs";
+import { advanceOffDuty, claimLightTracker, handleOffDutyQuery, OFF_DUTY_QUERY } from "./off-duty.mjs";
 
 /** World setting: a worldTime at which the moon was new. The phases count from it. */
 export const MOON_EPOCH = "moonEpoch";
@@ -70,6 +70,10 @@ export const timeApi = {
 export function registerTimeHooks() {
   registerQuery(OFF_DUTY_QUERY, (data, { user } = {}) => handleOffDutyQuery(data, user));
   Hooks.on("updateWorldTime", slideShownTime);
+  // The active GM runs the real-time clock its own clock moves hold (claimLightTracker), whoever else is on.
+  const claim = () => claimLightTracker().catch((err) => console.error(`${MODULE_ID} | taking the light tracker`, err));
+  Hooks.once("ready", claim);
+  Hooks.on("userConnected", (user) => { if (user?.isGM) claim(); });
   Hooks.on("updateWorldTime", (worldTime, dt, options) => {
     if (!isActiveGM()) return;
     const from = worldTime - dt;
