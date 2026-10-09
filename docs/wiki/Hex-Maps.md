@@ -44,6 +44,18 @@ with ordinary GM/owner exceptions. GM reveal/conceal can hide a visited location
 without erasing arrival history. Dawn/manual reveal never rerolls first-entry
 tables. Adoption imports legacy fog/rolled history once and reload retains it.
 
+**Each party keeps its own map.** A table that runs several groups on one map
+(a West March) does not leak one group's travels to another. Committed travel and
+dawn reveal write to the travelling party only, and a player sees the hexes of the
+parties that have one of their characters on the roster, plus anything the GM
+revealed to everyone. A party made from a world that held only shared fog starts
+with that shared map: nothing already revealed is lost. The GM sees the map of the
+party they have selected (else the one travelling); selecting another party in the
+Party window redraws it, and the Hexplorer's Revealed/Visited/Location boxes edit
+that party's entry, not everyone's. A first-entry roll table is rolled once per
+party. **Start travel** asks which party when more than one has a token on the map
+(or exists and has none), and a different party starts a fresh travel day.
+
 Private rich data lives in GM-restricted journals/packs, not public actor/scene
 flags. Player projections are filtered. This is ordinary Foundry spoiler
 protection, not encryption against deliberate raw document/pack API inspection.

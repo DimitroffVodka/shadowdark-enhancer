@@ -10,6 +10,33 @@ export function disclosure(state, kind = "terrain", { isGM = false, owner = fals
   if (state?.revealed !== true) return false;
   return kind !== "location" || (state.locationRevealed ?? state.visited) === true;
 }
+/**
+ * A hex's discovery as the given parties see it. The top-level fields are what every party knows (the GM's reveal,
+ * or a world from before parties were tracked apart); `by[partyId]` is one party's own and wins over them for that
+ * party. Several parties (one player in two) see the union. No party: only what everyone knows.
+ */
+export function effectiveDiscovery(discovery, partyIds = []) {
+  const all = discovery ?? {}, { by, ...shared } = all, ids = partyIds.filter(Boolean);
+  if (!ids.length) return { revealed: false, visited: false, ...shared };
+  const each = field => ids.map(id => by?.[id]?.[field] ?? shared[field]);
+  const location = each("locationRevealed");
+  const out = { ...shared, revealed: each("revealed").includes(true), visited: each("visited").includes(true) };
+  if (location.includes(true)) out.locationRevealed = true;
+  else if (location.includes(false)) out.locationRevealed = false;
+  else delete out.locationRevealed;
+  return out;
+}
+/** `discovery` with one party's own entry patched; an undefined field is removed from it. Nothing is mutated. */
+export function withPartyDiscovery(discovery, partyId, patch) {
+  const own = { ...discovery?.by?.[partyId] };
+  for (const [field, value] of Object.entries(patch)) if (value === undefined) delete own[field]; else own[field] = value;
+  return { ...discovery, by: { ...discovery?.by, [partyId]: own } };
+}
+/** Of the projections one player can see for a hex (one per party, plus what everyone knows), the most revealing. */
+export function bestProjection(projections) {
+  const rank = p => (p.discovery?.locationRevealed ? 2 : 0) + (p.discovery?.visited ? 1 : 0);
+  return projections.filter(Boolean).sort((a, b) => rank(b) - rank(a))[0] ?? null;
+}
 export function overlapAllowed({ active = false, disabled = false, guardVersion = 0 } = {}) {
   return !active || disabled || guardVersion >= 1;
 }
@@ -54,7 +81,8 @@ export function revealCells({ grid, origin, cells, radius, mountain, night, weat
   if (!night && weather !== "stormy") for (const cell of cells) if (mountain(cell) && sight(cell)) revealed.add(keyOf(cell));
   return revealed;
 }
-/** Dawn/manual/reveal-only never enter this branch. Import history survives any conceal. */
-export function arrivalDue(record, { entered = false } = {}) {
-  return entered && !!record?.rollTable && !(record.rollTableFirstOnly && record.arrivalRolled);
+/** Dawn/manual/reveal-only never enter this branch. Import history survives any conceal. A first-entry table is once per party. */
+export function arrivalDue(record, { entered = false, partyId = null } = {}) {
+  const rolled = record?.arrivalRolled || (!!partyId && record?.arrivalRolledBy?.includes(partyId));
+  return entered && !!record?.rollTable && !(record.rollTableFirstOnly && rolled);
 }

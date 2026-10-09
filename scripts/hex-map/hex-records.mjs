@@ -9,7 +9,8 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { decodeTags, readCell, FEATURES, normalizeTerrainWord } from "./tag-store.mjs";
 import { hexNumberAt } from "./hex-number-api.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
-import { disclosure } from "./hex-fog-core.mjs";
+import { disclosure, effectiveDiscovery, bestProjection } from "./hex-fog-core.mjs";
+import { Party } from "../party/party.mjs";
 
 export const RECORD_FLAG = "hexRecords";
 export const PUBLIC_FLAG = "hexRecordProjection";
@@ -131,6 +132,16 @@ function keyedPages(scene, num, pass = null) {
 }
 /** Patch fields a raw cell write may touch; the archive and arrival history stay out of reach. */
 const WRITABLE_CELL_FIELDS = new Set(["title", "features", "notes", "links", "terrain", "rollTable", "rollTableChance", "rollTableFirstOnly"]);
+/** The parties whose fog this player sees: those with a character they own on the roster, or the only party there is. */
+function playerPartyIds(projection, pass) {
+  if (!projection) return [];
+  if (pass?.mineOf === projection) return pass.mine;
+  const all = Object.entries(projection?.parties ?? {});
+  let mine = all.filter(([, party]) => (party.members ?? []).some(id => game.actors?.get(id)?.isOwner)).map(([id]) => id);
+  if (!mine.length && all.length === 1) mine = [all[0][0]];
+  if (pass) Object.assign(pass, { mineOf: projection, mine });
+  return mine;
+}
 export const HexRecords = {
   read(offset, target, pass = null) {
     const scene = sceneRef(target), key = offsetKey(offset);
@@ -140,7 +151,8 @@ export const HexRecords = {
     if (!game.user?.isGM) {
       // Cache the resolved projection, not just the journal: `journal.flags` is a live accessor.
       const projection = reuse ? (reuse.public ??= recordJournal(scene, { publicOnly: true })?.flags?.[MODULE_ID]?.[PUBLIC_FLAG]) : recordJournal(scene, { publicOnly: true })?.flags?.[MODULE_ID]?.[PUBLIC_FLAG];
-      const data = projection?.cells?.[key];
+      // What everyone knows, and what each party this player's characters belong to has found.
+      const data = bestProjection([projection?.cells?.[key], ...playerPartyIds(projection, reuse).map(id => projection.parties[id]?.cells?.[key])]);
       if (!data) return null;
       const out = clone(data);
       if (locationVisible(out.discovery)) out.keyed = keyedPages(scene, out.num, reuse);
@@ -192,13 +204,24 @@ export async function publishHexProjection(target) {
   const scene = sceneRef(target), journal = recordJournal(scene);
   if (!journal) return;
   assertPrivateJournal(journal);
-  const cells = {};
-  for (const key of Object.keys(journal.flags[MODULE_ID][RECORD_FLAG].cells ?? {})) {
-    const [i, j] = key.split("_").map(Number);
-    const projection = playerProjection(HexRecords.read({ i, j }, scene));
-    if (projection) cells[key] = projection;
+  // Cells hold what every party knows; each party's own finds are projected apart, so one party's map is not another's.
+  const cells = {}, parties = {};
+  for (const actor of Party.list()) {
+    let members = [];
+    try { members = Party.members(actor).map(uuid => String(uuid).replace(/^Actor\./, "")); } catch { /* an unadopted party has no roster */ }
+    parties[actor.id] = { members, cells: {} };
   }
-  const value = { version: 1, sceneUuid: sceneUuid(scene), cells };
+  for (const key of Object.keys(journal.flags[MODULE_ID][RECORD_FLAG].cells ?? {})) {
+    const [i, j] = key.split("_").map(Number), record = HexRecords.read({ i, j }, scene);
+    const shown = (ids) => playerProjection({ ...record, discovery: effectiveDiscovery(record.discovery, ids) });
+    const everyone = shown([]);
+    if (everyone) cells[key] = everyone;
+    for (const id of Object.keys(parties)) {
+      const own = shown([id]);
+      if (own) parties[id].cells[key] = own;
+    }
+  }
+  const value = { version: 1, sceneUuid: sceneUuid(scene), cells, parties };
   const publicJournal = recordJournal(scene, { publicOnly: true });
   if (publicJournal) await replaceModuleFlag(publicJournal, PUBLIC_FLAG, value);
   else await JournalEntry.create({ name: game.i18n.format("SDE.hexRecords.publicName", { scene: scene.name }), ownership: { default: 2 }, flags: { [MODULE_ID]: { [PUBLIC_FLAG]: value } } });
