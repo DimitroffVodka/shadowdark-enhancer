@@ -5,8 +5,10 @@
  * token code all work on world documents). Packing copies those into one Adventure document in the managed
  * `sde-adventures` pack, so a GM can leave the adventure in the compendium and import it only when it is run.
  *
- * Packing only reads. Taking the world copies away afterwards (`removeStaged`) deletes the exact ids a run made and
- * nothing else: a document that was in the world before the run, or that another scene still uses, stays.
+ * Packing only reads. Taking the world copies away afterwards (`removeStaged`) deletes the exact scene, journal and actor ids a
+ * run made and nothing else: a document that was in the world before the run, or that another scene still uses, stays.
+ * Folders always stay: the next adventure of the book files into the same ones, so every Adventure carries the same folder ids
+ * and importing them back makes one folder per book, not one per adventure.
  *
  * The map picture is not in the Adventure, only its path: the file stays in the world's `adventure-maps` folder.
  */
@@ -56,11 +58,11 @@ export function adventureData({ name, img = null, site, scene, journal = null, a
 /**
  * Pure: what taking an adventure's world copies away may delete.
  * Only what the run made (`created`), and of that only what nothing else needs: an actor a scene outside the adventure still
- * has a token for stays. Folders are candidates only; removeStaged deletes one once it is empty.
- * @param {{scene:string, journal:string|null, actors:string[], folders:string[]}} staged  the adventure's world documents
- * @param {{scene?:boolean, journal?:boolean, actors?:string[], folders?:string[]}} created  what this run made
+ * has a token for stays. Folders are never removed.
+ * @param {{scene:string, journal:string|null, actors:string[]}} staged  the adventure's world documents
+ * @param {{scene?:boolean, journal?:boolean, actors?:string[]}} created  what this run made
  * @param {{sceneActors:Map<string,Set<string>>}} world  every scene's token actors, by scene id
- * @returns {{scene:string|null, journal:string|null, actors:string[], folders:string[], kept:string[]}}
+ * @returns {{scene:string|null, journal:string|null, actors:string[], kept:string[]}}
  */
 export function removalPlan(staged, created, world) {
   const made = new Set(created.actors ?? []);
@@ -71,13 +73,10 @@ export function removalPlan(staged, created, world) {
     const elsewhere = [...world.sceneActors].some(([sceneId, set]) => sceneId !== staged.scene && set.has(id));
     if (elsewhere) kept.push(id); else actors.push(id);
   }
-  const madeFolders = new Set(created.folders ?? []);
-  // Deepest first: a child goes before its parent, which only then can be empty.
-  const folders = [...staged.folders].reverse().filter((id) => madeFolders.has(id));
   return {
     scene: created.scene ? staged.scene : null,
     journal: created.journal ? staged.journal : null,
-    actors, folders, kept,
+    actors, kept,
   };
 }
 
@@ -96,17 +95,61 @@ export function createOnly(data) {
 }
 
 /**
- * Import a packed adventure into the world, creating what is missing and touching nothing that is already there.
+ * Pure: a packed creature the world already has (same name and type, as worldActorFor finds one) is not made a second time:
+ * its tokens in the packed scenes point at the world's actor instead. Two adventures that share a Goblin share one actor.
+ * @param {{toCreate:object, documentCount:number}} data  from Adventure#prepareImport (changed in place)
+ * @param {Iterable<{id:string, name:string, type:string}>} actors  the world's actors
+ */
+export function reuseWorldActors(data, actors) {
+  const packed = data.toCreate?.Actor;
+  if (!packed?.length) return;
+  const world = [...actors];
+  const swap = new Map();
+  for (const a of packed) {
+    const same = world.find((w) => w.id !== a._id && w.name === a.name && w.type === a.type);
+    if (same) swap.set(a._id, same.id);
+  }
+  if (!swap.size) return;
+  data.toCreate.Actor = packed.filter((a) => !swap.has(a._id));
+  if (!data.toCreate.Actor.length) delete data.toCreate.Actor;
+  for (const scene of data.toCreate.Scene ?? []) {
+    for (const t of scene.tokens ?? []) if (swap.has(t.actorId)) t.actorId = swap.get(t.actorId);
+  }
+  data.documentCount -= swap.size;
+}
+
+/** Import preparation for a packed adventure: create what is missing, reuse the world's creatures, change nothing else. */
+export const importMissingOnly = (data, actors = globalThis.game?.actors ?? []) => {
+  reuseWorldActors(data, actors);
+  return createOnly(data);
+};
+
+/**
+ * `preImportAdventure` handler: an Adventure from the Adventures pack only ever creates, whichever way it is imported (the
+ * wizard, or the Import button on the Adventure's own sheet, which calls Adventure#import with no preImport of its own).
+ */
+export function onPreImportAdventure(adventure, options) {
+  if (!adventure.getFlag?.(MODULE_ID, ADVENTURE_PACK_FLAG)) return;
+  options.preImport = [...(options.preImport ?? []), (data) => { importMissingOnly(data); }];
+}
+
+/** Hook the create-only import (once, at init). */
+export function registerAdventurePackImport() {
+  Hooks.on("preImportAdventure", onPreImportAdventure);
+}
+
+/**
+ * Import a packed adventure into the world, creating what is missing and touching nothing that is already there
+ * (the `preImportAdventure` hook makes it create-only).
  * @param {Adventure} adventure  the document in the Adventures pack
- * @returns {Promise<{status:"imported"|"already"|"gmOnly", created:Record<string,number>, kept:Record<string,number>}>}
+ * @returns {Promise<{status:"imported"|"already"|"gmOnly", created:Record<string,number>}>}
  */
 export async function importPackedAdventure(adventure) {
-  if (!game.user?.isGM) return { status: "gmOnly", created: {}, kept: {} };
-  let kept = {};
-  const result = await adventure.import({ dialog: false, preImport: [(data) => { kept = createOnly(data); }] });
+  if (!game.user?.isGM) return { status: "gmOnly", created: {} };
+  const result = await adventure.import({ dialog: false });
   const created = Object.fromEntries(Object.entries(result.created ?? {}).map(([name, docs]) => [name, docs.length]));
   const made = Object.values(created).reduce((n, c) => n + c, 0);
-  return { status: made ? "imported" : "already", created, kept };
+  return { status: made ? "imported" : "already", created };
 }
 
 /** The world documents that make up a site's adventure, or null when the site has no scene. */
@@ -126,7 +169,7 @@ export async function stagedDocuments(siteId) {
  * Copy a built adventure into the Adventures pack: its scene, journal and the actors its tokens use, with their folders.
  * Filed again, it replaces the Adventure it made before (found by the flag).
  * @param {string} siteId
- * @returns {Promise<{status:"packed"|"updated"|"noScene"|"noPack"|"gmOnly", uuid?:string, staged?:{scene:string, journal:string|null, actors:string[], folders:string[]}}>}
+ * @returns {Promise<{status:"packed"|"updated"|"noScene"|"noPack"|"gmOnly", uuid?:string, staged?:{scene:string, journal:string|null, actors:string[]}}>}
  */
 export async function packAdventure(siteId) {
   if (!game.user?.isGM) return { status: "gmOnly" };
@@ -141,7 +184,7 @@ export async function packAdventure(siteId) {
     scene: docs.scene.toObject(), journal: docs.journal?.toObject() ?? null,
     actors: docs.actors.map((a) => a.toObject()), folders: docs.folders.map((f) => f.toObject()),
   });
-  const staged = { scene: docs.scene.id, journal: docs.journal?.id ?? null, actors: docs.actors.map((a) => a.id), folders: docs.folders.map((f) => f.id) };
+  const staged = { scene: docs.scene.id, journal: docs.journal?.id ?? null, actors: docs.actors.map((a) => a.id) };
 
   const had = (await pack.getDocuments()).find((d) => d.getFlag(MODULE_ID, ADVENTURE_PACK_FLAG)?.site === siteId);
   if (had) {
@@ -154,22 +197,17 @@ export async function packAdventure(siteId) {
 
 /**
  * Take an adventure's world copies away, after it is packed. `created` says what the run made; nothing else is touched.
- * @param {{scene:string, journal:string|null, actors:string[], folders:string[]}} staged  from packAdventure
- * @param {{scene?:boolean, journal?:boolean, actors?:string[], folders?:string[]}} created
- * @returns {Promise<{scene:number, journal:number, actors:number, folders:number, kept:string[]}>}
+ * @param {{scene:string, journal:string|null, actors:string[]}} staged  from packAdventure
+ * @param {{scene?:boolean, journal?:boolean, actors?:string[]}} created
+ * @returns {Promise<{scene:number, journal:number, actors:number, kept:string[]}>}
  */
 export async function removeStaged(staged, created) {
   const sceneActors = new Map(game.scenes.map((s) => [s.id, new Set(s.tokens.map((t) => t.actorId).filter(Boolean))]));
   const plan = removalPlan(staged, created, { sceneActors });
-  const out = { scene: 0, journal: 0, actors: 0, folders: 0, kept: plan.kept };
+  const out = { scene: 0, journal: 0, actors: 0, kept: plan.kept };
   if (plan.scene && game.scenes.has(plan.scene)) { await game.scenes.get(plan.scene).delete(); out.scene = 1; }
   if (plan.journal && game.journal.has(plan.journal)) { await game.journal.get(plan.journal).delete(); out.journal = 1; }
   for (const id of plan.actors) if (game.actors.has(id)) { await game.actors.get(id).delete(); out.actors += 1; }
-  for (const id of plan.folders) {
-    // Re-read: deleting the actors above is what empties a folder.
-    const f = game.folders.get(id);
-    if (f && !f.contents.length && !f.children.length) { await f.delete(); out.folders += 1; }
-  }
   return out;
 }
 
@@ -179,7 +217,6 @@ export function createdSince(before, staged) {
     scene: true,
     journal: !!staged.journal && !before.journals.has(staged.journal),
     actors: staged.actors.filter((id) => !before.actors.has(id)),
-    folders: staged.folders.filter((id) => !before.folders.has(id)),
   };
 }
 
@@ -187,7 +224,6 @@ export function createdSince(before, staged) {
 export const worldSnapshot = () => ({
   journals: new Set(game.journal.map((j) => j.id)),
   actors: new Set(game.actors.map((a) => a.id)),
-  folders: new Set(game.folders.map((f) => f.id)),
 });
 
 /** The site's Adventure in the pack, or null. */
@@ -206,7 +242,7 @@ export async function findPackedAdventure(siteId) {
  * @param {{id:string}} site
  * @param {() => Promise<{status:string, placed:number, left:number, known:boolean}>} build  the world build (scene, pins, walls, tokens)
  * @param {{placement?:"world"|"compendium"}} [opts]
- * @returns {Promise<{status:string, placed:number, left:number, known:boolean, packed?:boolean, packFailed?:boolean}>}
+ * @returns {Promise<{status:string, placed:number, left:number, known:boolean, packed?:boolean, packFailed?:boolean, copiesStayed?:boolean}>}
  */
 export async function buildPlaced(site, build, { placement = "world" } = {}) {
   const { findSiteScene } = await import("./adventure-scene.mjs");
@@ -220,14 +256,21 @@ export async function buildPlaced(site, build, { placement = "world" } = {}) {
   const before = worldSnapshot();
   const built = await build();
   if (built.status !== "built" || placement !== "compendium") return built;
+  let packed;
   try {
-    const packed = await packAdventure(site.id);
-    if (packed.status !== "packed" && packed.status !== "updated") return { ...built, packFailed: true };
-    await removeStaged(packed.staged, createdSince(before, packed.staged));
-    return { ...built, packed: true };
+    packed = await packAdventure(site.id);
   } catch (err) {
     // The scene is still in the world: nothing is removed unless the pack took it.
     console.warn(`${MODULE_ID} | adventure pack: ${site.id} stays in the world`, err);
     return { ...built, packFailed: true };
   }
+  if (packed.status !== "packed" && packed.status !== "updated") return { ...built, packFailed: true };
+  try {
+    await removeStaged(packed.staged, createdSince(before, packed.staged));
+  } catch (err) {
+    // The adventure is in the pack; only some of its world copies are left behind.
+    console.warn(`${MODULE_ID} | adventure pack: ${site.id} is packed, some world copies stayed`, err);
+    return { ...built, packed: true, copiesStayed: true };
+  }
+  return { ...built, packed: true };
 }
