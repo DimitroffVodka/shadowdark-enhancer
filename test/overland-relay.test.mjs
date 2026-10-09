@@ -1529,3 +1529,34 @@ test("a throwing Extras never breaks the weather write (#307)", async () => {
     assert.equal(cards.length, 1, "the card is still posted");
   }
 });
+
+test("fast travel: the GM jumps the party with nothing priced, no time and no dice; a player cannot", async () => {
+  travellingDay();
+  stored.overlandState = { members: [], foraged: [], day: null, tokenUuid: "Scene.s.Token.t" };
+  registerOverland();
+  const updates = [];
+  const grid = {
+    isHexagonal: true, getTopLeftPoint: (o) => ({ x: o.i * 100, y: o.j * 100 }), getDirectPath: (pts) => pts,
+  };
+  const doc = {
+    id: "t", uuid: "Scene.s.Token.t", _source: { x: 0, y: 0, elevation: 0 }, getCenterPoint: (p) => p,
+    parent: { grid, getFlag: () => undefined },
+    async update(data, options) { updates.push({ data, options }); },
+  };
+  globalThis.fromUuidSync = (uuid) => (uuid === doc.uuid ? doc : null);
+  const rolls = rolled.length;
+  assert.equal((await applyAction({ action: "fastTravel", i: 3, j: 2 }, { id: "player1", isGM: false })).ok, false);
+  assert.equal(updates.length, 0, "a player moves nothing");
+  const res = await applyAction({ action: "fastTravel", i: 3, j: 2 }, gm);
+  assert.equal(res.ok, true);
+  assert.deepEqual(updates[0].data, { x: 300, y: 200 });
+  assert.equal(updates[0].options["shadowdark-enhancer"].fastTravel, true, "flagged so Overland doesn't price it");
+  assert.equal(stored.overlandState.spent, 0, "no points spent");
+  assert.deepEqual(globalThis.game.time.advanced, [], "no time passes");
+  assert.equal(rolled.length, rolls, "no dice rolled");
+  assert.equal((await applyAction({ action: "fastTravel", i: "x", j: 2 }, gm)).ok, false, "a bad hex is refused");
+  stored.overlandState = { ...stored.overlandState, pending: { until: globalThis.game.time.worldTime + 60, reason: "move" } };
+  registerOverland();
+  assert.equal((await applyAction({ action: "fastTravel", i: 1, j: 1 }, gm)).ok, false, "a held encounter refuses it");
+  assert.equal(updates.length, 1);
+});
