@@ -1,7 +1,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { Party, isNativeParty } from "../party/party.mjs";
-import { CAMP_LABELS, taskDefinitions, selectTask, lockCamp, torchPlan, fireDecision, fireAlive } from "./camping-core.mjs";
+import { CAMP_LABELS, taskDefinitions, selectTask, carryOver, lockCamp, torchPlan, fireDecision, fireAlive } from "./camping-core.mjs";
 import { queryActiveGM, registerQuery, refuseQuery, isActiveGM } from "../shared/gm-relay.mjs";
 import { registerCook, expireCook } from "./camping-cook.mjs";
 import { foodPreview, feedCamp, restCamp } from "./camping-nutrition.mjs";
@@ -128,15 +128,15 @@ async function perform(party, action, data, user) {
   if (action === "begin") {
     if (!manager) invalid(); if (camp && camp.phase !== "complete") return camp;
     // IDs, not dotted UUIDs, key saved result/effect maps: Foundry expands dotted object keys.
-    const participants = Party.members(party, { charactersOnly: true }).map(uuid => ({ uuid, actorId: actorOf(uuid).id, confirmed: true, participate: true, task: "", ability: null, torchConsent: false, craft: "torch", watchHalf: "first" }));
+    const participants = Party.members(party, { charactersOnly: true }).map(uuid => ({ uuid, actorId: actorOf(uuid).id, confirmed: true, participate: true, task: "", ability: null, craft: "torch", watchHalf: "first" }));
     const mounts = Party.members(party).filter(uuid => isMount(actorOf(uuid))).map(uuid => ({ uuid, actorId: actorOf(uuid).id }));
     for (const p of mounts) await adoptMountScores(actorOf(p.uuid));
-    camp = { id: foundry.utils.randomID(), phase: "setup", participants, mounts, tasks: definitions(party), fuel: "none", anchor: anchor(party, participants), results: {}, effects: {}, day: null }; await save(party, camp); return camp;
+    camp = carryOver({ id: foundry.utils.randomID(), phase: "setup", participants, mounts, tasks: definitions(party), fuel: "none", anchor: anchor(party, participants), results: {}, effects: {}, day: null }, camp); await save(party, camp); return camp;
   }
   if (!camp) invalid();
   if (action === "select") {
     const actor = actorOf(data.uuid); if (!own(actor, user) || actor.type !== "Player") invalid();
-    const patch = {}; for (const k of ["task", "ability", "torchConsent", "craft", "repairItemId", "recipientUuid", "watchHalf"]) if (data.patch?.[k] !== undefined) patch[k] = data.patch[k];
+    const patch = {}; for (const k of ["task", "ability", "craft", "repairItemId", "recipientUuid", "watchHalf"]) if (data.patch?.[k] !== undefined) patch[k] = data.patch[k];
     if (patch.task && patch.task !== camp.participants.find(p => p.uuid === data.uuid)?.task) patch.ability ??= camp.tasks.find(t => t.key === patch.task)?.abilities[0];
     camp = selectTask(camp, data.uuid, patch); await save(party, camp); return camp;
   }

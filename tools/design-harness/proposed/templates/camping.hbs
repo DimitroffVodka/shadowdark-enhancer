@@ -51,7 +51,6 @@
           {{#if watchTask}}<div class="ui-field"><label class="ui-label">{{localize "SDE.camping.watchHalf"}}</label>
             <select data-choice="watchHalf" {{#unless editable}}disabled{{/unless}}>{{#each halves}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></div>{{/if}}
         </div>
-        <label class="ui-switch cp-torch"><input type="checkbox" data-choice="torchConsent" {{#if torchConsent}}checked{{/if}} {{#unless editable}}disabled{{/unless}}><span>{{localize "SDE.camping.contribute"}}</span></label>
         {{#unless meal.fed}}<p class="cp-warn">{{localize "SDE.camping.hungerWarning"}}{{#if deathWarning}} {{localize "SDE.camping.deathWarning"}}{{/if}}</p>{{/unless}}
         {{#if description}}<details class="cp-more" title="{{description}}"><summary>{{localize "SDE.camping.description"}}{{#if campfire}} · {{localize "SDE.camping.fireTask"}}{{/if}}</summary><p>{{description}}</p></details>{{/if}}
       </article>
