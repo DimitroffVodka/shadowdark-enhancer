@@ -20,8 +20,9 @@ already on it.
    names who is still loading.
 4. **Return to travel** activates the hex scene again, removes the tokens this battle placed (exact ids, never a
    sweep) and ends this battle's combat. A **Keep this battle** checkbox first copies the scene, tokens and all, into
-   the "Saved encounters" folder. Return only switches scenes: Overland's held encounter and its Continue button are
-   untouched, so the GM resumes the clock the way they already do.
+   the "Saved encounters" folder. Returning from a battle whose table was brought also continues the travel the way
+   Continue does (it first only switched scenes, which left a held encounter holding the clock: the party moved on the
+   hex map and no time passed); a battle that was only set up leaves the encounter held.
 5. **Change map** works until the table is brought: the battle's own tokens move to the new scene.
 
 ## Decisions (Patrick's, 2026-10-08)
@@ -267,7 +268,7 @@ strip that does not fit past the party is pushed back to the map's edge, nearer 
 is every far roll on 26 of the 35 maps that place their foes by the roll (the 40-square land maps and their camps: the
 zone's edge plus 11 squares plus the strip's 4 runs off the map, so the foes stand 10 and 11 squares off) and every near roll
 on 12 of them. The lantern still reaches those far foes and the torch does not. Every map that places its foes by the roll
-was drawn again, old distances beside new, and the foes stood on the same kind of ground.
+was drawn again, old distances beside new, and the foes stood on the same kind of ground. The first look in Patrick's own world (2026-10-09) found two gaps. The battle's own panel, which is all the HUD shows on the battle's scene, said nothing of the encounter: the record now keeps the picture and the activity and reaction rolls beside the count and the distance (`cardEncounter`, `newBattleRecord`), and the panel opens with the creature, how many and the three facets (`battleWho`), worded by `facetWords` as the Encounter panel words them; a record from before shows what it has. And Return to travel left a held encounter holding the clock, so after a fight the party moved about the hex map with no time passing and no checks: from a battle whose table was brought it now also runs what Continue runs (`continueTravel` in battle-actions.mjs, `overland.resume()`, only when something is held), and a failure there says so and leaves Continue to the GM.
 
 **Preload.** A player finishes when the last file has loaded; it never calls `game.scenes.preload`, which waits on the
 browser's audio unlock (a freshly reloaded or idle player would stay "not ready" forever) and flashes a loading bar on the

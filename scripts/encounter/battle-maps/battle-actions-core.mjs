@@ -63,13 +63,20 @@ export const pickerArgs = (battle, now) => ({ terrain: battle?.terrain ?? null, 
 
 // ─── The posted card ────────────────────────────────────────────────────────
 
-/** The encounter as a battle keeps it: just what is needed to put the creatures on the map. */
+/**
+ * The encounter as a battle keeps it: what puts the creatures on the map (who, how many, how far) and what the battle's
+ * panel tells the GM of them while it runs (their picture and the activity and reaction rolls), since the held
+ * encounter may be gone by then and a card's was never held.
+ */
 export const cardEncounter = (enc) => ({
   kind: "monster",
   uuid: enc?.uuid ?? null,
   name: enc?.name ?? null,
   count: Number.isFinite(enc?.count) ? enc.count : 1,
   distanceRoll: Number.isFinite(enc?.distanceRoll) ? enc.distanceRoll : null,
+  activityRoll: Number.isFinite(enc?.activityRoll) ? enc.activityRoll : null,
+  reactionRoll: Number.isFinite(enc?.reactionRoll) ? enc.reactionRoll : null,
+  img: typeof enc?.img === "string" && enc.img ? enc.img : null,
 });
 
 /** What a posted monster card keeps in its message flags for its Battle map button. */

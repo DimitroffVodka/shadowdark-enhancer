@@ -380,7 +380,7 @@ function seedActors(w, { pcs = 3, wolf: wolfOptions = {} } = {}) {
   return { party, wolf };
 }
 
-const WOLVES = { kind: "monster", uuid: WOLF_UUID, name: "Wolf", count: 4, distanceRoll: 3 };
+const WOLVES = { kind: "monster", uuid: WOLF_UUID, name: "Wolf", count: 4, distanceRoll: 3, activityRoll: 8, reactionRoll: 7, img: "wolf.webp" };
 
 const consoleBackup = { warn: console.warn, error: console.error };
 
@@ -707,7 +707,7 @@ test("setUp: the terrain's default map, the party and the monsters on it, a stag
   assert.equal(stored.variant, "day");
   assert.equal(stored.combatId, null);
   assert.deepEqual(stored.presentTokenIds, [], "nobody was on the scene already");
-  assert.deepEqual(stored.encounter, { name: "Wolf", uuid: WOLF_UUID, count: 4, distanceRoll: 3 });
+  assert.deepEqual(stored.encounter, { name: "Wolf", uuid: WOLF_UUID, count: 4, distanceRoll: 3, activityRoll: 8, reactionRoll: 7, img: "wolf.webp" }, "what the panel tells of the foes is kept with the battle");
   assert.equal(scene.tokens.contents.length, 7);
   assert.deepEqual(stored.tokenIds.slice().sort(), scene.tokens.contents.map((t) => t.id).sort());
   assert.equal(scene.log.filter(([op]) => op === "create").length, 1, "one create call for all of them");
@@ -1054,7 +1054,7 @@ test("setUp: no encounter, or a monster that cannot be loaded, still sets the ma
   world.canvasSceneId = "hex";
   const bare = await BattleMaps.setUp({ terrain: "forest" });
   assert.equal(bare.scene.tokens.contents.length, 3);
-  assert.deepEqual(bare.battle.encounter, { name: "", uuid: null, count: 0, distanceRoll: null });
+  assert.deepEqual(bare.battle.encounter, { name: "", uuid: null, count: 0, distanceRoll: null, activityRoll: null, reactionRoll: null, img: null });
   await BattleMaps.returnToTravel(bare.battle.id);
 
   const missing = await BattleMaps.setUp({ terrain: "forest", encounter: { uuid: "Compendium.gone", name: "Gone", count: 3 } });

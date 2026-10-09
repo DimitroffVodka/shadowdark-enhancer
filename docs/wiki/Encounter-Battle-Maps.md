@@ -57,6 +57,12 @@ next battle on that map. The tokens the battle placed do not stay (see
 While you look it over, the map's art starts loading on every player's computer
 (see [Preloading](#preloading)).
 
+The battle's panel (the swords icon on the bar, open by itself while the map is set
+up) starts with who you are fighting: the creature and how many, and the distance,
+activity and reaction that were rolled for them, worded as the Encounter panel
+worded them on the hex map. It is kept with the battle, so it is still there after
+you press Continue, and for a battle set up from a posted card.
+
 ### Bring the table
 
 The second click. The scene becomes the active one for everyone, and a combat is
@@ -85,8 +91,12 @@ there, tells you, and keeps the battle (listing only the tokens that are left), 
 you can press **Return to travel** again. You can return from a battle that is only
 set up, or from one that is live.
 
-Returning does not touch the held encounter. Its **Continue** button on the clock
-bar is as you left it, so you carry on with the clock the way you always do.
+After a fight, returning also carries the travel on, the way **Continue** does: the
+encounter that stopped the clock is cleared and the move it interrupted is finished,
+so the party moves, time passes and the checks roll again. Until then a held
+encounter holds the clock, and the party can be dragged about the hex map with
+nothing happening. If the battle was only set up and you never brought the table,
+the encounter stays held and **Continue** is yours to press, as it was before.
 
 ### Keep this battle
 

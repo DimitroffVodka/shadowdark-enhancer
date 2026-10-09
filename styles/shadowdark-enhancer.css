@@ -4250,6 +4250,8 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-hud-keep { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
 .sde-hud-keep input { width: 18px; height: 18px; margin: 0; flex: none; accent-color: #ffffff; }
 .sde-hud-battle-panel { width: 560px; }
+/* Who the party is fighting, above the battle's controls: the creature and its three facets, as the Encounter panel shows them. */
+.sde-hud-who { display: flex; flex-direction: column; align-items: center; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--sd-hairline); }
 
 /* The Encounters step's Adjust rows: the chance and the checks a day (#257). */
 .sde-hud-key[aria-expanded="true"] { background: var(--sd-text); color: var(--sd-page); }

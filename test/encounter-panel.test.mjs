@@ -195,6 +195,41 @@ test("the battle's own panel is the same section, titled, for where the clock is
   assert.ok(battlePanel({ battle: battle({ status: "live" }) }).includes("SDE.encounterMaps.hud.status.live"));
 });
 
+const foes = { name: "Wolf", uuid: "Actor.wolf", count: 4, distanceRoll: 3, activityRoll: 8, reactionRoll: 7, img: "wolf.webp" };
+
+test("the battle's own panel says who the party is fighting, staged or live: the creature, how many, and what was rolled for them", () => {
+  for (const status of ["staged", "live"]) {
+    const html = battlePanel({ battle: battle({ status, encounter: foes }) });
+    assert.ok(html.includes('<div class="sde-hud-who">'), status);
+    assert.ok(html.includes('<div class="sde-hud-what" data-uuid="Actor.wolf"><img src="wolf.webp" alt=""><span class="sde-hud-gold">4</span><span class="sde-hud-bl">Wolf</span></div>'), "who, how many");
+    assert.ok(html.includes("SDE.encounter.distance.near") && html.includes("SDE.encounter.activity.building") && html.includes("SDE.encounter.reaction.suspicious"), "distance, activity and reaction in words");
+    assert.ok(html.includes("SDE.encounter.facet.distance") && html.includes("SDE.encounter.facet.activity") && html.includes("SDE.encounter.facet.reaction"), "each with its label");
+    assert.ok(html.includes("1d6 <span class=\"sde-hud-gold\">3</span>") && html.includes("2d6 <span class=\"sde-hud-gold\">8</span>") && html.includes("2d6 <span class=\"sde-hud-gold\">7</span>"), "and its roll");
+    assert.ok(html.includes("sde-reaction-Suspicious") && !html.includes("SDE.encounter.chat.doubleOnes"));
+    assert.ok(html.indexOf("sde-hud-who") < html.indexOf('class="sde-hud-battle"'), "the foes come before the battle's controls");
+  }
+});
+
+test("in the battle's panel a double 1 on the reaction is said to be hostile; a record from before the rolls were kept shows what it has; none shows nothing", () => {
+  const snakeEyes = battlePanel({ battle: battle({ encounter: { ...foes, reactionRoll: 2 } }) });
+  assert.ok(snakeEyes.includes("sde-reaction-Hostile") && snakeEyes.includes("SDE.encounter.chat.doubleOnes"));
+  const older = battlePanel({ battle: battle({ encounter: { name: "Wolf", uuid: "Actor.wolf", count: 3, distanceRoll: 4 } }) });
+  assert.ok(older.includes(">Wolf<") && older.includes("SDE.encounter.distance.near"));
+  assert.ok(!older.includes("SDE.encounter.activity") && !older.includes("SDE.encounter.reaction") && !older.includes("<img"), "no rolls kept, no picture: nothing made up");
+  assert.equal((older.match(/class="sde-hud-facet"/g) ?? []).length, 1, "the distance alone");
+  assert.ok(!battlePanel({ battle: battle() }).includes("sde-hud-who"), "a battle with no record of foes says nothing of them");
+  assert.ok(!battlePanel({ battle: battle({ encounter: { name: "", uuid: null, count: 0, distanceRoll: null } }) }).includes("sde-hud-who"));
+  const whoOnly = battlePanel({ battle: battle({ encounter: { name: "Wolf", uuid: null, count: 0 } }) });
+  assert.ok(whoOnly.includes("sde-hud-who") && !whoOnly.includes("sde-hud-facets") && !whoOnly.includes("data-uuid"), "a name alone, no facets, no sheet to open");
+  assert.ok(whoOnly.includes('<span class="sde-hud-gold">1</span>'), "never a count of 0");
+});
+
+test("a creature's name and picture are text in the battle's panel, never markup", () => {
+  const html = battlePanel({ battle: battle({ encounter: { ...foes, name: "<b>Wolf</b>", img: 'x" onerror="boom()' } }) });
+  assert.ok(!html.includes("<b>Wolf</b>") && html.includes("&lt;b&gt;Wolf&lt;/b&gt;"));
+  assert.ok(!html.includes('onerror="boom()"'), "the picture's path cannot open the tag");
+});
+
 test("folded, the strip carries a small Battle marker while a battle runs", () => {
   assert.ok(!encounterStrip({ enc: wolves, cal: gregorian }).includes("sde-hud-tag"));
   const html = encounterStrip({ enc: wolves, cal: gregorian, battle: battle() });

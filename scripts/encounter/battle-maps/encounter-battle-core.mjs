@@ -370,12 +370,18 @@ function randomId(length = 16) {
  * @property {string[]} presentTokenIds  party tokens that were on the scene already, so none was placed: they are put
  *   in the combat and are never deleted. Absent from records written before they existed, which read as none.
  * @property {string|null} combatId the combat made by Bring the table
- * @property {{name:string, uuid:string|null, count:number, distanceRoll:number|null}} encounter
+ * @property {{name:string, uuid:string|null, count:number, distanceRoll:number|null, activityRoll?:number|null,
+ *   reactionRoll?:number|null, img?:string|null}} encounter  what the GM was told of the creatures: the last three are
+ *   absent from records written before the battle's panel showed them, and the panel then says what it has
  */
+
+/** A roll or null: a number that is a finite one (Number(null) is 0, so the absent is not read as a roll). */
+const rollOrNull = (v) => (v == null || v === "" || !Number.isFinite(Number(v)) ? null : Number(v));
 
 /**
  * A fresh BattleRecord. `encounter` is the held encounter's monster entry; what is kept of it is what
- * a later Change map needs to place the same foes again (the distance among it).
+ * a later Change map needs to place the same foes again (the distance among it), and what the battle's panel says
+ * of them while it runs (who, how many, how far, what they are doing, how they feel about the party).
  * @param {object} p
  * @returns {BattleRecord} staged, no combat yet
  */
@@ -384,7 +390,6 @@ export function newBattleRecord({
   now = Date.now(), id = randomId(), sceneId = null, tokenIds = [], presentTokenIds = [], gmId = null,
 } = {}) {
   const uuid = encounter?.uuid ?? null;
-  const roll = encounter?.distanceRoll == null ? NaN : Number(encounter.distanceRoll);   // Number(null) is 0
   return {
     id,
     at: now,
@@ -403,7 +408,10 @@ export function newBattleRecord({
       name: String(encounter?.name ?? ""),
       uuid,
       count: uuid ? Math.max(1, Math.floor(Number(encounter?.count)) || 1) : 0,
-      distanceRoll: Number.isFinite(roll) ? roll : null,
+      distanceRoll: rollOrNull(encounter?.distanceRoll),
+      activityRoll: rollOrNull(encounter?.activityRoll),
+      reactionRoll: rollOrNull(encounter?.reactionRoll),
+      img: typeof encounter?.img === "string" && encounter.img ? encounter.img : null,
     },
   };
 }

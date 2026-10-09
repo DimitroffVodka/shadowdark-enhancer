@@ -11,7 +11,8 @@
  * module loads, with constants.mjs and encounter-preload-core.mjs under them. All four are pure at load, so only a
  * packaging error (one of them absent from the install) could stop the module loading over them.
  *
- * Returning only switches scenes: Overland's held encounter and the clock are not touched here.
+ * Returning from a fight also continues the travel, the way Continue does (see returnToTravel); set-up, bringing the
+ * table and changing the map leave Overland's held encounter and the clock alone.
  */
 
 import { MODULE_ID } from "../../shared/module-id.mjs";
@@ -49,7 +50,19 @@ const live = {
   conditions: liveConditions,
   prefs: () => { try { return game.settings.get(MODULE_ID, SETTINGS.prefs); } catch { return {}; } },
   confirm: confirmLate,
+  continueTravel,
 };
+
+/**
+ * Carry the travel on the way the Continue button does: the encounter that stopped the clock is cleared and the advance it
+ * stopped is finished. Nothing held (a battle made from a posted card, an encounter already continued) is nothing to do.
+ * @returns {Promise<{ok:boolean, error?:string}|null>}
+ */
+async function continueTravel() {
+  const overland = await import("../../overland/overland.mjs");
+  const held = overland.overlandState();
+  return held.pending || held.encounter ? overland.resume() : null;
+}
 
 /** Run a flow; one that throws (a missing file, a refusal that threw) tells the GM and ends, rather than as an unhandled click. */
 async function guarded(run) {
@@ -155,12 +168,27 @@ const savedLabel = (battle) => t("SDE.encounterMaps.hud.savedLabel", { count: ba
 
 /**
  * Return to travel, from a staged or a live battle: the origin scene again, this battle's tokens down, its combat
- * ended; `keep` first saves a copy with the tokens. The clock and the held encounter are left as they are.
+ * ended; `keep` first saves a copy with the tokens. From a battle whose table was brought (the fight is over) the
+ * travel carries on as if the GM had pressed Continue: the held encounter stopped the clock, and until it is cleared
+ * the party moves on the hex map and no time passes. A battle that was only set up leaves the encounter held.
  */
 export async function returnToTravel({ battle, keep = false }, io = {}) {
   const x = { ...live, ...io };
   if (!game.user?.isGM || !battle?.id) return null;
-  return guarded(async () => (await x.battle()).returnToTravel(battle.id, { keep: !!keep, label: keep ? savedLabel(battle) : undefined }));
+  return guarded(async () => {
+    const done = await (await x.battle()).returnToTravel(battle.id, { keep: !!keep, label: keep ? savedLabel(battle) : undefined });
+    if (done && battle.status === BATTLE_STATUS.live) {
+      // The battle is down either way: a travel that cannot be continued says so and leaves Continue to the GM.
+      try {
+        const result = await x.continueTravel();
+        if (result?.ok === false) ui.notifications?.warn(result.error);
+      } catch (err) {
+        console.error(`${MODULE_ID} | battle map: travel could not be continued`, err);
+        ui.notifications?.warn(t("SDE.encounterMaps.hud.continueFailed"));
+      }
+    }
+    return done;
+  });
 }
 
 // ─── What the HUD reads ─────────────────────────────────────────────────────

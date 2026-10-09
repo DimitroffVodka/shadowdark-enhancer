@@ -108,14 +108,34 @@ export function battleSection({ battle, preload = null, keep = false }) {
 }
 
 /**
- * The battle's own panel, for a GM: the same section on its own, so the controls are within reach where the clock
- * is hidden (the battle's scene, a combat) and when no encounter is held any longer.
+ * The foes, for the battle's own panel: the creature and how many, then the distance, activity and reaction that were
+ * rolled for them, worded as the Encounter panel words them. The battle's record is where they come from (the held
+ * encounter may be gone, a card's never was held), and a record from before it kept the activity and the reaction
+ * shows what it has.
+ */
+function battleWho(battle) {
+  const e = battle.encounter;
+  if (!e?.name) return "";
+  const words = facetWords({ distanceRoll: e.distanceRoll, activityRoll: e.activityRoll, reactionRoll: e.reactionRoll, reactionTotal: e.reactionRoll });
+  const facet = (label, die, roll, word, cls = "") => (Number.isFinite(roll)
+    ? `<div class="sde-hud-facet"><span class="sde-hud-cap">${esc(t(label))} · ${esc(die)} ${gold(roll)}</span><span class="sde-hud-v ${cls}">${esc(word)}</span></div>` : "");
+  const facets = facet("SDE.encounter.facet.distance", "1d6", e.distanceRoll, words.distanceText)
+    + facet("SDE.encounter.facet.activity", "2d6", e.activityRoll, words.activityText)
+    + facet("SDE.encounter.facet.reaction", "2d6", e.reactionRoll, words.reactionText, `sde-reaction-${words.reactionBand}`);
+  return `<div class="sde-hud-who"><div class="sde-hud-what"${e.uuid ? ` data-uuid="${esc(e.uuid)}"` : ""}>${e.img ? `<img src="${esc(e.img)}" alt="">` : ""}${
+    gold(e.count || 1)}<span class="sde-hud-bl">${esc(e.name)}</span></div>${facets ? `<div class="sde-hud-facets">${facets}</div>` : ""}${
+    words.reactionDoubleOnes && Number.isFinite(e.reactionRoll) ? `<span class="sde-hud-res">${esc(t("SDE.encounter.chat.doubleOnes"))}</span>` : ""}</div>`;
+}
+
+/**
+ * The battle's own panel, for a GM: who the party is fighting, then the same section on its own, so the controls are
+ * within reach where the clock is hidden (the battle's scene, a combat) and when no encounter is held any longer.
  */
 export function battlePanel({ battle, preload = null, keep = false }) {
   return `<div class="sde-hud-panel sde-hud-battle-panel">
     <div class="sde-hud-ph"><span class="sde-hud-ttl">${esc(t("SDE.encounterMaps.hud.panel"))}</span><span class="sde-hud-cap">${
       esc(t(BATTLE_STATUS_WORD[battle.status] ?? BATTLE_STATUS_WORD.live))}</span></div>
-    <div class="sde-hud-pb">${battleSection({ battle, preload, keep })}</div>
+    <div class="sde-hud-pb">${battleWho(battle)}${battleSection({ battle, preload, keep })}</div>
   </div>`;
 }
 

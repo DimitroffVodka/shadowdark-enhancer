@@ -476,7 +476,7 @@ test("foeZone: foes packed into a named zone stay in it and keep off the party",
 // ── the record ───────────────────────────────────────────────────────────────
 
 test("newBattleRecord: a staged record with the plan's fields", () => {
-  const encounter = { kind: "monster", uuid: "Compendium.x.y.Actor.wolf", name: "Wolf", img: "wolf.webp", count: 4, distanceRoll: 3, activityRoll: 7 };
+  const encounter = { kind: "monster", uuid: "Compendium.x.y.Actor.wolf", name: "Wolf", img: "wolf.webp", count: 4, distanceRoll: 3, activityRoll: 7, reactionRoll: 9, countFormula: "1d6" };
   const record = newBattleRecord({
     encounter, terrain: "forest", map: { id: "forest-woods" }, variant: "night", originSceneId: "hexScene", hex: "0203",
     now: 1760000000000, id: "battle0000000001", sceneId: "scene1", tokenIds: ["a", "b"],
@@ -484,7 +484,7 @@ test("newBattleRecord: a staged record with the plan's fields", () => {
   assert.deepEqual(record, {
     id: "battle0000000001", at: 1760000000000, gmId: null, status: BATTLE_STATUS.staged, originSceneId: "hexScene", mapId: "forest-woods",
     sceneId: "scene1", variant: "night", terrain: "forest", hex: "0203", tokenIds: ["a", "b"], presentTokenIds: [], combatId: null,
-    encounter: { name: "Wolf", uuid: "Compendium.x.y.Actor.wolf", count: 4, distanceRoll: 3 },
+    encounter: { name: "Wolf", uuid: "Compendium.x.y.Actor.wolf", count: 4, distanceRoll: 3, activityRoll: 7, reactionRoll: 9, img: "wolf.webp" },
   });
 });
 
@@ -515,7 +515,7 @@ test("newBattleRecord: defaults for a battle on a world scene with no hex and no
   assert.equal(record.variant, "day");
   assert.deepEqual(record.tokenIds, []);
   assert.equal(record.combatId, null);
-  assert.deepEqual(record.encounter, { name: "", uuid: null, count: 0, distanceRoll: null });
+  assert.deepEqual(record.encounter, { name: "", uuid: null, count: 0, distanceRoll: null, activityRoll: null, reactionRoll: null, img: null });
   assert.match(record.id, /^[A-Za-z0-9]{16}$/);
 });
 
@@ -536,6 +536,15 @@ test("newBattleRecord: a missing count is one, a missing distance is null (not z
   assert.equal(newBattleRecord({ encounter: { uuid: "u", name: "n", count: 0 } }).encounter.count, 1);
   assert.equal(newBattleRecord({ encounter: { uuid: "u", name: "n", distanceRoll: null } }).encounter.distanceRoll, null);
   assert.equal(newBattleRecord({ encounter: { uuid: "u", name: "n", distanceRoll: 4 } }).encounter.distanceRoll, 4);
+});
+
+test("newBattleRecord: the foes' activity, reaction and picture are kept for the panel, and only as a roll or a path", () => {
+  const e = newBattleRecord({ encounter: { uuid: "u", name: "n", distanceRoll: 2, activityRoll: 12, reactionRoll: 2, img: "icons/n.webp" } }).encounter;
+  assert.deepEqual([e.distanceRoll, e.activityRoll, e.reactionRoll, e.img], [2, 12, 2, "icons/n.webp"]);
+  const none = newBattleRecord({ encounter: { uuid: "u", name: "n", activityRoll: null, reactionRoll: undefined, img: "" } }).encounter;
+  assert.deepEqual([none.activityRoll, none.reactionRoll, none.img], [null, null, null], "an absent roll is not zero, an empty picture is none");
+  const junk = newBattleRecord({ encounter: { uuid: "u", name: "n", activityRoll: "later", reactionRoll: Number.NaN, img: 7 } }).encounter;
+  assert.deepEqual([junk.activityRoll, junk.reactionRoll, junk.img], [null, null, null]);
 });
 
 // ── which tokens a battle owns ───────────────────────────────────────────────

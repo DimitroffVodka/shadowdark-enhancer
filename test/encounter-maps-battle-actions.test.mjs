@@ -30,7 +30,7 @@ const actions = await import("../scripts/encounter/battle-maps/battle-actions.mj
 const { openBattleMap, changeBattleMap, bringTheTable, returnToTravel, describeBattle, loadBattleParts, partyContext, wireBattleCard, registerBattleChatButtons } = actions;
 const { postEncounter } = await import("../scripts/encounter/encounter-draw.mjs");
 
-const wolves = { kind: "monster", uuid: "Actor.wolf", name: "Wolf", count: 3, distanceRoll: 4, img: "wolf.webp", chain: [{ name: "x" }] };
+const wolves = { kind: "monster", uuid: "Actor.wolf", name: "Wolf", count: 3, distanceRoll: 4, activityRoll: 8, reactionRoll: 7, img: "wolf.webp", chain: [{ name: "x" }] };
 
 // ─── The pure half ──────────────────────────────────────────────────────────
 
@@ -75,14 +75,14 @@ test("a pick becomes what setUp and changeMap take; the picker's own word on nig
 test("setUp's arguments: the trimmed encounter, the terrain and the table's look; no scene to return to leaves setUp's default", () => {
   const args = setUpArgs({ enc: wolves, terrain: "forest", hex: 1203, originSceneId: "hexes", night: true, camping: false });
   assert.deepEqual(args, {
-    encounter: { kind: "monster", uuid: "Actor.wolf", name: "Wolf", count: 3, distanceRoll: 4 },
+    encounter: { kind: "monster", uuid: "Actor.wolf", name: "Wolf", count: 3, distanceRoll: 4, activityRoll: 8, reactionRoll: 7, img: "wolf.webp" },
     terrain: "forest", hex: 1203, night: true, camping: false, originSceneId: "hexes",
   });
   const noScene = setUpArgs({ enc: wolves, terrain: null, originSceneId: null });
   assert.ok(!("originSceneId" in noScene) && noScene.hex === null && noScene.terrain === null);
   const picked = setUpArgs({ enc: wolves, terrain: "forest", pick: { mapId: "forest-woods", variant: "night", night: true } });
   assert.deepEqual([picked.mapId, picked.variant, picked.night, picked.camping], ["forest-woods", "night", true, false]);
-  assert.deepEqual(cardEncounter({ uuid: "Actor.rat", name: "Rat" }), { kind: "monster", uuid: "Actor.rat", name: "Rat", count: 1, distanceRoll: null }, "one, when no count was rolled");
+  assert.deepEqual(cardEncounter({ uuid: "Actor.rat", name: "Rat" }), { kind: "monster", uuid: "Actor.rat", name: "Rat", count: 1, distanceRoll: null, activityRoll: null, reactionRoll: null, img: null }, "one, when no count was rolled");
 });
 
 test("Change map opens the picker on the battle's terrain and the look it has", () => {
@@ -93,7 +93,7 @@ test("Change map opens the picker on the battle's terrain and the look it has", 
 
 test("a card keeps only what its button needs, and an older or creature-less card yields nothing", () => {
   const stash = cardStash({ res: { ...wolves, extra: "no" }, terrain: "forest", hexNum: 1203, originSceneId: "hexes" });
-  assert.deepEqual(stash, { encounter: { kind: "monster", uuid: "Actor.wolf", name: "Wolf", count: 3, distanceRoll: 4 }, terrain: "forest", hexNum: 1203, originSceneId: "hexes" });
+  assert.deepEqual(stash, { encounter: { kind: "monster", uuid: "Actor.wolf", name: "Wolf", count: 3, distanceRoll: 4, activityRoll: 8, reactionRoll: 7, img: "wolf.webp" }, terrain: "forest", hexNum: 1203, originSceneId: "hexes" });
   assert.deepEqual(readStash(stash), stash);
   assert.deepEqual(readStash({ ...stash, hexNum: "12", terrain: undefined }), { ...stash, hexNum: null, terrain: null });
   for (const bad of [undefined, null, {}, { encounter: { kind: "flavor" } }, { encounter: { kind: "monster" } }]) assert.equal(readStash(bad), null);
@@ -252,12 +252,13 @@ test("a subscription that returns nothing to undo is still only made once", () =
 // ─── The flows, against fakes ───────────────────────────────────────────────
 
 /** Fakes for the parts the flows reach; `calls` is what they were asked, in order. */
-function fakes({ current = null, hasDefault = true, pick = null, night = false, camping = false, confirm = true } = {}) {
+function fakes({ current = null, hasDefault = true, pick = null, night = false, camping = false, confirm = true, returned = { ok: "returnToTravel" }, resumed = null, resumeThrows = false } = {}) {
   const calls = [];
   const note = (name) => async (...args) => { calls.push([name, ...args]); return { ok: name }; };
   const BattleMaps = {
     current: () => current,
-    setUp: note("setUp"), changeMap: note("changeMap"), bringTable: note("bringTable"), returnToTravel: note("returnToTravel"),
+    setUp: note("setUp"), changeMap: note("changeMap"), bringTable: note("bringTable"),
+    returnToTravel: async (...args) => { calls.push(["returnToTravel", ...args]); return returned; },
   };
   const io = {
     battle: async () => BattleMaps,
@@ -266,6 +267,7 @@ function fakes({ current = null, hasDefault = true, pick = null, night = false, 
     conditions: () => ({ night, camping }),
     prefs: () => ({}),
     confirm: async (names) => { calls.push(["confirm", names]); return confirm; },
+    continueTravel: async () => { calls.push(["continueTravel"]); if (resumeThrows) throw new Error("the clock would not go"); return resumed; },
   };
   return { calls, io };
 }
@@ -277,7 +279,7 @@ test("Battle map on a terrain with a default map: no picker, one setUp with the 
   assert.deepEqual(names(calls), ["default", "setUp"]);
   assert.equal(calls[0][1], "salt_flat", "the terrain as the library keys it");
   assert.deepEqual(calls[1][1], {
-    encounter: { kind: "monster", uuid: "Actor.wolf", name: "Wolf", count: 3, distanceRoll: 4 },
+    encounter: { kind: "monster", uuid: "Actor.wolf", name: "Wolf", count: 3, distanceRoll: 4, activityRoll: 8, reactionRoll: 7, img: "wolf.webp" },
     terrain: "salt_flat", hex: 1203, night: true, camping: true, originSceneId: "hexes",
   });
   assert.deepEqual(done, { ok: "setUp" });
@@ -407,13 +409,41 @@ test("Return to travel: from staged or live, with Keep it saves under a name, wi
   const battle = { id: "b1", status: "live", label: "Forest Woods", encounter: { name: "Wolf", count: 3 } };
   const plain = fakes();
   await returnToTravel({ battle }, plain.io);
-  assert.deepEqual(plain.calls, [["returnToTravel", "b1", { keep: false, label: undefined }]]);
+  assert.deepEqual(plain.calls, [["returnToTravel", "b1", { keep: false, label: undefined }], ["continueTravel"]], "a fight is over: the travel carries on");
   const kept = fakes();
   await returnToTravel({ battle, keep: true }, kept.io);
   assert.deepEqual(kept.calls[0][2], { keep: true, label: 'SDE.encounterMaps.hud.savedLabel{"count":3,"name":"Wolf","map":"Forest Woods"}' });
   await returnToTravel({ battle: { ...battle, status: "staged" }, keep: false }, plain.io);
-  assert.equal(plain.calls.length, 2);
+  assert.deepEqual(names(plain.calls), ["returnToTravel", "continueTravel", "returnToTravel"], "a battle only set up leaves the encounter held");
   assert.equal(await returnToTravel({ battle: null }, plain.io), null);
+});
+
+test("Return to travel from a live battle continues the travel only once the battle is down, and says when it could not", async () => {
+  const battle = { id: "b1", status: "live", label: "Forest Woods", encounter: { name: "Wolf", count: 3 } };
+  const stuck = fakes({ returned: null });
+  assert.equal(await returnToTravel({ battle }, stuck.io), null);
+  assert.deepEqual(names(stuck.calls), ["returnToTravel"], "tokens that would not come down: the battle stays, nothing continues");
+
+  const refused = fakes({ resumed: { ok: false, error: "Nothing is waiting." } });
+  warned.length = 0; errored.length = 0;
+  assert.deepEqual(await returnToTravel({ battle }, refused.io), { ok: "returnToTravel" }, "the return's own answer");
+  assert.deepEqual(warned, ["Nothing is waiting."], "the clock's refusal is shown, not swallowed");
+
+  const broken = fakes({ resumeThrows: true });
+  warned.length = 0; errored.length = 0;
+  const log = console.error;
+  console.error = () => {};   // the flow logs what it swallows
+  const answer = await returnToTravel({ battle }, broken.io).finally(() => { console.error = log; });
+  assert.deepEqual(answer, { ok: "returnToTravel" }, "the battle is down all the same");
+  assert.deepEqual(warned, ["SDE.encounterMaps.hud.continueFailed"], "and the GM is told to press Continue");
+  assert.ok(!errored.includes("SDE.encounterMaps.hud.failed"), "not the generic failure: the return worked");
+});
+
+test("a battle keeps what the panel tells of its foes, and nothing that is not a roll or a picture", () => {
+  const kept = cardEncounter({ uuid: "Actor.rat", name: "Rat", count: 2, distanceRoll: 1, activityRoll: 12, reactionRoll: 2, img: "rat.webp" });
+  assert.deepEqual([kept.activityRoll, kept.reactionRoll, kept.img], [12, 2, "rat.webp"]);
+  const junk = cardEncounter({ uuid: "Actor.rat", name: "Rat", activityRoll: "eight", reactionRoll: Number.NaN, img: 5 });
+  assert.deepEqual([junk.activityRoll, junk.reactionRoll, junk.img], [null, null, null]);
 });
 
 test("the HUD's battle: the record with its map's name or its world scene's, and its combat; done is none", () => {
@@ -487,7 +517,7 @@ test("a GM's creature card keeps what the Battle map button needs, and says to d
   assert.equal(JSON.parse(card.content).battleMap, true);
   assert.equal(JSON.parse(card.content).template, "modules/shadowdark-enhancer/templates/chat/encounter-result.hbs");
   assert.deepEqual(card.flags[MODULE_ID].encounterCard, {
-    encounter: { kind: "monster", uuid: "Actor.wolf", name: "Wolf", count: 3, distanceRoll: 4 },
+    encounter: { kind: "monster", uuid: "Actor.wolf", name: "Wolf", count: 3, distanceRoll: 4, activityRoll: 8, reactionRoll: 7, img: "wolf.webp" },
     terrain: "forest", hexNum: 1203, originSceneId: "hexes",
   });
   assert.deepEqual([card.whisper, card.user], [[], "gm1"], "who sees it is unchanged");
