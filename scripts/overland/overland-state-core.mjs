@@ -168,11 +168,12 @@ export function normalizeOverlandState(value) {
  * Start (or resume) travel with this token and these members. An open day is
  * kept, so ending and restarting travel mid-day loses nothing (§4.3).
  * @param {object} state
- * @param {{tokenUuid:string, members:string[], method?:string}} opts
+ * @param {{tokenUuid:string, members:string[], method?:string, sameParty?:boolean}} opts
+ * `sameParty` true: the token changed but the travelling actor did not (recreated, or on another scene), so the day stays.
  */
-export function startTravel(state, { tokenUuid, members, method } = {}) {
+export function startTravel(state, { tokenUuid, members, method, sameParty } = {}) {
   // A different party takes over (a West March table): its day starts over. Time need not be exact between groups.
-  const fresh = defaultOverlandState(), switched = !!tokenUuid && !!state.tokenUuid && tokenUuid !== state.tokenUuid;
+  const fresh = defaultOverlandState(), switched = !!tokenUuid && !!state.tokenUuid && tokenUuid !== state.tokenUuid && sameParty !== true;
   if (switched) state = { ...state, ...Object.fromEntries(NEW_PARTY_RESETS.map((key) => [key, fresh[key]])) };
   const next = normalizeOverlandState({
     ...state,

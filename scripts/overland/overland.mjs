@@ -1312,7 +1312,9 @@ export function applyAction(data, user) {
         if (!user.isGM) return { ok: false, error: t("SDE.overland.notify.gmOnly") };
         if (!["off", "crawl", "overland"].includes(CrawlState.mode)) return { ok: false, error: t("SDE.overland.notify.busy") };
         _unpaid.clear();
-        let { state } = startTravel(_state, { tokenUuid: data.tokenUuid, members: membersFor(data.actorId) });
+        // A token is scene-scoped; the party is its actor. A token that no longer resolves leaves the day as it was.
+        const was = _state.tokenUuid ? fromUuidSync(_state.tokenUuid)?.actor?.id : null;
+        let { state } = startTravel(_state, { tokenUuid: data.tokenUuid, members: membersFor(data.actorId), sameParty: !!data.actorId && (!_state.tokenUuid || !was || was === data.actorId) });
         if (data.hex) state = setHex(state, data.hex).state;
         await commit(state);
         await CrawlState.startOverland();

@@ -6,14 +6,15 @@ import { HexRecords, playerProjection, offsetKey, sceneRef, recordJournal, RECOR
 import { hasHexNumbering, hexNumberAt } from "./hex-number-api.mjs";
 import { adoptHexScene, withHexLock } from "./hex-adoption.mjs";
 import { decodeFixes, encodeFixes, recordEdits, FIXES_FLAG } from "./tag-corrections.mjs";
-import { disclosure, withPartyDiscovery } from "./hex-fog-core.mjs";
+import { disclosure, effectiveDiscovery, withPartyDiscovery } from "./hex-fog-core.mjs";
 import { viewedPartyIds } from "./hex-fog.mjs";
 import { HexTagOverlay, isDoubleClick } from "./tag-overlay.mjs";
 
 const pick = (v, keys) => Object.fromEntries(keys.filter(k => typeof v?.[k] === "string").map(k => [k, v[k]]));
 /** GM hover is player-safe too; GM-private content belongs only in the editor. */
-export function explorerView(record, isGM = false) {
-  const r = isGM ? playerProjection(record) : record;
+export function explorerView(record, isGM = false, partyIds = []) {
+  // The GM sees what the viewed party's players see, the same discovery the fog and the Hexplorer window use.
+  const r = isGM ? playerProjection({ ...record, discovery: effectiveDiscovery(record.discovery, partyIds) }) : record;
   if (!disclosure(r?.discovery)) return null;
   const location = disclosure(r.discovery, "location");
   return { sceneUuid: r.sceneUuid, offset: { ...r.offset }, num: r.num, terrain: r.terrain,
@@ -64,8 +65,8 @@ export function encounterReadout({ uuid, zone, verdict } = {}, name = "", active
   return { state, uuid: uuid ?? "", name, zone: zone ?? "", column: verdict?.column?.column ?? "", options: (verdict?.columns ?? []).map(c => c.column).join(", ") };
 }
 export const HexExplorer = {
-  read(offset, target) { return explorerView(HexRecords.read(offset, target), !!game.user?.isGM); },
-  async save(offset, input, target) {
+  read(offset, target) { return explorerView(HexRecords.read(offset, target), !!game.user?.isGM, viewedPartyIds()); },
+  async save(offset, input, target, partyId = viewedPartyIds()[0] ?? null) {
     if (!game.user?.isGM) throw new Error("SDE.hexRecords.gmOnly");
     const scene = sceneRef(target);
     if (!explorerCell(scene, offset)) throw new Error("SDE.hexRecords.invalidCell");
@@ -74,7 +75,7 @@ export const HexExplorer = {
       const journal = recordJournal(scene);
       if (!journal) throw new Error("SDE.hexRecords.unreadable");
       assertPrivateJournal(journal);
-      const plan = planExplorerEdit(HexRecords.read(offset, scene), input, scene.getFlag(MODULE_ID, "hexTags"), viewedPartyIds()[0] ?? null);
+      const plan = planExplorerEdit(HexRecords.read(offset, scene), input, scene.getFlag(MODULE_ID, "hexTags"), partyId);
       const saved = structuredClone(journal.flags[MODULE_ID][RECORD_FLAG]);
       saved.cells[offsetKey(offset)] = { ...saved.cells[offsetKey(offset)], ...plan.patch };
       await replaceModuleFlag(journal, RECORD_FLAG, saved);
