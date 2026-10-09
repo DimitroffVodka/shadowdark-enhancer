@@ -117,7 +117,12 @@ enough. Hover a map to see whose art it is.
 The bar above the lists sets how the map looks. It starts as the encounter is:
 Night if it happened at night, Camp if the party is camping.
 
-- **Night** is the same map in the dark: the scene's darkness is raised to 75%.
+- **Night** is the same map in the dark: the scene's darkness is raised to 75%. The
+  players see by their torches, which light about 30 feet, so a foe at near distance
+  stands at the edge of the light and one far off is out of sight. The characters'
+  tokens carry the light their characters hold when you bring the table: a torch lit
+  or put out while the battle was being set up counts, and one lit during the fight
+  is lit by its owner as usual.
 - **Camp** is separate art for the same ground, with the camp set out and its
   fire lit. It is greyed out for a map that has no camp version. River, lake,
   ocean and arctic sea maps have none: the boat is the camp.

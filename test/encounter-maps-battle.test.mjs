@@ -151,11 +151,13 @@ function makeWorld({ gm = true, settings = {} } = {}) {
       id: data._id ?? nextId("tok"), actorId: data.actorId, x: data.x, y: data.y, width: data.width ?? 1, height: data.height ?? 1,
       level: data.level, shape: data.shape, actorLink: !!data.actorLink, name: data.name ?? "Token", flags: structuredClone(data.flags ?? {}),
       texture: structuredClone(data.texture ?? { src: null }),
+      light: structuredClone(data.light ?? { dim: 0, bright: 0 }),
       actor: w.actors.get(data.actorId) ?? null, parent: scene,
       toObject() {
         return structuredClone({
           _id: this.id, actorId: this.actorId, x: this.x, y: this.y, width: this.width, height: this.height,
           level: this.level, shape: this.shape, actorLink: this.actorLink, name: this.name, flags: this.flags, texture: this.texture,
+          light: this.light,
         });
       },
       // Document#clone: the data it is given is merged into the source, nested objects (flags) included
@@ -206,6 +208,19 @@ function makeWorld({ gm = true, settings = {} } = {}) {
         this.log.push(["create", ...made.map((t) => t.id)]);
         if (mode === "throwAfter") throw new Error("_onCreate threw after the tokens were saved");
         return made;
+      },
+      async updateEmbeddedDocuments(name, updates) {
+        // v14's batch is strict here too: an id the collection does not have throws, and nothing in it is applied
+        const missing = updates.find((u) => !this.tokens.contents.some((t) => t.id === u._id));
+        if (missing) throw new Error(`Token "${missing._id}" does not exist!`);
+        if (w.failTokenUpdate) throw new Error("the token update was refused");
+        const changed = updates.map((u) => {
+          const token = this.tokens.get(u._id);
+          for (const [key, value] of Object.entries(u)) if (key !== "_id") token[key] = structuredClone(value);
+          return token;
+        });
+        this.log.push(["update", ...changed.map((t) => t.id)]);
+        return changed;
       },
       async deleteEmbeddedDocuments(name, ids) {
         const items = this.tokens.contents;
@@ -343,7 +358,7 @@ const pcSource = (name) => sourceFor(name, { disposition: 1 });
 function seedActors(w, { pcs = 3, wolf: wolfOptions = {} } = {}) {
   const party = [];
   for (let i = 1; i <= pcs; i++) {
-    const actor = w.addActor({ id: `pc${i}`, type: "Player", name: `Hero ${i}` });
+    const actor = w.addActor({ id: `pc${i}`, type: "Player", name: `Hero ${i}`, prototypeToken: { light: { dim: 0, bright: 0 } } });
     party.push({ actor, source: pcSource(actor.name), link: true });
   }
   const wolf = w.addActor({ id: "wolf", type: "NPC", name: "Wolf", prototypeToken: { name: "Wolf", ...wolfOptions.prototypeToken } });
@@ -1290,6 +1305,59 @@ test("bringTable: pressed twice it makes one combat and enrols nobody twice; a t
   await BattleMaps.bringTable(battle.id);
   assert.ok(first.combat.combatants.some((c) => c.tokenId === missing));
   assert.equal(first.combat.combatants.length, 7);
+});
+
+// The system lights a torch on the actor's prototype token and on the token it finds on the canvas being looked at. A torch lit
+// on the hex map while the battle was staged reached the actor and none of the battle's tokens.
+const TORCH = { dim: 30, bright: 5 };
+/** `dim/bright` of each token of a scene by name; the foes share a name, so they come back as a list. */
+const lightsOf = (scene, type) => scene.tokens.contents.filter((t) => !type || t.actor.type === type).map((t) => [t.name, `${t.light.dim}/${t.light.bright}`]);
+const heroLight = (scene, actor) => lightsOf(scene, "Player").find(([name]) => name === actor.name)[1];
+
+test("bringTable: a torch lit after the battle was staged lights the party's tokens as the table comes", async () => {
+  const { party, wolf } = seedActors(world);
+  world.addScene({ id: "hex", name: "Hex map", active: true });
+  world.canvasSceneId = "hex";
+  const { battle, scene } = await BattleMaps.setUp({ encounter: WOLVES, terrain: "forest" });
+  assert.deepEqual(lightsOf(scene).map(([, light]) => light), Array(7).fill("0/0"), "staged in the dark");
+  wolf.prototypeToken.light = { dim: 10, bright: 2 };   // a monster's prototype is not the party's torch: never copied
+  for (const { actor } of party) actor.prototypeToken.light = { ...TORCH };   // the players light up while still on the hex map
+  await BattleMaps.bringTable(battle.id);
+  for (const { actor } of party) assert.equal(heroLight(scene, actor), "30/5", `${actor.name} has the torch the actor holds`);
+  assert.deepEqual(lightsOf(scene, "NPC").map(([, light]) => light), Array(4).fill("0/0"), "the foes are as they were");
+  assert.equal(scene.log.filter(([op]) => op === "update").length, 1, "one write for the three of them");
+});
+
+test("bringTable: a torch put out after the battle was staged is out when the table comes", async () => {
+  const { party } = seedActors(world);
+  for (const { actor, source } of party) { actor.prototypeToken.light = { ...TORCH }; source.light = { ...TORCH }; }   // lit when the battle was set up
+  const { battle, scene } = await BattleMaps.setUp({ encounter: WOLVES, terrain: "forest" });
+  assert.equal(heroLight(scene, party[0].actor), "30/5", "the battle's tokens were made lit");
+  party[1].actor.prototypeToken.light = { dim: 0, bright: 0 };
+  await BattleMaps.bringTable(battle.id);
+  assert.deepEqual(party.map(({ actor }) => heroLight(scene, actor)), ["30/5", "0/0", "30/5"]);
+});
+
+test("bringTable: a party whose light already matches is not written to, and a character already on the scene keeps the GM's light", async () => {
+  const { party } = seedActors(world);
+  const dungeon = world.addScene({ id: "dungeon", name: "Dungeon", width: 3000, height: 2000 });
+  const mine = world.addToken(dungeon, { actorId: party[0].actor.id, ...world.canvas(dungeon, 1400, 900), light: { dim: 60, bright: 15 }, flags: {} });
+  const { battle } = await BattleMaps.setUp({ encounter: WOLVES, sceneId: "dungeon" });
+  party[0].actor.prototypeToken.light = { ...TORCH };   // the actor's light changes, the GM's own token is not the battle's to touch
+  await BattleMaps.bringTable(battle.id);
+  assert.deepEqual(mine.light, { dim: 60, bright: 15 }, "a character who was on the scene already");
+  assert.equal(dungeon.log.filter(([op]) => op === "update").length, 0, "and nothing else differed, so nothing was written");
+});
+
+test("bringTable: a light that cannot be refreshed is logged and the table still comes", async () => {
+  const { party } = seedActors(world);
+  const { battle, scene } = await BattleMaps.setUp({ encounter: WOLVES, terrain: "forest" });
+  for (const { actor } of party) actor.prototypeToken.light = { ...TORCH };
+  world.failTokenUpdate = true;
+  const answer = await BattleMaps.bringTable(battle.id);
+  assert.ok(answer?.combat, "the combat was made");
+  assert.equal(world.battleOf(scene).status, "live");
+  assert.equal(heroLight(scene, party[0].actor), "0/0", "the old light stays");
 });
 
 test("bringTable: the characters who were on the scene already are in the combat too, though this battle placed no token for them", async () => {

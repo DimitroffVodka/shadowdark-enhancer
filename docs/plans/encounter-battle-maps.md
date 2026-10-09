@@ -245,7 +245,11 @@ in v14 a combat tied to a scene keeps its combatants when their tokens go, and `
 base actor, which the Hunter XP, loot drop and session recap hooks read when a combat ends. Removal re-reads the scene,
 and if a token will not go it stops and keeps the record so Return can be pressed again. Day scenes have global light on
 while darkness is 0.5 or less (the arena's "off" suits a night-only map); a scene made earlier is repaired once, marked by
-the `encounterMapLight` flag. Token positions snap to the scene's own grid. The two folders have localized names and are
+the `encounterMapLight` flag. At night the characters see by their torches: the system lights a torch on the actor's
+prototype token and on the one token it finds on the canvas being looked at, so a torch lit or put out on the hex map
+while the battle was staged never reached the tokens set down for it, and Bring the table refreshes the light of the
+characters' tokens the battle placed from their actors' prototypes (`syncPartyLight`; foes, and characters already on the
+scene, are left alone). Token positions snap to the scene's own grid. The two folders have localized names and are
 found by flag, then by localized name, then by the old English name. Foes are numbered one by one when their prototype
 token numbers its tokens, and a prototype token that picks its picture at random is asked for its list (`getTokenImages`),
 from which each foe is dealt one (`dealPictures`) instead of all wearing the first.

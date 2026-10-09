@@ -367,6 +367,32 @@ async function placeTokens(scene, datas, battleId) {
   return scene.tokens.contents.filter((t) => !before.has(t.id) && tokenFlag(t) === battleId).map((t) => t.id);
 }
 
+/** A LightData or a plain light as a plain object, or null. */
+const lightData = (light) => (typeof light?.toObject === "function" ? light.toObject() : light) ?? null;
+
+/**
+ * The light the party's tokens carry when the table comes to the battle. The system lights a torch on the actor's
+ * prototype token and on the one token of that actor on the canvas being looked at, so a torch lit (or put out) on the
+ * hex map while the battle was staged reached the actor and never the tokens set down for it: at night the players saw
+ * nothing with their torches lit, or by a torch they had put out. The characters' tokens this battle placed take the
+ * light their actors hold now, when it differs. A character already on the scene keeps what the GM set; a failure
+ * only leaves the old light.
+ */
+async function syncPartyLight(scene, battle) {
+  const updates = [];
+  for (const token of battleTokens(battle, scene.tokens.contents)) {
+    if (token.actor?.type !== "Player") continue;
+    const held = lightData(token.actor.prototypeToken?.light);
+    if (held && JSON.stringify(held) !== JSON.stringify(lightData(token._source?.light ?? token.light))) updates.push({ _id: token.id, light: held });
+  }
+  if (!updates.length) return;
+  try {
+    await scene.updateEmbeddedDocuments("Token", updates);
+  } catch (err) {
+    console.warn(`${MODULE_ID} | the party's light could not be refreshed`, err);
+  }
+}
+
 /** The ids of these that are still tokens of the scene. */
 const standing = (scene, ids) => ids.filter((id) => scene.tokens.has(id));
 
@@ -602,6 +628,9 @@ async function bringBattleTable(battleId) {
     if (!found) { notify("warn", "SDE.encounterMaps.notify.noBattle"); return null; }
     const { scene } = found;
     let { battle } = found;
+
+    // The party's torches as they are now, before the scene is shown: the players' canvases draw lit (or dark) the first time.
+    await syncPartyLight(scene, battle);
 
     // Everyone follows the active scene. A scene that is already active (a world scene the table is on) needs nothing.
     if (!scene.active) {
