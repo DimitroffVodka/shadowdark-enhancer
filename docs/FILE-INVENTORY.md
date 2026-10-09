@@ -605,7 +605,7 @@ A place the party owns: the four types and twenty upgrades, built a week at a ti
 `spell-importer.hbs` (81) · `party-xp.hbs` (71) · `loot-generator.hbs` (52)
 
 - `templates/char-builder/` — shell, gear-editor, `partials/list.hbs`, 11 step bodies.
-- `templates/actors/` — `boat-sheet.hbs`, `mount-npc.hbs`.
+- `templates/actors/` — `boat-sheet.hbs`, `mount-sheet.hbs`.
 - `templates/chat/` — encounter-check, encounter-flavor, encounter-result, loot-card.
 - `templates/partials/` — `census.hbs`, `tree-node.hbs`.
 
