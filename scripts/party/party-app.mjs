@@ -444,6 +444,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.element.querySelector("[data-party-choice]")?.addEventListener("change", (event) => { this.actor = Party.get(event.target.value); Party.select(this.actor); this.render(); });
     this.element.querySelector('[data-movement-setting="followLeader"]')?.addEventListener("change", event => this._change(() => configureMovement(this.actor, { followLeader: event.target.checked })));
     for (const slot of this.element.querySelectorAll("[data-formation-slot]")) {
+      slot.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); slot.click(); } });
       slot.addEventListener("dragstart", event => { if (!Party.canManage(this.actor) || !slot.dataset.uuid) return event.preventDefault(); event.dataTransfer.setData("text/plain", slot.dataset.uuid); });
       slot.addEventListener("dragover", event => { if (Party.canManage(this.actor)) event.preventDefault(); });
       slot.addEventListener("drop", event => {

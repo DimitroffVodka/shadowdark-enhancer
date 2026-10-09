@@ -218,6 +218,10 @@ test("Party header carries a Marching order switch, a leader/status line and a g
   const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
   for (const marker of ['data-movement-setting="followLeader"', "SDE.party.movement.marchingOrder", "SDE.party.movement.dragHint", "SDE.party.movement.leadHint", "{{march.text}}", 'data-action="placeRecall"']) assert.ok(template.includes(marker), marker);
   assert.ok(!template.includes("Marching formation") && !template.includes("includeMounts"), "no boxed formation block, no mounts switch");
+  // A button never starts a drag in Firefox, and Foundry's .disabled sets pointer-events: none, so an empty slot could not take a drop.
+  assert.ok(!/<button[^>]*data-formation-slot/.test(template), "a formation slot is not a button");
+  assert.ok(/<div role="button"[^>]*data-formation-slot/.test(template), "a formation slot is a div role=button");
+  assert.ok(!template.includes("{{#if disabled}} disabled{{/if}}"), "an empty slot does not carry Foundry's .disabled class");
 });
 
 test("Carousing labels unavailable tiers and disables commitment until tables are usable", async () => {
