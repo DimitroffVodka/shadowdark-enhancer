@@ -3,8 +3,9 @@ import assert from "node:assert/strict";
 import { DISTANCE } from "../scripts/encounter/encounter-result.mjs";
 import { BATTLE_STATUS, FLAGS } from "../scripts/encounter/battle-maps/constants.mjs";
 import {
-  FOE_DEPTH_SQUARES, FOE_GAP_SQUARES, FOE_MIN_CROSS_SQUARES, battleTokens, centralZone, distanceBand, foePlan,
-  foeZone, layoutMixed, layoutTokens, newBattleRecord, numberedNames, rectOf, resolveVariant, tokensToRemove, variantName,
+  FOE_DEPTH_SQUARES, FOE_GAP_SQUARES, FOE_MIN_CROSS_SQUARES, battleTokens, centralZone, dealPictures, distanceBand,
+  foePlan, foeZone, layoutMixed, layoutTokens, newBattleRecord, numberedNames, rectOf, resolveVariant, tokensToRemove,
+  variantName,
 } from "../scripts/encounter/battle-maps/encounter-battle-core.mjs";
 
 const MOD = "shadowdark-enhancer";
@@ -604,6 +605,42 @@ test("numberedNames: only that actor's own numbering counts", () => {
 test("numberedNames: a name with characters that mean something in a pattern is matched literally", () => {
   assert.deepEqual(numberedNames("Ogre [Big] (Young)", ["Ogre [Big] (Young) (1)"], 1), ["Ogre [Big] (Young) (2)"]);
   assert.deepEqual(numberedNames("A.B", ["AxB (1)"], 1), ["A.B (1)"], "a dot is a dot");
+});
+
+// ── a picture for each foe ───────────────────────────────────────────────────
+
+/** A generator that walks a fixed list of rolls, so a shuffle is a known one. */
+const rolls = (...values) => { let i = 0; return () => values[i++ % values.length]; };
+
+test("dealPictures: every picture is used before any is used again, and nothing is invented", () => {
+  const images = ["a.webp", "b.webp", "c.webp"];
+  for (const rng of [rolls(0), rolls(0.99), rolls(0.2, 0.7), Math.random]) {
+    const dealt = dealPictures(images, 7, rng);
+    assert.equal(dealt.length, 7);
+    assert.deepEqual([...dealt.slice(0, 3)].sort(), images, "the first round is each picture once");
+    assert.deepEqual([...dealt.slice(3, 6)].sort(), images, "so is the second");
+    assert.ok(dealt.every((src) => images.includes(src)));
+  }
+});
+
+test("dealPictures: two neighbours never match, at the seam of two rounds either", () => {
+  // a fresh shuffle opens with the last picture of the round before it about once in four: many deals, so it happens
+  for (let n = 0; n < 300; n++) {
+    const dealt = dealPictures(["a", "b", "c", "d"], 12);
+    for (let i = 1; i < dealt.length; i++) assert.notEqual(dealt[i], dealt[i - 1], `${dealt.join(" ")} at ${i}`);
+  }
+});
+
+test("dealPictures: one picture is every foe's, and no pictures leave the source's own", () => {
+  assert.deepEqual(dealPictures(["only.webp"], 3), ["only.webp", "only.webp", "only.webp"]);
+  assert.deepEqual(dealPictures([], 3), []);
+  assert.deepEqual(dealPictures(undefined, 3), []);
+  assert.deepEqual(dealPictures(["a", "b"], 0), []);
+  assert.deepEqual(dealPictures(["a", "b"], -2), []);
+});
+
+test("dealPictures: a repeated or blank entry is one picture, not two chances at it", () => {
+  assert.deepEqual([...dealPictures(["a", "a", "", null, "b"], 2)].sort(), ["a", "b"]);
 });
 
 // ── variants and the middle of a map ─────────────────────────────────────────

@@ -424,6 +424,30 @@ export function numberedNames(base, existingNames, count) {
 }
 
 /**
+ * A picture for each of `count` foes from the list a wildcard prototype token offers. Foundry picks one at random for
+ * each token it makes, but a batch made from one source would all wear the same one. This is a shuffled deal: every
+ * picture is used before any is used again, and two neighbours never match unless the list is one picture long.
+ * @param {string[]} images
+ * @param {number} count
+ * @param {() => number} [rng]
+ * @returns {string[]}  `count` pictures, or none when the list holds none (the foes keep the source's own)
+ */
+export function dealPictures(images, count, rng = Math.random) {
+  const pool = [...new Set((images ?? []).filter((src) => typeof src === "string" && src))];
+  const out = [];
+  while (pool.length && out.length < Math.max(0, count)) {
+    const round = [...pool];
+    for (let i = round.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [round[i], round[j]] = [round[j], round[i]];
+    }
+    if (out.length && round.length > 1 && round[0] === out.at(-1)) round.push(round.shift());
+    out.push(...round);
+  }
+  return out.slice(0, Math.max(0, count));
+}
+
+/**
  * The tokens this battle placed and that are still its: listed in the record AND
  * still carrying the battle's id on their flag. Both, because either alone is a
  * guess: an id in the record may have been reused by a token that is not ours,

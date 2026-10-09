@@ -41,8 +41,8 @@ import { Party } from "../../party/party.mjs";
 import { makeQueue } from "../../quests/quest-core.mjs";
 import { BATTLE_STATUS, FLAGS, GRID_PX, SETTINGS } from "./constants.mjs";
 import {
-  battleTokens, centralZone, foePlan, layoutMixed, newBattleRecord, numberedNames, rectOf, resolveVariant, tokensToRemove,
-  variantName,
+  battleTokens, centralZone, dealPictures, foePlan, layoutMixed, newBattleRecord, numberedNames, rectOf, resolveVariant,
+  tokensToRemove, variantName,
 } from "./encounter-battle-core.mjs";
 
 /** Setting up, changing, bringing and returning take turns: a second click cannot race the first. */
@@ -51,13 +51,17 @@ const serialize = makeQueue();
 /**
  * The foe's world actor and token source for a held encounter's uuid; null when it cannot be loaded.
  * One source serves every foe of the encounter (tokenSourceFor resolves the art once, as the Encounter Roller and the
- * click placer do): a prototype token that picks a random image or adjective per token does so once for all of them.
+ * click placer do), and a prototype token that picks its picture at random for each token would give every foe the
+ * same one. So `images` lists the pictures it can pick from, and each foe is dealt one (dealPictures); empty for a
+ * prototype with a single picture, or when the list cannot be had, and the foes then keep the source's own.
  */
 async function loadFoe(uuid) {
   const doc = await fromUuid(uuid).catch(() => null);
   if (doc?.documentName !== "Actor") return null;
   const actor = await worldActorFor(doc);
-  return actor ? { actor, source: await tokenSourceFor(actor, doc) } : null;
+  if (!actor) return null;
+  const images = actor.prototypeToken?.randomImg ? await actor.getTokenImages().catch(() => []) : [];
+  return { actor, source: await tokenSourceFor(actor, doc), images };
 }
 
 /**
@@ -309,13 +313,14 @@ export { canvasSpot as _canvasSpot };   // for the tests: the one place a layout
  * the level id (a level of the hex scene, which this scene has no such level for) and the shape (a hex grid makes
  * every token an ellipse). Both are set for this scene.
  */
-function tokenData({ source, actor, link = false }, spot, { scene, battleId, name = null }) {
+function tokenData({ source, actor, link = false }, spot, { scene, battleId, name = null, art = null }) {
   const data = structuredClone(source);
   delete data._id;
   data.actorId = actor.id;
   Object.assign(data, canvasSpot(scene, spot));
   data.level = scene.initialLevel?.id ?? data.level;
   if (name) data.name = name;
+  if (art) data.texture = { ...data.texture, src: art };
   if (link) data.actorLink = true;
   if (!scene.grid?.isHexagonal && data.shape === CONST.TOKEN_SHAPES.ELLIPSE_1) data.shape = CONST.TOKEN_SHAPES.RECTANGLE_1;
   data.flags = { ...data.flags, [MODULE_ID]: { ...data.flags?.[MODULE_ID], [FLAGS.token]: battleId } };
@@ -456,9 +461,10 @@ async function setUpBattle({
     });
     const ctx = { scene, battleId: record.id };
     const names = foe ? foeNames(foe, scene, count) : null;
+    const art = foe ? dealPictures(foe.images, count) : [];
     const ids = await placeTokens(scene, [
       ...pcs.map((p, i) => tokenData(p, spots.pcs[i], ctx)),
-      ...spots.foes.map((spot, i) => tokenData(foe, spot, { ...ctx, name: names?.[i] })),
+      ...spots.foes.map((spot, i) => tokenData(foe, spot, { ...ctx, name: names?.[i], art: art[i] })),
     ], record.id);
     if (count + pcs.length && !ids.length) {
       notify("error", "SDE.encounterMaps.notify.placeFailed", { scene: scene.name });

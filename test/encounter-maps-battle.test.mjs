@@ -150,11 +150,12 @@ function makeWorld({ gm = true, settings = {} } = {}) {
     const token = {
       id: data._id ?? nextId("tok"), actorId: data.actorId, x: data.x, y: data.y, width: data.width ?? 1, height: data.height ?? 1,
       level: data.level, shape: data.shape, actorLink: !!data.actorLink, name: data.name ?? "Token", flags: structuredClone(data.flags ?? {}),
+      texture: structuredClone(data.texture ?? { src: null }),
       actor: w.actors.get(data.actorId) ?? null, parent: scene,
       toObject() {
         return structuredClone({
           _id: this.id, actorId: this.actorId, x: this.x, y: this.y, width: this.width, height: this.height,
-          level: this.level, shape: this.shape, actorLink: this.actorLink, name: this.name, flags: this.flags,
+          level: this.level, shape: this.shape, actorLink: this.actorLink, name: this.name, flags: this.flags, texture: this.texture,
         });
       },
       // Document#clone: the data it is given is merged into the source, nested objects (flags) included
@@ -1181,6 +1182,24 @@ test("setUp: numbering goes on from the wolves already on the scene, and only fo
   assert.deepEqual(plain.scene.tokens.contents.filter((t) => t.actor.type === "NPC").map((t) => t.name), ["Wolf", "Wolf", "Wolf", "Wolf"]);
 });
 
+test("setUp: foes whose prototype token picks its picture at random are each dealt one, not all given the same", async () => {
+  // Actor#getTokenDocument picks ONE picture for the source, so the four wolves made from it would be four of a kind
+  const { wolf } = seedActors(world);
+  _deps.foe = async () => ({ actor: wolf, source: sourceFor("Wolf"), images: ["wolf-a.webp", "wolf-b.webp", "wolf-c.webp"] });
+  const { scene } = await BattleMaps.setUp({ encounter: WOLVES, terrain: "forest" });
+  const art = scene.tokens.contents.filter((t) => t.actor.type === "NPC").map((t) => t.texture.src);
+  assert.equal(art.length, 4);
+  assert.deepEqual(art.slice(0, 3).sort(), ["wolf-a.webp", "wolf-b.webp", "wolf-c.webp"], "every picture is used before one is used again");
+  assert.notEqual(art[3], art[2]);
+  assert.ok(scene.tokens.contents.filter((t) => t.actor.type === "Player").every((t) => /^Hero \d\.webp$/.test(t.texture.src)), "the party keeps its own art");
+});
+
+test("setUp: a prototype token with one picture, or none to choose from, leaves every foe the source's own art", async () => {
+  seedActors(world);
+  const { scene } = await BattleMaps.setUp({ encounter: WOLVES, terrain: "forest" });
+  assert.deepEqual(scene.tokens.contents.filter((t) => t.actor.type === "NPC").map((t) => t.texture.src), Array(4).fill("Wolf.webp"));
+});
+
 // ─── bringTable ──────────────────────────────────────────────────────────────
 
 async function staged() {
@@ -1874,6 +1893,32 @@ test("the real foe loader: a world actor from a uuid with its token source; null
   assert.equal(await _deps.foe("Actor.gone"), null);
   globalThis.fromUuid = async () => { throw new Error("bad uuid"); };
   assert.equal(await _deps.foe("garbage"), null);
+});
+
+test("the real foe loader: a wildcard prototype token's pictures are listed; one picture, or a list that cannot be had, lists none", async () => {
+  Object.assign(_deps, { foe: REAL_DEPS.foe });
+  const asked = [];
+  const creature = (id, prototypeToken, images) => {
+    const actor = world.addActor({
+      id, type: "NPC", name: id, img: `${id}.webp`, prototypeToken: { texture: { src: `${id}.webp` }, ...prototypeToken },
+      async getTokenDocument() { return { toObject: () => sourceFor(id) }; },
+      async getTokenImages() { asked.push(id); return images(); },
+    });
+    actor.documentName = "Actor";
+    return actor;
+  };
+  const byUuid = {
+    "Actor.wolf": creature("wolf", { randomImg: true }, () => ["wolf-1.webp", "wolf-2.webp"]),
+    "Actor.bear": creature("bear", {}, () => ["bear.webp"]),
+    "Actor.boar": creature("boar", { randomImg: true }, () => { throw new Error("no wildcard answer"); }),
+  };
+  globalThis.fromUuid = async (uuid) => byUuid[uuid] ?? null;
+  assert.deepEqual((await _deps.foe("Actor.wolf")).images, ["wolf-1.webp", "wolf-2.webp"]);
+  assert.deepEqual((await _deps.foe("Actor.bear")).images, []);
+  const boar = await _deps.foe("Actor.boar");
+  assert.deepEqual(boar.images, [], "a list that cannot be had is no list, and the foe still loads");
+  assert.equal(boar.source.name, "boar");
+  assert.deepEqual(asked, ["wolf", "boar"], "a prototype with one picture is not asked for a list");
 });
 
 // ─── against the real library ────────────────────────────────────────────────
