@@ -34,6 +34,13 @@ test("rules combine time/weather/elevation and actual adjacency; mountains block
   const visible = revealCells({ grid, origin: cells[0], cells, radius: 3, mountain: o => o.i === 1, night: false, weather: "fair" });
   assert.deepEqual([...visible].sort(), ["0_0", "1_0"]);
 });
+test("an origin carrying the token's elevation never reaches getDirectPath, which would loop in 3D", () => {
+  const seen = [];
+  const flat = { ...grid, getDirectPath: (way) => { seen.push(...way); return grid.getDirectPath(way); } };
+  const cells = [{ i: 0, j: 0 }, { i: 1, j: 0 }, { i: 2, j: 0 }];
+  revealCells({ grid: flat, origin: { i: 0, j: 0, k: 0 }, cells, radius: 2, mountain: () => false, night: false, weather: "fair" });
+  assert.ok(seen.length && seen.every((o) => o.k === undefined));
+});
 test("arrival is independent of visit/conceal and only committed entries can roll", () => {
   const r = { rollTable: "RollTable.a", rollTableFirstOnly: true, discovery: { revealed: false, visited: true } };
   assert.equal(arrivalDue(r, { entered: true }), true);

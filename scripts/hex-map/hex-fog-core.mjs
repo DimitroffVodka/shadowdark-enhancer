@@ -38,6 +38,9 @@ export function revealRadius(rules, terrain, night, weather) {
 }
 /** Use supplied native grid geometry for all paths; endpoints don't obstruct. */
 export function revealCells({ grid, origin, cells, radius, mountain, night, weather }) {
+  // A token's grid offset carries its elevation (k). getDirectPath then walks in 3D toward targets
+  // that have none and never arrives, filling memory: keep the hex alone.
+  origin = { i: origin.i, j: origin.j };
   const allowed = new Set(cells.map(keyOf)), seen = new Set([keyOf(origin)]), revealed = new Set([keyOf(origin)]);
   const sight = target => !grid.getDirectPath([origin, target]).slice(1, -1).some(mountain);
   let frontier = [origin];
