@@ -43,6 +43,7 @@ export default [
         Folder: "readonly",
         Scene: "readonly",
         JournalEntry: "readonly",
+        Adventure: "readonly",
         Combat: "readonly",
         TokenDocument: "readonly",
         CompendiumCollection: "readonly",
