@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1784 tracked files · ~225,800 lines of code/markup across scripts+templates+styles+test.
+1784 tracked files · ~225,900 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -80,9 +80,9 @@
 | `hex-map/hex-explorer-app.mjs` | 99 | Small scene-offset GM Hexplorer editor for terrain, line/structured features, public/private notes, document links and discovery. |
 | `hex-map/hex-explorer.mjs` | 212 | Player-safe Hexplorer canvas hover/select observer and GM writes over authoritative terrain tags and rich offset records; preserves discovery and imported metadata. |
 | `hex-map/hex-fog-core.mjs` | 60 | Pure shared terrain/location disclosure, lossless fog/history migration, native-grid sight and arrival/overlap decisions. |
-| `hex-map/hex-fog.mjs` | 147 | Adopted-scene native static fog overlay, GM disclosure, selected-party committed visits/arrival history and SDX ownership guard. |
+| `hex-map/hex-fog.mjs` | 150 | Adopted-scene native static fog overlay, GM disclosure, selected-party committed visits/arrival history and SDX ownership guard. |
 | `hex-map/hex-legend-session.mjs` | 88 | The Hex Tagger's Legend without its window: runs the tagger unshown as the engine (reads the map, builds the picture cards, applies the names) and hands a page just the cards and five calls, so the import wizard can show them on its Terrain page. Also legendNamed(scene). |
-| `hex-map/hex-map-controls.mjs` | 73 | The Hex map group on the left toolbar (GM, any scene with hex numbering): show terrain tags, regions and encounter zones, the paint brush, the most-likely-wrong review and the Hex Tagger, each calling what the tagger's own buttons call; refreshed through the hexTools hook when an overlay or the brush opens or closes. |
+| `hex-map/hex-map-controls.mjs` | 80 | The Hex map group on the left toolbar (GM, any scene with hex numbering): show terrain tags, regions and encounter zones, the paint brush, the most-likely-wrong review and the Hex Tagger, each calling what the tagger's own buttons call; refreshed through the hexTools hook when an overlay or the brush opens or closes. |
 | `hex-map/hex-map-flow.mjs` | 499 | Hex map from an image: file dialog, lattice detection, confirmation preview with corners set by hand, upload into the world folder, an aligned scene (stretch to Foundry's pitches, offset to cell 0,0), tagger opened on its legend. |
 | `hex-map/hex-number-api.mjs` | 47 | `hexMaps.numberAt` / `hasNumbering`: the tagger's published hex number for a Foundry offset on a numbered scene, synchronous, so Shadowdark Extras' Map Coordinates shows what the tagger shows. |
 | `hex-map/hex-picture.mjs` | 188 | What the hex brush shows per terrain (pure): the Legend palette's terrains only, which tagged hex stands for each, the hexagon mask and printed-number patch geometry, and the edge-ink test that rejects a neighbour's border bleeding in. |
