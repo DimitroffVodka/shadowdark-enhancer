@@ -122,6 +122,7 @@
   earlier "Include mounts" had already placed on a scene is still recalled by Place / Recall.
 
 ### Fixed
+- **Drag an actor anywhere on the Party sheet's Members tab to add it.** The drop only landed on the cards or the empty-party box, so once two characters were in, the blank space below them ignored the drop. The whole Members tab body takes it now; the other tabs still do not.
 - **No more "failed to register sdeVehicleBody partial" error in the console at start-up.** The Mount and Boat sheets stopped using that shared tabs template, but a merge put its registration back; it is gone again. Nothing on screen changed.
 - **Building an adventure map again no longer undoes hand-corrected walls and lights.** Tools → Adventure map on a scene that was already built, or the placer's From book button, used to delete every wall and light the module had made and put the shipped ones back. Now, once a scene has them, they are left exactly as they are.
 - **A merchant sale never pays for more than the seller holds.** Typing a quantity larger than the stack in the Sell tab paid for that many and restocked the merchant with them; the sale now stops at what the character carries.

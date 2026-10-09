@@ -324,13 +324,19 @@ test("a party with no members shows a drop zone and a grid hint, and an Actor dr
   const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
   for (const marker of ["sdp-empty", "SDE.party.movement.dropHint", "SDE.party.sheet.dropMembers", "SDE.party.noMembers", "data-drop-members"]) assert.ok(template.includes(marker), marker);
   const targets = [];
-  app.element = { querySelector: () => null, querySelectorAll: selector => selector === ".tab-members, [data-drop-members]" ? [{ addEventListener: (name, fn) => targets.push([name, fn]) }] : [] };
+  let membersTabShowing = false;
+  app.element = { querySelector: selector => selector === ".tab-members.active" && membersTabShowing ? {} : null, querySelectorAll: selector => selector === ".sdp-body" ? [{ addEventListener: (name, fn) => targets.push([name, fn]) }] : [] };
   app.render = () => {};
   app._bindControls();
   const drop = targets.find(([name]) => name === "drop")[1];
-  drop({ preventDefault() {}, dataTransfer: { getData: () => JSON.stringify({ type: "Actor", uuid: pc.uuid }) } });
+  const event = { target: { closest: () => null }, preventDefault() {}, dataTransfer: { getData: () => JSON.stringify({ type: "Actor", uuid: pc.uuid }) } };
+  drop(event);
   await new Promise(resolve => setTimeout(resolve, 0));
-  assert.deepEqual(Party.members(p), [pc.uuid]);
+  assert.deepEqual(Party.members(p), [], "another tab's body is not a drop zone");
+  membersTabShowing = true;
+  drop(event);
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.deepEqual(Party.members(p), [pc.uuid], "blank space below the cards on the Members tab takes the drop");
 });
 test("a player's sheet keeps Travel and drops every control that changes the party", async () => {
   const pc = actor("pc", "Player");
