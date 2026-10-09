@@ -49,9 +49,10 @@ test("idle: Start replaces End, and no disabled Next round or Combat is drawn", 
   assert.ok(!idle.includes("nextCrawlTurn") && !idle.includes("startCombat") && !idle.includes("endCrawl"));
 });
 
-test("idle on a hex map keeps the one Travel button", () => {
-  assert.deepEqual(barItems({ mode: "off", hexScene: true }), ["badge", "addSelectedTokens", "startTravel", "spacer", "tools", "startCrawl"]);
-  assert.ok(!barItems({ mode: "crawl", hexScene: true }).includes("startTravel"), "Travel is for when nothing is running");
+test("a hex map is overland: its one Start begins travel, idle or from a crawl", () => {
+  const travel = ["badge", "addSelectedTokens", "spacer", "tools", "startTravel"];
+  assert.deepEqual(barItems({ mode: "off", hexScene: true }), travel);
+  assert.deepEqual(barItems({ mode: "crawl", hexScene: true }), travel, "a crawl that walked onto the map");
 });
 
 test("overland: one primary, Continue while a day is pending, else Start day; no Add Tokens", () => {

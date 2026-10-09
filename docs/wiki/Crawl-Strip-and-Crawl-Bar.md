@@ -58,7 +58,7 @@ right. Controls that would do nothing are not drawn.
 | **End** | Ends the crawl session | — |
 
 With no crawl running the bar shows **Add Tokens**, **Tools** and **Start**
-(plus **Travel** on a hex map). **Next Round** and **Combat** appear once the
+(on a hex map, **Start** begins overland travel instead). **Next Round** and **Combat** appear once the
 crawl starts.
 
 ### Tools
@@ -167,7 +167,13 @@ Differences from combat:
 
 ## Overland travel
 
-On a hex map the Crawl Bar also offers **Travel**. A hex map is any scene with
+On a hex map the Crawl Bar's **Start** begins travel, not a crawl: a hex map
+means overland, and crawl rounds belong to every other scene. A crawl already
+running when you walk onto a hex map becomes travel at the same press, and the
+Session Recap carries on. Pressing **Start** with nothing running asks to track
+a session, as a crawl's Start does. When the table's active scene stops being a
+hex map, travel turns back into a crawl, again without ending the session;
+looking at another map as a GM does not. A hex map is any scene with
 a hex grid, of either orientation: one you drew by hand, one built with
 Shadowdark Extras' hex creator, or a print tagged with the Hex Tagger. Nothing
 has to be tagged first. It starts overland travel instead of a crawl. Overland is being built in pieces (#192). So far it
@@ -251,7 +257,7 @@ the party token travels.
   card says only what the imported rules give a storm, and says so when they
   give it nothing; the GM alone also gets a whispered card, once per table per
   session, saying which table to import and where.
-- **Start day** opens a travel day. Pressing **Travel** opens it for you
+- **Start day** opens a travel day. Pressing **Start** on a hex map opens it for you
   straight away, and so does each camp's dawn, so Start day is only for a restart
   or a party with no hexes per day set. Nothing is asked: the method is read from the party (mounted
   when every member rides a mount, from the riders on each mount's sheet;

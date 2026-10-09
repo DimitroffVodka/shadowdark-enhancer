@@ -12,6 +12,7 @@ import {
   endCrawl        as _endCrawl,
   startOverland   as _startOverland,
   endOverland     as _endOverland,
+  overlandToCrawl as _overlandToCrawl,
   addMembers      as _addMembers,
   removeMember    as _removeMember,
   clearMembers    as _clearMembers,
@@ -138,6 +139,18 @@ export const CrawlState = {
           console.error(`${MODULE_ID} | failed to enter combat crawl mode`, error);
         });
     };
+    // A hex map means overland and any other scene a crawl, so travel turns back
+    // into a crawl when the table's active scene stops being a hex map. The
+    // active scene, not the GM's view: a GM looking at another map mid-journey
+    // must not end the journey.
+    const followActiveScene = () => {
+      if (!isActiveGM() || this._state.mode !== "overland") return;
+      const scene = game.scenes?.active;
+      if (!scene || scene.grid?.isHexagonal) return;
+      void this.overlandToCrawl().catch((error) => console.error(`${MODULE_ID} | travel back to crawl`, error));
+    };
+    Hooks.on("canvasReady", followActiveScene);
+    Hooks.on("updateScene", (scene, changes) => { if (changes.active) followActiveScene(); });
     Hooks.on("createCombat", doEnterCombatMode);
     Hooks.on("combatStart",   doEnterCombatMode);
 
@@ -260,9 +273,22 @@ export const CrawlState = {
   // startCrawl: a click, not an event every GM reacts to.
   async startOverland() {
     if (!game.user.isGM) return false;
+    const wasCrawl = this._state.mode === "crawl";
     const { state, changed } = _startOverland(this._state);
     if (!changed) return false;
-    return this._commit(state);
+    if (!await this._commit(state)) return false;
+    if (wasCrawl) await MovementTracker.clearCrawlAnchors();
+    return true;
+  },
+
+  // Leaving a hex map: overland becomes a crawl again. Not a session boundary,
+  // so Session Recap hears nothing and carries on.
+  async overlandToCrawl() {
+    if (!game.user.isGM) return false;
+    const { state, changed } = _overlandToCrawl(this._state);
+    if (!changed || !await this._commit(state)) return false;
+    await MovementTracker.captureCrawlAnchors();
+    return true;
   },
 
   async endOverland() {
