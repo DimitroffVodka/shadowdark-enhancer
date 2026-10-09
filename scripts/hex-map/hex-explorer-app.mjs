@@ -1,6 +1,8 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { HexRecords, sceneRef, offsetKey } from "./hex-records.mjs";
 import { HexExplorer, explorerCell, encounterReadout } from "./hex-explorer.mjs";
+import { viewedPartyIds } from "./hex-fog.mjs";
+import { effectiveDiscovery } from "./hex-fog-core.mjs";
 import { FEATURES, decodeTags } from "./tag-store.mjs";
 import { terrainOptions, OTHER } from "./tag-overlay.mjs";
 import { tableForCheck, pickTable, TERRAIN_TABLES } from "../encounter/encounter-terrain.mjs";
@@ -38,14 +40,18 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _prepareContext() {
     if (!game.user?.isGM) return {};
     const record = HexRecords.read(this.offset, this.scene);
+    // The reveal boxes are the viewed party's: what they say is what that party's players see.
+    const seen = effectiveDiscovery(record.discovery, viewedPartyIds());
+    // The draft belongs to the party it was filled from; switching party while the window is open must not move its boxes to another.
+    if (!this.draft) this.partyId = viewedPartyIds()[0] ?? null;
     if (!this.draft) this.draft = {
       terrain: record.terrain ?? "", title: record.title ?? "",
       lines: FEATURES.filter(type => record.features?.some(f => f.type === type)),
       lineDiscovery: Object.fromEntries(FEATURES.map(type => [type, record.features?.find(f => f.type === type)?.discovered === true])),
       features: (record.features ?? []).map((f, index) => ({ ...f, index })).filter(f => !FEATURES.includes(f.type)),
       notes: (record.notes ?? []).map((n, index) => ({ ...n, index })), links: (record.links ?? []).map((l, index) => ({ ...l, index })),
-      revealed: !!record.discovery.revealed, visited: !!record.discovery.visited,
-      location: record.discovery.locationRevealed === undefined ? "auto" : record.discovery.locationRevealed ? "show" : "hide",
+      revealed: !!seen.revealed, visited: !!seen.visited,
+      location: seen.locationRevealed === undefined ? "auto" : seen.locationRevealed ? "show" : "hide",
     };
     const d = this.draft;
     // The saved cell, as a travel check reads it; tableForCheck never throws, so a bad lookup shows as no table.
@@ -92,7 +98,7 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (this.saving || !game.user?.isGM) return;
     this._capture(); this.saving = true;
     this.element.querySelector('[data-action="save"]').disabled = true;
-    try { await HexExplorer.save(this.offset, this.draft, this.scene); this.draft = null; }
+    try { await HexExplorer.save(this.offset, this.draft, this.scene, this.partyId); this.draft = null; }
     catch (error) { console.error(`${MODULE_ID} | Hexplorer edit`, error); ui.notifications.warn(t(error.message.startsWith("SDE.") ? error.message : "SDE.hexExplorer.failed")); }
     finally { this.saving = false; this.render(); }
   }

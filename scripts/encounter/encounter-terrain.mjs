@@ -452,8 +452,9 @@ export function hasHexTerrain(canvasRef = globalThis.canvas) {
     const gm = !!globalThis.game?.user?.isGM;
     if (gm && Object.keys(scene?.getFlag?.(MODULE_ID, TAGS_FLAG)?.cells ?? {}).length) return true;
     const flag = gm ? RECORD_FLAG : PUBLIC_FLAG;
-    const cells = recordJournal(scene, { publicOnly: !gm })?.flags?.[MODULE_ID]?.[flag]?.cells;
-    return Object.values(cells ?? {}).some(r => !!r?.terrain);
+    const stored = recordJournal(scene, { publicOnly: !gm })?.flags?.[MODULE_ID]?.[flag];
+    // A player's copy keeps each party's finds apart, so a hex is looked for in them all.
+    return [stored?.cells, ...Object.values(stored?.parties ?? {}).map(p => p?.cells)].some(cells => Object.values(cells ?? {}).some(r => !!r?.terrain));
   }
   if (Object.keys(scene?.getFlag?.(MODULE_ID, TAGS_FLAG)?.cells ?? {}).length) return true;
   return [...(extrasRecords(scene)?.values() ?? [])].some((r) => !!r?.terrain);

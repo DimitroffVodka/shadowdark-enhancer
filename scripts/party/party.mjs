@@ -41,7 +41,9 @@ export const Party = {
   select(ref) {
     const actor = resolve(ref);
     if (!actor || !readable(actor) || !(isNativeParty(actor) || isLegacyParty(actor))) return null;
-    selectedUuid = actor.uuid; return actor;
+    selectedUuid = actor.uuid;
+    globalThis.Hooks?.callAll?.(`${MODULE_ID}.partySelected`, actor);
+    return actor;
   },
   data(ref) {
     const actor = resolve(ref);

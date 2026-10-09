@@ -6,13 +6,15 @@ import { HexRecords, playerProjection, offsetKey, sceneRef, recordJournal, RECOR
 import { hasHexNumbering, hexNumberAt } from "./hex-number-api.mjs";
 import { adoptHexScene, withHexLock } from "./hex-adoption.mjs";
 import { decodeFixes, encodeFixes, recordEdits, FIXES_FLAG } from "./tag-corrections.mjs";
-import { disclosure } from "./hex-fog-core.mjs";
+import { disclosure, effectiveDiscovery, withPartyDiscovery } from "./hex-fog-core.mjs";
+import { viewedPartyIds } from "./hex-fog.mjs";
 import { HexTagOverlay, isDoubleClick } from "./tag-overlay.mjs";
 
 const pick = (v, keys) => Object.fromEntries(keys.filter(k => typeof v?.[k] === "string").map(k => [k, v[k]]));
 /** GM hover is player-safe too; GM-private content belongs only in the editor. */
-export function explorerView(record, isGM = false) {
-  const r = isGM ? playerProjection(record) : record;
+export function explorerView(record, isGM = false, partyIds = []) {
+  // The GM sees what the viewed party's players see, the same discovery the fog and the Hexplorer window use.
+  const r = isGM ? playerProjection({ ...record, discovery: effectiveDiscovery(record.discovery, partyIds) }) : record;
   if (!disclosure(r?.discovery)) return null;
   const location = disclosure(r.discovery, "location");
   return { sceneUuid: r.sceneUuid, offset: { ...r.offset }, num: r.num, terrain: r.terrain,
@@ -27,7 +29,8 @@ export function explorerView(record, isGM = false) {
 function rows(previous, submitted, fields) {
   return (submitted ?? []).map(row => ({ ...(Number.isInteger(row.index) ? structuredClone(previous?.[row.index] ?? {}) : {}), ...Object.fromEntries(fields.map(k => [k, row[k]])) }));
 }
-export function planExplorerEdit(record, input, flag) {
+/** `partyId`: the party the GM is looking at; the reveal boxes are then that party's own, not everyone's. */
+export function planExplorerEdit(record, input, flag, partyId = null) {
   if (!offsetKey(record?.offset) || flag?.origin && !Number.isInteger(record?.num)) throw new Error("SDE.hexRecords.invalidCell");
   const terrain = normalizeTerrainWord(input.terrain);
   if (!terrain || /[;|]/.test(terrain) || FEATURES.includes(terrain) && terrain !== "river") throw new Error("SDE.hexExplorer.invalidTerrain");
@@ -43,9 +46,9 @@ export function planExplorerEdit(record, input, flag) {
     const old = record.features?.find(f => f.type === type);
     features.push({ ...(old ?? {}), type, discovered: input.lineDiscovery?.[type] ?? old?.discovered ?? false });
   }
-  const discovery = { ...record.discovery, revealed: !!input.revealed, visited: !!input.visited };
-  if (input.location === "auto") delete discovery.locationRevealed;
-  else discovery.locationRevealed = input.location === "show";
+  const seen = { revealed: !!input.revealed, visited: !!input.visited, locationRevealed: input.location === "auto" ? undefined : input.location === "show" };
+  const discovery = partyId ? withPartyDiscovery(record.discovery, partyId, seen) : { ...record.discovery, ...seen };
+  if (!partyId && seen.locationRevealed === undefined) delete discovery.locationRevealed;
   return { tags, verdicts, patch: { ...(!numbered ? { terrain } : {}), title: String(input.title ?? ""), features,
     notes: rows(record.notes, input.notes, ["text", "visible", "location"]), links: rows(record.links, input.links, ["uuid", "label", "visible"]), discovery } };
 }
@@ -62,8 +65,8 @@ export function encounterReadout({ uuid, zone, verdict } = {}, name = "", active
   return { state, uuid: uuid ?? "", name, zone: zone ?? "", column: verdict?.column?.column ?? "", options: (verdict?.columns ?? []).map(c => c.column).join(", ") };
 }
 export const HexExplorer = {
-  read(offset, target) { return explorerView(HexRecords.read(offset, target), !!game.user?.isGM); },
-  async save(offset, input, target) {
+  read(offset, target) { return explorerView(HexRecords.read(offset, target), !!game.user?.isGM, viewedPartyIds()); },
+  async save(offset, input, target, partyId = viewedPartyIds()[0] ?? null) {
     if (!game.user?.isGM) throw new Error("SDE.hexRecords.gmOnly");
     const scene = sceneRef(target);
     if (!explorerCell(scene, offset)) throw new Error("SDE.hexRecords.invalidCell");
@@ -72,7 +75,7 @@ export const HexExplorer = {
       const journal = recordJournal(scene);
       if (!journal) throw new Error("SDE.hexRecords.unreadable");
       assertPrivateJournal(journal);
-      const plan = planExplorerEdit(HexRecords.read(offset, scene), input, scene.getFlag(MODULE_ID, "hexTags"));
+      const plan = planExplorerEdit(HexRecords.read(offset, scene), input, scene.getFlag(MODULE_ID, "hexTags"), partyId);
       const saved = structuredClone(journal.flags[MODULE_ID][RECORD_FLAG]);
       saved.cells[offsetKey(offset)] = { ...saved.cells[offsetKey(offset)], ...plan.patch };
       await replaceModuleFlag(journal, RECORD_FLAG, saved);
@@ -130,9 +133,14 @@ function atEvent(event) {
 function line(parent, text, tag = "div") {
   const el = document.createElement(tag); el.textContent = text; parent.append(el); return el;
 }
+export const hexTooltipHidden = () => !!game.user?.isGM && !!game.settings.get(MODULE_ID, "hexTooltipHidden");
+export async function toggleHexTooltip() {
+  await game.settings.set(MODULE_ID, "hexTooltipHidden", !hexTooltipHidden());
+  refreshHexExplorer();
+}
 export function refreshHexExplorer() {
   const cell = selected ?? hovered;
-  if (!cell || !enabled(cell.scene)) { tip?.remove(); tip = null; return; }
+  if (!cell || !enabled(cell.scene) || hexTooltipHidden()) { tip?.remove(); tip = null; return; }
   const view = HexExplorer.read(cell.offset, cell.scene);
   // Concealed cells show nothing to players, including their number.
   if (!view && !game.user.isGM) { tip?.remove(); tip = null; return; }
@@ -157,7 +165,9 @@ export function refreshHexExplorer() {
         });
       } else line(tip, link.label || link.uuid);
     }
-  } else line(tip, t("SDE.hexExplorer.concealed"));
+  // The GM is not a player: an undiscovered hex still shows its real terrain.
+  } else if (game.user.isGM) line(tip, HexRecords.read(cell.offset, cell.scene)?.terrain ?? t("SDE.hexExplorer.unknown"));
+  else line(tip, t("SDE.hexExplorer.concealed"));
   if (selected) {
     const close = line(tip, t("SDE.hexExplorer.close"), "button"); close.type = "button";
     close.addEventListener("click", () => { selected = null; hovered = null; refreshHexExplorer(); });

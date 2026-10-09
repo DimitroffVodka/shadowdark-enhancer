@@ -24,7 +24,7 @@ These work without Extras. Each user's **Show hex coordinates** setting follows
 `hexMaps.numberAt`, preserving leading zeroes and calibration. Flat-top odd/even
 column grids are supported; unsupported grids and unnumbered cells get no invented
 labels. Eligible scenes adopt native records once; unnumbered adopted maps use
-scene UUID plus offset. Hover for disclosed terrain/public notes; a player's
+scene UUID plus offset. Hover for disclosed terrain/public notes (the GM's card also names the terrain of hexes the players have not found); a player's
 short click keeps the small card with permitted links. The GM gets no pinned
 card or Edit button: a double click opens the Hexplorer, which saves terrain,
 line features, rich locations, notes and discovery; travel prices update
@@ -43,6 +43,18 @@ elevation rules. Tokens, prices/routes, labels, tooltip and pins share disclosur
 with ordinary GM/owner exceptions. GM reveal/conceal can hide a visited location
 without erasing arrival history. Dawn/manual reveal never rerolls first-entry
 tables. Adoption imports legacy fog/rolled history once and reload retains it.
+
+**Each party keeps its own map.** A table that runs several groups on one map
+(a West March) does not leak one group's travels to another. Committed travel and
+dawn reveal write to the travelling party only, and a player sees the hexes of the
+parties that have one of their characters on the roster, plus anything the GM
+revealed to everyone. A party made from a world that held only shared fog starts
+with that shared map: nothing already revealed is lost. The GM sees the map of the
+party they have selected (else the one travelling); selecting another party in the
+Party window redraws it, and the Hexplorer's Revealed/Visited/Location boxes edit
+that party's entry, not everyone's. A first-entry roll table is rolled once per
+party. **Start travel** asks which party when more than one has a token on the map
+(or exists and has none), and a different party starts a fresh travel day.
 
 Private rich data lives in GM-restricted journals/packs, not public actor/scene
 flags. Player projections are filtered. This is ordinary Foundry spoiler
@@ -665,6 +677,9 @@ sits in the frame.
 On any scene with hex numbering, the GM's left toolbar has a **Hex map** group (the hexagon icon). Its tools
 are the ones below, without opening the Hex Tagger:
 
+- **See the fog as the players do**: the first button (two people), on any scene where the module draws the fog.
+  The GM normally sees unexplored hexes through a faint veil so the map can be edited; with this on they are solid
+  black, as the players see them. It is kept in this browser.
 - **Show terrain tags**, **Show regions** and **Show encounter zones**: the three pictures of the map. They switch
   between each other, and pressing the one that is up hides it. Regions and zones appear once the map's borders have
   been read.
@@ -672,6 +687,7 @@ are the ones below, without opening the Hex Tagger:
   Pressing it again closes the brush.
 - **Review the hexes most likely wrong**: opens the Hex Tagger on its review sheet.
 - **Open the Hex Tagger**.
+- **Hide the hex hover card**: the last button. It stops the card that follows the mouse over the hex map, for this GM, and stays off across reloads.
 
 When the import wizard has named the Western Reaches terrain, it shows the hexes it was unsure of before it moves on:
 forty at a time, worst guess first, each with its picture and its best guess. Change the wrong ones and press

@@ -12,6 +12,8 @@
 
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { HexTagOverlay, TOOLS_HOOK } from "./tag-overlay.mjs";
+import { ownsHexFog, playerViewOn, togglePlayerView } from "./hex-fog.mjs";
+import { hexTooltipHidden, toggleHexTooltip } from "./hex-explorer.mjs";
 
 const BRUSH_ID = "sde-hex-brush";
 
@@ -25,13 +27,19 @@ export const refreshOptions = (selected, stays) => (selected === "sdeHexMap" && 
 const refresh = () => ui.controls?.render(refreshOptions(ui.controls?.control?.name, !!hexMapTools(canvas?.scene, { isGM: !!game.user?.isGM })));
 
 /** The tools for a scene, or null when it has no hex numbering (nothing to show, paint or review). */
-export function hexMapTools(scene, { mode = "", brush = false, isGM = false } = {}) {
+export function hexMapTools(scene, { mode = "", brush = false, isGM = false, fog = false, playerView = false, tooltipHidden = false } = {}) {
   if (!isGM || !scene?.getFlag?.(MODULE_ID, "hexTags")?.origin) return null;
   const overlay = (name, picked, icon, title, order) => ({
     name, title, icon, order, toggle: true, active: mode === picked,
     onChange: async () => { await HexTagOverlay.toggle({ mode: picked }); refresh(); },
   });
-  const tools = { hexTerrain: overlay("hexTerrain", "terrain", "fa-solid fa-eye", "SDE.hexMap.controls.terrain", 1) };
+  const tools = {};
+  // First in the group, and only where the module draws the fog: the GM's way to look at the map as the players do.
+  if (fog) tools.hexPlayerView = {
+    name: "hexPlayerView", title: "SDE.hexMap.controls.playerView", icon: "fa-solid fa-users", order: 0, toggle: true, active: playerView,
+    onChange: async () => { await togglePlayerView(); refresh(); },
+  };
+  tools.hexTerrain = overlay("hexTerrain", "terrain", "fa-solid fa-eye", "SDE.hexMap.controls.terrain", 1);
   // Regions and zones both come from the border scan.
   if (scene.getFlag(MODULE_ID, "hexRegions")) {
     tools.hexRegions = overlay("hexRegions", "region", "fa-solid fa-draw-polygon", "SDE.hexMap.controls.regions", 2);
@@ -52,12 +60,16 @@ export function hexMapTools(scene, { mode = "", brush = false, isGM = false } = 
     name: "hexTagger", title: "SDE.hexMap.controls.tagger", icon: "fa-solid fa-map-location-dot", order: 6, button: true,
     onChange: async () => (await import("./hex-tagger-app.mjs")).HexTaggerApp.open(),
   };
+  tools.hexTooltip = {
+    name: "hexTooltip", title: "SDE.hexMap.controls.tooltip", icon: "fa-solid fa-comment-slash", order: 7, toggle: true, active: tooltipHidden,
+    onChange: async () => { await toggleHexTooltip(); refresh(); },
+  };
   return tools;
 }
 
 export function registerHexMapControls() {
   Hooks.on("getSceneControlButtons", (controls) => {
-    const tools = hexMapTools(canvas?.scene, { mode: HexTagOverlay.current?.mode ?? "", brush: brushOpen(), isGM: !!game.user?.isGM });
+    const tools = hexMapTools(canvas?.scene, { mode: HexTagOverlay.current?.mode ?? "", brush: brushOpen(), isGM: !!game.user?.isGM, fog: ownsHexFog(canvas?.scene), playerView: playerViewOn(), tooltipHidden: hexTooltipHidden() });
     if (!tools) return;
     controls.sdeHexMap = { name: "sdeHexMap", title: "SDE.hexMap.controls.title", icon: "fa-solid fa-hexagon-nodes", order: 90, activeTool: "", tools };
   });

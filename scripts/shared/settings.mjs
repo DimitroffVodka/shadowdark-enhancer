@@ -849,6 +849,14 @@ export function registerSettings() {
   });
 
   // Developer-only hex-map CSV comparison; hidden from the normal settings UI.
+  // The GM's own switch (Hex map toolbar) to stop the hover card following the mouse over the hex map.
+  game.settings.register(MODULE_ID, "hexTooltipHidden", {
+    scope: "client",
+    config: false,
+    type: Boolean,
+    default: false,
+  });
+
   game.settings.register(MODULE_ID, "hexMapsDevTools", {
     name: "SDE.settings.hexMapsDevTools.name",
     hint: "SDE.settings.hexMapsDevTools.hint",
@@ -856,6 +864,15 @@ export function registerSettings() {
     config: false,
     type: Boolean,
     default: false,
+  });
+
+  // The GM's "see the fog as the players do" switch (hex-fog.mjs): this browser's, and kept over a reload.
+  game.settings.register(MODULE_ID, "hexPlayerFogView", {
+    scope: "client",
+    config: false,
+    type: Boolean,
+    default: false,
+    onChange: () => import("../hex-map/hex-fog.mjs").then((m) => m.refreshHexFog()),
   });
 
   // Feature pop-outs (Configure Settings → this module). Every setting listed
