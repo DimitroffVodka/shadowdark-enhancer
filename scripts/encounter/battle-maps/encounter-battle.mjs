@@ -247,10 +247,21 @@ async function choose({ mapId, sceneId, terrain, night, camping }) {
   return { scene, map: look.map, camp: !!look.camp, night: look.darkness > 0 };
 }
 
+/**
+ * Whether the camp has a fire burning, for a camp map's light. While Overland has tonight's camp made, the camping window's
+ * record of it says (a fire not lit yet, or gone out, leaves the camp dark); a camp the GM picked by hand has the fire its
+ * art shows.
+ */
+function campFireLit() {
+  const camp = game.shadowdarkEnhancer?.overland?.state?.()?.camp;
+  const record = camp?.party ? game.actors.contents.find((a) => a.uuid === camp.party)?.flags?.[MODULE_ID]?.camping : null;
+  return record && record.phase !== "complete" ? !!record.fire?.lit : true;
+}
+
 /** The scene for a choice, made or lit now (a world scene is used as it stands). */
 async function settle(choice) {
   if (!choice.map) return { ...choice, created: false };
-  const { scene, created } = await (await _deps.scenes()).ensureEncounterScene(choice.map, { night: choice.night });
+  const { scene, created } = await (await _deps.scenes()).ensureEncounterScene(choice.map, { night: choice.night, fire: campFireLit() });
   return { ...choice, scene, created };
 }
 

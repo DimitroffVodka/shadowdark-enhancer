@@ -252,7 +252,12 @@ characters' tokens the battle placed from their actors' prototypes (`syncPartyLi
 scene, are left alone). Token positions snap to the scene's own grid. The two folders have localized names and are
 found by flag, then by localized name, then by the old English name. Foes are numbered one by one when their prototype
 token numbers its tokens, and a prototype token that picks its picture at random is asked for its list (`getTokenImages`),
-from which each foe is dealt one (`dealPictures`) instead of all wearing the first.
+from which each foe is dealt one (`dealPictures`) instead of all wearing the first. A camp map's fire is an AmbientLight
+(30 ft, flagged `campfire`) at the art's fire, which sits on every shipped camp at its `campLight` point (checked against the
+seven pictures). It follows the party's own camp: while Overland has tonight's camp made, the camping window's record on
+that party says (`phase` not `complete` and `fire.lit`); a fire not lit yet or gone out puts the light out (`hidden`, kept so
+the GM can light it), and with no camp or no record the fire is lit, as the art shows. `settle` sets it on every setUp and
+changeMap, like the darkness; the light is found by its flag, else by its point.
 
 **Preload.** A player finishes when the last file has loaded; it never calls `game.scenes.preload`, which waits on the
 browser's audio unlock (a freshly reloaded or idle player would stay "not ready" forever) and flashes a loading bar on the

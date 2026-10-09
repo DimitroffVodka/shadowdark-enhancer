@@ -20,7 +20,8 @@
  *
  * What differs from the arena: night is a choice per battle (the arena is always
  * night), the scene has a daylight that goes out in the dark (the arena's has
- * none, and a day battle needs one), a camp map carries one campfire light, and
+ * none, and a day battle needs one), a camp map carries one campfire light (lit
+ * when the party's camp has a fire, out when it has none), and
  * every scene goes in the Encounter maps folder (named in the GM's language, found
  * again by its flag). A battle that is kept is copied into the Saved encounters
  * folder with its tokens.
@@ -110,22 +111,45 @@ async function ensureFolder(key) {
   }
 }
 
-/** The campfire, at a point of the image. A light that fails costs the glow, not the battle. */
-async function addCampLight(scene, { x, y }) {
+/** Flag on the campfire light: it is the one this builder made, wherever a GM has moved it to. */
+const CAMPFIRE_FLAG = "campfire";
+
+/** The campfire, at a point of the image; out (hidden) when the party's camp has no fire burning. A light that fails costs the glow, not the battle. */
+async function addCampLight(scene, { x, y }, lit) {
   const { sceneX, sceneY } = scene.dimensions;
   try {
     await scene.createEmbeddedDocuments("AmbientLight", [{
       name: L("SDE.encounterMaps.scene.campfire"),
       x: Math.round(sceneX + x),
       y: Math.round(sceneY + y),
+      hidden: !lit,
       config: { ...CAMPFIRE, animation: { type: "torch", speed: 3, intensity: 3 } },
+      flags: { [MODULE_ID]: { [CAMPFIRE_FLAG]: true } },
     }]);
   } catch (err) {
     console.warn(`${MODULE_ID} | encounter scene: the campfire light could not be added`, err);
   }
 }
 
-async function build(map, { night, view }) {
+/**
+ * The camp scene's fire for this battle: the light is lit when the party's camp has a fire and put out when it has none, the
+ * way the scene's darkness is this battle's to set. The light is found by its flag, else by the point it was put at (one
+ * made before the flag existed); a light that is missing is made again.
+ */
+async function setCampLight(scene, point, lit) {
+  const { sceneX, sceneY } = scene.dimensions;
+  const at = { x: Math.round(sceneX + point.x), y: Math.round(sceneY + point.y) };
+  const light = scene.lights.find((l) => l.flags?.[MODULE_ID]?.[CAMPFIRE_FLAG]) ?? scene.lights.find((l) => l.x === at.x && l.y === at.y);
+  if (!light) return addCampLight(scene, point, lit);
+  if (!!light.hidden === !lit) return;
+  try {
+    await scene.updateEmbeddedDocuments("AmbientLight", [{ _id: light.id, hidden: !lit }]);
+  } catch (err) {
+    console.warn(`${MODULE_ID} | encounter scene: the campfire light could not be ${lit ? "lit" : "put out"}`, err);
+  }
+}
+
+async function build(map, { night, fire, view }) {
   const darkness = night ? NIGHT_DARKNESS : 0;
   const existing = find(map.id, map);
   if (existing) {
@@ -147,6 +171,7 @@ async function build(map, { night, view }) {
         console.warn(`${MODULE_ID} | encounter scene: its lighting could not be set`, err);
       }
     }
+    if (map.campLight) await setCampLight(existing, map.campLight, fire);
     if (view) await existing.view();
     return { scene: existing, created: false };
   }
@@ -177,7 +202,7 @@ async function build(map, { night, view }) {
   });
   if (!scene) throw new Error(`${MODULE_ID} | the scene for ${map.id} was not created`);
 
-  if (map.campLight) await addCampLight(scene, map.campLight);
+  if (map.campLight) await addCampLight(scene, map.campLight, fire);
 
   // Foundry makes a thumbnail itself only when a canvas is up (Scene#_preCreate), so make it by hand otherwise.
   if (!scene.thumb) {
@@ -200,11 +225,13 @@ async function build(map, { night, view }) {
  * @param {object} [options]
  * @param {boolean} [options.night]  darkness for this battle: the scene is set to it, new or not. This is a change to a
  *   scene other battles may be standing on: ask whether one is first (findEncounterScene) and do not call this if so.
+ * @param {boolean} [options.fire]   a camp map's fire is burning (default): its light is lit; false puts it out, for a camp
+ *   whose fire was never lit or has gone out. Like `night`, it is set on a scene that is reused.
  * @param {boolean} [options.view]   bring it up for this GM afterwards
  * @returns {Promise<{scene: Scene, created: boolean}>}
  */
-export function ensureEncounterScene(map, { night = false, view = false } = {}) {
-  return serialize(() => build(map, { night, view }));
+export function ensureEncounterScene(map, { night = false, fire = true, view = false } = {}) {
+  return serialize(() => build(map, { night, fire, view }));
 }
 
 async function copy(scene, label) {

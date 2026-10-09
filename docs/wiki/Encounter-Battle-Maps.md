@@ -126,7 +126,14 @@ Night if it happened at night, Camp if the party is camping.
 - **Camp** is separate art for the same ground, with the camp set out and its
   fire lit. It is greyed out for a map that has no camp version. River, lake,
   ocean and arctic sea maps have none: the boat is the camp.
-- A camp at night is both switched on.
+- A camp at night is both switched on. The fire is a light on the map, in the
+  middle of the camp, and it lights about 30 feet around it: with the
+  characters' torches out it is the only light, and the foes come out of the dark
+  beyond it. The light follows the party's own camp: while the camping window
+  says its fire is burning it is lit, and when that fire was never lit or has gone
+  out the light is put out and the camp is dark. A camp you pick by hand, with no
+  camp made in Overland, has its fire lit. The light stays on the map when it is
+  out, so you can switch it on yourself.
 
 A scene from your world is used as it is, so these go quiet while one is chosen.
 

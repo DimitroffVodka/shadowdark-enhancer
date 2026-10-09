@@ -201,7 +201,11 @@ function makeWorld({ gm = true, settings = {} } = {}) {
         return this;
       },
       async createEmbeddedDocuments(name, datas) {
-        if (name === "AmbientLight") { this.lights.push(...structuredClone(datas)); return datas; }
+        if (name === "AmbientLight") {
+          const made = datas.map((d) => ({ id: nextId("lgt"), ...structuredClone(d) }));
+          this.lights.push(...made);
+          return made;
+        }
         const mode = w.onCreateTokens(this, datas);
         if (mode === "throwBefore") throw new Error("the create was refused");
         const made = datas.map((d) => w.addToken(this, d));
@@ -210,6 +214,14 @@ function makeWorld({ gm = true, settings = {} } = {}) {
         return made;
       },
       async updateEmbeddedDocuments(name, updates) {
+        if (name === "AmbientLight") {
+          if (w.failLightUpdate) throw new Error("the light update was refused");
+          for (const { _id, ...changes } of updates) {
+            Object.assign(this.lights.find((l) => l.id === _id), changes);
+            this.log.push(["light", _id, changes.hidden]);
+          }
+          return updates;
+        }
         // v14's batch is strict here too: an id the collection does not have throws, and nothing in it is applied
         const missing = updates.find((u) => !this.tokens.contents.some((t) => t.id === u._id));
         if (missing) throw new Error(`Token "${missing._id}" does not exist!`);
@@ -531,6 +543,43 @@ test("ensureEncounterScene: a camp map has one campfire, in canvas coordinates; 
   assert.equal(world.sceneCreates[1].flags[MOD][FLAGS.scene], "fake-grove-camp", "a camp is a scene of its own");
   await ensureEncounterScene(GROVE_CAMP);
   assert.equal(scene.lights.length, 1, "reusing it does not add a second fire");
+});
+
+test("ensureEncounterScene: the campfire is lit while the camp has a fire and out when it has none, on a new scene and a reused one", async () => {
+  const lightWrites = (scene) => scene.log.filter(([kind]) => kind === "light").length;
+  const { scene } = await ensureEncounterScene(GROVE_CAMP, { fire: false });
+  assert.equal(scene.lights.length, 1, "a camp without a fire still has its light, out, for the GM to light");
+  assert.equal(scene.lights[0].hidden, true);
+  assert.equal(scene.lights[0].flags[MOD].campfire, true, "marked as this builder's own");
+
+  await ensureEncounterScene(GROVE_CAMP, { fire: true });
+  assert.deepEqual([scene.lights.length, scene.lights[0].hidden, lightWrites(scene)], [1, false, 1], "lit again, on the same light");
+  await ensureEncounterScene(GROVE_CAMP);
+  assert.equal(lightWrites(scene), 1, "a fire is burning unless the camp says otherwise, and nothing is written when it already matches");
+  await ensureEncounterScene(GROVE_CAMP, { fire: false });
+  assert.deepEqual([scene.lights.length, scene.lights[0].hidden, lightWrites(scene)], [1, true, 2]);
+
+  scene.lights[0].x += 300;
+  await ensureEncounterScene(GROVE_CAMP, { fire: true });
+  assert.deepEqual([scene.lights.length, scene.lights[0].hidden], [1, false], "a light the GM moved is still the fire");
+
+  scene.lights.length = 0;
+  await ensureEncounterScene(GROVE_CAMP, { fire: true });
+  assert.deepEqual([scene.lights.length, scene.lights[0].hidden], [1, false], "a light the GM deleted is made again");
+});
+
+test("ensureEncounterScene: a campfire made before the light was marked is found by where it stands, not made twice", async () => {
+  const old = world.addScene({ name: encounterSceneName(GROVE_CAMP), flags: { [MOD]: { [FLAGS.scene]: GROVE_CAMP.id } } });
+  old.lights.push({ id: "old", ...world.canvas(old, 2000, 1500), hidden: false, config: { bright: 15, dim: 30 } });
+  await ensureEncounterScene(GROVE_CAMP, { fire: false });
+  assert.deepEqual(old.lights.map((l) => [l.id, l.hidden]), [["old", true]]);
+});
+
+test("ensureEncounterScene: a campfire that will not go out or come on costs the glow, not the battle", async () => {
+  const { scene } = await ensureEncounterScene(GROVE_CAMP, { fire: true });
+  world.failLightUpdate = true;
+  await assert.doesNotReject(ensureEncounterScene(GROVE_CAMP, { fire: false }));
+  assert.equal(scene.lights[0].hidden ?? false, false, "the light is as it was");
 });
 
 test("ensureEncounterScene: the folder is found by its flag (a GM may rename it), then by its name in the GM's language, then by the English name an earlier version gave it", async () => {
@@ -929,6 +978,37 @@ test("setUp: night and camp: the camp map's own scene, lit by the clock", async 
   assert.equal(picked.map, GROVE_CAMP);
   assert.equal(picked.scene.environment.darknessLevel, 0, "a camp by day keeps the day");
   assert.equal(world.sceneCreates.length, 2, "two scenes for the grove: the day map and its camp, reused across four battles");
+});
+
+test("setUp: a camp map's fire is the camp's own: lit while it burns, out when it was never lit or has gone out", async () => {
+  seedActors(world);
+  const party = world.addActor({ id: "party1", type: "NPC", name: "The party" });
+  const record = (camping) => { party.flags = camping ? { [MOD]: { camping } } : {}; };
+  const tonight = (camp) => { globalThis.game.shadowdarkEnhancer = { overland: { state: () => ({ camp }) } }; };
+  const fireOnTheMap = async () => {
+    const { scene, battle } = await BattleMaps.setUp({ encounter: WOLVES, terrain: "forest", night: true, camping: true, view: false });
+    const lit = scene.lights.length === 1 && !scene.lights[0].hidden;
+    await BattleMaps.returnToTravel(battle.id);
+    return lit;
+  };
+
+  tonight({ party: party.uuid });
+  record({ phase: "awaitingRest", fire: { lit: true } });
+  assert.equal(await fireOnTheMap(), true, "the party's fire is burning");
+  record({ phase: "awaitingRest", fire: { lit: false, started: 0 } });
+  assert.equal(await fireOnTheMap(), false, "the fire went out: the camp is dark");
+  record({ phase: "tasks" });
+  assert.equal(await fireOnTheMap(), false, "no fire has been lit yet");
+  record({ phase: "complete", fire: { lit: false } });
+  assert.equal(await fireOnTheMap(), true, "last night's finished camp says nothing about this one");
+  record(null);
+  assert.equal(await fireOnTheMap(), true, "a camp made without the camping window has the fire its art shows");
+  tonight({ party: "Actor.nobody" });
+  record({ phase: "awaitingRest", fire: { lit: false } });
+  assert.equal(await fireOnTheMap(), true, "a party the camp does not name has nothing to say about it");
+  tonight(null);
+  assert.equal(await fireOnTheMap(), true, "no camp tonight: a camp the GM picked is lit");
+  assert.equal(world.sceneCreates.length, 1, "one scene, its one light switched, never a second");
 });
 
 test("setUp: a water map puts the party on the deck and the monsters in the water beside it", async () => {
