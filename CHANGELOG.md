@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Added
+- **Find the party and open its sheet from the clock HUD.** Two buttons before the Travel icon: a crosshairs that pans the map to the party token, pulses on it (on your screen only, not the players') and selects it, and a shield that opens the party sheet. If the party token is on another scene, the crosshairs names the scene instead.
 - **Right-click a hex with the Hex Brush open to copy its terrain and features.** The brush picks up whatever the hex under the cursor says (a terrain the map's list lacks lands in the Other box), so a good result can be painted straight over a bad one. A right-drag still pans the map.
 - **The Hexplorer's terrain is a dropdown, not a text box.** It offers the map's own terrains (the same list as the on-map editor, alphabetical); to name a new one you pick "other…" and type it there. Nothing is typed by default any more.
 - **The hex tagger's terrain dropdowns are alphabetical.** The review sheet, the Legend cards and the import wizard's hex check listed terrains in the book's printed order; they now sort like the on-map editor's list, with (untagged) first and other... last.
@@ -27,6 +28,7 @@
   redesign. No window uses it yet, so nothing looks different.
 
 ### Changed
+- **The clock HUD's sky is a half disc, with its pieces moved to where they read.** The dial is now a true half circle under the season band, about 1.5 times bigger, with an hour ring of ticks. Sunrise and sunset are badges that ride the ring and turn with the disc (hover for the time) instead of a line of text, and the star under the disc is the hour now (hover for the time). Today's weather moved out of the dial into the season band, beside the season. The region and terrain are written straight across the disc, shrink to fit and wrap when long, so a name like Sablewood Forest no longer spills out of its box. The date sits in the middle of the bar with the tools either side, and the hide-the-sky chevron is a small dim one beside it. While travelling, "Hexes: 0 of 4 left" is now a counter: how the party travels, then movement points left over the day's total, with a double chevron when pushing. A held encounter lights the plate (its tooltip says the travel clock is stopped and to press Continue, so the separate Stopped tag is gone) and no open day reads a quiet dashed "No day".
 - **A GM's click on a hex no longer pins the hover card; a double click opens the Hexplorer.** The pinned card and its Edit this hex button are gone for the GM (players keep the card, since their journal links are in it). With the tag picture up, a single click opens the on-map editor a third of a second later, so a double click can take the hex to the Hexplorer instead.
 - **The hex tagger stars only its own book's keyed hexes on a map the importer made.** Another book's keyed hex that shares a number (a Cursed Scroll 5 location on a Western Reaches hex) is no longer starred or offered there.
 - **The sky's twilight is a soft four-hour ease (Ember's measured cosine curve).** The light
