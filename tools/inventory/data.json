@@ -485,6 +485,7 @@
     "scripts/party/party-core.mjs": "Pure versioned roster validation, membership permissions, groups and quest scoping.",
     "scripts/party/party-movement-core.mjs": "Fixed formation fill, follow ordering, heading turns, and the wall tests: centre-line placement and a breadth-first route round walls.",
     "scripts/party/party-sheet-core.mjs": "Pure Party sheet decisions: the tab row and view flags (GM vs player), the Marching order status line, Gems, the linked Bastion and its last month, and the Today / Light / Rations status bar.",
+    "scripts/party/party-token.mjs": "Uploads the party emblem as a hex-shaped token picture and keeps the party actor, its prototype token and scene tokens wearing it.",
     "scripts/party/party-emblem-core.mjs": "Pure party emblem: the curated icon and colour sets, the default, the safe read of the stored flag and the picker's choices.",
     "scripts/party/party-movement.mjs": "Authenticated Party-owner gather/deploy relay, linked token configuration preservation and native marching: followers keep the formation, turned to the leader's heading, and never pause.",
     "scripts/party/party-hud.mjs": "Single combat-gated Import/Export Members Party token HUD action.",

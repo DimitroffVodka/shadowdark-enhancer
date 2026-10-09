@@ -21,6 +21,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { isHexRulesScene } from "../encounter/encounter-terrain.mjs";
 import { Party } from "../party/party.mjs";
+import { emblemTokenPath } from "../party/party-token.mjs";
 import { normalizeParty } from "../party/party-core.mjs";
 import { ownsHexFog, positionDisclosed } from "../hex-map/hex-fog.mjs";
 
@@ -140,6 +141,8 @@ export async function placePartyToken(actor = null, scene = globalThis.canvas?.s
   if (!game.user?.isGM || !scene || scene !== canvas.scene) return null;
   actor ??= await partyActor();
   if (!actor) return null;
+  const art = await emblemTokenPath(actor);
+  if (art && actor.prototypeToken.texture.src !== art) await actor.update({ "prototypeToken.texture.src": art });
   const { x, y } = canvas.grid.getTopLeftPoint(canvas.grid.getOffset(canvas.stage.pivot));
   // Linked on the token itself: the system makes a new NPC's prototype unlinked.
   const doc = await actor.getTokenDocument({ x, y, actorLink: true });
@@ -156,8 +159,9 @@ export async function placePartyToken(actor = null, scene = globalThis.canvas?.s
  */
 export async function wearPartyHex(token) {
   if (!game.user?.isGM || !token || !isHexRulesScene(token.parent)) return;
-  if (token.texture?.src === PARTY_TOKEN_IMG) return;
+  const src = (token.actor && await emblemTokenPath(token.actor)) || PARTY_TOKEN_IMG;
+  if (token.texture?.src === src) return;
   const grid = token.parent.grid;
   const { x, y } = grid.getTopLeftPoint(grid.getOffset(token.getCenterPoint()));
-  await token.update({ ...PARTY_TOKEN_STYLE, x, y });
+  await token.update({ ...PARTY_TOKEN_STYLE, texture: { ...PARTY_TOKEN_STYLE.texture, src }, x, y });
 }
