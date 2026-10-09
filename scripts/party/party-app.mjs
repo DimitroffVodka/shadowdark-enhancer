@@ -51,7 +51,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
       emblem: function () { if (!sheetView({ isGM: !!game.user?.isGM, canEdit: Party.canManage(this.actor) }).emblemEdit) return; this.emblemOpen = !this.emblemOpen; this.render(); },
       pickEmblem: function (_event, el) { return this._pickEmblem({ icon: el.dataset.icon, color: el.dataset.color, iconColor: el.dataset.iconColor }); },
       remove: function (_event, el) { return this._change(() => Party.remove(this.actor, el.dataset.uuid)); },
-      member: function (_event, el) { Party.rows(this.actor).find((r) => r.uuid === el.dataset.uuid)?.actor?.sheet?.render(true); },
+      member: function (_event, el) { const actor = Party.rows(this.actor).find((r) => r.uuid === el.dataset.uuid)?.actor; if (actor?.testUserPermission(game.user, "LIMITED")) actor.sheet?.render(true); },
       spendLuck: function (_event, el) { return this._memberCrawl(el, (strip, actor) => strip.spendLuck(actor)); },
       toggleLight: function (_event, el) { return this._memberCrawl(el, (strip, actor) => strip.toggleActorLight(actor)); },
       item: function (_event, el) { if (this.actor?.testUserPermission(game.user, "OBSERVER")) this.actor.items.get(el.dataset.id)?.sheet?.render(true); },
@@ -450,7 +450,8 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // Actors dropped anywhere in the body while the Members tab is showing (the tab itself is only as tall as its
     // cards, so the blank space below them must count), or on the formation grid of an empty party, join the roster.
     const dropZone = event => !!(this.element.querySelector(".tab-members.active") || event.target.closest?.("[data-drop-members]"));
-    for (const target of this.element.querySelectorAll(".sdp-body")) {
+    // The empty party's grid sits in the header, outside the body, so it is bound on its own.
+    for (const target of this.element.querySelectorAll(".sdp-body, [data-drop-members]")) {
       target.addEventListener("dragover", event => { if (Party.canManage(this.actor) && dropZone(event)) event.preventDefault(); });
       target.addEventListener("drop", event => {
         if (!dropZone(event)) return;
@@ -524,7 +525,13 @@ export class PartySheet extends HandlebarsApplicationMixin(foundry.applications.
   /** A drag from another actor's sheet moves the item (Ctrl copies), as Shadowdark Extras does on the character sheets. */
   async _onDropItem(event, item) {
     const source = item.parent, result = await super._onDropItem(event, item);
-    if (result && source && source.uuid !== this.actor.uuid && !event.ctrlKey && (game.user?.isGM || source.isOwner)) await item.delete();
+    if (result && source && source.uuid !== this.actor.uuid && !event.ctrlKey && (game.user?.isGM || source.isOwner)) {
+      // A Shadowdark Extras backpack: Extras unpacked its contents onto the party, so move the children too, as Extras' own move does.
+      if (item.type === "Basic" && item.getFlag?.("shadowdark-extras", "isContainer")) {
+        for (const child of source.items.filter((i) => i.getFlag?.("shadowdark-extras", "containerId") === item.id)) await child.delete({ sdxInternal: true });
+        await item.delete({ sdxInternal: true });
+      } else await item.delete();
+    }
     return result;
   }
   async _onFirstRender(context, options) {
@@ -546,10 +553,14 @@ export function registerPartyItemMove() {
   Hooks.on("dropActorSheetData", (actor, _sheet, data) => {
     const item = data?.type === "Item" && actor?.type === "Player" ? fromUuidSync(data.uuid) : null;
     // The drop event is still the current one here; Foundry passes it to the hook's caller, not to the hook.
-    pending = item?.isOwner && isParty(item.parent) && !globalThis.event?.ctrlKey ? { item, actor, at: Date.now() } : null;
+    // Another remover owns the drop when Extras' move patch is on the character sheets, or for a light (the system moves it itself).
+    const otherMover = foundry.appv1?.sheets?.ActorSheet?.prototype?._sdxCtrlMovePatched || item?.isLight?.();
+    pending = item?.isOwner && isParty(item.parent) && !otherMover && !globalThis.event?.ctrlKey ? { item, actor, at: Date.now() } : null;
   });
-  Hooks.on("createItem", async (made) => {
-    if (!pending || made.parent?.uuid !== pending.actor.uuid || Date.now() - pending.at > 5000) return;
+  Hooks.on("createItem", async (made, _options, userId) => {
+    if (!pending) return;
+    if (Date.now() - pending.at > 5000) { pending = null; return; }
+    if (userId !== game.user?.id || made.parent?.uuid !== pending.actor.uuid) return;
     const { item } = pending;
     pending = null;
     if (item.parent?.items.get(item.id) && made.name === item.name) await item.delete();
