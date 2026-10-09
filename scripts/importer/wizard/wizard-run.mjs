@@ -20,6 +20,7 @@
  *   deps.buildScene(siteId, path, { placement })                        → { status:"built"|"already"|"failed", placed, left, known, packed?, packFailed? }
  *   deps.keyBooks                                                       → the source keys whose key locations can be imported
  *   deps.keyLocations(src, { onRegion(region, i, n) })                  → { regions, hexes, created, failed:[{region, error}] }
+ *   deps.holidays(src)                                                  → { status:"imported"|"already"|"failed", created? } (optional; the calendar's holidays (CS6) and holy days (WR) from that book)
  *   deps.hexMap(id, { title, firstNum })                                → { status:"ready"|"already"|"needsLook"|"cancelled"|"failed", sceneId, legend, pinned }
  */
 import { bookRows, isHexMap, bookTitle, HEX_MAPS } from "./wizard-core.mjs";
@@ -91,6 +92,18 @@ export async function runWizardImport(state, hooks, deps) {
     result.imported += created;
     result.already += Math.max(0, (report?.hexes ?? 0) - created);
     for (const f of report?.failed ?? []) result.needsYou.push({ title: f.region, why: f.error });
+  }
+
+  // 3b. The calendar's chapters come with their books, whatever else was added: Cursed Scroll 6's holidays
+  // (pp. 46-47) and the Player's Guide's holy days (pp. 190-205)
+  for (const src of ["CS6", "WR"]) {
+    if (!deps.holidays || !books.some((b) => b.id === src)) continue;
+    if (stop()) return result;
+    hooks.onProgress(WEIGHTS.keys[1], t("SDE.importer.wizard.run.holidays"));
+    const made = await deps.holidays(src).catch((err) => ({ status: "failed", error: err?.message }));
+    if (made.status === "imported") result.imported += made.created ?? 1;
+    else if (made.status === "already") result.already += 1;
+    else result.needsYou.push({ title: t("SDE.importer.wizard.run.holidaysTitle"), why: t("SDE.importer.wizard.run.holidaysFailed") });
   }
 
   // 4. Adventure maps (the hex maps follow)

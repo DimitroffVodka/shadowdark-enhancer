@@ -3868,6 +3868,10 @@ body:has(.sdx-scene-nav-bar) #shadowdark-enhancer-travel { top: 72px; }
   border-bottom: 1px solid var(--sd-hairline);
 }
 .sde-hud-ph-row { flex-direction: row; gap: 12px; justify-content: center; }
+button.sde-hud-ttlbtn { margin: 0; padding: 0 4px; border: 0; border-bottom: 1px dashed transparent; background: none; cursor: pointer; }
+button.sde-hud-ttlbtn:hover, button.sde-hud-ttlbtn[aria-expanded="true"] { border-bottom-color: var(--sd-frame); }
+.sde-hud-dateedit input[type="number"] { flex: 0 0 90px; }
+.sde-hud-dateedit select { flex: 1; }
 .sde-hud-ttl { font-family: "JSL Blackletter", serif; font-size: 30px; line-height: 1.1; color: var(--sd-text); }
 .sde-hud-pb { display: flex; flex-direction: column; gap: 8px; padding: 10px 20px; }
 .sde-hud-pf {
@@ -3997,6 +4001,55 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-hud-m-new { background: var(--sd-page); }
 .sde-hud-m-q1 { background: linear-gradient(90deg, var(--sd-page) 50%, var(--sd-text) 50%); }
 .sde-hud-m-q3 { background: linear-gradient(90deg, var(--sd-text) 50%, var(--sd-page) 50%); }
+/* A day with something on it besides a holiday: the agenda under the grid says what. */
+.sde-hud-e {
+  position: absolute;
+  right: 9px;
+  bottom: 8px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--sd-text);
+}
+.sde-hud-agenda {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 190px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+  font-size: 13px;
+}
+.sde-hud-agenda li {
+  display: grid;
+  grid-template-columns: 26px 18px minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 0;
+  border-bottom: 1px solid var(--sd-hairline);
+}
+.sde-hud-agenda li[data-action] { cursor: pointer; }
+.sde-hud-agenda li[data-action]:hover, .sde-hud-agenda li[data-action]:focus-visible { background: var(--sd-panel); }
+.sde-hud-picked { border-color: var(--sd-frame); background: var(--sd-panel); }
+.sde-hud-detail { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px solid var(--sd-frame); border-radius: 4px; background: var(--sd-panel); }
+.sde-hud-detail .sde-hud-row { justify-content: space-between; }
+.sde-hud-ttl2 { flex: 1; font-family: "Montserrat-Bold", sans-serif; font-size: 15px; color: var(--sd-text); }
+.sde-hud-dblock { display: flex; flex-direction: column; gap: 6px; max-height: 260px; overflow-y: auto; }
+.sde-hud-dblock p { margin: 0; font-size: 13px; color: var(--sd-text-body); }
+.sde-hud-dh { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 6px; align-items: baseline; font-size: 13px; }
+.sde-hud-dh b { font-family: "Montserrat-SemiBold", sans-serif; font-weight: normal; color: var(--sd-text); }
+.sde-hud-dh small { display: block; color: var(--sd-text-muted); font-size: 12px; }
+.sde-hud-effects { margin: 0; padding-left: 18px; font-size: 13px; color: var(--sd-text-body); }
+.sde-hud-dblock .sde-hud-key { align-self: flex-start; }
+.sde-hud-agenda .sde-hud-ad { font-family: "Montserrat-Bold", sans-serif; text-align: right; color: var(--sd-text); }
+.sde-hud-agenda .sde-hud-ai { color: var(--sd-text-muted); text-align: center; }
+.sde-hud-agenda .sde-hud-at { color: var(--sd-text-body); overflow-wrap: anywhere; }
+.sde-hud-agenda .sde-hud-at b { font-family: "Montserrat-SemiBold", sans-serif; font-weight: normal; color: var(--sd-text); }
+.sde-hud-agenda .sde-hud-at small { display: block; color: var(--sd-text-muted); font-size: 12px; }
+.sde-hud-agenda .sde-hud-x { height: 22px; min-width: 22px; padding: 0 6px; }
+.sde-hud-add { display: flex; flex-direction: column; gap: 6px; padding-top: 8px; border-top: 1px solid var(--sd-hairline); }
 .sde-hud-h {
   position: absolute;
   left: 7px;

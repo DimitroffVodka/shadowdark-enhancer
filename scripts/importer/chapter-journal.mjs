@@ -46,6 +46,22 @@ export const CHAPTER_PRESETS = [
     id: "cs6-holidays", label: "SDE.importer.chapter.presetCs6Holidays",
     src: "CS6", name: "City of Masks Holidays", pages: "46-47", lead: false,
   },
+  // The Player's Guide pp.190-205: a page for each god, holy days table included
+  // (holidays/holy-days.mjs reads the pages back by key).
+  {
+    id: "wr-gods", label: "SDE.importer.chapter.presetWrGods",
+    src: "WR", name: "The Gods and Their Holy Days", pages: "190-205",
+    sections: [
+      { name: "Madeera the Covenant", pages: "190-191" },
+      { name: "Saint Terragnis", pages: "192-193" },
+      { name: "Gede", pages: "194-195" },
+      { name: "Ord", pages: "196-197" },
+      { name: "Memnon", pages: "198-199" },
+      { name: "Shune the Vile", pages: "200-201" },
+      { name: "Ramlaat", pages: "202-203" },
+      { name: "The Lost", pages: "204-205" },
+    ],
+  },
   {
     id: "gmwr-city-states", label: "SDE.importer.chapter.presetCityStates",
     src: "GMWR", name: "The City-States", pages: "16-27",
