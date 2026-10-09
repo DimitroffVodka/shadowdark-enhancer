@@ -629,12 +629,11 @@ export async function startDayFromParty() {
 }
 
 /**
- * The standing pace (GM): "normal" or "push". It holds every dawn; today's
+ * The standing pace (the GM, or a player whose character travels): "normal" or "push". It holds every dawn; today's
  * pace changes too when the party hasn't moved or foraged yet.
  * @returns {Promise<{ok:boolean, today?:boolean, error?:string}>}
  */
 export async function setTravelPace(pace) {
-  if (!game.user?.isGM) return { ok: false, error: t("SDE.overland.notify.dayGmOnly") };
   const data = { action: "pace", pace: pace === "push" ? "push" : "normal" };
   return isActiveGM() ? applyAction(data, game.user) : queryActiveGM(OVERLAND_QUERY, data, { label: t("SDE.overland.relayLabel") });
 }
@@ -799,6 +798,8 @@ function onMoveToken(doc, movement, operation) {
  * or starting or ending travel, clears it.
  */
 const _unpaid = new Map();
+/** Camps finished on this GM, so a Make camp queued behind one can tell (applyAction's campsAtCall). In memory. */
+let _camps = 0;
 const posKey = (p) => `${Math.round(p.x)}:${Math.round(p.y)}:${p.elevation ?? 0}`;
 
 /**
@@ -828,7 +829,12 @@ export function recordMove(doc, origin, dest, priced, waypoints = [dest]) {
     _unpaid.delete(posKey(dest));
     if (!priced.steps.length) return true;
     const hex = await withRegion(priced.steps.at(-1).hex, doc.parent);
+    const first = _state.spent === 0;
     await commit(spendMove(_state, { cost: priced.cost, hex }).state);
+    // The first move settles the day's pace (setPace), and a normal pace forages: everyone, with no one asked to stop.
+    if (first && _state.spent > 0 && !_state.pushed) {
+      for (const id of [..._state.members]) { const actor = game.actors.get(id); if (actor) await tryForage(actor, true); }
+    }
     // The walk is on this screen: the clock keeps pace with it. Nothing to pace against when the token isn't drawn here.
     if (priced.cost > 0) await advanceTravel(game.time.worldTime + priced.cost * _state.pointSeconds, "move", doc.object ? walkMs(priced) : 0);
     if (ownsHexFog(doc.parent)) {
@@ -837,6 +843,31 @@ export function recordMove(doc, origin, dest, priced, waypoints = [dest]) {
     }
     return true;
   });
+}
+
+/**
+ * One character's forage, on the active GM inside the queue: refused or recorded, then the roll. `auto`:
+ * the GM's side rolls it at once, the way the day's first move does for the party, with no prompt to the player.
+ * @returns {Promise<{ok:true}|{ok:false, error:string}>}
+ */
+async function tryForage(actor, auto = false) {
+  const s = overlandState();
+  const why = forageRefusal({
+    travelling: CrawlState.isOverland,
+    member: _state.members.includes(actor.id),
+    foraged: _state.foraged.includes(actor.id) || (_state.day !== null && actor.flags?.[MODULE_ID]?.overlandForageDay === startOfDay(game.time.calendar, _state.day)),
+    dayOpen: _state.day !== null, pushed: _state.pushed, stormy: s.stormy, harsh: !!s.harsh,
+  });
+  if (why) return { ok: false, error: t(FORAGE_REFUSED[why], { name: actor.name }) };
+  await replaceModuleFlag(actor, "overlandForageDay", startOfDay(game.time.calendar, _state.day));
+  await commit(recordForage(_state, actor.id).state);
+  // The attempt is recorded; the roll waits on the player, so it runs
+  // outside the queue rather than holding every travel action up.
+  const roll = forageRoll(actor, forageDC(!!s.harsh), auto)
+    .catch((err) => console.error(`${MODULE_ID} | forage roll`, err));
+  _foraging.add(roll);
+  roll.finally(() => _foraging.delete(roll));
+  return { ok: true };
 }
 
 /**
@@ -856,9 +887,9 @@ export async function forage(actorId) {
 }
 
 /** The forage roll, after the queue: the owner rolls, and a success finds a ration. */
-async function forageRoll(actor, dc) {
+async function forageRoll(actor, dc, auto = false) {
   const found = await StatRiders.save(actor, { ability: "int", dc }, t("SDE.overland.forage.source"),
-    { title: t("SDE.overland.forage.title", { name: actor.name, dc }) });
+    { title: t("SDE.overland.forage.title", { name: actor.name, dc }), auto });
   if (found) await addRation(actor);
   await ChatMessage.create({
     speaker: ChatMessage.getSpeaker({ actor }),
@@ -1081,6 +1112,9 @@ async function finishCamp() {
   await commit(closeDay(_state).state);
   await campLine(lines);
   await rollWeatherHere(false);
+  _camps++;
+  // The next day opens as the camp breaks, on the standing pace; with no hexes a day to go by, Start day asks.
+  if (baseFor(partyReading()) > 0) await beginDay({});
   return true;
 }
 
@@ -1128,6 +1162,43 @@ export function dawnWeather({ crossed } = {}) {
 }
 
 /**
+ * Open a travel day on the active GM, inside the queue: the weather first (unless today's holds), the budget,
+ * the day's checks. Start day is this with the GM's choices; camp's dawn is this with none (finishCamp).
+ * @returns {Promise<{ok:true}|{ok:false, error:string}>}
+ */
+async function beginDay(data) {
+  // The method and boat as given, else read from the party; the push as given, else the standing pace (#257).
+  const read = partyReading();
+  const method = data.method ?? read.method;
+  if (!METHODS.includes(method)) return { ok: false, error: t("SDE.overland.notify.unknown") };
+  const boat = method === "sailing" ? boatActor(data.boatUuid ?? (data.method ? null : read.boatUuid)) : null;
+  // The day's hexes: typed in Start day, else the boat's speed, else the rules data (#195).
+  const typed = Math.trunc(Number(data.hexes));
+  const base = typed > 0 ? typed : baseFor({ method, boatUuid: boat?.uuid ?? null });
+  if (!(base > 0)) return { ok: false, error: t("SDE.overland.notify.noBase", { method: t(METHOD_NAME[method]) }) };
+  // §5.1: the weather first, unless today's still holds; then the budget.
+  _unpaid.clear();
+  await rollWeatherHere(false);
+  const now = game.time.worldTime;
+  const pushed = typeof data.pushed === "boolean" ? data.pushed : _state.pace === "push";
+  // As many checks by day and by night as the settings say at this dawn (#257); none: no dice.
+  const { day, night } = encounterSettings();
+  const hours = day + night ? await new Roll(`${day + night}d12`).evaluate() : null;
+  const checks = dayChecks({
+    midnight: startOfDay(game.time.calendar, now), day, night, hourSeconds: hourSeconds(),
+    d12s: hours?.dice[0]?.results.map((r) => r.result) ?? [],
+  });
+  // A push chosen here is the standing pace from now on.
+  await commit(openDay({ ..._state, pace: pushed ? "push" : "normal" }, {
+    now, method, pushed, base, boatUuid: boat?.uuid ?? null, hourSeconds: hourSeconds(), checks, mounts: read.mounts,
+  }).state);
+  await postDay(boat);
+  // A check whose hour went by before the day started falls due at once (§5.1).
+  await advanceTravel(now, "day");
+  return { ok: true };
+}
+
+/**
  * The active GM's side of every action. `user` comes from the query context
  * (or is this GM), never from the payload.
  * @param {{action:string, tokenUuid?:string, actorId?:string, hex?:object, reroll?:boolean,
@@ -1135,6 +1206,7 @@ export function dawnWeather({ crossed } = {}) {
  * @param {User} user
  */
 export function applyAction(data, user) {
+  const campsAtCall = _camps;
   return serialize(async () => {
     const refused = refuseQuery(user, t("SDE.overland.relayLabel"));
     if (refused) return refused;
@@ -1142,7 +1214,8 @@ export function applyAction(data, user) {
       // Answered from the queue, after everything queued before it.
       case "settled": return { ok: true };
       case "pace": {
-        if (!user.isGM) return { ok: false, error: t("SDE.overland.notify.dayGmOnly") };
+        // The GM's, or any player whose character is travelling: it still binds only before the first move (setPace).
+        if (!user.isGM && !_state.members.some((id) => game.actors.get(id)?.testUserPermission(user, "OWNER"))) return { ok: false, error: t("SDE.overland.notify.dayGmOnly") };
         const { state, changed, today } = setPace(_state, data.pace);
         if (changed) await commit(state);
         return { ok: true, today, changed };
@@ -1170,35 +1243,7 @@ export function applyAction(data, user) {
       case "startDay": {
         if (!user.isGM) return { ok: false, error: t("SDE.overland.notify.dayGmOnly") };
         if (!CrawlState.isOverland) return { ok: false, error: t("SDE.overland.notify.notTravelling") };
-        // The method and boat as given, else read from the party; the push as given, else the standing pace (#257).
-        const read = partyReading();
-        const method = data.method ?? read.method;
-        if (!METHODS.includes(method)) return { ok: false, error: t("SDE.overland.notify.unknown") };
-        const boat = method === "sailing" ? boatActor(data.boatUuid ?? (data.method ? null : read.boatUuid)) : null;
-        // The day's hexes: typed in Start day, else the boat's speed, else the rules data (#195).
-        const typed = Math.trunc(Number(data.hexes));
-        const base = typed > 0 ? typed : baseFor({ method, boatUuid: boat?.uuid ?? null });
-        if (!(base > 0)) return { ok: false, error: t("SDE.overland.notify.noBase", { method: t(METHOD_NAME[method]) }) };
-        // §5.1: the weather first, unless today's still holds; then the budget.
-        _unpaid.clear();
-        await rollWeatherHere(false);
-        const now = game.time.worldTime;
-        const pushed = typeof data.pushed === "boolean" ? data.pushed : _state.pace === "push";
-        // As many checks by day and by night as the settings say at this dawn (#257); none: no dice.
-        const { day, night } = encounterSettings();
-        const hours = day + night ? await new Roll(`${day + night}d12`).evaluate() : null;
-        const checks = dayChecks({
-          midnight: startOfDay(game.time.calendar, now), day, night, hourSeconds: hourSeconds(),
-          d12s: hours?.dice[0]?.results.map((r) => r.result) ?? [],
-        });
-        // A push chosen here is the standing pace from now on.
-        await commit(openDay({ ..._state, pace: pushed ? "push" : "normal" }, {
-          now, method, pushed, base, boatUuid: boat?.uuid ?? null, hourSeconds: hourSeconds(), checks, mounts: read.mounts,
-        }).state);
-        await postDay(boat);
-        // A check whose hour went by before the day started falls due at once (§5.1).
-        await advanceTravel(now, "day");
-        return { ok: true };
+        return beginDay(data);
       }
       case "clock": {
         if (!user.isGM) return { ok: false, error: t("SDE.clock.gmOnly") };
@@ -1245,24 +1290,7 @@ export function applyAction(data, user) {
       }
       case "forage": {
         const auth = authorizeActorFor(data.actorId, user, { type: "Player" });
-        if (!auth.ok) return auth;
-        const s = overlandState();
-        const why = forageRefusal({
-          travelling: CrawlState.isOverland,
-          member: _state.members.includes(auth.actor.id),
-          foraged: _state.foraged.includes(auth.actor.id) || (_state.day !== null && auth.actor.flags?.[MODULE_ID]?.overlandForageDay === startOfDay(game.time.calendar, _state.day)),
-          dayOpen: _state.day !== null, pushed: _state.pushed, stormy: s.stormy, harsh: !!s.harsh,
-        });
-        if (why) return { ok: false, error: t(FORAGE_REFUSED[why], { name: auth.actor.name }) };
-        await replaceModuleFlag(auth.actor, "overlandForageDay", startOfDay(game.time.calendar, _state.day));
-        await commit(recordForage(_state, auth.actor.id).state);
-        // The attempt is recorded; the roll waits on the player, so it runs
-        // outside the queue rather than holding every travel action up.
-        const roll = forageRoll(auth.actor, forageDC(!!s.harsh))
-          .catch((err) => console.error(`${MODULE_ID} | forage roll`, err));
-        _foraging.add(roll);
-        roll.finally(() => _foraging.delete(roll));
-        return { ok: true };
+        return auth.ok ? tryForage(auth.actor) : auth;
       }
       case "camp": {
         const party = travelParty();
@@ -1271,7 +1299,8 @@ export function applyAction(data, user) {
         if (!CrawlState.isOverland) return { ok: false, error: t("SDE.overland.notify.notTravelling") };
         if (_state.pending || _state.encounter) return { ok: false, error: t("SDE.overland.notify.pending") };
         // The dawn closes the day: pressed again after it, Make camp makes no second camp (#282 review).
-        if (_state.day === null) return { ok: false, error: t("SDE.overland.notify.campNoDay") };
+        // A press queued behind a camp that has since finished is a double click: the next day it finds open is not its own.
+        if (_state.day === null || _camps !== campsAtCall) return { ok: false, error: t("SDE.overland.notify.campNoDay") };
         // Each step is kept in the camp as it's done, so a camp already made (pressed again after
         // something failed, in this tab or after a reload) goes on from the next step (#282 review).
         if (!_state.camp && !(await pitchCamp(user, data.acceptShortages === true))) return isNativeParty(party) ? { ok: true, setup: true } : { ok: false, error: t("SDE.overland.notify.campNotMade") };

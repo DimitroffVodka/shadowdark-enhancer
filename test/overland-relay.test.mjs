@@ -427,7 +427,9 @@ test("Start day with nothing given reads the party and keeps the standing pace; 
   assert.deepEqual([s.method, s.pushed, s.base, s.budget], ["walking", true, 5, 7], "on foot, pushed from the standing pace");
   const back = await applyAction({ action: "pace", pace: "normal" }, gm);
   assert.deepEqual([back.today, stored.overlandState.budget], [true, 5], "nothing moved yet: today's pace changes too");
-  assert.equal((await applyAction({ action: "pace", pace: "push" }, { id: "player1", isGM: false })).ok, false, "the GM's call");
+  stored.overlandState.members = ["mine"];
+  assert.equal((await applyAction({ action: "pace", pace: "push" }, { id: "player2", isGM: false })).ok, false, "not their character");
+  assert.deepEqual(await applyAction({ action: "pace", pace: "push" }, { id: "player1", isGM: false }), { ok: true, today: true, changed: true }, "a player whose character travels sets it before the party moves");
   dice.push(3, 2, 9, 1, 12);
   await applyAction({ action: "startDay", pushed: true }, gm);
   assert.equal(stored.overlandState.pace, "push", "Start day's push is the standing pace from now on");
@@ -668,6 +670,28 @@ test("forage: once a day, the owner rolls INT at DC 12, and a success adds a rat
   assert.equal(stack.system.quantity, 2, "a failed forage finds nothing");
 });
 
+test("a normal pace forages everyone on the day's first move, no one asked; a pushed day forages no one", async () => {
+  campWorld();
+  dice.push(3);
+  await applyAction({ action: "startDay", method: "walking" }, gm);
+  statResults.push({ success: true }, { success: false });
+  const step = { cost: 1, blocked: null, steps: [{ hex: { num: 7 } }] };
+  await recordMove({ parent: null }, { x: 0, y: 0 }, { x: 100, y: 0 }, step);
+  await settle();
+  assert.deepEqual(statRolls.map((r) => [r.id, r.dc]), [["mine", 12], ["theirs", 12]]);
+  assert.deepEqual(stored.overlandState.foraged, ["mine", "theirs"]);
+  await recordMove({ parent: null }, { x: 100, y: 0 }, { x: 200, y: 0 }, step);
+  await settle();
+  assert.equal(statRolls.length, 2, "only the first move");
+
+  campWorld();
+  dice.push(3);
+  await applyAction({ action: "startDay", method: "walking", pushed: true }, gm);
+  await recordMove({ parent: null }, { x: 0, y: 0 }, { x: 100, y: 0 }, step);
+  await settle();
+  assert.deepEqual([statRolls.length, stored.overlandState.foraged], [0, []]);
+});
+
 test("forage is refused with no day open and on a pushed day; DC 18 when harsh; impossible in a harsh storm", async () => {
   campWorld();
   assert.equal((await applyAction({ action: "forage", actorId: "mine" }, gm)).error, "SDE.overland.notify.forageNoDay");
@@ -700,7 +724,7 @@ test("camp without Extras: to dawn with the night's checks; 1 ration each, and 1
   assert.equal(globalThis.game.time.worldTime, at(1301, 6, 22, 5), "the 05:00 night check, after a 04:30 sunrise");
   assert.equal(actors.mine.items.includes(stack), false, "Mine ate the one ration");
   assert.deepEqual(damage, [["theirs", "con", 1]], "Theirs had none");
-  assert.equal(stored.overlandState.day, null, "the day is closed until the GM starts the next");
+  assert.equal(stored.overlandState.day, globalThis.game.time.worldTime, "the next day opens at the dawn");
   assert.equal(stored.overlandState.weather.roll, 4, "the new day's weather is rolled at dawn");
 });
 
@@ -732,7 +756,7 @@ test("the rations are eaten at camp; a hit during the night stops it, and Contin
   assert.equal(stored.overlandState.camp.interrupted, null, "nothing that turned up was a creature");
   dice.push(4);
   await applyAction({ action: "resume" }, gm);
-  assert.equal(stored.overlandState.day, null);
+  assert.equal(stored.overlandState.day, globalThis.game.time.worldTime);
   assert.equal(damage.length, 2, "nobody eats twice");
 });
 
@@ -752,7 +776,7 @@ test("a creature in the camp's night interrupts the rest; the dawn's chat says w
   globalThis.ChatMessage.create = async (m) => { posted.push(m.content); };
   dice.push(4);
   await applyAction({ action: "resume" }, gm);
-  assert.equal(stored.overlandState.day, null);
+  assert.equal(stored.overlandState.day, globalThis.game.time.worldTime);
   assert.ok(posted.some((c) => c.includes("SDE.overland.camp.interruptedCon")), "without Extras, the CON check is the GM's");
 });
 
@@ -838,7 +862,7 @@ test("camp's last check hitting at its very end still leaves the camp for Contin
   assert.deepEqual(stored.overlandState.pending, { until: at(1301, 6, 22, 5), reason: "camp" });
   dice.push(4);
   assert.deepEqual(await applyAction({ action: "resume" }, gm), { ok: true, stopped: false });
-  assert.equal(stored.overlandState.day, null, "the camp is finished");
+  assert.equal(stored.overlandState.day, globalThis.game.time.worldTime, "the camp is finished");
   assert.equal(damage.length, 2);
 });
 
@@ -870,7 +894,7 @@ test("an Extras camp window closed makes no camp; a dawn that's canceled or fail
   globalThis.game.modules = { get: () => null };
   assert.equal(opened, 3, "reopened each time, no second night");
   assert.equal(globalThis.game.time.worldTime, dawn);
-  assert.equal(stored.overlandState.day, null);
+  assert.equal(stored.overlandState.day, globalThis.game.time.worldTime);
   assert.deepEqual(damage, []);
 });
 
@@ -893,7 +917,7 @@ test("camp waits for a forage roll still with its player before anyone eats (#24
   await camp;
   actors.mine.createEmbeddedDocuments = create;
   assert.deepEqual(damage, [], "nobody went hungry");
-  assert.equal(stored.overlandState.day, null);
+  assert.equal(stored.overlandState.day, globalThis.game.time.worldTime);
 });
 
 test("Start day takes the day's hexes typed in its dialog, so travel works before any rules data is imported", async () => {
@@ -956,7 +980,7 @@ test("a dawn Extras has no rest for breaks the camp with a warning instead of re
   dice.push(4);
   assert.deepEqual(await applyAction({ action: "camp" }, gm), { ok: true, stopped: false });
   globalThis.game.modules = { get: () => null };
-  assert.equal(stored.overlandState.day, null, "the day closed");
+  assert.equal(stored.overlandState.day, globalThis.game.time.worldTime, "the next day opened");
   assert.deepEqual([stored.overlandState.pending, warned], [null, ["SDE.overland.notify.campRestGone"]]);
 });
 
@@ -1002,7 +1026,7 @@ test("a camp whose Extras rest can't be finished at dawn waits for Extras, then 
   globalThis.fromUuidSync = (uuid) => (uuid === party.uuid ? party : null);
   reload({ active: true, api: { party: { list: () => [party] }, camping } });
   assert.deepEqual(await applyAction({ action: "resume" }, gm), { ok: true, stopped: false });
-  assert.deepEqual(held(), { dawns: 1, dayOpen: false, camp: null, pending: null });
+  assert.deepEqual(held(), { dawns: 1, dayOpen: true, camp: null, pending: null });
   assert.deepEqual(dawns, [{ party, interrupted: false }]);
   assert.equal(globalThis.game.time.worldTime, dawn, "no second night");
   assert.deepEqual(await applyAction({ action: "resume" }, gm), { ok: false, error: "SDE.overland.notify.nothingPending" });
@@ -1076,7 +1100,7 @@ test("Make camp pressed again after the night failed goes on from where the camp
   assert.deepEqual(damage, []);
   assert.equal(lights.n, 1, "the lights went out once");
   assert.equal(globalThis.game.time.worldTime, at(1301, 6, 22, 5), "one night, to its 05:00 check");
-  assert.equal(stored.overlandState.day, null, "the camp is done");
+  assert.equal(stored.overlandState.day, globalThis.game.time.worldTime, "the camp is done");
   assert.deepEqual(["SDE.overland.camp.made", "SDE.overland.camp.dawn"].map((k) => posted.filter((c) => c.includes(k)).length), [1, 1]);
 });
 
@@ -1099,7 +1123,7 @@ test("a creature's interruption survives a Continue that failed, a reload and Ma
   assert.equal(opened.length, 1, "the tasks and rations aren't done again");
   assert.deepEqual(granted, [true], "the rest is finished once, interrupted by the wolf");
   assert.equal(globalThis.game.time.worldTime, at(1301, 6, 22, 5), "the night went on to its 05:00 check");
-  assert.equal(stored.overlandState.day, null);
+  assert.equal(stored.overlandState.day, globalThis.game.time.worldTime);
 });
 
 test("a camp whose day's close was lost after Extras' dawn finishes it from a reload without a second rest or a second night (#282 review)", async () => {
@@ -1121,7 +1145,7 @@ test("a camp whose day's close was lost after Extras' dawn finishes it from a re
   assert.deepEqual(await applyAction({ action: "camp" }, gm), { ok: true, stopped: false });
   globalThis.game.modules = { get: () => null };
   assert.deepEqual([granted, opened.length], [[false], 1], "one rest, one camp window");
-  assert.deepEqual([globalThis.game.time.worldTime, stored.overlandState.day], [dawn, null], "no second night, and the day is closed");
+  assert.deepEqual([globalThis.game.time.worldTime, stored.overlandState.day], [dawn, dawn], "no second night, and the next day is open");
 });
 
 test("once the camp's dawn has closed the day, Make camp again makes no second camp, even when the dawn's weather failed (#282 review)", async () => {
@@ -1139,6 +1163,23 @@ test("once the camp's dawn has closed the day, Make camp again makes no second c
   assert.equal(stored.overlandState.day, null, "the dawn closed the day before its weather");
   assert.deepEqual(await applyAction({ action: "camp" }, gm), { ok: false, error: "SDE.overland.notify.campNoDay" });
   assert.deepEqual([stack.system.quantity, globalThis.game.time.worldTime], [2, dawn], "no second meal, no second night");
+});
+
+test("a harsh storm blocks every hex, and the party can still camp at once on the day the dawn opened", async () => {
+  campWorld({ climate: { harsh: "storm" } });
+  dice.push(3, 2, 9, 1, 12);
+  globalThis.game.time.worldTime = at(1301, 6, 21, 8);
+  await applyAction({ action: "startDay", method: "walking" }, gm);
+  rations(actors.mine, 3);
+  rations(actors.theirs, 3);
+  dice.push(1);                                    // the next day's weather: a storm in a harsh climate
+  assert.deepEqual(await applyAction({ action: "camp" }, gm), { ok: true, stopped: false });
+  assert.equal(stored.overlandState.weather.kind, "stormy");
+  const dawn = globalThis.game.time.worldTime;
+  assert.equal(stored.overlandState.day, dawn, "the storm's day is open, and nothing can move on it");
+  dice.push(4);
+  assert.deepEqual(await applyAction({ action: "camp" }, gm), { ok: true, stopped: false }, "waiting the storm out is a camp");
+  assert.ok(globalThis.game.time.worldTime > dawn);
 });
 
 test("two Make camp presses queue up; the second, after the dawn, makes no second camp (#282 review)", async () => {
@@ -1235,7 +1276,7 @@ test("with Extras the camp is saved before its window opens: a lost save, or a t
   assert.deepEqual(await applyAction({ action: "camp" }, gm), { ok: true, stopped: false });
   globalThis.game.modules = { get: () => null };
   assert.deepEqual([opened.length, granted], [1, [false]], "one window, one rest");
-  assert.deepEqual([globalThis.game.time.worldTime, stored.overlandState.day], [at(1301, 6, 22, 5), null], "one night, to its 05:00 check");
+  assert.deepEqual([globalThis.game.time.worldTime, stored.overlandState.day], [at(1301, 6, 22, 5), at(1301, 6, 22, 5)], "one night, to its 05:00 check");
 });
 
 test("the camp's save lost and no reload: Make camp again in the same tab eats once (#282 pre-review)", async () => {

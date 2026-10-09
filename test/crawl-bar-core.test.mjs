@@ -57,6 +57,7 @@ test("idle on a hex map keeps the one Travel button", () => {
 test("overland: one primary, Continue while a day is pending, else Start day; no Add Tokens", () => {
   assert.deepEqual(barItems({ mode: "overland", pending: true }), ["badge", "resumeTravel", "makeCamp", "spacer", "tools", "endTravel"]);
   assert.deepEqual(barItems({ mode: "overland" }), ["badge", "startDay", "makeCamp", "spacer", "tools", "endTravel"]);
+  assert.deepEqual(barItems({ mode: "overland", dayOpen: true }), ["badge", "makeCamp", "spacer", "tools", "endTravel"], "days open themselves: no Start day while one is open");
 });
 
 test("every control on the bar has a label and an icon", () => {

@@ -37,6 +37,8 @@ export function barModel({ state, isGM, owns, actors }) {
     climate: state.climate?.label ?? null,
     members,
     mounts: state.mounts,
+    // The pace is the table's: the GM's, or any player whose character travels (applyAction checks it again).
+    canPace: isGM || members.some((m) => owns(m.id)),
     pending: isGM && !!state.pending,
     encounter: isGM && !!state.encounter,
     // When a creature woke the camp: the GM's alone, like the check hours, until the encounter is run.

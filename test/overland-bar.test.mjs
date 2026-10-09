@@ -37,6 +37,8 @@ test("a player sees no check hours, no Continue, and Forage only on a character 
   assert.equal(barModel({ state: woken, isGM: false, owns: () => true, actors: ACTORS }).interrupted, null, "nor when a creature woke the camp");
   assert.equal(barModel({ state: woken, isGM: true, owns: () => true, actors: ACTORS }).interrupted, 79200);
   assert.deepEqual(m.members.map((p) => p.canForage), [true, false]);
+  assert.equal(m.canPace, true, "a player with a travelling character sets the pace");
+  assert.equal(barModel({ state: STATE, isGM: false, owns: () => false, actors: ACTORS }).canPace, false);
   const pushed = barModel({ state: { ...STATE, pushed: true }, isGM: false, owns: () => true, actors: ACTORS });
   assert.deepEqual(pushed.members.map((p) => p.canForage), [false, false], "not on a pushed day");
   const noDay = barModel({ state: { ...STATE, day: null }, isGM: false, owns: () => true, actors: ACTORS });
