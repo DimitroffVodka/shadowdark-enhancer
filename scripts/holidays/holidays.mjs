@@ -4,9 +4,12 @@
  * COPYRIGHT CONSTRAINT (hard), the same one training-core.mjs lives under: this
  * file ships NO book wording. A holiday is its name, book, page, place, the rule
  * for when it falls and its carousing mechanics as numbers. The book's own text
- * is the journal the GM imports from their own PDF (Importer Hub → Tools →
- * Chapter to journal → the "City of Masks holidays" preset, chapter-journal.mjs),
- * and `list()` only returns a holiday once its page is in that journal.
+ * is the journal filed from the GM's own PDF (importHolidays: the wizard's
+ * import, or the ready step for a world that imported earlier; also Importer
+ * Hub → Tools → Chapter to journal), and `list()` only returns a holiday once
+ * its page is in that journal. Holy days (the Player's Guide) work the same way.
+ * Players read a copy a GM keeps in a world setting (publishLore), which leaves
+ * out whatever is switched to GM only.
  *
  * Garb rules are QUESTIONS for the table, each with the modifier its "yes"
  * applies, because only the table knows what a character is wearing. The
@@ -19,10 +22,11 @@
  * ── Dates ───────────────────────────────────────────────────────────────────
  * `whenMatches(rule, dateInfo)` is pure. `dateInfo` is
  *   { year, month (1-12), day (1-31), dayOfYear (1-based), isLastFullMoonOfYear? }
- * Solar anchors are fixed Gregorian dates, read off the core calendar's month
- * and day (currentDateInfo). That is an approximation twice over: the real
- * solstices and equinoxes drift a day either side year to year, and a world
- * running a non-Gregorian calendar gets "the 21st day of the 6th month".
+ * Solar anchors follow the calendar's sun table where it reaches (1200-1500:
+ * the Duke's Ball is 13 June in 1348), through `dateInfo.solar` (currentDateInfo);
+ * past it they are the fixed northern dates below, read off the core calendar's
+ * month and day, so a calendar that is not Gregorian gets "the 21st day of the
+ * 6th month". Maytide keeps the traditional 1 May.
  * Lastmoon is the day of the year's last full moon, from the time API's
  * `anchor("lastFullMoon")` (#227), through currentDateInfo.
  */
@@ -211,7 +215,16 @@ async function importedPages(presetId = HOLIDAY_PRESET) {
  * @param {string} [src]  only the presets of this book ("CS6", "WR"); every one when omitted
  * @returns {Promise<{status:"imported"|"already"|"failed", created?:number}>}
  */
-export async function importHolidays(src = null) {
+export function importHolidays(src = null) {
+  const run = filing.then(() => fileCalendarChapters(src));
+  filing = run.catch(() => {});
+  return run;
+}
+
+// One filing at a time: the wizard and the ready step must not both file the same journal.
+let filing = Promise.resolve();
+
+async function fileCalendarChapters(src) {
   const presets = CHAPTER_PRESETS.filter((p) => [HOLIDAY_PRESET, HOLY_DAY_PRESET].includes(p.id) && (!src || p.src === src));
   let created = 0, failed = false;
   for (const preset of presets) {
@@ -225,6 +238,34 @@ export async function importHolidays(src = null) {
   if (created) await publishLore();
   if (failed) return { status: "failed" };
   return created ? { status: "imported", created } : { status: "already" };
+}
+
+/**
+ * Pure: the books whose calendar chapters are worth filing: the ones with a linked PDF.
+ * @param {Array<{src:string, linked:boolean}>} rows  listSourcePdfs()
+ */
+export function linkedCalendarBooks(rows) {
+  const linked = new Set(rows.filter((r) => r.linked).map((r) => r.src));
+  return [...new Set(CHAPTER_PRESETS.filter((p) => [HOLIDAY_PRESET, HOLY_DAY_PRESET].includes(p.id)).map((p) => p.src))].filter((src) => linked.has(src));
+}
+
+/**
+ * GM only, at ready: a world that imported its books before the calendar chapters existed files them
+ * from the linked PDFs, with no step to find. importHolidays skips what is filed already, so this is
+ * a few index reads once everything is there. Never throws.
+ * @returns {Promise<number>} pages created
+ */
+export async function fileLinkedChapters() {
+  if (!game.user?.isGM) return 0;
+  let created = 0;
+  try {
+    const { listSourcePdfs } = await import("../importer/source-pdf-registry.mjs");
+    for (const src of linkedCalendarBooks(await listSourcePdfs())) created += (await importHolidays(src)).created ?? 0;
+  } catch (err) {
+    console.warn(`${MODULE_ID} | holidays: could not file the calendar chapters`, err);
+  }
+  if (created) ui.notifications?.info(game.i18n.localize("SDE.holidays.autoFiled"));
+  return created;
 }
 
 /**

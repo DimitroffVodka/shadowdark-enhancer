@@ -197,8 +197,10 @@ calendar. Press it again to show it.
 ### Entries
 
 A GM adds one under the list: a date, **Note** or **Quest**, a title, details,
-and **GM only** to keep it from the players. The **×** on a line removes it.
+and **GM only** to hide it from the players' calendar. The **×** on a line removes it.
 Players see every entry that is not GM only, but cannot add or remove any.
+GM only hides an entry from the calendar, it is not a secret store: the entries are one world
+setting, which a player who goes looking for it can read.
 
 The module logs these lines as play goes: **The party sets out** and **Travel
 ends** (with the hex), **The party makes camp** (hex, terrain, region and the
