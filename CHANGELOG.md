@@ -27,6 +27,7 @@
   redesign. No window uses it yet, so nothing looks different.
 
 ### Changed
+- **On a hex map, Start means travel.** The Crawl Bar's one Start button begins overland travel on any scene with a hex grid, and there is no separate Travel button. A crawl you started in a dungeon and carried onto a hex map becomes travel when you press it, with the Session Recap carrying on; pressing it with nothing running asks to track a session, as a crawl's Start does. When the table's active scene stops being a hex map, travel turns back into a crawl. Looking at another map as a GM does not end the journey.
 - **A GM's click on a hex no longer pins the hover card; a double click opens the Hexplorer.** The pinned card and its Edit this hex button are gone for the GM (players keep the card, since their journal links are in it). With the tag picture up, a single click opens the on-map editor a third of a second later, so a double click can take the hex to the Hexplorer instead.
 - **The hex tagger stars only its own book's keyed hexes on a map the importer made.** Another book's keyed hex that shares a number (a Cursed Scroll 5 location on a Western Reaches hex) is no longer starred or offered there.
 - **The sky's twilight is a soft four-hour ease (Ember's measured cosine curve).** The light

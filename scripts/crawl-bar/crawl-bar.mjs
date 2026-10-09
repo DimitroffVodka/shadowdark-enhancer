@@ -178,7 +178,7 @@ export const CrawlBar = {
     // in its Tools panel (§4.3).
     const mode = state.mode === "overland" ? "overland" : state.isActive ? "crawl" : "off";
     const day = mode === "overland" ? overlandState() : null;
-    const items = barItems({ mode, hexScene: mode === "off" && isHexMapScene(), pending: !!day?.pending });
+    const items = barItems({ mode, hexScene: mode !== "overland" && isHexMapScene(), pending: !!day?.pending });
     const hasBastion = game.actors.some((a) => a.type === BASTION_TYPE);
 
     const badge = () => {
@@ -387,7 +387,10 @@ export const CrawlBar = {
         break;
 
       case "startTravel": {
+        // From nothing, Start is also the session boundary a crawl's Start is (Session Recap).
+        const fromOff = CrawlState.mode === "off";
         const started = await startOverland();
+        if (started && fromOff) Hooks.callAll(`${MODULE_ID}.crawlStart`, CrawlState._state);
         this.render();
         CrawlStrip.render();
         // The day comes next: open Start day at once, unless a day is already open.

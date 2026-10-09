@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1784 tracked files · ~225,800 lines of code/markup across scripts+templates+styles+test.
+1784 tracked files · ~225,900 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -194,8 +194,8 @@
 | File | Lines | Description |
 |---|---:|---|
 | `crawl-strip.mjs` | 1706 | The core feature: the top strip. Plain DOM (`#shadowdark-enhancer-strip`), not ApplicationV2. |
-| `crawl-state.mjs` | 489 | Foundry-coupled state singleton — persistence, sockets, hook emission. |
-| `crawl-state-core.mjs` | 401 | Pure reducer/normalizer behind crawl-state. Node-testable. |
+| `crawl-state.mjs` | 515 | Foundry-coupled state singleton — persistence, sockets, hook emission. |
+| `crawl-state-core.mjs` | 414 | Pure reducer/normalizer behind crawl-state. Node-testable. |
 | `crawl-lights-core.mjs` | 93 | Pure light-source logic for the strip's flame badges. |
 | `crawl-tracker.mjs` | 346 | The out-of-combat tracker as a real sidebar tab (`AbstractSidebarTab`), registered into `Sidebar.TABS` + `CONFIG.ui` beside Combat. Hidden unless a crawl is running; carries the roll-all / advance / reset controls. |
 | `crawl-tracker-core.mjs` | 138 | Pure view model for the tracker tab: `buildTrackerRows()` (rolled first, unrolled last, holder flagged), `showOocReset()`, and `parseInitiativeInput()` — which treats a blanked box as "no change" rather than the initiative of 0 that `Number("")` yields. Node-testable. |
@@ -213,8 +213,8 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `crawl-bar.mjs` | 781 | GM-only persistent bottom bar above the macro bar (mode toggles, tools, launchers). |
-| `crawl-bar-core.mjs` | 126 | The crawl bar's Foundry-free half: which controls each mode shows, the overland badge text, and the Tools panel's sections. |
+| `crawl-bar.mjs` | 784 | GM-only persistent bottom bar above the macro bar (mode toggles, tools, launchers). |
+| `crawl-bar-core.mjs` | 129 | The crawl bar's Foundry-free half: which controls each mode shows, the overland badge text, and the Tools panel's sections. |
 
 ### 3.5 `scripts/encounter/` — the Encounter Roller
 

@@ -205,12 +205,25 @@ export function endCrawl(state) {
 }
 
 /**
- * Start overland travel (#229): only from "off". A crawl is ended first and a
- * combat finished first, so neither is swallowed by travel.
+ * Start overland travel (#229): from "off", or from a crawl, which a hex map
+ * turns into travel (its roster and turn are dropped as End crawl drops them).
+ * A combat is finished first, so it is not swallowed by travel.
  */
 export function startOverland(state) {
+  if (state.mode === "crawl") {
+    return { state: { ...state, mode: "overland", crawlTurn: 0, members: [], oocInitiative: {}, oocTurn: null }, changed: true };
+  }
   if (state.mode !== "off") return { state, changed: false };
   return { state: { ...state, mode: "overland" }, changed: true };
+}
+
+/**
+ * The table left the hex map for a scene that is not one: travel becomes a
+ * crawl again. Only from overland; the travel state is kept for the way back.
+ */
+export function overlandToCrawl(state) {
+  if (state.mode !== "overland") return { state, changed: false };
+  return { state: { ...state, mode: "crawl", oocInitiative: {}, oocTurn: null }, changed: true };
 }
 
 /** End overland travel. The travel state itself is kept (overland-state-core.mjs). */

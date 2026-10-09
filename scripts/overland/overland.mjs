@@ -1149,7 +1149,7 @@ export function applyAction(data, user) {
       }
       case "start": {
         if (!user.isGM) return { ok: false, error: t("SDE.overland.notify.gmOnly") };
-        if (CrawlState.mode !== "off" && !CrawlState.isOverland) return { ok: false, error: t("SDE.overland.notify.busy") };
+        if (!["off", "crawl", "overland"].includes(CrawlState.mode)) return { ok: false, error: t("SDE.overland.notify.busy") };
         _unpaid.clear();
         let { state } = startTravel(_state, { tokenUuid: data.tokenUuid, members: membersFor(data.actorId) });
         if (data.hex) state = setHex(state, data.hex).state;
