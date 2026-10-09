@@ -60,10 +60,12 @@ export const BUTTONS = {
  * @param {"off"|"crawl"|"overland"} p.mode
  * @param {boolean} [p.hexScene]  the active scene is a hex map
  * @param {boolean} [p.pending]  overland: an encounter stopped the clock mid-move
+ * @param {boolean} [p.dayOpen]  overland: a travel day is open
  * @returns {string[]}  `badge`, `spacer`, `tools`, or the data-action a button runs
  */
-export function barItems({ mode, hexScene = false, pending = false }) {
-  if (mode === "overland") return ["badge", pending ? "resumeTravel" : "startDay", "makeCamp", "spacer", "tools", "endTravel"];
+export function barItems({ mode, hexScene = false, pending = false, dayOpen = false }) {
+  // Days open themselves (travel start, camp's dawn): Start day shows only while none is open.
+  if (mode === "overland") return ["badge", ...(pending ? ["resumeTravel"] : dayOpen ? [] : ["startDay"]), "makeCamp", "spacer", "tools", "endTravel"];
   if (mode === "crawl") return ["badge", "nextCrawlTurn", "addSelectedTokens", "startCombat", "spacer", "tools", "endCrawl"];
   return ["badge", "addSelectedTokens", ...(hexScene ? ["startTravel"] : []), "spacer", "tools", "startCrawl"];
 }

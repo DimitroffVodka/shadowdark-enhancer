@@ -98,12 +98,12 @@ export const StatRiders = {
   /**
    * Ask the character's player to make the save; roll it here when no player can.
    * Overland's forage and underground checks (#233) reuse it with their own `title`.
-   * @param {{title?:string}} [options]
+   * @param {{title?:string, auto?:boolean}} [options]  `auto`: nobody is asked, it is rolled here
    * @returns {Promise<boolean>} true when the save succeeded.
    */
-  async save(target, { ability, dc }, source, { title } = {}) {
+  async save(target, { ability, dc }, source, { title, auto = false } = {}) {
     const heading = saveTitle(source, title);
-    const owners = game.users.filter((u) => u.active && !u.isGM && target.testUserPermission(u, "OWNER"));
+    const owners = auto ? [] : game.users.filter((u) => u.active && !u.isGM && target.testUserPermission(u, "OWNER"));
     const player = owners.find((u) => u.character?.id === target.id) ?? owners[0];
     if (player) {
       const reply = await player.query(SAVE_QUERY,

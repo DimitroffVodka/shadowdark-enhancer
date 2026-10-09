@@ -136,7 +136,7 @@ function stepBody(n, v, sight) {
     case 4: {
       const base = m.dayOpen ? state.base : v.nextBase;
       const push = state.pace === "push";
-      const seg = gm ? `<span class="sde-hud-seg">${
+      const seg = m.canPace ? `<span class="sde-hud-seg">${
         [["normal", "SDE.travel.speed.normal"], ["push", "SDE.travel.speed.pushing"]].map(([id, label]) =>
           `<button type="button" data-action="pace" data-id="${id}" aria-pressed="${(id === "push") === push}">${esc(t(label))}</button>`).join("")}</span>`
         : `<span class="sde-hud-bl">${esc(t(push ? "SDE.travel.speed.pushing" : "SDE.travel.speed.normal"))}</span>`;

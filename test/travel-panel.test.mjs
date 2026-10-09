@@ -109,13 +109,16 @@ test("the Encounters step counts today's checks, or the settings' before a day s
 
 test("the Speed step: the GM's Normal | Push switch, and a change that waits for the next dawn (#257)", () => {
   const v = view({ see: 4, gm: true, nextBase: 4 });
+  v.model = { ...v.model, canPace: true };
   v.state = { ...v.state, pending: null, pace: "push", pushed: false, base: 4 };
   const html = travelPanel(v);
   assert.ok(html.includes('data-action="pace" data-id="push" aria-pressed="true"'));
   assert.ok(html.includes("SDE.travel.speed.pushNextDawn"));
   assert.ok(html.includes('SDE.travel.speed.numbers{&quot;base&quot;:4,&quot;push&quot;:6}'));
-  const player = travelPanel({ ...v, gm: false });
+  const player = travelPanel({ ...v, gm: false, model: { ...v.model, canPace: false } });
   assert.ok(!player.includes('data-action="pace"') && player.includes("SDE.travel.speed.pushing"));
+  const traveller = travelPanel({ ...v, gm: false });
+  assert.ok(traveller.includes('data-action="pace" data-id="push" aria-pressed="true"'), "a player whose character travels gets the switch");
 });
 
 test("the Night step names the hour a creature woke the camp to the GM only (#282 review)", () => {

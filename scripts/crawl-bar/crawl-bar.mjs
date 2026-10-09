@@ -178,7 +178,7 @@ export const CrawlBar = {
     // in its Tools panel (§4.3).
     const mode = state.mode === "overland" ? "overland" : state.isActive ? "crawl" : "off";
     const day = mode === "overland" ? overlandState() : null;
-    const items = barItems({ mode, hexScene: mode === "off" && isHexMapScene(), pending: !!day?.pending });
+    const items = barItems({ mode, hexScene: mode === "off" && isHexMapScene(), pending: !!day?.pending, dayOpen: Number.isFinite(day?.day) });
     const hasBastion = game.actors.some((a) => a.type === BASTION_TYPE);
 
     const badge = () => {

@@ -178,8 +178,9 @@ with forage and camp.
 
 While you travel the Crawl Bar's badge reads **Terrain · Weather · N of M hexes
 left** (the terrain is left out on a map with no terrain tags; hover the badge
-for the hex number and its features). Then one main button, **Start day**, or
-**Continue** when an encounter stopped the clock partway through a move, then
+for the hex number and its features). Then one main button, **Continue** when
+an encounter stopped the clock partway through a move, or **Start day** while no
+day is open (days open themselves at travel start and at each camp's dawn), then
 **Make camp**, **Tools** and **End travel**. **Forage**, **Roll weather** and
 **Start a crawl** are in Tools under *This travel day*. Add Tokens is not shown:
 the party token travels.
@@ -250,13 +251,15 @@ the party token travels.
   card says only what the imported rules give a storm, and says so when they
   give it nothing; the GM alone also gets a whispered card, once per table per
   session, saying which table to import and where.
-- **Start day** opens a travel day, and pressing **Travel** opens it for you
-  straight away. Nothing is asked: the method is read from the party (mounted
+- **Start day** opens a travel day. Pressing **Travel** opens it for you
+  straight away, and so does each camp's dawn, so Start day is only for a restart
+  or a party with no hexes per day set. Nothing is asked: the method is read from the party (mounted
   when every member rides a mount, from the riders on each mount's sheet;
   sailing when every member is aboard one boat; else walking), and the pace is
   the standing one from the Travel panel's **Speed** step, **Normal** or
-  **Push** (half as many hexes again, at the same rate). It holds every dawn
-  until it's changed; changed before the party has moved or foraged, it counts
+  **Push** (half as many hexes again, at the same rate). Any player whose
+  character travels can change it, not only the GM. It holds every dawn
+  until it's changed; changed before the party has moved, it counts
   today as well. The weather is rolled first if today's hasn't been. Every
   mount carrying the party eats a ration at camp.
 - **Hexes today**: only when nothing says how many hexes a day the party
@@ -291,11 +294,14 @@ the party token travels.
   The token can't move on until you do, except by **Displace**. A check whose
   hour had passed before you started the day is rolled at once.
 
-- **Forage** lets travelling characters look for food: tick who forages.
-  - Each character's player rolls INT: DC 12, or 18 in a harsh climate. When
-    the player isn't connected, you roll it.
+- **Forage** looks for food. At a normal pace it happens by itself: the day's
+  first move rolls it for every traveller, with no one asked to stop. The
+  button (or Tools > Forage, to tick who) is for anyone it missed.
+  - The INT roll is DC 12, or 18 in a harsh climate. The automatic roll is made
+    for the character; a button forage is rolled by the character's player, or
+    by you when they aren't connected.
   - A success adds a ration to their Rations.
-  - Once a day, only after Start day, never on a pushed day, and nothing is
+  - Once a day, only on an open day, never on a pushed day, and nothing is
     found in a storm in a harsh climate.
   - A player can forage for their own character from a macro:
     `game.shadowdarkEnhancer.overland.forage("<actor id>")`.
@@ -315,8 +321,8 @@ the party token travels.
     Encounter panel says so. At dawn, anyone who ate rolls CON (DC 12) to
     still benefit from the rest, unless their Bed Down succeeded. Extras
     rolls these checks. Without Extras, the chat reminds you to call for them.
-  - The next day's weather is rolled, and you press **Start day** when the
-    party sets out.
+  - The next day's weather is rolled and the next travel day opens, on the
+    standing pace.
 - **The sky.** Outdoor scenes darken with the clock:
   - Darkness is 0 by day. The fades are soft: it eases between day and
     night over the four hours around sunrise and sunset — from an hour
