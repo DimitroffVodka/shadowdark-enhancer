@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { regionSeeds, nearestRegion, knownRegions, regionOf, sceneShift } from "../scripts/hex-map/hex-region.mjs";
+import { regionSeeds, nearestRegion, knownRegions, regionOf, sceneShift, keyedGround } from "../scripts/hex-map/hex-region.mjs";
 
 // All fixture content is invented (D1) — no book content, no real region names.
 
@@ -88,4 +88,15 @@ test("regionOf guesses with the scene's own column shift", async () => {
   assert.equal((await on(sceneOf("even"))).region, "Even side");
   assert.equal((await regionOf(505, { seeds, components: new Map(), scene: sceneOf("even"), shifted: "odd" })).region,
     "Odd side", "an explicit shift still wins");
+});
+
+test("a keyed hex stands on the ground its book row names, with the row's coast or river as features", () => {
+  const ground = keyedGround([
+    entry("Isles of Varn", [{ num: "3472", terrain: ["mountain"] }, { num: "1126", terrain: ["swamp", "coast"] }, { num: "0933", terrain: ["coast"] }, { num: "2000" }]),
+    entry("Other", [{ num: "3472", terrain: ["forest"] }]),
+  ]);
+  assert.deepEqual(ground.get(3472), { terrain: "mountain", features: [] });
+  assert.deepEqual(ground.get(1126), { terrain: "swamp", features: ["coast"] });
+  assert.deepEqual(ground.get(933), { terrain: null, features: ["coast"] });   // a row that names no ground still gives its coast
+  assert.equal(ground.has(2000), false);                                         // a row with no terrain says nothing
 });

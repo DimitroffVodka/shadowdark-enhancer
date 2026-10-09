@@ -55,7 +55,7 @@
                 <div class="ui-card-head"><h3 class="ui-card-name">{{localize "SDE.encounter.roller.flavorHeading"}}</h3>
                   <button type="button" class="ui-btn" data-action="postToChat" title="{{localize 'SDE.encounter.roller.postTip'}}"><i class="fas fa-clipboard-list"></i> {{localize "SDE.encounter.roller.post"}}</button></div>
                 {{#if lastResult.via}}<p class="ui-card-sub">{{lastResult.via}}</p>{{/if}}
-                <div class="ui-note">{{lastResult.text}}</div>
+                <div class="ui-note">{{{lastResult.html}}}</div>
               </section>
             {{else}}
               <section class="ui-card sel">

@@ -185,6 +185,23 @@
       {{/each}}
     </div>
     {{/if}}
+    {{#if terrain.review}}
+    <div class="ui-note"><p><i class="fas fa-circle-question"></i> {{{localize "SDE.importer.wizard.terrain.reviewLead"}}}</p></div>
+    <p class="ui-muted">{{localize "SDE.importer.wizard.terrain.reviewLeft" left=terrain.review.left total=terrain.review.total}}</p>
+    {{#if terrain.review.error}}<div class="ui-note bad"><p>{{terrain.review.error}}</p></div>{{/if}}
+    {{#if terrain.review.saving}}<p class="ui-muted"><i class="fas fa-circle-notch fa-spin"></i> {{localize "SDE.importer.wizard.terrain.saving"}}</p>{{/if}}
+    <div class="hxt-sheet">
+      {{#each terrain.review.cards as |c|}}
+      <div class="ui-card">
+        <div class="ui-card-head">
+          <img class="hxt-thumb" src="{{c.thumb}}" alt="" width="72" height="72" data-wiz-locate data-num="{{c.num}}" title="{{localize 'SDE.hexMap.legend.locateDouble' num=c.label}}">
+          <div class="ui-stack hxt-cellhead"><strong>{{c.label}}</strong><span class="ui-muted">{{c.terrain}}</span></div>
+        </div>
+        <select data-wiz-review data-num="{{c.num}}" aria-label="{{c.label}}">{{#each c.terrainOptions as |o|}}<option value="{{o.value}}" {{#if o.selected}}selected{{/if}}>{{o.label}}</option>{{/each}}</select>
+      </div>
+      {{/each}}
+    </div>
+    {{/if}}
     {{/if}}
 
     {{#if isDone}}
@@ -215,6 +232,7 @@
         <li class="ui-row sde-wiz-hex">
           <span class="ui-row-main"><span class="ui-row-name">{{title}}</span><span class="ui-row-sub">{{line}}</span></span>
           {{#if legend}}<button type="button" class="ui-btn" data-action="openLegend" data-scene="{{sceneId}}"><i class="fas fa-palette"></i> {{localize "SDE.importer.wizard.done.hexLegend"}}</button>{{/if}}
+          {{#if brush}}<button type="button" class="ui-btn" data-action="openBrush" data-scene="{{sceneId}}"><i class="fas fa-paintbrush"></i> {{localize "SDE.importer.wizard.done.hexBrush"}}</button>{{/if}}
           {{#if look}}<button type="button" class="ui-btn" data-action="openHex" data-id="{{id}}">{{localize "SDE.importer.wizard.done.hexLook"}}</button>{{/if}}
         </li>
         {{/each}}

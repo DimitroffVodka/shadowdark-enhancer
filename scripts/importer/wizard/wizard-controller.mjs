@@ -28,6 +28,7 @@ import {
 } from "./wizard-core.mjs";
 import { runCheck } from "./wizard-check.mjs";
 import { hexPrint } from "../../hex-map/hex-prints.mjs";
+import { OTHER } from "../../hex-map/tag-store.mjs";
 import { expandPicked, materialize } from "./zip-reader.mjs";
 
 const MB = 1048576;
@@ -52,7 +53,7 @@ const HEX_STATUS = {
 };
 
 /** Names a click may carry in data-action; wizard-app.mjs maps each to dispatch(). */
-export const ACTIONS = ["next", "back", "cancel", "choose", "remove", "setKeep", "setChoice", "toggleGroup", "fix", "openHex", "openLegend", "legendAnswer", "legendPick", "applyArt", "advanced"];
+export const ACTIONS = ["next", "back", "cancel", "choose", "remove", "setKeep", "setChoice", "toggleGroup", "fix", "openHex", "openLegend", "legendAnswer", "legendPick", "applyArt", "advanced", "reviewAnswer", "openBrush"];
 
 export class WizardController {
   /** @param {object} env  see the file header  @param {() => void} onChange  called after every change worth redrawing */
@@ -90,6 +91,8 @@ export class WizardController {
       // A card's name is held by the Legend itself; only a card that opened up (several hexes to name) needs redrawing.
       case "legendAnswer": if (this.legend?.answer(Number(data.idx), data.value, data.other)) this.changed(); return undefined;
       case "legendPick": this.legend?.pick(Number(data.idx), Number(data.num), data.value, data.other); return undefined;
+      case "reviewAnswer": this.legend?.reviewAnswer(Number(data.num), data.value, data.other); return undefined;
+      case "openBrush": return this.env.openBrush?.(data.scene);
       // Not while the import runs: it would close this window under the run and free the books it is reading.
       case "advanced": return this.state.page === "import" ? undefined : this.env.openAdvanced?.();
       default: return undefined;
@@ -135,7 +138,10 @@ export class WizardController {
   async next() {
     const s = this.state;
     if (s.page === "done") return this.finish();
-    if (s.page === "terrain") return s.terrain?.stage === "failed" ? this.terrainNext() : this.terrainApply();
+    if (s.page === "terrain") {
+      const stage = s.terrain?.stage;
+      return stage === "failed" ? this.terrainNext() : stage === "review" ? this.terrainReview() : this.terrainApply();
+    }
     // The books checked for "use once" go with the GM to the advanced importer, which lets them go when it closes.
     if (s.page === "ready" && s.choice === "custom") return this.env.openAdvanced?.();
     const before = s.page;
@@ -155,7 +161,7 @@ export class WizardController {
 
   async cancel() {
     if (this.state.page === "import") { this.stopRequested = true; return this.changed(); }
-    if (this.state.page === "terrain") return this.terrainSkip();
+    if (this.state.page === "terrain") return this.state.terrain?.stage === "saving" ? undefined : this.terrainSkip();
     if (this.state.page === "done") return;   // the footer has no cancel here; a double click or a click mid page change can still land
     if (!(await this.env.confirmCancel?.())) return;
     await this.env.release?.();
@@ -250,7 +256,34 @@ export class WizardController {
     if (!done) { T.stage = "cards"; T.progress = ""; this.changed(); return undefined; }
     T.progress = "";
     T.named.push(T.queue[T.i].id);
-    return this.terrainNext();
+    // The classifier's doubtful hexes come next, before the map is let go (a Legend without them goes straight on).
+    const doubtful = this.legend.doubtfulCount?.() ?? 0;
+    if (!doubtful) return this.terrainNext();
+    this.legend.reviewNext();
+    T.stage = "review"; T.doubtful = doubtful;
+    this.changed();
+    return undefined;
+  }
+
+  /** Confirm the doubtful hexes on screen as they stand (the GM's changes taken); the next sheet of them, or on to the next map. */
+  async terrainReview() {
+    const T = this.state.terrain;
+    // An empty sheet (a refused Confirm reloads the engine on the other scene) has nothing to confirm; Skip stays.
+    if (T?.stage !== "review" || !this.legend?.reviewCards().length) return undefined;
+    T.stage = "saving"; this.changed();
+    try {
+      await this.legend.reviewConfirm();
+    } catch (err) {
+      console.warn("shadowdark-enhancer | wizard review failed", err);
+      T.stage = "review"; T.error = String(err?.message ?? err); this.changed();
+      return undefined;
+    }
+    T.error = "";
+    if (!this.legend.doubtfulCount()) return this.terrainNext();
+    this.legend.reviewNext();
+    T.stage = "review";
+    this.changed();
+    return undefined;
   }
 
   /** Leave this map's terrain for the Hex Tagger and go on. */
@@ -359,6 +392,13 @@ export class WizardController {
         reading: T.stage === "reading", applying: T.stage === "applying", failed: T.stage === "failed", error: T.error, progress: T.progress ?? "",
         cards: T.stage === "cards" ? (this.legend?.cards() ?? []) : T.stage === "applying" ? (T.frozen ?? []) : [],
       };
+      if (T.stage === "review" || T.stage === "saving") {
+        // "Other" is left to the tagger: a doubtful hex is one of the map's terrains or it stays as the engine named it,
+        // so a word the list lacks is offered as itself (selected) in place of "other…", never shown as the first terrain.
+        const ownWord = (c) => (o) => (o.value !== OTHER ? [o] : c.terrainOther ? [{ value: c.terrainOther, label: c.terrainOther, selected: o.selected }] : []);
+        const cards = (this.legend?.reviewCards() ?? []).map((c) => ({ ...c, terrainOptions: c.terrainOptions.flatMap(ownWord(c)) }));
+        vm.terrain.review = { cards, saving: T.stage === "saving", left: this.legend?.doubtfulCount() ?? 0, total: T.doubtful, error: T.error };
+      }
     }
     if (s.page === "done") {
       const r = s.result ?? { imported: 0, already: 0, needsYou: [] };
@@ -366,7 +406,7 @@ export class WizardController {
         imported: r.imported, already: r.already, attention: r.needsYou.length, items: r.needsYou,
         skipped: r.skipped?.n ? t(r.skipped.books.length ? "SDE.importer.wizard.done.skippedBooks" : "SDE.importer.wizard.done.skipped", { n: r.skipped.n, books: r.skipped.books.join(", ") }) : "",
         hexMaps: (r.hex ?? []).map((h) => ({
-          id: h.id, title: h.title, sceneId: h.sceneId, legend: h.legend, look: h.look,
+          id: h.id, title: h.title, sceneId: h.sceneId, legend: h.legend, look: h.look, brush: !!h.named && !!h.sceneId,
           line: t(h.named ? HEX_STATUS.named : (h.optional && h.legend && h.status === "ready" ? HEX_STATUS.readyDrawn : h.optional && h.legend && h.status === "already" ? HEX_STATUS.alreadyDrawn : HEX_STATUS[h.status] ?? HEX_STATUS.needsLook), { n: h.pinned ?? 0 }),
         })),
         art: s.art && { sources: s.art.sources.join(", "), offer: s.art.stage === "offer" || s.art.stage === "failed", applying: s.art.stage === "applying", line: s.art.line },
@@ -381,13 +421,14 @@ export class WizardController {
       advanced: s.page !== "import",
       back: canBack(s) && idx > 0,
       next: s.page === "import" ? null
+        : T && (T.stage === "review" || T.stage === "saving") ? (this.legend?.reviewCards().length ? { label: t("SDE.importer.wizard.terrain.confirm", { n: this.legend.reviewCards().length }), disabled: T.stage === "saving", reason: "" } : null)
         : T ? (T.stage === "failed" ? { label: t("SDE.importer.wizard.terrain.continue") }
           : { label: t("SDE.importer.wizard.terrain.apply"), disabled: T.stage !== "cards", reason: T.stage === "cards" ? "" : t("SDE.importer.wizard.terrain.wait") })
         : s.page === "done" ? { label: t("SDE.importer.wizard.finish") }
         : { label: s.page === "ready" ? t(s.choice === "custom" ? "SDE.importer.wizard.ready.openAdvanced" : "SDE.importer.wizard.ready.start") : t("SDE.importer.wizard.next"), disabled: !!why, reason: why ? t(why) : "" },
       // while a map is named, what the engine is doing, where it cannot scroll out of sight
       status: T?.stage === "applying" ? (T.progress || t("SDE.importer.wizard.terrain.applying")) : "",
-      cancel: s.page === "done" ? null : s.page === "import" ? t("SDE.importer.wizard.stop") : T ? (T.stage === "failed" ? null : t("SDE.importer.wizard.terrain.skip")) : t("SDE.importer.wizard.cancel"),
+      cancel: s.page === "done" ? null : s.page === "import" ? t("SDE.importer.wizard.stop") : T ? (T.stage === "failed" ? null : t(T.stage === "review" ? "SDE.importer.wizard.terrain.skipReview" : "SDE.importer.wizard.terrain.skip")) : t("SDE.importer.wizard.cancel"),
     };
     return vm;
   }

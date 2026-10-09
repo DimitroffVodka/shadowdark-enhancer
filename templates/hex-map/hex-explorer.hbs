@@ -11,9 +11,18 @@
     <p class="ui-note info">{{localize "SDE.hexExplorer.hint"}}</p>
 
     <section class="ui-card">
-      <label class="ui-field"><span class="ui-label">{{localize "SDE.hexExplorer.terrain"}}</span><input name="terrain" value="{{terrain}}" list="{{rootId}}-terrains" required></label>
-      <datalist id="{{rootId}}-terrains">{{#each terrains}}<option value="{{this}}"></option>{{/each}}</datalist>
+      <label class="ui-field"><span class="ui-label">{{localize "SDE.hexExplorer.terrain"}}</span><select name="terrain" required>{{#each terrainOptions}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}<option value="__other">{{localize "SDE.hexMap.label.otherOption"}}</option></select></label>
+      <input name="terrainOther" value="" placeholder="{{localize 'SDE.hexMap.label.otherTerrain'}}" aria-label="{{localize 'SDE.hexMap.label.otherTerrainAria'}}" hidden>
       <label class="ui-field"><span class="ui-label">{{localize "SDE.hexExplorer.locationTitle"}}</span><input name="title" value="{{title}}"></label>
+    </section>
+
+    <section class="ui-card">
+      <h3 class="ui-h">{{localize "SDE.hexExplorer.encounters"}}</h3>
+      <div class="ui-row hx-enc">
+        <div class="ui-row-main"><span>{{#if encounter.uuid}}{{encounter.name}}{{else}}{{localize "SDE.hexExplorer.enc.noName"}}{{/if}}</span><span class="ui-row-sub">{{encounter.note}}</span></div>
+        <button type="button" class="ui-btn" data-action="rollEncounter" {{#unless encounter.uuid}}disabled{{/unless}}><i class="fa-solid fa-dice"></i> {{localize "SDE.hexExplorer.enc.roll"}}</button>
+        <button type="button" class="ui-icon" data-action="openEncounterTable" {{#unless encounter.uuid}}disabled{{/unless}} title="{{localize 'SDE.hexExplorer.enc.open'}}" aria-label="{{localize 'SDE.hexExplorer.enc.open'}}"><i class="fa-solid fa-table-list"></i></button>
+      </div>
     </section>
 
     <section class="ui-card">

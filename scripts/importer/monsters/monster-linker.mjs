@@ -85,7 +85,7 @@ export function embedLinks(text, index) {
  *
  * @param {string} text
  * @param {Array<{name:string, uuid:string}>} index
- * @param {{context?: "table"|"environment"|"monster"}} [options]
+ * @param {{context?: "table"|"environment"|"monster"|"journal"|"encounter"}} [options]
  */
 export function enrichEncounterText(text, index, options) {
   const hasContext = options != null

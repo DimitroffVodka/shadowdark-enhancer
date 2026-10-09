@@ -21,7 +21,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { findSuitePack } from "../shared/compendium-suite.mjs";
 import { cellNumber, foundryOffsetToCube } from "../hex-map/geometry.mjs";
-import { decodeTags, readCell, FEATURES } from "../hex-map/tag-store.mjs";
+import { decodeTags, readCell, FEATURES, NOT_GROUND } from "../hex-map/tag-store.mjs";
 import { extrasRecordsByOffset } from "../hex-map/extras-records.mjs";
 import { HexRecords, isHexAdopted, recordJournal, RECORD_FLAG, PUBLIC_FLAG } from "../hex-map/hex-records.mjs";
 import { moonPhase } from "../time/time-core.mjs";
@@ -243,6 +243,20 @@ export function inNorthHalf(num, range) {
 }
 
 /**
+ * A keyed or settlement hex is tagged with what sits on it, not what it stands
+ * on, so no column fits it. Its book row names the ground ("Mountain", "Swamp,
+ * coast"); that is the terrain a check reads, with the row's coast, river or
+ * path added to the hex's own features. Any other hex, or one with no row, is
+ * returned as it is.
+ * @param {{terrain?:string, features?:Array<string|{type:string}>}} hex
+ * @param {{terrain:string|null, features:string[]}} [ground]  keyedGround's answer for the hex
+ */
+export function withGround(hex, ground) {
+  if (!ground || !NOT_GROUND.has(terrainKey(hex?.terrain))) return hex;
+  return { ...hex, terrain: ground.terrain ?? hex.terrain, features: [...new Set([...featureKeys(hex.features), ...ground.features])] };
+}
+
+/**
  * The table for a hex: its region's column when the imported grid has one
  * that fits, else the table the GM mapped to its terrain, else the active one.
  * Pure: resolveHexTable reads the world for it.
@@ -456,14 +470,15 @@ export async function resolveHexTable(hex, { hour, moon, scene } = {}) {
   const clock = worldClock();
   const zonesByRegion = hex ? await encounterZonesByRegion() : new Map();
   const num = Number.parseInt(hex?.num, 10);
-  let zone = hex?.zone, rowRange;
+  let zone = hex?.zone, rowRange, ground = hex;
   // The number finds the region when none was given, and the region's rows.
   if (zonesByRegion.size && Number.isInteger(num)) {
-    const { byNum, rowRanges } = await hexZonesFor(scene ?? globalThis.canvas?.scene);
-    zone ||= byNum.get(num)?.zone;
-    rowRange = rowRanges.get(zone);
+    const found = await hexZonesFor(scene ?? globalThis.canvas?.scene);
+    zone ||= found.byNum.get(num)?.zone;
+    rowRange = found.rowRanges.get(zone);
+    ground = withGround(hex, found.ground?.get(num));
   }
-  return hexTableUuid({ ...hex, num, zone }, {
+  return hexTableUuid({ ...ground, num, zone }, {
     zonesByRegion, rowRange,
     hour: hour ?? clock.hour, moon: moon === undefined ? clock.moon : moon,
     terrainTables: game.settings.get(MODULE_ID, TERRAIN_TABLES),
@@ -504,8 +519,8 @@ export async function hexZonesFor(scene) {
   const scan = scanSceneFor(scene);
   const key = scan?.id ?? "";
   if (!hexZonesCache.has(key)) {
-    const read = sceneZones(scan).then(({ byNum }) => ({
-      byNum, rowRanges: regionRowRanges(new Map([...byNum].map(([n, z]) => [n, z.zone]))),
+    const read = sceneZones(scan).then(({ byNum, ground }) => ({
+      byNum, ground, rowRanges: regionRowRanges(new Map([...byNum].map(([n, z]) => [n, z.zone]))),
     }));
     // A failed read is not remembered: the next check tries again.
     read.catch(() => hexZonesCache.delete(key));

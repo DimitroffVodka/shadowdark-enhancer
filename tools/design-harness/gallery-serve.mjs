@@ -19,6 +19,7 @@ const pretty = (n) => n.replace(/^audit-/, "");
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
 process.env.PORT = String(INNER);
+process.env.MODULE_DIR = ROOT;   // this gallery is this checkout's review flow (kit, V1 set, review file): pin the harness to it
 await import("./serve.mjs");   // the harness, on the inner port
 
 const readReview = () => { try { return JSON.parse(fs.readFileSync(REVIEW, "utf8")); } catch { return {}; } };

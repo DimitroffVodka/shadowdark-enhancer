@@ -22,10 +22,11 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { sceneCells } from "./sampler.mjs";
 import { cellNumber, foundryOffsetToCube, originFromFlag } from "./geometry.mjs";
-import { decodeTags, encodeTags, applySheet, strandedRiver, readCell, paletteTags, WRITER_OPTION, FEATURES } from "./tag-store.mjs";
+import { decodeTags, encodeTags, applySheet, strandedRiver, readCell, paletteTags, WRITER_OPTION, FEATURES, OTHER } from "./tag-store.mjs";
+export { OTHER };
 import { FIXES_FLAG, DEFAULT_REVIEW_MARGIN, decodeFixes, encodeFixes, recordEdits, withdrawEdits, sameTags } from "./tag-corrections.mjs";
 import { SETTLEMENTS } from "../importer/hex/hex-summary.mjs";
-import { pickZoneTable, encounterZonesByRegion, worldClock, isNight, regionRowRanges, inNorthHalf } from "../encounter/encounter-terrain.mjs";
+import { pickZoneTable, encounterZonesByRegion, worldClock, isNight, regionRowRanges, inNorthHalf, withGround } from "../encounter/encounter-terrain.mjs";
 import { neighbourNumbers, encodeRegions, REGIONS_FLAG } from "./region-scan.mjs";
 import { L as t } from "../shared/i18n.mjs";
 
@@ -174,13 +175,42 @@ export function assignRegionColors(keyByNum, { shifted = "odd", palette = REGION
 }
 
 /**
- * Encounter-zone fills. This overlay answers one question — would a wandering
- * check on this hex find a table? — so it is deliberately a three-colour
- * picture rather than one colour per table: green rolls, amber is stuck
- * between two columns nothing on the map or the clock can choose between, grey
- * has no table for that region at all.
+ * Encounter-zone fills. A hex that finds a table is drawn in its region's
+ * colour (the region picture's, so touching regions differ), lighter or darker
+ * by which of that region's columns it rolls: a region with Forest, Mountain
+ * and Coast columns shows three shades. Amber is stuck between two columns
+ * nothing on the map or the clock can choose between; grey has no table for
+ * that region at all.
  */
-export const ZONE_COLORS = { ok: 0x3f8f4f, ambiguous: 0xe0a72c, none: 0x8a8a8a };
+export const ZONE_COLORS = { ambiguous: 0xe0a72c, none: 0x8a8a8a };
+
+/** Half the width of the light-to-dark band one region's columns are spread across. */
+const SHADE_SPAN = 0.3;
+
+/**
+ * A colour mixed towards white (t > 0) or black (t < 0), by that fraction.
+ * @param {number} color  0xRRGGBB
+ * @param {number} t  -1..1
+ */
+export function shadeColor(color, t) {
+  const to = t < 0 ? 0 : 255, k = Math.abs(t);
+  const mix = (c) => Math.round(c + (to - c) * k);
+  return (mix((color >> 16) & 255) << 16) | (mix((color >> 8) & 255) << 8) | mix(color & 255);
+}
+
+/**
+ * The shade of one column among its region's: columns sorted by name are spread
+ * evenly from darker to lighter, so the same column is the same shade all day
+ * and a region with one column keeps the region's own colour.
+ * @param {string} column  the column that rolls
+ * @param {Array<{column:string}>} columns  all of that region's imported columns
+ * @returns {number}  -SHADE_SPAN..SHADE_SPAN
+ */
+export function columnShade(column, columns) {
+  const names = [...new Set((columns ?? []).map((c) => c.column))].sort();
+  const i = names.indexOf(column);
+  return names.length < 2 || i < 0 ? 0 : SHADE_SPAN * (2 * i / (names.length - 1) - 1);
+}
 
 /** What the overlay is showing. */
 export const MODES = ["terrain", "region", "encounter"];
@@ -235,8 +265,8 @@ export function cellLabel(num, cell, margin = DEFAULT_REVIEW_MARGIN, stranded = 
   return `${num} — ${tags}${notes.length ? ` (${notes.join(", ")})` : ""}`;
 }
 
-/** Sentinel value of the "other…" option, as the tagger's own selects use. */
-export const OTHER = "__other";
+/** Called by the overlay and the brush window whenever they open or close, so the toolbar shows what is on. */
+export const TOOLS_HOOK = `${MODULE_ID}.hexTools`;
 
 /**
  * The terrain dropdown's options, alphabetical by label so the browser's own
@@ -260,6 +290,10 @@ export function terrainOptions(cells = new Map(), palette = null) {
  * The overlay on the active scene. One instance; toggled from the tagger's
  * header or game.shadowdarkEnhancer.hexMaps.showTags().
  */
+
+export const DOUBLE_CLICK_MS = 350;
+/** `prev` is the last click's {key, at}; the same key again within the window is a double click. */
+export const isDoubleClick = (prev, key, at) => !!prev && prev.key === key && at - prev.at < DOUBLE_CLICK_MS;
 
 export class HexTagOverlay {
   /** @type {HexTagOverlay|null} */
@@ -288,7 +322,8 @@ export class HexTagOverlay {
     const geom = sceneCells(canvas);
     if (geom.error) { ui.notifications?.warn(t(geom.error)); return false; }
     const extra = await HexTagOverlay._regionContext(mode, scene);
-    if (showing) { showing.mode = mode; Object.assign(showing, extra); showing.draw(); return true; }
+    // A switch changes which picture is on, so the toolbar redraws as it does for show and hide.
+    if (showing) { showing.mode = mode; Object.assign(showing, extra); showing.draw(); Hooks.callAll(TOOLS_HOOK); return true; }
     const o = flag.origin;
     const overlay = new HexTagOverlay(scene, geom, originFromFlag(o));
     overlay.mode = mode;
@@ -304,13 +339,14 @@ export class HexTagOverlay {
    */
   static async _regionContext(mode, scene) {
     if (mode === "terrain") return { regionByNum: new Map(), componentByNum: new Map(), zonesByRegion: new Map(), rowRanges: new Map() };
-    const { sceneRegions, sceneRegionFixes, sceneShift, regionSeeds, nameComponents, nearestRegion, crawlEntries } = await import("./hex-region.mjs");
+    const { sceneRegions, sceneRegionFixes, sceneShift, regionSeeds, nameComponents, nearestRegion, crawlEntries, keyedGround } = await import("./hex-region.mjs");
     const shifted = sceneShift(scene);
     // The enclosures are worth looking at BEFORE a hex key names them: that is
     // the scan's own output, and checking it is the reason to draw this at all.
     const componentByNum = sceneRegions(scene);
     const fixByNum = sceneRegionFixes(scene);
-    const seeds = regionSeeds(await crawlEntries());
+    const entries = await crawlEntries();
+    const seeds = regionSeeds(entries);
     const { byNum } = nameComponents(componentByNum, seeds);
     for (const [num, region] of fixByNum) byNum.set(num, region);   // the GM's word outranks the scan
     // An enclosure with no keyed hex in it is usually not a region at all: a
@@ -335,7 +371,7 @@ export class HexTagOverlay {
       shifted,
       palette: extrasPalette() ?? REGION_COLORS,
     });
-    const ctx = { regionByNum: byNum, inferredByNum, componentByNum, fixByNum, keyByNum, colorByKey };
+    const ctx = { regionByNum: byNum, inferredByNum, componentByNum, fixByNum, keyByNum, colorByKey, groundByNum: keyedGround(entries) };
     if (mode === "region") return { ...ctx, zonesByRegion: new Map(), rowRanges: new Map() };
     // North and south split each region's own rows, as far as the map puts hexes in it.
     const rowRanges = regionRowRanges(new Map([...inferredByNum, ...byNum]));
@@ -439,9 +475,11 @@ export class HexTagOverlay {
       if (this.mode === "encounter") this.draw();
     })]);
     ui.notifications?.info(t("SDE.hexMap.notify.overlayShown"));
+    Hooks.callAll(TOOLS_HOOK);
   }
 
   hide() {
+    clearTimeout(this._pendingEdit);
     this._editor?.close();
     this._editor = null;
     for (const [name, id] of this._hooks) Hooks.off(name, id);
@@ -449,6 +487,7 @@ export class HexTagOverlay {
     this.container?.destroy({ children: true });
     this.container = null;
     if (HexTagOverlay.current === this) HexTagOverlay.current = null;
+    Hooks.callAll(TOOLS_HOOK);
   }
 
   /**
@@ -459,11 +498,12 @@ export class HexTagOverlay {
    * new Setting document on every read.
    */
   zoneFor(num, clock = worldClock()) {
-    const cell = readCell(this.state, num);   // as the check reads it: legacy coast terrain is ground plus coast
+    // As the check reads it: legacy coast terrain is ground plus coast, and a keyed hex stands on its book row's ground.
+    const cell = withGround(readCell(this.state, num) ?? {}, this.groundByNum?.get(num));
     const region = this.regionByNum.get(num) ?? this.inferredByNum.get(num);
     if (!region) return { status: "none", region: null };
     const at = { night: isNight(clock.hour), moon: clock.moon, north: inNorthHalf(num, this.rowRanges.get(region)) };
-    return { ...pickZoneTable(region, cell?.terrain, cell?.features, this.zonesByRegion, at), region };
+    return { ...pickZoneTable(region, cell.terrain, cell.features, this.zonesByRegion, at), region };
   }
 
   /** Fill colour for a hex in the current mode, or null to leave it unpainted. */
@@ -474,9 +514,12 @@ export class HexTagOverlay {
       return this.colorByKey.get(key) ?? regionColor(key);
     }
     if (this.mode === "encounter") {
-      const { status, region } = this.zoneFor(num, clock);
+      const { status, region, column } = this.zoneFor(num, clock);
       // A hex with no region at all is not "no table" — nothing was asked.
-      return region ? ZONE_COLORS[status] : null;
+      if (!region) return null;
+      if (status !== "ok") return ZONE_COLORS[status];
+      const base = this.colorByKey.get(this.keyByNum.get(num)) ?? regionColor(region);
+      return shadeColor(base, columnShade(column.column, this.zonesByRegion.get(region)));
     }
     const cell = this.state.cells.get(String(num));
     return cell?.terrain ? terrainColor(cell.terrain) : null;
@@ -609,7 +652,13 @@ export class HexTagOverlay {
     if (this.brush) return;
     if (!down || Math.hypot(up.x - down.x, up.y - down.y) > 8) return;
     const num = this.numberAt(up);
-    if (num !== null) this.edit(num);
+    if (num === null) return;
+    // A double click belongs to the Hexplorer window: drop the box the first click opened.
+    const again = isDoubleClick(this._lastUp, num, event.timeStamp);
+    this._lastUp = again ? null : { key: num, at: event.timeStamp };
+    // The box opens under the cursor, so it would catch the second click: wait out the double-click window first.
+    clearTimeout(this._pendingEdit);
+    if (again) this._pendingEdit = null; else this._pendingEdit = setTimeout(() => this.edit(num), DOUBLE_CLICK_MS);
   }
 
   /** A right click (a drag is the canvas pan) on a hex offers its tags to the brush window, if one is open. */

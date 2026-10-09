@@ -131,6 +131,13 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
         const { stats } = await (await import("../../monster-art/token-art-catalog.mjs")).TokenArtCatalog.applyAll();
         return { mapped: stats.mapped, total: stats.total };
       },
+      // The brush over the map's tags, to paint over what the review left wrong.
+      openBrush: async (sceneId) => {
+        const scene = game.scenes.get(sceneId);
+        if (!scene) return;
+        await scene.view();
+        (await import("../../hex-map/hex-brush-app.mjs")).HexBrushApp.open();
+      },
       close: () => app._leave(),
     };
   }

@@ -7,6 +7,7 @@ import { hasHexNumbering, hexNumberAt } from "./hex-number-api.mjs";
 import { adoptHexScene, withHexLock } from "./hex-adoption.mjs";
 import { decodeFixes, encodeFixes, recordEdits, FIXES_FLAG } from "./tag-corrections.mjs";
 import { disclosure } from "./hex-fog-core.mjs";
+import { HexTagOverlay, isDoubleClick } from "./tag-overlay.mjs";
 
 const pick = (v, keys) => Object.fromEntries(keys.filter(k => typeof v?.[k] === "string").map(k => [k, v[k]]));
 /** GM hover is player-safe too; GM-private content belongs only in the editor. */
@@ -47,6 +48,18 @@ export function planExplorerEdit(record, input, flag) {
   else discovery.locationRevealed = input.location === "show";
   return { tags, verdicts, patch: { ...(!numbered ? { terrain } : {}), title: String(input.title ?? ""), features,
     notes: rows(record.notes, input.notes, ["text", "visible", "location"]), links: rows(record.links, input.links, ["uuid", "label", "visible"]), discovery } };
+}
+/**
+ * What a wandering check on a hex would roll, as the editor words it. `res` is
+ * tableForCheck's answer; `name` is that table's name. `state` says where the
+ * table came from: the region's printed column, two columns the check could not
+ * choose between (it rolls the first), the table mapped to the terrain (`mapped`
+ * is its uuid, which wins when the active table is the same one), the active
+ * table (`active` is its uuid), or none.
+ */
+export function encounterReadout({ uuid, zone, verdict } = {}, name = "", active = "", mapped = "") {
+  const state = !uuid ? "none" : verdict?.status === "ambiguous" ? "ambiguous" : verdict?.column ? "region" : uuid === active && uuid !== mapped ? "active" : "terrain";
+  return { state, uuid: uuid ?? "", name, zone: zone ?? "", column: verdict?.column?.column ?? "", options: (verdict?.columns ?? []).map(c => c.column).join(", ") };
 }
 export const HexExplorer = {
   read(offset, target) { return explorerView(HexRecords.read(offset, target), !!game.user?.isGM); },
@@ -92,7 +105,7 @@ export function explorerClick(press, event, longPress) {
     && event.timeStamp - press.at < longPress
     && !event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey;
 }
-let tip = null, hovered = null, selected = null, press = null, stage = null, warned = false;
+let tip = null, hovered = null, selected = null, press = null, stage = null, warned = false, lastUp = null;
 const nativeHovers = new Set();
 function placeableTarget(target) {
   for (let node = target; node; node = node.parent) if (node.document) return true;
@@ -146,10 +159,6 @@ export function refreshHexExplorer() {
     }
   } else line(tip, t("SDE.hexExplorer.concealed"));
   if (selected) {
-    if (game.user.isGM) {
-      const edit = line(tip, t("SDE.hexExplorer.edit"), "button"); edit.type = "button";
-      edit.addEventListener("click", () => void HexExplorer.open(cell.offset, cell.scene));
-    }
     const close = line(tip, t("SDE.hexExplorer.close"), "button"); close.type = "button";
     close.addEventListener("click", () => { selected = null; hovered = null; refreshHexExplorer(); });
     tip.style.left = ""; tip.style.top = "";
@@ -169,6 +178,11 @@ function up(event) {
   if (!explorerClick(held, event, duration)) return;
   const cell = atEvent(event);
   if (!cell || cell.scene !== held.cell.scene || offsetKey(cell.offset) !== offsetKey(held.cell.offset)) return;
+  // A GM never gets the pinned card: a double click opens the Hexplorer window, and with the tagging overlay up a
+  // single click is the overlay's own. Players keep the card, since their journal links live in it.
+  const key = offsetKey(cell.offset), again = isDoubleClick(lastUp, key, event.timeStamp);
+  lastUp = again ? null : { key, at: event.timeStamp };
+  if (game.user.isGM) { if (again && !HexTagOverlay.current?.brush) void HexExplorer.open(cell.offset, cell.scene); return; }
   selected = cell; refreshHexExplorer();
 }
 function clear() {
