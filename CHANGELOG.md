@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 ### Added
+- **Camp remembers last night's choices.** A new camp starts with the fire source and each character's task, stat and options already set from the night before, so a party that does the same thing every night just presses Lock. Anything that no longer fits (an Entertain target who left, a finished Repair) is left blank to choose again.
+- **Camp torches no longer need consent.** The per-character "I consent to contribute this PC's torches" switch is gone. When the fire needs torches (Existing torches, or Firewood failed), the party's own are spent first, then those of the character holding the most, and so on until three are found.
 - **Right-click a hex with the Hex Brush open to copy its terrain and features.** The brush picks up whatever the hex under the cursor says (a terrain the map's list lacks lands in the Other box), so a good result can be painted straight over a bad one. A right-drag still pans the map.
 - **The Hexplorer's terrain is a dropdown, not a text box.** It offers the map's own terrains (the same list as the on-map editor, alphabetical); to name a new one you pick "other…" and type it there. Nothing is typed by default any more.
 - **The hex tagger's terrain dropdowns are alphabetical.** The review sheet, the Legend cards and the import wizard's hex check listed terrains in the book's printed order; they now sort like the on-map editor's list, with (untagged) first and other... last.

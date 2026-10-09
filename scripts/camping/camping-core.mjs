@@ -47,6 +47,18 @@ export function selectTask(camp, uuid, patch) {
   }
   return { ...camp, participants: camp.participants.map((v, i) => i === index ? p : v) };
 }
+/** A new camp starts from the last night's fuel and task choices, so a party that does the same thing every night sets nothing up. */
+export function carryOver(camp, previous) {
+  if (!previous) return camp;
+  let next = { ...camp, fuel: previous.fuel ?? "none" };
+  for (const { uuid, task, ability, craft, watchHalf, recipientUuid } of previous.participants ?? []) {
+    // A repair was done and its item is mended, so it falls back to the default output. Anything that no longer fits is left blank.
+    const patch = { task, ability, craft: craft === "repair" ? "torch" : craft, watchHalf, recipientUuid };
+    for (const k of Object.keys(patch)) if (patch[k] === undefined) delete patch[k];
+    try { next = selectTask(next, uuid, patch); } catch { /* the task, stat or recipient is gone */ }
+  }
+  return next;
+}
 export function lockCamp(camp) {
   if (camp.phase !== "setup") return camp;
   if (camp.participants.some(p => !p.confirmed)) invalid();
@@ -57,7 +69,9 @@ export function lockCamp(camp) {
   return { ...camp, phase: "firewood", results: {}, effects: {} };
 }
 export function torchPlan(stacks, partyUuid, participants) {
-  const order = [partyUuid, ...participants.filter(p => p.torchConsent).map(p => p.uuid)];
+  // The party's own torches first, then the character holding the most, so one pack empties before another is touched.
+  const held = uuid => stacks.filter(s => s.actorUuid === uuid).reduce((n, s) => n + s.quantity, 0);
+  const order = [partyUuid, ...participants.map(p => p.uuid).sort((a, b) => held(b) - held(a))];
   const eligible = order.flatMap(uuid => stacks.filter(s => s.actorUuid === uuid && s.quantity > 0));
   const available = eligible.reduce((n, s) => n + s.quantity, 0);
   if (available < 3) return { ok: false, available, deductions: [] };

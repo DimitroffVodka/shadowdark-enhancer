@@ -4775,7 +4775,6 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-camping-body .cp-name { margin: 0; flex: 1 1 140px; font: 700 14px/1.2 var(--ui-font); color: var(--ui-text); overflow-wrap: anywhere; }
 .sde-camping-body .cp-bad { color: var(--ui-danger-text); }
 .sde-camping-body .cp-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px 12px; }
-.sde-camping-body .cp-torch { align-self: flex-start; }
 .sde-camping-body .cp-warn { margin: 0; font-size: 12px; color: var(--ui-danger-text); }
 .sde-camping-body .cp-more { font-size: 12px; color: var(--ui-muted); }
 .sde-camping-body .cp-more > summary { cursor: pointer; padding: 2px 0; }
