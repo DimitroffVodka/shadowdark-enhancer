@@ -309,9 +309,10 @@
 .sde-party .sdp-gridwrap { display: flex; flex-direction: column; align-items: center; gap: 3px; }
 .sde-party .sdp-grid { display: grid; grid-template-columns: repeat(3, 28px); gap: 3px; }
 .sde-party .sdp-march.off .sdp-grid { opacity: .45; }
-.sde-party .sdp-slot { position: relative; width: 28px; height: 28px; min-width: 0; min-height: 0; padding: 0; overflow: hidden; border: 1px solid var(--ui-line); border-radius: 4px; background: var(--ui-raised); cursor: pointer; }
+.sde-party .sdp-slot { position: relative; width: 28px; height: 28px; min-width: 0; min-height: 0; padding: 0; overflow: hidden; border: 1px solid var(--ui-line); border-radius: 4px; background: var(--ui-raised); cursor: pointer; pointer-events: auto; }
 .sde-party .sdp-slot img { display: block; width: 100%; height: 100%; object-fit: cover; }
-.sde-party .sdp-slot:disabled { cursor: default; opacity: 1; }
+/* Not .disabled: Foundry gives that class pointer-events: none, and an empty slot must still take a drop. */
+.sde-party .sdp-slot.inert { cursor: default; }
 .sde-party .sdp-slot.leader { border-color: var(--ui-gold); box-shadow: 0 0 0 1px var(--ui-gold); }
 .sde-party .sdp-caption { max-width: 120px; font: 600 9px/1.25 var(--ui-head); letter-spacing: .04em; text-align: center; text-transform: uppercase; color: var(--ui-muted); }
 .sde-party .sdp-march > .sdp-caption { align-self: flex-end; width: 120px; max-width: none; margin-right: -15px; }
