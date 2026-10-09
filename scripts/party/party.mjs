@@ -61,7 +61,8 @@ export const Party = {
   rows(ref) {
     return this.members(ref).map((uuid) => {
       const actor = worldMember(uuid);
-      const visible = actor && readable(actor);
+      // A player character shows its basic stats to the whole party; any other actor stays behind Observer, so a roster entry cannot expose a hidden NPC.
+      const visible = actor && (actor.type === "Player" || readable(actor));
       return { uuid, actor: visible ? actor : null, group: visible ? memberGroup(actor.type) ?? "missing" : "missing" };
     });
   },
