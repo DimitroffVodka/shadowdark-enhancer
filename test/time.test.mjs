@@ -245,7 +245,7 @@ function stubGame(t, { gm = true, active = true, calendar } = {}) {
 }
 
 test("the API reads Foundry's clock: now, season, sun, moon, anchor, format", async () => {
-  const { timeApi } = await import("../scripts/time/time.mjs");
+  const { timeApi, defaultMoonEpoch } = await import("../scripts/time/time.mjs");
   const t = at(1301, 6, 21, 14, 30);
   stubGame(t);
   const weekday = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"][gregorian.timeToComponents(t).dayOfWeek];
@@ -259,7 +259,7 @@ test("the API reads Foundry's clock: now, season, sun, moon, anchor, format", as
   assert.equal(timeApi.isNight(at(1301, 6, 21, 22)), true, "a time can be given");
   assert.equal(timeApi.anchor("summerSolstice"), at(1301, 6, 21), "this year by default");
   assert.equal(timeApi.anchor("summerSolstice", 1300), at(1300, 6, 21));
-  assert.equal(timeApi.moonPhase(0).key, "new");
+  assert.equal(timeApi.moonPhase(defaultMoonEpoch(gregorian)).key, "new", "the moon counts from a real new moon unless a GM sets another");
 });
 
 test("isNight with the party's region: the Isles of Andrik's Midnight Sun and Long Dark (#235)", async () => {

@@ -45,10 +45,12 @@ days; hover it for how many days are left.
 
 - **Steps** (⏪ and ⏩) move the clock as play does: lit torches burn.
 - **Jump to the next** dawn, noon, dusk or midnight, in the Time panel.
-- **Set date and time**, in the Time panel, to any date and year.
-- **A day in the month view** moves there, at the same hour.
+- **Set the date**, in the month view: click the month and year at its top, type
+  the day and year and pick the month, then press **Go** or Enter. The clock goes
+  to that day at the same hour; there is no time to enter.
+- **Go to this day**, in the month view's day panel, moves there, at the same hour.
 
-A date set or picked in the month view is a calendar jump: forward, it goes
+A date typed or picked in the month view is a calendar jump: forward, it goes
 off duty, so torches carried by the party are put out rather than burnt
 through. Going back never burns anything.
 
@@ -114,5 +116,83 @@ tracking clock: a second a second, paused with the game when the system says so.
 
 The month's days, a week to a row, with the moon's new, first quarter, full
 and last quarter marked, today framed, and the City of Masks holidays on their
-days once they're imported (**Importer Hub**, the Cursed Scroll 6 holidays).
-**‹** and **›** turn the months. A GM clicks a day to go there.
+days (and the gods' holy days, below). **‹** and **›** turn the months.
+
+**Click a day** to see what falls on it; nothing moves. For a holiday the panel
+shows what it does to carousing and the book's page text, with a button to open
+the page. For a holy day it shows its god, when it falls and a line on what it
+is, with a button to open the god's page. Clicking a line in the list under the
+grid does the same. A GM's **Go to this day** button in that panel moves the
+clock there, at the same hour. A small
+dot on a day means something else falls on it; the list under the grid says
+what, day by day.
+
+### What the calendar shows
+
+- **The equinoxes and solstices**, and the day each **season begins**.
+- **Eclipses** of the Sun and the Moon, as someone standing in Avignon would
+  see them: the day, the hour (Avignon's local time), and how much is covered.
+  An eclipse you could not see from there (the Moon or Sun below the horizon, or
+  only the faintest shadow) is left out. The table covers the years 1200 to 1500.
+- **Holidays**, the City of Masks ones from Cursed Scroll 6 pp. 46-47. The
+  import guide files them for you as part of importing Cursed Scroll 6, so they
+  are on the calendar as soon as the import finishes (**Importer Hub → Tools →
+  Chapter to journal** does the same by hand). The ones that follow the sun
+  (the Duke's Ball on the summer solstice, the Night of St. Anton on the
+  autumn equinox) fall on the real day, not a fixed date.
+- **The gods' holy days**, from the Player's Guide (pp. 190-205). The import guide
+  files the gods' pages when you add the Player's Guide, and the calendar lists
+  a holy day once its god's page is there. Most are as loose as the book:
+  "the seventh day of spring" lands on 7 March, a new or full moon in a season
+  lands on those days, and a stretch like "high summer" or "late winter" is one
+  line, with no day, for each month it touches (the thirds of a season: early
+  is its first month, mid its second, late its third). Four have no date to
+  show and are left out: Ord's Chariot and the Blood Moon (every three years),
+  Catterghat and Imprisonment (a day a priest chooses). Only the name, god and
+  timing are in the calendar; open the god's page for what the day is (a GM can;
+  players read the calendar's own line).
+- **Entries**: notes and quests a GM adds, and lines the module writes as the
+  party plays.
+
+The dates are the ones Foundry's own calendar prints. Its world calendar is
+"Simplified Gregorian", a leap day every fourth year, which in the 1300s is the
+Julian calendar, so in 1348 the spring equinox falls on 12 March, the summer
+solstice on 13 June, the autumn equinox on 14 September and the winter solstice
+on 13 December. That is why a new campaign starts on 12 March 1348. The moon
+counts the average month from a real new moon, so its full moon can sit up to
+about half a day, rarely a day, from an eclipse's.
+
+### What players see
+
+Players see the holidays, with the book's page text and what each does, and the
+holy days, with a line on each, in the same calendar. They cannot read the
+module's journal compendium (it holds every imported book), so a GM's client
+keeps a copy of just the holiday pages and the list of imported holy days in a
+world setting, and refreshes it when the world loads, when the month view opens
+and after an import. A player sees them once a GM has loaded the world with the
+pages imported; there is no page for them to open.
+
+A GM can keep any one of them from players: open the holiday or holy day (click
+it) and press the **Players can see this** button, which becomes **GM only:
+players can't see this**. A GM-only one is left out of the copy players read, so
+its text never reaches their clients, and it shows a "GM only" tag on your
+calendar. Press it again to show it.
+
+### Entries
+
+A GM adds one under the list: a date, **Note** or **Quest**, a title, details,
+and **GM only** to keep it from the players. The **×** on a line removes it.
+Players see every entry that is not GM only, but cannot add or remove any.
+
+The module logs these lines as play goes: **The party sets out** and **Travel
+ends** (with the hex), **The party makes camp** (hex, terrain, region and the
+day's weather), and each **Encounter** a travel check draws (GM only; what turned
+up and the hex). The log is kept to 1000 lines, dropping the oldest logged ones
+first; the ones you wrote stay.
+
+### Where a new campaign starts
+
+A world whose clock has never been set starts on **12 March 1348, 08:00**
+instead of 1 January of year 0, once, the first time a GM loads it. A clock
+anyone has already set is left alone. Set another date any time by clicking the
+month and year in the month view.

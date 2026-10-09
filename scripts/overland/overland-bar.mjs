@@ -41,8 +41,16 @@ import { encounterCard, encounterPanel, encounterStrip } from "./encounter-panel
 import { postEncounter } from "../encounter/encounter-draw.mjs";
 import { DIAL, DIAL_STARS, clockShown, clockSteps, dateToTime, dialModel, monthGrid, seasonHatch, starPoint } from "./hud-core.mjs";
 import { L as t } from "../shared/i18n.mjs";
+import { moonEpoch } from "../time/time.mjs";
+import { dayEvents, paragraphs } from "../calendar/calendar-core.mjs";
+import { holyWindows } from "../holidays/holy-days.mjs";
+import { gmOnlyKeys, holidayEffects, setGmOnly } from "../holidays/holidays.mjs";
+import { CALENDAR_CHANGED, addCalendarEntry, calendarEntries, removeCalendarEntry } from "../calendar/calendar.mjs";
 
 const BAR_ID = "shadowdark-enhancer-travel";
+
+/** The ids of the fields a GM types in: the clock does not redraw under them. */
+const TYPING = /^sde-hud-[de]-/;
 
 /** Each moon phase's name (literal keys, so i18n-keys can see them). */
 const MOON_NAME = {
@@ -56,6 +64,28 @@ const MOON_NAME = {
   waningCrescent: "SDE.overland.bar.moon.waningCrescent",
 };
 const MOON_MARK = { new: "SDE.clock.moon.new", q1: "SDE.clock.moon.firstQuarter", full: "SDE.clock.moon.full", q3: "SDE.clock.moon.lastQuarter" };
+/** What the month view's agenda calls each sky event and entry kind (literal keys, so i18n-keys can see them). */
+const SOLAR_NAME = {
+  springEquinox: "SDE.calendar.solar.springEquinox",
+  summerSolstice: "SDE.calendar.solar.summerSolstice",
+  autumnEquinox: "SDE.calendar.solar.autumnEquinox",
+  winterSolstice: "SDE.calendar.solar.winterSolstice",
+};
+const ECLIPSE_NAME = {
+  St: "SDE.calendar.eclipse.solarTotal", Sa: "SDE.calendar.eclipse.solarAnnular", Sp: "SDE.calendar.eclipse.solarPartial",
+  Lt: "SDE.calendar.eclipse.lunarTotal", Lp: "SDE.calendar.eclipse.lunarPartial",
+};
+const KIND_NAME = {
+  note: "SDE.calendar.kind.note", quest: "SDE.calendar.kind.quest", travel: "SDE.calendar.kind.travel", encounter: "SDE.calendar.kind.encounter",
+};
+const SEASON_NAME = {
+  spring: "SDE.calendar.season.spring", summer: "SDE.calendar.season.summer", autumn: "SDE.calendar.season.autumn", winter: "SDE.calendar.season.winter",
+};
+const HOLY_PART = {
+  early: "SDE.calendar.holy.part.early", mid: "SDE.calendar.holy.part.mid", late: "SDE.calendar.holy.part.late",
+  earlyMid: "SDE.calendar.holy.part.earlyMid", whole: "SDE.calendar.holy.part.whole",
+};
+const KIND_ICON = { note: "fa-note-sticky", quest: "fa-scroll", travel: "fa-route", encounter: "fa-dragon" };
 const JUMPS = { dawn: "SDE.clock.jump.dawn", noon: "SDE.clock.jump.noon", dusk: "SDE.clock.jump.dusk", midnight: "SDE.clock.jump.midnight" };
 
 /** An icon button on the bar; `pressed` marks the panel or column it opened. */
@@ -85,10 +115,18 @@ export const TravelBar = {
   _adjust: false,
   /** The imported holidays, read when the month view opens. */
   _holidays: [],
+  /** The holy days whose deity pages are imported, read with them. */
+  _holy: [],
+  /** What the month view shows the detail of: `{ at }` a day, or `{ holy }` a holy day's key; null for none. */
+  _info: null,
+  /** Imported pages read for the detail, by uuid: their paragraphs, or null while they load. */
+  _text: new Map(),
   _drawn: "",
   _sceneKind: null,
-  /** The Time panel's date, as the GM is typing it: kept across redraws. */
-  _when: null,
+  /** Whether the month view shows its day, month and year fields (a GM clicked the title). */
+  _dateEdit: false,
+  /** The month view's new entry, as the GM is typing it: kept across redraws. */
+  _draft: null,
   /** A move in flight: a second click waits for it rather than stacking on a stale clock. */
   _moving: false,
 
@@ -108,6 +146,13 @@ export const TravelBar = {
     });
     Hooks.on(CrawlState.HOOK_CHANGED, queue);
     Hooks.on(`${MODULE_ID}.clockBarChanged`, queue);
+    Hooks.on(CALENDAR_CHANGED, () => { if (this._open === "month") this.render(); });
+    // A GM changed what players may see of the holidays: an open month view catches up.
+    Hooks.on(`${MODULE_ID}.calendarLoreChanged`, async () => {
+      if (this._open !== "month" || game.user.isGM) return;
+      await this._loadHolidays();
+      this.render();
+    });
     for (const hook of ["createCombat", "updateCombat", "deleteCombat"]) Hooks.on(hook, queue);
     Hooks.on("pauseGame", () => { if (this._open === "time") this.render(); });
     Hooks.on("canvasReady", () => {
@@ -124,7 +169,7 @@ export const TravelBar = {
     // Real-time light tracking moves the clock every second: redraw on the
     // minute, but not under a GM typing a date (focusout catches up).
     Hooks.on("updateWorldTime", () => {
-      if (document.activeElement?.id === "sde-hud-when") return;
+      if (TYPING.test(document.activeElement?.id ?? "")) return;
       if (this._stamp() !== this._drawn) this.render();
     });
     // A member's rations change when they forage, buy, trade or eat.
@@ -141,10 +186,19 @@ export const TravelBar = {
     (document.getElementById("interface") ?? document.body).prepend(el);
     el.addEventListener("click", (event) => this._onClick(event));
     el.addEventListener("change", (event) => this._onChange(event));
-    el.addEventListener("input", (event) => { if (event.target.id === "sde-hud-when") this._when = event.target.value; });
-    // Leaving the date field redraws what the minute skipped; not when moving onto Set, mid-click.
+    el.addEventListener("input", (event) => {
+      const { id, type, checked, value } = event.target;
+      if (id?.startsWith("sde-hud-e-")) (this._draft ??= {})[id.slice(10)] = type === "checkbox" ? checked : value;
+    });
+    // Enter in the date fields sets the date.
+    el.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && event.target.id?.startsWith("sde-hud-d-")) this._setDate();
+      // A line of the agenda is a button to a keyboard.
+      else if ((event.key === "Enter" || event.key === " ") && event.target.matches?.("li[data-action]")) { event.preventDefault(); event.target.click(); }
+    });
+    // Leaving a field redraws what the minute skipped; not when moving onto its button, mid-click.
     el.addEventListener("focusout", (event) => {
-      if (event.target.id !== "sde-hud-when" || this._el.contains(event.relatedTarget)) return;
+      if (!TYPING.test(event.target.id ?? "") || this._el.contains(event.relatedTarget)) return;
       if (this._stamp() !== this._drawn) this.render();
     });
     this._el = el;
@@ -331,10 +385,7 @@ export const TravelBar = {
   },
 
   _timePanel() {
-    const { now, cal, parts } = this._now();
-    const c = cal.timeToComponents(now);
-    const pad = (n) => String(n).padStart(2, "0");
-    const value = `${String(parts.year).padStart(4, "0")}-${pad(c.month + 1)}-${pad(parts.day)}T${parts.time}`;
+    const { parts } = this._now();
     let realtime = false, tracking = true;
     try { realtime = !!game.settings.get("shadowdark", "realtimeLightTracking"); } catch { /* not the Shadowdark system */ }
     try { tracking = game.settings.get("shadowdark", "trackLightSources") !== false; } catch { /* idem */ }
@@ -347,9 +398,6 @@ export const TravelBar = {
       <div class="sde-hud-pb">
         <span class="sde-hud-cap">${esc(t("SDE.clock.jumpTo"))}</span>
         <div class="sde-hud-grid4">${jumps}</div>
-        <label class="sde-hud-cap" for="sde-hud-when">${esc(t("SDE.clock.setDate"))}</label>
-        <div class="sde-hud-row"><input class="sde-hud-field" id="sde-hud-when" type="text" spellcheck="false"
-          placeholder="${esc(t("SDE.clock.datePlaceholder"))}" value="${esc(this._when ?? value)}" data-tooltip="${esc(t("SDE.clock.dateFormat"))}">${key("setTime", t("SDE.clock.set"), { cls: "sde-hud-sm" })}</div>
         <label class="sde-hud-check"><input type="checkbox" data-action="realtime" ${realtime ? "checked" : ""} ${tracking ? "" : "disabled"}>
           <span>${esc(t("SDE.clock.realtime"))}</span><span class="sde-hud-cap">${esc(t(paused ? "SDE.clock.paused" : "SDE.clock.lightTracking"))}</span></label>
         <span class="sde-hud-fl">${esc(t("SDE.clock.timeNote"))}</span>
@@ -358,36 +406,190 @@ export const TravelBar = {
   },
 
   _monthPanel() {
-    const { now, cal } = this._now();
+    const { now, cal, parts } = this._now();
     const gm = game.user.isGM;
     let epoch = 0;
-    try { epoch = Number(game.settings.get(MODULE_ID, "moonEpoch")) || 0; } catch { /* default */ }
+    try { epoch = moonEpoch(); } catch { /* default */ }
     const holidaysOn = (date) => this._holidays.filter((h) => this._whenMatches?.(h.when, date)).map((h) => h.name);
     const g = monthGrid(cal, now, { offset: this._monthOffset, epoch, holidaysOn });
+    const spd = secondsPerDay(cal);
+    const entries = calendarEntries();
+    const events = g.cells.map((cell) => (cell.out ? [] : dayEvents({ cell, year: g.year, month: g.monthNumber, spd, entries, gm, holy: this._holy })));
     const heads = g.weekdays.map((w) => `<div class="sde-hud-dow">${esc(t(w))}</div>`).join("");
-    const cells = g.cells.map((cell) => {
+    const cells = g.cells.map((cell, i) => {
       if (cell.out) return `<div class="sde-hud-day sde-hud-out">${cell.day}</div>`;
       const mark = cell.moon ? `<span class="sde-hud-m sde-hud-m-${cell.moon}" data-tooltip="${esc(t(MOON_MARK[cell.moon]))}"></span>` : "";
       const hol = cell.holidays.length ? `<span class="sde-hud-h">${esc(cell.holidays.join(", "))}</span>` : "";
-      const cls = `sde-hud-day${cell.today ? " sde-hud-today" : ""}`;
-      return gm
-        ? `<button type="button" class="${cls}" data-action="goto" data-id="${cell.at}" aria-label="${esc(t("SDE.clock.goTo", { day: cell.day, month: t(g.month) }))}">${cell.day}${mark}${hol}</button>`
-        : `<div class="${cls}">${cell.day}${mark}${hol}</div>`;
+      const busy = events[i].some((e) => e.kind !== "holiday") ? '<span class="sde-hud-e"></span>' : "";
+      const picked = this._info?.at === cell.at;
+      const cls = `sde-hud-day${cell.today ? " sde-hud-today" : ""}${picked ? " sde-hud-picked" : ""}`;
+      return `<button type="button" class="${cls}" data-action="pickDay" data-id="${cell.at}" aria-pressed="${picked}" aria-label="${esc(t("SDE.calendar.openDay", { day: cell.day, month: t(g.month) }))}">${cell.day}${mark}${busy}${hol}</button>`;
     }).join("");
+    // The holy days that sit in a stretch of the season rather than on a day come first, with no day.
+    const stretches = holyWindows(this._holy, g.cells).map((h) => this._eventRow(null, { kind: "holy", holy: h }, cal, gm)).join("");
+    const agenda = stretches + g.cells.flatMap((cell, i) => events[i].map((ev) => this._eventRow(cell, ev, cal, gm))).join("");
     const season = cal.seasons?.values?.[g.season]?.name;
     const notes = [
       g.fullMoon ? t("SDE.clock.fullMoonOn", { day: g.fullMoon }) : "",
-      gm ? t("SDE.clock.clickDay") : "",
+      t("SDE.clock.clickDay"),
       this._holidays.length ? "" : t("SDE.clock.noHolidays"),
     ].filter(Boolean).join(" ");
     return `<div class="sde-hud-panel sde-hud-wide">
       <div class="sde-hud-ph sde-hud-ph-row">
         ${key("month", "‹", { id: "-1", cls: "sde-hud-sm", hint: t("SDE.clock.prevMonth"), aria: t("SDE.clock.prevMonth") })}
-        <span class="sde-hud-ttl">${esc(`${t(g.month)} ${g.year}`)}</span>${season ? `<span class="sde-hud-cap">${esc(t(season))}</span>` : ""}
+        ${gm ? `<button type="button" class="sde-hud-ttl sde-hud-ttlbtn" data-action="dateEdit" aria-expanded="${this._dateEdit}" data-tooltip="${esc(t("SDE.clock.changeDate"))}">${esc(`${t(g.month)} ${g.year}`)}</button>`
+          : `<span class="sde-hud-ttl">${esc(`${t(g.month)} ${g.year}`)}</span>`}${season ? `<span class="sde-hud-cap">${esc(t(season))}</span>` : ""}
         ${key("month", "›", { id: "1", cls: "sde-hud-sm", hint: t("SDE.clock.nextMonth"), aria: t("SDE.clock.nextMonth") })}
       </div>
-      <div class="sde-hud-pb"><div class="sde-hud-mgrid" style="grid-template-columns:repeat(${g.weekdays.length || 7},minmax(0,1fr))">${heads}${cells}</div>
-        <span class="sde-hud-fl">${esc(notes)}</span></div>
+      <div class="sde-hud-pb">${gm && this._dateEdit ? this._dateRow(cal, parts) : ""}<div class="sde-hud-mgrid" style="grid-template-columns:repeat(${g.weekdays.length || 7},minmax(0,1fr))">${heads}${cells}</div>
+        <span class="sde-hud-fl">${esc(notes)}</span>
+        ${this._detail(g, events, cal, gm)}
+        ${agenda ? `<ul class="sde-hud-agenda">${agenda}</ul>` : `<span class="sde-hud-fl">${esc(t("SDE.calendar.empty"))}</span>`}
+        ${gm ? this._entryForm(g, parts) : ""}</div>
+    </div>`;
+  },
+
+  /** A holy day's second line: its deity, when it falls, and where the book prints it. */
+  _holyLine({ deity, page, rule }) {
+    const season = t(SEASON_NAME[rule.season]);
+    let when;
+    if (rule.moon) {
+      when = t(rule.first ? "SDE.calendar.holy.firstMoon" : "SDE.calendar.holy.eachMoon", { moon: t(rule.moon === "new" ? "SDE.calendar.holy.new" : "SDE.calendar.holy.full"), season });
+    } else if (rule.part === "day") {
+      when = rule.to > rule.from ? t("SDE.calendar.holy.week", { season }) : t("SDE.calendar.holy.day", { n: rule.from, season });
+    } else {
+      when = t(HOLY_PART[rule.part], { season });
+    }
+    return `${deity} · ${when} · ${t("SDE.calendar.holy.source", { page })}`;
+  },
+
+  /** The GM's date fields, on the clock's date: day, month by name, year, and Go. */
+  _dateRow(cal, parts) {
+    const months = (cal.months?.values ?? []).map((m, i) =>
+      `<option value="${i + 1}"${t(m.name) === t(parts.month) ? " selected" : ""}>${esc(t(m.name))}</option>`).join("");
+    return `<div class="sde-hud-row sde-hud-dateedit">
+      <input class="sde-hud-field" id="sde-hud-d-day" type="number" min="1" value="${parts.day}" aria-label="${esc(t("SDE.clock.day"))}">
+      <select class="sde-hud-field" id="sde-hud-d-month" aria-label="${esc(t("SDE.clock.monthName"))}">${months}</select>
+      <input class="sde-hud-field" id="sde-hud-d-year" type="number" value="${parts.year}" aria-label="${esc(t("SDE.clock.year"))}">
+      ${key("setDate", t("SDE.clock.go"), { cls: "sde-hud-sm" })}
+    </div>
+    <span class="sde-hud-fl">${esc(t("SDE.clock.dateNote"))}</span>`;
+  },
+
+  /** An event's icon, its text and whatever button goes at the end of its line. */
+  _eventParts(ev, cal, gm) {
+    switch (ev.kind) {
+      case "holiday": {
+        const hidden = game.user.isGM && gmOnlyKeys().includes(this._holidays.find((h) => h.name === ev.name)?.key);
+        return { icon: "fa-masks-theater", html: esc(ev.name) + (hidden ? `<small>${esc(t("SDE.calendar.gmOnly"))}</small>` : "") };
+      }
+      case "solar": return { icon: "fa-sun", html: esc(t(SOLAR_NAME[ev.key])) };
+      case "season": return { icon: "fa-leaf", html: esc(t("SDE.calendar.seasonBegins", { season: t(cal.seasons?.values?.[ev.index]?.name ?? "") })) };
+      case "holy": {
+        const hidden = game.user.isGM && gmOnlyKeys().includes(ev.holy.key);
+        return { icon: "fa-hands-praying", html: `<b>${esc(ev.holy.name)}</b><small>${esc(this._holyLine(ev.holy) + (hidden ? ` · ${t("SDE.calendar.gmOnly")}` : ""))}</small>` };
+      }
+      case "eclipse": return { icon: "fa-circle-half-stroke",
+        html: esc(t("SDE.calendar.eclipse.line", { name: t(ECLIPSE_NAME[ev.body + ev.type]), time: ev.time, percent: ev.percent })) };
+      default: {
+        const e = ev.entry;
+        const kind = t(KIND_NAME[e.kind]) + (e.gm ? ` · ${t("SDE.calendar.gmOnly")}` : "");
+        const del = gm ? key("delEntry", "×", { id: e.id, cls: "sde-hud-sm sde-hud-x", hint: t("SDE.calendar.remove"), aria: t("SDE.calendar.remove") }) : "";
+        return { icon: KIND_ICON[e.kind], html: `<b>${esc(e.title)}</b><small>${esc(kind)}${e.text ? ` · ${esc(e.text)}` : ""}</small>`, extra: del };
+      }
+    }
+  },
+
+  /**
+   * One line of the month's agenda: the day, an icon and what falls on it.
+   * Clicking it opens what it is; a holy day that sits in a stretch of the
+   * season (no `cell`) opens on its own.
+   */
+  _eventRow(cell, ev, cal, gm) {
+    const { icon, html, extra } = this._eventParts(ev, cal, gm);
+    const action = cell ? `data-action="pickDay" data-id="${cell.at}"` : `data-action="pickHoly" data-id="${esc(ev.holy.key)}"`;
+    return `<li ${action} role="button" tabindex="0"><span class="sde-hud-ad">${cell ? cell.day : "–"}</span><i class="fa-solid ${icon} sde-hud-ai" aria-hidden="true"></i><span class="sde-hud-at">${html}</span>${extra || "<span></span>"}</li>`;
+  },
+
+  /** An imported page's paragraphs, or null while it is read (the bar redraws when it is). */
+  _page(uuid) {
+    if (!uuid) return [];
+    if (this._text.has(uuid)) return this._text.get(uuid);
+    this._text.set(uuid, null);
+    fromUuid(uuid).then((page) => this._text.set(uuid, paragraphs(page?.text?.content)))
+      .catch(() => this._text.set(uuid, []))
+      .finally(() => this.render());
+    return null;
+  },
+
+  /**
+   * What a clicked day, or holy day, is about: for a holiday what it does and
+   * the book's page; for a holy day its god, when it falls and a line on what it
+   * is; the rest as the agenda says them. A GM can go to the day from here.
+   */
+  _detail(g, events, cal, gm) {
+    const info = this._info;
+    if (!info) return "";
+    let title, items, at = null;
+    if (info.holy) {
+      const h = this._holy.find((x) => x.key === info.holy);
+      if (!h) return "";
+      title = h.name;
+      items = [{ kind: "holy", holy: h }];
+    } else {
+      const i = g.cells.findIndex((c) => !c.out && c.at === info.at);
+      if (i < 0) return "";
+      at = info.at;
+      title = `${g.cells[i].day} ${t(g.month)} ${g.year}`;
+      items = events[i];
+    }
+    const open = (uuid) => (uuid ? key("openPage", t("SDE.calendar.openPage"), { id: uuid, cls: "sde-hud-sm" }) : "");
+    // A GM can switch a holiday or holy day to GM only: players' calendars then leave it out.
+    const hiddenKeys = gmOnlyKeys();
+    const toggle = (k) => (game.user.isGM ? key("toggleGmOnly", t(hiddenKeys.includes(k) ? "SDE.calendar.gmOnlyOn" : "SDE.calendar.gmOnlyOff"), { id: k, cls: "sde-hud-sm", hint: t("SDE.calendar.gmOnlyHint") }) : "");
+    const block = (ev) => {
+      const { icon, html } = this._eventParts(ev, cal, false);
+      let more = "";
+      if (ev.kind === "holiday") {
+        const h = this._holidays.find((x) => x.name === ev.name);
+        const effects = holidayEffects(h?.carousing).map((e) => `<li>${esc(e.key === "SDE.calendar.effect.chance" ? t(e.key, { n: e.n, label: e.label }) : t(e.key, { n: e.n }))}</li>`).join("");
+        const text = h?.paras ?? this._page(h?.pageUuid);
+        more = (effects ? `<ul class="sde-hud-effects">${effects}</ul>` : "")
+          + (text === null ? `<span class="sde-hud-fl">${esc(t("SDE.calendar.reading"))}</span>` : text.map((p) => `<p>${esc(p)}</p>`).join(""))
+          + open(h?.pageUuid) + toggle(h?.key);
+      } else if (ev.kind === "holy") {
+        more = `<p>${esc(t(ev.holy.about))}</p>${open(ev.holy.pageUuid)}${toggle(ev.holy.key)}`;
+      }
+      return `<div class="sde-hud-dblock"><div class="sde-hud-dh"><i class="fa-solid ${icon} sde-hud-ai" aria-hidden="true"></i><span class="sde-hud-at">${html}</span></div>${more}</div>`;
+    };
+    const goTo = gm && at !== null ? key("goto", t("SDE.calendar.goToDay"), { id: String(at), cls: "sde-hud-sm", hint: t("SDE.calendar.goToDayHint") }) : "";
+    return `<div class="sde-hud-detail">
+      <div class="sde-hud-row"><span class="sde-hud-ttl2">${esc(title)}</span>${goTo}${key("closeInfo", "×", { cls: "sde-hud-sm sde-hud-x", aria: t("SDE.calendar.close"), hint: t("SDE.calendar.close") })}</div>
+      ${items.length ? items.map(block).join("") : `<span class="sde-hud-fl">${esc(t("SDE.calendar.nothingOn"))}</span>`}
+    </div>`;
+  },
+
+  /** The GM's form for a new entry: a date, a kind, a title, the details, and whether players see it. */
+  _entryForm(g, parts) {
+    const d = this._draft ?? {};
+    const pad = (n) => String(n).padStart(2, "0");
+    const month = `${String(g.year).padStart(4, "0")}-${pad(g.monthNumber)}`;
+    // The viewed month's first day, or today when it is the month on the clock.
+    const date = d.date ?? (this._monthOffset ? `${month}-01` : `${month}-${pad(parts.day)}`);
+    const kinds = ["note", "quest"]
+      .map((k) => `<option value="${k}"${(d.kind ?? "note") === k ? " selected" : ""}>${esc(t(KIND_NAME[k]))}</option>`).join("");
+    return `<div class="sde-hud-add">
+      <span class="sde-hud-cap">${esc(t("SDE.calendar.add"))}</span>
+      <div class="sde-hud-row">
+        <input class="sde-hud-field" id="sde-hud-e-date" type="date" value="${esc(date)}" aria-label="${esc(t("SDE.calendar.date"))}">
+        <select class="sde-hud-field" id="sde-hud-e-kind" aria-label="${esc(t("SDE.calendar.type"))}">${kinds}</select>
+      </div>
+      <input class="sde-hud-field" id="sde-hud-e-title" type="text" maxlength="120" value="${esc(d.title ?? "")}" placeholder="${esc(t("SDE.calendar.title"))}" aria-label="${esc(t("SDE.calendar.title"))}">
+      <input class="sde-hud-field" id="sde-hud-e-text" type="text" maxlength="2000" value="${esc(d.text ?? "")}" placeholder="${esc(t("SDE.calendar.details"))}" aria-label="${esc(t("SDE.calendar.details"))}">
+      <div class="sde-hud-row">
+        <label class="sde-hud-checkrow"><input type="checkbox" id="sde-hud-e-gm"${d.gm ? " checked" : ""}> <span>${esc(t("SDE.calendar.gmOnlyBox"))}</span></label>
+        ${key("addEntry", t("SDE.calendar.addKey"), { cls: "sde-hud-sm" })}
+      </div>
     </div>`;
   },
 
@@ -460,7 +662,8 @@ export const TravelBar = {
     switch (el.dataset.action) {
       case "open":
         this._open = this._open === id ? null : id;
-        this._when = null;
+        this._dateEdit = false;
+        this._info = null;
         this._see = null;
         this._adjust = false;
         if (this._open === "month") {
@@ -472,19 +675,40 @@ export const TravelBar = {
       // The day's own step, or the one already open, goes back to following the day.
       case "see": { const n = Number(id); this._see = (this._see === n || el.dataset.now) ? null : n; return this.render(); }
       case "sky": this._sky = !this._sky; this._open = null; return this.render();
-      case "month": this._monthOffset += Number(id) || 0; return this.render();
+      case "month": this._monthOffset += Number(id) || 0; this._info = null; return this.render();
       case "step": return this._move(Number(id));
       case "jump": return this._move(null, { to: nextTimeOfDay(game.time.calendar, game.time.worldTime, id) });
       case "goto": {
         const cal = game.time.calendar, now = game.time.worldTime;
         return this._move(null, { to: Number(id) + (now - startOfDay(cal, now)), calendar: true });
       }
-      case "setTime": {
-        const target = this._parseWhen(this._el.querySelector("#sde-hud-when")?.value);
-        if (target === null) return ui.notifications.warn(t("SDE.clock.badDate"));
-        this._when = null;
-        return this._move(null, { to: target, calendar: true });
+      case "addEntry": {
+        const d = this._draft ?? {};
+        const read = (name, dflt = "") => this._el.querySelector(`#sde-hud-e-${name}`)?.value ?? d[name] ?? dflt;
+        const cal = game.time.calendar, now = game.time.worldTime;
+        const [year, month, day] = read("date").split("-").map(Number);
+        const dayStart = dateToTime(cal, { year, month, day });
+        if (dayStart === null) return ui.notifications.warn(t("SDE.clock.badDate"));
+        if (!read("title").trim()) return ui.notifications.warn(t("SDE.calendar.needTitle"));
+        await addCalendarEntry({
+          // The clock's hour on that day, so a day's entries stay in the order they were filed.
+          at: dayStart + (now - startOfDay(cal, now)), kind: read("kind", "note"),
+          title: read("title"), text: read("text"), gm: !!this._el.querySelector("#sde-hud-e-gm")?.checked,
+        });
+        this._draft = null;
+        return this.render();
       }
+      case "delEntry": return removeCalendarEntry(id);
+      case "pickDay": { const at = Number(id); this._info = this._info?.at === at ? null : { at }; return this.render(); }
+      case "pickHoly": this._info = this._info?.holy === id ? null : { holy: id }; return this.render();
+      case "toggleGmOnly": await setGmOnly(id, !gmOnlyKeys().includes(id)); return this.render();
+      case "closeInfo": this._info = null; return this.render();
+      case "openPage": {
+        const page = await fromUuid(id);
+        return page?.parent?.sheet?.render({ force: true, pageId: page.id });
+      }
+      case "dateEdit": this._dateEdit = !this._dateEdit; return this.render();
+      case "setDate": return this._setDate();
       case "startTravel": {
         const started = await startOverland();
         if (started) { this._open = "travel"; this._see = null; }
@@ -546,22 +770,30 @@ export const TravelBar = {
     this.render();
   },
 
-  /** "YYYY-MM-DDTHH:MM" (the year as shown; a space for the T is fine) to a worldTime, or null. */
-  _parseWhen(value) {
-    const m = /^(-?\d{1,6})-(\d{1,2})-(\d{1,2})[T ](\d{1,2}):(\d{2})$/.exec(String(value ?? "").trim());
-    if (!m) return null;
-    const [, y, mo, d, h, mi] = m.map(Number);
-    return dateToTime(game.time.calendar, { year: y, month: mo, day: d, hour: h, minute: mi });
+  /** The month view's day, month and year fields: the clock goes to that date at the same hour. */
+  async _setDate() {
+    const cal = game.time.calendar, now = game.time.worldTime;
+    const read = (name) => Number(this._el.querySelector(`#sde-hud-d-${name}`)?.value);
+    const dayStart = dateToTime(cal, { year: read("year"), month: read("month"), day: read("day") });
+    if (dayStart === null) return ui.notifications.warn(t("SDE.clock.badDate"));
+    this._dateEdit = false;
+    this._monthOffset = 0;
+    await this._move(null, { to: dayStart + (now - startOfDay(cal, now)), calendar: true });
+    this.render();
   },
 
   async _loadHolidays() {
     try {
       const mod = await import("../holidays/holidays.mjs");
       this._whenMatches = mod.whenMatches;
-      this._holidays = await mod.listHolidays();
+      // A GM reads the pack and keeps the players' copy current; a player reads that copy.
+      this._holidays = await mod.calendarHolidays();
+      this._holy = await mod.calendarHolyDays();
+      if (game.user.isGM) mod.publishLore();
     } catch (err) {
       console.warn(`${MODULE_ID} | clock: holidays not read`, err);
       this._holidays = [];
+      this._holy = [];
     }
   },
 };

@@ -355,13 +355,46 @@ export function registerSettings() {
   });
 
   // Internal world setting: a worldTime at which the moon was new; the time
-  // API's moon phases count from it (scripts/time/time.mjs, MOON_EPOCH). The
-  // default, worldTime 0, puts a new moon at the start of the calendar.
+  // API's moon phases count from it (scripts/time/time.mjs, MOON_EPOCH). 0
+  // means unset: a real new moon of 1348 stands in (time.mjs, defaultMoonEpoch).
   game.settings.register(MODULE_ID, "moonEpoch", {
     scope: "world",
     config: false,
     type: Number,
     default: 0,
+  });
+
+  // The calendar's entries (scripts/calendar): a GM's notes and quests, and the
+  // lines the module logs as the party travels. And whether the campaign start
+  // date has been applied to this world's clock, once.
+  game.settings.register(MODULE_ID, "calendarEntries", {
+    scope: "world",
+    config: false,
+    type: Array,
+    default: [],
+    onChange: () => Hooks.callAll(`${MODULE_ID}.calendarChanged`),
+  });
+  // What the month view shows players of the imported holidays (the journals
+  // pack is the GM's): a GM keeps it up to date (holidays.mjs publishLore).
+  game.settings.register(MODULE_ID, "calendarLore", {
+    scope: "world",
+    config: false,
+    type: Object,
+    default: {},
+    onChange: () => Hooks.callAll(`${MODULE_ID}.calendarLoreChanged`),
+  });
+  game.settings.register(MODULE_ID, "calendarGmOnly", {
+    scope: "world",
+    config: false,
+    type: Array,
+    default: [],
+    onChange: () => Hooks.callAll(`${MODULE_ID}.calendarChanged`),
+  });
+  game.settings.register(MODULE_ID, "calendarStarted", {
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: false,
   });
 
   // Monster level guidelines — "what should a level-N monster look like?".

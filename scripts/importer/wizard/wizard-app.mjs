@@ -166,6 +166,7 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
         fileAdventures: (src, opts) => importAdventures(src, { ...opts, keepExisting: true }),   // "Nothing you already have will be overwritten"
         keyBooks: keyLocationBooks(),
         keyLocations: (src, opts) => importKeyLocations(src, { ...opts, keepExisting: true }),
+        holidays: async (src) => (await import("../../holidays/holidays.mjs")).importHolidays(src),
         // The hex map's file is the one the GM picked; nothing is asked, and a scene made on an earlier run is left alone.
         hexMap: async (id, { title, firstNum }) => {
           const files = filesOfHex(state, id);   // a print that ships as two halves has two, in order

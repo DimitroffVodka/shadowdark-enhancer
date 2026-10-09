@@ -63,6 +63,7 @@ import { prepareCampNight, finishCampNight } from "../camping/camping.mjs";
 import { ownsHexFog, revealParty } from "../hex-map/hex-fog.mjs";
 import { weatherCard } from "../shared/chat-cards.mjs";
 import { L as t } from "../shared/i18n.mjs";
+import { logCalendar, whereLine } from "../calendar/calendar.mjs";
 
 export const OVERLAND_SETTING = "overlandState";
 export const OVERLAND_QUERY = `${MODULE_ID}.overland`;
@@ -471,6 +472,7 @@ export async function advanceTravel(target, reason, ms = 0) {
     if (wakes) next = interruptRest(next, c.at).state;
     await commit(next);
     if (hit) {
+      logEncounter(held);
       // Something is left for Continue when there's clock to run, checks
       // still due at this very moment (a second check at the same hour, or the
       // overdue checks of a late Start day), or a camp to finish: its dawn
@@ -1028,6 +1030,20 @@ async function pitchCamp(user, acceptShortages = false) {
   return true;
 }
 
+/** The calendar's line for a camp made, and for an encounter a travel check drew (the GMs'). */
+function logCamp() {
+  const weather = weatherName(_state.weather?.kind);
+  return logCalendar("travel", t("SDE.calendar.log.camp"), [whereLine(_state.hex), weather].filter(Boolean).join(". "));
+}
+
+function logEncounter(enc) {
+  if (!enc || enc.kind === "empty") return undefined;
+  const title = enc.kind === "monster"
+    ? t("SDE.calendar.log.encounterMonster", { count: enc.count ?? 1, name: enc.name ?? "" })
+    : t("SDE.calendar.log.encounterFlavor", { text: String(enc.text ?? "").slice(0, 80) });
+  return logCalendar("encounter", title, whereLine(_state.hex), { gm: true });
+}
+
 /** A chat post everyone sees, one paragraph a line. */
 const campLine = (lines) => ChatMessage.create({ content: lines.map((l) => `<p>${esc(l)}</p>`).join("") })
   .catch((err) => console.error(`${MODULE_ID} | camp chat line`, err));
@@ -1274,7 +1290,10 @@ export function applyAction(data, user) {
         if (_state.day === null) return { ok: false, error: t("SDE.overland.notify.campNoDay") };
         // Each step is kept in the camp as it's done, so a camp already made (pressed again after
         // something failed, in this tab or after a reload) goes on from the next step (#282 review).
-        if (!_state.camp && !(await pitchCamp(user, data.acceptShortages === true))) return isNativeParty(party) ? { ok: true, setup: true } : { ok: false, error: t("SDE.overland.notify.campNotMade") };
+        if (!_state.camp) {
+          if (!(await pitchCamp(user, data.acceptShortages === true))) return isNativeParty(party) ? { ok: true, setup: true } : { ok: false, error: t("SDE.overland.notify.campNotMade") };
+          logCamp();
+        }
         if (!_state.camp.lightsOut) {
           // Q8: carried lights go out and keep their time, through the off-duty
           // move with no clock of its own (a refusal there warns, and camp goes on).

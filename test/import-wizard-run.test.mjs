@@ -112,3 +112,27 @@ test("adventure pages that were already filed count as already had, not imported
   assert.equal(r.imported, 40 + 40 + 1);  // the library's 40, the key locations' 40 and the scene; no adventure page is new
   assert.equal(r.already, 3 + 34);        // the library's 3 and the 34 pages read again
 });
+
+test("Cursed Scroll 6 brings its holidays and the Player's Guide its holy days to the calendar, once, and a failure is the GM's to finish", async () => {
+  const CS6 = () => file("Cursed Scroll 6 - City of Masks V1.pdf", 24);
+  const PG = () => file("Player_s_Guide_to_the_Western_Reaches_V1.pdf", 40);
+  const d = deps({ holidays: async (src) => { d.calls.push(`holidays:${src}`); return { status: "imported", created: 4 }; } });
+  const r = await runWizardImport(stateWith(CS6()), hooks(), d);
+  assert.ok(d.calls.includes("holidays:CS6"));
+  assert.ok(!d.calls.includes("holidays:WR"));
+  assert.equal(r.imported, 40 + 4, "the library's 40 and the four holiday pages");
+
+  const both = deps({ holidays: async (src) => { both.calls.push(`holidays:${src}`); return { status: "imported", created: 4 }; } });
+  await runWizardImport(stateWith(CS6(), PG()), hooks(), both);
+  assert.deepEqual(both.calls.filter((c) => c.startsWith("holidays")), ["holidays:CS6", "holidays:WR"]);
+
+  const had = await runWizardImport(stateWith(CS6()), hooks(), deps({ holidays: async () => ({ status: "already" }) }));
+  assert.equal(had.already, 3 + 1);
+
+  const failed = await runWizardImport(stateWith(CS6()), hooks(), deps({ holidays: async () => { throw new Error("no book"); } }));
+  assert.match(failed.needsYou.at(-1).why, /holidaysFailed/);
+
+  const without = deps({ holidays: async () => { without.calls.push("holidays"); return { status: "already" }; } });
+  await runWizardImport(stateWith(CS1()), hooks(), without);
+  assert.ok(!without.calls.includes("holidays"), "neither book, nothing filed");
+});

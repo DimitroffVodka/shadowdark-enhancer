@@ -12,13 +12,30 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { isActiveGM, registerQuery } from "../shared/gm-relay.mjs";
 import * as core from "./time-core.mjs";
 import { nightWithOverride, skyOverride } from "../overland/sky-core.mjs";
+import { dateToTime } from "../overland/hud-core.mjs";
+import { NEW_MOON } from "../calendar/eclipse-data.mjs";
 import { advanceOffDuty, handleOffDutyQuery, OFF_DUTY_QUERY } from "./off-duty.mjs";
 
 /** World setting: a worldTime at which the moon was new. The phases count from it. */
 export const MOON_EPOCH = "moonEpoch";
 
-/** The moon's epoch, 0 (worldTime 0) until a GM sets another. */
-export const moonEpoch = () => Number(globalThis.game?.settings?.get?.(MODULE_ID, MOON_EPOCH)) || 0;
+/**
+ * A real new moon (eclipse-data.mjs, 1348), as the calendar prints its date.
+ * The average month counted from it stays within a day of the real full moon
+ * from 1200 to 1500, which is what lets the month view's moon sit beside its
+ * eclipses (test/calendar-core.test.mjs).
+ */
+export const defaultMoonEpoch = (cal) => {
+  const [year, month, day, time] = NEW_MOON;
+  const [hour, minute] = time.split(":").map(Number);
+  return dateToTime(cal, { year, month, day, hour, minute }) ?? 0;
+};
+
+/** The moon's epoch: a GM's setting, else the real new moon above. */
+export const moonEpoch = () => {
+  const cal = globalThis.game?.time?.calendar;
+  return Number(globalThis.game?.settings?.get?.(MODULE_ID, MOON_EPOCH)) || (cal ? defaultMoonEpoch(cal) : 0);
+};
 
 const calendar = () => game.time.calendar;
 /** `t` when given, else now. */

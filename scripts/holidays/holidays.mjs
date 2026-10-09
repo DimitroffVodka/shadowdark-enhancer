@@ -28,9 +28,11 @@
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
-import { CHAPTER_FLAG, CHAPTER_PRESETS, isSameChapter, nameKey } from "../importer/chapter-journal.mjs";
+import { CHAPTER_FLAG, CHAPTER_PRESETS, commitChapterJournal, isSameChapter, nameKey, readChapter } from "../importer/chapter-journal.mjs";
 import { timeApi } from "../time/time.mjs";
 import { startOfDay } from "../time/time-core.mjs";
+import { paragraphs, solarOn } from "../calendar/calendar-core.mjs";
+import { HOLY_DAYS, HOLY_DAY_PRESET } from "./holy-days.mjs";
 
 /** The chapter preset that imports the holiday pages (its src + pages are the journal's identity). */
 export const HOLIDAY_PRESET = "cs6-holidays";
@@ -47,6 +49,9 @@ export const ANCHORS = {
   autumnEquinox: { month: 9, day: 22 },
   winterSolstice: { month: 12, day: 21 },
 };
+
+/** The anchors that are a day of the sun's year, which a date can know (`dateInfo.solar`). */
+const SOLAR_ANCHORS = new Set(["springEquinox", "summerSolstice", "autumnEquinox", "winterSolstice"]);
 
 /** A 1-in-N chance the table rolls for, e.g. a marriage proposal. */
 const chance = (key, n, label) => ({ key, oneIn: n, label });
@@ -105,14 +110,36 @@ export const HOLIDAYS = [
 /**
  * Does a holiday fall on this date? Pure.
  * @param {{anchor:string}} rule  a recipe's `when`
- * @param {{month:number, day:number, isLastFullMoonOfYear?:boolean}} dateInfo
+ * @param {{month:number, day:number, isLastFullMoonOfYear?:boolean, solar?:string|null}} dateInfo
+ *   solar: which of the sun's four days this is (calendar-core's solarOn), when the date knows
  * @returns {boolean}
  */
 export function whenMatches(rule, dateInfo) {
   if (!rule || !dateInfo) return false;
   if (rule.anchor === "lastFullMoonOfYear") return dateInfo.isLastFullMoonOfYear === true;
   const at = ANCHORS[rule.anchor];
-  return !!at && dateInfo.month === at.month && dateInfo.day === at.day;
+  if (!at) return false;
+  // A date that knows which day of the sun's year it is (the calendar does) says so: the solstice
+  // is on 13 June in 1348, not the fixed day below, which stands in for a date that doesn't know.
+  if (dateInfo.solar !== undefined && SOLAR_ANCHORS.has(rule.anchor)) return dateInfo.solar === rule.anchor;
+  return dateInfo.month === at.month && dateInfo.day === at.day;
+}
+
+/**
+ * What a holiday does to carousing, as lines the month view says in this
+ * module's own words (en.json): a key and its argument, in reading order.
+ * @param {object} carousing  a recipe's `carousing`; its chances carry `oneIn` and a localised `label`
+ * @returns {Array<{key:string, n?:number, label?:string}>}
+ */
+export function holidayEffects(carousing = {}) {
+  const out = [];
+  if (carousing.eventBonus) out.push({ key: "SDE.calendar.effect.eventBonus", n: carousing.eventBonus });
+  if (carousing.benefitBonus) out.push({ key: "SDE.calendar.effect.benefitBonus", n: carousing.benefitBonus });
+  if (carousing.benefitAdvantage) out.push({ key: "SDE.calendar.effect.benefitAdvantage" });
+  if (carousing.extraBenefit) out.push({ key: "SDE.calendar.effect.extraBenefit" });
+  if (carousing.extraMishap) out.push({ key: "SDE.calendar.effect.extraMishap" });
+  for (const c of carousing.chances ?? []) out.push({ key: "SDE.calendar.effect.chance", n: c.oneIn, label: c.label });
+  return out;
 }
 
 /**
@@ -145,6 +172,7 @@ export function currentDateInfo() {
   const today = startOfDay(game.time.calendar, game.time.worldTime);
   return {
     year: c.year, month: c.month + 1, day: c.dayOfMonth + 1, dayOfYear: c.day + 1,
+    solar: solarOn(c.year + (game.time.calendar.years?.yearZero ?? 0), c.month + 1, c.dayOfMonth + 1),
     isLastFullMoonOfYear: timeApi.anchor("lastFullMoon", c.year) === today,
   };
 }
@@ -154,8 +182,8 @@ export function currentDateInfo() {
  * journal the preset files; empty when it has not been imported (or the pack
  * cannot be read by this user).
  */
-async function importedPages() {
-  const preset = CHAPTER_PRESETS.find((p) => p.id === HOLIDAY_PRESET);
+async function importedPages(presetId = HOLIDAY_PRESET) {
+  const preset = CHAPTER_PRESETS.find((p) => p.id === presetId);
   const { findSuitePack } = await import("../shared/compendium-suite.mjs");
   const pack = findSuitePack("journal");
   const out = new Map();
@@ -172,6 +200,150 @@ async function importedPages() {
     console.warn(`${MODULE_ID} | holidays: could not read the holidays journal`, err);
   }
   return out;
+}
+
+/**
+ * File the calendar's chapters from a book the GM added: the City of Masks
+ * holidays (Cursed Scroll 6, pp. 46-47) and the gods' holy days (the Player's
+ * Guide, pp. 190-205), each unless already filed. The month view shows a holiday
+ * or holy day once its page is there. The wizard calls this after the book's
+ * library import, so nothing is asked.
+ * @param {string} [src]  only the presets of this book ("CS6", "WR"); every one when omitted
+ * @returns {Promise<{status:"imported"|"already"|"failed", created?:number}>}
+ */
+export async function importHolidays(src = null) {
+  const presets = CHAPTER_PRESETS.filter((p) => [HOLIDAY_PRESET, HOLY_DAY_PRESET].includes(p.id) && (!src || p.src === src));
+  let created = 0, failed = false;
+  for (const preset of presets) {
+    if ((await importedPages(preset.id)).size) continue;
+    const req = { src: preset.src, pages: preset.pages, name: preset.name, sections: preset.sections, lead: preset.lead, preset: preset.id };
+    const read = await readChapter(req);
+    if (!read?.pages.length) { failed = true; continue; }
+    const report = await commitChapterJournal(req, read.pages);
+    if (report.uuid) created += report.created; else failed = true;
+  }
+  if (created) await publishLore();
+  if (failed) return { status: "failed" };
+  return created ? { status: "imported", created } : { status: "already" };
+}
+
+/**
+ * The holy days whose deity's page the GM has imported, each with its page's uuid.
+ * `game.shadowdarkEnhancer.holidays.holyDays()`.
+ * @returns {Promise<object[]>}
+ */
+export async function listHolyDays() {
+  const pages = await importedPages(HOLY_DAY_PRESET);
+  return HOLY_DAYS.filter((h) => pages.has(h.pageKey)).map((h) => ({ ...structuredClone(h), pageUuid: pages.get(h.pageKey) }));
+}
+
+// ── What players may see ──────────────────────────────────────────────────────
+// The journals pack holds every imported book and is the GM's: a player cannot
+// read it. So a GM copies what the calendar shows into a world setting, which
+// everyone can read: each holiday's page text, and which holy days are filed.
+// Only those pages, never the pack. The holy days' text is this module's own
+// (en.json); a player gets no page for them.
+
+/** The world setting that holds the copy. */
+export const LORE_SETTING = "calendarLore";
+
+/**
+ * Pure: the copy to store, from the imported holidays (each with its page's
+ * paragraphs) and the keys of the imported holy days. Key order is fixed so an
+ * unchanged copy compares equal.
+ * A holiday or holy day a GM switched to GM only is left out.
+ * @param {Array<{key:string, paras:string[]}>} holidays
+ * @param {string[]} holyKeys
+ * @param {string[]} [gmOnly]  keys hidden from players
+ */
+export function buildLore(holidays, holyKeys, gmOnly = []) {
+  const shown = (key) => !gmOnly.includes(key);
+  return {
+    holidays: Object.fromEntries([...holidays].filter((h) => shown(h.key)).sort((a, b) => a.key.localeCompare(b.key)).map((h) => [h.key, h.paras])),
+    holy: [...holyKeys].filter(shown).sort(),
+  };
+}
+
+/** The world setting listing the holidays and holy days (by key) that players do not see. */
+export const GM_ONLY_SETTING = "calendarGmOnly";
+
+/** Pure: `list` with `key` in it or out of it, in a fixed order. */
+export function withGmOnly(list, key, on) {
+  const keys = new Set(list);
+  if (on) keys.add(key); else keys.delete(key);
+  return [...keys].sort();
+}
+
+/** The keys switched to GM only. */
+export function gmOnlyKeys() {
+  try {
+    const v = game.settings.get(MODULE_ID, GM_ONLY_SETTING);
+    return Array.isArray(v) ? v.filter((k) => typeof k === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+/** GM only: switch one holiday or holy day to GM only, or back, and refresh what players are shown. */
+export async function setGmOnly(key, on) {
+  if (!game.user?.isGM) return false;
+  await game.settings.set(MODULE_ID, GM_ONLY_SETTING, withGmOnly(gmOnlyKeys(), key, on));
+  await publishLore();
+  return true;
+}
+
+/** Pure: whatever the setting holds, as a copy this file can trust. */
+export function normalizeLore(v) {
+  const holidays = {};
+  for (const [key, paras] of Object.entries(v?.holidays && typeof v.holidays === "object" ? v.holidays : {})) {
+    if (Array.isArray(paras)) holidays[key] = paras.filter((p) => typeof p === "string");
+  }
+  return { holidays, holy: (Array.isArray(v?.holy) ? v.holy : []).filter((k) => typeof k === "string") };
+}
+
+/** The stored copy. */
+export function readLore() {
+  try {
+    return normalizeLore(game.settings.get(MODULE_ID, LORE_SETTING));
+  } catch {
+    return normalizeLore(null);
+  }
+}
+
+/**
+ * GM only: store what the calendar shows, unless it is stored already. Never
+ * throws: the calendar still works for a GM without it.
+ */
+export async function publishLore() {
+  if (!game.user?.isGM) return false;
+  try {
+    const [holidays, holy] = await Promise.all([listHolidays(), listHolyDays()]);
+    const pages = await Promise.all(holidays.map(async (h) => ({ key: h.key, paras: paragraphs((await fromUuid(h.pageUuid))?.text?.content) })));
+    const lore = buildLore(pages, holy.map((h) => h.key), gmOnlyKeys());
+    if (JSON.stringify(lore) === JSON.stringify(readLore())) return false;
+    await game.settings.set(MODULE_ID, LORE_SETTING, lore);
+    return true;
+  } catch (err) {
+    console.warn(`${MODULE_ID} | holidays: could not publish for players`, err);
+    return false;
+  }
+}
+
+/**
+ * The holidays the month view lists for this user: a GM's from the pack, a
+ * player's from the copy (with the page's `paras`, and no page to open).
+ */
+export async function calendarHolidays() {
+  if (game.user?.isGM) return listHolidays();
+  const { holidays } = readLore();
+  return HOLIDAYS.filter((h) => holidays[h.key]).map((h) => ({ ...present(h, null), paras: holidays[h.key] }));
+}
+
+/** The holy days the month view lists for this user: a GM's from the pack, a player's from the copy. */
+export async function calendarHolyDays() {
+  if (game.user?.isGM) return listHolyDays();
+  const { holy } = readLore();
+  return HOLY_DAYS.filter((h) => holy.includes(h.key)).map((h) => ({ ...structuredClone(h), pageUuid: null }));
 }
 
 /** A recipe as the API returns it: labels localised, the imported page's uuid added. */

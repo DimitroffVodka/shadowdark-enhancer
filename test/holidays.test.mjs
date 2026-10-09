@@ -4,7 +4,8 @@
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import {
-  ANCHORS, HOLIDAYS, HOLIDAY_PRESET, holidaysToday, listHolidays, placeMatches, whenMatches,
+  ANCHORS, HOLIDAYS, HOLIDAY_PRESET, buildLore, withGmOnly, calendarHolidays, calendarHolyDays, holidaysToday, listHolidays, normalizeLore,
+  placeMatches, whenMatches,
 } from "../scripts/holidays/holidays.mjs";
 import { CHAPTER_PRESETS } from "../scripts/importer/chapter-journal.mjs";
 import { SYNODIC_DAYS, anchor } from "../scripts/time/time-core.mjs";
@@ -107,6 +108,7 @@ beforeEach(() => {
   globalThis.game = {
     get time() { return clockAt(now); },
     i18n: { localize: (k) => `<${k}>` },
+    settings: { get: () => 1 },                       // a GM's moon epoch, one second in: the moon was new at the calendar's start
     get packs() { return [journalsPack()]; },
   };
 });
@@ -147,16 +149,67 @@ test("a free-range journal over the same pages is not the holidays journal", asy
 test("today() names Maytide on May 1 in the City of Masks, and nothing elsewhere", async () => {
   assert.deepEqual((await holidaysToday({ place: "City of Masks" })).map((h) => h.key), ["maytide"]);
   assert.deepEqual(await holidaysToday({ place: "Alkesh" }), []);
-  now = at(1300, 6, 21, 20);
+  // The Duke's Ball is the summer solstice, which the 1300 calendar shows on 13 June, not 21 June.
+  now = at(1300, 6, 13, 20);
   assert.deepEqual((await holidaysToday({ place: "settlement-1334" })).map((h) => h.key), ["dukes-ball"]);
+  now = at(1300, 6, 21, 20);
+  assert.deepEqual(await holidaysToday({ place: "settlement-1334" }), []);
 });
 
 test("Lastmoon falls on the day of the year's last full moon, through the time API (#227)", async () => {
-  const day = anchor(gregorian, "lastFullMoon", 1300);          // the moon's epoch is worldTime 0
+  const day = anchor(gregorian, "lastFullMoon", 1300, 1);       // the moon's epoch is the calendar's start (the setting above)
   now = day + 21 * 3600;
   assert.deepEqual((await holidaysToday({ place: "City of Masks" })).map((h) => h.key), ["lastmoon"]);
   now = day - 3600;                                               // the evening before
   assert.deepEqual(await holidaysToday({ place: "City of Masks" }), []);
   now = day - SYNODIC_DAYS * 86400;                               // the full moon before it
   assert.deepEqual(await holidaysToday({ place: "City of Masks" }), []);
+});
+
+test("a date that knows its sun's day decides the solar holidays; one that does not, the fixed date", () => {
+  const solstice = { anchor: "summerSolstice" };
+  assert.equal(whenMatches(solstice, { month: 6, day: 13, solar: "summerSolstice" }), true);
+  assert.equal(whenMatches(solstice, { month: 6, day: 21, solar: null }), false, "21 June is not the solstice in 1348");
+  assert.equal(whenMatches(solstice, { month: 6, day: 21 }), true, "no solar field: the fixed date as before");
+  assert.equal(whenMatches({ anchor: "springCrossQuarter" }, { month: 5, day: 1, solar: null }), true, "May Day stays fixed");
+});
+
+test("the players' copy is the imported pages' text and the holy days' keys, in a fixed order", () => {
+  const lore = buildLore([{ key: "maytide", paras: ["b"] }, { key: "lastmoon", paras: ["a"] }], ["rams-run", "forgefire"]);
+  assert.deepEqual(Object.keys(lore.holidays), ["lastmoon", "maytide"]);
+  assert.deepEqual(lore.holy, ["forgefire", "rams-run"]);
+  assert.equal(JSON.stringify(buildLore([{ key: "lastmoon", paras: ["a"] }, { key: "maytide", paras: ["b"] }], ["forgefire", "rams-run"])), JSON.stringify(lore), "the same copy compares equal");
+});
+
+test("a stored copy is trusted only where it has the right shape", () => {
+  assert.deepEqual(normalizeLore(undefined), { holidays: {}, holy: [] });
+  assert.deepEqual(normalizeLore({ holidays: { a: ["x", 3], b: "no" }, holy: ["k", 5] }), { holidays: { a: ["x"] }, holy: ["k"] });
+});
+
+test("a player sees the holidays and holy days from the copy, with their text and no page to open; a GM reads the pack", async () => {
+  const lore = { holidays: { maytide: ["Spring text."] }, holy: ["forgefire", "rams-run"] };
+  globalThis.game.settings = { get: () => lore };
+  globalThis.game.user = { isGM: false };
+  const holidays = await calendarHolidays();
+  assert.deepEqual(holidays.map((h) => h.key), ["maytide"], "only the ones in the copy");
+  assert.deepEqual(holidays[0].paras, ["Spring text."]);
+  assert.equal(holidays[0].pageUuid, null);
+  assert.equal(holidays[0].garb[0].label, "<SDE.holidays.garb.maytideNoFloral>", "labels localised for the player");
+  const holy = await calendarHolyDays();
+  assert.deepEqual(holy.map((h) => h.key), ["forgefire", "rams-run"]);
+  assert.equal(holy[0].pageUuid, null);
+  globalThis.game.user = { isGM: true };
+  assert.deepEqual((await calendarHolidays()).map((h) => h.key), ["lastmoon", "maytide", "st-anton", "dukes-ball"], "a GM's come from the journal");
+  assert.ok((await calendarHolidays())[0].pageUuid);
+});
+
+test("a holiday or holy day switched to GM only is left out of the players' copy", () => {
+  const pages = [{ key: "lastmoon", paras: ["a"] }, { key: "maytide", paras: ["b"] }];
+  const lore = buildLore(pages, ["forgefire", "rams-run"], ["maytide", "rams-run"]);
+  assert.deepEqual(Object.keys(lore.holidays), ["lastmoon"]);
+  assert.deepEqual(lore.holy, ["forgefire"]);
+  assert.deepEqual(buildLore(pages, ["forgefire"]).holy, ["forgefire"], "nothing hidden by default");
+  assert.deepEqual(withGmOnly(["b"], "a", true), ["a", "b"]);
+  assert.deepEqual(withGmOnly(["a", "b"], "a", false), ["b"]);
+  assert.deepEqual(withGmOnly(["a"], "a", true), ["a"], "switching on twice changes nothing");
 });
