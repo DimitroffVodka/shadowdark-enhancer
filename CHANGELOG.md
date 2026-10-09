@@ -123,6 +123,7 @@
   earlier "Include mounts" had already placed on a scene is still recalled by Place / Recall.
 
 ### Fixed
+- **A reload no longer shows the whole hex map as unexplored to the GM.** The GM's private hex records load on demand, and the first fog draw on a fresh page ran before they had: every hex read as unexplored, so the explored area was veiled like the rest until something wrote a record. The first draw now waits for the records.
 - **No more "failed to register sdeVehicleBody partial" error in the console at start-up.** The Mount and Boat sheets stopped using that shared tabs template, but a merge put its registration back; it is gone again. Nothing on screen changed.
 - **Building an adventure map again no longer undoes hand-corrected walls and lights.** Tools → Adventure map on a scene that was already built, or the placer's From book button, used to delete every wall and light the module had made and put the shipped ones back. Now, once a scene has them, they are left exactly as they are.
 - **A merchant sale never pays for more than the seller holds.** Typing a quantity larger than the stack in the Sell tab paid for that many and restocked the merchant with them; the sale now stops at what the character carries.

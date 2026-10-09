@@ -5,7 +5,7 @@ import { rulesApi } from "../rules-data/rules-data-core.mjs";
 import { storedRulesFor } from "../rules-data/rules-data-scope.mjs";
 import { timeApi } from "../time/time.mjs";
 import { Party } from "../party/party.mjs";
-import { HexRecords, isHexAdopted, sceneRef, recordJournal, offsetKey, readPass, RECORD_FLAG, publishHexProjection, assertPrivateJournal } from "./hex-records.mjs";
+import { HexRecords, isHexAdopted, sceneRef, recordJournal, offsetKey, readPass, RECORD_FLAG, publishHexProjection, assertPrivateJournal, loadHexRecords } from "./hex-records.mjs";
 import { adoptHexScene, withHexLock } from "./hex-adoption.mjs";
 import { disclosure, overlapAllowed, revealRadius, revealCells, arrivalDue } from "./hex-fog-core.mjs";
 
@@ -143,7 +143,12 @@ export function registerHexFog() {
       return positionDisclosed(scene, { x: this.document.x, y: this.document.y }, "location");
     }
   };
-  Hooks.on("canvasReady", refreshHexFog);
+  // A GM's records sit in a pack that loads on demand. Until it has, every hex reads as unexplored and the whole map
+  // is veiled, so the first draw waits for it; a reload used to show the explored area as veiled as the rest.
+  Hooks.on("canvasReady", async () => {
+    try { await loadHexRecords(); } catch (error) { console.error(`${MODULE_ID} | hex records`, error); }
+    refreshHexFog();
+  });
   Hooks.on("canvasTearDown", () => { overlay?.destroy(); overlay = null; });
   Hooks.on("updateScene", refreshHexFog);
   Hooks.on("createJournalEntry", refreshHexFog);
