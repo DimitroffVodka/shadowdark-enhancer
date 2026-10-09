@@ -67,6 +67,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
       giveCoins: function () { return this._change(() => this._giveCoins(this._coinInputs("[data-give-coin]", "giveCoin"), this.element.querySelector("[data-give-to]")?.value)); },
       divideCoins: function () { return this._change(() => this._divideCoins()); },
       giveItem: function (_event, el) { return this._change(() => this._giveItem(el.dataset.id, el.dataset.uuid)); },
+      deleteItem: function (_event, el) { return this._change(() => this._deleteItem(el.dataset.id)); },
       addItemForge: async function () {
         if (!game.user?.isGM || !this.actor?.isOwner) return;
         this.openKeys.delete("addItem"); this.render();
@@ -229,6 +230,18 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await target.createEmbeddedDocuments("Item", [data]);
     await item.delete();
     ui.notifications.info(sayWith("SDE.party.item.gave", { item: item.name, name: target.name }));
+  }
+  /** Remove a party item, its whole stack, after a confirm: nobody receives it. */
+  async _deleteItem(id) {
+    const item = this.actor?.items.get(id);
+    if (!item || !this.actor.isOwner) return;
+    const ok = await foundry.applications.api.DialogV2.confirm({
+      classes: ["sde-ui", "sde-dialog"], window: { title: "SDE.party.item.deleteTitle" }, rejectClose: false,
+      content: `<p>${sayWith("SDE.party.item.deleteQuestion", { item: `<strong>${foundry.utils.escapeHTML(item.name)}</strong>` })}</p>`,
+    });
+    if (!ok) return;
+    await item.delete();
+    ui.notifications.info(sayWith("SDE.party.item.deleted", { item: item.name }));
   }
   /** The GM bar's fields, kept through a re-render: the ability, the DC as typed (blank: none), who is ticked (null: all PCs), the XP. */
   _form() { return (this.rollForm ??= { stat: "str", dc: String(DEFAULT_DC), who: null, xp: "" }); }
@@ -510,7 +523,7 @@ export class PartySheet extends HandlebarsApplicationMixin(foundry.applications.
   }
   _onClose(options) { for (const [name, id] of this._hooks ?? []) Hooks.off(name, id); this._hooks = null; globalThis.document?.removeEventListener("pointerdown", this._pickerAway, true); return super._onClose(options); }
 }
-for (const name of ["_prepareContext", "_change", "_pickEmblem", "_pool", "_coinInputs", "_pcs", "_refuse", "_settle", "_coinLabel", "_addCoins", "_giveCoins", "_divideCoins", "_addItemFrom", "_giveItem", "_quests", "_bastion", "_travel", "_hookTravel", "_bindControls", "_activityController", "_questController", "_onStateChanged", "_form", "_asked", "_requestRoll", "_awardParty", "_downtimeCall", "_startDowntime", "_downtime", "_warbands", "_warbandWrite"]) PartySheet.prototype[name] = PartyApp.prototype[name];
+for (const name of ["_prepareContext", "_change", "_pickEmblem", "_pool", "_coinInputs", "_pcs", "_refuse", "_settle", "_coinLabel", "_addCoins", "_giveCoins", "_divideCoins", "_addItemFrom", "_giveItem", "_deleteItem", "_quests", "_bastion", "_travel", "_hookTravel", "_bindControls", "_activityController", "_questController", "_onStateChanged", "_form", "_asked", "_requestRoll", "_awardParty", "_downtimeCall", "_startDowntime", "_downtime", "_warbands", "_warbandWrite"]) PartySheet.prototype[name] = PartyApp.prototype[name];
 
 /** Only native/adopted flagged Parties route here; ordinary NPC sheets stay intact. */
 export function registerParty() {

@@ -595,6 +595,26 @@ test("Give to moves the whole stack to a PC and not to anyone else", async () =>
   assert.deepEqual(context.receivers.map(r => r.uuid), t.pcs.map(a => a.uuid), "the Give to list is the PCs");
 });
 
+test("Remove deletes the whole stack only after a confirm, and gives it to no one", async () => {
+  const t = treasury();
+  const deleted = [], api = globalThis.foundry.applications.api;
+  const rope = { id: "r", name: "Rope", delete: async () => { deleted.push("r"); } };
+  t.p.items.contents.push(rope);
+  t.p.items.get = (id) => t.p.items.contents.find((i) => i.id === id);
+  t.p.isOwner = true;
+  globalThis.foundry.utils = { ...globalThis.foundry.utils, escapeHTML: (v) => v };
+  try {
+    api.DialogV2 = { confirm: async () => false };
+    await act(t.app, "deleteItem", { dataset: { id: "r" } });
+    assert.deepEqual(deleted, [], "declined: kept");
+    api.DialogV2 = { confirm: async () => true };
+    await act(t.app, "deleteItem", { dataset: { id: "r" } });
+    assert.deepEqual(deleted, ["r"]);
+  } finally { delete api.DialogV2; }
+  const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
+  assert.ok(template.includes('data-action="deleteItem"'));
+});
+
 test("Add item: a forged or compendium item is copied onto the party actor", async () => {
   const t = treasury();
   const added = [];
