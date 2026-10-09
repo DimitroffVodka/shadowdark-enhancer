@@ -273,6 +273,8 @@ export async function startOverland() {
   // A party token wears the party's hex; a selected NPC travels in its own art.
   if (chosen.isParty) {
     const token = fromUuidSync(chosen.tokenUuid);
+    // The party that travels is the one this GM sees, however its token was found (selected, the only one, or asked for).
+    if (isOwnParty(token?.actor)) Party.select(token.actor);
     // A party made before Extras took part is an Extras party from here on (once).
     await joinExtras(token?.actor).catch((err) => console.error(`${MODULE_ID} | party joins Extras`, err));
     await wearPartyHex(token).catch((err) => console.error(`${MODULE_ID} | party hex token`, err));
