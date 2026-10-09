@@ -190,7 +190,7 @@ test("Party inline controllers reuse activity actions and redraw their host only
   app.render = () => { renders++; };
   const camp = app._activityController();
   camp.change = (action, data) => ({ action, data });
-  assert.deepEqual(PartyApp.DEFAULT_OPTIONS.actions.activityAction.call(app, null, { dataset: { activityAction: "confirmChoice", uuid: "Actor.pc" } }), { action: "select", data: { uuid: "Actor.pc", patch: {} } });
+  assert.deepEqual(PartyApp.DEFAULT_OPTIONS.actions.activityAction.call(app, null, { dataset: { activityAction: "resolve" } }), { action: "resolve", data: undefined });
   assert.equal(camp.host, app);
   PartyApp.DEFAULT_OPTIONS.actions.carouse.call(app);
   const carouse = app._activityController();

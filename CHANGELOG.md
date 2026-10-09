@@ -122,6 +122,10 @@
   earlier "Include mounts" had already placed on a scene is still recalled by Place / Recall.
 
 ### Fixed
+- Camp: a camp made before dawn no longer runs until the evening. A day opened at 1 am has its night checks that evening, and the camp waited for the last of them (4 am to 11 pm). Only the checks before the next 06:00 hold a camp now.
+- Camping: choosing Existing torches as the fire source now spends the torches and lights the fire when you lock choices; the second "review deductions" screen is skipped for that choice. With fewer than three torches the camp goes on without a fire and the camp window says so.
+- Chat: a plain dice roll card (camp task rolls, the interrupted-rest CON check) showed only its formula, because the system's card layout pushed the total out of the box. The total now sits beside the formula.
+- Camping: Lock choices no longer fails with "The camp choice is unavailable" on the hex map. A party token that never split into member tokens now counts as at the campfire. Every PC starts Ready, so the per-PC Ready click is gone, and a task's description is always shown instead of folded away.
 - **No more "failed to register sdeVehicleBody partial" error in the console at start-up.** The Mount and Boat sheets stopped using that shared tabs template, but a merge put its registration back; it is gone again. Nothing on screen changed.
 - **Building an adventure map again no longer undoes hand-corrected walls and lights.** Tools → Adventure map on a scene that was already built, or the placer's From book button, used to delete every wall and light the module had made and put the shipped ones back. Now, once a scene has them, they are left exactly as they are.
 - **A merchant sale never pays for more than the seller holds.** Typing a quantity larger than the stack in the Sell tab paid for that many and restocked the merchant with them; the sale now stops at what the character carries.

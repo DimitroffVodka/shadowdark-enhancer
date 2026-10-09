@@ -12,7 +12,6 @@ export class CampingApp extends HandlebarsApplicationMixin(ApplicationV2) {
     resume: function () { return this.change("resume"); }, cancel: function () { return this.change("cancel"); },
     acceptFuel: function () { return this.change("fuel", { accept: true, deductions: this.fuelPreview }); },
     declineFuel: function () { return this.change("fuel", { accept: false }); },
-    confirmChoice: function (_event, el) { return this.change("select", { uuid: el.dataset.uuid, patch: {} }); },
     night: function () { return this.change("night"); },
     acceptShortages: function () { return this.change("night", { acceptShortages: true }); },
   } };
@@ -49,6 +48,7 @@ export class CampingApp extends HandlebarsApplicationMixin(ApplicationV2) {
       phase: t(CAMP_LABELS.phase[camp.phase]), fire: t(camp.fire?.lit ? "SDE.camping.fireLit" : "SDE.camping.noFire"), hasResults: Object.keys(camp.results).length > 0,
       awaitingRest: camp.phase === "awaitingRest", complete: camp.phase === "complete", shortageWarning: camp.shortageWarning,
       canNight: manager && camp.phase === "awaitingRest", canResolve: manager && setup, canResume: manager && (camp.phase === "complete" ? !game.messages.has(camp.reportId) : !setup && !fuel && camp.phase !== "awaitingRest"),
+      torchShortage: camp.fuelShort !== undefined && !camp.fire?.lit ? game.i18n.format("SDE.camping.torchShortage", { available: camp.fuelShort }) : null,
       fuelChoices: ["none", "wood", "torches"].map(value => ({ value, label: t(CAMP_LABELS.fuel[value]), selected: camp.fuel === value })),
       available: plan.available, canFuel: manager && plan.ok,
       deductions: plan.deductions.map(d => { const a = game.actors.contents.find(a => a.uuid === d.actorUuid); return { ...d, name: a?.name, item: a?.items.get(d.id)?.name }; }),

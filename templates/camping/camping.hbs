@@ -1,6 +1,7 @@
 <section class="sde-ui ui-body sde-camping-body cp-root">
   <h3 class="ui-h">{{#unless embedded}}{{title}} {{/unless}}<small>{{phase}} · {{fire}}</small></h3>
   {{#if error}}<div class="ui-note bad" role="alert">{{error}}</div>{{/if}}
+  {{#if torchShortage}}<div class="ui-note warn" role="status">{{torchShortage}}</div>{{/if}}
 
   {{#if empty}}
     <div class="ui-empty"><span>{{localize "SDE.camping.rules"}}</span>
@@ -28,9 +29,6 @@
         <div class="cp-head">
           <h4 class="cp-name">{{name}}</h4>
           <span class="cp-count {{#unless meal.fed}}cp-bad{{/unless}}" data-tooltip="{{localize 'SDE.camping.rationsTip'}}"><b>{{meal.own}}</b><img class="cp-ration" src="/icons/consumables/food/cooked-grilled-ham-hock-glazed-brown.webp" alt=""></span>
-          {{#if confirmed}}<span class="cp-ready on" data-tooltip="{{localize 'SDE.camping.readyTip'}}"><i class="fa-solid fa-check"></i>{{localize "SDE.camping.readyBtn"}}</span>
-          {{else}}{{#if editable}}<button type="button" class="ui-btn cp-ready-btn" data-action="confirmChoice" data-uuid="{{uuid}}" data-tooltip="{{localize 'SDE.camping.readyBtnTip'}}">{{localize "SDE.camping.readyBtn"}}</button>
-          {{else}}<span class="cp-ready" data-tooltip="{{localize 'SDE.camping.waitingTip'}}">{{localize "SDE.camping.notReady"}}</span>{{/if}}{{/if}}
         </div>
         <div class="cp-fields">
           <div class="ui-field"><label class="ui-label">{{localize "SDE.camping.task"}}</label>
@@ -51,7 +49,7 @@
         </div>
         <label class="ui-switch cp-torch"><input type="checkbox" data-choice="torchConsent" {{#if torchConsent}}checked{{/if}} {{#unless editable}}disabled{{/unless}}><span>{{localize "SDE.camping.contribute"}}</span></label>
         {{#unless meal.fed}}<p class="cp-warn">{{localize "SDE.camping.hungerWarning"}}{{#if deathWarning}} {{localize "SDE.camping.deathWarning"}}{{/if}}</p>{{/unless}}
-        {{#if description}}<details class="cp-more" title="{{description}}"{{#if campfire}} data-tooltip="{{localize 'SDE.camping.fireDisadvantage'}}"{{/if}}><summary>{{localize "SDE.camping.description"}}{{#if campfire}} · {{localize "SDE.camping.fireTask"}}{{/if}}</summary><p>{{description}}</p></details>{{/if}}
+        {{#if description}}<p class="cp-desc">{{description}}{{#if campfire}} <span class="ui-muted">{{localize "SDE.camping.fireDisadvantage"}}</span>{{/if}}</p>{{/if}}
       </article>
       {{/each}}
     </div>

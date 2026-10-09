@@ -239,6 +239,17 @@ export function setPending(state, pending) {
 }
 
 /**
+ * When camp breaks: dawn, or the last unrolled night check if it falls later (a summer sunrise at 04:30
+ * comes before a 05:00 check). Only this night's checks count: `nightEnd` is the 06:00 that closes the
+ * night half, and a night check after it belongs to a later evening. A day opened before dawn has its
+ * night checks that evening, and a camp must not wait out the day for them.
+ * @param {number} dawn  the next sunrise
+ * @param {number[]} nights  the unrolled night checks' times
+ * @param {number} nightEnd  the next 06:00
+ */
+export const campEndAt = (dawn, nights, nightEnd) => Math.max(dawn, ...nights.filter((at) => at <= nightEnd));
+
+/**
  * Camp is made (#257, §5.5 step 3), written just before its tasks and rations, so a retry never does them
  * twice (#282 review); a closed Extras window takes it back. `party`: the uuid
  * of the Extras party actor keeping the rest for the dawn (an unlinked token's own actor), or null. The

@@ -6,7 +6,7 @@ import {
   setWeather, weatherHolds, weatherAdvantage, weatherFormula, weatherFromRoll, harshToday, hexCost,
   dayBudget, pointSeconds, openDay, spendMove, priceMove, moveVerdict,
   dayChecks, dueChecks, markCheck, setPending, setEncounter, partyMethod, setPace,
-  forageDC, closeDay, planRations, BOOK_CHECKS, checkSettings, encounterChance, checkHalf, makeCampState, campLightsOut, interruptRest, walkMs, walkSlices, lapseMs,
+  forageDC, closeDay, planRations, BOOK_CHECKS, checkSettings, encounterChance, checkHalf, makeCampState, campEndAt, campLightsOut, interruptRest, walkMs, walkSlices, lapseMs,
 } from "../scripts/overland/overland-state-core.mjs";
 import { rulesApi } from "../scripts/rules-data/rules-data-core.mjs";
 
@@ -455,4 +455,14 @@ test("a camp's or Continue's time-lapse: a beat and a share of the span, a night
   assert.equal(lapseMs(24 * 3600), 3200, "capped");
   assert.equal(lapseMs(0), 0);
   assert.equal(lapseMs(-60), 0, "nothing to move");
+});
+
+test("camp breaks at dawn, or at this night's last check when that falls later, never at a later evening's check", () => {
+  const H = 3600, dawn = 6 * H, nightEnd = 6 * H;
+  assert.equal(campEndAt(4.5 * H, [5 * H], nightEnd), 5 * H, "a 05:00 check after a 04:30 sunrise is still the camp's");
+  assert.equal(campEndAt(dawn, [], nightEnd), dawn);
+  // A day opened at 01:00 has its night checks at 18:00 and 00:00 that evening: a camp made at 05:00 ends at dawn.
+  assert.equal(campEndAt(dawn, [18 * H, 24 * H], nightEnd), dawn);
+  // A camp made at 20:00: tonight's 22:00 and 02:00 checks count, the next evening's 18:00 does not.
+  assert.equal(campEndAt(30 * H, [22 * H, 26 * H, 42 * H], 30 * H), 30 * H);
 });
