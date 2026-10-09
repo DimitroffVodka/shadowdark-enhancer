@@ -100,7 +100,8 @@ export function registerHexCoordinates() {
   Hooks.on("canvasReady", refreshHexCoordinates);
   Hooks.on("canvasTearDown", clear);
   Hooks.on("canvasPan", zoom);
-  Hooks.on("updateScene", scene => { if (scene === canvas?.scene) refreshHexCoordinates(); });
+  // Numbering and borders live in flags; the sky's darkness writes must not redraw every label.
+  Hooks.on("updateScene", (scene, changed) => { if (scene === canvas?.scene && ("flags" in changed || "grid" in changed)) refreshHexCoordinates(); });
   // SDX exploration lives in a journal; scene flags alone do not cover it.
   Hooks.on("updateJournalEntry", refreshHexCoordinates);
   Hooks.on("updateJournalEntryPage", refreshHexCoordinates);

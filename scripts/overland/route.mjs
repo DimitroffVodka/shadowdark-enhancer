@@ -18,6 +18,7 @@ import { isHexMapScene, hexReader } from "../encounter/encounter-terrain.mjs";
 import { cheapestRoute } from "./overland-state-core.mjs";
 import { overlandState, travelStepCost, travelSettled } from "./overland.mjs";
 import { ownsHexFog, hexDisclosure } from "../hex-map/hex-fog.mjs";
+import { readPass } from "../hex-map/hex-records.mjs";
 import { L as t } from "../shared/i18n.mjs";
 
 const offsetKey = (o) => `${o.i},${o.j}`;
@@ -49,7 +50,10 @@ function travelToken() {
  */
 export function unknownTo(grid) {
   if (game.user.isGM) return () => false;
-  if (ownsHexFog(canvas.scene)) return o => !hexDisclosure(canvas.scene, o);
+  if (ownsHexFog(canvas.scene)) {
+    const pass = readPass(canvas.scene);
+    return o => !hexDisclosure(canvas.scene, o, "terrain", {}, pass);
+  }
   const extras = game.modules.get("shadowdark-extras");
   if (!extras?.active) return () => false;
   const revealed = extras.api?.hex?.isPositionRevealed;

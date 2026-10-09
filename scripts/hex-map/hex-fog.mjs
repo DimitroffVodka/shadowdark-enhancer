@@ -67,7 +67,8 @@ async function saveCells(scene, work) {
     const saved = structuredClone(journal.flags[MODULE_ID][RECORD_FLAG]);
     const result = await work(saved.cells);
     await replaceModuleFlag(journal, RECORD_FLAG, saved);
-    await publishHexProjection(scene); refreshHexFog();
+    // Both writes redraw the fog through their journal hooks.
+    await publishHexProjection(scene);
     return result;
   });
 }
@@ -141,7 +142,18 @@ export function registerHexFog() {
   };
   Hooks.on("canvasReady", refreshHexFog);
   Hooks.on("canvasTearDown", () => { overlay?.destroy(); overlay = null; });
-  Hooks.on("updateScene", refreshHexFog);
-  Hooks.on("createJournalEntry", refreshHexFog);
-  Hooks.on("updateJournalEntry", refreshHexFog);
+  // Only a change the fog is drawn from: the sky writes the darkness on every clock slice of a walk or a
+  // night, and a rebuild is ~5,000 hexes (40-80 ms on a desktop, several times that on a Steam Deck).
+  Hooks.on("updateScene", (scene, changed) => { if (scene === canvas?.scene && ("flags" in changed || "grid" in changed)) queueHexFog(); });
+  // A reveal writes the GM's records and then the players' view: each screen redraws for the one it draws from.
+  Hooks.on("createJournalEntry", journal => { if (drawnFrom(journal)) queueHexFog(); });
+  Hooks.on("updateJournalEntry", journal => { if (drawnFrom(journal)) queueHexFog(); });
+}
+function drawnFrom(journal) {
+  try { return journal?.id === recordJournal(canvas?.scene, { publicOnly: !game.user?.isGM })?.id; } catch { return true; }
+}
+let fogFrame = null;
+/** One rebuild on the next frame for every write that asked: a reveal writes two journals. */
+function queueHexFog() {
+  fogFrame ??= requestAnimationFrame(() => { fogFrame = null; refreshHexFog(); });
 }

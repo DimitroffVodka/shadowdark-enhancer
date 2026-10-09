@@ -169,3 +169,16 @@ test("a keyed hex finds its region's column once its ground is known, and none w
   const read = withGround(keyed, { terrain: "mountain", features: [] });
   assert.equal(pickZoneTable("Dhalpurna Mountains", read.terrain, read.features, byRegion).column.uuid, "RollTable.m");
 });
+
+test("a reader over an adopted map decodes its tags once for every hex it reads, not once a hex (a route froze Firefox)", async () => {
+  const { cacheHexJournal } = await import("../scripts/hex-map/hex-records.mjs");
+  let decoded = 0;
+  const tags = { origin: null, get cells() { decoded += 1; return { 101: "forest|gm" }; } };
+  const w = world({ flags: { [MOD]: { hexRecords: { adopted: true }, hexTags: tags } } });
+  w.scene.uuid = "Scene.s1";
+  cacheHexJournal({ id: "jr", ownership: { default: 0 }, flags: { [MOD]: { hexRecords: { version: 1, sceneUuid: "Scene.s1", cells: {} } } } });
+  globalThis.game.user = { isGM: true };
+  const read = hexReader(w);
+  for (let i = 0; i < 20; i++) read({ i, j: 0 });
+  assert.equal(decoded, 1);
+});

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { disclosure, importFog, revealCells, revealRadius, arrivalDue, overlapAllowed } from "../scripts/hex-map/hex-fog-core.mjs";
-import { revealParty, refreshHexFog } from "../scripts/hex-map/hex-fog.mjs";
+import { revealParty, refreshHexFog, registerHexFog } from "../scripts/hex-map/hex-fog.mjs";
 import { cacheHexJournal } from "../scripts/hex-map/hex-records.mjs";
 const grid = { getAdjacentOffsets: ({ i, j }) => [{ i: i - 1, j }, { i: i + 1, j }], getDirectPath: ([a, b]) => Array.from({ length: Math.abs(b.i - a.i) + 1 }, (_, n) => ({ i: a.i + Math.sign(b.i - a.i) * n, j: a.j })) };
 test("one disclosure rule separates terrain, keyed locations and valid exceptions", () => {
@@ -111,6 +111,33 @@ test("a fog refresh reads the store once per pass, not once per hex", () => {
     assert.ok(flagReads <= 3, `the store is read once per refresh, not once per cell (${flagReads} reads)`);
   } finally {
     for (const [key, value] of [["game", saved.game], ["canvas", saved.canvas], ["PIXI", saved.PIXI], ["_replace", saved.replace]]) {
+      if (value === undefined) delete globalThis[key]; else globalThis[key] = value;
+    }
+  }
+});
+test("the sky's darkness writes don't rebuild the hex fog; a flag write does, once a frame", () => {
+  const hooks = {}, frames = [];
+  const saved = { Hooks: globalThis.Hooks, CONFIG: globalThis.CONFIG, canvas: globalThis.canvas, raf: globalThis.requestAnimationFrame, game: globalThis.game };
+  const scene = { id: "s", uuid: "Scene.fogtest" };
+  globalThis.game = { user: { isGM: true } };
+  cacheHexJournal({ id: "records", ownership: { default: 0 }, flags: { "shadowdark-enhancer": { hexRecords: { version: 1, sceneUuid: "Scene.fogtest", cells: {} } } } });
+  globalThis.Hooks = { on: (name, fn) => { hooks[name] = fn; } };
+  globalThis.CONFIG = {};
+  globalThis.canvas = { scene, ready: false };
+  globalThis.requestAnimationFrame = fn => { frames.push(fn); return frames.length; };
+  try {
+    registerHexFog();
+    hooks.updateScene(scene, { environment: { darknessLevel: 0.3 } });
+    hooks.updateScene({ id: "other" }, { flags: {} });
+    hooks.updateJournalEntry({ id: "players-view" });
+    assert.equal(frames.length, 0, "darkness, another scene, or a journal the GM's fog isn't drawn from draws nothing");
+    hooks.updateJournalEntry({ id: "records" });
+    assert.equal(frames.length, 1, "the GM's records redraw it");
+    hooks.updateScene(scene, { flags: { "shadowdark-enhancer": {} } });
+    assert.equal(frames.length, 1, "writes in one frame share one rebuild");
+    frames[0]();
+  } finally {
+    for (const [key, value] of [["Hooks", saved.Hooks], ["CONFIG", saved.CONFIG], ["canvas", saved.canvas], ["requestAnimationFrame", saved.raf], ["game", saved.game]]) {
       if (value === undefined) delete globalThis[key]; else globalThis[key] = value;
     }
   }

@@ -81,3 +81,24 @@ test("raw cell writes refuse archive and history fields but keep the editable se
     if (oldGame === undefined) delete globalThis.game; else globalThis.game = oldGame;
   }
 });
+test("publishing the players' view decodes the map's tags once, not once a recorded hex (a second a walked hex)", async () => {
+  const { publishHexProjection, cacheHexJournal } = await import("../scripts/hex-map/hex-records.mjs");
+  const MOD = "shadowdark-enhancer", saved = { game: globalThis.game, replace: globalThis._replace };
+  let decoded = 0, published = null;
+  const tags = { origin: null, get cells() { decoded += 1; return {}; } };
+  const scene = { id: "pub", uuid: "Scene.pub", getFlag: (mod, key) => (mod === MOD && key === "hexTags" ? tags : undefined) };
+  const cells = Object.fromEntries(Array.from({ length: 12 }, (_, n) => [`${n}_0`, { discovery: { revealed: true } }]));
+  cacheHexJournal({ id: "jpub", ownership: { default: 0 }, flags: { [MOD]: { hexRecords: { version: 1, sceneUuid: "Scene.pub", cells } } } });
+  const publicJournal = { flags: { [MOD]: { hexRecordProjection: { sceneUuid: "Scene.pub", cells: {} } } }, update: async (data) => { published = data; } };
+  globalThis._replace = (value) => value;
+  globalThis.game = { user: { isGM: true }, journal: { contents: [publicJournal], get: () => null },
+    packs: { get: () => ({ ownership: { PLAYER: "NONE", TRUSTED: "NONE", ASSISTANT: "NONE" } }) } };
+  try {
+    await publishHexProjection(scene);
+    assert.ok(published, "the view is written");
+    assert.equal(decoded, 1);
+  } finally {
+    globalThis._replace = saved.replace;
+    if (saved.game === undefined) delete globalThis.game; else globalThis.game = saved.game;
+  }
+});
