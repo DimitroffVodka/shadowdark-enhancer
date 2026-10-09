@@ -91,3 +91,20 @@ export const pickEmblem = (current, pick) => emblemOf({
   ...(hexOf(pick?.color) ? { color: hexOf(pick.color) } : {}),
   ...(hexOf(pick?.iconColor) ? { iconColor: hexOf(pick.iconColor) } : {}),
 });
+
+/**
+ * The emblem as a token picture: a flat-topped hex (the shape of a hex-map cell, so it sits inside the cell
+ * instead of overlapping its edges the way a square does) in the tile colour, the icon centred on it.
+ * @param {{ icon: string, color: string, iconColor: string }} emblem an emblemOf() result
+ * @param {string} iconSvg the text of the icon's file (white paths on a 512 viewBox)
+ */
+export function emblemTokenSvg(emblem, iconSvg) {
+  const inner = String(iconSvg).replace(/^[\s\S]*?<svg[^>]*>/, "").replace(/<\/svg>\s*$/, "").replace(/#(?:fff|ffffff)\b/gi, `#${emblem.iconColor}`);
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1155 1000" width="1155" height="1000">`
+    + `<polygon points="0,500 289,0 866,0 1155,500 866,1000 289,1000" fill="#${emblem.color}"/>`
+    + `<polygon points="30,500 306,30 849,30 1125,500 849,970 306,970" fill="none" stroke="#000000" stroke-opacity="0.45" stroke-width="20" stroke-linejoin="round"/>`
+    + `<svg x="277" y="200" width="600" height="600" viewBox="0 0 512 512">${inner}</svg></svg>`;
+}
+
+/** Where the token picture of an emblem lives in the world; one file per distinct emblem, so it is shared and never stale. */
+export const emblemTokenName = (e) => `${e.icon}-${e.color}-${e.iconColor}.svg`;

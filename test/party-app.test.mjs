@@ -9,10 +9,10 @@ globalThis.foundry = { applications: { api: { ApplicationV2: class {
   render() { if (this.id) globalThis.foundry.applications.instances.set(this.id, this); }
   bringToFront() {}
   _onRender() {}
-}, HandlebarsApplicationMixin: (base) => base }, sheets: { ActorSheetV2: class { _onRender() {} } }, instances: new Map() } };
-const { PartyApp, PartySheet, registerParty } = await import("../scripts/party/party-app.mjs");
+}, HandlebarsApplicationMixin: (base) => base }, sheets: { ActorSheetV2: class { _onRender() {} async _onDropItem(_event, item) { return item.copied ?? null; } } }, instances: new Map() } };
+const { PartyApp, PartySheet, registerParty, registerPartyItemMove } = await import("../scripts/party/party-app.mjs");
 function actor(id, type = "NPC", flags = {}, permissions = 3) {
-  const a = { id, uuid: `Actor.${id}`, name: id, type, flags, items: { contents: [] }, testUserPermission: (_user, level) => permissions >= ({ OBSERVER: 2, OWNER: 3 })[level],
+  const a = { id, uuid: `Actor.${id}`, name: id, type, flags, items: { contents: [] }, testUserPermission: (_user, level) => permissions >= ({ LIMITED: 1, OBSERVER: 2, OWNER: 3 })[level],
     getFlag: (mod,key) => a.flags[mod]?.[key], writes: [], update: async (data) => { a.writes.push(data); for (const [key,value] of Object.entries(data)) { const [,mod,flag] = key.split("."); (a.flags[mod] ??= {})[flag] = value; } return a; } };
   return a;
 }
@@ -72,6 +72,13 @@ test("no-canvas context groups only explicit roster; missing refs retained", asy
   const context = await new PartyApp(p)._prepareContext();
   assert.deepEqual(context.groups.map((g) => g.rows.length), [1,1,1,1]);
   assert.deepEqual(Party.members(p, { charactersOnly: true }), ["Actor.pc"]);
+});
+test("a member PC shows to a player with no permission on it; a hidden NPC stays missing", async () => {
+  const p = actor("p", "NPC", { [MOD]: { party: true, partyData: { version: 1, members: ["Actor.pc", "Actor.npc"] } } });
+  const pc = actor("pc", "Player", {}, 0), npc = actor("npc", "NPC", {}, 0);
+  world([p, pc, npc]);
+  const rows = Party.rows(p);
+  assert.deepEqual(rows.map((r) => [r.group, !!r.actor]), [["characters", true], ["missing", false]]);
 });
 test("v14 actor entry uses visible/onClick and remains scoped", async () => {
   const handlers = new Map(); globalThis.Hooks = { on: (name, fn) => handlers.set(name,fn), once: (name, fn) => handlers.set(`once:${name}`, fn) };
@@ -218,6 +225,10 @@ test("Party header carries a Marching order switch, a leader/status line and a g
   const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
   for (const marker of ['data-movement-setting="followLeader"', "SDE.party.movement.marchingOrder", "SDE.party.movement.dragHint", "SDE.party.movement.leadHint", "{{march.text}}", 'data-action="placeRecall"']) assert.ok(template.includes(marker), marker);
   assert.ok(!template.includes("Marching formation") && !template.includes("includeMounts"), "no boxed formation block, no mounts switch");
+  // A button never starts a drag in Firefox, and Foundry's .disabled sets pointer-events: none, so an empty slot could not take a drop.
+  assert.ok(!/<button[^>]*data-formation-slot/.test(template), "a formation slot is not a button");
+  assert.ok(/<div role="button"[^>]*data-formation-slot/.test(template), "a formation slot is a div role=button");
+  assert.ok(!template.includes("{{#if disabled}} disabled{{/if}}"), "an empty slot does not carry Foundry's .disabled class");
 });
 
 test("Carousing labels unavailable tiers and disables commitment until tables are usable", async () => {
@@ -323,14 +334,28 @@ test("a party with no members shows a drop zone and a grid hint, and an Actor dr
   assert.ok(context.slots.every(slot => slot.disabled), "nothing to arrange yet");
   const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
   for (const marker of ["sdp-empty", "SDE.party.movement.dropHint", "SDE.party.sheet.dropMembers", "SDE.party.noMembers", "data-drop-members"]) assert.ok(template.includes(marker), marker);
-  const targets = [];
-  app.element = { querySelector: () => null, querySelectorAll: selector => selector === ".tab-members, [data-drop-members]" ? [{ addEventListener: (name, fn) => targets.push([name, fn]) }] : [] };
+  const targets = [], gridTargets = [];
+  let membersTabShowing = false;
+  // The grid of an empty party is in the header, not inside .sdp-body: the app must bind it through the selector list.
+  const bound = selector => selector.split(",").map(part => part.trim());
+  app.element = { querySelector: selector => selector === ".tab-members.active" && membersTabShowing ? {} : null, querySelectorAll: selector => bound(selector).includes(".sdp-body") && bound(selector).includes("[data-drop-members]") ? [{ addEventListener: (name, fn) => targets.push([name, fn]) }, { addEventListener: (name, fn) => gridTargets.push([name, fn]) }] : [] };
   app.render = () => {};
   app._bindControls();
   const drop = targets.find(([name]) => name === "drop")[1];
-  drop({ preventDefault() {}, dataTransfer: { getData: () => JSON.stringify({ type: "Actor", uuid: pc.uuid }) } });
+  const gridDrop = gridTargets.find(([name]) => name === "drop")[1];
+  const event = { target: { closest: () => null }, preventDefault() {}, dataTransfer: { getData: () => JSON.stringify({ type: "Actor", uuid: pc.uuid }) } };
+  drop(event);
   await new Promise(resolve => setTimeout(resolve, 0));
-  assert.deepEqual(Party.members(p), [pc.uuid]);
+  assert.deepEqual(Party.members(p), [], "another tab's body is not a drop zone");
+  membersTabShowing = true;
+  drop(event);
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.deepEqual(Party.members(p), [pc.uuid], "blank space below the cards on the Members tab takes the drop");
+  await Party.remove(p, pc.uuid);
+  membersTabShowing = false;
+  gridDrop({ ...event, target: { closest: selector => selector === "[data-drop-members]" ? {} : null } });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.deepEqual(Party.members(p), [pc.uuid], "a drop on the empty party's grid adds it on any tab");
 });
 test("a player's sheet keeps Travel and drops every control that changes the party", async () => {
   const pc = actor("pc", "Player");
@@ -396,7 +421,7 @@ test("the status bar reads the party's lit light and rations, and hides what it 
   assert.deepEqual(context.status.map(r => [r.key, r.label, r.value]), [["light", "SDE.party.status.light", "SDE.party.status.lightLeft Torch 38"], ["torches", "SDE.party.status.torches", "1"], ["rations", "SDE.party.status.rations", "10"]],
     "no travel readout without an overland module; torches and rations are the party's and its characters', a hireling's own food is not camp food");
   // A member this viewer cannot see may hold rations: no total rather than a partial one.
-  const hidden = actor("hidden", "Player", {}, 0);
+  const hidden = actor("hidden", "NPC", {}, 0);
   p.flags[MOD].partyData.members.push(hidden.uuid);
   world([p, pc, hireling, hidden], false);
   p.testUserPermission = () => true;
@@ -595,6 +620,88 @@ test("Give to moves the whole stack to a PC and not to anyone else", async () =>
   assert.deepEqual(context.receivers.map(r => r.uuid), t.pcs.map(a => a.uuid), "the Give to list is the PCs");
 });
 
+test("Remove deletes the whole stack only after a confirm, and gives it to no one", async () => {
+  const t = treasury();
+  const deleted = [], api = globalThis.foundry.applications.api;
+  const rope = { id: "r", name: "Rope", delete: async () => { deleted.push("r"); } };
+  t.p.items.contents.push(rope);
+  t.p.items.get = (id) => t.p.items.contents.find((i) => i.id === id);
+  t.p.isOwner = true;
+  globalThis.foundry.utils = { ...globalThis.foundry.utils, escapeHTML: (v) => v };
+  try {
+    api.DialogV2 = { confirm: async () => false };
+    await act(t.app, "deleteItem", { dataset: { id: "r" } });
+    assert.deepEqual(deleted, [], "declined: kept");
+    api.DialogV2 = { confirm: async () => true };
+    await act(t.app, "deleteItem", { dataset: { id: "r" } });
+    assert.deepEqual(deleted, ["r"]);
+  } finally { delete api.DialogV2; }
+  const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
+  assert.ok(template.includes('data-action="deleteItem"'));
+});
+
+test("Dropping another actor's item on the party sheet moves it, Ctrl copies, and the party's own rows are draggable", async () => {
+  const t = treasury();
+  const sheet = new PartySheet(); sheet.document = t.p; Object.defineProperty(sheet, "actor", { value: t.p });
+  const gone = [], from = (parent) => ({ copied: {}, parent, delete: async () => { gone.push(parent.id); } });
+  await sheet._onDropItem({ ctrlKey: false }, from(t.pcs[0]));
+  assert.deepEqual(gone, ["a"], "moved off the player");
+  await sheet._onDropItem({ ctrlKey: true }, from(t.pcs[1]));
+  await sheet._onDropItem({ ctrlKey: false }, from(t.p));
+  await sheet._onDropItem({ ctrlKey: false }, { copied: null, parent: t.pcs[2], delete: async () => { gone.push("c"); } });
+  assert.deepEqual(gone, ["a"], "Ctrl copies, a sort in place and a refused drop keep the source");
+  const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
+  assert.ok(template.includes('<li class="item{{#if ../canEdit}} draggable{{/if}}" data-item-id'), "only a viewer who can edit the party gets draggable rows");
+  assert.ok(!template.includes('class="item draggable"'), "no row is draggable for everyone");
+});
+
+test("A party item dropped on a character leaves the party once the sheet has copied it, and not before or with Ctrl", async () => {
+  const t = treasury(), handlers = {}, saved = globalThis.Hooks;
+  globalThis.Hooks = { on: (name, fn) => { handlers[name] = fn; }, off() {} };
+  registerPartyItemMove();
+  const gone = [], rope = { id: "r", name: "Rope", isOwner: true, parent: t.p, uuid: "Actor.p.Item.r", delete: async () => { gone.push("r"); } };
+  t.p.items.contents.push(rope); t.p.items.get = (id) => t.p.items.contents.find((i) => i.id === id);
+  globalThis.fromUuidSync = () => rope;
+  const drop = (actor, ctrl = false) => { globalThis.event = { ctrlKey: ctrl }; handlers.dropActorSheetData(actor, {}, { type: "Item", uuid: rope.uuid }); };
+  try {
+    drop(t.pcs[0]);
+    assert.deepEqual(gone, [], "nothing is removed until the character has a copy");
+    await handlers.createItem({ name: "Rope", parent: t.pcs[1] }, {}, "player");
+    assert.deepEqual(gone, [], "a copy on someone else is not this drop");
+    await handlers.createItem({ name: "Rope", parent: t.pcs[0] }, {}, "gm");
+    assert.deepEqual(gone, [], "a copy another user's client made is theirs to remove");
+    await handlers.createItem({ name: "Rope", parent: t.pcs[0] }, {}, "player");
+    assert.deepEqual(gone, ["r"]);
+    await handlers.createItem({ name: "Rope", parent: t.pcs[0] }, {}, "player");
+    assert.deepEqual(gone, ["r"], "one drop moves one item");
+    drop(t.pcs[0], true);
+    await handlers.createItem({ name: "Rope", parent: t.pcs[0] }, {}, "player");
+    drop(t.hireling);
+    await handlers.createItem({ name: "Rope", parent: t.hireling }, {}, "player");
+    assert.deepEqual(gone, ["r"], "Ctrl copies, and only a player character takes a move");
+    // Another remover owns the drop: Extras' move patch deletes the original itself, and the system moves a light.
+    globalThis.foundry.appv1 = { sheets: { ActorSheet: { prototype: { _sdxCtrlMovePatched: true } } } };
+    drop(t.pcs[0]);
+    await handlers.createItem({ name: "Rope", parent: t.pcs[0] }, {}, "player");
+    assert.deepEqual(gone, ["r"], "with Extras' transfers on, the party does not delete a second time");
+    delete globalThis.foundry.appv1;
+    rope.isLight = () => true;
+    drop(t.pcs[0]);
+    await handlers.createItem({ name: "Rope", parent: t.pcs[0] }, {}, "player");
+    assert.deepEqual(gone, ["r"], "a light is moved by the system, so the party does not delete it a second time");
+    // An item with Active Effects takes the system's createEmbeddedDocuments branch: nothing else removes it, light or not.
+    rope.effects = { size: 1 };
+    drop(t.pcs[0]);
+    await handlers.createItem({ name: "Rope", parent: t.pcs[0] }, {}, "player");
+    assert.deepEqual(gone, ["r", "r"], "a light with effects is still removed from the party");
+    delete rope.isLight;
+    globalThis.foundry.appv1 = { sheets: { ActorSheet: { prototype: { _sdxCtrlMovePatched: true } } } };
+    drop(t.pcs[0]);
+    await handlers.createItem({ name: "Rope", parent: t.pcs[0] }, {}, "player");
+    assert.deepEqual(gone, ["r", "r", "r"], "with Extras' transfers on, an item with effects is still removed from the party");
+  } finally { globalThis.Hooks = saved; delete globalThis.event; delete globalThis.fromUuidSync; delete globalThis.foundry.appv1; }
+});
+
 test("Add item: a forged or compendium item is copied onto the party actor", async () => {
   const t = treasury();
   const added = [];
@@ -701,4 +808,31 @@ test("the module registers the Request roll chat hook, or the card's Roll links 
   const entry = await readFile(new URL("../scripts/shadowdark-enhancer.mjs", import.meta.url), "utf8");
   assert.match(entry, /import \{ registerPartyRoll \} from "\.\/party\/party-roll\.mjs"/);
   assert.match(entry, /\n\s+registerPartyRoll\(\);/);
+});
+
+test("Clicking a member opens a sheet only for a viewer who may see that actor", () => {
+  const t = treasury(), opened = [];
+  for (const [i, pc] of t.pcs.entries()) { pc.sheet = { render: () => opened.push(pc.id) }; pc.testUserPermission = (_user, level) => i === 0 && level === "LIMITED"; }
+  act(t.app, "member", { dataset: { uuid: t.pcs[0].uuid } });
+  act(t.app, "member", { dataset: { uuid: t.pcs[1].uuid } });
+  assert.deepEqual(opened, ["a"], "an actor the viewer cannot observe gives no permission warning");
+});
+
+test("Dragging an Extras backpack onto the party moves its contents with it, as Extras' own move does", async () => {
+  const t = treasury();
+  const sheet = new PartySheet(); sheet.document = t.p; Object.defineProperty(sheet, "actor", { value: t.p });
+  const removed = [], kid = { id: "k", flags: { "shadowdark-extras": { containerId: "bag" } }, delete: async (opts) => { removed.push(["k", opts]); } };
+  const other = { id: "o", flags: {}, delete: async () => { removed.push(["o"]); } };
+  const bag = { id: "bag", type: "Basic", copied: {}, parent: { uuid: t.pcs[0].uuid, isOwner: true, items: { filter: (fn) => [kid, other].filter(fn) } }, flags: { "shadowdark-extras": { isContainer: true } }, delete: async (opts) => { removed.push(["bag", opts]); } };
+  await sheet._onDropItem({ ctrlKey: false }, bag);
+  assert.deepEqual(removed, [["k", { sdxInternal: true }], ["bag", { sdxInternal: true }]], "the children go first, then the pack, none of it released onto the character");
+});
+
+test("Dragging ordinary gear onto the party works without Shadowdark Extras, where getFlag throws for its scope", async () => {
+  const t = treasury();
+  const sheet = new PartySheet(); sheet.document = t.p; Object.defineProperty(sheet, "actor", { value: t.p });
+  const removed = [], getFlag = (scope) => { throw new Error(`Flag scope "${scope}" is not valid or not currently active`); };
+  const rope = { id: "r", type: "Basic", copied: {}, flags: {}, getFlag, parent: { uuid: t.pcs[0].uuid, isOwner: true, items: { filter: () => [] } }, delete: async () => { removed.push("r"); } };
+  await sheet._onDropItem({ ctrlKey: false }, rope);
+  assert.deepEqual(removed, ["r"], "the rope leaves the character");
 });

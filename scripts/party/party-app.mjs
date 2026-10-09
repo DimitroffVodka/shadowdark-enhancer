@@ -1,11 +1,12 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { CampingApp } from "../camping/camping-app.mjs";
 import { CarousingApp } from "../carousing/carousing-app.mjs";
-import { Party, isNativeParty, isLegacyParty, registerPartyRosterGuard } from "./party.mjs";
+import { Party, isParty, isNativeParty, isLegacyParty, registerPartyRosterGuard } from "./party.mjs";
 import { offerParty } from "./party-create-option.mjs";
 import { scopedQuests } from "./party-core.mjs";
 import { fillFormation } from "./party-movement-core.mjs";
 import { marchState, marchText, partyTabs, tabRow, resolveTab, sheetView, gemSummary, linkedBastion, lastMonthEntry, roomIcon, lightReadout, rationsCount, torchCount, carriesLight, luckCount, statusBar, COIN_REFUSALS, coinsOf, coinText, poolAfterAdd, planGive, planDivide, purseAfter, spellTiers, whoSelection, whoAfter, ROLL_STATS, ROLL_STAT_LABELS, DEFAULT_DC, defaultSource, downtimeSummary, warbandGroups } from "./party-sheet-core.mjs";
+import { registerPartyTokenArt } from "./party-token.mjs";
 import { EMBLEM_FLAG, emblemOf, emblemIconPath, emblemChoices, pickEmblem } from "./party-emblem-core.mjs";
 import { BASTION_TYPE } from "../bastion/bastion-art.mjs";
 import { stateOf as bastionState, stats as bastionStats, upgradeOf, GRANARY_SAVING_GP } from "../bastion/bastion-core.mjs";
@@ -50,7 +51,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
       emblem: function () { if (!sheetView({ isGM: !!game.user?.isGM, canEdit: Party.canManage(this.actor) }).emblemEdit) return; this.emblemOpen = !this.emblemOpen; this.render(); },
       pickEmblem: function (_event, el) { return this._pickEmblem({ icon: el.dataset.icon, color: el.dataset.color, iconColor: el.dataset.iconColor }); },
       remove: function (_event, el) { return this._change(() => Party.remove(this.actor, el.dataset.uuid)); },
-      member: function (_event, el) { Party.rows(this.actor).find((r) => r.uuid === el.dataset.uuid)?.actor?.sheet?.render(true); },
+      member: function (_event, el) { const actor = Party.rows(this.actor).find((r) => r.uuid === el.dataset.uuid)?.actor; if (actor?.testUserPermission(game.user, "LIMITED")) actor.sheet?.render(true); },
       spendLuck: function (_event, el) { return this._memberCrawl(el, (strip, actor) => strip.spendLuck(actor)); },
       toggleLight: function (_event, el) { return this._memberCrawl(el, (strip, actor) => strip.toggleActorLight(actor)); },
       item: function (_event, el) { if (this.actor?.testUserPermission(game.user, "OBSERVER")) this.actor.items.get(el.dataset.id)?.sheet?.render(true); },
@@ -67,6 +68,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
       giveCoins: function () { return this._change(() => this._giveCoins(this._coinInputs("[data-give-coin]", "giveCoin"), this.element.querySelector("[data-give-to]")?.value)); },
       divideCoins: function () { return this._change(() => this._divideCoins()); },
       giveItem: function (_event, el) { return this._change(() => this._giveItem(el.dataset.id, el.dataset.uuid)); },
+      deleteItem: function (_event, el) { return this._change(() => this._deleteItem(el.dataset.id)); },
       addItemForge: async function () {
         if (!game.user?.isGM || !this.actor?.isOwner) return;
         this.openKeys.delete("addItem"); this.render();
@@ -229,6 +231,18 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await target.createEmbeddedDocuments("Item", [data]);
     await item.delete();
     ui.notifications.info(sayWith("SDE.party.item.gave", { item: item.name, name: target.name }));
+  }
+  /** Remove a party item, its whole stack, after a confirm: nobody receives it. */
+  async _deleteItem(id) {
+    const item = this.actor?.items.get(id);
+    if (!item || !this.actor.isOwner) return;
+    const ok = await foundry.applications.api.DialogV2.confirm({
+      classes: ["sde-ui", "sde-dialog"], window: { title: "SDE.party.item.deleteTitle" }, rejectClose: false,
+      content: `<p>${sayWith("SDE.party.item.deleteQuestion", { item: `<strong>${foundry.utils.escapeHTML(item.name)}</strong>` })}</p>`,
+    });
+    if (!ok) return;
+    await item.delete();
+    ui.notifications.info(sayWith("SDE.party.item.deleted", { item: item.name }));
   }
   /** The GM bar's fields, kept through a re-render: the ability, the DC as typed (blank: none), who is ticked (null: all PCs), the XP. */
   _form() { return (this.rollForm ??= { stat: "str", dc: String(DEFAULT_DC), who: null, xp: "" }); }
@@ -433,10 +447,14 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const part = input.dataset.colorInput ?? input.dataset.colorHex;
       void this._pickEmblem({ [part === "icon" ? "iconColor" : "color"]: input.value });
     });
-    // Actors dropped on the Members tab, or on the formation grid of an empty party, join the roster.
-    for (const target of this.element.querySelectorAll(".tab-members, [data-drop-members]")) {
-      target.addEventListener("dragover", event => { if (Party.canManage(this.actor)) event.preventDefault(); });
+    // Actors dropped anywhere in the body while the Members tab is showing (the tab itself is only as tall as its
+    // cards, so the blank space below them must count), or on the formation grid of an empty party, join the roster.
+    const dropZone = event => !!(this.element.querySelector(".tab-members.active") || event.target.closest?.("[data-drop-members]"));
+    // The empty party's grid sits in the header, outside the body, so it is bound on its own.
+    for (const target of this.element.querySelectorAll(".sdp-body, [data-drop-members]")) {
+      target.addEventListener("dragover", event => { if (Party.canManage(this.actor) && dropZone(event)) event.preventDefault(); });
       target.addEventListener("drop", event => {
+        if (!dropZone(event)) return;
         event.preventDefault();
         try { const data = JSON.parse(event.dataTransfer.getData("text/plain")); if (data.type === "Actor" && data.uuid) void this._change(() => Party.add(this.actor, data.uuid)); } catch { /* Ignore non-document drags. */ }
       });
@@ -444,6 +462,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.element.querySelector("[data-party-choice]")?.addEventListener("change", (event) => { this.actor = Party.get(event.target.value); Party.select(this.actor); this.render(); });
     this.element.querySelector('[data-movement-setting="followLeader"]')?.addEventListener("change", event => this._change(() => configureMovement(this.actor, { followLeader: event.target.checked })));
     for (const slot of this.element.querySelectorAll("[data-formation-slot]")) {
+      slot.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); slot.click(); } });
       slot.addEventListener("dragstart", event => { if (!Party.canManage(this.actor) || !slot.dataset.uuid) return event.preventDefault(); event.dataTransfer.setData("text/plain", slot.dataset.uuid); });
       slot.addEventListener("dragover", event => { if (Party.canManage(this.actor)) event.preventDefault(); });
       slot.addEventListener("drop", event => {
@@ -503,6 +522,19 @@ export class PartySheet extends HandlebarsApplicationMixin(foundry.applications.
   openKeys = new Set();
   get title() { return this.actor.name; }
   _onRender(context, options) { super._onRender(context, options); this._bindControls(); }
+  /** A drag from another actor's sheet moves the item (Ctrl copies), as Shadowdark Extras does on the character sheets. */
+  async _onDropItem(event, item) {
+    const source = item.parent, result = await super._onDropItem(event, item);
+    if (result && source && source.uuid !== this.actor.uuid && !event.ctrlKey && (game.user?.isGM || source.isOwner)) {
+      // A Shadowdark Extras backpack: Extras unpacked its contents onto the party, so move the children too, as Extras' own move does.
+      // Flags are read raw: getFlag throws for the Extras scope when Extras is not installed.
+      if (item.type === "Basic" && item.flags?.["shadowdark-extras"]?.isContainer) {
+        for (const child of source.items.filter((i) => i.flags?.["shadowdark-extras"]?.containerId === item.id)) await child.delete({ sdxInternal: true });
+        await item.delete({ sdxInternal: true });
+      } else await item.delete();
+    }
+    return result;
+  }
   async _onFirstRender(context, options) {
     await super._onFirstRender(context, options);
     this._hooks = ["updateActor", "deleteActor", "createItem", "updateItem", "deleteItem", "updateRollTable", "createCombat", "updateCombat", "deleteCombat", "canvasReady", MOVEMENT_CHANGED, QUESTS_CHANGED, DOWNTIME_CHANGED].map(name => [name, Hooks.on(name, () => this._onStateChanged())]);
@@ -510,11 +542,38 @@ export class PartySheet extends HandlebarsApplicationMixin(foundry.applications.
   }
   _onClose(options) { for (const [name, id] of this._hooks ?? []) Hooks.off(name, id); this._hooks = null; globalThis.document?.removeEventListener("pointerdown", this._pickerAway, true); return super._onClose(options); }
 }
-for (const name of ["_prepareContext", "_change", "_pickEmblem", "_pool", "_coinInputs", "_pcs", "_refuse", "_settle", "_coinLabel", "_addCoins", "_giveCoins", "_divideCoins", "_addItemFrom", "_giveItem", "_quests", "_bastion", "_travel", "_hookTravel", "_bindControls", "_activityController", "_questController", "_onStateChanged", "_form", "_asked", "_requestRoll", "_awardParty", "_downtimeCall", "_startDowntime", "_downtime", "_warbands", "_warbandWrite"]) PartySheet.prototype[name] = PartyApp.prototype[name];
+for (const name of ["_prepareContext", "_change", "_pickEmblem", "_pool", "_coinInputs", "_pcs", "_refuse", "_settle", "_coinLabel", "_addCoins", "_giveCoins", "_divideCoins", "_addItemFrom", "_giveItem", "_deleteItem", "_quests", "_bastion", "_travel", "_hookTravel", "_bindControls", "_activityController", "_questController", "_onStateChanged", "_form", "_asked", "_requestRoll", "_awardParty", "_downtimeCall", "_startDowntime", "_downtime", "_warbands", "_warbandWrite"]) PartySheet.prototype[name] = PartyApp.prototype[name];
+
+/**
+ * A party item dragged onto a character's sheet moves (Ctrl copies). The sheet makes the copy by its own rules
+ * (spells, effects, lights), so this waits for that copy to appear and only then removes the original: a drop the
+ * sheet declines loses nothing, and one it already moved (Shadowdark Extras' transfers) finds nothing left to remove.
+ */
+export function registerPartyItemMove() {
+  let pending = null;
+  Hooks.on("dropActorSheetData", (actor, _sheet, data) => {
+    const item = data?.type === "Item" && actor?.type === "Player" ? fromUuidSync(data.uuid) : null;
+    // The drop event is still the current one here; Foundry passes it to the hook's caller, not to the hook.
+    // Another remover owns the drop when Extras' move patch is on the character sheets, or for a light (the system moves it itself).
+    // But the system sends an item with Active Effects straight to createEmbeddedDocuments, past both of them, so that one is ours.
+    const otherMover = !item?.effects?.size && (foundry.appv1?.sheets?.ActorSheet?.prototype?._sdxCtrlMovePatched || item?.isLight?.());
+    pending = item?.isOwner && isParty(item.parent) && !otherMover && !globalThis.event?.ctrlKey ? { item, actor, at: Date.now() } : null;
+  });
+  Hooks.on("createItem", async (made, _options, userId) => {
+    if (!pending) return;
+    if (Date.now() - pending.at > 5000) { pending = null; return; }
+    if (userId !== game.user?.id || made.parent?.uuid !== pending.actor.uuid) return;
+    const { item } = pending;
+    pending = null;
+    if (item.parent?.items.get(item.id) && made.name === item.name) await item.delete();
+  });
+}
 
 /** Only native/adopted flagged Parties route here; ordinary NPC sheets stay intact. */
 export function registerParty() {
   registerPartyRosterGuard();
+  registerPartyTokenArt();
+  registerPartyItemMove();
   const ActorClass = globalThis.CONFIG?.Actor?.documentClass;
   if (ActorClass) {
     foundry.applications.apps.DocumentSheetConfig.registerSheet(ActorClass, MODULE_ID, PartySheet, { types: ["NPC"], makeDefault: false, label: "SDE.party.title" });
