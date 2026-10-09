@@ -38,6 +38,7 @@ import {
 import { Party } from "../party/party.mjs";
 import { barModel, itemTouchesBar, redrawStamp, hhmm } from "./overland-bar-core.mjs";
 import { travelPanel } from "./travel-panel.mjs";
+import { campOf } from "../camping/camping.mjs";
 import { encounterCard, encounterPanel, encounterStrip } from "./encounter-panel.mjs";
 import { postEncounter } from "../encounter/encounter-draw.mjs";
 import { DIAL, clockShown, clockSteps, dateToTime, dialMarkup, dialModel, monthGrid, seasonHatch } from "./hud-core.mjs";
@@ -441,8 +442,18 @@ export const TravelBar = {
       rules, season: t(seasonAt(cal, now).name ?? ""), weatherName, methodName,
       weather: weatherNow(), extras: !!game.modules.get("shadowdark-extras")?.active,
       frequency: encounterSettings(), adjust: this._adjust,
+      camping: this._camping(),
       ...this._partyFor(),
     });
+  },
+
+  /** The travelling party has a camp being set up: its window is open, or its tasks are done and the night is next. */
+  _camping() {
+    try {
+      const doc = overlandState().tokenUuid ? fromUuidSync(overlandState().tokenUuid) : null;
+      const phase = doc?.actor ? campOf(doc.actor)?.phase : null;
+      return !!phase && phase !== "complete";
+    } catch { return false; }
   },
 
   /** The party as the Method step reads it, and that method's hexes a day. */

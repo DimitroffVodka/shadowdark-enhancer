@@ -60,7 +60,7 @@ import { PARTY_FLAG, extrasParties, joinExtras, placePartyToken, wearPartyHex } 
 import { Party, isNativeParty, isLegacyParty } from "../party/party.mjs";
 import { chooseParty } from "./party-choice.mjs";
 import { isPartyDeployed } from "../party/party-movement.mjs";
-import { prepareCampNight, finishCampNight } from "../camping/camping.mjs";
+import { prepareCampNight, finishCampNight, campOf } from "../camping/camping.mjs";
 import { ownsHexFog, revealParty } from "../hex-map/hex-fog.mjs";
 import { weatherCard } from "../shared/chat-cards.mjs";
 import { L as t } from "../shared/i18n.mjs";
@@ -1011,15 +1011,16 @@ export async function makeCamp(party = null, acceptShortages = false) {
 }
 
 /**
- * When camp breaks: the next sunrise, or the last night check if it falls
- * later. A summer sunrise at 04:30 comes before a 05:00 check, and both night
- * checks are the camp's (§5.5 step 2).
+ * When camp breaks: the next 06:00, or the next sunrise if that falls later (a winter dawn). A fixed hour keeps
+ * the days from starting at a summer 04:30; every night check (§5.5 step 2) falls by 05:00, so they all come first.
  */
 function campEnd() {
   const cal = game.time.calendar, now = game.time.worldTime;
   const six = startOfDay(cal, now) + 6 * hourSeconds();
+  const nextSix = six > now ? six : six + secondsPerDay(cal);
   const night = _state.checks.filter((c) => c.half === "night" && !c.rolled).map((c) => c.at);
-  return campEndAt(dawnAfter(cal, now), night, six > now ? six : six + secondsPerDay(cal));
+  // campEndAt (#428) drops night checks past nextSix; the 06:00 floor (#440) already covers the ones before it.
+  return campEndAt(Math.max(dawnAfter(cal, now), nextSix), night, nextSix);
 }
 
 /** The native or provider party the persisted travel token stands for, or null. */
@@ -1181,8 +1182,6 @@ async function finishCamp() {
   await campLine(lines);
   await rollWeatherHere(false);
   _camps++;
-  // The next day opens as the camp breaks, on the standing pace; with no hexes a day to go by, Start day asks.
-  if (baseFor(partyReading()) > 0) await beginDay({});
   return true;
 }
 
@@ -1231,7 +1230,7 @@ export function dawnWeather({ crossed } = {}) {
 
 /**
  * Open a travel day on the active GM, inside the queue: the weather first (unless today's holds), the budget,
- * the day's checks. Start day is this with the GM's choices; camp's dawn is this with none (finishCamp).
+ * the day's checks. Start day is this with the GM's choices.
  * @returns {Promise<{ok:true}|{ok:false, error:string}>}
  */
 async function beginDay(data) {
@@ -1374,6 +1373,8 @@ export function applyAction(data, user) {
         if (_state.day === null || _camps !== campsAtCall) return { ok: false, error: t("SDE.overland.notify.campNoDay") };
         // Each step is kept in the camp as it's done, so a camp already made (pressed again after
         // something failed, in this tab or after a reload) goes on from the next step (#282 review).
+        // Tasks already rolled and the window closed: the bar's Make camp opens it again. Night inside it names the party and runs the night.
+        if (!_state.camp && !data.partyId && isNativeParty(party) && campOf(party)?.phase === "awaitingRest") { game.shadowdarkEnhancer.camping.open(party); return { ok: true, setup: true }; }
         if (!_state.camp) await syncMembers();
         if (!_state.camp && !(await pitchCamp(user, data.acceptShortages === true))) return isNativeParty(party) ? { ok: true, setup: true } : { ok: false, error: t("SDE.overland.notify.campNotMade") };
         if (!_state.camp.lightsOut) {

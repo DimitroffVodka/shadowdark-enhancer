@@ -64,7 +64,7 @@ export const BUTTONS = {
  * @returns {string[]}  `badge`, `spacer`, `tools`, or the data-action a button runs
  */
 export function barItems({ mode, hexScene = false, pending = false, dayOpen = false }) {
-  // Days open themselves (travel start, camp's dawn): Start day shows only while none is open.
+  // A day opens itself at travel start; after a camp the GM presses Start day, which shows only while none is open.
   if (mode === "overland") return ["badge", ...(pending ? ["resumeTravel"] : dayOpen ? [] : ["startDay"]), "makeCamp", "spacer", "tools", "endTravel"];
   // A hex map is overland: its one Start begins travel, and turns a crawl that
   // walked onto the map into travel. Crawl rounds belong to every other scene.

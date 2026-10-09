@@ -55,7 +55,7 @@ function pointTime(seconds, cal) {
  * @param {{state:object, model:object, gm:boolean, see:number|null, cal:object,
  *   night:boolean, rules:object|null, season:string, weather:string|null, extras:boolean,
  *   party:{method:string, ride:Object<string,string>}, nextBase:number,
- *   frequency?:{chance:number, day:number, night:number}, adjust?:boolean,
+ *   frequency?:{chance:number, day:number, night:number}, adjust?:boolean, camping?:boolean,
  *   weatherName:Function, methodName:Function}} v
  */
 export function travelPanel(v) {
@@ -64,7 +64,7 @@ export function travelPanel(v) {
   // One can be held with no clock left to run (it hit as the clock reached its target).
   const pending = gm ? (state.pending ?? (state.encounter ? { reason: "encounter" } : null)) : null;
   const held = pending ? (state.encounter?.half ?? state.checks.findLast((c) => c.rolled && c.hit)?.half ?? null) : null;
-  const now = currentStep({ dayOpen: m.dayOpen, pending, heldHalf: held });
+  const now = currentStep({ dayOpen: m.dayOpen, pending, heldHalf: held, camp: state.camp ? "night" : v.camping ? "setup" : null });
   const shown = v.see ?? now;
   const sight = sightParts(v.rules, { terrain: state.hex?.terrain, night: v.night, weather: v.weather ?? null });
   const climate = [m.climate, m.harsh ? t("SDE.overland.bar.harsh") : ""].filter(Boolean).join(", ");
