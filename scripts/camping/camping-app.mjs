@@ -2,7 +2,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { Party } from "../party/party.mjs";
 import { requestCamp, campOf, campTorchPlan } from "./camping.mjs";
 import { CAMP_LABELS } from "./camping-core.mjs";
-import { foodPreview } from "./camping-nutrition.mjs";
+import { foodPreview, campEaters } from "./camping-nutrition.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const t = (key) => game.i18n.localize(key);
@@ -45,9 +45,11 @@ export class CampingApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const { campContext } = await import("../overland/overland.mjs");
     const context = campContext(), food = foodPreview(this.party, camp, camp.each ?? context.each, camp.day ?? context.day);
     this.fuelPreview = plan.deductions;
+    const unfed = campEaters(camp).filter(p => !food.find(f => f.actorId === p.actorId)?.fed)
+      .map(p => game.actors.contents.find(a => a.uuid === p.uuid)?.name ?? t("SDE.party.missing"));
     return { title: this.party.name, embedded: !!this.host, manager, setup, fuel, isGM: game.user.isGM, error: this.error,
       phase: t(CAMP_LABELS.phase[camp.phase]), fire: t(camp.fire?.lit ? "SDE.camping.fireLit" : "SDE.camping.noFire"), hasResults: Object.keys(camp.results).length > 0,
-      awaitingRest: camp.phase === "awaitingRest", complete: camp.phase === "complete", shortageWarning: camp.shortageWarning,
+      awaitingRest: camp.phase === "awaitingRest", complete: camp.phase === "complete", shortageWarning: camp.shortageWarning, unfedNames: unfed.length ? game.i18n.format("SDE.camping.shortageNames", { names: unfed.join(", ") }) : null,
       canNight: manager && camp.phase === "awaitingRest", canResolve: manager && setup, canResume: manager && (camp.phase === "complete" ? !game.messages.has(camp.reportId) : !setup && !fuel && camp.phase !== "awaitingRest"),
       fuelChoices: ["none", "wood", "torches"].map(value => ({ value, label: t(CAMP_LABELS.fuel[value]), selected: camp.fuel === value })),
       available: plan.available, canFuel: manager && plan.ok,

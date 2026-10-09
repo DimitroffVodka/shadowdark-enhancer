@@ -21,8 +21,10 @@ export function barModel({ state, isGM, owns, actors }) {
     uuid: actors[id].uuid ?? null,
     rations: actors[id].rations,
     int: actors[id].int ?? 0,
-    foraged: state.foraged.includes(id),
-    canForage: dayOpen && !state.pushed && owns(id) && !state.foraged.includes(id),
+    // The actor's own day flag counts too: the state's list is cleared by a restarted day, the flag is what refuses a second forage.
+    foraged: state.foraged.includes(id) || !!actors[id].foragedToday,
+    found: actors[id].found ?? null,
+    canForage: dayOpen && !state.pushed && owns(id) && !state.foraged.includes(id) && !actors[id].foragedToday,
   }));
   return {
     dayOpen,

@@ -132,6 +132,10 @@ export const TravelBar = {
       if (this._open === "travel" && itemTouchesBar(item, overlandState().members)) this.render();
     };
     for (const hook of ["createItem", "updateItem", "deleteItem"]) Hooks.on(hook, onItem);
+    // The day's forage result lands on the actor's flag, after the roll.
+    Hooks.on("updateActor", (actor, change) => {
+      if (this._open === "travel" && change.flags?.[MODULE_ID] && overlandState().members.includes(actor.id)) this.render();
+    });
   },
 
   mount() {
@@ -394,9 +398,13 @@ export const TravelBar = {
   _model() {
     const state = overlandState();
     const actors = {};
+    const today = state.day === null ? null : startOfDay(game.time.calendar, state.day);
     for (const id of state.members) {
       const a = game.actors.get(id);
+      const flags = a?.flags?.[MODULE_ID] ?? {};
       if (a) actors[id] = {
+        foragedToday: today !== null && flags.overlandForageDay === today,
+        found: today !== null && flags.overlandForageResult?.day === today ? flags.overlandForageResult.found : null,
         name: a.name, uuid: a.uuid,
         rations: a.items.filter((i) => /^rations?$/i.test(i.name)).reduce((n, i) => n + (Number(i.system?.quantity) || 0), 0),
         int: Number(a.system?.abilities?.int?.mod) || 0,
