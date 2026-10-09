@@ -36,7 +36,7 @@ export function hexMapTools(scene, { mode = "", brush = false, isGM = false, fog
   // First in the group, and only where the module draws the fog: the GM's way to look at the map as the players do.
   if (fog) tools.hexPlayerView = {
     name: "hexPlayerView", title: "SDE.hexMap.controls.playerView", icon: "fa-solid fa-users", order: 0, toggle: true, active: playerView,
-    onChange: () => { togglePlayerView(); refresh(); },
+    onChange: async () => { await togglePlayerView(); refresh(); },
   };
   tools.hexTerrain = overlay("hexTerrain", "terrain", "fa-solid fa-eye", "SDE.hexMap.controls.terrain", 1);
   // Regions and zones both come from the border scan.

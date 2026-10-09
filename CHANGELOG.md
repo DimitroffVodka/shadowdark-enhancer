@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 ### Added
-- **The GM can see the hex fog as the players do.** The Hex map group on the left toolbar has a new first button (two people) on any scene where the module draws the fog. Unexplored hexes are drawn as a faint veil for the GM so the map can be edited; with the button on they are solid black, exactly the players' view. Click again to go back. It resets to off on a reload.
+- **The GM can see the hex fog as the players do.** The Hex map group on the left toolbar has a new first button (two people) on any scene where the module draws the fog. Unexplored hexes are drawn as a faint veil for the GM so the map can be edited; with the button on they are solid black, exactly the players' view. Click again to go back. The choice is kept in this browser, so it survives a reload; the veil is 60% black.
 - **Right-click a hex with the Hex Brush open to copy its terrain and features.** The brush picks up whatever the hex under the cursor says (a terrain the map's list lacks lands in the Other box), so a good result can be painted straight over a bad one. A right-drag still pans the map.
 - **The Hexplorer's terrain is a dropdown, not a text box.** It offers the map's own terrains (the same list as the on-map editor, alphabetical); to name a new one you pick "other…" and type it there. Nothing is typed by default any more.
 - **The hex tagger's terrain dropdowns are alphabetical.** The review sheet, the Legend cards and the import wizard's hex check listed terrains in the book's printed order; they now sort like the on-map editor's list, with (untagged) first and other... last.
