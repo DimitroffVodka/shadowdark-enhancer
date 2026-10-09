@@ -434,11 +434,12 @@ async function spawnHiddenTokens(scene, siteId, plan) {
   const { MonsterLinker } = await import("../monsters/monster-linker.mjs");
   const { worldActorFor, tokenSourceFor } = await import("../../shared/token-placement.mjs");
   const index = await MonsterLinker.buildIndex();
+  const folder = await (await import("../world-folders.mjs")).bookFolderId("Actor", siteId);
   const actors = new Map(), missing = [];
   for (const monster of new Set(plan.map((p) => p.monster))) {
     const hit = index.find((e) => e.name.toLowerCase() === monster.toLowerCase());
     const origin = hit ? await fromUuid(hit.uuid) : null;
-    const world = origin ? await worldActorFor(origin) : null;
+    const world = origin ? await worldActorFor(origin, { folder }) : null;
     if (!world) { missing.push(monster); continue; }
     actors.set(monster, { world, source: await tokenSourceFor(world, origin) });
   }

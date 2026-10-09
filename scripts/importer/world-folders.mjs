@@ -83,3 +83,12 @@ export async function organizeWorld() {
   if (scenes.length) await Scene.updateDocuments(scenes);
   return { made, moved: journals.length + scenes.length };
 }
+
+/** The world folder of a type for a site's book (made if missing), or null when the site has no book. GM only. */
+export async function bookFolderId(type, siteId) {
+  const name = bookFolderName(findSite(siteId)?.src);
+  if (!name || !game.user?.isGM) return null;
+  const folder = game.folders.find((f) => f.type === type && f.name === name && !f.folder)
+    ?? await Folder.create({ name, type, sorting: "a" });
+  return folder.id;
+}

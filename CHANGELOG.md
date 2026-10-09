@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Added
+- **Monsters an adventure map places are filed in a folder for their book.** The World Actors tab used to get them all in one flat list; a monster made when a map's creatures are placed now goes into its book's folder (Cursed Scroll 1 to 6, the Western Reaches mini adventures). An actor that already exists stays where it is.
 - **Right-click a hex with the Hex Brush open to copy its terrain and features.** The brush picks up whatever the hex under the cursor says (a terrain the map's list lacks lands in the Other box), so a good result can be painted straight over a bad one. A right-drag still pans the map.
 - **The Hexplorer's terrain is a dropdown, not a text box.** It offers the map's own terrains (the same list as the on-map editor, alphabetical); to name a new one you pick "other…" and type it there. Nothing is typed by default any more.
 - **The hex tagger's terrain dropdowns are alphabetical.** The review sheet, the Legend cards and the import wizard's hex check listed terrains in the book's printed order; they now sort like the on-map editor's list, with (untagged) first and other... last.
