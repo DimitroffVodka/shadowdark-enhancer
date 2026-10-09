@@ -1,0 +1,114 @@
+{{!-- Battle map picker: this terrain's maps, every other map, then the world's scenes. Window root carries sde-ui (styles/sde-ui.css); the rest is styles/encounter-maps.css. --}}
+<div class="ui-shell bmp{{#if night}} bmp-night{{/if}}">
+
+  <header class="ui-head">
+    <div class="ui-head-text">
+      <h2 class="ui-title">{{localize "SDE.encounterMaps.picker.title"}}</h2>
+      <p class="ui-sub">{{#if terrain}}{{localize "SDE.encounterMaps.picker.subTerrain" terrain=terrainName}}{{else}}{{localize "SDE.encounterMaps.picker.subNone"}}{{/if}}</p>
+    </div>
+  </header>
+
+  {{!-- Day | Night, and Camp. Seeded from the encounter; a scene is used as it is, so they go quiet while one is chosen. --}}
+  <div class="bmp-look"{{#if looksOff}} data-tooltip="{{localize 'SDE.encounterMaps.picker.lookScene'}}"{{/if}}>
+    <span class="ui-label">{{localize "SDE.encounterMaps.picker.look"}}</span>
+    <div class="bmp-seg" role="group" aria-label="{{localize 'SDE.encounterMaps.picker.look'}}">
+      <button type="button" class="ui-btn{{#unless night}} bmp-on{{/unless}}" id="{{partId}}-day" data-action="setNight" data-night="false" aria-pressed="{{#if night}}false{{else}}true{{/if}}"{{#if looksOff}} disabled{{/if}}><i class="fa-solid fa-sun"></i> {{localize "SDE.encounterMaps.picker.day"}}</button>
+      <button type="button" class="ui-btn{{#if night}} bmp-on{{/if}}" id="{{partId}}-night" data-action="setNight" data-night="true" aria-pressed="{{#if night}}true{{else}}false{{/if}}" data-tooltip="{{localize 'SDE.encounterMaps.picker.nightTip'}}"{{#if looksOff}} disabled{{/if}}><i class="fa-solid fa-moon"></i> {{localize "SDE.encounterMaps.picker.night"}}</button>
+    </div>
+    <label class="ui-switch" data-tooltip="{{#if campAvailable}}{{localize 'SDE.encounterMaps.picker.campTip'}}{{else if looksOff}}{{localize 'SDE.encounterMaps.picker.lookScene'}}{{else}}{{localize 'SDE.encounterMaps.picker.campNone'}}{{/if}}">
+      <input type="checkbox" id="{{partId}}-camp" data-action="toggleCamp"{{#if camp}} checked{{/if}}{{#unless campAvailable}} disabled{{/unless}}>
+      <span><i class="fa-solid fa-campground"></i> {{localize "SDE.encounterMaps.picker.camp"}}</span>
+    </label>
+  </div>
+
+  <div class="ui-body">
+    {{#each sections as |sec|}}
+    {{#if sec.show}}
+    <section class="ui-group bmp-sec" data-section="{{sec.key}}">
+      <h3 class="ui-h">{{localize sec.headingKey terrain=@root.terrainName}}<small>{{sec.count}}</small></h3>
+
+      {{#if sec.chips}}
+      <div class="ui-inline bmp-chips" role="group" aria-label="{{localize 'SDE.encounterMaps.picker.filterLabel'}}">
+        {{#each sec.chips as |chip|}}
+        <button type="button" class="ui-chip bmp-chip{{#if chip.active}} sel{{/if}}" id="{{@root.partId}}-chip-{{#if chip.terrain}}{{chip.terrain}}{{else}}all{{/if}}" data-action="filterTerrain" data-terrain="{{chip.terrain}}" aria-pressed="{{chip.active}}">{{#if chip.labelKey}}{{localize chip.labelKey}}{{else}}{{chip.text}}{{/if}} <span class="ui-muted">{{chip.count}}</span></button>
+        {{/each}}
+      </div>
+      {{/if}}
+
+      {{#if sec.empty}}
+      <div class="ui-empty"><i class="fa-solid fa-map"></i><p>{{localize sec.emptyKey}}</p></div>
+      {{else}}
+        {{#if sec.hintKey}}
+        <div class="bmp-note">
+          <p class="ui-row-sub">{{localize sec.hintKey}}</p>
+          {{#if sec.canRandom}}
+          <label class="ui-switch" data-tooltip="{{localize 'SDE.encounterMaps.picker.randomTip' terrain=@root.terrainName}}">
+            <input type="checkbox" id="{{@root.partId}}-random" data-action="toggleRandom"{{#if sec.random}} checked{{/if}}{{#if sec.randomOff}} disabled{{/if}}>
+            <span><i class="fa-solid fa-dice"></i> {{localize "SDE.encounterMaps.picker.random"}}</span>
+          </label>
+          {{/if}}
+        </div>
+        {{/if}}
+
+        {{#if sec.isScenes}}
+        <div class="ui-search"><i class="fa-solid fa-magnifying-glass"></i><input type="search" data-bmp-search value="{{sec.query}}" placeholder="{{localize 'SDE.encounterMaps.picker.scenesSearch'}}" aria-label="{{localize 'SDE.encounterMaps.picker.scenesSearch'}}" autocomplete="off"></div>
+        <div class="ui-list bmp-scenes" data-bmp-scenes>
+          {{#each sec.rows as |row|}}
+          <button type="button" class="ui-row bmp-scene{{#if row.selected}} sel{{/if}}" id="{{@root.partId}}-scene-{{row.id}}" data-action="selectScene" data-scene-id="{{row.id}}" data-name="{{row.name}}" aria-pressed="{{row.selected}}"{{#if row.hidden}} hidden{{/if}}>
+            {{#if row.thumb}}<img src="{{row.thumb}}" alt="" loading="lazy" decoding="async">{{else}}<span class="ui-art bmp-noart"><i class="fa-solid fa-image"></i></span>{{/if}}
+            <span class="ui-row-main"><span class="ui-row-name">{{row.name}}</span></span>
+          </button>
+          {{/each}}
+        </div>
+        <p class="ui-row-sub" data-bmp-nomatch{{#unless sec.noMatch}} hidden{{/unless}}>{{localize "SDE.encounterMaps.picker.scenesNoMatch"}}</p>
+        {{else}}
+        <div class="bmp-grid">
+          {{#each sec.cards as |c|}}
+          <article class="ui-card bmp-card{{#if c.selected}} sel{{/if}}{{#if c.dimmed}} bmp-off{{/if}}">
+            <button type="button" class="bmp-pick" id="{{@root.partId}}-map-{{c.id}}" data-action="selectMap" data-map-id="{{c.id}}" aria-pressed="{{c.selected}}"{{#if c.credit}} data-tooltip="{{localize 'SDE.encounterMaps.picker.credit' sources=c.credit}}"{{/if}}>
+              <span class="bmp-thumb"><img src="{{c.thumb}}" alt="" loading="lazy" decoding="async"></span>
+              <span class="bmp-name">{{localize c.labelKey}}</span>
+            </button>
+            <div class="bmp-meta">
+              <span class="bmp-tags">
+                {{#if c.isDefault}}<span class="ui-chip gold">{{#if c.isPinned}}<i class="fa-solid fa-thumbtack"></i> {{/if}}{{localize "SDE.encounterMaps.picker.chipDefault"}}</span>{{/if}}
+                {{#if c.isRandom}}<span class="ui-chip"><i class="fa-solid fa-dice"></i> {{localize "SDE.encounterMaps.picker.chipRandom"}}</span>{{/if}}
+                {{#if c.hasCamp}}<span class="ui-chip"><i class="fa-solid fa-campground"></i> {{localize "SDE.encounterMaps.picker.chipCamp"}}</span>{{/if}}
+                {{#if c.dimmed}}<span class="ui-chip off">{{localize "SDE.encounterMaps.picker.chipOff"}}</span>{{/if}}
+              </span>
+              {{#if sec.controls}}
+              <span class="ui-card-actions">
+                <button type="button" class="ui-icon{{#if c.isPinned}} bmp-on{{/if}}" id="{{@root.partId}}-pin-{{c.id}}" data-action="pinMap" data-map-id="{{c.id}}" aria-pressed="{{c.isPinned}}" aria-label="{{#if c.isPinned}}{{localize 'SDE.encounterMaps.picker.unpin' terrain=@root.terrainName}}{{else}}{{localize 'SDE.encounterMaps.picker.pin' terrain=@root.terrainName}}{{/if}}" data-tooltip="{{#if c.isPinned}}{{localize 'SDE.encounterMaps.picker.unpin' terrain=@root.terrainName}}{{else}}{{localize 'SDE.encounterMaps.picker.pin' terrain=@root.terrainName}}{{/if}}"><i class="fa-solid fa-thumbtack"></i></button>
+                <button type="button" class="ui-icon" id="{{@root.partId}}-eye-{{c.id}}" data-action="toggleMap" data-map-id="{{c.id}}" aria-label="{{#if c.enabled}}{{localize 'SDE.encounterMaps.picker.switchOff' terrain=@root.terrainName}}{{else}}{{localize 'SDE.encounterMaps.picker.switchOn' terrain=@root.terrainName}}{{/if}}" data-tooltip="{{#if c.enabled}}{{localize 'SDE.encounterMaps.picker.switchOff' terrain=@root.terrainName}}{{else}}{{localize 'SDE.encounterMaps.picker.switchOn' terrain=@root.terrainName}}{{/if}}"><i class="fa-solid {{#if c.enabled}}fa-eye{{else}}fa-eye-slash{{/if}}"></i></button>
+              </span>
+              {{/if}}
+            </div>
+          </article>
+          {{/each}}
+        </div>
+        {{/if}}
+      {{/if}}
+    </section>
+    {{/if}}
+    {{/each}}
+  </div>
+
+  <footer class="ui-footer">
+    <div class="bmp-chosen">
+      <span class="ui-label">{{localize "SDE.encounterMaps.picker.chosen"}}</span>
+      {{#if chosen}}
+        <strong class="bmp-chosen-name">{{#if chosen.isMap}}{{localize chosen.labelKey}}{{else}}{{chosen.name}}{{/if}}</strong>
+        {{#if chosen.isMap}}
+        <span class="ui-chip"><i class="fa-solid {{#if chosen.night}}fa-moon{{else}}fa-sun{{/if}}"></i> {{#if chosen.night}}{{localize "SDE.encounterMaps.picker.night"}}{{else}}{{localize "SDE.encounterMaps.picker.day"}}{{/if}}</span>
+        {{#if chosen.camp}}<span class="ui-chip"><i class="fa-solid fa-campground"></i> {{localize "SDE.encounterMaps.picker.camp"}}</span>{{/if}}
+        {{/if}}
+      {{else}}
+        <span class="ui-muted">{{localize "SDE.encounterMaps.picker.chosenNone"}}</span>
+      {{/if}}
+    </div>
+    <div class="ui-right">
+      <button type="button" class="ui-btn ghost" data-action="cancel">{{localize "SDE.encounterMaps.picker.cancel"}}</button>
+      <button type="button" class="ui-btn primary" data-action="confirm"{{#unless canConfirm}} disabled{{/unless}}><i class="fa-solid fa-check"></i> {{#if chosen.isScene}}{{localize "SDE.encounterMaps.picker.useScene"}}{{else}}{{localize "SDE.encounterMaps.picker.useMap"}}{{/if}}</button>
+    </div>
+  </footer>
+</div>

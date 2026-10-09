@@ -3633,6 +3633,11 @@ body.theme-light .sde-parry-note { color: #2e6b2e; }
   font-size: 14px;
   line-height: 1.45;
   color: var(--sd-text-body);
+  /* The HUD is black in every theme, so its status colours are the dark theme's own. --sde-bar-hit and --sde-bar-miss
+     turn darker under body.theme-light to suit a light page, and read poorly on this black. */
+  --sde-hud-ok: #60b050;
+  --sde-hud-bad: #e05050;
+  --sde-hud-warn: #d08030;
 }
 #shadowdark-enhancer-travel.sde-hud-visible { display: flex; }
 body.sde-clock-on #shadowdark-enhancer-strip { top: 48px; }
@@ -3744,6 +3749,18 @@ body:has(.sdx-scene-nav-bar) #shadowdark-enhancer-travel { top: 72px; }
   font-variant-numeric: tabular-nums;
   min-width: 40px;
   color: var(--sd-text-body);
+}
+.sde-hud-stopped,
+.sde-hud-tag {
+  align-self: center;
+  font-family: "Montserrat-Bold", sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--sd-page);
+  background: var(--sd-text);
+  border-radius: 2px;
+  padding: 2px 6px;
 }
 .sde-hud-plate,
 .sde-hud-go {
@@ -4241,10 +4258,10 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
   background: var(--sd-panel);
 }
 .sde-hud-v { font-family: "JSL Blackletter", serif; font-size: 20px; color: var(--sd-text); }
-.sde-hud-v.sde-reaction-Hostile { color: var(--sde-bar-hit); }
-.sde-hud-v.sde-reaction-Suspicious { color: #d08030; }
-.sde-hud-v.sde-reaction-Curious { color: var(--sde-bar-accent); }
-.sde-hud-v.sde-reaction-Friendly { color: var(--sde-bar-miss); }
+.sde-hud-v.sde-reaction-Hostile { color: var(--sde-hud-bad); }
+.sde-hud-v.sde-reaction-Suspicious { color: var(--sde-hud-warn); }
+.sde-hud-v.sde-reaction-Curious { color: var(--sd-gold); }
+.sde-hud-v.sde-reaction-Friendly { color: var(--sde-hud-ok); }
 /* Its header carries the fold chevron; folded, the encounter is a strip under
    the bar with Continue (#257). */
 .sde-hud-enc .sde-hud-ph { padding: 8px 10px 6px 20px; }
@@ -4265,6 +4282,51 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 }
 .sde-hud-strip .sde-hud-bl { flex: none; font-size: 18px; }
 .sde-hud-strip .sde-hud-cap { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sde-hud-strip .sde-hud-tag { flex: none; }
+
+/* The battle map (docs/plans/encounter-battle-maps.md): Battle map and Choose map... join the Encounter panel's
+   footer, which wraps to take them. Once a battle is set up its section shows the map, a row per player loading it,
+   Bring the table and Return to travel; the HUD's battle panel carries the same section. */
+.sde-hud-enc .sde-hud-pf { flex-wrap: wrap; }
+.sde-hud-battle {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 20px;
+  border-top: 1px solid var(--sd-hairline);
+}
+.sde-hud-pb > .sde-hud-battle { padding: 0; border-top: 0; }
+.sde-hud-battle .sde-hud-fl { text-align: left; }
+.sde-hud-readout { display: flex; flex-direction: column; gap: 4px; }
+.sde-hud-pr { display: grid; grid-template-columns: minmax(0, 1fr) 190px 100px; align-items: center; gap: 10px; }
+.sde-hud-pr .sde-hud-n { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sde-hud-pr .sde-hud-meter { width: 100%; height: 6px; }
+.sde-hud-pr-left .sde-hud-n { color: var(--sd-text-muted); }
+.sde-hud-pr-ready .sde-hud-cap { color: var(--sde-hud-ok); }
+.sde-hud-pr-ready .sde-hud-meter > span { background: var(--sde-hud-ok); }
+.sde-hud-pr-failed .sde-hud-cap { color: var(--sde-hud-bad); }
+.sde-hud-pr-failed .sde-hud-meter > span { background: var(--sde-hud-bad); }
+.sde-hud-pr-stalled .sde-hud-cap { color: var(--sde-hud-warn); }
+.sde-hud-pr-stalled .sde-hud-meter > span { background: var(--sde-hud-warn); }
+.sde-hud-brow { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+/* Keep this battle and Return to travel go together: wrapped, they move down as one, to the right. */
+.sde-hud-end { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.sde-hud-badge {
+  padding: 2px 6px;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  opacity: 0.85;
+}
+/* Everyone has the map: Bring the table is green. */
+.sde-hud-key.sde-hud-ready { background: var(--sde-hud-ok); border-color: var(--sde-hud-ok); color: var(--sd-page); }
+.sde-hud-key.sde-hud-ready:hover { filter: brightness(1.12); }
+.sde-hud-keep { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
+.sde-hud-keep input { width: 18px; height: 18px; margin: 0; flex: none; accent-color: #ffffff; }
+.sde-hud-battle-panel { width: 560px; }
+/* Who the party is fighting, above the battle's controls: the creature and its three facets, as the Encounter panel shows them. */
+.sde-hud-who { display: flex; flex-direction: column; align-items: center; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--sd-hairline); }
 
 /* The Encounters step's Adjust rows: the chance and the checks a day (#257). */
 .sde-hud-key[aria-expanded="true"] { background: var(--sd-text); color: var(--sd-page); }

@@ -11,7 +11,7 @@ Unless noted otherwise, settings are **world-scoped**, configured by the GM for 
 ## Settings you can see
 
 Go to **Configure Settings → Shadowdark Enhancer**. Apart from the per-user hex
-coordinates switch, feature settings live in one of nine
+coordinates switch and the battle map preload switch, feature settings live in one of nine
 pop-out windows, one per feature, each opened by its own button (**Configure**, or
 **Modes of Play** for that one): Character Builder, Monsters, PC Automation, Modes
 of Play, Movement, Crawl Strip, Overland, Encounters, and Loot & XP. One more
@@ -230,6 +230,14 @@ See [Crawl Strip and Crawl Bar](Crawl-Strip-and-Crawl-Bar.md#overland-travel).
 > **Encounter**) to adjust either. See
 > [Random Encounters](Random-Encounters.md).
 
+### Battle maps
+
+| Setting | Default | What it does |
+|---|---|---|
+| **Preload battle maps for players** | on | While you set a battle up, loads the map's art on every player's computer and shows who is ready, so the scene is there when you bring the table. Off skips the loading. It sits in the main Configure Settings list, not in a pop-out. |
+
+See [Encounter Battle Maps](Encounter-Battle-Maps.md).
+
 ### Rules data
 
 | Setting | Default | What it does |
@@ -294,6 +302,7 @@ Stored as world settings for persistence. **Do not edit these manually.**
 | `downtimeContent` | Unlocked downtime outcome text per book |
 | `downtimeSession` | Live downtime session state |
 | `downtimeSettlement` | The settlement the GM chose for recruiting a warband (empty: the party's hex) |
+| `encounterMapPrefs` | The battle map picker's per-terrain choices: the pinned default (or random) and the maps switched off |
 | `uniqueFeatureTableUuid` | Bound UUID for unique magic item features |
 
 > **Version stamps (`backfillVersion`, `enricherBackfillVersion`, `creatureTypeBackfillVersion`, `monsterSpellSyncVersion`):**

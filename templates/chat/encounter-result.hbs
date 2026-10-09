@@ -28,4 +28,9 @@
     <p class="cc-note warn"><i class="fa-solid fa-triangle-exclamation"></i>{{localize "SDE.encounter.chat.doubleOnes"}}</p>
     {{/if}}
   </div>
+  {{#if battleMap}}
+  <footer class="cc-foot">
+    <button type="button" class="ui-btn" data-sde-battle-map data-tooltip="{{localize 'SDE.encounterMaps.hud.battleMapHint'}}"><i class="fa-solid fa-map"></i>{{localize "SDE.encounterMaps.hud.battleMap"}}</button>
+  </footer>
+  {{/if}}
 </div>
