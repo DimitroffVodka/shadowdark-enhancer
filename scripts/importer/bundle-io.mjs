@@ -242,6 +242,7 @@ const DOC_CLASSES = {
   RollTable: () => RollTable,
   JournalEntry: () => JournalEntry,
   Scene: () => Scene,
+  Adventure: () => Adventure,
 };
 
 /**

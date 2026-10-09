@@ -34,6 +34,8 @@ export const SUITE_PACKS = [
   { key: "tables",  id: "sde-tables",  type: "RollTable",    label: "Shadowdark Enhancer — Roll Tables" },
   { key: "journal", id: "sde-journal", type: "JournalEntry", label: "Shadowdark Enhancer — Journals"    },
   { key: "scenes",  id: "sde-scenes", type: "Scene",        label: "Shadowdark Enhancer — Scenes"      },
+  // A built adventure (scene, journal, creature actors) packed to import when it is run (adventure-pack.mjs).
+  { key: "adventures", id: "sde-adventures", type: "Adventure", label: "Shadowdark Enhancer — Adventures"  },
   // Generated Monster Spells hold their own pack rather than a folder inside
   // Items. #74 consolidated them into sde-items and retired this descriptor,
   // which left a compendium literally named "Monster Spells" sitting empty —

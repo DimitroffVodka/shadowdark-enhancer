@@ -123,3 +123,22 @@ test("the advanced importer inherits the books checked for use once; any other w
   await app("done")._leave();
   assert.equal(hasSessionPdf("CS1"), false);
 });
+
+test("the placement switch shows only when an adventure map is ready, and Done says how many were packed", async () => {
+  const ctl = new WizardController({
+    t, run: async (state) => ({ imported: 3, already: 0, needsYou: [], hex: [], packed: state.placement === "compendium" ? 2 : 0 }),
+  }, () => {});
+  ctl.state.page = "ready";
+  ctl.state.check = { done: true, ready: ["book:CS1"], problems: [], items: [] };
+  assert.equal(ctl.viewModel().ready.adventureMaps, false, "no adventure map picked: nothing to place");
+  ctl.state.check = { done: true, ready: ["book:CS1", "map:cs1-mugdulblub", "map:hex-wr"], problems: [], items: [] };
+  assert.equal(ctl.viewModel().ready.adventureMaps, true);
+  assert.equal(ctl.viewModel().placementWorld, true, "the world is where adventures go unless the GM says otherwise");
+  await ctl.dispatch("setPlacement", { value: "compendium" });
+  assert.equal(ctl.viewModel().placementWorld, false);
+  await ctl.dispatch("setPlacement", { value: "anything else" });
+  assert.equal(ctl.viewModel().placementWorld, true, "an unknown value falls back to the world");
+  await ctl.dispatch("setPlacement", { value: "compendium" });
+  await ctl.dispatch("next");
+  assert.match(ctl.viewModel().done.packed, /SDE\.importer\.wizard\.done\.packed/);
+});

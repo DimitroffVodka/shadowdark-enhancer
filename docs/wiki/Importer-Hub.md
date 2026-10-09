@@ -51,6 +51,18 @@ card naming what it found. **Apply monster art** does what the manager's Apply d
 art is replaced, tokens you picked yourself are not, and nothing is copied. It is yours to
 click; the guide never applies art on its own.
 
+**Where the adventures go.** When you have added adventure maps, the Ready page asks where the
+adventures should end up. **Load them into this world** (the default) builds each adventure's scene,
+journal and creatures in the world, ready to open. **Keep them in the compendium** builds each one the
+same way, then packs it into the *Adventures* compendium (under Shadowdark Enhancer) and takes the
+world copies away, so the world stays light: fewer documents to load on every join, which matters
+most on a weak device. An adventure waits there until you run it; open it and press **Import**, or run
+the guide again with the world option and it imports it for you. Importing only creates what is
+missing: a creature the world already has, or one you edited, is left as it is. The map pictures are
+not in the compendium, only their place in this world's folder, so an Adventure works in the world
+that holds the pictures. Hex maps are always built in the world, because naming their terrain needs
+the scene.
+
 **Hex maps need nothing from you but the terrain.** All six hex maps are set up
 on their own: the Western Reaches A0 and the Cursed Scroll maps (the Gloaming,
 the Djurum, the Isles of Andrik, the Black River, Morzomotha). The guide builds

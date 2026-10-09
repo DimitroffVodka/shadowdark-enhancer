@@ -17,7 +17,7 @@
  *   deps.fileAdventures(src, { onSite(title, i, n) })                   → { sites:[{title, locations, missing}], failed:[{title, error}] }
  *   deps.siteOf(mapId)                                                  → { id, title, src } | null
  *   deps.isFiled(siteId)                                                → whether the site's journal exists
- *   deps.buildScene(siteId, path)                                       → { status:"built"|"already"|"failed", placed, left, known }
+ *   deps.buildScene(siteId, path, { placement })                        → { status:"built"|"already"|"failed", placed, left, known, packed?, packFailed? }
  *   deps.keyBooks                                                       → the source keys whose key locations can be imported
  *   deps.keyLocations(src, { onRegion(region, i, n) })                  → { regions, hexes, created, failed:[{region, error}] }
  *   deps.hexMap(id, { title, firstNum })                                → { status:"ready"|"already"|"needsLook"|"cancelled"|"failed", sceneId, legend, pinned }
@@ -35,13 +35,13 @@ const span = ([from, to], fraction) => from + (to - from) * Math.max(0, Math.min
  * @param {object} state  wizard state (check.ready, maps, uploaded)
  * @param {{onProgress:(pct:number, phase:string)=>void, cancelled:()=>boolean}} hooks
  * @param {object} deps   see the file header
- * @returns {Promise<{imported:number, already:number, needsYou:Array<{title:string, why:string}>, skipped:{n:number, books:string[]}, hex:Array<{id:string, title:string, status:string, legend:boolean, look:boolean, optional:boolean, named?:boolean, sceneId?:string, pinned:number}>, stopped:boolean}>}
+ * @returns {Promise<{imported:number, already:number, packed:number, needsYou:Array<{title:string, why:string}>, skipped:{n:number, books:string[]}, hex:Array<{id:string, title:string, status:string, legend:boolean, look:boolean, optional:boolean, named?:boolean, sceneId?:string, pinned:number}>, stopped:boolean}>}
  */
 export async function runWizardImport(state, hooks, deps) {
   const { t } = deps;
   const ready = new Set(state.check?.ready ?? []);
   const books = bookRows(state).filter((b) => ready.has(`book:${b.id}`));
-  const result = { imported: 0, already: 0, needsYou: [], skipped: { n: 0, books: [] }, hex: [], stopped: false };
+  const result = { imported: 0, already: 0, needsYou: [], skipped: { n: 0, books: [] }, hex: [], packed: 0, stopped: false };
   const stop = () => { if (hooks.cancelled()) { result.stopped = true; return true; } return false; };
 
   // 1. The library
@@ -104,11 +104,13 @@ export async function runWizardImport(state, hooks, deps) {
       result.needsYou.push({ title: site.title, why: t("SDE.importer.wizard.run.mapNoBook", { book: site.src }) });
       continue;
     }
-    const built = await deps.buildScene(site.id, state.uploaded?.[id]);
+    const built = await deps.buildScene(site.id, state.uploaded?.[id], { placement: state.placement === "compendium" ? "compendium" : "world" });
     if (built.status === "failed") result.needsYou.push({ title: site.title, why: t("SDE.importer.wizard.run.mapFailed") });
     else if (built.status === "already") result.already += 1;
     else {
       result.imported += 1;
+      if (built.packed) result.packed += 1;
+      if (built.packFailed) result.needsYou.push({ title: site.title, why: t("SDE.importer.wizard.run.packFailed") });
       if (!built.known) result.needsYou.push({ title: site.title, why: t("SDE.importer.wizard.run.pinsByHand") });
       else if (built.left > 0) result.needsYou.push({ title: site.title, why: t("SDE.importer.wizard.run.pinsLeft", { n: built.left }) });
     }
