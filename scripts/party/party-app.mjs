@@ -447,10 +447,13 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const part = input.dataset.colorInput ?? input.dataset.colorHex;
       void this._pickEmblem({ [part === "icon" ? "iconColor" : "color"]: input.value });
     });
-    // Actors dropped on the Members tab, or on the formation grid of an empty party, join the roster.
-    for (const target of this.element.querySelectorAll(".tab-members, [data-drop-members]")) {
-      target.addEventListener("dragover", event => { if (Party.canManage(this.actor)) event.preventDefault(); });
+    // Actors dropped anywhere in the body while the Members tab is showing (the tab itself is only as tall as its
+    // cards, so the blank space below them must count), or on the formation grid of an empty party, join the roster.
+    const dropZone = event => !!(this.element.querySelector(".tab-members.active") || event.target.closest?.("[data-drop-members]"));
+    for (const target of this.element.querySelectorAll(".sdp-body")) {
+      target.addEventListener("dragover", event => { if (Party.canManage(this.actor) && dropZone(event)) event.preventDefault(); });
       target.addEventListener("drop", event => {
+        if (!dropZone(event)) return;
         event.preventDefault();
         try { const data = JSON.parse(event.dataTransfer.getData("text/plain")); if (data.type === "Actor" && data.uuid) void this._change(() => Party.add(this.actor, data.uuid)); } catch { /* Ignore non-document drags. */ }
       });
