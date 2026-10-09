@@ -16,8 +16,12 @@ const EPS = 1e-6;
 const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi);
 const cellKey = (c, r) => `${c},${r}`;
 
-/** Squares between the party zone's edge and the nearest foe, by the distance band. */
-export const FOE_GAP_SQUARES = Object.freeze({ close: 2, near: 6, far: 12 });
+/**
+ * Empty squares between the party zone's edge and the nearest foe, by the distance band. The party stands against that
+ * edge, so the foe is one square further than the gap from the character in front: 2, 6 and 12 squares, 10, 30 and 60 ft
+ * at 5 ft a square, which is what close, near (a torch's light) and far (twice that, a lantern's) are at the table.
+ */
+export const FOE_GAP_SQUARES = Object.freeze({ close: 1, near: 5, far: 11 });
 /** The least depth (in squares) of the strip the foes arrive in, and the least width along the party's side. */
 export const FOE_DEPTH_SQUARES = 4;
 export const FOE_MIN_CROSS_SQUARES = 12;
@@ -259,8 +263,8 @@ export function centralZone(width, height, grid = GRID_PX, fraction = 0.3) {
 /**
  * Where the foes arrive, and which edge of that strip faces the party.
  *
- * The strip is `FOE_GAP_SQUARES[band]` squares from the party zone's edge (close
- * 2, near 6, far 12), on the side of the party zone with the most room (a tie
+ * The strip is `FOE_GAP_SQUARES[band]` empty squares from the party zone's edge (close
+ * 1, near 5, far 11: the nearest foe 2, 6 or 12 squares from the party), on the side of the party zone with the most room (a tie
  * goes right, left, bottom, top), as wide as the party zone's own side with a
  * floor of `FOE_MIN_CROSS_SQUARES`, and as deep as the foes need. It is pushed
  * inside the map when the gap would run off it: nearer than asked beats off the

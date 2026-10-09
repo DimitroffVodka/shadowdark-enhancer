@@ -39,7 +39,8 @@ hidden.
 The first click. The map's scene is made the first time it is used and reused every
 time after. The party's characters (the members of your [Party](Party.md)) and the
 monsters from the roll are placed on it, the monsters at the distance the roll gave
-them (close, near or far) on the side of the map with the most room. On the few maps
+them (close, near or far: 10, 30 or 60 feet from the character in front, less where
+the map runs out) on the side of the map with the most room. On the few maps
 where that strip would run through water, lava or a chasm, the monsters start on the
 ground across it instead, whatever the roll said. Then the scene opens for **you**, and
 only you. Nobody else is moved.
@@ -119,7 +120,9 @@ Night if it happened at night, Camp if the party is camping.
 
 - **Night** is the same map in the dark: the scene's darkness is raised to 75%. The
   players see by their torches, which light about 30 feet, so a foe at near distance
-  stands at the edge of the light and one far off is out of sight. The characters'
+  (30 feet) stands at the edge of the light and one far off (60 feet, a little less on
+  a map with no more room) is out of sight unless someone carries a lantern, or the
+  Light spell at double range. The characters'
   tokens carry the light their characters hold when you bring the table: a torch lit
   or put out while the battle was being set up counts, and one lit during the fight
   is lit by its owner as usual.

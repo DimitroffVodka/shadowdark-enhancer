@@ -294,7 +294,7 @@ test("distanceBand reads the roll the way the encounter card does", () => {
   for (const odd of [undefined, null, 0, 7, "x", Number.NaN]) assert.equal(distanceBand(odd), "near");
 });
 
-test("foeZone: close, near and far are 2, 6 and 12 squares from the party zone's edge", () => {
+test("foeZone: close, near and far put the nearest foe 2, 6 and 12 squares (10, 30 and 60 ft) from the character in front", () => {
   // a roomy map, the party well inside it, so nothing is clamped; the party zone's squares end at 3500
   const map = { width: 8000, height: 6000 };
   const partyZone = [2500, 2500, 3500, 3500];
@@ -302,9 +302,11 @@ test("foeZone: close, near and far are 2, 6 and 12 squares from the party zone's
     const plan = foePlan({ map, partyZone, distanceRoll: roll });
     assert.equal(plan.side, "right");
     assert.equal(plan.from, "left");
-    assert.equal(plan.zone[0] - 3500, squaresAway * G, `roll ${roll}`);
+    // the strip starts the gap past the zone; the party stands in its last column and a foe in the strip's first, so their
+    // centres are one square further apart than the empty squares between them
+    assert.equal((plan.zone[0] + G / 2) - (3500 - G / 2), squaresAway * G, `roll ${roll}`);
   }
-  assert.deepEqual(FOE_GAP_SQUARES, { close: 2, near: 6, far: 12 });
+  assert.deepEqual(FOE_GAP_SQUARES, { close: 1, near: 5, far: 11 });
 });
 
 test("foeZone: arrives on the side with the most room", () => {
@@ -387,7 +389,7 @@ test("foeZone: a water map puts the foes in the water beside the boat", () => {
   // ocean-open-sea: galleon deck 900..3100 x 1300..1700 on 4000x3000, more room above and below than at the ends
   const sea = foePlan({ map: { width: 4000, height: 3000 }, partyZone: [900, 1300, 3100, 1700], distanceRoll: 3 });
   assert.equal(sea.side, "bottom");
-  assert.equal(sea.zone[1] - 1700, 6 * G);
+  assert.equal(sea.zone[1] - 1700, FOE_GAP_SQUARES.near * G);
   assert.equal(sea.from, "top");
 });
 
@@ -417,7 +419,7 @@ test("foeZone is the plan's zone, and a bad party zone is a loud error", () => {
   assert.throws(() => foeZone({ ...args, partyZone: undefined }), TypeError);
 });
 
-test("PCs against the edge facing the foes, foes against theirs: the gap is the one asked for", () => {
+test("PCs against the edge facing the foes, foes against theirs: the distance is the one asked for", () => {
   const map = { width: 4000, height: 3000 };
   const partyZone = [1250, 900, 2750, 2100];
   for (const [roll, away] of [[1, 2], [3, 6]]) {
@@ -426,7 +428,8 @@ test("PCs against the edge facing the foes, foes against theirs: the gap is the 
     const foes = layoutTokens({ zone: plan.zone, count: 8, from: plan.from, occupied: pcs.map((p) => rectOf(p)) });
     const frontPc = Math.max(...pcs.map((p) => p.x + G));
     const frontFoe = Math.min(...foes.map((p) => p.x));
-    assert.equal(frontFoe - frontPc, away * G, `roll ${roll}: squares between the front ranks`);
+    assert.equal(frontFoe - frontPc, (away - 1) * G, `roll ${roll}: empty squares between the front ranks`);
+    assert.equal((frontFoe + G / 2) - (frontPc - G / 2), away * G, `roll ${roll}: squares from the front character to the nearest foe`);
   }
 });
 

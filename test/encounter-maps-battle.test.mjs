@@ -727,12 +727,12 @@ test("setUp: the terrain's default map, the party and the monsters on it, a stag
   assert.ok(pcs.every((t) => t.actorLink), "the party is linked so damage lands on the character");
   assert.ok(wolves.every((t) => !t.actorLink), "the monsters keep their prototype: each has its own hit points");
 
-  // where: the party inside its zone, the wolves "near" (6 squares) past its edge
+  // where: the party inside its zone, the wolves "near" (5 empty squares) past its edge: 6 squares, 30 ft, from the front character
   const at = (t) => world.rel(scene, t);
   assert.ok(pcs.every((t) => at(t).x >= 1300 && at(t).x + 100 <= 2700 && at(t).y >= 900 && at(t).y + 100 <= 2100));
   const frontPc = Math.max(...pcs.map((t) => at(t).x + 100));
   const frontWolf = Math.min(...wolves.map((t) => at(t).x));
-  assert.equal(frontWolf - frontPc, 6 * 100, "near: 6 squares between the front ranks");
+  assert.equal(frontWolf - frontPc, 5 * 100, "near: 5 empty squares between the front ranks");
   const cells = scene.tokens.contents.map((t) => `${t.x},${t.y}`);
   assert.equal(new Set(cells).size, cells.length, "nobody on anybody");
 
@@ -1018,7 +1018,7 @@ test("setUp: a water map puts the party on the deck and the monsters in the wate
   const pcs = scene.tokens.contents.filter((t) => t.actor.type === "Player");
   const wolves = scene.tokens.contents.filter((t) => t.actor.type === "NPC");
   assert.ok(pcs.every((t) => at(t).x >= 1700 && at(t).x + 100 <= 2700 && at(t).y === 800), "the deck is one row of squares");
-  assert.ok(wolves.every((t) => at(t).x >= 3900 && at(t).x + 100 <= 4400 && at(t).y >= 0 && at(t).y + 100 <= 1600), "far, past the deck, on the map");
+  assert.ok(wolves.every((t) => at(t).x >= 3800 && at(t).x + 100 <= 4400 && at(t).y >= 0 && at(t).y + 100 <= 1600), "far: 11 empty squares past the deck's end (2700), on the map");
 });
 
 test("setUp: a map that names where its foes go puts them there, whatever the roll, and the party on its own island", async () => {
@@ -1849,7 +1849,7 @@ test("changeMap: the battle's own tokens move to the new map, laid out for it; t
   const pcs = lake.tokens.contents.filter((t) => t.actor.type === "Player");
   const wolves = lake.tokens.contents.filter((t) => t.actor.type === "NPC");
   assert.ok(pcs.every((t) => at(t).x >= 1700 && at(t).x + 100 <= 2700));
-  assert.equal(Math.min(...wolves.map((t) => at(t).x)) - Math.max(...pcs.map((t) => at(t).x + 100)), 6 * 100, "the distance rolled is kept");
+  assert.equal(Math.min(...wolves.map((t) => at(t).x)) - Math.max(...pcs.map((t) => at(t).x + 100)), 5 * 100, "the distance rolled is kept: near, 5 empty squares");
   assert.equal(world.viewed, lake.id);
   assert.deepEqual(world.preload.log, [["stop", grove.id], ["start", lake.id, 7]], "the old readout ends, the new one starts once the tokens are there");
   assert.equal(BattleMaps.current().scene, lake);

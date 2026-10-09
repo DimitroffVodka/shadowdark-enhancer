@@ -128,7 +128,7 @@ name), thumbnail created by hand, a camp map adds one AmbientLight at `campLight
 
 ```js
 export function layoutTokens({ zone, count, size = 1, grid = 100, occupied = [] })     // → [{x,y}] top-left px, grid-snapped, packed rows, no overlap with `occupied`
-export function foeZone({ map, partyZone, distanceRoll })                              // strip outside the party zone: close 2 / near 6 / far 12 squares away, on the side with most room, clamped to the map
+export function foeZone({ map, partyZone, distanceRoll })                              // strip outside the party zone: close 1 / near 5 / far 11 empty squares past it, so the nearest foe is 2 / 6 / 12 squares (10 / 30 / 60 ft) from the front character, on the side with most room, clamped to the map
 export function newBattleRecord({ encounter, terrain, map, variant, originSceneId, hex, now })
 export function tokensToRemove(record, tokenDocs)                                      // exact ids: in record.tokenIds AND still carrying FLAGS.token === record.id
 ```
@@ -257,7 +257,17 @@ from which each foe is dealt one (`dealPictures`) instead of all wearing the fir
 seven pictures). It follows the party's own camp: while Overland has tonight's camp made, the camping window's record on
 that party says (`phase` not `complete` and `fire.lit`); a fire not lit yet or gone out puts the light out (`hidden`, kept so
 the GM can light it), and with no camp or no record the fire is lit, as the art shows. `settle` sets it on every setUp and
-changeMap, like the darkness; the light is found by its flag, else by its point.
+changeMap, like the darkness; the light is found by its flag, else by its point. The foe distances are the nearest
+foe's centre to the front character's: the build first took "close 2 / near 6 / far 12" as the empty squares between them,
+which put near foes 35 ft away, just outside a torch's light (6.5 squares with the token's own half), and far foes 65 ft,
+just outside a lantern's (12.5). `FOE_GAP_SQUARES` is now 1 / 5 / 11, so the foes stand 2 / 6 / 12 squares (10 / 30 / 60 ft)
+off. Seen live at night on a player's own client (forest woods, four wolves in two ranks): a torch shows close foes (2 and
+3 squares) and the front rank of near ones (6; the rear rank at 7 is dark), and no far ones; a lantern shows far ones. A
+strip that does not fit past the party is pushed back to the map's edge, nearer than asked, and is the same as before: that
+is every far roll on 26 of the 35 maps that place their foes by the roll (the 40-square land maps and their camps: the
+zone's edge plus 11 squares plus the strip's 4 runs off the map, so the foes stand 10 and 11 squares off) and every near roll
+on 12 of them. The lantern still reaches those far foes and the torch does not. Every map that places its foes by the roll
+was drawn again, old distances beside new, and the foes stood on the same kind of ground.
 
 **Preload.** A player finishes when the last file has loaded; it never calls `game.scenes.preload`, which waits on the
 browser's audio unlock (a freshly reloaded or idle player would stay "not ready" forever) and flashes a loading bar on the
