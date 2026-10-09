@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { emptyState, decodeTags, encodeTags, nextSheet, applySheet, tagsForDataset, summarize, lcg, importTags, rowsFromJson, errorRate, sheetRisk, strandedRiver, STRANDED_RIVER_RATE, REVIEW_BANDS, readTags, readCell, paletteTags, normalizeTerrainWord, tagsWrittenElsewhere, WRITER_OPTION } from "../scripts/hex-map/tag-store.mjs";
+import { emptyState, decodeTags, encodeTags, nextSheet, applySheet, sheetAnswers, tagsForDataset, summarize, lcg, importTags, rowsFromJson, errorRate, sheetRisk, strandedRiver, STRANDED_RIVER_RATE, REVIEW_BANDS, readTags, readCell, paletteTags, normalizeTerrainWord, tagsWrittenElsewhere, WRITER_OPTION } from "../scripts/hex-map/tag-store.mjs";
 import { buildHexDataset } from "../scripts/importer/hex/hex-dataset.mjs";
 import { neighbours } from "../scripts/hex-map/geometry.mjs";
 import { TERRAIN_TAGS } from "../scripts/importer/hex/hex-summary.mjs";
@@ -148,6 +148,17 @@ test("sheetRisk says how many of a sheet to expect to be wrong", () => {
   const { expected, cells } = sheetRisk(s, [1, 2, 3]);
   assert.equal(cells, 3);
   assert.ok(Math.abs(expected - 0.395) < 1e-9);
+});
+
+test("sheetAnswers: a hex the GM changed takes the draft, every other hex keeps the tag it has", () => {
+  const cells = new Map([["1", { terrain: "forest", features: ["river"] }], ["2", { terrain: "swamp" }], ["3", { terrain: "desert", features: ["path"] }]]);
+  const drafts = { 2: { select: "mountain", features: [] }, 3: { select: "__other", other: " salt flat ", features: ["path"] } };
+  assert.deepEqual(sheetAnswers([1, 2, 3], drafts, cells), {
+    1: { terrain: "forest", features: ["river"] },
+    2: { terrain: "mountain", features: [] },
+    3: { terrain: "salt flat", features: ["path"] },
+  });
+  assert.deepEqual(sheetAnswers([2], { 2: { select: "hills" } }, cells), { 2: { terrain: "hills", features: [] } }, "a draft with no features keeps the hex's own");
 });
 
 test("applySheet writes gm answers, clears on empty terrain, and tagsForDataset reflects it", () => {

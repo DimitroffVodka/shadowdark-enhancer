@@ -24,10 +24,17 @@ These work without Extras. Each user's **Show hex coordinates** setting follows
 `hexMaps.numberAt`, preserving leading zeroes and calibration. Flat-top odd/even
 column grids are supported; unsupported grids and unnumbered cells get no invented
 labels. Eligible scenes adopt native records once; unnumbered adopted maps use
-scene UUID plus offset. Hover for disclosed terrain/public notes; a short click
-keeps the small card with permitted links. GM Edit saves terrain, line features,
-rich locations, notes and discovery; travel prices update immediately. Pins,
-token drags and long-press pings retain their handlers.
+scene UUID plus offset. Hover for disclosed terrain/public notes; a player's
+short click keeps the small card with permitted links. The GM gets no pinned
+card or Edit button: a double click opens the Hexplorer, which saves terrain,
+line features, rich locations, notes and discovery; travel prices update
+immediately. Pins, token drags and long-press pings retain their handlers.
+
+The GM's edit window also has a **Random encounters** card: the table a
+wandering check on this hex would roll now, the same one the check picks (its
+region's printed column for the terrain, else the table mapped to the terrain,
+else the active table), with **Roll** and an open-the-table button. It reads the
+saved cell, so save a terrain change first. Players never see it.
 
 One native fog overlay separates revealed terrain from visited cells. A visible
 mountain does not disclose its dungeon. Committed selected-Party travel visits;
@@ -83,6 +90,12 @@ never mixed up. The word *river* is both, which is why this matters:
   encounter check listens to: in a region whose table prints a Coast column, a
   coastal hex rolls on it.
 - **Only terrain chooses an encounter column**, apart from that coast rule.
+- **Keyed locations and settlements stand on the ground their book row names.**
+  They are tagged with what sits on them (keyed location, village, town, city),
+  which is no ground, so for an encounter check, the Hexplorer card and the
+  Encounter zones picture such a hex takes the terrain printed on its keyed row
+  ("Mountain", "Swamp, coast"), coast included. A row that prints only features
+  ("Coast, river") names no ground, and that hex finds no column.
 - **A hex that names no ground.** An older tag, or an imported row of
   features only, can hold *coast* or *path* where the terrain goes, and a
   book's keyed row can say only "Coast, river" for a city at a river mouth.
@@ -647,9 +660,27 @@ being numbered and any tags they picked up are dropped, which the message
 tells you. Only automatic tags can be affected; nothing you tagged by hand
 sits in the frame.
 
+## The Hex map toolbar
+
+On any scene with hex numbering, the GM's left toolbar has a **Hex map** group (the hexagon icon). Its tools
+are the ones below, without opening the Hex Tagger:
+
+- **Show terrain tags**, **Show regions** and **Show encounter zones**: the three pictures of the map. They switch
+  between each other, and pressing the one that is up hides it. Regions and zones appear once the map's borders have
+  been read.
+- **Paint terrain with the brush**: opens the Hex Brush over the tags (see [Fixing a patch at a time](#fixing-a-patch-at-a-time-the-brush)).
+  Pressing it again closes the brush.
+- **Review the hexes most likely wrong**: opens the Hex Tagger on its review sheet.
+- **Open the Hex Tagger**.
+
+When the import wizard has named the Western Reaches terrain, it shows the hexes it was unsure of before it moves on:
+forty at a time, worst guess first, each with its picture and its best guess. Change the wrong ones and press
+**Confirm**; anything you leave alone is accepted as it is. **Skip the rest** keeps the engine's names for the others, and
+the review sheet and the toolbar are there whenever you want to look again.
+
 ## Reviewing the tags on the map
 
-Three pictures of the same map, one button each in the tagger's header.
+Three pictures of the same map, one button each in the tagger's header (and in the Hex map toolbar group).
 Pressing the one that is up hides it; pressing another switches to it.
 
 - **Show tags** — every hex in its terrain colour, with dots for river, path
@@ -663,10 +694,12 @@ Pressing the one that is up hides it; pressing another switches to it.
   stain you can see at the whole-map zoom.
 - **Encounter zones** — which table a wandering check on this hex would roll
   right now, the same one the check itself picks (see
-  [Random Encounters](Random-Encounters.md)). **Green** rolls: that region
-  prints a column for this terrain, with day or night read off the world clock
-  and the northern or southern half off the region's rows; hovering names the
-  column. A region whose grid prints a *New Moon* or *Full Moon* column shows
+  [Random Encounters](Random-Encounters.md)). Each region is drawn in its own
+  colour (the Regions picture's, so touching regions differ), **lighter or
+  darker by which of that region's columns the hex rolls**: a region that prints
+  Forest, Mountain and Coast shows three shades. The column comes from the
+  hex's terrain, with day or night read off the world clock and the northern
+  or southern half off the region's rows; hovering names the column. A region whose grid prints a *New Moon* or *Full Moon* column shows
   that column on its nights, since the world clock gives the moon (see
   [Time](Random-Encounters.md#time)). **Amber** means a check could not decide
   between two columns, and hovering names them. **Grey** means that region has

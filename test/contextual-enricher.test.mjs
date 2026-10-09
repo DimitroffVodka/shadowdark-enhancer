@@ -77,7 +77,7 @@ describe("A5 — syntax the system can actually enrich", () => {
   });
 
   test("the context map is the contract, and it is frozen", () => {
-    assert.deepEqual(ENRICH_CONTEXTS, { table: "check", environment: "check", monster: "request", journal: "request" });
+    assert.deepEqual(ENRICH_CONTEXTS, { table: "check", environment: "check", monster: "request", journal: "request", encounter: "request" });
     assert.ok(Object.isFrozen(ENRICH_CONTEXTS));
   });
 });
@@ -367,6 +367,28 @@ describe("E1 — Arctic Sea table enrichment", () => {
       assert.equal(second.updated, 0, "a rerun must not write any row");
       assert.equal(updates.length, 1, "a fixed-point rerun must not call updateEmbeddedDocuments");
       assert.deepEqual(sourceRows.map((row) => row.description), firstBytes);
+    } finally {
+      MonsterLinker.buildIndex = originalBuildIndex;
+      if (oldGame === undefined) delete globalThis.game;
+      else globalThis.game = oldGame;
+    }
+  });
+
+  test("a Cursed Scroll encounter table asks the players for its DC", async () => {
+    const row = { id: "cs1-row", name: "", description: "Acid quicksand (DC 12 DEX to escape, 1d4 damage/round)" };
+    const table = {
+      name: "The Hideous Halls of Mugdulblub Random Encounters",
+      flags: { [MODULE_ID]: { manifestId: "cs1-random-encounters", source: "CS1" } },
+      results: { contents: [{ id: row.id, toObject: () => ({ ...row }) }], size: 1 },
+      async updateEmbeddedDocuments(_type, batch) { Object.assign(row, batch[0]); },
+    };
+    const oldGame = globalThis.game;
+    const originalBuildIndex = MonsterLinker.buildIndex;
+    globalThis.game = { user: { isGM: true } };
+    MonsterLinker.buildIndex = async () => [];
+    try {
+      await TableEnricher.enrichEncounters(table);
+      assert.equal(row.description, "Acid quicksand ([[request 12 dex]] to escape, [[/r 1d4]] damage/round)");
     } finally {
       MonsterLinker.buildIndex = originalBuildIndex;
       if (oldGame === undefined) delete globalThis.game;

@@ -358,12 +358,18 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       };
     }
 
+    // A row's text carries [[/r]] rolls, [[request]] links and @UUID links: show them live, not as brackets.
+    const last = this._lastResult;
+    const lastResult = last?.kind === "flavor"
+      ? { ...last, html: await foundry.applications.ux.TextEditor.implementation.enrichHTML(last.text) }
+      : last;
+
     return {
       activeTab: this._activeTab,
       selectedTableId: this._selectedTableId,   // now a full UUID
       tableGroups,
       tablePreview,
-      lastResult: this._lastResult,
+      lastResult,
       renown: this._renownContext(),
       browseData,
       buildData,

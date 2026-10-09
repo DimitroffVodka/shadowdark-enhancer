@@ -12,6 +12,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { FIXES_FLAG, decodeFixes, legendReport } from "./tag-corrections.mjs";
 import { HEX_FLAG } from "../importer/hex/hex-commit.mjs";
+import { sheetAnswers, OTHER } from "./tag-store.mjs";
 
 /** Has the GM named this scene's terrain pictures? Applying the Legend writes down what it was told (recordLegend). */
 export const legendNamed = (scene) => !!legendReport(decodeFixes(scene?.getFlag(MODULE_ID, FIXES_FLAG)));
@@ -35,21 +36,27 @@ export async function openLegendSession({ sceneId, folder = "", onProgress = nul
   const scene = game.scenes.get(sceneId);
   if (!game.user?.isGM || !scene) throw new Error("This map is not here to read.");
   await scene.view();
-  const [{ HexTaggerApp, ALL_CRAWLS, SPLIT }, { sourceFolderName }] = await Promise.all([import("./hex-tagger-app.mjs"), import("../shared/compendium-suite.mjs")]);
+  const [{ HexTaggerApp, ALL_CRAWLS, SPLIT, SHEET_SIZE },{ sourceFolderName }] = await Promise.all([import("./hex-tagger-app.mjs"), import("../shared/compendium-suite.mjs")]);
   const app = new HexTaggerApp();
   app._headless = true;
   app._onProgress = onProgress;
   app._loadState();
-  await app._loadEntries();
-  if (folder) app._entries = app._entries.filter((e) => sourceFolderName(e.doc.getFlag(MODULE_ID, HEX_FLAG)?.source) === folder);
-  app._entryUuid = app._entries.length ? ALL_CRAWLS : "";
-  onProgress?.(game.i18n.localize("SDE.hexMap.progress.image"));
-  // As the image flow does: read the map, read its region borders (they finish without asking anything), then the cards.
-  if (!(await app._onSample())) throw new Error(app._error || "The map could not be read.");
-  await app._onScanRegions();
-  await app._onLegend();
-  if (!app._legend?.length) throw new Error("The map gave no pictures to name.");
-  const text = (value, other) => (value === "__other" ? String(other ?? "").trim() : value);
+  // As the window does: tags painted elsewhere meanwhile (brush, overlay, Hexplorer) are taken in, so Apply and Confirm
+  // never write an old copy back over them.
+  const hook = app._hearOutsideTags();
+  const stop = () => Hooks.off("updateScene", hook);
+  try {
+    await app._loadEntries();
+    if (folder) app._entries = app._entries.filter((e) => sourceFolderName(e.doc.getFlag(MODULE_ID, HEX_FLAG)?.source) === folder);
+    app._entryUuid = app._entries.length ? ALL_CRAWLS : "";
+    onProgress?.(game.i18n.localize("SDE.hexMap.progress.image"));
+    // As the image flow does: read the map, read its region borders (they finish without asking anything), then the cards.
+    if (!(await app._onSample())) throw new Error(app._error || "The map could not be read.");
+    await app._onScanRegions();
+    await app._onLegend();
+    if (!app._legend?.length) throw new Error("The map gave no pictures to name.");
+  } catch (err) { stop(); throw err; }
+  const text = (value, other) => (value === OTHER ? String(other ?? "").trim() : value);
   return {
     cards: () => app._legendCards(app._state) ?? [],
     answer(idx, value, other = "") {
@@ -64,8 +71,18 @@ export async function openLegendSession({ sceneId, folder = "", onProgress = nul
       if (card) (card.picked ??= {})[num] = text(value, other);
     },
     apply: () => app.applyLegend(),
-    // The tagger's own pan-and-pulse, for the pictures' double click.
+    // After Apply: the hexes the classifier was unsure of, a sheet at a time, riskiest first (the tagger's amber rings).
+    doubtfulCount: () => app._doubtful().length,
+    reviewNext() { app._sheetDraft = null; app._sheet = app._doubtful(SHEET_SIZE); return app._sheet.length; },
+    reviewCards: () => app._sheetCards(app._state),
+    // The tagger's own pan-and-pulse, for the review pictures' double click.
     locate: (num) => app._onPingHex(null, { dataset: { num } }),
-    close() { app._legend = null; },
+    reviewAnswer(num, value, other = "") { app._sheetDrafts()[num] = { select: value, other, features: app._state.cells.get(String(num))?.features ?? [] }; },
+    // What was not touched is confirmed as it stands: leaving a guess alone is the verdict "this one is right".
+    async reviewConfirm() {
+      // Another scene on the canvas: nothing is written, and the wizard shows why (terrainReview puts this in T.error).
+      if (!(await app._confirmSheet(sheetAnswers(app._sheet, app._sheetDrafts(), app._state.cells)))) throw new Error(game.i18n.localize("SDE.hexMap.notify.sceneChanged"));
+    },
+    close() { stop(); app._legend = null; app._sheet = []; },
   };
 }
