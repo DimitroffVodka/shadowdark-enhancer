@@ -7,8 +7,9 @@
  * 24th of a turn an hour, with now always at the bottom.
  */
 
-import { secondsPerDay, startOfDay, moonPhase, anchor } from "../time/time-core.mjs";
+import { secondsPerDay, startOfDay, moonPhase, anchor, season as seasonAt } from "../time/time-core.mjs";
 import { esc } from "../shared/esc.mjs";
+import { solarOn } from "../calendar/calendar-core.mjs";
 
 /**
  * Who sees the bar: the `clockBar` setting's choices, on a hex map only (#298).
@@ -227,7 +228,10 @@ const MOON_MARKS = [[0.25, "q1"], [0.5, "full"], [0.75, "q3"]];
 /**
  * The month view: `offset` months from `t`'s, in weeks that start on the
  * calendar's weekday 0, each day with its 00:00, the moon's quarter when one
- * falls that day, today, and the holidays `holidaysOn` names for it. Days are
+ * falls that day, today, the holidays `holidaysOn` names for it, the equinox
+ * or solstice it carries (`solar`) and the season that starts on it
+ * (`seasonStart`, the calendar's season index), and where it sits in its
+ * season (`seasonKey`, `seasonDay` counted from 1). Days are
  * read back one at a time rather than counted, because core shows leap days
  * where its own components say.
  * @param {object} cal  game.time.calendar
@@ -241,14 +245,24 @@ export function monthGrid(cal, t, { offset = 0, epoch = 0, holidaysOn = () => []
   const head = cal.timeToComponents(first);
   const week = cal.days?.values?.length || 7;
   const lastFull = anchor(cal, "lastFullMoon", head.year, epoch);
+  // The month's first day is some way into its season: count back to the season's first day.
+  let seasonDay = 1;
+  for (let k = 1; k <= 120 && cal.timeToComponents(first - k * spd).season === head.season; k++) seasonDay++;
   const days = [];
   for (let at = first, i = 0; i < 64; at += spd, i++) {
     const c = cal.timeToComponents(at);
     if (c.month !== head.month || c.year !== head.year) break;
     const a = moonPhase(cal, at, epoch).fraction, b = moonPhase(cal, at + spd, epoch).fraction;
     const moon = b < a ? "new" : MOON_MARKS.find(([q]) => a <= q && b > q)?.[1] ?? null;
-    const date = { year: c.year, month: c.month + 1, day: c.dayOfMonth + 1, isLastFullMoonOfYear: lastFull === at };
-    days.push({ day: c.dayOfMonth + 1, at, moon, today: at === today, holidays: holidaysOn(date) });
+    const seasonStart = c.season !== cal.timeToComponents(at - spd).season ? c.season : null;
+    if (i > 0) seasonDay = seasonStart !== null ? 1 : seasonDay + 1;
+    const solar = solarOn(c.year + (cal.years?.yearZero ?? 0), c.month + 1, c.dayOfMonth + 1);
+    const date = { year: c.year, month: c.month + 1, day: c.dayOfMonth + 1, isLastFullMoonOfYear: lastFull === at, solar };
+    days.push({
+      day: c.dayOfMonth + 1, at, moon, today: at === today, holidays: holidaysOn(date),
+      solar,
+      seasonStart, seasonDay, seasonKey: seasonAt(cal, at).key,
+    });
   }
   const lead = head.dayOfWeek % week;
   const trail = (week - ((lead + days.length) % week)) % week;
@@ -257,6 +271,7 @@ export function monthGrid(cal, t, { offset = 0, epoch = 0, holidaysOn = () => []
   return {
     year: head.year + (cal.years?.yearZero ?? 0),
     month: cal.months?.values?.[head.month]?.name ?? "",
+    monthNumber: head.month + 1,
     season: head.season,
     weekdays: (cal.days?.values ?? []).map((d) => d.abbreviation ?? d.name),
     cells: [...before, ...days, ...after],

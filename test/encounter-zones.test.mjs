@@ -258,6 +258,7 @@ test("resolveHexTable finds the hex's region on the print and rolls its column",
 
 test("a Myre Swamp hex on a new-moon night rolls the New Moon column (#227)", async () => {
   world();
+  globalThis.game.settings = { get: () => 1 };   // a GM's epoch one second into the calendar: the moon was new at its start
   const roll = async (t) => {
     globalThis.game.time = clockAt(t);
     return (await resolveHexTable({ terrain: "swamp", zone: "Myre Swamp" })).uuid;
