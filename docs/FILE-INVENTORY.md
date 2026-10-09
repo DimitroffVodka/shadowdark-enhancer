@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1788 tracked files · ~226,500 lines of code/markup across scripts+templates+styles+test.
+1788 tracked files · ~226,600 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 1382 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 1384 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 172 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 271 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 | `scavenger/scavenger-core.mjs` | 171 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
@@ -388,7 +388,7 @@
 | `adventure/adventure-journal.mjs` | 330 | An adventure's overview in the Lost Citadel quickstart's layout (pure): an Overview page with an H2 a section and a page for what holds in every area (danger level, light, the random encounters), the PDF's flattened numbered rows back as tables (rumors with no header row, d-tables with one), bullets as nested lists, run-in names bold, and dice and DC checks as inline rolls and requests. |
 | `adventure/adventure-layouts.mjs` | 362 | Where each adventure's room numbers sit on its map, as fractions of the map (positions only; no art, no book text), so a scene can place its pins without the GM clicking each one; plus the pure helpers that turn a placed scene into a layout to paste here and a layout into placement points; also where the book's map marks creatures (a letter per kind), as positions only. |
 | `adventure/adventure-manifest.mjs` | 162 | Where each Cursed Scroll adventure's numbered key is: per site (a dungeon, a mini-adventure, a city district) its title, printed pages, the numbers the book prints, the heading style, and the map's printed grid. Page numbers and titles only; no book text, no art. |
-| `adventure/adventure-pack.mjs` | 233 | Packs a built adventure (its scene, journal and the creature actors its tokens use, with their folders) into one Adventure in the Adventures compendium, and removes the world copies afterwards: only the ids a run made, and never an actor another scene still uses. Reads only until told to remove. |
+| `adventure/adventure-pack.mjs` | 276 | Packs a built adventure (its scene, journal and the creature actors its tokens use, with their folders) into one Adventure in the Adventures compendium, and removes the world copies afterwards: only the ids a run made, and never an actor another scene still uses. Reads only until told to remove. |
 | `adventure/adventure-parser.mjs` | 310 | Numbered-location parser for printed adventures (pure): "12. METEORITE ROOM" and "12. Meteorite Room. Body" headings, a run rule that keeps a numbered list inside a room out of the key, missing-number reports, page HTML with bullets and "Area 12" links. |
 | `adventure/adventure-placer.mjs` | 434 | The keyed-location placer (AppV2): lists a map's locations and turns the canvas into a one-click target, dropping each numbered Note and arming the next; skip and clear per location, resumable. |
 | `adventure/adventure-scene.mjs` | 581 | A filed adventure as a map Scene: scene sized from the GM's image and the book's printed grid, the journal deployed into the world, and the pure rules for which locations are placed, skipped or still to do (remembered on the scene's notes and flag); also the hidden tokens for the creatures the book's map marks and the ones each location's text names, spread on free squares around its pin. |
