@@ -6,7 +6,7 @@ import { storedRulesFor } from "../rules-data/rules-data-scope.mjs";
 import { timeApi } from "../time/time.mjs";
 import { Party, isParty } from "../party/party.mjs";
 import { isActiveGM } from "../shared/gm-relay.mjs";
-import { HexRecords, isHexAdopted, sceneRef, recordJournal, offsetKey, readPass, RECORD_FLAG, publishHexProjection, assertPrivateJournal, loadHexRecords } from "./hex-records.mjs";
+import { HexRecords, isHexAdopted, sceneRef, recordJournal, offsetKey, readPass, RECORD_FLAG, publishHexProjection, assertPrivateJournal, loadHexRecords, partyMemberIds, PUBLIC_FLAG } from "./hex-records.mjs";
 import { adoptHexScene, withHexLock } from "./hex-adoption.mjs";
 import { disclosure, effectiveDiscovery, withPartyDiscovery, overlapAllowed, revealRadius, revealCells, arrivalDue } from "./hex-fog-core.mjs";
 
@@ -173,10 +173,16 @@ export function registerHexFog() {
   Hooks.on("updateJournalEntry", journal => { if (drawnFrom(journal)) queueHexFog(); });
   // The GM's veil follows the party they look at; a roster change reaches the players' maps (the projection names each party's members).
   Hooks.on(`${MODULE_ID}.partySelected`, queueHexFog);
+  // Only a changed roster matters (the formation and the leader live in the same flag), on every hex map that names the party.
   Hooks.on("updateActor", (actor, changes) => {
-    const scene = globalThis.canvas?.scene;
-    if (!changes?.flags?.[MODULE_ID]?.partyData || !isActiveGM() || !ownsHexFog(scene)) return;
-    withHexLock(scene, () => publishHexProjection(scene)).catch(console.error);
+    if (!changes?.flags?.[MODULE_ID]?.partyData || !isActiveGM()) return;
+    const members = JSON.stringify(partyMemberIds(actor));
+    for (const scene of game.scenes?.contents ?? []) {
+      if (!ownsHexFog(scene)) continue;
+      const published = recordJournal(scene, { publicOnly: true })?.flags?.[MODULE_ID]?.[PUBLIC_FLAG]?.parties?.[actor.id]?.members;
+      if (published && JSON.stringify(published) === members) continue;
+      withHexLock(scene, () => publishHexProjection(scene)).catch(console.error);
+    }
   });
 }
 function drawnFrom(journal) {

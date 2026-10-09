@@ -42,6 +42,8 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const record = HexRecords.read(this.offset, this.scene);
     // The reveal boxes are the viewed party's: what they say is what that party's players see.
     const seen = effectiveDiscovery(record.discovery, viewedPartyIds());
+    // The draft belongs to the party it was filled from; switching party while the window is open must not move its boxes to another.
+    if (!this.draft) this.partyId = viewedPartyIds()[0] ?? null;
     if (!this.draft) this.draft = {
       terrain: record.terrain ?? "", title: record.title ?? "",
       lines: FEATURES.filter(type => record.features?.some(f => f.type === type)),
@@ -96,7 +98,7 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (this.saving || !game.user?.isGM) return;
     this._capture(); this.saving = true;
     this.element.querySelector('[data-action="save"]').disabled = true;
-    try { await HexExplorer.save(this.offset, this.draft, this.scene); this.draft = null; }
+    try { await HexExplorer.save(this.offset, this.draft, this.scene, this.partyId); this.draft = null; }
     catch (error) { console.error(`${MODULE_ID} | Hexplorer edit`, error); ui.notifications.warn(t(error.message.startsWith("SDE.") ? error.message : "SDE.hexExplorer.failed")); }
     finally { this.saving = false; this.render(); }
   }

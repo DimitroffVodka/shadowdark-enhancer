@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1791 tracked files · ~227,900 lines of code/markup across scripts+templates+styles+test.
+1792 tracked files · ~228,000 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -77,10 +77,10 @@
 | `hex-map/geometry.mjs` | 221 | Hex numbering by cube difference from one anchor cell; printed offset ↔ cube under the map's column-shift rule. Pure. |
 | `hex-map/hex-adoption.mjs` | 145 | Read-once SDX record adoption with negative offset parsing, lossless original archives, existing-native conflict precedence, reports and automatic eligibility hooks. |
 | `hex-map/hex-brush-app.mjs` | 262 | The hex brush: a small window that sets one terrain (a picture tile per Legend terrain) plus features, so clicking or dragging across the tag overlay retags whole patches; a stroke is one scene write and Undo puts it back. |
-| `hex-map/hex-explorer-app.mjs` | 103 | Small scene-offset GM Hexplorer editor for terrain, line/structured features, public/private notes, document links and discovery. |
-| `hex-map/hex-explorer.mjs` | 221 | Player-safe Hexplorer canvas hover/select observer and GM writes over authoritative terrain tags and rich offset records; preserves discovery and imported metadata. |
+| `hex-map/hex-explorer-app.mjs` | 105 | Small scene-offset GM Hexplorer editor for terrain, line/structured features, public/private notes, document links and discovery. |
+| `hex-map/hex-explorer.mjs` | 222 | Player-safe Hexplorer canvas hover/select observer and GM writes over authoritative terrain tags and rich offset records; preserves discovery and imported metadata. |
 | `hex-map/hex-fog-core.mjs` | 91 | Pure shared terrain/location disclosure, lossless fog/history migration, native-grid sight and arrival/overlap decisions. |
-| `hex-map/hex-fog.mjs` | 189 | Adopted-scene native static fog overlay, GM disclosure, selected-party committed visits/arrival history and SDX ownership guard. |
+| `hex-map/hex-fog.mjs` | 195 | Adopted-scene native static fog overlay, GM disclosure, selected-party committed visits/arrival history and SDX ownership guard. |
 | `hex-map/hex-legend-session.mjs` | 88 | The Hex Tagger's Legend without its window: runs the tagger unshown as the engine (reads the map, builds the picture cards, applies the names) and hands a page just the cards and five calls, so the import wizard can show them on its Terrain page. Also legendNamed(scene). |
 | `hex-map/hex-map-controls.mjs` | 85 | The Hex map group on the left toolbar (GM, any scene with hex numbering): show terrain tags, regions and encounter zones, the paint brush, the most-likely-wrong review and the Hex Tagger, each calling what the tagger's own buttons call; refreshed through the hexTools hook when an overlay or the brush opens or closes. |
 | `hex-map/hex-map-flow.mjs` | 499 | Hex map from an image: file dialog, lattice detection, confirmation preview with corners set by hand, upload into the world folder, an aligned scene (stretch to Foundry's pitches, offset to cell 0,0), tagger opened on its legend. |
@@ -88,7 +88,7 @@
 | `hex-map/hex-picture.mjs` | 188 | What the hex brush shows per terrain (pure): the Legend palette's terrains only, which tagged hex stands for each, the hexagon mask and printed-number patch geometry, and the edge-ink test that rejects a neighbour's border bleeding in. |
 | `hex-map/hex-pins.mjs` | 124 | Keyed hexes as map notes: deploys the crawl journal into the world with stable ids (links rewritten), plans one Note per keyed page at its hex centre (pure planner), moves existing pins on re-run. |
 | `hex-map/hex-prints.mjs` | 86 | What is known of each book's hex map, pure: which book's key locations pin onto it, where its crawls are filed, the printed number of its first hex, and for the two black maps the grid finder cannot read (the Black River, joined from two halves, and Morzomotha) their measured grids. Numbers and names only, no part of the print. |
-| `hex-map/hex-records.mjs` | 231 | Scene-offset native rich-record facade over existing tags, keyed pins/pages and regions, private compendium records and allowlisted public disclosure projections. |
+| `hex-map/hex-records.mjs` | 234 | Scene-offset native rich-record facade over existing tags, keyed pins/pages and regions, private compendium records and allowlisted public disclosure projections. |
 | `hex-map/hex-region.mjs` | 317 | Which region is a hex in: the book's own word for a keyed hex, the nearest keyed hex's region for any other (84.8% on the Western Reaches, leave-one-out over the book's own keyed rows). Seeds come from the filed crawls; nothing is stored. |
 | `hex-map/hex-tagger-app.mjs` | 1904 | Hex Tagger AppV2: contact sheet over the active hex scene, anchor numbering, tags on the scene flag, dataset hand-off. |
 | `hex-map/hex-tagger-tabs.mjs` | 14 | Hex Tagger tab list and the pure rule that keeps the chosen tab when the scene still offers it, else Sheet. |
