@@ -1800,7 +1800,12 @@ destroys every torch left lit. This call instead:
    GM takes the flag first, which is what the system would do on the next
    clock move. **Two GM tabs holding the flag** (each clears only its own when
    it loads) would both burn, each from its own cached list, so the move is
-   refused, naming them; reloading all but one fixes it.
+   refused, naming them; reloading all but one fixes it. Since #257 the active
+   GM takes the flag when it loads and whenever a GM connects or leaves
+   (`claimLightTracker`: its own flag first, then every other online GM's
+   cleared), so the tab that moves Overland's clock is also the one whose
+   real-time clock those moves hold; a second GM left logged in otherwise
+   ticked from a stale clock and set every move back.
 2. Stops the system's real-time light clock on that tab for the move (a tick
    sent after the jump would set the clock back), and starts it again after.
 3. Puts out every lit **Basic** light (torch, lantern, candle) carried by a
