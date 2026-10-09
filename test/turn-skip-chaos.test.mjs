@@ -55,7 +55,8 @@ function fakeCombat(people, { round = 2, turn = people.length - 1, onReorder = n
       const prior = this._getCurrentState();
       Object.assign(this, data);
       this.current = this._getCurrentState();
-      Object.assign(this.previous, prior);
+      // Foundry 14.369: an update that holds its turn events back leaves `previous` as it was.
+      if (options.turnEvents !== false) Object.assign(this.previous, prior);
       if (options.turnEvents !== false) await this._manageTurnEvents();
       hooks.updateCombat(this, data, options);
     },
@@ -75,12 +76,13 @@ function fakeCombat(people, { round = 2, turn = people.length - 1, onReorder = n
       this.turns = [...all].sort((a, b) => b.initiative - a.initiative);
       this.turn = combatTurn;
       this.current = this._getCurrentState();
-      Object.assign(this.previous, prior);
+      if (turnEvents !== false) Object.assign(this.previous, prior);
       if (turnEvents !== false) await this._manageTurnEvents();
     },
   };
   combat.current = combat._getCurrentState();
-  combat.previous = { ...combat.current };
+  // As in play: the combat got to this turn from the one before it, so `previous` is that one.
+  combat.previous = turn > 0 ? { round, turn: turn - 1, combatantId: all[turn - 1].id, tokenId: null } : { ...combat.current };
   return combat;
 }
 

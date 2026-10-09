@@ -22,3 +22,18 @@ test("the card lists the new order, highest first, ties in tracker order, hidden
   assert.deepEqual(rows.map((r) => [r.name, r.total]), [["Bo", 17], ["Ana", 12], ["Cy", 12]]);
   assert.deepEqual(chaosOrder(), []);
 });
+
+test("a held round carries the turn the old round ended on, because Foundry 14.369 leaves Combat#previous behind", async () => {
+  const { holdChaosRound, heldPrevious } = await import("../scripts/modes-of-play/chaos.mjs");
+  const settings = { "shadowdark-enhancer.modeChaosInitiative": true, "shadowdark.useClockwiseInitiative": false };
+  globalThis.game = { users: { activeGM: { id: "gm" } }, settings: { get: (ns, key) => settings[`${ns}.${key}`] } };
+  const current = { round: 1, turn: 2, combatantId: "Cy", tokenId: null };
+  const combat = { combatants: { size: 3 }, current, previous: { round: 1, turn: 1, combatantId: "Bo", tokenId: null } };
+  const options = { direction: 1 };
+  holdChaosRound(combat, { round: 2, turn: 0 }, options);
+  assert.equal(options.turnEvents, false);
+  assert.deepEqual(heldPrevious(options), current);
+  assert.notEqual(heldPrevious(options), current, "a copy: Foundry records later changes into the live state");
+  assert.equal(heldPrevious({ direction: 1 }), null, "an update that was not held has nothing to say");
+  assert.equal(heldPrevious(undefined), null);
+});
