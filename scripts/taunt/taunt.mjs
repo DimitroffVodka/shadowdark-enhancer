@@ -12,9 +12,10 @@
  *          the dice go, so the advantage is set on `mainRoll.advantage` and the
  *          reason is pushed into `config.messages` where the roll card prints it.
  *   EXPIRE `updateCombat` — `Combat#previous` names the turn that just ended
- *          (core's own way of asking; foundry.mjs:50639). When that turn belongs
- *          to the holder, ran in the combat the taunt was armed in, and started
- *          after it was armed, it is over.
+ *          (core's own way of asking; foundry.mjs:50639; on a Chaos round that
+ *          held its turn events, the state the hold carried instead). When that
+ *          turn belongs to the holder, ran in the combat the taunt was armed in,
+ *          and started after it was armed, it is over.
  *
  * The taunt lives as a flag on the holder's actor, so it survives a reload and
  * every client can read it. Only the active GM writes it — arming happens from a
@@ -24,6 +25,7 @@
 
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { isActiveGM } from "../shared/gm-relay.mjs";
+import { heldPrevious } from "../modes-of-play/chaos.mjs";
 import { esc } from "../shared/esc.mjs";
 import {
   cardHit, isAttackCard, targetActorOf, attackerActorOf, actorFromUuid, actorFromUuidSync,
@@ -85,7 +87,7 @@ export const Taunt = {
     // here, which keeps the two features independent.
     Hooks.on(`${MODULE_ID}.parried`, (info) => Taunt._onParried(info));
     Hooks.on("SD-Player-Attack", (config) => { Taunt.applyToRoll(config); return true; });
-    Hooks.on("updateCombat", (combat, changed) => Taunt._onTurnChange(combat, changed));
+    Hooks.on("updateCombat", (combat, changed, options) => Taunt._onTurnChange(combat, changed, options));
     Hooks.on("deleteCombat", (combat) => Taunt._onCombatEnd(combat));
     _installed = true;
   },
@@ -207,11 +209,12 @@ export const Taunt = {
   // ── Expire ────────────────────────────────────────────────────────────────
 
   /** A turn ended: if it was the holder's, and it started after arming, done. */
-  async _onTurnChange(combat, changed) {
+  async _onTurnChange(combat, changed, options) {
     if (!_enabled() || !isActiveGM()) return;
     if (!("turn" in (changed ?? {})) && !("round" in (changed ?? {}))) return;
     try {
-      const prev = combat?.previous;
+      // A Chaos round's update holds its turn events, and core leaves `previous` alone then.
+      const prev = heldPrevious(options) ?? combat?.previous;
       if (!prev?.combatantId) return;
       const actor = combat.combatants.get(prev.combatantId)?.actor;
       const taunt = tauntOn(actor);
