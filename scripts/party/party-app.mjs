@@ -6,6 +6,7 @@ import { offerParty } from "./party-create-option.mjs";
 import { scopedQuests } from "./party-core.mjs";
 import { fillFormation } from "./party-movement-core.mjs";
 import { marchState, marchText, partyTabs, tabRow, resolveTab, sheetView, gemSummary, linkedBastion, lastMonthEntry, roomIcon, lightReadout, rationsCount, torchCount, carriesLight, luckCount, statusBar, COIN_REFUSALS, coinsOf, coinText, poolAfterAdd, planGive, planDivide, purseAfter, spellTiers, whoSelection, whoAfter, ROLL_STATS, ROLL_STAT_LABELS, DEFAULT_DC, defaultSource, downtimeSummary, warbandGroups } from "./party-sheet-core.mjs";
+import { registerPartyTokenArt } from "./party-token.mjs";
 import { EMBLEM_FLAG, emblemOf, emblemIconPath, emblemChoices, pickEmblem } from "./party-emblem-core.mjs";
 import { BASTION_TYPE } from "../bastion/bastion-art.mjs";
 import { stateOf as bastionState, stats as bastionStats, upgradeOf, GRANARY_SAVING_GP } from "../bastion/bastion-core.mjs";
@@ -515,6 +516,7 @@ for (const name of ["_prepareContext", "_change", "_pickEmblem", "_pool", "_coin
 /** Only native/adopted flagged Parties route here; ordinary NPC sheets stay intact. */
 export function registerParty() {
   registerPartyRosterGuard();
+  registerPartyTokenArt();
   const ActorClass = globalThis.CONFIG?.Actor?.documentClass;
   if (ActorClass) {
     foundry.applications.apps.DocumentSheetConfig.registerSheet(ActorClass, MODULE_ID, PartySheet, { types: ["NPC"], makeDefault: false, label: "SDE.party.title" });

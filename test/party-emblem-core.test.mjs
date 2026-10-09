@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
-import { EMBLEM_ICONS, EMBLEM_COLORS, EMBLEM_ICON_COLORS, EMBLEM_ICON_KEYS, EMBLEM_COLOR_KEYS, DEFAULT_EMBLEM, emblemOf, emblemIconPath, emblemChoices, pickEmblem } from "../scripts/party/party-emblem-core.mjs";
+import { EMBLEM_ICONS, EMBLEM_COLORS, EMBLEM_ICON_COLORS, EMBLEM_ICON_KEYS, EMBLEM_COLOR_KEYS, DEFAULT_EMBLEM, emblemOf, emblemIconPath, emblemChoices, pickEmblem, emblemTokenSvg, emblemTokenName } from "../scripts/party/party-emblem-core.mjs";
 
 test("a party that chose nothing wears the lantern in white on amber", () => {
   assert.deepEqual(DEFAULT_EMBLEM, { icon: "lantern", color: "c8892b", iconColor: "ffffff" });
@@ -71,4 +71,12 @@ test("every vendored emblem icon is credited to its artist in CREDITS.md", async
   for (const icon of EMBLEM_ICONS) assert.ok(section.includes(`\`${icon}.svg\``), icon);
   for (const artist of ["Lorc", "Delapouite", "DarkZaitzev"]) assert.ok(section.includes(artist), artist);
   assert.ok(section.includes("CC BY 3.0"));
+});
+
+test("the token picture is a hex in the tile colour with the icon recoloured, inside the hex's bounds", async () => {
+  const emblem = emblemOf({ icon: "owl", color: "3a6ea5", iconColor: "000000" });
+  const svg = emblemTokenSvg(emblem, await readFile(new URL(`../${emblemIconPath("owl").replace(/^modules\/[^/]+\//, "")}`, import.meta.url), "utf8"));
+  assert.match(svg, /<polygon points="0,500 289,0 866,0 1155,500 866,1000 289,1000" fill="#3a6ea5"/);
+  assert.ok(!/#fff\b/i.test(svg) && svg.includes('fill="#000000"'), "the icon takes iconColor");
+  assert.equal(emblemTokenName(emblem), "owl-3a6ea5-000000.svg");
 });
