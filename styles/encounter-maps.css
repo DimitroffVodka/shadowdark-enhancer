@@ -1,0 +1,46 @@
+/* The battle map picker. The look is the shared kit (styles/sde-ui.css, the `ui-` parts); this file holds only what is
+   particular to a map picker, in the kit's tokens. No colour is written out here, and nothing is theme-specific. */
+
+/* The picker hides rows in place while the GM types, and a flex row would otherwise ignore the attribute. */
+.sde-battle-map-picker [hidden] { display: none !important; }
+
+/* Look bar: Day | Night, then the Camp switch. Gold marks the side that is chosen. */
+.bmp-look { flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 8px 16px; border-bottom: 1px solid var(--ui-line); background: var(--ui-page); }
+.bmp-seg { display: inline-flex; gap: 4px; }
+.sde-battle-map-picker .ui-btn.bmp-on, .sde-battle-map-picker .ui-btn.bmp-on:hover:not(:disabled), .sde-battle-map-picker .ui-icon.bmp-on { border-color: var(--ui-gold); background: var(--ui-gold-bg); color: var(--ui-gold); }
+
+/* The line under a terrain's heading: how Battle map chooses, and the GM's Pick at random switch beside it. */
+.bmp-note { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; }
+.bmp-note > p { margin: 0; flex: 1 1 240px; }
+
+/* The lists. A card is the kit's card around a button (the picture and name) and a row of tags and the GM's switches. */
+.bmp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+.sde-battle-map-picker .bmp-card { padding: 8px; gap: 6px; }
+.sde-battle-map-picker .bmp-pick { display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 6px; width: 100%; height: auto; min-height: 0; margin: 0; padding: 0; border: 0; border-radius: var(--ui-r); background: transparent; color: inherit; font: inherit; line-height: 1.3; text-align: left; text-shadow: none; cursor: pointer; }
+.bmp-thumb { display: block; aspect-ratio: 4 / 3; overflow: hidden; border: 1px solid var(--ui-line); border-radius: var(--ui-r); background: var(--ui-raised); }
+.bmp-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; border: 0; }
+.bmp-name { font-weight: 700; color: var(--ui-text); overflow-wrap: anywhere; }
+.bmp-meta { display: flex; align-items: flex-start; justify-content: space-between; gap: 4px; min-height: 24px; }
+.bmp-tags { display: flex; flex-wrap: wrap; gap: 4px; flex: 1 1 0; min-width: 0; }
+
+/* A map that is switched off is still there to use for this one battle; it only stops being the default. */
+.bmp-off .bmp-pick { opacity: .55; }
+.bmp-off .bmp-thumb img { filter: grayscale(1); }
+/* Night is darkness on the scene: the pictures dim to say so. */
+.bmp-night .bmp-thumb img { filter: brightness(.55); }
+.bmp-night .bmp-off .bmp-thumb img { filter: grayscale(1) brightness(.55); }
+
+/* Terrain chips are buttons, so they take back what a button would otherwise bring. */
+.sde-battle-map-picker .bmp-chip { height: auto; margin: 0; font-family: inherit; line-height: 1.2; cursor: pointer; box-shadow: none; }
+.sde-battle-map-picker .bmp-chip:hover { border-color: var(--ui-frame); }
+
+/* Scenes: one row each, hairlines only between the rows that show. */
+.sde-battle-map-picker .bmp-scenes { gap: 1px; background: var(--ui-line); }
+.sde-battle-map-picker .bmp-scenes > .ui-row { width: 100%; height: auto; margin: 0; border: 0; border-radius: 0; background: var(--ui-panel); color: inherit; font: inherit; text-align: left; text-shadow: none; cursor: pointer; }
+.sde-battle-map-picker .bmp-scenes > .ui-row:hover { background: var(--ui-hover); }
+.sde-battle-map-picker .bmp-scenes > .ui-row.sel { background: var(--ui-raised); box-shadow: inset 3px 0 0 var(--ui-frame); }
+.bmp-noart { display: inline-flex; align-items: center; justify-content: center; color: var(--ui-muted); }
+
+/* Footer: what is chosen on the left, the two buttons on the right. */
+.bmp-chosen { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; min-width: 0; flex: 1 1 auto; }
+.bmp-chosen-name { color: var(--ui-text); overflow-wrap: anywhere; }
