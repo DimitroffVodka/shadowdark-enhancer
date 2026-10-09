@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Added
+- **Camp task rolls say how they went.** The chat card for a camp task now reads Success or Failure against its DC, and a success says what it gave: Hunt and ammunition Craft show their own 1d4 / 2d4 roll with how many Rations or pieces were found, and the other tasks name their effect (a torch crafted, a campfire lit, who gains luck, which watch half).
 - **Right-click a hex with the Hex Brush open to copy its terrain and features.** The brush picks up whatever the hex under the cursor says (a terrain the map's list lacks lands in the Other box), so a good result can be painted straight over a bad one. A right-drag still pans the map.
 - **The Hexplorer's terrain is a dropdown, not a text box.** It offers the map's own terrains (the same list as the on-map editor, alphabetical); to name a new one you pick "other…" and type it there. Nothing is typed by default any more.
 - **The hex tagger's terrain dropdowns are alphabetical.** The review sheet, the Legend cards and the import wizard's hex check listed terrains in the book's printed order; they now sort like the on-map editor's list, with (untagged) first and other... last.

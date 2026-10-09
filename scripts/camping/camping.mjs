@@ -64,10 +64,24 @@ async function rollTask(party, camp, p) {
   const modifier = Number(actor.system.abilities[p.ability].mod) || 0;
   const roll = await new Roll(`${disadvantage ? "2d20kl" : "1d20"} + @mod`, { mod: modifier }).evaluate();
   const result = { task: p.task, ability: p.ability, dc: task.dc, disadvantage, total: roll.total, success: roll.total >= task.dc };
-  if (result.success && (p.task === "hunt" || (p.task === "craft" && p.craft !== "repair" && p.craft !== "torch"))) result.amount = (await new Roll(p.task === "hunt" ? "1d4" : "2d4").evaluate()).total;
+  const yields = result.success && (p.task === "hunt" || (p.task === "craft" && p.craft !== "repair" && p.craft !== "torch"));
+  const yieldRoll = yields ? await new Roll(p.task === "hunt" ? "1d4" : "2d4").evaluate() : null;
+  if (yieldRoll) result.amount = yieldRoll.total;
   camp.results[p.actorId] = result; await save(party, camp);
   // Reporting is deliberately outside the saved result: failure never makes a roll replayable.
-  try { await roll.toMessage({ speaker: ChatMessage.getSpeaker({ actor }), flavor: game.i18n.localize(task.label ?? "SDE.camping.customTask") }); } catch (error) { console.warn(`${MODULE_ID} | Camp roll report`, error); }
+  try {
+    const name = game.i18n.localize(task.label ?? "SDE.camping.customTask");
+    const outcome = game.i18n.localize(result.success ? "SDE.camping.success" : "SDE.camping.failure");
+    const what = result.success && !yieldRoll ? outcomeText(p) : "";
+    await roll.toMessage({ speaker: ChatMessage.getSpeaker({ actor }), flavor: game.i18n.format("SDE.camping.rollFlavor", { task: name, outcome, dc: task.dc }) + (what ? `: ${what}` : "") });
+    if (yieldRoll) await yieldRoll.toMessage({ speaker: ChatMessage.getSpeaker({ actor }), flavor: game.i18n.format("SDE.camping.found", { task: name, count: yieldRoll.total, item: game.i18n.localize(CAMP_LABELS.gear[p.task === "hunt" ? "rations" : p.craft]) }) });
+  } catch (error) { console.warn(`${MODULE_ID} | Camp roll report`, error); }
+}
+// What a success on a task without a visible yield roll gives, for the roll's chat card.
+const OUTCOME = { battenDown: "SDE.camping.outcome.battenDown", cook: "SDE.camping.outcome.cook", craftTorch: "SDE.camping.outcome.craftTorch", craftRepair: "SDE.camping.outcome.craftRepair", entertain: "SDE.camping.outcome.entertain", firewood: "SDE.camping.outcome.firewood", keepWatch: "SDE.camping.outcome.keepWatch", predict: "SDE.camping.outcome.predict" };
+function outcomeText(p) {
+  const key = OUTCOME[p.task === "craft" ? (p.craft === "repair" ? "craftRepair" : "craftTorch") : p.task];
+  return key ? game.i18n.format(key, { name: actorOf(p.recipientUuid)?.name ?? "", half: game.i18n.localize(CAMP_LABELS.half[p.watchHalf] ?? "") }) : "";
 }
 async function reward(actor, camp, p, result) {
   const previous = actor.items.find(i => flag(i, "campReward")?.campId === camp.id && flag(i, "campReward")?.task === p.task);

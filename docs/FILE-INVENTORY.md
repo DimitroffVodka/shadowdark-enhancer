@@ -62,7 +62,7 @@
 | `camping/camping-cook.mjs` | 38 | Post-eligible-rest Cook seam and active-benefit-scoped native damage/healing/expiry compatibility. |
 | `camping/camping-core.mjs` | 102 | Pure PC task choices, lock, exact shared-first torch cost and scoped Cook surplus/expiry rules. |
 | `camping/camping-nutrition.mjs` | 120 | Actor/day whole-meal accounting, personal-first then automatic Party rations, per-effect starvation and eligible normal-rest receipts across parties/reloads. |
-| `camping/camping.mjs` | 245 | Authenticated owner-choice camp task relay, persistent results/rewards, nearby-PC fire and deferred native nutrition/rest seams for Overland nights. |
+| `camping/camping.mjs` | 259 | Authenticated owner-choice camp task relay, persistent results/rewards, nearby-PC fire and deferred native nutrition/rest seams for Overland nights. |
 | `carousing/carousing-app.mjs` | 65 | Carousing controller hosted inline in Party Travel, with GM table/manual-place setup, each PC owner's own-spend choices, persistent results and independent history. |
 | `carousing/carousing-core.mjs` | 75 | Pure imported basic table adapters, owner choices/funds/holiday/cooldown preflight, supported effects and stable recap shaping. |
 | `carousing/carousing.mjs` | 186 | Authenticated native per-PC carousing authority, saved rolls/atomic costs and effect progress, off-duty time, independent history and recap upsert. |
