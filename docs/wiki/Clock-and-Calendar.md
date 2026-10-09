@@ -20,9 +20,12 @@ Left to right:
 | **⏪** | GM | Opens a column of steps back: a day, 8 hours, an hour, 10 minutes, a round. |
 | **Month** | everyone | Opens the month view (below). |
 | **Time** | GM | Opens the Time panel (below). |
-| **The date** | everyone | Weekday, day, month and year, then the time. **Stopped** follows the time while an encounter holds the travel clock. |
-| **⌃ / ⌄** | everyone | Shows or hides the sky. |
-| **Travel** | on a hex map | The hexes left today while travelling, or **Start travel** for a GM. The party icon opens the Travel panel. |
+| **The date** | everyone | In the middle of the bar: weekday, day, month and year, then the time. |
+| **⌃ / ⌄** | everyone | A small, quiet chevron beside the date: shows or hides the sky. |
+| **Travel** | on a hex map | While travelling, a counter: how the party travels (on foot, mounted, by boat), then the day's movement points left over the day's total, with a double chevron when pushing. Hover it for the words. Before a day is open it reads **No day**, and when an encounter holds the travel clock it is lit and reads **Encounter**; its tooltip says to run it and press Continue. Or **Start travel** for a GM. |
+| **Find the party** (crosshairs) | anyone who can see a party | Pans the map to the party token, pulses on it (on your screen only) and selects it. If the token is on another scene it names the scene. |
+| **Party sheet** (shield) | anyone who can see a party | Opens the party sheet (the picker when there are several parties). |
+| **Travel panel** (the party icon) | on a hex map | Opens the Travel panel. |
 | **⏩** | GM | Opens a column of steps forward, the same five. |
 
 It hides during a combat and on any scene without a hex grid. **Settings →
@@ -31,12 +34,14 @@ or nobody.
 
 ## The sky
 
-Under the bar, the season, then the dial: a disc that turns once a day, with
-now always at the bottom under the star. Daylight is the light part, the
-twilight around sunrise and sunset is hatched, and night is dark with its
-stars. The day's weather sits on the plate in the middle, with the next
-sunrise or sunset under it; while travelling, the region and terrain too. The
-moon rides the dashed outer track by its phase.
+Under the bar, the season with today's weather beside it, then the dial: a
+half disc that turns once a day inside a ring of hour ticks, with now always
+at the bottom under the star (hover it for the time). Daylight is the light
+part, the twilight around sunrise and sunset is hatched, and night is dark with
+its stars. Sunrise and sunset are badges on the hour ring that turn with the
+disc; hover one for its time. While travelling, the region and terrain are
+written across the disc, wrapping when the name is long. The moon rides the
+dashed outer track by its phase.
 
 The season band fills with a hatch from the right over a season's last 30
 days; hover it for how many days are left.
