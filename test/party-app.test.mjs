@@ -73,6 +73,13 @@ test("no-canvas context groups only explicit roster; missing refs retained", asy
   assert.deepEqual(context.groups.map((g) => g.rows.length), [1,1,1,1]);
   assert.deepEqual(Party.members(p, { charactersOnly: true }), ["Actor.pc"]);
 });
+test("a member PC shows to a player with no permission on it; a hidden NPC stays missing", async () => {
+  const p = actor("p", "NPC", { [MOD]: { party: true, partyData: { version: 1, members: ["Actor.pc", "Actor.npc"] } } });
+  const pc = actor("pc", "Player", {}, 0), npc = actor("npc", "NPC", {}, 0);
+  world([p, pc, npc]);
+  const rows = Party.rows(p);
+  assert.deepEqual(rows.map((r) => [r.group, !!r.actor]), [["characters", true], ["missing", false]]);
+});
 test("v14 actor entry uses visible/onClick and remains scoped", async () => {
   const handlers = new Map(); globalThis.Hooks = { on: (name, fn) => handlers.set(name,fn), once: (name, fn) => handlers.set(`once:${name}`, fn) };
   registerParty();
@@ -402,7 +409,7 @@ test("the status bar reads the party's lit light and rations, and hides what it 
   assert.deepEqual(context.status.map(r => [r.key, r.label, r.value]), [["light", "SDE.party.status.light", "SDE.party.status.lightLeft Torch 38"], ["torches", "SDE.party.status.torches", "1"], ["rations", "SDE.party.status.rations", "10"]],
     "no travel readout without an overland module; torches and rations are the party's and its characters', a hireling's own food is not camp food");
   // A member this viewer cannot see may hold rations: no total rather than a partial one.
-  const hidden = actor("hidden", "Player", {}, 0);
+  const hidden = actor("hidden", "NPC", {}, 0);
   p.flags[MOD].partyData.members.push(hidden.uuid);
   world([p, pc, hireling, hidden], false);
   p.testUserPermission = () => true;
