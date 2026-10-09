@@ -14,11 +14,11 @@
  */
 
 import { MODULE_ID } from "../../shared/module-id.mjs";
-import { MAP_FLAG, placeSiteWalls, placeSiteLights, entryPages, scenePins, placementRows, nextPending, noteData, setSkipped, placementGate, restoreSiteJournal, planBookPins, refreshPinArt, placeMarkerTokens, placeCreatureTokens, placeSiteTraps } from "./adventure-scene.mjs";
+import { MAP_FLAG, buildSiteScene, placeSiteWalls, placeSiteLights, entryPages, scenePins, placementRows, nextPending, noteData, setSkipped, placementGate, restoreSiteJournal, planBookPins, refreshPinArt, placeMarkerTokens, placeCreatureTokens, placeSiteTraps } from "./adventure-scene.mjs";
 import { findSite } from "./adventure-manifest.mjs";
 import { stitchMapLabels, mapFits } from "./map-labels.mjs";
 import { trapsFor } from "./adventure-traps.mjs";
-import { layoutFor, layoutPoints, layoutFromPins, layoutSnippet, markersFor } from "./adventure-layouts.mjs";
+import { layoutFor, layoutPoints, layoutFromPins, layoutSnippet, markersFor, hasKnownPositions } from "./adventure-layouts.mjs";
 import { resolveSourcePdf, sourcePdfTarget } from "../source-pdf-registry.mjs";
 import { parsePageRange } from "../pdf-text-extract.mjs";
 import { L as t } from "../../shared/i18n.mjs";
@@ -413,4 +413,22 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
     if (scene.getFlag(MODULE_ID, MAP_FLAG)?.skipped?.includes(num)) await setSkipped(scene, num, false);
     this.render();
   }
+}
+
+/**
+ * A site's scene from the GM's map picture, with every pin the module knows the place of already on it.
+ * @param {{id:string}} site
+ * @param {string} path  the uploaded map image
+ * @returns {Promise<{status:"built"|"failed", placed:number, left:number, known:boolean}>}
+ */
+export async function buildSiteWithPins(site, path) {
+  const built = path ? await buildSiteScene(site, path) : null;
+  if (!built) return { status: "failed", placed: 0, left: 0, known: false };
+  // The module places every pin it knows the position of; the rest are the GM's, in the placer.
+  const placer = await AdventurePlacer.open(built.scene);
+  const known = hasKnownPositions(site);
+  const placed = known ? (await placer?.placeFromBook())?.placed ?? 0 : 0;
+  const left = placer?._rows().filter((r) => r.state === "pending").length ?? 0;
+  await placer?.close();
+  return { status: "built", placed, left, known };
 }

@@ -162,6 +162,7 @@ export const newState = () => ({
   useOnce: new Set(),   // books that were to be kept but could not be uploaded: used once instead
   uploaded: {},         // id → served path, for what the check uploaded
   choice: "everything",   // "everything" | "custom"
+  placement: "world",     // where the adventure scenes end up: "world" (loaded now) | "compendium" (packed, imported when run)
   progress: { pct: 0, phase: "" },
   result: null,
   terrain: null,  // after an import that set up hex maps: { queue, i, stage, error, named }, one map at a time (wizard-controller.mjs)

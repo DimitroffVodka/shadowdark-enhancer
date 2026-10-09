@@ -127,6 +127,17 @@
       <input type="radio" name="choice" value="custom" data-action="setChoice" {{#unless everything}}checked{{/unless}}>
       <span><strong>{{localize "SDE.importer.wizard.ready.custom"}}</strong><small>{{localize "SDE.importer.wizard.ready.customHelp"}}</small></span>
     </label>
+    {{#if ready.adventureMaps}}
+    <h3 class="ui-h">{{localize "SDE.importer.wizard.ready.placement.title"}}</h3>
+    <label class="ui-card sde-wiz-opt{{#if placementWorld}} sel{{/if}}">
+      <input type="radio" name="placement" value="world" data-action="setPlacement" {{#if placementWorld}}checked{{/if}}>
+      <span><strong>{{localize "SDE.importer.wizard.ready.placement.world"}}</strong><small>{{localize "SDE.importer.wizard.ready.placement.worldHelp"}}</small></span>
+    </label>
+    <label class="ui-card sde-wiz-opt{{#unless placementWorld}} sel{{/unless}}">
+      <input type="radio" name="placement" value="compendium" data-action="setPlacement" {{#unless placementWorld}}checked{{/unless}}>
+      <span><strong>{{localize "SDE.importer.wizard.ready.placement.compendium"}}</strong><small>{{localize "SDE.importer.wizard.ready.placement.compendiumHelp"}}</small></span>
+    </label>
+    {{/if}}
     {{#if ready.hexNote}}
     <div class="ui-note"><p><i class="fas fa-map"></i> {{#if ready.hexDrawnOnly}}{{localize "SDE.importer.wizard.hex.readyDrawn"}}{{else}}{{localize "SDE.importer.wizard.hex.ready"}}{{/if}}</p></div>
     {{/if}}
@@ -212,6 +223,7 @@
         <div class="ui-pair"><span class="ui-label">{{localize "SDE.importer.wizard.done.attention"}}</span><strong class="ui-value sde-wiz-big">{{done.attention}}</strong></div>
       </div>
     </div>
+    {{#if done.packed}}<div class="ui-note"><p><i class="fas fa-box-archive"></i> {{done.packed}}</p></div>{{/if}}
     {{#if done.art}}
     <section class="ui-group">
       <h3 class="ui-h">{{localize "SDE.importer.wizard.done.art.title"}}</h3>

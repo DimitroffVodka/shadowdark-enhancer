@@ -148,8 +148,8 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const { adventureBooks, findSite } = await import("../adventure/adventure-manifest.mjs");
     const { importAdventures } = await import("../adventure/adventure-book-import.mjs");
     const scenes = await import("../adventure/adventure-scene.mjs");
-    const { hasKnownPositions } = await import("../adventure/adventure-layouts.mjs");
-    const { AdventurePlacer } = await import("../adventure/adventure-placer.mjs");
+    const { buildSiteWithPins } = await import("../adventure/adventure-placer.mjs");
+    const { buildPlaced } = await import("../adventure/adventure-pack.mjs");
     const { CHAR_SOURCES } = await import("../char-content/char-content-manifest.mjs");
     const { importKeyLocations, keyLocationBooks } = await import("../hex/hex-book-import.mjs");
     const { legendNamed } = await import("../../hex-map/hex-legend-session.mjs");
@@ -178,18 +178,9 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
         },
         siteOf: (id) => { const site = findSite(id); return site && { ...site, src: CHAR_SOURCES[site.src]?.label ?? site.src }; },
         isFiled: async (id) => (await scenes.filedSiteIds()).has(id),
-        buildScene: async (id, path) => {
+        buildScene: (id, path, { placement } = {}) => {
           const site = findSite(id);
-          if (scenes.findSiteScene(id)) return { status: "already", placed: 0, left: 0, known: true };
-          const built = path ? await scenes.buildSiteScene(site, path) : null;
-          if (!built) return { status: "failed", placed: 0, left: 0, known: false };
-          // The module places every pin it knows the position of; the rest are the GM's, in the placer.
-          const placer = await AdventurePlacer.open(built.scene);
-          const known = hasKnownPositions(site);
-          const placed = known ? (await placer?.placeFromBook())?.placed ?? 0 : 0;
-          const left = placer?._rows().filter((r) => r.state === "pending").length ?? 0;
-          await placer?.close();
-          return { status: "built", placed, left, known };
+          return buildPlaced(site, () => buildSiteWithPins(site, path), { placement });
         },
       });
       // What the run made (journals, scenes) goes into folders for its books, so the sidebar can be read.

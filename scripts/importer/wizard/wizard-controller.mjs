@@ -24,7 +24,7 @@
  *   openAdvanced(), openHex(file), close()
  */
 import {
-  PAGES, HEX_MAPS, bookTitle, filesOfHex, isUsefulName, newState, addFiles, removeFile, bookRows, mapGroups, blocker, canBack, go,
+  PAGES, HEX_MAPS, isHexMap, bookTitle, filesOfHex, isUsefulName, newState, addFiles, removeFile, bookRows, mapGroups, blocker, canBack, go,
 } from "./wizard-core.mjs";
 import { runCheck } from "./wizard-check.mjs";
 import { hexPrint } from "../../hex-map/hex-prints.mjs";
@@ -53,7 +53,7 @@ const HEX_STATUS = {
 };
 
 /** Names a click may carry in data-action; wizard-app.mjs maps each to dispatch(). */
-export const ACTIONS = ["next", "back", "cancel", "choose", "remove", "setKeep", "setChoice", "toggleGroup", "fix", "openHex", "openLegend", "legendAnswer", "legendPick", "applyArt", "advanced", "reviewAnswer", "openBrush"];
+export const ACTIONS = ["next", "back", "cancel", "choose", "remove", "setKeep", "setChoice", "setPlacement", "toggleGroup", "fix", "openHex", "openLegend", "legendAnswer", "legendPick", "applyArt", "advanced", "reviewAnswer", "openBrush"];
 
 export class WizardController {
   /** @param {object} env  see the file header  @param {() => void} onChange  called after every change worth redrawing */
@@ -82,6 +82,7 @@ export class WizardController {
       case "pick": return this.pick(data.files ?? []);
       case "remove": removeFile(this.state, data.kind, data.id); this.notice = ""; return this.afterFilesChanged();
       case "setKeep": this.state.keep = data.value === "keep" ? "keep" : "once"; this.state.check = null; this.state.useOnce.clear(); return this.changed();
+      case "setPlacement": this.state.placement = data.value === "compendium" ? "compendium" : "world"; return this.changed();
       case "setChoice": this.state.choice = data.value === "custom" ? "custom" : "everything"; return this.changed();
       case "toggleGroup": this.toggle(data.id); return this.changed();
       case "fix": return this.fix(data);
@@ -378,9 +379,11 @@ export class WizardController {
       const books = [...ok].filter((x) => x.startsWith("book:")).length;
       const maps = [...ok].filter((x) => x.startsWith("map:")).length;
       vm.everything = s.choice === "everything";
+      vm.placementWorld = s.placement !== "compendium";
       vm.ready = {
         summary: t("SDE.importer.wizard.ready.summary", { books, maps }),
         hexNote: HEX_MAPS.some((h) => ok.has(`map:${h.id}`)),
+        adventureMaps: [...ok].some((x) => x.startsWith("map:") && !isHexMap(x.slice(4))),
         hexDrawnOnly: HEX_MAPS.some((h) => ok.has(`map:${h.id}`)) && !HEX_MAPS.some((h) => ok.has(`map:${h.id}`) && !hexPrint(h.id)?.drawn),
       };
     }
@@ -404,6 +407,7 @@ export class WizardController {
       const r = s.result ?? { imported: 0, already: 0, needsYou: [] };
       vm.done = {
         imported: r.imported, already: r.already, attention: r.needsYou.length, items: r.needsYou,
+        packed: r.packed ? t("SDE.importer.wizard.done.packed", { n: r.packed }) : "",
         skipped: r.skipped?.n ? t(r.skipped.books.length ? "SDE.importer.wizard.done.skippedBooks" : "SDE.importer.wizard.done.skipped", { n: r.skipped.n, books: r.skipped.books.join(", ") }) : "",
         hexMaps: (r.hex ?? []).map((h) => ({
           id: h.id, title: h.title, sceneId: h.sceneId, legend: h.legend, look: h.look, brush: !!h.named && !!h.sceneId,
