@@ -56,11 +56,13 @@ const MOON_NAME = {
   waningCrescent: "SDE.overland.bar.moon.waningCrescent",
 };
 const MOON_MARK = { new: "SDE.clock.moon.new", q1: "SDE.clock.moon.firstQuarter", full: "SDE.clock.moon.full", q3: "SDE.clock.moon.lastQuarter" };
+/** The plate's glyph for how the party travels. */
+const METHOD_ICON = { walking: "fa-person-walking", mounted: "fa-horse", sailing: "fa-sailboat" };
 const JUMPS = { dawn: "SDE.clock.jump.dawn", noon: "SDE.clock.jump.noon", dusk: "SDE.clock.jump.dusk", midnight: "SDE.clock.jump.midnight" };
 
 /** An icon button on the bar; `pressed` marks the panel or column it opened. */
-const ib = (action, icon, label, { id = "", pressed = null } = {}) =>
-  `<button type="button" class="sde-hud-ib" data-action="${action}"${id ? ` data-id="${id}"` : ""} aria-label="${esc(label)}" data-tooltip="${esc(label)}"${
+const ib = (action, icon, label, { id = "", pressed = null, cls = "" } = {}) =>
+  `<button type="button" class="sde-hud-ib${cls ? ` ${cls}` : ""}" data-action="${action}"${id ? ` data-id="${id}"` : ""} aria-label="${esc(label)}" data-tooltip="${esc(label)}"${
     pressed === null ? "" : ` aria-pressed="${pressed}"`}><i class="fa-solid ${icon}"></i></button>`;
 
 /** A key: the framed button of the panels. */
@@ -218,35 +220,48 @@ export const TravelBar = {
     const { parts } = this._now();
     const state = overlandState();
     const date = t("SDE.clock.date", { weekday: t(parts.weekday), day: parts.day, month: t(parts.month), year: parts.year });
-    const stopped = gm && state.pending && CrawlState.isOverland ? `<span class="sde-hud-stopped">${esc(t("SDE.clock.stopped"))}</span>` : "";
     let travel = "";
     if (isHexMapScene()) {
-      const cell = CrawlState.isOverland
-        ? `<button type="button" class="sde-hud-plate" data-action="open" data-id="${gm && state.encounter ? "encounter" : "travel"}"><i class="fa-solid fa-hexagon"></i> ${this._plateText()}</button>`
+      const plate = CrawlState.isOverland ? this._plate() : null;
+      const cell = plate
+        ? `<button type="button" class="sde-hud-plate sde-hud-count${plate.cls ? ` ${plate.cls}` : ""}" data-action="open" data-id="${gm && state.encounter ? "encounter" : "travel"}"${plate.tip ? ` data-tooltip="${esc(plate.tip)}" aria-label="${esc(plate.tip)}"` : ""}>${plate.html}</button>`
         : gm && CrawlState.mode === "off" ? `<button type="button" class="sde-hud-go" data-action="startTravel"><i class="fa-solid fa-hexagon"></i> ${esc(t("SDE.overland.startTravel"))}</button>` : "";
-      travel = `<span class="sde-hud-sep"></span>${cell}${CrawlState.isOverland
-        ? ib("open", "fa-users", t("SDE.clock.travel"), { id: "travel", pressed: this._open === "travel" }) : ""}`;
+      travel = `${cell}${plate ? ib("open", "fa-users", t("SDE.clock.travel"), { id: "travel", pressed: this._open === "travel" }) : ""}`;
     }
-    return `<div class="sde-hud-bar">
-      ${gm ? ib("stack", "fa-backward", t("SDE.clock.rewind"), { id: "rew", pressed: this._stack === "rew" }) : ""}
-      ${ib("open", "fa-calendar-days", t("SDE.clock.month"), { id: "month", pressed: this._open === "month" })}
-      ${gm ? ib("open", "fa-sliders", t("SDE.clock.time"), { id: "time", pressed: this._open === "time" }) : ""}
-      <span class="sde-hud-sep"></span>
-      <span class="sde-hud-date"><span class="sde-hud-d">${esc(date)}</span><span class="sde-hud-t">${esc(parts.time)}</span>${stopped}</span>
-      ${ib("sky", this._sky ? "fa-chevron-up" : "fa-chevron-down", t(this._sky ? "SDE.clock.skyHide" : "SDE.clock.skyShow"), { pressed: this._sky })}
-      ${travel}
-      ${gm ? ib("stack", "fa-forward", t("SDE.clock.advance"), { id: "adv", pressed: this._stack === "adv" }) : ""}
+    // Tools either side, the date in the middle; the sky toggle hangs off the date so it stays centred.
+    return `<div class="sde-hud-bar sde-hud-bar-3">
+      <div class="sde-hud-side">
+        ${gm ? ib("stack", "fa-backward", t("SDE.clock.rewind"), { id: "rew", pressed: this._stack === "rew" }) : ""}
+        ${ib("open", "fa-calendar-days", t("SDE.clock.month"), { id: "month", pressed: this._open === "month" })}
+        ${gm ? ib("open", "fa-sliders", t("SDE.clock.time"), { id: "time", pressed: this._open === "time" }) : ""}
+      </div>
+      <span class="sde-hud-date sde-hud-date-mid"><span class="sde-hud-d">${esc(date)}</span><span class="sde-hud-t">${esc(parts.time)}</span>
+        ${ib("sky", this._sky ? "fa-chevron-up" : "fa-chevron-down", t(this._sky ? "SDE.clock.skyHide" : "SDE.clock.skyShow"), { pressed: this._sky, cls: "sde-hud-chev" })}</span>
+      <div class="sde-hud-side sde-hud-side-r">
+        ${travel}
+        ${gm ? ib("stack", "fa-forward", t("SDE.clock.advance"), { id: "adv", pressed: this._stack === "adv" }) : ""}
+      </div>
     </div>`;
   },
 
-  /** The travel plate's words, by where the day stands. */
-  _plateText() {
+  /**
+   * The travel plate: how the party travels and the day's movement points left of its budget, as a plain counter
+   * (a double chevron when pushing); or, with no day open or an encounter held, a word. `tip` spells it out; `cls` styles the word plates.
+   */
+  _plate() {
     const m = this._model();
     // A GM's only (the model's `pending` and `encounter`): a quiet check that hit is the GM's until posted.
-    if (m.pending || m.encounter) return esc(t("SDE.clock.plate.encounter"));
-    if (!m.dayOpen) return esc(t("SDE.clock.plate.noDay"));
-    return t("SDE.clock.plate.hexes", { left: `<b>${m.hexesLeft}</b>`, budget: `<b>${m.budget}</b>` })
-      + (m.pushed ? esc(t("SDE.clock.plate.pushed")) : "");
+    // The plate is lit: the one thing the GM must act on. A pending stop also holds the travel clock, which the tooltip says.
+    if (m.pending || m.encounter) {
+      return { cls: "sde-hud-alert", html: `<i class="fa-solid fa-triangle-exclamation"></i> ${esc(t("SDE.clock.plate.encounter"))}`,
+        tip: t(m.pending ? "SDE.clock.plate.stoppedTip" : "SDE.clock.plate.encounterTip") };
+    }
+    if (!m.dayOpen) return { cls: "sde-hud-idle", html: `<i class="fa-solid fa-sun"></i> ${esc(t("SDE.clock.plate.noDay"))}`, tip: t("SDE.clock.plate.noDayTip") };
+    const how = methodName(m.method);
+    return {
+      html: `<i class="fa-solid ${METHOD_ICON[m.method] ?? METHOD_ICON.walking} sde-hud-how"></i><b>${m.hexesLeft}</b>/${m.budget}${m.pushed ? '<i class="fa-solid fa-angles-up sde-hud-push"></i>' : ""}`,
+      tip: t("SDE.clock.plate.tip", { left: m.hexesLeft, budget: m.budget, method: how }) + (m.pushed ? t("SDE.clock.plate.pushTip") : ""),
+    };
   },
 
   _stacks() {
