@@ -429,11 +429,11 @@ test("a long route over dear terrain is found, and a negative cost doesn't loop 
   assert.deepEqual(r.path.at(-1), { i: 5, j: 0 });
 });
 
-test("a walk takes 0.9 s a normal hex and longer for a hard one; a displace or a free move takes none", () => {
-  assert.equal(walkMs({ cost: 1, steps: [{}] }), 900);
-  assert.equal(walkMs({ cost: 2, steps: [{}] }), 1550, "a difficult hex drags");
-  assert.equal(walkMs({ cost: 3, steps: [{}, {}, {}] }), 2700, "three normal hexes");
-  assert.equal(walkMs({ cost: 1, steps: [{}, { displace: true }] }), 900, "a displaced leg is free");
+test("a walk takes 1.5 s a normal hex and longer for a hard one; a displace or a free move takes none", () => {
+  assert.equal(walkMs({ cost: 1, steps: [{}] }), 1500);
+  assert.equal(walkMs({ cost: 2, steps: [{}] }), 2600, "a difficult hex drags");
+  assert.equal(walkMs({ cost: 3, steps: [{}, {}, {}] }), 4500, "three normal hexes");
+  assert.equal(walkMs({ cost: 1, steps: [{}, { displace: true }] }), 1500, "a displaced leg is free");
   assert.equal(walkMs({ cost: 0, steps: [{ displace: true }] }), 0);
   assert.equal(walkMs({ cost: Infinity, steps: [{}] }), 0, "a blocked move walks nowhere");
 });
@@ -449,10 +449,10 @@ test("the clock runs in slices that add up to the move, evenly over the walk", (
   assert.deepEqual(walkSlices(1, 900), [{ dt: 1, ms: 0 }], "too little clock to cut");
 });
 
-test("a camp's or Continue's time-lapse: a beat and a share of the span, a night about 3 seconds, never more than 3.2", () => {
-  assert.equal(lapseMs(1380), 477, "a few minutes is half a second");
-  assert.equal(lapseMs(12 * 3600), 2800, "a 12-hour night");
-  assert.equal(lapseMs(24 * 3600), 3200, "capped");
+test("a camp's or Continue's time-lapse: a beat and a share of the span, a night about 8 seconds, never more than 10", () => {
+  assert.equal(lapseMs(1380), 1230, "a few minutes is just over a second");
+  assert.equal(lapseMs(12 * 3600), 8200, "a 12-hour night");
+  assert.equal(lapseMs(24 * 3600), 10000, "capped");
   assert.equal(lapseMs(0), 0);
   assert.equal(lapseMs(-60), 0, "nothing to move");
 });

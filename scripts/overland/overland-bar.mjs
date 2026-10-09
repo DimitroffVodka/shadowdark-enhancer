@@ -41,6 +41,7 @@ import { encounterCard, encounterPanel, encounterStrip } from "./encounter-panel
 import { postEncounter } from "../encounter/encounter-draw.mjs";
 import { DIAL, DIAL_STARS, clockShown, clockSteps, dateToTime, dialModel, monthGrid, seasonHatch, starPoint } from "./hud-core.mjs";
 import { L as t } from "../shared/i18n.mjs";
+import { isPacedStep, onShownTime, shownTime } from "../time/time.mjs";
 
 const BAR_ID = "shadowdark-enhancer-travel";
 
@@ -86,6 +87,8 @@ export const TravelBar = {
   /** The imported holidays, read when the month view opens. */
   _holidays: [],
   _drawn: "",
+  /** What the dial was drawn for besides its turn (_dialKey): a frame of a paced clock that changes it redraws the bar. */
+  _dialDrawn: "",
   _sceneKind: null,
   /** The Time panel's date, as the GM is typing it: kept across redraws. */
   _when: null,
@@ -122,11 +125,13 @@ export const TravelBar = {
       this.render();
     });
     // Real-time light tracking moves the clock every second: redraw on the
-    // minute, but not under a GM typing a date (focusout catches up).
-    Hooks.on("updateWorldTime", () => {
-      if (document.activeElement?.id === "sde-hud-when") return;
+    // minute, but not under a GM typing a date (focusout catches up). A paced
+    // step (a walk, a time-lapse) is painted frame by frame instead.
+    Hooks.on("updateWorldTime", (worldTime, dt, options) => {
+      if (isPacedStep(options) || document.activeElement?.id === "sde-hud-when") return;
       if (this._stamp() !== this._drawn) this.render();
     });
+    onShownTime((time, done) => this._paintTime(time, done));
     // A member's rations change when they forage, buy, trade or eat.
     const onItem = (item) => {
       if (this._open === "travel" && itemTouchesBar(item, overlandState().members)) this.render();
@@ -191,6 +196,7 @@ export const TravelBar = {
     document.body.classList.toggle("sde-clock-on", shown);
     if (!shown) { this._el.innerHTML = ""; return; }
     this._drawn = this._stamp();
+    this._dialDrawn = this._dialKey(this._now().now);
     const gm = !!game.user.isGM;
     if (!gm) this._stack = null;
     if ((this._open === "time" && !gm) || (this._open === "travel" && !CrawlState.isOverland)) this._open = null;
@@ -198,9 +204,32 @@ export const TravelBar = {
     this._el.innerHTML = `<div class="sde-hud-col">${this._bar()}${this._stacks()}<div class="sde-hud-drop">${this._drop()}</div></div>`;
   },
 
-  /** The time and sky as the HUD reads them. */
+  /**
+   * A frame of a paced clock (time.mjs onShownTime): the dial turns and the time ticks over in place.
+   * A new day, a sunrise or sunset passed or a new moon phase redraws the bar, as does the slide's end.
+   */
+  _paintTime(time, done) {
+    if (!this._el?.firstChild) return;
+    if (done || this._dialKey(time) !== this._dialDrawn) {
+      if (document.activeElement?.id !== "sde-hud-when") this.render();
+      return;
+    }
+    const cal = game.time.calendar;
+    const turn = ((360 / (cal.days?.hoursPerDay ?? 24)) * hourOfDay(cal, time)).toFixed(2);
+    this._el.querySelector("[data-dial-turn]")?.setAttribute("transform", `rotate(${turn} ${DIAL.cx} ${DIAL.cy})`);
+    const clock = this._el.querySelector(".sde-hud-t"), text = dateParts(cal, Math.floor(time)).time;
+    if (clock && clock.textContent !== text) clock.textContent = text;
+  },
+
+  /** What the bar draws besides the dial's turn and the time: the day, which side of sunrise and sunset, the moon's phase. */
+  _dialKey(time) {
+    const cal = game.time.calendar, hour = hourOfDay(cal, time), sun = sunAt(cal, time);
+    return `${startOfDay(cal, time)}|${hour < sun.sunrise ? 0 : hour < sun.sunset ? 1 : 2}|${game.shadowdarkEnhancer?.time?.moonPhase(time)?.key}`;
+  },
+
+  /** The time and sky as the HUD reads them: the time this screen shows, which slides while the clock is paced. */
   _now() {
-    const now = game.time.worldTime;
+    const now = Math.floor(shownTime());
     const cal = game.time.calendar;
     const api = game.shadowdarkEnhancer?.time;
     return {
@@ -308,7 +337,7 @@ export const TravelBar = {
         <clipPath id="sde-hud-moonc"><circle cx="${d.moon.x}" cy="${d.moon.y}" r="${d.moon.r}"/></clipPath>
       </defs>
       <circle cx="${cx}" cy="${cy}" r="${DIAL.moonTrack}" class="sde-hud-track"/>
-      <g clip-path="url(#sde-hud-disc)"><g transform="rotate(${d.rotate} ${cx} ${cy})">
+      <g clip-path="url(#sde-hud-disc)"><g data-dial-turn transform="rotate(${d.rotate} ${cx} ${cy})">
         <circle cx="${cx}" cy="${cy}" r="${DIAL.disc}" fill="#0b0b0b"/>${stars}
         <path d="${d.day}" fill="url(#sde-hud-dayg)"/><path d="${d.dusk}" fill="url(#sde-hud-hatch)"/><path d="${d.dawn}" fill="url(#sde-hud-hatch)"/>
       </g></g>
