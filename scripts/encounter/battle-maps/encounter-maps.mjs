@@ -77,7 +77,7 @@ import {
  * @property {number[]} [party]  [x0, y0, x1, y1] px: where the party starts. Absent means the
  *                               central 30% of the map, see partyZone().
  * @property {number[]} [foes]   [x0, y0, x1, y1] px, on a hazard map only: the ground the foes are packed onto
- *                               when the middle of the map between them and the party is lava or a chasm.
+ *                               when the strip at the rolled distance would run through water, lava or a chasm.
  *                               Inside the image, off the party zone; absent means a strip at the rolled distance.
  * @property {{x: number, y: number}} [campLight]  px: a camp map's fire, where the builder adds a light
  * @property {boolean} [boat]    a water map: `party` is the boat's deck
@@ -194,8 +194,10 @@ const BUILT = [
   built("jungle-dense", ["jungle"], [FOREST_FLOOR, FOREST_TREETOP]),
   // The shared open patch overlaps the pool on its right, and the party packs against that edge,
   // so all four PCs stood in the water. The party starts on the dry ground between the pools (11x6 squares).
+  // The strip at the rolled distance runs through that same pool, so the foes start on the dry ground
+  // south-east of it (7x5 squares).
   built("swamp-bog", ["swamp"], [FOREST_FLOOR, FOREST_TREETOP, RIVER_AND_WATER],
-    { party: [1300, 1500, 2400, 2100] }),
+    { party: [1300, 1500, 2400, 2100], foes: [2500, 1900, 3200, 2400] }),
   // 5x2 squares amidships.
   built("river-rowboat", ["river"], [ENDLESS_RIVER, ROWBOAT],
     { width: 4400, height: 1600, party: [1900, 700, 2400, 900], boat: true }),
@@ -240,7 +242,8 @@ const CAMPS = [
   camp("grassland-open-camp", "grassland-open"),
   camp("jungle-dense-camp", "jungle-dense"),
   // The fire stands on the pools' south rim, so the party takes the dry ground below it (10x4 squares).
-  camp("swamp-bog-camp", "swamp-bog", { party: [1400, 1500, 2400, 1900] }),
+  // The foes start where they do on the day map: the art there is the same.
+  camp("swamp-bog-camp", "swamp-bog", { party: [1400, 1500, 2400, 1900], foes: [2500, 1900, 3200, 2400] }),
   camp("desert-dunes-camp", "desert-dunes"),
   camp("salt-flat-camp", "salt-flat"),
 ];
@@ -283,16 +286,19 @@ const PACKS = [
     { party: [300, 700, 900, 1200], foes: [2300, 800, 3000, 1300] }),
   pack("canyon-rocky-fissures", ["canyon", "desert"], 2200, 1600, "Rocky Fissures", "rocky-fissures"),
   pack("coast-beach-dunes", ["coast"], 2300, 1600, "Beach Dunes", "beach-dunes"),
-  // The middle is the tidal channel: the party starts on the sandy bank at the west end (5x6 squares).
+  // The middle is the tidal channel: the party starts on the sandy bank at the west end (5x6 squares) and
+  // the foes cross to the sand of the east bank (4x3), because the strip at the rolled distance is the channel.
   pack("coast-rocky-coast", ["coast"], 2300, 1600, "Rocky Coast", "rocky-coast",
-    { party: [200, 900, 700, 1500] }),
-  // The middle is the lagoon: the party starts on the sand strip north of the driftwood (8x3 squares).
+    { party: [200, 900, 700, 1500], foes: [1900, 1300, 2300, 1600] }),
+  // The middle is the lagoon: the party starts on the sand strip north of the driftwood (8x3 squares) and the
+  // foes on the same strip to its west (8x3); a far strip would be the rock pillar at the strip's end.
   pack("coast-driftwood-cove", ["coast"], 4400, 3200, "Driftwood Cove", "driftwood-cove",
-    { party: [3000, 700, 3800, 1000] }),
+    { party: [3000, 700, 3800, 1000], foes: [2100, 650, 2900, 1000] }),
   pack("coast-crab-rock", ["coast"], 4400, 3200, "Crab Rock", "crab-rock"),
   // The rock platform in the lava (4x4 squares); the default zone's west columns are cracks of lava.
+  // The strip at the rolled distance is the lava river west of it, so the foes start on the slab across the river (4x7).
   pack("volcano-rock-pools-lava", ["volcano", "lava"], 2200, 1600, "Rock Pools", "rock-pools",
-    { party: [1000, 600, 1400, 1000] }),
+    { party: [1000, 600, 1400, 1000], foes: [0, 300, 400, 1000] }),
   // The middle is lava between islands. The party starts on the island on the left (3x2 squares, every one
   // of them clear of lava) and the foes on the one across from it (3x4, a few squares of the rim are half
   // lava). Neither island is much bigger, so a large group spills onto the lava around them.
@@ -303,8 +309,10 @@ const PACKS = [
   pack("tunnels-jagged-cave", ["deep_tunnels"], 2300, 1600, "Jagged Cave", "jagged-cave",
     { party: [800, 800, 1400, 1200] }),
   // The orange pool fills the south-east of the middle: the party starts on the moss platform above it (10x5 squares).
+  // The strip at the rolled distance follows an orange channel west of it, so the foes start on the moss floor
+  // south-west of the platform (5x4).
   pack("tunnels-pooling-caverns", ["deep_tunnels"], 4400, 3200, "Pooling Caverns", "pooling-caverns",
-    { party: [2100, 1200, 3100, 1700] }),
+    { party: [2100, 1200, 3100, 1700], foes: [1400, 2100, 1900, 2500] }),
   pack("tunnels-luminescent-cave", ["deep_tunnels"], 2300, 1600, "Luminescent Cave", "luminescent-cave"),
 ];
 

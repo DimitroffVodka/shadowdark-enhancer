@@ -271,7 +271,11 @@ describe("boats", () => {
  * program and then looked at with the zone and the first eight token squares drawn
  * on top. Two are weaker: the stone bridge's two ends were read by eye (rock
  * against mist is no colour test), and the foes' island on the lava map is a 3x4
- * oval whose rim squares are about a third lava.
+ * oval whose rim squares are about a third lava. The foes' ground on the six maps
+ * whose strip at the rolled distance ran through water or lava (both bogs, the rocky
+ * coast, the driftwood cove, the rock pools, the pooling caverns) was surveyed the
+ * same way afterwards: every square under a quarter hazard, the worst 21%, and each
+ * looked at with the layout drawn on top.
  *
  * CENTRAL lists the maps whose party zone is the default, the central 30% of the
  * picture, which was looked at on each of them. A map on neither list has not been
@@ -292,7 +296,7 @@ const GROUND = {
   "jungle-dense": LAND,
   "desert-dunes": LAND,
   "salt-flat": LAND,
-  "swamp-bog": [[700, 1500, 2400, 2100]],                // dry ground between the pools; the shared patch is half pool
+  "swamp-bog": [[700, 1500, 2400, 2100], [2500, 1900, 3200, 2400]],  // dry ground between the pools (the shared patch is half pool); south-east of the right pool, the foes'
   "river-rowboat": [[1900, 700, 2400, 900]],             // the boats: the stretch where every square is deck
   "lake-calm": [[1700, 1400, 2300, 1600]],
   "ocean-open-sea": [[1100, 1300, 2500, 1700]],
@@ -301,17 +305,17 @@ const GROUND = {
   "forest-road-camp": [[1300, 1700, 2700, 2600]],        // below the road
   "grassland-open-camp": CAMP,
   "jungle-dense-camp": CAMP,
-  "swamp-bog-camp": [[700, 1500, 2400, 1900]],           // the fire stands on the pools' south rim
+  "swamp-bog-camp": [[700, 1500, 2400, 1900], [2500, 1900, 3200, 2400]],  // the fire stands on the pools' south rim; the foes' ground is the day map's
   "desert-dunes-camp": CAMP,
   "salt-flat-camp": CAMP,
   "swamp-swamp-trail": [[1700, 400, 2900, 1500]],        // the big mound below the sinkhole
   "canyon-natural-stone-bridge": [[100, 600, 1000, 1300], [2300, 750, 3100, 1350]],  // the arch's west end, the platform at its east end
-  "coast-rocky-coast": [[200, 800, 700, 1600]],          // the sandy bank
-  "coast-driftwood-cove": [[600, 300, 4200, 1100]],      // the sand strip north of the lagoon
-  "volcano-rock-pools-lava": [[1000, 600, 1400, 1000]],  // the rock platform
+  "coast-rocky-coast": [[200, 800, 700, 1600], [1900, 1300, 2300, 1600]],  // the sandy bank; the sand of the east bank, the foes'
+  "coast-driftwood-cove": [[600, 300, 4200, 1100]],      // the sand strip north of the lagoon, the party's end and the foes'
+  "volcano-rock-pools-lava": [[1000, 600, 1400, 1000], [0, 300, 400, 1000]],  // the rock platform; the slab across the lava river, the foes'
   "volcano-scattered-islands": [[500, 700, 800, 900], [1200, 300, 1500, 700]],  // the party's island, the foes' island
   "tunnels-jagged-cave": [[800, 800, 1400, 1200]],
-  "tunnels-pooling-caverns": [[2100, 1200, 3100, 1700]],
+  "tunnels-pooling-caverns": [[2100, 1200, 3100, 1700], [1400, 2100, 1900, 2500]],  // the moss platform; the moss floor south-west of it, the foes'
 };
 const CENTRAL = [
   "forest-edge-of-the-woods", "path-wildroad", "path-roadside-wilderness", "path-cobblestone-highway",
@@ -364,8 +368,15 @@ describe("where tokens start", () => {
   describe("the foes' zone", () => {
     const withFoes = ENCOUNTER_MAPS.filter((m) => m.foes);
 
-    test("the two maps whose middle is a hazard set one, and no other map does", () => {
-      assert.deepEqual(withFoes.map((m) => m.id).sort(), ["canyon-natural-stone-bridge", "volcano-scattered-islands"]);
+    test("the maps whose strip at the rolled distance runs through water, lava or a chasm set one, and no other map does", () => {
+      assert.deepEqual(withFoes.map((m) => m.id).sort(), [
+        "canyon-natural-stone-bridge", "coast-driftwood-cove", "coast-rocky-coast", "swamp-bog", "swamp-bog-camp",
+        "tunnels-pooling-caverns", "volcano-rock-pools-lava", "volcano-scattered-islands",
+      ]);
+    });
+
+    test("a camp has its day map's foes zone when the art there is the same", () => {
+      assert.deepEqual(getEncounterMap("swamp-bog-camp").foes, getEncounterMap("swamp-bog").foes);
     });
 
     test("it is on the picture, holds a group, and is not the party's ground", () => {
