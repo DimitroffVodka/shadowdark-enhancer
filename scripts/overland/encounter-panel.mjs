@@ -57,7 +57,7 @@ export function encounterPanel({ enc, cal }) {
   if (c.kind === "monster") {
     const facet = (label, die, roll, word, cls = "") => `<div class="sde-hud-facet"><span class="sde-hud-cap">${
       esc(t(label))} · ${esc(die)} ${gold(roll)}</span><span class="sde-hud-v ${cls}">${esc(word)}</span></div>`;
-    body = `<div class="sde-hud-what"><img src="${esc(c.img ?? "")}" alt="">${gold(c.count ?? 1)}<span class="sde-hud-bl">${esc(c.name ?? "")}</span></div>`
+    body = `<div class="sde-hud-what"${c.uuid ? ` data-uuid="${esc(c.uuid)}"` : ""}><img src="${esc(c.img ?? "")}" alt="">${gold(c.count ?? 1)}<span class="sde-hud-bl">${esc(c.name ?? "")}</span></div>`
       + (c.countFormula ? `<span class="sde-hud-cap">${esc(t("SDE.clock.enc.appearing", { dice: c.countFormula }))}</span>` : "")
       + `<div class="sde-hud-facets">${facet("SDE.encounter.facet.distance", "1d6", c.distanceRoll, c.distanceText)}${
         facet("SDE.encounter.facet.activity", "2d6", c.activityRoll, c.activityText)}${

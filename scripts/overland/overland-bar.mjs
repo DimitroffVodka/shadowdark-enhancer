@@ -41,6 +41,7 @@ import { travelPanel } from "./travel-panel.mjs";
 import { campOf } from "../camping/camping.mjs";
 import { encounterCard, encounterPanel, encounterStrip } from "./encounter-panel.mjs";
 import { postEncounter } from "../encounter/encounter-draw.mjs";
+import { showNpcPreview, hideNpcPreview } from "../encounter/npc-preview.mjs";
 import { DIAL, clockShown, clockSteps, dateToTime, dialMarkup, dialModel, monthGrid, seasonHatch } from "./hud-core.mjs";
 import { findParty, openPartySheet } from "./find-party.mjs";
 import { L as t } from "../shared/i18n.mjs";
@@ -198,6 +199,22 @@ export const TravelBar = {
     el.id = BAR_ID;
     (document.getElementById("interface") ?? document.body).prepend(el);
     el.addEventListener("click", (event) => this._onClick(event));
+    // The held encounter's creature shows its card on hover and opens its sheet on a double click.
+    const whatOf = (event) => event.target.closest?.(".sde-hud-what[data-uuid]");
+    el.addEventListener("pointerover", (event) => {
+      const what = whatOf(event);
+      if (what && !what.contains(event.relatedTarget)) showNpcPreview(what, what.dataset.uuid);
+    });
+    el.addEventListener("pointerout", (event) => {
+      const what = whatOf(event);
+      if (what && !what.contains(event.relatedTarget)) hideNpcPreview(what);
+    });
+    el.addEventListener("dblclick", async (event) => {
+      const uuid = whatOf(event)?.dataset.uuid;
+      if (!uuid) return;
+      const actor = await fromUuid(uuid).catch(() => null);
+      if (actor) actor.sheet?.render(true); else ui.notifications.error(t("SDE.encounter.notify.npcUnresolved"));
+    });
     el.addEventListener("change", (event) => this._onChange(event));
     el.addEventListener("input", (event) => {
       const { id, type, checked, value } = event.target;
