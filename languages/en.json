@@ -3866,6 +3866,7 @@
   "SDE.clock.plate.noDay": "No day",
   "SDE.clock.find.tip": "Find the party on the map",
   "SDE.clock.find.none": "The party token is not on this map.",
+  "SDE.clock.find.several": "Several parties are on this map. Select one party token, or pick a party in the Party window, then find it again.",
   "SDE.clock.find.elsewhere": "The party token is on another scene: {scene}.",
   "SDE.clock.sheet.tip": "Open the party sheet",
   "SDE.clock.plate.noDayTip": "No travel day is open. Start one in the Travel panel.",

@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 ### Added
-- **Find the party and open its sheet from the clock HUD.** Two buttons before the Travel icon: a crosshairs that pans the map to the party token, pulses on it (on your screen only, not the players') and selects it, and a shield that opens the party sheet. If the party token is on another scene, the crosshairs names the scene instead.
+- **Find the party and open its sheet from the clock HUD.** Two buttons before the Travel icon: a crosshairs that pans the map to the party token, pulses on it (on your screen only, not the players') and selects it, and a shield that opens the party sheet. If the party token is on another scene, the crosshairs names the scene instead. With several parties on the map it finds the selected party, else the one travelling, and when neither is known it says to select one instead of guessing the first.
 - **Right-click a hex with the Hex Brush open to copy its terrain and features.** The brush picks up whatever the hex under the cursor says (a terrain the map's list lacks lands in the Other box), so a good result can be painted straight over a bad one. A right-drag still pans the map.
 - **The Hexplorer's terrain is a dropdown, not a text box.** It offers the map's own terrains (the same list as the on-map editor, alphabetical); to name a new one you pick "other…" and type it there. Nothing is typed by default any more.
 - **The hex tagger's terrain dropdowns are alphabetical.** The review sheet, the Legend cards and the import wizard's hex check listed terrains in the book's printed order; they now sort like the on-map editor's list, with (untagged) first and other... last.

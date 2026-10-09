@@ -13,7 +13,11 @@ const partyDocs = (scene) => (scene?.tokens?.contents ?? []).filter((d) => isPar
 /** @returns {Promise<boolean>} whether a token was found and shown */
 export async function findParty() {
   const here = partyDocs(canvas.scene).map((d) => ({ id: d.id, actorUuid: d.actor.uuid }));
-  const token = canvas.tokens.get(pickPartyToken(here, Party.selected()?.uuid)?.id);
+  let travelUuid = null;
+  try { travelUuid = fromUuidSync(game.shadowdarkEnhancer?.overland?.state?.()?.tokenUuid)?.actor?.uuid ?? null; } catch { /* no travel, or none yet */ }
+  const picked = pickPartyToken(here, Party.selected()?.uuid, travelUuid);
+  if (!picked && here.length) { ui.notifications.warn(t("SDE.clock.find.several")); return false; }
+  const token = canvas.tokens.get(picked?.id);
   if (!token?.visible) {
     const elsewhere = game.user.isGM ? game.scenes.find((s) => s !== canvas.scene && partyDocs(s).length) : null;
     ui.notifications.warn(elsewhere ? t("SDE.clock.find.elsewhere", { scene: elsewhere.name }) : t("SDE.clock.find.none"));
