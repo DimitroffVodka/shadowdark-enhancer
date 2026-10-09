@@ -574,6 +574,19 @@ export async function checkNow() {
 }
 
 /**
+ * Fast travel (GM): the party jumps to the hex `goal` with nothing priced. No day is needed or spent, no
+ * encounter is rolled, no time passes, and no camp or rations come into it; the fog is lifted along the
+ * way as a walk would. For the GM who wants to be there now. A GM who isn't the active GM is forwarded there.
+ * @param {{i:number, j:number}} goal  the hex to arrive in, a grid offset on the travel token's scene
+ * @returns {Promise<{ok:true}|{ok:false, error:string}>}
+ */
+export async function fastTravel(goal) {
+  if (!game.user?.isGM) return { ok: false, error: t("SDE.overland.notify.fastGmOnly") };
+  const data = { action: "fastTravel", i: goal?.i, j: goal?.j };
+  return isActiveGM() ? applyAction(data, game.user) : queryActiveGM(OVERLAND_QUERY, data, { label: t("SDE.overland.relayLabel") });
+}
+
+/**
  * Start a travel day now (GM), with its method and push, and a boat actor when
  * sailing aboard one. The weather is rolled first unless today's still holds.
  * The day's hexes are `hexes` when given, else the boat's speed, else the
@@ -683,7 +696,7 @@ export async function askDay() {
 /** Is this a move of the travel token that Overland prices? Not its own sending back. */
 const isTravelMove = (doc, options) => CrawlState.isOverland && !!_state.tokenUuid
   && doc?.uuid === _state.tokenUuid && !isPartyDeployed(doc)
-  && !options?.[MODULE_ID]?.partyFollow && !options?.[MODULE_ID]?.overlandRollback;
+  && !options?.[MODULE_ID]?.partyFollow && !options?.[MODULE_ID]?.overlandRollback && !options?.[MODULE_ID]?.fastTravel;
 
 /**
  * The steps of a move over the scene's grid: each hex entered on the map, the
@@ -1288,6 +1301,31 @@ export function applyAction(data, user) {
         const { stopped } = await advanceTravel(until, "camp", lapseFor(until));
         const finished = !stopped && await finishCamp();
         return { ok: true, stopped: !finished };
+      }
+      case "fastTravel": {
+        if (!user.isGM) return { ok: false, error: t("SDE.overland.notify.fastGmOnly") };
+        if (!CrawlState.isOverland) return { ok: false, error: t("SDE.overland.notify.notTravelling") };
+        // An encounter still held would be left behind unanswered: Continue it first.
+        if (_state.pending || _state.encounter) return { ok: false, error: t("SDE.overland.notify.pending") };
+        const doc = _state.tokenUuid ? fromUuidSync(_state.tokenUuid) : null;
+        const scene = doc?.parent;
+        const goal = { i: Math.trunc(Number(data.i)), j: Math.trunc(Number(data.j)) };
+        const hex = scene && Number.isFinite(goal.i + goal.j) ? hexReader({ scene, grid: scene.grid })?.(goal) : null;
+        if (!hex) return { ok: false, error: t("SDE.overland.notify.fastNowhere") };
+        const { grid } = scene, from = { x: doc._source.x, y: doc._source.y }, to = grid.getTopLeftPoint(goal);
+        _unpaid.clear();
+        // The same displace the rollback uses, flagged so neither the mover's check nor the GM's pricing sees a walk.
+        await doc.update({ x: to.x, y: to.y }, {
+          movement: { [doc.id]: { waypoints: [{ x: to.x, y: to.y, elevation: doc._source.elevation,
+            action: "displace", snapped: false, explicit: false, checkpoint: true }] } },
+          animate: false, [MODULE_ID]: { fastTravel: true },
+        });
+        await commit(setHex(_state, await withRegion(hex, scene)).state);
+        if (ownsHexFog(scene)) {
+          const path = grid.getDirectPath([from, to].map((p) => doc.getCenterPoint(p))).slice(1);
+          await revealParty(doc, { path, committed: true, weather: _state.weather });
+        }
+        return { ok: true };
       }
       default:
         return { ok: false, error: t("SDE.overland.notify.unknown") };

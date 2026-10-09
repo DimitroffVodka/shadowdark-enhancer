@@ -16,7 +16,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { CrawlState } from "../crawl-strip/crawl-state.mjs";
 import { isHexMapScene, hexReader } from "../encounter/encounter-terrain.mjs";
 import { cheapestRoute } from "./overland-state-core.mjs";
-import { overlandState, travelStepCost, travelSettled } from "./overland.mjs";
+import { overlandState, travelStepCost, travelSettled, fastTravel } from "./overland.mjs";
 import { ownsHexFog, hexDisclosure } from "../hex-map/hex-fog.mjs";
 import { L as t } from "../shared/i18n.mjs";
 
@@ -174,6 +174,7 @@ function showTip(event, route) {
       text = t(hexes === 1 ? "SDE.route.tipOne" : "SDE.route.tip", { hexes, miles, units, cost: route.cost, hours });
       if (route.cost > left) text += t("SDE.route.over", { left });
     }
+    if (game.user.isGM) text += t("SDE.route.fastHint");
   }
   _tip.textContent = text;
   _tip.hidden = false;
@@ -237,11 +238,12 @@ function onUp(event) {
   if (!p || event.button !== 0 || _walking || p.key !== _hovered) return;
   if (Math.hypot(event.global.x - p.x, event.global.y - p.y) > 5) return;
   if (event.timeStamp - p.at >= LONG_PRESS) return;
-  if (event.shiftKey || event.ctrlKey || event.metaKey || event.altKey) return;
+  // Shift is the GM's fast travel; any other modifier is core's.
+  if (event.ctrlKey || event.metaKey || event.altKey || (event.shiftKey && !game.user.isGM)) return;
   const { token, route } = p.armed;
   _armed = null;
   if (moveBlocked(token)) return;
-  void walk(token, route.path);
+  void (event.shiftKey ? jump : walk)(token, route.path);
 }
 
 /**
@@ -304,6 +306,26 @@ async function walk(token, path) {
     _walking = false;
     _hovered = null;
     if (doc.parent === canvas.scene) token.control?.({ releaseOthers: true });
+  }
+}
+
+/** Fast travel (GM): the party arrives at the end of `path` at once, nothing priced (overland.fastTravel). */
+async function jump(token, path) {
+  _walking = true;
+  clear();
+  try {
+    const reply = await fastTravel(path.at(-1));
+    if (!reply?.ok) ui.notifications?.warn(reply?.error ?? t("SDE.overland.notify.fastNowhere"));
+    else {
+      const hex = overlandState().hex;
+      ui.notifications?.info(t("SDE.route.fastReached", { region: hex?.region ?? "", terrain: (hex?.terrain ?? "").replace(/_/g, " ") }));
+    }
+  } catch (err) {
+    console.error(`${MODULE_ID} | the party's fast travel failed`, err);
+  } finally {
+    _walking = false;
+    _hovered = null;
+    if (token.document.parent === canvas.scene) token.control?.({ releaseOthers: true });
   }
 }
 
