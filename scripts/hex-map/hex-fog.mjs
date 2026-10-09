@@ -5,11 +5,15 @@ import { rulesApi } from "../rules-data/rules-data-core.mjs";
 import { storedRulesFor } from "../rules-data/rules-data-scope.mjs";
 import { timeApi } from "../time/time.mjs";
 import { Party } from "../party/party.mjs";
-import { HexRecords, isHexAdopted, sceneRef, recordJournal, offsetKey, readPass, RECORD_FLAG, publishHexProjection, assertPrivateJournal } from "./hex-records.mjs";
+import { HexRecords, isHexAdopted, sceneRef, recordJournal, offsetKey, readPass, RECORD_FLAG, publishHexProjection, assertPrivateJournal, loadHexRecords } from "./hex-records.mjs";
 import { adoptHexScene, withHexLock } from "./hex-adoption.mjs";
 import { disclosure, overlapAllowed, revealRadius, revealCells, arrivalDue } from "./hex-fog-core.mjs";
 
 let overlay = null, warned = false;
+/** The GM sees the unexplored hexes through a 60% veil; this draws them as a player does, solid black. Kept per browser. */
+export const playerViewOn = () => { try { return game.settings.get(MODULE_ID, "hexPlayerFogView") === true; } catch { return false; } };
+/** The setting's onChange redraws the fog. */
+export const togglePlayerView = () => game.settings.set(MODULE_ID, "hexPlayerFogView", !playerViewOn());
 /** SDX must explicitly advertise the full writer/overlay/disclosure stand-down contract. */
 export function ownsHexFog(target) {
   const scene = sceneRef(target);
@@ -49,7 +53,7 @@ export function refreshHexFog() {
   const scene = globalThis.canvas?.scene;
   if (!canvas?.ready || !ownsHexFog(scene)) return;
   overlay = new PIXI.Graphics(); overlay.name = "sde-hex-fog"; overlay.eventMode = "none";
-  overlay.beginFill(0x000000, game.user.isGM ? 0.35 : 1);
+  overlay.beginFill(0x000000, game.user.isGM && !playerViewOn() ? 0.6 : 1);
   // One pass for every cell: the store journal, decoded tags and pin index are read once.
   const pass = readPass(scene);
   for (const offset of fogCells(scene)) if (!hexDisclosure(scene, offset, "terrain", {}, pass)) overlay.drawPolygon(scene.grid.getVertices(offset).flatMap(p => [p.x, p.y]));
@@ -140,7 +144,12 @@ export function registerHexFog() {
       return positionDisclosed(scene, { x: this.document.x, y: this.document.y }, "location");
     }
   };
-  Hooks.on("canvasReady", refreshHexFog);
+  // A GM's records sit in a pack that loads on demand. Until it has, every hex reads as unexplored and the whole map
+  // is veiled, so the first draw waits for it; a reload used to show the explored area as veiled as the rest.
+  Hooks.on("canvasReady", async () => {
+    try { await loadHexRecords(); } catch (error) { console.error(`${MODULE_ID} | hex records`, error); }
+    refreshHexFog();
+  });
   Hooks.on("canvasTearDown", () => { overlay?.destroy(); overlay = null; });
   // Only a change the fog is drawn from: the sky writes the darkness on every clock slice of a walk or a
   // night, and a rebuild is ~5,000 hexes (40-80 ms on a desktop, several times that on a Steam Deck).

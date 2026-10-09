@@ -858,6 +858,15 @@ export function registerSettings() {
     default: false,
   });
 
+  // The GM's "see the fog as the players do" switch (hex-fog.mjs): this browser's, and kept over a reload.
+  game.settings.register(MODULE_ID, "hexPlayerFogView", {
+    scope: "client",
+    config: false,
+    type: Boolean,
+    default: false,
+    onChange: () => import("../hex-map/hex-fog.mjs").then((m) => m.refreshHexFog()),
+  });
+
   // Feature pop-outs (Configure Settings → this module). Every setting listed
   // in SETTING_GROUPS is registered with `config: false` — here or in its
   // feature file — and rendered inside its group's window instead.

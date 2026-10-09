@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { disclosure, importFog, revealCells, revealRadius, arrivalDue, overlapAllowed } from "../scripts/hex-map/hex-fog-core.mjs";
 import { revealParty, refreshHexFog, registerHexFog } from "../scripts/hex-map/hex-fog.mjs";
-import { cacheHexJournal } from "../scripts/hex-map/hex-records.mjs";
+import { cacheHexJournal, recordJournal } from "../scripts/hex-map/hex-records.mjs";
 const grid = { getAdjacentOffsets: ({ i, j }) => [{ i: i - 1, j }, { i: i + 1, j }], getDirectPath: ([a, b]) => Array.from({ length: Math.abs(b.i - a.i) + 1 }, (_, n) => ({ i: a.i + Math.sign(b.i - a.i) * n, j: a.j })) };
 test("one disclosure rule separates terrain, keyed locations and valid exceptions", () => {
   assert.equal(disclosure({}, "terrain"), false);
@@ -145,6 +145,26 @@ test("the sky's darkness writes don't rebuild the hex fog; a flag write does, on
     frames[0]();
   } finally {
     for (const [key, value] of [["Hooks", saved.Hooks], ["CONFIG", saved.CONFIG], ["canvas", saved.canvas], ["requestAnimationFrame", saved.raf], ["game", saved.game]]) {
+      if (value === undefined) delete globalThis[key]; else globalThis[key] = value;
+    }
+  }
+});
+test("the first fog draw waits for the GM's records, so a reload does not veil what is explored", async () => {
+  const hooks = {}, saved = { Hooks: globalThis.Hooks, CONFIG: globalThis.CONFIG, canvas: globalThis.canvas, game: globalThis.game };
+  const scene = { id: "late", uuid: "Scene.latefog" };
+  const journal = { id: "late-records", flags: { "shadowdark-enhancer": { hexRecords: { version: 1, sceneUuid: "Scene.latefog", cells: {} } } } };
+  globalThis.game = { user: { isGM: true }, journal: { contents: [] },
+    packs: { get: () => ({ ownership: { PLAYER: "NONE", TRUSTED: "NONE", ASSISTANT: "NONE" }, getDocuments: async () => [journal] }) } };
+  globalThis.Hooks = { on: (name, fn) => { hooks[name] = fn; } };
+  globalThis.CONFIG = {};
+  globalThis.canvas = { scene, ready: false };
+  try {
+    registerHexFog();
+    assert.equal(recordJournal(scene), null, "nothing is loaded before the canvas is ready");
+    await hooks.canvasReady();
+    assert.equal(recordJournal(scene)?.id, "late-records", "the records are there by the first draw");
+  } finally {
+    for (const [key, value] of [["Hooks", saved.Hooks], ["CONFIG", saved.CONFIG], ["canvas", saved.canvas], ["game", saved.game]]) {
       if (value === undefined) delete globalThis[key]; else globalThis[key] = value;
     }
   }

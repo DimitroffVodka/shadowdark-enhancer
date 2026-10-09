@@ -35,3 +35,13 @@ test("the toolbar falls back to Tokens when the selected Hex map group goes away
   assert.deepEqual(refreshOptions("sdeHexMap", true), { reset: true });
   assert.deepEqual(refreshOptions("tiles", false), { reset: true }, "another group stays where it is");
 });
+
+test("the player-view switch is there only where the module draws the fog, and shows as on while it is", () => {
+  const numbered = scene({ hexTags: { origin: { num: "0000" } } });
+  assert.equal(hexMapTools(numbered, { isGM: true }).hexPlayerView, undefined);
+  assert.equal(hexMapTools(numbered, { isGM: true, fog: true }).hexPlayerView.active, false);
+  assert.equal(hexMapTools(numbered, { isGM: true, fog: true, playerView: true }).hexPlayerView.active, true);
+  const all = Object.values(hexMapTools(numbered, { isGM: true, fog: true }));
+  assert.equal(all[0].name, "hexPlayerView", "it leads the group");
+  assert.deepEqual(all.map((t) => t.order), all.map((t) => t.order).sort((a, b) => a - b));
+});
