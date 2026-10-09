@@ -93,11 +93,15 @@ export const DIAL_STARS = [[22, 100, 1.3], [23.4, 62, 1.8], [0.6, 112, 1.2], [1.
 export const starPoint = ([hour, radius], hoursPerDay = 24) => point(90 - (360 / hoursPerDay) * hour, radius);
 
 /**
- * Which party token the HUD finds: the selected party's if it has one on the scene, else the first.
+ * Which party token the HUD finds: the selected party's, else the travelling party's, else the only party's. With
+ * several parties and neither named, none: it never guesses the first.
  * @param {Array<{id:string, actorUuid:string}>} tokens  the party tokens on the scene
  * @param {string|null} selectedUuid  the selected party actor's uuid
+ * @param {string|null} travelUuid  the travelling party actor's uuid
  */
-export const pickPartyToken = (tokens, selectedUuid = null) => tokens.find((t) => t.actorUuid === selectedUuid) ?? tokens[0] ?? null;
+export const pickPartyToken = (tokens, selectedUuid = null, travelUuid = null) =>
+  tokens.find((t) => t.actorUuid === selectedUuid) ?? tokens.find((t) => t.actorUuid === travelUuid)
+  ?? (new Set(tokens.map((t) => t.actorUuid)).size === 1 ? tokens[0] : null);
 
 /** How wide a line can run across the disc at a height, with a margin for the halo. */
 const chord = (y) => Math.round(2 * Math.sqrt(DIAL.disc ** 2 - (y + 4) ** 2) - 16);

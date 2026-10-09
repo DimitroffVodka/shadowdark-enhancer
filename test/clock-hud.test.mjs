@@ -178,10 +178,14 @@ test("the place is fitted to the disc: one line when it fits, two when long, nev
   assert.deepEqual(placeLines({}), { region: [], terrain: null });
 });
 
-test("finding the party picks the selected party's token, else the first, else none", () => {
+test("finding the party picks the selected party's token, else the travelling party's, else the only one, else none", () => {
   const tokens = [{ id: "a", actorUuid: "Actor.one" }, { id: "b", actorUuid: "Actor.two" }];
   assert.equal(pickPartyToken(tokens, "Actor.two").id, "b");
-  assert.equal(pickPartyToken(tokens, "Actor.gone").id, "a", "an unselected or absent party falls back to the first");
-  assert.equal(pickPartyToken(tokens).id, "a");
+  assert.equal(pickPartyToken(tokens, "Actor.gone", "Actor.two").id, "b", "no selection: the party that is travelling");
+  assert.equal(pickPartyToken(tokens, "Actor.two", "Actor.one").id, "b", "the selection wins over the travel");
+  assert.equal(pickPartyToken(tokens, "Actor.gone"), null, "several parties and nobody named: it does not guess the first");
+  assert.equal(pickPartyToken(tokens), null);
+  assert.equal(pickPartyToken([tokens[0]]).id, "a", "one party is the party");
+  assert.equal(pickPartyToken([tokens[0], { id: "c", actorUuid: "Actor.one" }]).id, "a", "two tokens of one party are still one party");
   assert.equal(pickPartyToken([], "Actor.one"), null);
 });

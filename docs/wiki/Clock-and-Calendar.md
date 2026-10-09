@@ -23,7 +23,7 @@ Left to right:
 | **The date** | everyone | In the middle of the bar: weekday, day, month and year, then the time. |
 | **⌃ / ⌄** | everyone | A small, quiet chevron beside the date: shows or hides the sky. |
 | **Travel** | on a hex map | While travelling, a counter: how the party travels (on foot, mounted, by boat), then the day's movement points left over the day's total, with a double chevron when pushing. Hover it for the words. Before a day is open it reads **No day**, and when an encounter holds the travel clock it is lit and reads **Encounter**; its tooltip says to run it and press Continue. Or **Start travel** for a GM. |
-| **Find the party** (crosshairs) | anyone who can see a party | Pans the map to the party token, pulses on it (on your screen only) and selects it. If the token is on another scene it names the scene. |
+| **Find the party** (crosshairs) | anyone who can see a party | Pans the map to the party token, pulses on it (on your screen only) and selects it. If the token is on another scene it names the scene. With several parties it finds the selected one, else the one travelling; if neither is known it asks you to select one rather than guess. |
 | **Party sheet** (shield) | anyone who can see a party | Opens the party sheet (the picker when there are several parties). |
 | **Travel panel** (the party icon) | on a hex map | Opens the Travel panel. |
 | **⏩** | GM | Opens a column of steps forward, the same five. |
