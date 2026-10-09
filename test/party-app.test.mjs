@@ -9,8 +9,8 @@ globalThis.foundry = { applications: { api: { ApplicationV2: class {
   render() { if (this.id) globalThis.foundry.applications.instances.set(this.id, this); }
   bringToFront() {}
   _onRender() {}
-}, HandlebarsApplicationMixin: (base) => base }, sheets: { ActorSheetV2: class { _onRender() {} } }, instances: new Map() } };
-const { PartyApp, PartySheet, registerParty } = await import("../scripts/party/party-app.mjs");
+}, HandlebarsApplicationMixin: (base) => base }, sheets: { ActorSheetV2: class { _onRender() {} async _onDropItem(_event, item) { return item.copied ?? null; } } }, instances: new Map() } };
+const { PartyApp, PartySheet, registerParty, registerPartyItemMove } = await import("../scripts/party/party-app.mjs");
 function actor(id, type = "NPC", flags = {}, permissions = 3) {
   const a = { id, uuid: `Actor.${id}`, name: id, type, flags, items: { contents: [] }, testUserPermission: (_user, level) => permissions >= ({ OBSERVER: 2, OWNER: 3 })[level],
     getFlag: (mod,key) => a.flags[mod]?.[key], writes: [], update: async (data) => { a.writes.push(data); for (const [key,value] of Object.entries(data)) { const [,mod,flag] = key.split("."); (a.flags[mod] ??= {})[flag] = value; } return a; } };
@@ -593,6 +593,65 @@ test("Give to moves the whole stack to a PC and not to anyone else", async () =>
   assert.deepEqual(deleted, ["r"], "a hireling is not offered the item");
   const context = await t.app._prepareContext();
   assert.deepEqual(context.receivers.map(r => r.uuid), t.pcs.map(a => a.uuid), "the Give to list is the PCs");
+});
+
+test("Remove deletes the whole stack only after a confirm, and gives it to no one", async () => {
+  const t = treasury();
+  const deleted = [], api = globalThis.foundry.applications.api;
+  const rope = { id: "r", name: "Rope", delete: async () => { deleted.push("r"); } };
+  t.p.items.contents.push(rope);
+  t.p.items.get = (id) => t.p.items.contents.find((i) => i.id === id);
+  t.p.isOwner = true;
+  globalThis.foundry.utils = { ...globalThis.foundry.utils, escapeHTML: (v) => v };
+  try {
+    api.DialogV2 = { confirm: async () => false };
+    await act(t.app, "deleteItem", { dataset: { id: "r" } });
+    assert.deepEqual(deleted, [], "declined: kept");
+    api.DialogV2 = { confirm: async () => true };
+    await act(t.app, "deleteItem", { dataset: { id: "r" } });
+    assert.deepEqual(deleted, ["r"]);
+  } finally { delete api.DialogV2; }
+  const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
+  assert.ok(template.includes('data-action="deleteItem"'));
+});
+
+test("Dropping another actor's item on the party sheet moves it, Ctrl copies, and the party's own rows are draggable", async () => {
+  const t = treasury();
+  const sheet = new PartySheet(); sheet.document = t.p; Object.defineProperty(sheet, "actor", { value: t.p });
+  const gone = [], from = (parent) => ({ copied: {}, parent, delete: async () => { gone.push(parent.id); } });
+  await sheet._onDropItem({ ctrlKey: false }, from(t.pcs[0]));
+  assert.deepEqual(gone, ["a"], "moved off the player");
+  await sheet._onDropItem({ ctrlKey: true }, from(t.pcs[1]));
+  await sheet._onDropItem({ ctrlKey: false }, from(t.p));
+  await sheet._onDropItem({ ctrlKey: false }, { copied: null, parent: t.pcs[2], delete: async () => { gone.push("c"); } });
+  assert.deepEqual(gone, ["a"], "Ctrl copies, a sort in place and a refused drop keep the source");
+  const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
+  assert.ok(template.includes('<li class="item draggable" data-item-id'));
+});
+
+test("A party item dropped on a character leaves the party once the sheet has copied it, and not before or with Ctrl", async () => {
+  const t = treasury(), handlers = {}, saved = globalThis.Hooks;
+  globalThis.Hooks = { on: (name, fn) => { handlers[name] = fn; }, off() {} };
+  registerPartyItemMove();
+  const gone = [], rope = { id: "r", name: "Rope", isOwner: true, parent: t.p, uuid: "Actor.p.Item.r", delete: async () => { gone.push("r"); } };
+  t.p.items.contents.push(rope); t.p.items.get = (id) => t.p.items.contents.find((i) => i.id === id);
+  globalThis.fromUuidSync = () => rope;
+  const drop = (actor, ctrl = false) => { globalThis.event = { ctrlKey: ctrl }; handlers.dropActorSheetData(actor, {}, { type: "Item", uuid: rope.uuid }); };
+  try {
+    drop(t.pcs[0]);
+    assert.deepEqual(gone, [], "nothing is removed until the character has a copy");
+    await handlers.createItem({ name: "Rope", parent: t.pcs[1] });
+    assert.deepEqual(gone, [], "a copy on someone else is not this drop");
+    await handlers.createItem({ name: "Rope", parent: t.pcs[0] });
+    assert.deepEqual(gone, ["r"]);
+    await handlers.createItem({ name: "Rope", parent: t.pcs[0] });
+    assert.deepEqual(gone, ["r"], "one drop moves one item");
+    drop(t.pcs[0], true);
+    await handlers.createItem({ name: "Rope", parent: t.pcs[0] });
+    drop(t.hireling);
+    await handlers.createItem({ name: "Rope", parent: t.hireling });
+    assert.deepEqual(gone, ["r"], "Ctrl copies, and only a player character takes a move");
+  } finally { globalThis.Hooks = saved; delete globalThis.event; delete globalThis.fromUuidSync; }
 });
 
 test("Add item: a forged or compendium item is copied onto the party actor", async () => {
