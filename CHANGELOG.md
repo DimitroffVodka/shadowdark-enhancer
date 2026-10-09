@@ -115,6 +115,7 @@
   earlier "Include mounts" had already placed on a scene is still recalled by Place / Recall.
 
 ### Fixed
+- **No more "failed to register sdeVehicleBody partial" error in the console at start-up.** The Mount and Boat sheets stopped using that shared tabs template, but a merge put its registration back; it is gone again. Nothing on screen changed.
 - **Building an adventure map again no longer undoes hand-corrected walls and lights.** Tools → Adventure map on a scene that was already built, or the placer's From book button, used to delete every wall and light the module had made and put the shipped ones back. Now, once a scene has them, they are left exactly as they are.
 - **A merchant sale never pays for more than the seller holds.** Typing a quantity larger than the stack in the Sell tab paid for that many and restocked the merchant with them; the sale now stops at what the character carries.
 - **Picking up a dropped pile pays out what was dropped.** Every player owns a pile so the pickup button works, which also let a player rewrite what the pile said it held. Pickup now reads a copy the GM keeps on the scene. A pile dropped before this update can only be picked up by the GM.

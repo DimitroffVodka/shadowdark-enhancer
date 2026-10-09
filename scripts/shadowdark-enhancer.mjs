@@ -144,7 +144,7 @@ const STYLESHEET_REV = "7fa72453e2e5";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "103cbfd7676a";
+const BUILD_REV = "a023af2b107e";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -406,12 +406,6 @@ Hooks.once("init", () => {
     .getTemplate(`modules/${MODULE_ID}/templates/partials/tree-node.hbs`)
     .then((tpl) => Handlebars.registerPartial("sdeTreeNode", tpl))
     .catch((err) => console.error(`${MODULE_ID} | failed to register sdeTreeNode partial:`, err));
-
-  // Shared Occupants/Inventory/Description tabs for the Mount & Boat sheets.
-  foundry.applications.handlebars
-    .getTemplate(`modules/${MODULE_ID}/templates/partials/vehicle-tabs.hbs`)
-    .then((tpl) => Handlebars.registerPartial("sdeVehicleBody", tpl))
-    .catch((err) => console.error(`${MODULE_ID} | failed to register sdeVehicleBody partial:`, err));
 
   // Character-builder step body partials (dynamic partial lookup by step).
   const cbPartials = {
