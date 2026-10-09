@@ -1,7 +1,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { CampingApp } from "../camping/camping-app.mjs";
 import { CarousingApp } from "../carousing/carousing-app.mjs";
-import { Party, isNativeParty, isLegacyParty, registerPartyRosterGuard } from "./party.mjs";
+import { Party, isParty, isNativeParty, isLegacyParty, registerPartyRosterGuard } from "./party.mjs";
 import { offerParty } from "./party-create-option.mjs";
 import { scopedQuests } from "./party-core.mjs";
 import { fillFormation } from "./party-movement-core.mjs";
@@ -531,9 +531,30 @@ export class PartySheet extends HandlebarsApplicationMixin(foundry.applications.
 }
 for (const name of ["_prepareContext", "_change", "_pickEmblem", "_pool", "_coinInputs", "_pcs", "_refuse", "_settle", "_coinLabel", "_addCoins", "_giveCoins", "_divideCoins", "_addItemFrom", "_giveItem", "_deleteItem", "_quests", "_bastion", "_travel", "_hookTravel", "_bindControls", "_activityController", "_questController", "_onStateChanged", "_form", "_asked", "_requestRoll", "_awardParty", "_downtimeCall", "_startDowntime", "_downtime", "_warbands", "_warbandWrite"]) PartySheet.prototype[name] = PartyApp.prototype[name];
 
+/**
+ * A party item dragged onto a character's sheet moves (Ctrl copies). The sheet makes the copy by its own rules
+ * (spells, effects, lights), so this waits for that copy to appear and only then removes the original: a drop the
+ * sheet declines loses nothing, and one it already moved (Shadowdark Extras' transfers) finds nothing left to remove.
+ */
+export function registerPartyItemMove() {
+  let pending = null;
+  Hooks.on("dropActorSheetData", (actor, _sheet, data) => {
+    const item = data?.type === "Item" && actor?.type === "Player" ? fromUuidSync(data.uuid) : null;
+    // The drop event is still the current one here; Foundry passes it to the hook's caller, not to the hook.
+    pending = item?.isOwner && isParty(item.parent) && !globalThis.event?.ctrlKey ? { item, actor, at: Date.now() } : null;
+  });
+  Hooks.on("createItem", async (made) => {
+    if (!pending || made.parent?.uuid !== pending.actor.uuid || Date.now() - pending.at > 5000) return;
+    const { item } = pending;
+    pending = null;
+    if (item.parent?.items.get(item.id) && made.name === item.name) await item.delete();
+  });
+}
+
 /** Only native/adopted flagged Parties route here; ordinary NPC sheets stay intact. */
 export function registerParty() {
   registerPartyRosterGuard();
+  registerPartyItemMove();
   const ActorClass = globalThis.CONFIG?.Actor?.documentClass;
   if (ActorClass) {
     foundry.applications.apps.DocumentSheetConfig.registerSheet(ActorClass, MODULE_ID, PartySheet, { types: ["NPC"], makeDefault: false, label: "SDE.party.title" });

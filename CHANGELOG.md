@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 ### Added
-- **Party sheet: drag items.** A party item row can be dragged onto a character sheet, and an item dragged from a character onto the party sheet now moves (Ctrl copies) instead of duplicating.
+- **Party sheet: drag items.** A party item row can be dragged onto a character sheet, moves to the character, and an item dragged from a character onto the party sheet now moves too (Ctrl copies) instead of duplicating.
 - **Party sheet: remove an item.** Each party item has a trash button next to Give to, asking first, so an item can leave the party without going to a player.
 - **Right-click a hex with the Hex Brush open to copy its terrain and features.** The brush picks up whatever the hex under the cursor says (a terrain the map's list lacks lands in the Other box), so a good result can be painted straight over a bad one. A right-drag still pans the map.
 - **The Hexplorer's terrain is a dropdown, not a text box.** It offers the map's own terrains (the same list as the on-map editor, alphabetical); to name a new one you pick "other…" and type it there. Nothing is typed by default any more.
