@@ -134,6 +134,8 @@ export const TravelBar = {
   _dateEdit: false,
   /** The month view's new entry, as the GM is typing it: kept across redraws. */
   _draft: null,
+  /** What the GM has typed in the date fields, kept across redraws until Go or the fields close. */
+  _dateDraft: null,
   /** A move in flight: a second click waits for it rather than stacking on a stale clock. */
   _moving: false,
 
@@ -205,6 +207,7 @@ export const TravelBar = {
     el.addEventListener("input", (event) => {
       const { id, type, checked, value } = event.target;
       if (id?.startsWith("sde-hud-e-")) (this._draft ??= {})[id.slice(10)] = type === "checkbox" ? checked : value;
+      else if (id?.startsWith("sde-hud-d-")) (this._dateDraft ??= {})[id.slice(10)] = value;
     });
     // Enter in the date fields sets the date.
     el.addEventListener("keydown", (event) => {
@@ -455,7 +458,7 @@ export const TravelBar = {
     const notes = [
       g.fullMoon ? t("SDE.clock.fullMoonOn", { day: g.fullMoon }) : "",
       t("SDE.clock.clickDay"),
-      this._holidays.length ? "" : t("SDE.clock.noHolidays"),
+      this._holidays.length && this._holy.length ? "" : t("SDE.clock.noHolidays"),
     ].filter(Boolean).join(" ");
     return `<div class="sde-hud-panel sde-hud-wide">
       <div class="sde-hud-ph sde-hud-ph-row">
@@ -488,12 +491,13 @@ export const TravelBar = {
 
   /** The GM's date fields, on the clock's date: day, month by name, year, and Go. */
   _dateRow(cal, parts) {
+    const d = this._dateDraft ?? {};
     const months = (cal.months?.values ?? []).map((m, i) =>
-      `<option value="${i + 1}"${t(m.name) === t(parts.month) ? " selected" : ""}>${esc(t(m.name))}</option>`).join("");
+      `<option value="${i + 1}"${(d.month ? Number(d.month) === i + 1 : t(m.name) === t(parts.month)) ? " selected" : ""}>${esc(t(m.name))}</option>`).join("");
     return `<div class="sde-hud-row sde-hud-dateedit">
-      <input class="sde-hud-field" id="sde-hud-d-day" type="number" min="1" value="${parts.day}" aria-label="${esc(t("SDE.clock.day"))}">
+      <input class="sde-hud-field" id="sde-hud-d-day" type="number" min="1" value="${esc(d.day ?? parts.day)}" aria-label="${esc(t("SDE.clock.day"))}">
       <select class="sde-hud-field" id="sde-hud-d-month" aria-label="${esc(t("SDE.clock.monthName"))}">${months}</select>
-      <input class="sde-hud-field" id="sde-hud-d-year" type="number" value="${parts.year}" aria-label="${esc(t("SDE.clock.year"))}">
+      <input class="sde-hud-field" id="sde-hud-d-year" type="number" value="${esc(d.year ?? parts.year)}" aria-label="${esc(t("SDE.clock.year"))}">
       ${key("setDate", t("SDE.clock.go"), { cls: "sde-hud-sm" })}
     </div>
     <span class="sde-hud-fl">${esc(t("SDE.clock.dateNote"))}</span>`;
@@ -700,6 +704,7 @@ export const TravelBar = {
       case "open":
         this._open = this._open === id ? null : id;
         this._dateEdit = false;
+        this._dateDraft = null;
         this._info = null;
         this._see = null;
         this._adjust = false;
@@ -746,7 +751,7 @@ export const TravelBar = {
         const page = await fromUuid(id);
         return page?.parent?.sheet?.render({ force: true, pageId: page.id });
       }
-      case "dateEdit": this._dateEdit = !this._dateEdit; return this.render();
+      case "dateEdit": this._dateEdit = !this._dateEdit; this._dateDraft = null; return this.render();
       case "setDate": return this._setDate();
       case "startTravel": {
         const started = await startOverland();
@@ -816,6 +821,7 @@ export const TravelBar = {
     const dayStart = dateToTime(cal, { year: read("year"), month: read("month"), day: read("day") });
     if (dayStart === null) return ui.notifications.warn(t("SDE.clock.badDate"));
     this._dateEdit = false;
+    this._dateDraft = null;
     this._monthOffset = 0;
     await this._move(null, { to: dayStart + (now - startOfDay(cal, now)), calendar: true });
     this.render();

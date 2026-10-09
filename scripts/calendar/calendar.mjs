@@ -102,6 +102,7 @@ export function registerCalendar() {
     logCalendar("travel", t("SDE.calendar.log.travelEnd"), whereLine(state?.hex));
   });
   // Players read the holidays from a copy a GM keeps (holidays.mjs): refresh it on load.
-  if (isActiveGM()) import("../holidays/holidays.mjs").then((m) => m.publishLore()).catch(() => {});
+  // A world that imported its books before the calendar chapters existed gets them from the linked PDFs.
+  if (isActiveGM()) import("../holidays/holidays.mjs").then(async (m) => { await m.fileLinkedChapters(); await m.publishLore(); }).catch(() => {});
   applyCampaignStart().catch((err) => console.error(`${MODULE_ID} | calendar: campaign start`, err));
 }

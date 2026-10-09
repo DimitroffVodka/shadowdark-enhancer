@@ -1628,11 +1628,13 @@ imported page, at `pageUuid`.
 Today's date comes from the core calendar (`game.time.components`) as
 `{ year, month (1–12), day (1–31), dayOfYear (1-based) }`.
 
-- **Solar anchors** are fixed Gregorian dates: March 20, May 1 (the
-  traditional cross-quarter day, not the astronomical midpoint of about
-  May 5), June 21, September 22 and December 21. Real solstices and equinoxes
-  drift a day either side. A world on a non-Gregorian calendar gets the same
-  month and day numbers in its own months.
+- **Solar anchors** follow the calendar's own sun table where it reaches (the
+  years 1200 to 1500, a Julian calendar, so the dates drift: the Duke's Ball
+  is 13 June in 1348). Past it they are the usual dates: March 20, June 21,
+  September 22 and December 21. The cross-quarter, Maytide, stays on the
+  traditional May 1, not the astronomical midpoint of about May 5. A world on a
+  calendar without that table gets the same month and day numbers in its own
+  months.
 - **Lastmoon** falls on the day of the year's last full moon, which is
   `time.anchor("lastFullMoon")` (since 1.12.0). Before that it never fell.
 
@@ -1746,7 +1748,7 @@ time.format(t);          // the date string alone
   (04:30 to 19:30), 9 on 21 December (07:30 to 16:30), about 12 at the
   equinoxes, centred on noon. One latitude for the whole world.
 - **The moon** follows the synodic month, 29.530588853 days, from a new moon at
-  the `moonEpoch` world setting (worldTime 0 until a GM sets another).
+  the `moonEpoch` world setting (a real new moon of 1348 until a GM sets another).
 - **Any calendar.** Nothing assumes the Gregorian calendar: weekdays, months,
   seasons and the length of a day come from the world's.
 

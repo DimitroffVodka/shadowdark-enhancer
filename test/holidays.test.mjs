@@ -4,7 +4,7 @@
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import {
-  ANCHORS, HOLIDAYS, HOLIDAY_PRESET, buildLore, withGmOnly, calendarHolidays, calendarHolyDays, holidaysToday, listHolidays, normalizeLore,
+  ANCHORS, HOLIDAYS, HOLIDAY_PRESET, buildLore, fileLinkedChapters, linkedCalendarBooks, withGmOnly, calendarHolidays, calendarHolyDays, holidaysToday, listHolidays, normalizeLore,
   placeMatches, whenMatches,
 } from "../scripts/holidays/holidays.mjs";
 import { CHAPTER_PRESETS } from "../scripts/importer/chapter-journal.mjs";
@@ -212,4 +212,14 @@ test("a holiday or holy day switched to GM only is left out of the players' copy
   assert.deepEqual(withGmOnly(["b"], "a", true), ["a", "b"]);
   assert.deepEqual(withGmOnly(["a", "b"], "a", false), ["b"]);
   assert.deepEqual(withGmOnly(["a"], "a", true), ["a"], "switching on twice changes nothing");
+});
+
+test("an existing world files the calendar chapters from the books it has linked, and only those", async () => {
+  const rows = [{ src: "WR", linked: true }, { src: "CS6", linked: false }, { src: "GMWR", linked: true }, { src: "CORE", linked: true }];
+  assert.deepEqual(linkedCalendarBooks(rows), ["WR"]);
+  assert.deepEqual(linkedCalendarBooks([{ src: "CS6", linked: true }, { src: "WR", linked: true }]).sort(), ["CS6", "WR"]);
+  assert.deepEqual(linkedCalendarBooks([]), []);
+  // A player has nothing to file.
+  globalThis.game.user = { isGM: false };
+  assert.equal(await fileLinkedChapters(), 0);
 });
