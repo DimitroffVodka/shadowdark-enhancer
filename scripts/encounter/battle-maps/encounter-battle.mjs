@@ -37,7 +37,7 @@ import { MODULE_ID } from "../../shared/module-id.mjs";
 import { L } from "../../shared/i18n.mjs";
 import { replaceModuleFlag } from "../../shared/module-flags.mjs";
 import { tokenSourceFor, worldActorFor } from "../../shared/token-placement.mjs";
-import { Party } from "../../party/party.mjs";
+import { Party, isLegacyParty, isNativeParty } from "../../party/party.mjs";
 import { makeQueue } from "../../quests/quest-core.mjs";
 import { BATTLE_STATUS, FLAGS, GRID_PX, SETTINGS } from "./constants.mjs";
 import {
@@ -65,12 +65,27 @@ async function loadFoe(uuid) {
 }
 
 /**
- * The selected party's characters, each with the token source to place. Linked, as a deployed party is
+ * The party that met the encounter: on a travel battle the party behind the travel token (the one Overland moves, the
+ * same source Find the party reads), whoever has its sheet open or is selected on this browser; otherwise, or when
+ * the travel token has no party actor, the selected party.
+ */
+function battleParty(travelling) {
+  if (travelling) {
+    try {
+      const actor = fromUuidSync(game.shadowdarkEnhancer?.overland?.state?.()?.tokenUuid)?.actor;
+      if (isNativeParty(actor) || isLegacyParty(actor)) return actor;
+    } catch { /* no travel token, or one that cannot be read */ }
+  }
+  return Party.selected();
+}
+
+/**
+ * The battle's party's characters, each with the token source to place. Linked, as a deployed party is
  * (party-movement): damage taken in the fight has to land on the character, not on a copy that goes away.
  * Nothing is invented when there is no party: an empty list, and the GM drags the characters in.
  */
-async function loadParty() {
-  const party = Party.selected();
+async function loadParty({ travelling = false } = {}) {
+  const party = battleParty(travelling);
   if (!party) return [];
   let uuids;
   try { uuids = Party.members(party, { charactersOnly: true }); } catch { return []; }
@@ -481,7 +496,7 @@ async function setUpBattle({
 
     const foe = encounter?.uuid ? await _deps.foe(encounter.uuid) : null;
     if (encounter?.uuid && !foe) notify("warn", "SDE.encounterMaps.notify.noFoe", { name: encounter.name ?? "" });
-    const party = await _deps.party();
+    const party = await _deps.party({ travelling });
     if (!party.length) notify("info", "SDE.encounterMaps.notify.noPcs");
 
     // A character who already has a token here (a deployed party) is not put down twice. They are still in the fight:

@@ -23,6 +23,7 @@ import { BattleMaps, _canvasSpot, _deps, resumeBattleReadout } from "../scripts/
 import {
   copyAsSaved, encounterSceneName, ensureEncounterScene, findEncounterScene,
 } from "../scripts/encounter/battle-maps/encounter-scene.mjs";
+import { Party } from "../scripts/party/party.mjs";
 import { ENCOUNTER_MAPS, getEncounterMap } from "../scripts/encounter/battle-maps/encounter-maps.mjs";
 import { FLAGS, FOLDERS, NIGHT_DARKNESS, SETTINGS } from "../scripts/encounter/battle-maps/constants.mjs";
 
@@ -2065,6 +2066,51 @@ test("the real party loader: the selected party's characters, linked; nothing wh
   assert.deepEqual(loaded.map((p) => p.actor), [a, b], "characters only, not the hireling");
   assert.ok(loaded.every((p) => p.link === true));
   assert.equal(loaded[0].source.name, "Hero 1");
+});
+
+test("the real party loader: a travel battle places the travelling party, whichever party is selected or none is", async () => {
+  Object.assign(_deps, { party: REAL_DEPS.party });
+  const hero = (n) => world.addActor({
+    id: `h${n}`, type: "Player", name: `Hero ${n}`, img: `h${n}.webp`, system: { isPC: true }, prototypeToken: { texture: { src: `h${n}.webp` } },
+    async getTokenDocument() { return { toObject: () => sourceFor(`Hero ${n}`) }; },
+  });
+  const [a1, a2, b1, b2] = [hero(1), hero(2), hero(3), hero(4)];
+  const party = (id, members) => world.addActor({
+    id, type: "NPC", name: id, flags: { [MOD]: { party: true, partyData: { version: 1, members: members.map((m) => m.uuid), leaderUuid: members[0].uuid, followLeader: true, formation: { slots: [] } } } },
+  });
+  const [partyA, partyB] = [party("partyA", [a1, a2]), party("partyB", [b1, b2])];
+  const travelling = (actor) => {
+    globalThis.fromUuidSync = (uuid) => (uuid === "Scene.hexes.Token.t1" ? { actor } : null);
+    globalThis.game.shadowdarkEnhancer = { overland: { state: () => ({ tokenUuid: "Scene.hexes.Token.t1" }) } };
+  };
+  const names = async (arg) => (await _deps.party(arg)).map((p) => p.actor.name);
+
+  travelling(partyB);
+  assert.deepEqual(await names({ travelling: true }), ["Hero 3", "Hero 4"], "several parties, none selected: the travelling one");
+  Party.select(partyA);
+  assert.deepEqual(await names({ travelling: true }), ["Hero 3", "Hero 4"], "the GM opened another party's sheet: still the travelling one");
+  assert.deepEqual(await names({ travelling: false }), ["Hero 1", "Hero 2"], "not travelling: the selected party, as before");
+  assert.deepEqual(await names(), ["Hero 1", "Hero 2"], "no arguments: the selected party, as before");
+  const links = await _deps.party({ travelling: true });
+  assert.ok(links.every((p) => p.link === true));
+
+  travelling(a1);
+  assert.deepEqual(await names({ travelling: true }), ["Hero 1", "Hero 2"], "the travel token's actor is not a party: the selected party");
+  globalThis.game.shadowdarkEnhancer = { overland: { state: () => ({ tokenUuid: null }) } };
+  assert.deepEqual(await names({ travelling: true }), ["Hero 1", "Hero 2"], "travel with no token: the selected party");
+  globalThis.fromUuidSync = () => { throw new Error("bad uuid"); };
+  globalThis.game.shadowdarkEnhancer = { overland: { state: () => ({ tokenUuid: "garbage" }) } };
+  assert.deepEqual(await names({ travelling: true }), ["Hero 1", "Hero 2"], "a travel token that cannot be read: the selected party");
+  delete globalThis.fromUuidSync;
+});
+
+test("setUp: a travelling battle asks the loader for the travelling party; one that is not travelling does not", async () => {
+  const asked = [];
+  _deps.party = async (arg) => { asked.push(arg?.travelling); return []; };
+  _deps.foe = async () => null;
+  await BattleMaps.setUp({ terrain: "forest", travelling: true, view: false });
+  await BattleMaps.setUp({ terrain: "lake", view: false });
+  assert.deepEqual(asked, [true, false]);
 });
 
 test("the real foe loader: a world actor from a uuid with its token source; null for anything else", async () => {
