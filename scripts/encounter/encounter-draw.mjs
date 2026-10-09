@@ -18,6 +18,8 @@ import {
   categoryTables, isEncounterZoneTable, travelPointOfInterest, zoneCategories,
 } from "../importer/tables/table-enrich.mjs";
 import { isNight, worldClock } from "./encounter-terrain.mjs";
+import { partyContext } from "./battle-maps/battle-actions.mjs";
+import { canBattle, cardStash } from "./battle-maps/battle-actions-core.mjs";
 
 const { renderTemplate } = foundry.applications.handlebars;
 
@@ -188,6 +190,8 @@ export async function drawEncounter(table, { travel = false, quiet = false } = {
 /**
  * Post an encounter to chat: a creature's card with its facets, or a row's
  * text. To the GMs only when `gmOnly` (default: the encounter roll's GM-only setting).
+ * A GM's creature card keeps what its Battle map button needs (the creature, the hex's terrain and number, the
+ * scene to come back to) in its flags: the card is clicked later, when the party may stand somewhere else.
  * @param {object} res  an entry with its facet words (the roller's result, or the HUD's)
  * @param {{gmOnly?:boolean}} [opts]
  */
@@ -196,10 +200,12 @@ export async function postEncounter(res, { gmOnly = game.settings.get(MODULE_ID,
   const template = res.kind === "flavor"
     ? "modules/shadowdark-enhancer/templates/chat/encounter-flavor.hbs"
     : "modules/shadowdark-enhancer/templates/chat/encounter-result.hbs";
-  const content = await renderTemplate(template, res);
+  const battle = game.user.isGM && canBattle(res) ? cardStash({ res, ...partyContext() }) : null;
+  const content = await renderTemplate(template, battle ? { ...res, battleMap: true } : res);
   await ChatMessage.create({
     user: game.user.id,
     content,
     whisper: gmOnly ? ChatMessage.getWhisperRecipients("GM") : [],
+    ...(battle ? { flags: { [MODULE_ID]: { encounterCard: battle } } } : {}),
   });
 }

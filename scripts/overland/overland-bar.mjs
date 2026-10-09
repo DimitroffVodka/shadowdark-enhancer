@@ -19,6 +19,11 @@
  * picked in the month view goes forward off duty (torches don't burn through a
  * calendar jump), and any move backwards just sets the clock back.
  *
+ * A GM running an encounter battle map (docs/plans/encounter-battle-maps.md)
+ * keeps the bar on the screen wherever they look: the battle's scene and its
+ * combat hide the clock, and its controls live here. Then only the battle shows,
+ * a slim bar and its panel; on a hex map the panel is one more under the clock.
+ *
  * Mounted like the Crawl Strip: a click-transparent wrapper in #interface
  * whose column takes clicks. The Crawl Strip moves down under the bar while it
  * shows (body.sde-clock-on).
@@ -37,9 +42,16 @@ import {
 } from "./overland.mjs";
 import { barModel, itemTouchesBar, redrawStamp, hhmm } from "./overland-bar-core.mjs";
 import { travelPanel } from "./travel-panel.mjs";
-import { encounterCard, encounterPanel, encounterStrip } from "./encounter-panel.mjs";
+import { BATTLE_STATUS_WORD, battlePanel, encounterCard, encounterPanel, encounterStrip } from "./encounter-panel.mjs";
 import { postEncounter } from "../encounter/encounter-draw.mjs";
-import { DIAL, DIAL_STARS, clockShown, clockSteps, dateToTime, dialModel, monthGrid, seasonHatch, starPoint } from "./hud-core.mjs";
+import { BATTLE_STATUS, FLAGS } from "../encounter/battle-maps/constants.mjs";
+import {
+  makePreloadWatch, panelAfter, panelOnScene, readoutKey, readoutShown, touchesBattle,
+} from "../encounter/battle-maps/battle-actions-core.mjs";
+import {
+  bringTheTable, changeBattleMap, describeBattle, loadBattleParts, openBattleMap, partyContext, returnToTravel,
+} from "../encounter/battle-maps/battle-actions.mjs";
+import { DIAL, DIAL_STARS, barShown, clockShown, clockSteps, dateToTime, dialModel, monthGrid, seasonHatch, starPoint } from "./hud-core.mjs";
 import { L as t } from "../shared/i18n.mjs";
 
 const BAR_ID = "shadowdark-enhancer-travel";
@@ -70,7 +82,7 @@ const key = (action, label, { id = "", hint = "", cls = "", aria = "" } = {}) =>
 
 export const TravelBar = {
   _el: null,
-  /** The open panel: "time", "month", "travel", "encounter" or null. */
+  /** The open panel: "time", "month", "travel", "encounter", "battle" or null. */
   _open: null,
   /** The hour of the encounter this client last opened the panel for: a new one opens it again. */
   _encAt: null,
@@ -91,6 +103,24 @@ export const TravelBar = {
   _when: null,
   /** A move in flight: a second click waits for it rather than stacking on a stale clock. */
   _moving: false,
+  /** The battle maps' parts (battle-actions.mjs loadBattleParts), for a GM, once loaded; null until then or if one is missing. */
+  _parts: null,
+  /** The GM's running battle as the panel reads it, its preload readout, and the readout's stamp: all set by render(). */
+  _view: null,
+  _preload: null,
+  _readout: "",
+  /** The readout's listener: it listens only while a battle is staged. */
+  _watch: null,
+  /** Keep this battle, as ticked: the bar redraws often, so the checkbox's state is kept here. */
+  _keep: false,
+  /** The stage the last redraw saw the battle in (null: none): a battle staged opens its panel, and live folds it. */
+  _stage: null,
+  /** Whether the clock itself is on the screen, or only a battle's controls (on its scene, or in its combat). */
+  _clock: true,
+  /** A battle step in flight: a second click waits for it. */
+  _acting: false,
+  /** What the battle steps reach into instead of the real parts: empty, but for a test. */
+  _io: {},
 
   init() {
     // The encounter already held when this client starts isn't new: only a later hit opens the panel.
@@ -110,17 +140,7 @@ export const TravelBar = {
     Hooks.on(`${MODULE_ID}.clockBarChanged`, queue);
     for (const hook of ["createCombat", "updateCombat", "deleteCombat"]) Hooks.on(hook, queue);
     Hooks.on("pauseGame", () => { if (this._open === "time") this.render(); });
-    Hooks.on("canvasReady", () => {
-      // A new kind of scene starts the view afresh: the sky shows on a hex map, not in a dungeon.
-      const kind = isHexMapScene() ? "hex" : "other";
-      if (kind !== this._sceneKind) {
-        this._sceneKind = kind;
-        this._sky = kind === "hex";
-        this._open = null;
-        this._stack = null;
-      }
-      this.render();
-    });
+    Hooks.on("canvasReady", () => this._onScene());
     // Real-time light tracking moves the clock every second: redraw on the
     // minute, but not under a GM typing a date (focusout catches up).
     Hooks.on("updateWorldTime", () => {
@@ -132,6 +152,63 @@ export const TravelBar = {
       if (this._open === "travel" && itemTouchesBar(item, overlandState().members)) this.render();
     };
     for (const hook of ["createItem", "updateItem", "deleteItem"]) Hooks.on(hook, onItem);
+    // The battle maps (a GM's): their buttons and readout come from the parts loaded here, and the battle's record
+    // changing on its scene (from this HUD, a chat card, the API or another GM) redraws.
+    if (game.user.isGM) this._loadBattle();
+    Hooks.on("updateScene", (_scene, changed) => { if (touchesBattle(changed)) this.render(); });
+    Hooks.on("deleteScene", (scene) => { if (scene.getFlag?.(MODULE_ID, FLAGS.battle)) this.render(); });
+    // The release may come anywhere on the screen, or never (focus lost): all of them end the hold.
+    for (const type of ["pointerup", "pointercancel", "blur"]) window.addEventListener(type, () => this._watch?.hold(false));
+  },
+
+  /**
+   * A scene was drawn. A new kind of scene starts the view afresh: the sky shows on a hex map, not in a dungeon.
+   * A battle that is staged keeps its panel open, which is how its readout stays in view on the battle's own scene;
+   * one that is live does not, so its combat's cards are not covered.
+   */
+  _onScene() {
+    const kind = isHexMapScene() ? "hex" : "other";
+    if (kind !== this._sceneKind) {
+      this._sceneKind = kind;
+      this._sky = kind === "hex";
+      this._open = panelOnScene(this._battleView()?.status);
+      this._stack = null;
+    }
+    this.render();
+  },
+
+  /** Load the battle maps' parts; without them the HUD simply has no battle controls. */
+  async _loadBattle() {
+    this._parts = await loadBattleParts(this._io);
+    if (!this._parts) return;
+    this._listen();
+    this.render();
+  },
+
+  /** The readout's listener, made once the parts are in. */
+  _listen() {
+    this._watch = makePreloadWatch({
+      subscribe: this._parts.onPreloadChange,
+      redraw: () => {
+        // The readout shows in the battle's and the encounter's panels only, and a redraw under a GM typing the
+        // Time panel's date would take the field from them (the clock's own redraw guards it the same way).
+        if (!readoutShown({ open: this._open, typing: document.activeElement?.id === "sde-hud-when" })) return;
+        // A burst of progress that moves nothing the GM can see draws nothing.
+        const now = this._view ? this._parts.preloadSnapshot(this._view.sceneId) : null;
+        if (readoutKey(now) !== this._readout) this.render();
+      },
+    });
+  },
+
+  /** The GM's running battle as the panel reads it, or null: always null for a player, and before the parts have loaded. */
+  _battleView() {
+    if (!game.user?.isGM || !this._parts) return null;
+    try {
+      return describeBattle(this._parts.BattleMaps.current(), { getEncounterMap: this._parts.getEncounterMap });
+    } catch (err) {
+      console.warn(`${MODULE_ID} | the running battle could not be read`, err);
+      return null;
+    }
   },
 
   mount() {
@@ -141,6 +218,8 @@ export const TravelBar = {
     (document.getElementById("interface") ?? document.body).prepend(el);
     el.addEventListener("click", (event) => this._onClick(event));
     el.addEventListener("change", (event) => this._onChange(event));
+    // The readout redraws while players load: not under a button the GM is pressing, or the click is lost.
+    el.addEventListener("pointerdown", () => this._watch?.hold(true));
     el.addEventListener("input", (event) => { if (event.target.id === "sde-hud-when") this._when = event.target.value; });
     // Leaving the date field redraws what the minute skipped; not when moving onto Set, mid-click.
     el.addEventListener("focusout", (event) => {
@@ -177,25 +256,47 @@ export const TravelBar = {
       CrawlState.isOverland ? overlandState().pending : null);
   },
 
-  _shown() {
+  /** What the bar's rule reads: the clock bar setting, who is looking, whether a combat runs and whether the scene has a hex grid. */
+  _inputs() {
     let setting = "all";
     try { setting = game.settings.get(MODULE_ID, "clockBar"); } catch { /* not registered yet */ }
     const combat = CrawlState.mode === "combat" || !!game.combat?.started;
-    return clockShown({ setting, isGM: !!game.user?.isGM, combat, hex: isHexMapScene() });
+    return { setting, isGM: !!game.user?.isGM, combat, hex: isHexMapScene() };
   },
 
   render() {
     if (!this._el) return;
-    const shown = this._shown();
+    const gm = !!game.user.isGM;
+    const battle = this._battleView();
+    this._view = battle;
+    const staged = battle?.status === BATTLE_STATUS.staged;
+    this._preload = staged ? this._parts.preloadSnapshot(battle.sceneId) : null;
+    this._readout = readoutKey(this._preload);
+    this._watch?.sync(staged);
+    // A staged battle opens its panel and a live one folds it (its combat's cards sit right under the bar, and the
+    // panel would cover them); one that is gone closes it. Keep only goes with the battle, not with a Return that failed.
+    const next = panelAfter({ open: this._open, stage: this._stage }, battle?.status ?? null);
+    if (next.open === "battle" && this._open !== "battle") this._stack = null;
+    this._open = next.open;
+    this._stage = next.stage;
+    if (!battle) this._keep = false;
+    // A running battle keeps the bar on the screen for its GM wherever they look (its own scene, its combat, or the
+    // clock bar set off): its controls live here, and without them there would be no way to bring the table or return
+    // to travel. Where the clock is not shown (hud-core clockShown) the bar is the battle's alone.
+    const inputs = this._inputs();
+    this._clock = clockShown(inputs);
+    const shown = barShown({ ...inputs, battle: !!battle });
     this._el.classList.toggle("sde-hud-visible", shown);
     document.body.classList.toggle("sde-clock-on", shown);
     if (!shown) { this._el.innerHTML = ""; return; }
     this._drawn = this._stamp();
-    const gm = !!game.user.isGM;
-    if (!gm) this._stack = null;
+    if (!gm || !this._clock) this._stack = null;
+    if (!this._clock && this._open !== "battle") this._open = null;
     if ((this._open === "time" && !gm) || (this._open === "travel" && !CrawlState.isOverland)) this._open = null;
     if (this._open === "encounter" && !(gm && overlandState().encounter)) this._open = null;
-    this._el.innerHTML = `<div class="sde-hud-col">${this._bar()}${this._stacks()}<div class="sde-hud-drop">${this._drop()}</div></div>`;
+    if (this._open === "battle" && !battle) this._open = null;
+    const head = this._clock ? `${this._bar()}${this._stacks()}` : this._battleBar();
+    this._el.innerHTML = `<div class="sde-hud-col">${head}<div class="sde-hud-drop">${this._drop()}</div></div>`;
   },
 
   /** The time and sky as the HUD reads them. */
@@ -235,7 +336,23 @@ export const TravelBar = {
       <span class="sde-hud-date"><span class="sde-hud-d">${esc(date)}</span><span class="sde-hud-t">${esc(parts.time)}</span>${stopped}</span>
       ${ib("sky", this._sky ? "fa-chevron-up" : "fa-chevron-down", t(this._sky ? "SDE.clock.skyHide" : "SDE.clock.skyShow"), { pressed: this._sky })}
       ${travel}
+      ${this._view ? this._battleKey() : ""}
       ${gm ? ib("stack", "fa-forward", t("SDE.clock.advance"), { id: "adv", pressed: this._stack === "adv" }) : ""}
+    </div>`;
+  },
+
+  /** The icon that opens (or folds) the battle's panel. */
+  _battleKey(icon = "fa-swords") {
+    const open = this._open === "battle";
+    return ib("open", icon, t(open ? "SDE.encounterMaps.hud.panelFold" : "SDE.encounterMaps.hud.panelOpen"), { id: "battle", pressed: open });
+  },
+
+  /** The bar where only a battle shows: its name and stage, and a chevron for its panel. */
+  _battleBar() {
+    const stage = t(BATTLE_STATUS_WORD[this._view.status] ?? BATTLE_STATUS_WORD.live);
+    return `<div class="sde-hud-bar">
+      <span class="sde-hud-date"><span class="sde-hud-d">${esc(t("SDE.encounterMaps.hud.panel"))}</span><span class="sde-hud-t">${esc(stage)}</span></span>
+      ${this._battleKey(this._open === "battle" ? "fa-chevron-up" : "fa-chevron-down")}
     </div>`;
   },
 
@@ -259,9 +376,12 @@ export const TravelBar = {
 
   _drop() {
     const enc = overlandState().encounter;
-    if (this._open === "encounter") return encounterPanel({ enc, cal: game.time.calendar });
+    const battle = { battle: this._view, preload: this._preload, keep: this._keep };
+    if (!this._clock) return this._open === "battle" ? battlePanel(battle) : "";
+    if (this._open === "encounter") return encounterPanel({ enc, cal: game.time.calendar, ...battle, battleMaps: !!this._parts });
     // Folded, a held encounter rides under the bar as a strip, above whatever else is open (#257).
-    const strip = game.user.isGM && enc && CrawlState.isOverland ? encounterStrip({ enc, cal: game.time.calendar }) : "";
+    const strip = game.user.isGM && enc && CrawlState.isOverland ? encounterStrip({ enc, cal: game.time.calendar, battle: this._view }) : "";
+    if (this._open === "battle") return strip + battlePanel(battle);
     if (this._open === "time") return strip + this._timePanel();
     if (this._open === "month") return strip + this._monthPanel();
     if (this._open === "travel") return strip + this._travelPanel();
@@ -502,6 +622,27 @@ export const TravelBar = {
         if (enc && enc.kind !== "empty") app?._setResult?.(enc, { via: enc.via });
         return;
       }
+      // The battle map (docs/plans/encounter-battle-maps.md): set it up, bring the table, change it, return to travel.
+      case "battleMap":
+      case "chooseBattleMap": {
+        const { terrain, hexNum, originSceneId } = partyContext();
+        return this._act(() => openBattleMap({ enc: overlandState().encounter, terrain, hex: hexNum, originSceneId, choose: el.dataset.action === "chooseBattleMap" }, this._io));
+      }
+      case "bringTable": {
+        const battle = this._view;
+        return this._act(() => bringTheTable({ battle, preload: battle && this._parts?.preloadSnapshot(battle.sceneId) }, this._io));
+      }
+      case "changeBattleMap": {
+        const battle = this._view;
+        return this._act(() => changeBattleMap({ battle }, this._io));
+      }
+      case "returnToTravel": {
+        const battle = this._view;
+        // The checkbox as it stands now: the DOM is what the GM is looking at. It stays ticked until the battle is
+        // gone (render clears it then), so a Return that could not save its copy and took nothing down can be pressed again.
+        const keep = this._el.querySelector('input[data-action="keepBattle"]')?.checked ?? this._keep;
+        return this._act(() => returnToTravel({ battle, keep }, this._io));
+      }
       case "rollWeather": return warn(await rollWeather());
       case "reroll": return warn(await rollWeather({ reroll: true }));
       case "startDay": return warn(await startDayFromParty());
@@ -536,8 +677,21 @@ export const TravelBar = {
     }
   },
 
+  /** One battle step at a time: a second click while one runs (setting a scene up takes a moment) is ignored. */
+  async _act(run) {
+    if (this._acting) return;
+    this._acting = true;
+    try {
+      await run();
+    } finally {
+      this._acting = false;
+      this.render();
+    }
+  },
+
   async _onChange(event) {
     const el = event.target;
+    if (el?.dataset?.action === "keepBattle") { this._keep = !!el.checked; return; }
     if (el?.dataset?.action !== "realtime" || !game.user.isGM) return;
     await game.settings.set("shadowdark", "realtimeLightTracking", !!el.checked).catch((err) => {
       console.error(`${MODULE_ID} | real-time clock`, err);
