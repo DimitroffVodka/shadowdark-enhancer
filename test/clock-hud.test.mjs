@@ -5,7 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import {
-  clockShown, clockSteps, DIAL, dialMarkup, dialModel, placeLines, seasonHatch, monthGrid, dateToTime,
+  clockShown, clockSteps, DIAL, dialMarkup, dialModel, pickPartyToken, placeLines, seasonHatch, monthGrid, dateToTime,
   TRAVEL_STEPS, currentStep, sightParts,
 } from "../scripts/overland/hud-core.mjs";
 import { nextTimeOfDay, sun, dateParts } from "../scripts/time/time-core.mjs";
@@ -176,4 +176,12 @@ test("the place is fitted to the disc: one line when it fits, two when long, nev
   assert.ok(long.terrain.y > long.region[1].y, "the terrain sits below the region");
   assert.ok([...long.region, long.terrain].every((l) => l.size >= 11), "every line stays readable");
   assert.deepEqual(placeLines({}), { region: [], terrain: null });
+});
+
+test("finding the party picks the selected party's token, else the first, else none", () => {
+  const tokens = [{ id: "a", actorUuid: "Actor.one" }, { id: "b", actorUuid: "Actor.two" }];
+  assert.equal(pickPartyToken(tokens, "Actor.two").id, "b");
+  assert.equal(pickPartyToken(tokens, "Actor.gone").id, "a", "an unselected or absent party falls back to the first");
+  assert.equal(pickPartyToken(tokens).id, "a");
+  assert.equal(pickPartyToken([], "Actor.one"), null);
 });

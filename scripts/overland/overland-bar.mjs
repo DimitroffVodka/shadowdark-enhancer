@@ -35,11 +35,13 @@ import {
   overlandState, weatherNow, weatherName, methodName, rollWeather, startDayFromParty, setTravelPace, partyReading, makeCamp,
   endOverland, resume, forage, startOverland, advanceClock, checkNow, encounterSettings, ENCOUNTER_SETTINGS, OVERLAND_CHANGED,
 } from "./overland.mjs";
+import { Party } from "../party/party.mjs";
 import { barModel, itemTouchesBar, redrawStamp, hhmm } from "./overland-bar-core.mjs";
 import { travelPanel } from "./travel-panel.mjs";
 import { encounterCard, encounterPanel, encounterStrip } from "./encounter-panel.mjs";
 import { postEncounter } from "../encounter/encounter-draw.mjs";
 import { clockShown, clockSteps, dateToTime, dialMarkup, dialModel, monthGrid, seasonHatch } from "./hud-core.mjs";
+import { findParty, openPartySheet } from "./find-party.mjs";
 import { L as t } from "../shared/i18n.mjs";
 
 const BAR_ID = "shadowdark-enhancer-travel";
@@ -226,7 +228,9 @@ export const TravelBar = {
       const cell = plate
         ? `<button type="button" class="sde-hud-plate sde-hud-count${plate.cls ? ` ${plate.cls}` : ""}" data-action="open" data-id="${gm && state.encounter ? "encounter" : "travel"}"${plate.tip ? ` data-tooltip="${esc(plate.tip)}" aria-label="${esc(plate.tip)}"` : ""}>${plate.html}</button>`
         : gm && CrawlState.mode === "off" ? `<button type="button" class="sde-hud-go" data-action="startTravel"><i class="fa-solid fa-hexagon"></i> ${esc(t("SDE.overland.startTravel"))}</button>` : "";
-      travel = `${cell}${plate ? ib("open", "fa-users", t("SDE.clock.travel"), { id: "travel", pressed: this._open === "travel" }) : ""}`;
+      // Finding the party and opening its sheet: for any viewer who can see a party.
+      const party = Party.list().length ? ib("findParty", "fa-location-crosshairs", t("SDE.clock.find.tip")) + ib("partySheet", "fa-shield-halved", t("SDE.clock.sheet.tip")) : "";
+      travel = `${cell}${party}${plate ? ib("open", "fa-users", t("SDE.clock.travel"), { id: "travel", pressed: this._open === "travel" }) : ""}`;
     }
     // Tools either side, the date in the middle; the sky toggle hangs off the date so it stays centred.
     return `<div class="sde-hud-bar sde-hud-bar-3">
@@ -452,6 +456,8 @@ export const TravelBar = {
       case "stack": this._stack = this._stack === id ? null : id; return this.render();
       // The day's own step, or the one already open, goes back to following the day.
       case "see": { const n = Number(id); this._see = (this._see === n || el.dataset.now) ? null : n; return this.render(); }
+      case "findParty": return findParty();
+      case "partySheet": return openPartySheet();
       case "sky": this._sky = !this._sky; this._open = null; return this.render();
       case "month": this._monthOffset += Number(id) || 0; return this.render();
       case "step": return this._move(Number(id));

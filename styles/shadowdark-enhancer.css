@@ -3719,7 +3719,7 @@ body:has(.sdx-scene-nav-bar) #shadowdark-enhancer-travel { top: 72px; }
 /* The bar: tools left, the date in the middle, tools right. The sky toggle hangs off the date so it stays centred. */
 .sde-hud-bar-3 { display: grid; grid-template-columns: 1fr auto 1fr; gap: 32px; }
 /* The two sides are one width, so the date between them is centred whatever each holds. */
-.sde-hud-side { display: flex; align-items: center; gap: 2px; min-width: 196px; }
+.sde-hud-side { display: flex; align-items: center; gap: 2px; min-width: 244px; }
 .sde-hud-side-r { justify-content: flex-end; }
 .sde-hud-date.sde-hud-date-mid { position: relative; padding: 0; justify-content: center; overflow: visible; }
 .sde-hud-chev { position: absolute; left: 100%; margin-left: 4px; width: 22px; height: 22px; font-size: 11px; color: var(--sd-text-muted); opacity: 0.7; }
