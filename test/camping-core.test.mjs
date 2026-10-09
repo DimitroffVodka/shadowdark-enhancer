@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { TASKS, taskDefinitions, selectTask, lockCamp, torchPlan, fireDecision, fireAlive, cookGrant, cookHp, cookExpiry } from "../scripts/camping/camping-core.mjs";
+import { TASKS, taskDefinitions, selectTask, carryOver, lockCamp, torchPlan, fireDecision, fireAlive, cookGrant, cookHp, cookExpiry } from "../scripts/camping/camping-core.mjs";
 
 test("eight optional tasks, correct stat choices and no-fire disadvantage", () => {
   assert.deepEqual(TASKS.map(t => [t.key, t.abilities, t.campfire]), [
@@ -15,7 +15,7 @@ test("custom definitions are retained without mutating their input", () => {
   const tasks = taskDefinitions(custom);
   assert.equal(tasks.length, 9); assert.equal(tasks[8].description, "Custom"); assert.deepEqual(custom[0].abilities, ["CHA"]);
 });
-const setup = () => ({ phase: "setup", tasks: taskDefinitions(), participants: ["A", "B"].map(uuid => ({ uuid, confirmed: true, participate: true, task: "", torchConsent: false })) });
+const setup = () => ({ phase: "setup", tasks: taskDefinitions(), participants: ["A", "B"].map(uuid => ({ uuid, confirmed: true, participate: true, task: "" })) });
 test("one task per PC; duplicates allowed; task fields lock before rolls", () => {
   let camp = selectTask(setup(), "A", { task: "cook", ability: "wis" });
   camp = selectTask(camp, "B", { task: "cook", ability: "int" });
@@ -25,14 +25,14 @@ test("one task per PC; duplicates allowed; task fields lock before rolls", () =>
   assert.throws(() => selectTask(setup(), "A", { task: "entertain", recipientUuid: "A" }));
   assert.throws(() => lockCamp(selectTask(setup(), "A", { task: "craft", craft: "repair" })));
 });
-test("shared-first exact torch cost uses only consenting participants, never partial", () => {
-  const stacks = [{ actorUuid: "P", id: "s", quantity: 1 }, { actorUuid: "A", id: "a", quantity: 4 }, { actorUuid: "B", id: "b", quantity: 4 }];
-  assert.deepEqual(torchPlan(stacks, "P", [{ uuid: "B", torchConsent: true }, { uuid: "A", torchConsent: false }]).deductions, [
+test("shared-first exact torch cost then the PC holding the most, never partial", () => {
+  const stacks = [{ actorUuid: "P", id: "s", quantity: 1 }, { actorUuid: "A", id: "a", quantity: 3 }, { actorUuid: "B", id: "b", quantity: 4 }];
+  assert.deepEqual(torchPlan(stacks, "P", [{ uuid: "A" }, { uuid: "B" }]).deductions, [
     { actorUuid: "P", id: "s", quantity: 1 }, { actorUuid: "B", id: "b", quantity: 2 },
   ]);
-  assert.deepEqual(torchPlan(stacks, "P", []).deductions, []);
-  assert.equal(torchPlan(stacks, "P", []).available, 1);
-  assert.equal(torchPlan(stacks, "P", []).ok, false);
+  assert.deepEqual(torchPlan(stacks.slice(0, 1), "P", [{ uuid: "A" }]).deductions, []);
+  assert.equal(torchPlan(stacks.slice(0, 1), "P", [{ uuid: "A" }]).available, 1);
+  assert.equal(torchPlan(stacks.slice(0, 1), "P", []).ok, false);
 });
 test("fire expires after eight hours or when no PC remains near", () => {
   assert.equal(fireAlive({ started: 10, lit: true }, 11, true), true);
@@ -74,4 +74,23 @@ test("Cook surplus spends first; healing preserves unspent but cannot restore sp
   assert.equal(cookExpiry({ value: 4, max: 3 }, one.benefit, 86410).value, 3);
   assert.equal(cookExpiry({ value: 1, max: 3 }, spent.benefit, 86410).value, 1);
   assert.equal(cookExpiry({ value: 4, max: 3 }, one.benefit, 86409), null);
+});
+
+test("a new camp starts from the last night's fuel and tasks, and drops what no longer fits", () => {
+  const tasks = taskDefinitions();
+  const person = (uuid, extra = {}) => ({ uuid, actorId: uuid, confirmed: true, task: "", ability: null, craft: "torch", watchHalf: "first", ...extra });
+  const fresh = { phase: "setup", fuel: "none", tasks, participants: [person("a"), person("b"), person("c"), person("d")] };
+  const last = { phase: "complete", fuel: "torches", participants: [
+    person("a", { task: "hunt", ability: "dex" }),
+    person("b", { task: "craft", craft: "repair", repairItemId: "gone" }),
+    person("c", { task: "entertain", ability: "cha", recipientUuid: "left" }),
+    person("e", { task: "keepWatch", ability: "wis", watchHalf: "second" }),
+  ] };
+  const next = carryOver(fresh, last);
+  assert.equal(next.fuel, "torches");
+  assert.deepEqual([next.participants[0].task, next.participants[0].ability], ["hunt", "dex"]);
+  assert.deepEqual([next.participants[1].task, next.participants[1].craft, next.participants[1].repairItemId], ["craft", "torch", undefined]);
+  assert.equal(next.participants[2].task, "", "a recipient who left the party means the task is chosen again");
+  assert.equal(next.participants[3].task, "");
+  assert.equal(carryOver(fresh, null), fresh);
 });

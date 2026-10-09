@@ -1,12 +1,13 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { Party, isNativeParty } from "../party/party.mjs";
-import { CAMP_LABELS, taskDefinitions, selectTask, lockCamp, torchPlan, fireDecision, fireAlive } from "./camping-core.mjs";
+import { CAMP_LABELS, taskDefinitions, selectTask, carryOver, lockCamp, torchPlan, fireDecision, fireAlive } from "./camping-core.mjs";
 import { queryActiveGM, registerQuery, refuseQuery, isActiveGM } from "../shared/gm-relay.mjs";
 import { registerCook, expireCook } from "./camping-cook.mjs";
 import { foodPreview, feedCamp, restCamp } from "./camping-nutrition.mjs";
 import { isMount, adoptMountScores } from "../actors/mount-scores.mjs";
 import { secondsPerHour } from "../time/time-core.mjs";
+import { esc } from "../shared/esc.mjs";
 const QUERY = `${MODULE_ID}.camping`, queues = new Map();
 const actorOf = uuid => game.actors.contents.find(a => a.uuid === uuid);
 const own = (a, u) => !!a?.testUserPermission(u, "OWNER");
@@ -39,9 +40,10 @@ function nearFire(party, camp) {
   const radius = 30 * scene.grid.size / scene.grid.distance;
   return scene.tokens.contents.some(t => {
     const pc = camp.participants.some(p => actorOf(p.uuid)?.id === t.actorId);
-    // A recalled party is its token: its members are packed into it and not deployed.
+    // A recalled party is its token: its members are packed into it and not deployed. A party token that never
+    // split out (the hex map) is the whole party too.
     const moved = t.flags?.[MODULE_ID]?.partyMovement;
-    const gathered = t.actorId === party.id && moved?.deployed !== true && !!moved?.packed?.length && camp.participants.length > 0;
+    const gathered = t.actorId === party.id && moved?.deployed !== true && (!moved || !!moved.packed?.length) && camp.participants.length > 0;
     // TokenDocument x/y may still be the animation's interpolated position in
     // updateToken; proximity follows committed coordinates, not rendered motion.
     const position = t._source ?? t;
@@ -64,10 +66,24 @@ async function rollTask(party, camp, p) {
   const modifier = Number(actor.system.abilities[p.ability].mod) || 0;
   const roll = await new Roll(`${disadvantage ? "2d20kl" : "1d20"} + @mod`, { mod: modifier }).evaluate();
   const result = { task: p.task, ability: p.ability, dc: task.dc, disadvantage, total: roll.total, success: roll.total >= task.dc };
-  if (result.success && (p.task === "hunt" || (p.task === "craft" && p.craft !== "repair" && p.craft !== "torch"))) result.amount = (await new Roll(p.task === "hunt" ? "1d4" : "2d4").evaluate()).total;
+  const yields = result.success && (p.task === "hunt" || (p.task === "craft" && p.craft !== "repair" && p.craft !== "torch"));
+  const yieldRoll = yields ? await new Roll(p.task === "hunt" ? "1d4" : "2d4").evaluate() : null;
+  if (yieldRoll) result.amount = yieldRoll.total;
   camp.results[p.actorId] = result; await save(party, camp);
   // Reporting is deliberately outside the saved result: failure never makes a roll replayable.
-  try { await roll.toMessage({ speaker: ChatMessage.getSpeaker({ actor }), flavor: game.i18n.localize(task.label ?? "SDE.camping.customTask") }); } catch (error) { console.warn(`${MODULE_ID} | Camp roll report`, error); }
+  try {
+    const name = esc(game.i18n.localize(task.label ?? "SDE.camping.customTask"));
+    const outcome = game.i18n.localize(result.success ? "SDE.camping.success" : "SDE.camping.failure");
+    const what = result.success && !yieldRoll ? outcomeText(p) : "";
+    await roll.toMessage({ speaker: ChatMessage.getSpeaker({ actor }), flavor: game.i18n.format("SDE.camping.rollFlavor", { task: name, outcome, dc: task.dc }) + (what ? `: ${what}` : "") });
+    if (yieldRoll) await yieldRoll.toMessage({ speaker: ChatMessage.getSpeaker({ actor }), flavor: game.i18n.format("SDE.camping.found", { task: name, count: yieldRoll.total, item: game.i18n.localize(CAMP_LABELS.gear[p.task === "hunt" ? "rations" : p.craft]) }) });
+  } catch (error) { console.warn(`${MODULE_ID} | Camp roll report`, error); }
+}
+// What a success on a task without a visible yield roll gives, for the roll's chat card.
+const OUTCOME = { battenDown: "SDE.camping.outcome.battenDown", cook: "SDE.camping.outcome.cook", craftTorch: "SDE.camping.outcome.craftTorch", craftRepair: "SDE.camping.outcome.craftRepair", entertain: "SDE.camping.outcome.entertain", firewood: "SDE.camping.outcome.firewood", keepWatch: "SDE.camping.outcome.keepWatch", predict: "SDE.camping.outcome.predict" };
+function outcomeText(p) {
+  const key = OUTCOME[p.task === "craft" ? (p.craft === "repair" ? "craftRepair" : "craftTorch") : p.task];
+  return key ? game.i18n.format(key, { name: esc(actorOf(p.recipientUuid)?.name), half: esc(game.i18n.localize(CAMP_LABELS.half[p.watchHalf] ?? "")) }) : "";
 }
 async function reward(actor, camp, p, result) {
   const previous = actor.items.find(i => flag(i, "campReward")?.campId === camp.id && flag(i, "campReward")?.task === p.task);
@@ -127,15 +143,15 @@ async function perform(party, action, data, user) {
   if (action === "begin") {
     if (!manager) invalid(); if (camp && camp.phase !== "complete") return camp;
     // IDs, not dotted UUIDs, key saved result/effect maps: Foundry expands dotted object keys.
-    const participants = Party.members(party, { charactersOnly: true }).map(uuid => ({ uuid, actorId: actorOf(uuid).id, confirmed: false, participate: true, task: "", ability: null, torchConsent: false, craft: "torch", watchHalf: "first" }));
+    const participants = Party.members(party, { charactersOnly: true }).map(uuid => ({ uuid, actorId: actorOf(uuid).id, confirmed: true, participate: true, task: "", ability: null, craft: "torch", watchHalf: "first" }));
     const mounts = Party.members(party).filter(uuid => isMount(actorOf(uuid))).map(uuid => ({ uuid, actorId: actorOf(uuid).id }));
     for (const p of mounts) await adoptMountScores(actorOf(p.uuid));
-    camp = { id: foundry.utils.randomID(), phase: "setup", participants, mounts, tasks: definitions(party), fuel: "none", anchor: anchor(party, participants), results: {}, effects: {}, day: null }; await save(party, camp); return camp;
+    camp = carryOver({ id: foundry.utils.randomID(), phase: "setup", participants, mounts, tasks: definitions(party), fuel: "none", anchor: anchor(party, participants), results: {}, effects: {}, day: null }, camp); await save(party, camp); return camp;
   }
   if (!camp) invalid();
   if (action === "select") {
     const actor = actorOf(data.uuid); if (!own(actor, user) || actor.type !== "Player") invalid();
-    const patch = {}; for (const k of ["task", "ability", "torchConsent", "craft", "repairItemId", "recipientUuid", "watchHalf"]) if (data.patch?.[k] !== undefined) patch[k] = data.patch[k];
+    const patch = {}; for (const k of ["task", "ability", "craft", "repairItemId", "recipientUuid", "watchHalf"]) if (data.patch?.[k] !== undefined) patch[k] = data.patch[k];
     if (patch.task && patch.task !== camp.participants.find(p => p.uuid === data.uuid)?.task) patch.ability ??= camp.tasks.find(t => t.key === patch.task)?.abilities[0];
     camp = selectTask(camp, data.uuid, patch); await save(party, camp); return camp;
   }
@@ -149,7 +165,16 @@ async function perform(party, action, data, user) {
   if (action === "resolve") {
     if (camp.phase === "setup") validateChoices(camp);
     if (camp.phase === "setup") { if ((camp.fuel !== "none" || camp.participants.some(p => p.task === "firewood")) && camp.anchor && !nearFire(party, camp)) invalid(); camp = lockCamp(camp); await save(party, camp); }
-    return resolveTasks(party, camp);
+    camp = await resolveTasks(party, camp);
+    // "Existing torches" was the choice, so the torch step needs no second confirmation: spend them if three can be
+    // had, otherwise go on without a fire.
+    if (camp.phase === "fuel" && camp.fuel === "torches") {
+      const plan = campTorchPlan(party, camp);
+      // Going on without a fire is said in the window, not left for the disadvantage on the rolls to show.
+      if (!plan.ok) { camp.fuelShort = plan.available; await save(party, camp); }
+      return perform(party, "fuel", { accept: plan.ok, deductions: plan.deductions }, user);
+    }
+    return camp;
   }
   if (action === "fuel" && camp.phase === "fuel") {
     // Without a canvas the fire cannot be placed, so an accepted fallback is

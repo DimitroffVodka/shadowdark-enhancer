@@ -4784,7 +4784,6 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-camping-body .cp-name { margin: 0; flex: 1 1 140px; font: 700 14px/1.2 var(--ui-font); color: var(--ui-text); overflow-wrap: anywhere; }
 .sde-camping-body .cp-bad { color: var(--ui-danger-text); }
 .sde-camping-body .cp-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px 12px; }
-.sde-camping-body .cp-torch { align-self: flex-start; }
 .sde-camping-body .cp-warn { margin: 0; font-size: 12px; color: var(--ui-danger-text); }
 .sde-camping-body .cp-more { font-size: 12px; color: var(--ui-muted); }
 .sde-camping-body .cp-more > summary { cursor: pointer; padding: 2px 0; }
@@ -4803,9 +4802,7 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-camping-body .cp-count.cp-bad .cp-ration { opacity: .55; }
 .sde-camping-body .cp-count b { font-size: 18px; min-width: 1ch; }
 .sde-camping-body .cp-count.cp-bad b { color: var(--ui-danger-text); }
-.sde-camping-body .cp-ready-btn { flex: 0 0 auto; }
-.sde-camping-body .cp-ready { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border: 1px solid transparent; color: var(--ui-muted); font: 600 12px/1 var(--ui-head); }
-.sde-camping-body .cp-ready.on { border-color: var(--ui-frame); background: var(--ui-frame); color: var(--ui-page); border-radius: var(--ui-r); }
+.sde-camping-body .cp-desc { margin: 6px 0 0; font-size: 13px; color: var(--ui-body); }
 
 /* Carousing window (kit parts come from styles/sde-ui.css): one shared tier block, hairline rows, no cards. */
 .sde-carousing-body { container-type: inline-size; }
@@ -5235,3 +5232,11 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
   .sde-settings-group .form-group > .form-fields { grid-column: 1; grid-row: 3; justify-content: flex-start; margin-top: 4px; }
   .sde-settings-group .form-fields > input[type=text], .sde-settings-group .form-fields > select, .sde-settings-group .form-fields > range-picker, .sde-settings-group .form-fields > file-picker { width: 100%; }
 }
+
+/* Plain Roll.toMessage cards: the system's flex row (built for its own .dice-text markup) let the full-width
+   formula push the total out of the box. Formula and total share the line; the tooltip wraps below. Core's markup
+   only (its .dice-formula is a direct child of .dice-result): the system's own cards keep their total on the left. */
+.chat-message .message-content .dice-roll > .dice-result:has(> .dice-formula) { flex-wrap: wrap; }
+.chat-message .message-content .dice-roll > .dice-result:has(> .dice-formula) > .dice-formula { flex: 1 1 0; min-width: 0; order: 0; }
+.chat-message .message-content .dice-roll > .dice-result:has(> .dice-formula) > .dice-total { order: 1; }
+.chat-message .message-content .dice-roll > .dice-result:has(> .dice-formula) > .dice-tooltip { order: 2; }

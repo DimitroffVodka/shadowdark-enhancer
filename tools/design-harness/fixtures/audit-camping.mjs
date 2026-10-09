@@ -11,7 +11,7 @@ const rowFor = (name, i, setup, results) => {
     meal: { fed, own: fed ? 2 + (i % 2) : 0, shortfall: fed ? 0 : 2, con: 12, rest: results ? (i !== 2) : null, saved: false },
     foodStatus: fed ? "Fed" : "Unfed", deathWarning: !fed, restStatus: results ? (i !== 2 ? "Rested" : "No rest") : null,
     tasks: taskList(task), abilities: [{ value: "dex", label: "DEX", selected: true }, { value: "int", label: "INT" }], dc: 12, task, taskName: tk[0], description: tk[1],
-    campfire: true, torchConsent: true, craftTask: task === "craft", entertainTask: task === "entertain", watchTask: task === "keepWatch", repair: task === "craft",
+    campfire: true, craftTask: task === "craft", entertainTask: task === "entertain", watchTask: task === "keepWatch", repair: task === "craft",
     outputs: ["Torch", "Arrows", "Bolts", "Sling Stones", "Repair mundane gear"].map((label, k) => ({ value: label, label, selected: k === 4 })),
     repairs: [{ id: "r1", name: "Cracked shield", selected: true }, { id: "r2", name: "Dented helm" }],
     recipients: names.filter((n) => n !== name).map((n) => ({ uuid: "Actor." + n, name: n, selected: n === "Martin Rast" })),

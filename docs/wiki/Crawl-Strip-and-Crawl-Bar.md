@@ -186,7 +186,7 @@ While you travel the Crawl Bar's badge reads **Terrain · Weather · N of M hexe
 left** (the terrain is left out on a map with no terrain tags; hover the badge
 for the hex number and its features). Then one main button, **Continue** when
 an encounter stopped the clock partway through a move, or **Start day** while no
-day is open (days open themselves at travel start and at each camp's dawn), then
+day is open (a day opens by itself at travel start; after a camp you press it), then
 **Make camp**, **Tools** and **End travel**. **Forage**, **Roll weather** and
 **Start a crawl** are in Tools under *This travel day*. Add Tokens is not shown:
 the party token travels.
@@ -258,8 +258,8 @@ the party token travels.
   give it nothing; the GM alone also gets a whispered card, once per table per
   session, saying which table to import and where.
 - **Start day** opens a travel day. Pressing **Start** on a hex map opens it for you
-  straight away, and so does each camp's dawn, so Start day is only for a restart
-  or a party with no hexes per day set. Nothing is asked: the method is read from the party (mounted
+  straight away; after a camp, **Start day** opens the next one at 06:00 (or sunrise, if later), and it is
+  also the restart for a party with no hexes per day set. Nothing is asked: the method is read from the party (mounted
   when every member rides a mount, from the riders on each mount's sheet;
   sailing when every member is aboard one boat; else walking), and the pace is
   the standing one from the Travel panel's **Speed** step, **Normal** or
@@ -319,7 +319,7 @@ the party token travels.
     on a harsh night. Anyone without one takes 1 CON damage, and mounts eat
     what's left. Closing Extras' window makes no camp.
   - Then carried lights go out, keeping their time, as with the off-duty move.
-  - The clock runs to dawn, rolling the rest of the day's checks and the
+  - The clock runs to 06:00 (or sunrise, if that is later), rolling the rest of the day's checks and the
     night's. A hit stops the night until you press **Continue**.
   - A creature met in the night's checks interrupts the rest; a rockslide
     doesn't, nor does a creature from a day check still to roll when you
@@ -327,8 +327,8 @@ the party token travels.
     Encounter panel says so. At dawn, anyone who ate rolls CON (DC 12) to
     still benefit from the rest, unless their Bed Down succeeded. Extras
     rolls these checks. Without Extras, the chat reminds you to call for them.
-  - The next day's weather is rolled and the next travel day opens, on the
-    standing pace.
+  - The next day's weather is rolled, and you press **Start day** when the
+    party sets out.
 - **The sky.** Outdoor scenes darken with the clock:
   - Darkness is 0 by day. The fades are soft: it eases between day and
     night over the four hours around sunrise and sunset — from an hour

@@ -1967,7 +1967,9 @@ Added in 1.17.0 (Overland O6, #232; design §5.1 step 4, §5.3, Q4, §5.7).
 
 - **The day's checks.** Start day rolls a d12 for each check's hour: day
   checks at 06:00 + (d12 − 1) h, and night checks at 18:00 + (d12 − 1) h,
-  so up to 05:00 the next morning. How many of each is the world's
+  so up to 05:00 the next morning. Checks of one half are placed in time
+  order and kept at least `MIN_CHECK_GAP` (2) hours apart, so two never
+  fall on the same hour. How many of each is the world's
   `overlandEncounterDay` and `overlandEncounterNight` settings at that Start
   day, 0 to 4 (since 1.25.0; the book's two and two).
   - The chance is the `overlandEncounterChance` setting, 1 to 5 in 6 (the
@@ -2072,8 +2074,8 @@ never longer, and a creature already recorded still counts (#282 review).
    before the window opens or anyone eats.
    `party` is the uuid of the Extras party actor keeping the rest (an
    unlinked token's own actor), or `null` without Extras. `until` is when
-   camp breaks: the next sunrise, or the last night check if that is later (a
-   summer sunrise at 04:30 comes before a 05:00 check).
+   camp breaks: 06:00 on the waking morning, or that morning's sunrise if it falls later (a winter
+   dawn). A camp made between a summer sunrise and 06:00 breaks at 06:00 that day.
 2. **Lights.** Once the camp is made, carried lights go out and keep their
    time: `time.advanceOffDuty(0, { reason: "camp" })`. A closed camp window
    leaves them lit. A refusal there is shown, and camp goes on. Then

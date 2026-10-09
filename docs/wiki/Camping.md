@@ -10,17 +10,25 @@ Hirelings and mounts have no PC task slots; listed mounts still need food.
 
 Tasks are Bed Down, Cook, Craft, Entertain, Firewood, Hunt, Keep Watch and
 Predict. Several PCs may choose the same task. Default DC is 12; the GM can
-adjust it. Task descriptions are available on hover/focus. Craft output/repair,
+adjust it. Each task's description is always shown. Craft output/repair,
 Entertain recipient and Keep Watch half are chosen before rolling. First roll
-locks choices; Cancel before that spends nothing.
+locks choices; Cancel before that spends nothing. A new camp starts from last
+night's choices (fire source, each PC's task, ability, craft output, watch half
+and Entertain recipient); anything that no longer fits is left blank, and a
+repair that was done falls back to a torch.
 
 Firewood resolves first. Success gives fire without torches. Failure offers
-explicit torch fallback: three torches, shared Party stacks first, then only
-consenting PC contributors in saved order. Insufficient fuel never partly
-charges. Declining means no fire, not a blocked camp. Bed Down, Cook, Craft,
+explicit torch fallback: three torches, the Party's own stacks first, then the
+PC holding the most, so one pack empties before another is touched. No one is
+asked to consent. Choosing Existing torches as the fire source spends them when
+choices lock. Insufficient fuel never partly charges. Declining means no fire,
+not a blocked camp. Bed Down, Cook, Craft,
 Entertain and Keep Watch then roll at disadvantage; Firewood/Hunt/Predict do not.
 Fire gives near light for eight hours while a PC remains nearby; it is owned
 and expires without touching other lights. Persistent results survive reload.
+Every task roll posts its own chat card with the DC and result; a success also
+says what it did (a hot meal, a torch crafted, who gains a luck token, which
+watch is kept), and Hunt and Craft cards add the yield found.
 
 ## Daily food and eligible rest
 

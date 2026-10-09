@@ -42,7 +42,7 @@ import { authorizeActorFor, isActiveGM, queryActiveGM, refuseQuery, registerQuer
 import { makeQueue } from "../quests/quest-core.mjs";
 import { hasHexTerrain, hexReader, hexZonesFor, isHexMapScene, partyHex } from "../encounter/encounter-terrain.mjs";
 import { BOAT_TYPE, MOUNT_TYPE } from "../actors/register-actors.mjs";
-import { dawnAfter, dateParts, hourOfDay, startOfDay } from "../time/time-core.mjs";
+import { dawnAfter, dateParts, hourOfDay, secondsPerDay, startOfDay } from "../time/time-core.mjs";
 import { advanceOffDuty } from "../time/off-duty.mjs";
 import { StatRiders } from "../stat-damage/stat-riders.mjs";
 import { esc } from "../shared/esc.mjs";
@@ -54,13 +54,13 @@ import {
   pickTravelToken, forageRefusal, setWeather, weatherHolds, weatherAdvantage, weatherFormula,
   weatherFromRoll, harshToday, WEATHER_RULES, METHODS, openDay, spendMove, priceMove, moveVerdict, hexCost,
   dayChecks, dueChecks, markCheck, setPending, setEncounter, forageDC, closeDay, planRations, partyMethod, setPace,
-  checkSettings, encounterChance, checkHalf, makeCampState, campLightsOut, interruptRest, walkMs, walkSlices, lapseMs, WALK_SLICE_MS,
+  checkSettings, encounterChance, checkHalf, makeCampState, campEndAt, campLightsOut, interruptRest, walkMs, walkSlices, lapseMs, WALK_SLICE_MS,
 } from "./overland-state-core.mjs";
 import { PARTY_FLAG, extrasParties, joinExtras, placePartyToken, wearPartyHex } from "./hex-rules.mjs";
 import { Party, isNativeParty, isLegacyParty } from "../party/party.mjs";
 import { chooseParty } from "./party-choice.mjs";
 import { isPartyDeployed } from "../party/party-movement.mjs";
-import { prepareCampNight, finishCampNight } from "../camping/camping.mjs";
+import { prepareCampNight, finishCampNight, campOf } from "../camping/camping.mjs";
 import { ownsHexFog, revealParty } from "../hex-map/hex-fog.mjs";
 import { weatherCard } from "../shared/chat-cards.mjs";
 import { L as t } from "../shared/i18n.mjs";
@@ -1011,18 +1011,27 @@ export async function askForage() {
  */
 export async function makeCamp(party = null, acceptShortages = false) {
   const data = { action: "camp", partyId: party?.id, acceptShortages };
-  return isActiveGM() ? applyAction(data, game.user) : queryActiveGM(OVERLAND_QUERY, data, { label: t("SDE.overland.relayLabel") });
+  const reply = await (isActiveGM() ? applyAction(data, game.user) : queryActiveGM(OVERLAND_QUERY, data, { label: t("SDE.overland.relayLabel") }));
+  // The camp's window opens on the client that pressed, not the GM tab that answered; from inside the window (party given) it is already open.
+  if (reply?.setup && !party) game.shadowdarkEnhancer.camping.open(travelParty());
+  return reply;
 }
 
 /**
- * When camp breaks: the next sunrise, or the last night check if it falls
- * later. A summer sunrise at 04:30 comes before a 05:00 check, and both night
- * checks are the camp's (§5.5 step 2).
+ * When camp breaks: the waking morning's 06:00, or its sunrise if that falls later (a winter dawn). A fixed hour
+ * keeps the days from starting at a summer 04:30; every night check (§5.5 step 2) falls by 05:00, so they all
+ * come first. The morning is picked before comparing: today's if it is still ahead, else tomorrow's, so a
+ * camp made between a summer sunrise and 06:00 does not run on to the next day's 04:30.
  */
 function campEnd() {
-  const dawn = dawnAfter(game.time.calendar, game.time.worldTime);
+  const cal = game.time.calendar, now = game.time.worldTime, day = secondsPerDay(cal);
+  const today = startOfDay(cal, now);
+  const wake = (start) => Math.max(start + 6 * hourSeconds(), dawnAfter(cal, start - 1));
+  const end = wake(today) > now ? wake(today) : wake(today + day);
+  const nextSix = today + 6 * hourSeconds() > now ? today + 6 * hourSeconds() : today + 6 * hourSeconds() + day;
   const night = _state.checks.filter((c) => c.half === "night" && !c.rolled).map((c) => c.at);
-  return Math.max(dawn, ...night);
+  // campEndAt (#428) drops night checks past nextSix; the 06:00 floor (#440) already covers the ones before it.
+  return campEndAt(end, night, nextSix);
 }
 
 /** The native or provider party the persisted travel token stands for, or null. */
@@ -1107,7 +1116,7 @@ async function pitchCamp(user, acceptShortages = false) {
   const party = travelParty();
   if (isNativeParty(party)) {
     const prepared = await prepareCampNight(party, campContext(), user, acceptShortages);
-    if (!prepared.ready) { game.shadowdarkEnhancer.camping.open(party); return false; }
+    if (!prepared.ready) return false;
     const state = makeCampState(_state, party.uuid, campEnd()).state;
     state.camp = { ...state.camp, executor: "native", campId: prepared.camp.id, day: prepared.camp.day };
     await commit(state); return true;
@@ -1184,8 +1193,6 @@ async function finishCamp() {
   await campLine(lines);
   await rollWeatherHere(false);
   _camps++;
-  // The next day opens as the camp breaks, on the standing pace; with no hexes a day to go by, Start day asks.
-  if (baseFor(partyReading()) > 0) await beginDay({});
   return true;
 }
 
@@ -1234,7 +1241,7 @@ export function dawnWeather({ crossed } = {}) {
 
 /**
  * Open a travel day on the active GM, inside the queue: the weather first (unless today's holds), the budget,
- * the day's checks. Start day is this with the GM's choices; camp's dawn is this with none (finishCamp).
+ * the day's checks. Start day is this with the GM's choices.
  * @returns {Promise<{ok:true}|{ok:false, error:string}>}
  */
 async function beginDay(data) {
@@ -1379,6 +1386,8 @@ export function applyAction(data, user) {
         if (_state.day === null || _camps !== campsAtCall) return { ok: false, error: t("SDE.overland.notify.campNoDay") };
         // Each step is kept in the camp as it's done, so a camp already made (pressed again after
         // something failed, in this tab or after a reload) goes on from the next step (#282 review).
+        // Tasks already rolled and the window closed: the bar's Make camp opens it again. Night inside it names the party and runs the night.
+        if (!_state.camp && !data.partyId && isNativeParty(party) && campOf(party)?.phase === "awaitingRest") return { ok: true, setup: true };
         if (!_state.camp) await syncMembers();
         if (!_state.camp && !(await pitchCamp(user, data.acceptShortages === true))) return isNativeParty(party) ? { ok: true, setup: true } : { ok: false, error: t("SDE.overland.notify.campNotMade") };
         if (!_state.camp.lightsOut) {

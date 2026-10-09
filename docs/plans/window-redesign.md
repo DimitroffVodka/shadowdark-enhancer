@@ -97,7 +97,7 @@ Proposal: fixture `party-proposed`.
 
 - Camping (E): `participate` stops being a control (always true in `camping.mjs` and `camping-core.mjs`); meals take the
   character's own rations first, then the party's, with no consent box (`mealPlan` in `camping-core.mjs`, around lines
-  85-98); Ready button uses the existing `confirmChoice` action; ration counter is a number plus the grilled ham hock
+  85-98); ration counter is a number plus the grilled ham hock
   icon with a "Ration count" tooltip (`meal.own` already exists). Dead afterwards: `p.partyRations`, the `[data-food]`
   listener, `foodEditable`, string `SDE.camping.usePartyRations`.
 - Carousing (E): the tier moves from `participants[].tierId` to one party value `current.tierId`, set by a new
