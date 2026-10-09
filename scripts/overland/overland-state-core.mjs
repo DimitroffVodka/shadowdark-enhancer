@@ -554,10 +554,24 @@ export const checkHalf = (hour) => (hour >= 6 && hour < 18 ? "day" : "night");
  *   `midnight`: the worldTime of the day's 00:00; `day`, `night`: the counts, the book's 2 and 2
  */
 export function dayChecks({ midnight, d12s, day = BOOK_CHECKS.day, night = BOOK_CHECKS.night, hourSeconds = 3600 }) {
-  const halves = [...Array(day).fill("day"), ...Array(night).fill("night")];
-  return d12s.slice(0, halves.length)
-    .map((d, i) => ({ half: halves[i], at: midnight + ((halves[i] === "day" ? 6 : 18) + d - 1) * hourSeconds, chance: null, rolled: false, hit: null }))
+  const rolls = (from, n) => spreadHours(d12s.slice(from, from + n));
+  return [["day", 6, rolls(0, day)], ["night", 18, rolls(day, night)]]
+    .flatMap(([half, start, hours]) => hours.map((d) => ({ half, at: midnight + (start + d - 1) * hourSeconds, chance: null, rolled: false, hit: null })))
     .sort((a, b) => a.at - b.at);
+}
+
+/** The fewest hours between two checks of one half: a night's second check comes after the party has slept again. */
+export const MIN_CHECK_GAP = 2;
+
+/**
+ * A half's d12 hours in time order, none within MIN_CHECK_GAP of the one before: a check that
+ * lands too soon is pushed later, and the run is pulled back to fit the half's 12 hours.
+ */
+function spreadHours(d12s) {
+  const hours = [...d12s].sort((a, b) => a - b);
+  for (let i = 1; i < hours.length; i++) hours[i] = Math.max(hours[i], hours[i - 1] + MIN_CHECK_GAP);
+  for (let i = hours.length - 1; i >= 0; i--) hours[i] = Math.min(hours[i], 12 - (hours.length - 1 - i) * MIN_CHECK_GAP);
+  return hours;
 }
 
 /**

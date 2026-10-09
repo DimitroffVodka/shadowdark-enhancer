@@ -6,7 +6,7 @@ import {
   setWeather, weatherHolds, weatherAdvantage, weatherFormula, weatherFromRoll, harshToday, hexCost,
   dayBudget, pointSeconds, openDay, spendMove, priceMove, moveVerdict,
   dayChecks, dueChecks, markCheck, setPending, setEncounter, partyMethod, setPace,
-  forageDC, closeDay, planRations, BOOK_CHECKS, checkSettings, encounterChance, checkHalf, makeCampState, campEndAt, campLightsOut, interruptRest, walkMs, walkSlices, lapseMs,
+  forageDC, closeDay, planRations, BOOK_CHECKS, MIN_CHECK_GAP, checkSettings, encounterChance, checkHalf, makeCampState, campEndAt, campLightsOut, interruptRest, walkMs, walkSlices, lapseMs,
 } from "../scripts/overland/overland-state-core.mjs";
 import { rulesApi } from "../scripts/rules-data/rules-data-core.mjs";
 
@@ -244,7 +244,21 @@ test("the day's checks in the GM's numbers: the first d12s by day, the rest by n
   assert.deepEqual(hours({ d12s: [4, 7], day: 0, night: 2 }), [["night", 21], ["night", 24]], "none by day");
   assert.deepEqual(hours({ d12s: [], day: 0, night: 0 }), [], "no checks at all");
   assert.deepEqual(hours({ d12s: [12, 12, 12, 12, 1, 1, 1, 1], day: 4, night: 4 }),
-    [["day", 17], ["day", 17], ["day", 17], ["day", 17], ["night", 18], ["night", 18], ["night", 18], ["night", 18]], "the most: four and four");
+    [["day", 11], ["day", 13], ["day", 15], ["day", 17], ["night", 18], ["night", 20], ["night", 22], ["night", 24]], "the most: four and four, spread");
+});
+
+test("checks of one half are never closer than MIN_CHECK_GAP hours, so a night's second check follows real sleep", () => {
+  const hours = (d12s, half) => dayChecks({ midnight: 0, d12s, day: 2, night: 2 }).filter((c) => c.half === half).map((c) => c.at / HOUR);
+  assert.deepEqual(hours([1, 1, 5, 5], "night"), [22, 24], "the same hour: the second waits");
+  assert.deepEqual(hours([1, 1, 5, 6], "night"), [22, 24], "an hour apart is still too close");
+  assert.deepEqual(hours([1, 1, 12, 11], "night"), [27, 29], "pushed past the half's end: pulled back to fit");
+  assert.deepEqual(hours([1, 1, 1, 12], "night"), [18, 29], "far apart: left as rolled");
+  assert.deepEqual(hours([9, 3, 1, 1], "day"), [8, 14], "d12s are placed in time order");
+  assert.deepEqual(hours([1, 1, 1, 1], "day"), [6, 8]);
+  for (let a = 1; a <= 12; a++) for (let b = 1; b <= 12; b++) {
+    const [x, y] = hours([1, 1, a, b], "night");
+    assert.ok(y - x >= MIN_CHECK_GAP && x >= 18 && y <= 29, `${a},${b}: ${x},${y}`);
+  }
 });
 
 test("the encounter settings keep to their ranges; the chance at roll time is the setting, one more pushed, never past 6 (#257)", () => {

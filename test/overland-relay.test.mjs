@@ -403,10 +403,10 @@ test("Start day rolls as many check hours as the settings say; a new number wait
   stored.overlandEncounterDay = 1;
   stored.overlandEncounterNight = 3;
   globalThis.game.time.worldTime = at(1301, 6, 21, 5);
-  dice.push(3, 4, 1, 2, 3);                                  // the weather; 09:00 by day, 18:00, 19:00 and 20:00 by night
+  dice.push(3, 4, 1, 2, 3);                                  // the weather; 09:00 by day; the night's 18:00, 19:00 and 20:00 spread to 2 h apart
   await applyAction({ action: "startDay", method: "walking" }, gm);
   assert.deepEqual(stored.overlandState.checks.map((c) => [c.half, c.at]), [
-    ["day", at(1301, 6, 21, 9)], ["night", at(1301, 6, 21, 18)], ["night", at(1301, 6, 21, 19)], ["night", at(1301, 6, 21, 20)],
+    ["day", at(1301, 6, 21, 9)], ["night", at(1301, 6, 21, 18)], ["night", at(1301, 6, 21, 20)], ["night", at(1301, 6, 21, 22)],
   ]);
   stored.overlandEncounterDay = stored.overlandEncounterNight = 0;
   assert.equal(stored.overlandState.checks.length, 4, "today's checks stay");

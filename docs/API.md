@@ -1967,7 +1967,9 @@ Added in 1.17.0 (Overland O6, #232; design §5.1 step 4, §5.3, Q4, §5.7).
 
 - **The day's checks.** Start day rolls a d12 for each check's hour: day
   checks at 06:00 + (d12 − 1) h, and night checks at 18:00 + (d12 − 1) h,
-  so up to 05:00 the next morning. How many of each is the world's
+  so up to 05:00 the next morning. Checks of one half are placed in time
+  order and kept at least `MIN_CHECK_GAP` (2) hours apart, so two never
+  fall on the same hour. How many of each is the world's
   `overlandEncounterDay` and `overlandEncounterNight` settings at that Start
   day, 0 to 4 (since 1.25.0; the book's two and two).
   - The chance is the `overlandEncounterChance` setting, 1 to 5 in 6 (the
