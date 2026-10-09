@@ -353,6 +353,8 @@ function randomId(length = 16) {
  * @typedef {object} BattleRecord
  * @property {string} id            the battle's id; every token it places carries it on `flags[MODULE_ID].battleToken`
  * @property {number} at            when it was set up (ms); the newest open battle is "the" current one
+ * @property {string|null} gmId     the GM who set it up: the one whose readout of the players' loading it is, so the one who
+ *   gets it back after a reload (absent from records written before it existed, which nobody resumes)
  * @property {"staged"|"live"|"done"} status
  * @property {string|null} originSceneId  where Return to travel goes back to
  * @property {string|null} mapId    the library map, null for a scene the GM brought
@@ -375,13 +377,14 @@ function randomId(length = 16) {
  */
 export function newBattleRecord({
   encounter = null, terrain = null, map = null, variant = "day", originSceneId = null, hex = null,
-  now = Date.now(), id = randomId(), sceneId = null, tokenIds = [], presentTokenIds = [],
+  now = Date.now(), id = randomId(), sceneId = null, tokenIds = [], presentTokenIds = [], gmId = null,
 } = {}) {
   const uuid = encounter?.uuid ?? null;
   const roll = encounter?.distanceRoll == null ? NaN : Number(encounter.distanceRoll);   // Number(null) is 0
   return {
     id,
     at: now,
+    gmId: gmId ?? null,
     status: BATTLE_STATUS.staged,
     originSceneId: originSceneId ?? null,
     mapId: map?.id ?? null,

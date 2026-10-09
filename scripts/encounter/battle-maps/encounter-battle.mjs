@@ -196,6 +196,19 @@ async function startReadout(scene) {
   }
 }
 
+/**
+ * A GM who reloads with a battle still staged gets the players' readout back. Its sessions live in the page, so a reload
+ * left the panel with no rows and Bring the table with nobody to ask about. Only the GM who set the battle up: a second
+ * GM tab, or the bridge, that happens to reload must not take the players' reports from them (a player reports to
+ * whoever asked last). Called once at `ready`.
+ */
+export async function resumeBattleReadout() {
+  if (!game.user?.isGM) return;
+  for (const { battle, scene } of open()) {
+    if (battle.status === BATTLE_STATUS.staged && battle.gmId === game.user.id) await startReadout(scene);
+  }
+}
+
 /** End the GM's readout for a scene: the map changed, the table is on it, or the battle is over. Its tick would otherwise keep firing. */
 async function stopReadout(sceneId) {
   try {
@@ -457,7 +470,7 @@ async function setUpBattle({
 
     const record = newBattleRecord({
       encounter, terrain, map, variant: variantName({ camp: choice.camp, night: choice.night }), originSceneId, hex,
-      sceneId: scene.id, presentTokenIds: present,
+      sceneId: scene.id, presentTokenIds: present, gmId: game.user.id,
     });
     const ctx = { scene, battleId: record.id };
     const names = foe ? foeNames(foe, scene, count) : null;

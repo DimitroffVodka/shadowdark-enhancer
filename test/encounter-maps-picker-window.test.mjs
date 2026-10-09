@@ -520,7 +520,7 @@ describe("the module's wiring", () => {
   });
 
   test("the wiring says exactly what it guards, and does not claim a missing file cannot break load", () => {
-    const lines = entry.match(/\/\/ Encounter battle maps\. Each of the two registrations[\s\S]*?\nasync function wireBattleMaps/)?.[0];
+    const lines = entry.match(/\/\/ Encounter battle maps\. Each registration[\s\S]*?\nasync function wireBattleMaps/)?.[0];
     assert.ok(lines, "the wiring is commented");
     const comment = lines.replace(/\s*\/\/\s*/g, " ");
     assert.doesNotMatch(comment, /cannot break|can't break|must not break/i);

@@ -479,10 +479,16 @@ test("newBattleRecord: a staged record with the plan's fields", () => {
     now: 1760000000000, id: "battle0000000001", sceneId: "scene1", tokenIds: ["a", "b"],
   });
   assert.deepEqual(record, {
-    id: "battle0000000001", at: 1760000000000, status: BATTLE_STATUS.staged, originSceneId: "hexScene", mapId: "forest-woods",
+    id: "battle0000000001", at: 1760000000000, gmId: null, status: BATTLE_STATUS.staged, originSceneId: "hexScene", mapId: "forest-woods",
     sceneId: "scene1", variant: "night", terrain: "forest", hex: "0203", tokenIds: ["a", "b"], presentTokenIds: [], combatId: null,
     encounter: { name: "Wolf", uuid: "Compendium.x.y.Actor.wolf", count: 4, distanceRoll: 3 },
   });
+});
+
+test("newBattleRecord: it says which GM set the battle up, and nobody by default", () => {
+  assert.equal(newBattleRecord({ gmId: "gmUser000000001" }).gmId, "gmUser000000001");
+  assert.equal(newBattleRecord().gmId, null);
+  assert.equal(newBattleRecord({ gmId: undefined }).gmId, null);
 });
 
 test("newBattleRecord: the party already on the scene is listed apart from the tokens the battle placed", () => {

@@ -19,7 +19,7 @@
 import test, { afterEach, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { BattleMaps, _canvasSpot, _deps } from "../scripts/encounter/battle-maps/encounter-battle.mjs";
+import { BattleMaps, _canvasSpot, _deps, resumeBattleReadout } from "../scripts/encounter/battle-maps/encounter-battle.mjs";
 import {
   copyAsSaved, encounterSceneName, ensureEncounterScene, findEncounterScene,
 } from "../scripts/encounter/battle-maps/encounter-scene.mjs";
@@ -271,7 +271,7 @@ function makeWorld({ gm = true, settings = {} } = {}) {
   globalThis.canvas = { get scene() { return w.canvasSceneId ? w.scenes.get(w.canvasSceneId) : null; } };
   globalThis.ui = { notifications: Object.fromEntries(["warn", "info", "error"].map((level) => [level, (text) => w.notes.push([level, text])])) };
   globalThis.game = {
-    user: { isGM: gm },
+    user: { isGM: gm, id: "gm1" },
     scenes: Object.defineProperty(w.scenes, "current", { get: () => w.scenes.get(w.viewed), configurable: true }),
     actors: w.actors,
     folders: w.folders,
@@ -723,6 +723,47 @@ test("setUp: a preload part that is missing or throws does not stop the battle",
   assert.equal(world.battleOf(answer.scene).status, "staged");
   _deps.preload = async () => ({ startPreload: async () => { throw new Error("socket closed"); }, stopPreload() {} });
   assert.ok(await BattleMaps.setUp({ encounter: WOLVES, terrain: "forest", mapId: "fake-lake" }));
+});
+
+// ─── the readout after a reload ──────────────────────────────────────────────
+
+test("resumeBattleReadout: the GM who set a staged battle up gets the players' readout back after a reload", async () => {
+  // the readout's sessions live in the page: a reload left the panel with no rows and Bring the table nobody to ask about
+  seedActors(world);
+  const { scene } = await BattleMaps.setUp({ encounter: WOLVES, terrain: "forest" });
+  assert.equal(world.battleOf(scene).gmId, "gm1", "the record says whose readout it is");
+  world.preload.log.length = 0;
+  await resumeBattleReadout();
+  assert.deepEqual(world.preload.log, [["start", scene.id, 7]], "started again for the scene, with its tokens");
+});
+
+test("resumeBattleReadout: not another GM, not a player, not a record from before, not with the preload off", async () => {
+  seedActors(world);
+  const { scene } = await BattleMaps.setUp({ encounter: WOLVES, terrain: "forest" });
+  const resumed = async () => { world.preload.log.length = 0; await resumeBattleReadout(); return world.preload.log.length; };
+
+  // a player reports to whoever asked last, so a second GM tab (or the bridge) reloading must not take the reports
+  globalThis.game.user.id = "gm2";
+  assert.equal(await resumed(), 0, "another GM");
+  globalThis.game.user.id = "gm1";
+  globalThis.game.user.isGM = false;
+  assert.equal(await resumed(), 0, "a player");
+  globalThis.game.user.isGM = true;
+  world.settings[SETTINGS.preload] = false;
+  assert.equal(await resumed(), 0, "the setting off");
+  world.settings[SETTINGS.preload] = true;
+  assert.equal(await resumed(), 1, "and the same GM, with the setting on, is the one");
+
+  delete scene.flags[MOD][FLAGS.battle].gmId;
+  assert.equal(await resumed(), 0, "a record written before it said whose it was: nobody takes it");
+});
+
+test("resumeBattleReadout: a live battle has no readout to resume, the table is already on the map", async () => {
+  const { battle } = await staged();
+  await BattleMaps.bringTable(battle.id);
+  world.preload.log.length = 0;
+  await resumeBattleReadout();
+  assert.deepEqual(world.preload.log, []);
 });
 
 test("setUp: view:false leaves the GM where they are", async () => {

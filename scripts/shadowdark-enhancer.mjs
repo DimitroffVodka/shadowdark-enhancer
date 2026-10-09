@@ -145,7 +145,7 @@ const STYLESHEET_REV = "2e21f1f73c81";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "d37daad52d6c";
+const BUILD_REV = "face5b7ef7ef";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -1090,7 +1090,7 @@ Hooks.on("quenchReady", async (quench) => {
   }
 });
 
-// Encounter battle maps. Each of the two registrations loads its file with a dynamic import in a try of its own:
+// Encounter battle maps. Each registration loads its file with a dynamic import in a try of its own:
 // a missing file, or a registration that throws, is logged and the other still runs. That is all this guards:
 // overland-bar.mjs and encounter-draw.mjs import battle-actions.mjs and its core statically.
 async function wireBattleMaps(name, load) {
@@ -1175,6 +1175,8 @@ Hooks.once("ready", () => {
   // The posted encounter card's Battle map button is the GM's, and it loses nothing by waiting for `ready`.
   // (The preload socket is wired at `setup`, above.)
   wireBattleMaps("registerBattleChatButtons", () => import("./encounter/battle-maps/battle-actions.mjs"));
+  // A GM who reloads with a battle staged gets the players' readout back: it lived in the page they just reloaded.
+  if (game.user.isGM) wireBattleMaps("resumeBattleReadout", () => import("./encounter/battle-maps/encounter-battle.mjs"));
   // If the GM enabled the monster compendium-art overlay, inject it now so every
   // monster drag carries the referenced art (all clients; GM-only settings write).
   MonsterTokenArt.initCompendiumArt();

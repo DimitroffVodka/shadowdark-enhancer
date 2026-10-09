@@ -159,7 +159,8 @@ connected player's computer and shows a readout with a line for each player:
 Waiting, Loading (how many files of how many), Ready, Failed, or Stalled when a
 player's loading has made no progress for a minute and a half. A player who leaves
 is not counted, and a player who joins while the art is loading is asked to load it
-too.
+too. If you reload your browser while a battle is set up, the readout starts again by
+itself.
 
 **Preload battle maps for players** in Configure Settings turns it off. It is on
 by default. With it off nothing is loaded ahead of time, and the table still moves

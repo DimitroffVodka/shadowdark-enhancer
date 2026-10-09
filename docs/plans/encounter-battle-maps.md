@@ -253,7 +253,10 @@ from which each foe is dealt one (`dealPictures`) instead of all wearing the fir
 **Preload.** A player finishes when the last file has loaded; it never calls `game.scenes.preload`, which waits on the
 browser's audio unlock (a freshly reloaded or idle player would stay "not ready" forever) and flashes a loading bar on the
 player's screen. Only what the scene's opening level draws is loaded. Players who leave stop counting, and players who join
-mid-preload are asked to load. A player takes each request once. The listener registers at `setup`, not `ready`: Foundry
+mid-preload are asked to load. A GM who reloads with a battle staged gets the readout back: its sessions live in the
+page, so the record names the GM who set it up (`gmId`) and only that GM's client restarts it, at `ready`
+(`resumeBattleReadout`); a second GM tab or the bridge reloading must not take the players' reports, since a player
+reports to whoever asked last. A player takes each request once. The listener registers at `setup`, not `ready`: Foundry
 replays buffered socket events just before `ready`. `onPreloadChange(fn)` calls `fn(snapshot|null, sceneId)`, also every
 10 s while anyone is loading, and rows carry `failed` and states `stalled` (90 s without progress) and `left`.
 
