@@ -5,7 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import {
-  clockShown, clockSteps, dialModel, seasonHatch, monthGrid, dateToTime,
+  clockShown, clockSteps, DIAL, dialMarkup, dialModel, placeLines, seasonHatch, monthGrid, dateToTime,
   TRAVEL_STEPS, currentStep, sightParts,
 } from "../scripts/overland/hud-core.mjs";
 import { nextTimeOfDay, sun, dateParts } from "../scripts/time/time-core.mjs";
@@ -44,7 +44,7 @@ test("the dial turns 15 degrees an hour, with day between sunrise and sunset", (
   assert.equal(dialModel({ hour: 5, sunrise: 6, sunset: 18, moonFraction: 0 }).next.hour, 6);
   assert.equal(dialModel({ hour: 18.3, sunrise: 6, sunset: 18, moonFraction: 0 }).isDay, false, "twilight is not day");
   assert.equal(night.moon.shadow, 0, "a new moon's shadow covers it");
-  assert.equal(noon.moon.shadow, 16, "a full moon's is pushed off it");
+  assert.equal(noon.moon.shadow, 2 * DIAL.moonR, "a full moon's is pushed off it");
 });
 
 test("the season hatch grows over a season's last 30 days, to 30%", () => {
@@ -144,4 +144,36 @@ test("sight in hexes: the book's sum, as Extras' hex fog counts it; nothing with
   assert.equal(sightParts(rules, { terrain: "grassland", night: true, weather: "stormy" }).radius, 0, "never below 0");
   assert.deepEqual(sightParts(rules, { terrain: "hills", night: true, weather: null }).parts, [["base", 1], ["darkness", -1], ["slight", 1]]);
   assert.equal(sightParts({}, { terrain: "hills", night: false, weather: null }), null);
+});
+
+test("the dial is a half disc: its centre is the top edge and nothing is placed above it", () => {
+  assert.equal(DIAL.cy, 0);
+  assert.equal(DIAL.cx, DIAL.w / 2, "centred in its svg");
+  const d = dialModel({ hour: 15.4, sunrise: 8.2, sunset: 16.7, moonFraction: 0.26 });
+  for (const [x, y] of [d.rise, d.set]) assert.ok(Math.abs(Math.hypot(x - DIAL.cx, y - DIAL.cy) - (DIAL.ringMid + 2)) < 0.2, "the badges sit on the hour ring (the ring turns them into view)");
+  assert.ok(d.moon.y >= 0 && d.moon.x >= 0 && d.moon.x <= DIAL.w, "the moon rides the lower half, whatever the hour");
+  assert.equal(d.ticks.length, 24);
+  assert.equal(d.ticks.filter((k) => k.weight === 2).length, 4, "a long tick every six hours");
+});
+
+test("sunrise and sunset are badges on the hour ring, with their times as tooltips, not text on the dial", () => {
+  const d = dialModel({ hour: 15.4, sunrise: 8.2, sunset: 16.7, moonFraction: 0.26 });
+  const svg = dialMarkup({ d, region: "Sablewood", terrain: "forest", label: "l", riseTip: "sun rises 08:12", setTip: "sun sets 16:42" });
+  assert.equal(svg.match(/data-dial-chip/g).length, 2);
+  assert.match(svg, /data-tooltip="sun rises 08:12"/);
+  assert.match(svg, /data-tooltip="sun sets 16:42"/);
+  assert.doesNotMatch(svg.replace(/data-tooltip="[^"]*"/g, ""), /sun (rises|sets)/, "no sun text is drawn");
+  assert.equal(svg.match(/data-dial-turn/g).length, 2, "the disc and the hour ring turn together");
+});
+
+test("the place is fitted to the disc: one line when it fits, two when long, never cut when it can wrap", () => {
+  const one = placeLines({ region: "Sablewood", terrain: "Forest" });
+  assert.equal(one.region.length, 1);
+  assert.equal(one.region[0].text, "SABLEWOOD");
+  assert.equal(one.terrain.text, "forest");
+  const long = placeLines({ region: "The Sundered Marches of Karthak", terrain: "mountain forest" });
+  assert.deepEqual(long.region.map((l) => l.text), ["THE SUNDERED", "MARCHES OF KARTHAK"]);
+  assert.ok(long.terrain.y > long.region[1].y, "the terrain sits below the region");
+  assert.ok([...long.region, long.terrain].every((l) => l.size >= 11), "every line stays readable");
+  assert.deepEqual(placeLines({}), { region: [], terrain: null });
 });

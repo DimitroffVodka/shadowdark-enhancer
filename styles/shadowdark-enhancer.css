@@ -3801,8 +3801,10 @@ body:has(.sdx-scene-nav-bar) #shadowdark-enhancer-travel { top: 72px; }
 .sde-hud-season {
   position: relative;
   z-index: 2;
-  width: 420px;
-  height: 18px;
+  width: 400px;
+  height: 28px;
+  gap: 12px;
+  line-height: 1;
   background: var(--sd-page);
   border: 1px solid var(--sd-frame);
   border-top: 0;
@@ -3811,12 +3813,15 @@ body:has(.sdx-scene-nav-bar) #shadowdark-enhancer-travel { top: 72px; }
   align-items: center;
   justify-content: center;
   font-family: "Montserrat-Bold", sans-serif;
-  font-size: 10px;
-  letter-spacing: 0.34em;
+  font-size: 11px;
+  letter-spacing: 0.4em;
   text-transform: uppercase;
   color: var(--sd-text);
   overflow: hidden;
 }
+/* Today's weather, to the right of the season. */
+.sde-hud-wx-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--sd-frame); flex: none; }
+.sde-hud-wx { font-family: "JSL Blackletter", serif; font-size: 18px; letter-spacing: 0; text-transform: none; padding-top: 2px; }
 .sde-hud-next {
   position: absolute;
   right: 0;
@@ -3825,15 +3830,13 @@ body:has(.sdx-scene-nav-bar) #shadowdark-enhancer-travel { top: 72px; }
   border-left: 1px solid var(--sd-frame);
   background: repeating-linear-gradient(135deg, #8a8a8a 0 1px, transparent 1px 5px);
 }
-.sde-hud-dial { position: relative; z-index: 1; margin-top: -14px; display: block; overflow: visible; }
+.sde-hud-dial { position: relative; z-index: 1; margin-top: 0; display: block; overflow: hidden; }
 .sde-hud-track { fill: none; stroke: rgba(255, 255, 255, 0.6); stroke-width: 1; stroke-dasharray: 2 3; }
 .sde-hud-star { fill: #ffffff; }
-.sde-hud-word { font-family: "JSL Blackletter", serif; font-size: 19px; fill: #ffffff; }
-.sde-hud-region { font-family: "Montserrat-Bold", sans-serif; font-size: 9.5px; letter-spacing: 1.6px; }
-.sde-hud-sunline { font-family: "Old Newspaper Font", serif; font-style: italic; font-size: 11.5px; }
-.sde-hud-lineplate { fill: rgba(0, 0, 0, 0.82); stroke: rgba(201, 201, 201, 0.35); stroke-width: 1; }
-.sde-hud-region { fill: #e8e8e8; }
-.sde-hud-sunline { fill: #d6d6d6; }
+.sde-hud-region { font-family: "Montserrat-Bold", sans-serif; letter-spacing: 1.8px; fill: #ffffff; }
+.sde-hud-sunline { font-family: "Old Newspaper Font", serif; font-style: italic; fill: #e4e4e4; }
+/* The place sits straight on the dial: a black outline keeps it readable over the day edge and the stars. */
+.sde-hud-halo { paint-order: stroke; stroke: #000; stroke-width: 5px; stroke-linejoin: round; }
 
 /* Panels. */
 .sde-hud-panel {

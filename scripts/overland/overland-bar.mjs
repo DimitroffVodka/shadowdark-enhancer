@@ -39,7 +39,7 @@ import { barModel, itemTouchesBar, redrawStamp, hhmm } from "./overland-bar-core
 import { travelPanel } from "./travel-panel.mjs";
 import { encounterCard, encounterPanel, encounterStrip } from "./encounter-panel.mjs";
 import { postEncounter } from "../encounter/encounter-draw.mjs";
-import { DIAL, DIAL_STARS, clockShown, clockSteps, dateToTime, dialModel, monthGrid, seasonHatch, starPoint } from "./hud-core.mjs";
+import { clockShown, clockSteps, dateToTime, dialMarkup, dialModel, monthGrid, seasonHatch } from "./hud-core.mjs";
 import { L as t } from "../shared/i18n.mjs";
 
 const BAR_ID = "shadowdark-enhancer-travel";
@@ -273,61 +273,27 @@ export const TravelBar = {
     const here = seasonAt(cal, now);
     const change = nextSeasonChange(cal, now);
     const name = here.name ? t(here.name) : "";
-    if (change === null) return `<div class="sde-hud-season">${esc(name)}</div>`;
+    // Today's weather rides the band, to the right of the season, so the dial keeps its middle for the place.
+    const w = weatherNow();
+    const body = `<span>${esc(name)}</span><i class="sde-hud-wx-dot"></i><span class="sde-hud-wx">${esc(w ? weatherName(w) : t("SDE.clock.unrolled"))}</span>`;
+    if (change === null) return `<div class="sde-hud-season">${body}</div>`;
     const daysLeft = Math.max(0, Math.ceil((change - now) / secondsPerDay(cal)));
     const hatch = seasonHatch(daysLeft);
     const tip = t(daysLeft === 1 ? "SDE.clock.seasonNextOne" : "SDE.clock.seasonNext", { season: t(seasonAt(cal, change).name ?? ""), n: daysLeft });
-    return `<div class="sde-hud-season" data-tooltip="${esc(tip)}">${esc(name)}${hatch ? `<span class="sde-hud-next" style="width:${hatch}%"></span>` : ""}</div>`;
+    return `<div class="sde-hud-season" data-tooltip="${esc(tip)}">${body}${hatch ? `<span class="sde-hud-next" style="width:${hatch}%"></span>` : ""}</div>`;
   },
 
-  /** The sky dial: the mockup's, driven by the time API. */
+  /** The sky dial: a half disc (hud-core dialMarkup), driven by the time API. The weather is in the season band. */
   _dial() {
-    const { now, cal, hour, sun, moon, hoursPerDay } = this._now();
+    const { hour, sun, moon, hoursPerDay, parts } = this._now();
     const d = dialModel({ hour, sunrise: sun.sunrise, sunset: sun.sunset, moonFraction: moon.fraction, hoursPerDay });
     const w = weatherNow();
-    const word = w ? weatherName(w) : t("SDE.clock.unrolled");
-    const plateW = Math.max(70, word.length * 11 + 22);
-    const tomorrow = sunAt(cal, startOfDay(cal, now) + secondsPerDay(cal));
-    const sunLine = d.next.kind === "sets"
-      ? t("SDE.clock.sunSets", { time: hhmm(d.next.hour) })
-      : t("SDE.clock.sunRises", { time: hhmm(d.next.hour ?? tomorrow.sunrise) });
-    const state = overlandState();
-    const region = CrawlState.isOverland && isHexMapScene() ? [state.hex?.region, state.hex?.terrain?.replace(/_/g, " ")].filter(Boolean).join(" · ") : "";
-    const { cx, cy } = DIAL;
-    const stars = DIAL_STARS.map((s) => { const [x, y] = starPoint(s, hoursPerDay); return `<circle cx="${x}" cy="${y}" r="1.1" class="sde-hud-star"/>`; }).join("");
-    const label = t("SDE.clock.dialLabel", { weather: word, sun: sunLine, moon: t(MOON_NAME[moon.key]) });
-    // The lines under the weather sit on their own black plate: near sunrise or
-    // sunset the dial's day edge runs right under them, so no one ink reads on both sides.
-    const lineW = Math.max(region ? 132 : 0, Math.round(sunLine.length * 6.2) + 18);
-    const lineTop = region ? 58 : 61, lineH = region ? 29 : 16;
-    return `<svg class="sde-hud-dial" width="260" height="140" viewBox="0 0 260 140" role="img" aria-label="${esc(label)}">
-      <defs>
-        <pattern id="sde-hud-hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="5" height="5" fill="#0b0b0b"/><line x1="0" y1="0" x2="0" y2="5" stroke="#c9c9c9" stroke-width="1"/></pattern>
-        <linearGradient id="sde-hud-dayg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ececec"/><stop offset="1" stop-color="#b8b8b8"/></linearGradient>
-        <clipPath id="sde-hud-disc"><circle cx="${cx}" cy="${cy}" r="${DIAL.disc}"/></clipPath>
-        <clipPath id="sde-hud-moonc"><circle cx="${d.moon.x}" cy="${d.moon.y}" r="${d.moon.r}"/></clipPath>
-      </defs>
-      <circle cx="${cx}" cy="${cy}" r="${DIAL.moonTrack}" class="sde-hud-track"/>
-      <g clip-path="url(#sde-hud-disc)"><g transform="rotate(${d.rotate} ${cx} ${cy})">
-        <circle cx="${cx}" cy="${cy}" r="${DIAL.disc}" fill="#0b0b0b"/>${stars}
-        <path d="${d.day}" fill="url(#sde-hud-dayg)"/><path d="${d.dusk}" fill="url(#sde-hud-hatch)"/><path d="${d.dawn}" fill="url(#sde-hud-hatch)"/>
-      </g></g>
-      <circle cx="${cx}" cy="${cy}" r="${DIAL.disc}" fill="none" stroke="#c9c9c9" stroke-width="1"/>
-      <circle cx="${cx}" cy="${cy}" r="91" fill="none" stroke="#000" stroke-width="9"/>
-      <circle cx="${cx}" cy="${cy}" r="96" fill="none" stroke="#c9c9c9" stroke-width="2"/>
-      <circle cx="${cx}" cy="${cy}" r="99" fill="none" stroke="#555555" stroke-width="1"/>
-      <rect x="${cx - plateW / 2}" y="27" width="${plateW}" height="27" rx="3" fill="#000" stroke="#c9c9c9" stroke-width="1.5"/>
-      <rect x="${cx + 3 - plateW / 2}" y="30" width="${plateW - 6}" height="21" rx="2" fill="none" stroke="rgba(201,201,201,.25)"/>
-      <text x="${cx}" y="47" text-anchor="middle" class="sde-hud-word">${esc(word)}</text>
-      <rect x="${cx - lineW / 2}" y="${lineTop}" width="${lineW}" height="${lineH}" rx="3" class="sde-hud-lineplate"/>
-      ${region ? `<text x="${cx}" y="68" text-anchor="middle" class="sde-hud-region"${
-        // A long region and terrain are squeezed to the disc rather than spilling over its rim.
-        region.length > 18 ? ` textLength="120" lengthAdjust="spacingAndGlyphs"` : ""}>${esc(region.toUpperCase())}</text>` : ""}
-      <text x="${cx}" y="${region ? 82 : 73}" text-anchor="middle" class="sde-hud-sunline">${esc(sunLine)}</text>
-      <path transform="translate(${cx} 105)" d="M0 -9 L2.2 -2.2 L9 0 L2.2 2.2 L0 9 L-2.2 2.2 L-9 0 L-2.2 -2.2 Z" fill="#ffffff" stroke="#000" stroke-width="1"/>
-      <g clip-path="url(#sde-hud-moonc)"><circle cx="${d.moon.x}" cy="${d.moon.y}" r="${d.moon.r}" fill="#f0f0f0"/><circle cx="${+(d.moon.x + d.moon.shadow).toFixed(1)}" cy="${d.moon.y}" r="${d.moon.r}" fill="#000"/></g>
-      <circle cx="${d.moon.x}" cy="${d.moon.y}" r="${d.moon.r}" fill="none" stroke="#000" stroke-width="1"/>
-    </svg>`;
+    const riseTip = t("SDE.clock.sunRises", { time: hhmm(sun.sunrise) }), setTip = t("SDE.clock.sunSets", { time: hhmm(sun.sunset) });
+    const here = CrawlState.isOverland && isHexMapScene() ? overlandState().hex : null;
+    const region = here?.region ?? "", terrain = here?.terrain?.replace(/_/g, " ") ?? "";
+    const place = [region, terrain].filter(Boolean).join(" · ");
+    const label = t("SDE.clock.dialLabel", { weather: w ? weatherName(w) : t("SDE.clock.unrolled"), sun: `${riseTip}, ${setTip}`, moon: t(MOON_NAME[moon.key]) });
+    return dialMarkup({ d, hoursPerDay, region, terrain, label: place ? `${label}, ${place}` : label, tip: place, riseTip, setTip, nowTip: t("SDE.clock.dialNow", { time: parts.time }) });
   },
 
   _timePanel() {

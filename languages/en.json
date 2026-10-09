@@ -3886,6 +3886,7 @@
   "SDE.clock.unrolled": "Unrolled",
   "SDE.clock.sunSets": "sun sets {time}",
   "SDE.clock.sunRises": "sun rises {time}",
+  "SDE.clock.dialNow": "Now: {time}",
   "SDE.clock.dialLabel": "Sky: {weather}, {sun}, {moon}",
   "SDE.clock.jumpTo": "Jump to the next",
   "SDE.clock.jump.dawn": "Dawn",
