@@ -18,8 +18,9 @@ choice applies as it is made. A party that has chosen nothing wears the lantern
 in amber. It is stored on the Party actor (`flags.shadowdark-enhancer.partyEmblem`,
 `{ icon, color }`), so it survives reloads and is the same for everyone. The icons
 are bundled with the module (credited in CREDITS.md); the picker does not need the
-Game-icons.net module. Only the sheet's tile changes: the Party token's art on a
-map is not tied to it.
+Game-icons.net module. The pick also dresses the Party: its portrait, its
+prototype token and every Party token already on a scene wear the emblem as a
+hex-shaped picture (one file per emblem, kept in the world's `party-tokens` folder).
 
 Under the header, a thin status bar shows up to three readouts, and each one is
 left out when its data is not available (with none, the bar is hidden):
@@ -86,10 +87,10 @@ travels on a hex map, and the one Deploy, Recall and the HUD act on.
   never picks the first or makes another; choose one. When exactly one
   Shadowdark Extras party exists, its token is used and no native Party is made.
 - **What it looks like.** A friendly, linked token. On a hex map, Start travel
-  gives it the black Party hex, one cell wide with no ring and no rotation. Only
-  that scene's token changes: the actor keeps its portrait everywhere else. A
-  larger token shrinks onto the hex under its old centre. A token already wearing the
-  hex is left alone.
+  gives it the party's emblem hex (the lantern in amber until one is picked; the stock hex only if that picture cannot be made), one
+  cell wide with no ring and no rotation. The picture is the emblem everywhere: the
+  actor's portrait and prototype token wear it too. A larger token shrinks onto the
+  hex under its old centre. A token already wearing the hex is left alone.
 - **Linked only.** Deploy and Recall need a *linked* Party token on the scene.
   Without one they say so rather than guess; drag the Party actor onto the scene.
 - **HUD.** Selecting it shows **Open Party** (for anyone with that Party)
