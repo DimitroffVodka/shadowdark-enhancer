@@ -218,6 +218,18 @@ function membersFor(actorId) {
   return game.actors.filter((a) => a.type === "Player" && a.hasPlayerOwner).map((a) => a.id);
 }
 
+/**
+ * Re-read who travels from the party. Travel started with a copy of the roster, so a character added to the
+ * party sheet afterwards never foraged or ate; the party is the truth. Active GM, inside the queue.
+ */
+async function syncMembers() {
+  const actorId = _state.tokenUuid ? fromUuidSync(_state.tokenUuid)?.actor?.id : null;
+  const members = actorId ? membersFor(actorId) : [];
+  if (!members.length) return;
+  const next = startTravel(_state, { members });
+  if (next.changed) await commit(next.state);
+}
+
 /** The hex's region, from the print's region scan, cached with the encounter check's (#260). */
 async function withRegion(hex, scene = canvas.scene) {
   if (!hex) return null;
@@ -862,6 +874,7 @@ export function recordMove(doc, origin, dest, priced, waypoints = [dest], movedA
     await commit(spendMove(_state, { cost: priced.cost, hex }).state);
     // The first move settles the day's pace (setPace), and a normal pace forages: everyone, with no one asked to stop.
     if (first && _state.spent > 0 && !_state.pushed) {
+      await syncMembers();
       for (const id of [..._state.members]) { const actor = game.actors.get(id); if (actor) await tryForage(actor, true); }
     }
     // The walk is on this screen: the clock keeps pace with its slide, counted from when the move came in and
@@ -895,7 +908,7 @@ async function tryForage(actor, auto = false) {
   await commit(recordForage(_state, actor.id).state);
   // The attempt is recorded; the roll waits on the player, so it runs
   // outside the queue rather than holding every travel action up.
-  const roll = forageRoll(actor, forageDC(!!s.harsh), auto)
+  const roll = forageRoll(actor, forageDC(!!s.harsh), auto, startOfDay(game.time.calendar, _state.day))
     .catch((err) => console.error(`${MODULE_ID} | forage roll`, err));
   _foraging.add(roll);
   roll.finally(() => _foraging.delete(roll));
@@ -919,10 +932,12 @@ export async function forage(actorId) {
 }
 
 /** The forage roll, after the queue: the owner rolls, and a success finds a ration. */
-async function forageRoll(actor, dc, auto = false) {
+async function forageRoll(actor, dc, auto = false, day = null) {
   const found = await StatRiders.save(actor, { ability: "int", dc }, t("SDE.overland.forage.source"),
     { title: t("SDE.overland.forage.title", { name: actor.name, dc }), auto });
   if (found) await addRation(actor);
+  // What the Traveling page shows for the day.
+  await replaceModuleFlag(actor, "overlandForageResult", { day, found: !!found });
   await ChatMessage.create({
     speaker: ChatMessage.getSpeaker({ actor }),
     content: `<p>${esc(t(found ? "SDE.overland.forage.found" : "SDE.overland.forage.nothing", { name: actor.name }))}</p>`,
@@ -1199,6 +1214,7 @@ export function dawnWeather({ crossed } = {}) {
  * @returns {Promise<{ok:true}|{ok:false, error:string}>}
  */
 async function beginDay(data) {
+  await syncMembers();
   // The method and boat as given, else read from the party; the push as given, else the standing pace (#257).
   const read = partyReading();
   const method = data.method ?? read.method;
@@ -1322,7 +1338,9 @@ export function applyAction(data, user) {
       }
       case "forage": {
         const auth = authorizeActorFor(data.actorId, user, { type: "Player" });
-        return auth.ok ? tryForage(auth.actor) : auth;
+        if (!auth.ok) return auth;
+        await syncMembers();
+        return tryForage(auth.actor);
       }
       case "camp": {
         const party = travelParty();
@@ -1335,6 +1353,7 @@ export function applyAction(data, user) {
         if (_state.day === null || _camps !== campsAtCall) return { ok: false, error: t("SDE.overland.notify.campNoDay") };
         // Each step is kept in the camp as it's done, so a camp already made (pressed again after
         // something failed, in this tab or after a reload) goes on from the next step (#282 review).
+        if (!_state.camp) await syncMembers();
         if (!_state.camp && !(await pitchCamp(user, data.acceptShortages === true))) return isNativeParty(party) ? { ok: true, setup: true } : { ok: false, error: t("SDE.overland.notify.campNotMade") };
         if (!_state.camp.lightsOut) {
           // Q8: carried lights go out and keep their time, through the off-duty
@@ -1387,6 +1406,12 @@ export function registerOverland() {
   game.socket.on(SOCKET, (msg) => { if (msg?.type === "overland") reread(); });
   Hooks.on("preMoveToken", onPreMoveToken);
   Hooks.on("moveToken", onMoveToken);
+  // The party sheet changed: the roster travel uses follows it.
+  Hooks.on("updateActor", (actor, change) => {
+    if (!isActiveGM() || !CrawlState.isOverland || !change.flags?.[MODULE_ID]?.partyData) return;
+    if (fromUuidSync(_state.tokenUuid ?? "")?.actor?.id !== actor.id) return;
+    serialize(syncMembers).catch((err) => console.error(`${MODULE_ID} | sync members`, err));
+  });
   Hooks.on(`${MODULE_ID}.timeAdvanced`, (payload) => {
     undergroundCheck(payload).catch((err) => console.error(`${MODULE_ID} | underground season check`, err));
     dawnWeather(payload).catch((err) => console.error(`${MODULE_ID} | dawn weather`, err));

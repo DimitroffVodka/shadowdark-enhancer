@@ -46,6 +46,12 @@ test("a player sees no check hours, no Continue, and Forage only on a character 
   assert.deepEqual(noDay.members.map((p) => p.canForage), [false, false], "not before the day starts");
 });
 
+test("a forage the actor's day flag records counts, and carries its result", () => {
+  const actors = { mine: { name: "Mine", rations: 0, foragedToday: true, found: true }, theirs: { name: "Theirs", rations: 0 } };
+  const m = barModel({ state: { ...STATE, foraged: [] }, isGM: true, owns: () => true, actors });
+  assert.deepEqual(m.members.map((p) => [p.foraged, p.found, p.canForage]), [[true, true, false], [false, null, true]]);
+});
+
 test("the clock redraws the bar once a minute, and after a jump of whole days too (#249 review)", () => {
   const t = 1000 * 60 + 5;
   assert.equal(redrawStamp(t, 60, "fair"), redrawStamp(t + 30, 60, "fair"), "the same minute: no redraw");
