@@ -1013,20 +1013,27 @@ export async function askForage() {
  */
 export async function makeCamp(party = null, acceptShortages = false) {
   const data = { action: "camp", partyId: party?.id, acceptShortages };
-  return isActiveGM() ? applyAction(data, game.user) : queryActiveGM(OVERLAND_QUERY, data, { label: t("SDE.overland.relayLabel") });
+  const reply = await (isActiveGM() ? applyAction(data, game.user) : queryActiveGM(OVERLAND_QUERY, data, { label: t("SDE.overland.relayLabel") }));
+  // The camp's window opens on the client that pressed, not the GM tab that answered; from inside the window (party given) it is already open.
+  if (reply?.setup && !party) game.shadowdarkEnhancer.camping.open(travelParty());
+  return reply;
 }
 
 /**
- * When camp breaks: the next 06:00, or the next sunrise if that falls later (a winter dawn). A fixed hour keeps
- * the days from starting at a summer 04:30; every night check (§5.5 step 2) falls by 05:00, so they all come first.
+ * When camp breaks: the waking morning's 06:00, or its sunrise if that falls later (a winter dawn). A fixed hour
+ * keeps the days from starting at a summer 04:30; every night check (§5.5 step 2) falls by 05:00, so they all
+ * come first. The morning is picked before comparing: today's if it is still ahead, else tomorrow's, so a
+ * camp made between a summer sunrise and 06:00 does not run on to the next day's 04:30.
  */
 function campEnd() {
-  const cal = game.time.calendar, now = game.time.worldTime;
-  const six = startOfDay(cal, now) + 6 * hourSeconds();
-  const nextSix = six > now ? six : six + secondsPerDay(cal);
+  const cal = game.time.calendar, now = game.time.worldTime, day = secondsPerDay(cal);
+  const today = startOfDay(cal, now);
+  const wake = (start) => Math.max(start + 6 * hourSeconds(), dawnAfter(cal, start - 1));
+  const end = wake(today) > now ? wake(today) : wake(today + day);
+  const nextSix = today + 6 * hourSeconds() > now ? today + 6 * hourSeconds() : today + 6 * hourSeconds() + day;
   const night = _state.checks.filter((c) => c.half === "night" && !c.rolled).map((c) => c.at);
   // campEndAt (#428) drops night checks past nextSix; the 06:00 floor (#440) already covers the ones before it.
-  return campEndAt(Math.max(dawnAfter(cal, now), nextSix), night, nextSix);
+  return campEndAt(end, night, nextSix);
 }
 
 /** The native or provider party the persisted travel token stands for, or null. */
@@ -1111,7 +1118,7 @@ async function pitchCamp(user, acceptShortages = false) {
   const party = travelParty();
   if (isNativeParty(party)) {
     const prepared = await prepareCampNight(party, campContext(), user, acceptShortages);
-    if (!prepared.ready) { game.shadowdarkEnhancer.camping.open(party); return false; }
+    if (!prepared.ready) return false;
     const state = makeCampState(_state, party.uuid, campEnd()).state;
     state.camp = { ...state.camp, executor: "native", campId: prepared.camp.id, day: prepared.camp.day };
     await commit(state); return true;
@@ -1396,7 +1403,7 @@ export function applyAction(data, user) {
         // Each step is kept in the camp as it's done, so a camp already made (pressed again after
         // something failed, in this tab or after a reload) goes on from the next step (#282 review).
         // Tasks already rolled and the window closed: the bar's Make camp opens it again. Night inside it names the party and runs the night.
-        if (!_state.camp && !data.partyId && isNativeParty(party) && campOf(party)?.phase === "awaitingRest") { game.shadowdarkEnhancer.camping.open(party); return { ok: true, setup: true }; }
+        if (!_state.camp && !data.partyId && isNativeParty(party) && campOf(party)?.phase === "awaitingRest") return { ok: true, setup: true };
         if (!_state.camp) await syncMembers();
         if (!_state.camp) {
           if (!(await pitchCamp(user, data.acceptShortages === true))) return isNativeParty(party) ? { ok: true, setup: true } : { ok: false, error: t("SDE.overland.notify.campNotMade") };

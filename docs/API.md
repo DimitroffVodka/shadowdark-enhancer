@@ -2151,8 +2151,8 @@ never longer, and a creature already recorded still counts (#282 review).
    before the window opens or anyone eats.
    `party` is the uuid of the Extras party actor keeping the rest (an
    unlinked token's own actor), or `null` without Extras. `until` is when
-   camp breaks: the next sunrise, or the last night check if that is later (a
-   summer sunrise at 04:30 comes before a 05:00 check).
+   camp breaks: 06:00 on the waking morning, or that morning's sunrise if it falls later (a winter
+   dawn). A camp made between a summer sunrise and 06:00 breaks at 06:00 that day.
 2. **Lights.** Once the camp is made, carried lights go out and keep their
    time: `time.advanceOffDuty(0, { reason: "camp" })`. A closed camp window
    leaves them lit. A refusal there is shown, and camp goes on. Then

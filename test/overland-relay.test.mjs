@@ -74,7 +74,7 @@ Object.assign(globalThis, {
     modules: { get: () => null },
   },
 });
-const { moveSteps, slowWalk, applyAction, registerOverland, overlandState, weatherNow, recordMove, advanceTravel, undergroundCheck, dawnWeather, checkNow, askDay } = await import("../scripts/overland/overland.mjs");
+const { moveSteps, slowWalk, applyAction, registerOverland, overlandState, weatherNow, recordMove, advanceTravel, undergroundCheck, dawnWeather, checkNow, makeCamp, askDay } = await import("../scripts/overland/overland.mjs");
 const { BOAT_TYPE } = await import("../scripts/actors/register-actors.mjs");
 const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
 
@@ -849,6 +849,29 @@ test("camp breaks at 06:00 when both night checks come before it, not at the 04:
   assert.equal(t, at(1301, 6, 22, 6));
 });
 
+test("a camp made after the summer sunrise but before 06:00 breaks at 06:00 that morning, not the next 04:30 (#428/#440 review)", async () => {
+  campWorld();
+  dice.push(3, 2, 9, 1, 12);
+  globalThis.game.time.worldTime = at(1301, 6, 21, 8);
+  await applyAction({ action: "startDay", method: "walking" }, gm);
+  globalThis.game.time.worldTime = at(1301, 6, 22, 5);
+  dice.push(4);
+  await applyAction({ action: "camp" }, gm);
+  assert.equal(globalThis.game.time.worldTime, at(1301, 6, 22, 6));
+});
+
+test("a camp made between 06:00 and a winter sunrise breaks at that sunrise the same morning, in daylight (#440 review)", async () => {
+  campWorld();
+  dice.push(3, 2, 9, 1, 12);
+  globalThis.game.time.worldTime = at(1301, 12, 20, 8);
+  await applyAction({ action: "startDay", method: "walking" }, gm);
+  globalThis.game.time.worldTime = at(1301, 12, 21, 6.5);
+  dice.push(4);
+  await applyAction({ action: "camp" }, gm);
+  const t = globalThis.game.time.worldTime;
+  assert.ok(t > at(1301, 12, 21, 7) && t < at(1301, 12, 21, 8), `ended at the sunrise, not the next 06:00 (${t - at(1301, 12, 21)})`);
+});
+
 test("camp's last night check hitting stops the night there and leaves the camp for Continue (#247 review)", async () => {
   const damage = campWorld();
   dice.push(3, 2, 9, 1, 12);                       // night checks at 18:00 and 05:00, before the 06:00 camp end
@@ -1551,7 +1574,7 @@ test("native travel Party owner opens camp setup without any SDX provider", asyn
   try {
     const reply = await applyAction({ action: "camp", partyId: party.id }, { id: "player1", isGM: false });
     assert.deepEqual(reply, { ok: true, setup: true });
-    assert.equal(opened, 1); assert.equal(overlandState().camp, null);
+    assert.equal(opened, 0, "the answering GM tab opens nothing: the presser does (#440 review)"); assert.equal(overlandState().camp, null);
   } finally {
     globalThis.fromUuidSync = lookup; globalThis.game.modules = modules; globalThis.game.shadowdarkEnhancer = api;
   }
@@ -1571,7 +1594,9 @@ test("the bar's Make camp only reopens the window when the tasks are done; Night
   const before = globalThis.game.time.worldTime;
   try {
     assert.deepEqual(await applyAction({ action: "camp" }, gm), { ok: true, setup: true });
-    assert.deepEqual([opened, globalThis.game.time.worldTime, overlandState().camp], [1, before, null], "no night, no clock");
+    assert.deepEqual([opened, globalThis.game.time.worldTime, overlandState().camp], [0, before, null], "the GM tab that answers opens no window");
+    assert.deepEqual(await makeCamp(), { ok: true, setup: true });
+    assert.deepEqual([opened, globalThis.game.time.worldTime, overlandState().camp], [1, before, null], "the client that pressed opens it; no night, no clock");
   } finally {
     globalThis.fromUuidSync = lookup; globalThis.game.modules = modules; globalThis.game.shadowdarkEnhancer = api;
   }
