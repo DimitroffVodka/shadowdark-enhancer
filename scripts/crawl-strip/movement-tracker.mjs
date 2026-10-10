@@ -414,15 +414,21 @@ export const MovementTracker = {
     // A rider carried by its mount (#326): the mount's move paid for it, and the out-of-turn lock does not apply.
     if (isCarryMovement(opts?._movement?.[doc.id])) { delete this._pendingDeduct[doc.id]; return; }
     const moves = changes.x !== undefined || changes.y !== undefined;
-    // Ctrl+Z (core's undo of a recorded move is an isUndo update): like a rollback it is never locked or
-    // refused, and it refunds what the undone update was charged, the same straight segment walked back.
-    if (opts?.isUndo) {
-      delete this._pendingDeduct[doc.id];
-      if (moves && CrawlState.isActive) this._pendingDeduct[doc.id] = -updateFeet(doc, changes);
-      return;
-    }
     // Compute and cache the distance now, while we still have old position.
-    if (moves && CrawlState.isActive) this._pendingDeduct[doc.id] = updateFeet(doc, changes);
+    if (moves && CrawlState.isActive) {
+      let ft = updateFeet(doc, changes);
+      // Ctrl+Z (core's undo of a recorded move is an isUndo update). Core keeps undo history across turns,
+      // so only the feet spent THIS turn are walked back free and refunded; the rest is an ordinary move,
+      // charged and refused over budget. The out-of-turn lock below applies as to any move.
+      if (opts?.isUndo) {
+        const stored = doc.getFlag(MODULE_ID, "moveRemaining");
+        const full = doc.actor ? Math.round(_getBaseSpeed(doc.actor, doc) / 5) * 5 : 0;
+        const spentThisTurn = typeof stored === "number" ? Math.max(0, full - stored) : 0;
+        // Refunding r feet and charging the other (ft - r) nets to ft - 2r against the budget.
+        ft -= 2 * Math.min(ft, spentThisTurn);
+      }
+      this._pendingDeduct[doc.id] = ft;
+    }
     // Block move if it exceeds remaining movement
     return this._onPreUpdate(doc, changes, userId, this._pendingDeduct[doc.id]);
   },

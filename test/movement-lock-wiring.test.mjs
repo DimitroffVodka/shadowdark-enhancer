@@ -328,7 +328,8 @@ test("wiring: growing a mount's token to 2x2 when it is mounted is not a move (#
  * Ctrl+Z during a crawl or combat (#453). Core keeps an update out of the undo
  * history when it is an isUndo write, so the tracker's own budget write is one;
  * then Ctrl+Z finds the move itself. Core's undo of that move is an isUndo
- * update too: never locked, and it refunds what the move was charged.
+ * update too: locked out of turn like any move, free and refunded up to the
+ * feet spent this turn, and an ordinary charged move beyond that.
  */
 function trackedToken(id, { moveRemaining } = {}) {
   const doc = {
@@ -355,45 +356,81 @@ function stubCrawlGame(mode) {
   setOocState({ mode, members: ["a1"] });
 }
 
-async function moveThenUndo(mode) {
+const settle = () => new Promise((r) => setImmediate(r));
+
+/** Moves the token (as the GM) 3 squares east, then has `undoer` press Ctrl+Z; returns the undo's verdict. */
+async function moveThenUndo(mode, tokenId = "tok-out", { undoAsGM = false } = {}) {
   boot();
   stubCrawlGame(mode);
-  const doc = trackedToken("tok-out");
+  const doc = trackedToken(tokenId);
   const grid = { size: 100, distance: 5 };
   doc.parent.grid = grid;
-  // GM-free move of 3 squares east (a player's in the crawl; the current combatant's turn is someone else's in combat).
   globalThis.game.user.isGM = true;
   assert.strictEqual(preUpdateToken(doc, { x: 300 }, {}, "u1"), undefined);
   updateToken(doc, { x: 300 }, {}, "u1");
-  await new Promise((r) => setImmediate(r));
+  await settle();
   doc._source.x = 300;
   const charged = doc.flags[MODULE_ID].moveRemaining;
-  // Ctrl+Z, by the player whose turn it is not: core displaces it back with isUndo.
-  globalThis.game.user.isGM = false;
-  assert.strictEqual(preUpdateToken(doc, { x: 0 }, { isUndo: true }, "u1"), undefined, "an undo is never locked or refused");
-  updateToken(doc, { x: 0 }, { isUndo: true }, "u1");
-  await new Promise((r) => setImmediate(r));
-  return { doc, charged };
+  // Ctrl+Z: core displaces the token back with isUndo.
+  globalThis.game.user.isGM = undoAsGM;
+  const verdict = preUpdateToken(doc, { x: 0 }, { isUndo: true }, "u1");
+  if (verdict !== false) updateToken(doc, { x: 0 }, { isUndo: true }, "u1");
+  await settle();
+  return { doc, charged, verdict };
 }
 
 test("wiring: Ctrl+Z in a crawl refunds the undone move, and no budget write enters the undo history (#453)", async () => {
-  const { doc, charged } = await moveThenUndo("crawl");
+  const { doc, charged, verdict } = await moveThenUndo("crawl");
+  assert.strictEqual(verdict, undefined);
   assert.equal(charged, 75, "a 3-square move costs 15 ft of the 90 ft crawl budget");
   assert.equal(doc.flags[MODULE_ID].moveRemaining, 90, "the undo gives it back");
   assert.ok(doc.writes.every((w) => w.options?.isUndo === true), "every tracker write is unrecorded");
 });
 
-test("wiring: Ctrl+Z in combat refunds the undone move even out of turn, never past a full turn (#453)", async () => {
-  const { doc, charged } = await moveThenUndo("combat");
+test("wiring: Ctrl+Z in combat refunds the undone move on the token's own turn (#453)", async () => {
+  const { doc, charged, verdict } = await moveThenUndo("combat", "tok-current");
+  assert.strictEqual(verdict, undefined);
   assert.equal(charged, 15);
   assert.equal(doc.flags[MODULE_ID].moveRemaining, 30);
   assert.ok(doc.writes.every((w) => w.options?.isUndo === true));
-  // A turn reset since the move: the refund stops at the full turn.
-  doc._source.x = 300;
-  preUpdateToken(doc, { x: 0 }, { isUndo: true }, "u1");
-  updateToken(doc, { x: 0 }, { isUndo: true }, "u1");
-  await new Promise((r) => setImmediate(r));
-  assert.equal(doc.flags[MODULE_ID].moveRemaining, 30);
+});
+
+test("wiring: Ctrl+Z out of turn is locked like any move; the GM stays exempt (#453)", async () => {
+  const player = await moveThenUndo("combat", "tok-out");
+  assert.strictEqual(player.verdict, false);
+  assert.equal(player.doc.flags[MODULE_ID].moveRemaining, 15, "nothing refunded");
+  const gm = await moveThenUndo("combat", "tok-out", { undoAsGM: true });
+  assert.strictEqual(gm.verdict, undefined);
+  assert.equal(gm.doc.flags[MODULE_ID].moveRemaining, 30);
+});
+
+test("wiring: Ctrl+Z refunds only what this turn spent; the rest is an ordinary charged move (#453)", async () => {
+  boot();
+  stubCrawlGame("combat");
+  globalThis.game.i18n.format = (key) => key;
+  const undo = async (doc, x) => {
+    const verdict = preUpdateToken(doc, { x }, { isUndo: true }, "u1");
+    if (verdict !== false) updateToken(doc, { x }, { isUndo: true }, "u1");
+    await settle();
+    return verdict;
+  };
+  const grid = { size: 100, distance: 5 };
+  // Fresh turn: undoing last round's 60 ft move is a 60 ft move, refused over the 30 ft budget.
+  const fresh = trackedToken("tok-current", { moveRemaining: 30 });
+  fresh.parent.grid = grid;
+  fresh._source.x = 1200;
+  assert.strictEqual(await undo(fresh, 0), false);
+  assert.equal(fresh.flags[MODULE_ID].moveRemaining, 30);
+  // 5 ft spent this turn: a 60 ft undo still needs 55 ft of the 30, refused.
+  const spent5 = trackedToken("tok-current", { moveRemaining: 25 });
+  spent5.parent.grid = grid;
+  spent5._source.x = 1200;
+  assert.strictEqual(await undo(spent5, 0), false);
+  assert.equal(spent5.flags[MODULE_ID].moveRemaining, 25);
+  // 5 ft spent this turn, a 20 ft undo: 5 ft refunded, 15 ft charged, 25 + 5 - 15 = 15.
+  spent5._source.x = 400;
+  assert.strictEqual(await undo(spent5, 0), undefined);
+  assert.equal(spent5.flags[MODULE_ID].moveRemaining, 15);
 });
 
 test("wiring: a turn reset is an unrecorded write (#453)", async () => {

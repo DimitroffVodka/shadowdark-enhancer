@@ -33,6 +33,8 @@ const UNRECORDED = { isUndo: true };
 const GROW = { ...UNRECORDED, [MODULE_ID]: { mountGrow: true } };
 
 const gridSize = (doc) => doc.parent?.grid?.size ?? 100;
+/** Riding works on square-grid scenes only: the rider's corner and the 2x2 mount are square-grid shapes. */
+const squareGrid = (scene) => !!scene?.grid?.isSquare;
 const flagOf = (doc) => doc?.flags?.[MODULE_ID]?.[FLAG] ?? null;
 
 /** The token this rider is on, or null (none, or it is gone). */
@@ -99,7 +101,7 @@ async function follow(mount, rider) {
 /** The mount this token would climb onto now, or null. Mounts are Mount actors' tokens; a mount rides nothing. */
 function findMount(rider) {
   const tokens = rider.parent?.tokens;
-  if (!tokens || isMount(rider.actor)) return null;
+  if (!tokens || !squareGrid(rider.parent) || isMount(rider.actor)) return null;
   const busy = new Set();
   for (const t of tokens) if (flagOf(t) && tokens.get(flagOf(t))) busy.add(t.id).add(flagOf(t));
   const shape = (t) => ({ id: t.id, x: t._source.x, y: t._source.y, width: t._source.width, height: t._source.height, busy: busy.has(t.id) });
@@ -131,7 +133,9 @@ const dismount = (rider) => replaceModuleFlag(rider, FLAG, null, {}, UNRECORDED)
 export async function handleMountedQuery(data, user) {
   const refusal = refuseQuery(user, game.i18n.localize("SDE.mounted.relay"));
   if (refusal) return refusal;
-  const mount = game.scenes?.get(data?.sceneId)?.tokens.get(data?.mountId);
+  const scene = game.scenes?.get(data?.sceneId);
+  if (!squareGrid(scene)) return { ok: false, error: game.i18n.localize("SDE.mounted.squareOnly") };
+  const mount = scene.tokens.get(data?.mountId);
   const rider = data?.action === "carry" ? riderOf(mount) : null;
   if (!rider) return { ok: false, error: game.i18n.localize("SDE.mounted.gone") };
   if (!isMount(mount.actor) || !mount.testUserPermission(user, "OWNER")) return { ok: false, error: game.i18n.localize("SDE.mounted.notYours") };
@@ -147,7 +151,7 @@ export function registerMountedTokens() {
     const root = html instanceof HTMLElement ? html : html?.[0];
     if (!rider?.isOwner || !root) return;
     const riding = !!mountOf(rider);
-    if (!riding && !findMount(rider)) return;
+    if (!riding && !findMount(rider)) return;   // findMount finds none off a square grid: no Mount button there
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "control-icon sde-hud-btn";

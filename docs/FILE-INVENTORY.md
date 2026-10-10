@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1918 tracked files · ~243,700 lines of code/markup across scripts+templates+styles+test.
+1918 tracked files · ~243,800 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -113,7 +113,7 @@
 | `modes-of-play/pulp-core.mjs` | 127 | Pulp Mode pure half: critExtraFormula (the dice a crit adds to rolled damage, per applyCriticalHit), showLuckCrit, showForceReroll. |
 | `modes-of-play/pulp.mjs` | 293 | Pulp Mode (#185): session luck on the sessionStart hook (1d4, set), and the Luck: critical hit / force a reroll chat buttons. Both relay to the active GM (PULP_QUERY), which checks the requester, spends the token and edits the card. |
 | `mounted/mounted-core.mjs` | 131 | Riding a mount on the map (#326), pure: the rider's corner square, the carried path, carry movement ids (`isCarryMovement`, read by the movement tracker), the snap-to-corner reconcile after a carry, picking the mount in reach, the 2x2 size a mount grows to. |
-| `mounted/mounted-tokens.mjs` | 189 | Riding a mount on the map (#326), Foundry glue: the Mount/Dismount Token HUD button, the rider following its mount (one carry at a time per rider, then a reconcile; also when the mount is resized or reverted with Ctrl+Z, in the tab that moved it), the 2x2 grow on mounting, the GM relay for a carry the mover cannot make, and a pasted rider riding nothing. Its writes stay out of the token undo history. |
+| `mounted/mounted-tokens.mjs` | 193 | Riding a mount on the map (#326), Foundry glue: the Mount/Dismount Token HUD button, the rider following its mount (one carry at a time per rider, then a reconcile; also when the mount is resized or reverted with Ctrl+Z, in the tab that moved it), the 2x2 grow on mounting, the GM relay for a carry the mover cannot make, and a pasted rider riding nothing. Its writes stay out of the token undo history. |
 | `overland/encounter-panel.mjs` | 225 | The clock HUD's Encounter panel (#257): a quiet travel check's hit as the GMs see it until Continue: the check (step 6 or 8, its hour and chance), the chain of tables it went through as chips (zone and its roll, category, the region's table and its roll), the creature with its art and number appearing, the distance, activity and reaction rolls in words, a second category's draw, and Post to chat and Continue; encounterCard gives the chat card's data at CHA +0. |
 | `overland/find-party.mjs` | 38 | The clock HUD's two party buttons: Find pans to the party token, pulses on it (this client only) and selects it when the viewer can, naming another scene if that is where it is; the other opens the party sheet. |
 | `overland/hex-rules.mjs` | 167 | Hex rules on hex maps (#257): at init, the Token class never lights a hex-rules scene (a tagged print or an Extras hexcrawl) and the visibility group gives it no token vision, at runtime with no data written; the Enhancer party actor (flag party) placed as a hex token when travel starts with no party on the map; the travel token made to wear the party's emblem hex (icons/party-hex.svg when the emblem picture cannot be made). |
@@ -212,7 +212,7 @@
 | `hidden-sync.mjs` | 69 | Bidirectional `token.hidden` ↔ `combatant.hidden` sync, GM-only. |
 | `turn-skip.mjs` | 163 | Auto-advances past combatants the strip renders no card for (dead enemies). Active-GM gated. Also drives Chaos Mode: queues each held Chaos round (updateCombat) and replays it under the same lock (#259). |
 | `turn-skip-core.mjs` | 164 | Pure strip-visibility test shared by the strip and the auto-skip, so the two can't drift. |
-| `movement-tracker.mjs` | 808 | Crawl-mode movement budget enforcement + turn-start rollback (`displace` waypoints); its token writes stay out of the undo history, and a Ctrl+Z undo refunds the move it reverts. |
+| `movement-tracker.mjs` | 814 | Crawl-mode movement budget enforcement + turn-start rollback (`displace` waypoints); its token writes stay out of the undo history, and a Ctrl+Z undo refunds the move it reverts. |
 | `movement-calc.mjs` | 88 | Pure per-segment feet-moved math. |
 | `npc-action-menu.mjs` | 633 | Per-combatant hover action HUD. |
 | `crawl-turn-core.mjs` | 121 | Pure turn-advance authorization for the crawl strip: `canAdvanceTurn()` (a GM always may; a player only when they own the current combatant and the advance would not roll the round) and `nextTurnWouldRollRound()`, mirroring `Combat#nextTurn`'s real wrap rules. |
