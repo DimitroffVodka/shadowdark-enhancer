@@ -252,15 +252,31 @@ export function linkedCalendarBooks(rows) {
 }
 
 /**
+ * Has the importer put anything in this world? Its roll-table, item and actor packs stay empty until an
+ * import fills them (the journals pack does not count: the calendar chapters themselves live there).
+ * The wizard records its runs, but a world imported through the hub leaves no record, so the packs are the signal.
+ */
+export async function importerHasRun() {
+  const { findSuitePack } = await import("../shared/compendium-suite.mjs");
+  for (const key of ["tables", "items", "actors"]) {
+    const pack = findSuitePack(key);
+    if (pack && (await pack.getIndex()).size) return true;
+  }
+  return false;
+}
+
+/**
  * GM only, at ready: a world that imported its books before the calendar chapters existed files them
  * from the linked PDFs, with no step to find. importHolidays skips what is filed already, so this is
- * a few index reads once everything is there. Never throws.
+ * a few index reads once everything is there. A world that has not imported yet is left alone: linking a
+ * book is not asking for its chapters, and the wizard files them after the import. Never throws.
  * @returns {Promise<number>} pages created
  */
 export async function fileLinkedChapters() {
   if (!game.user?.isGM) return 0;
   let created = 0;
   try {
+    if (!(await importerHasRun())) return 0;
     const { listSourcePdfs } = await import("../importer/source-pdf-registry.mjs");
     for (const src of linkedCalendarBooks(await listSourcePdfs())) created += (await importHolidays(src, { quiet: true })).created ?? 0;
   } catch (err) {
