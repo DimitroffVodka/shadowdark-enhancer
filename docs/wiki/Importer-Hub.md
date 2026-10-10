@@ -422,34 +422,34 @@ skipped. A pin sits where the book puts its number: in the room, or on the build
 the number points at (a City of Masks district map shows its numbers beside the
 district, so those pins sit on the numbered discs).
 
-**Monsters are placed too.** The books set a creature's name in bold with its number just
-before it ("12 unruly **Howlers**"), and the module reads that from your own PDF when it
-places the pins. Each creature found becomes a **hidden** token (the GM sees it, the players
-do not), taken from the core bestiary or your own imported monsters, in its own square
-beside its room's pin, nearest first; the pin's square stays clear so the number is never
-under a token. The book says who is in a room, not where in it, so they are gathered at the
-number for you to move. Only a bold name with a count beside it is placed: a number rolled
-in the text (1d4), a chance (2:6), a creature said to be in another Area, and a name your
-bestiary has no monster for are all left out, so a room can have fewer tokens than it names.
-Wortwick Monastery's map marks its twelve monks (acolytes), four knights and the abbot
-(priest) with a letter each, so that adventure's tokens go where the book draws them instead.
-Building a scene, **Auto-place**, or the **skull button** in the Place locations window puts
-them down; a creature already on the map is never placed twice, and one you delete comes
-back the next time. For pins you placed by hand, press the skull button once they are down.
+**Monsters are placed too.** Every adventure map puts its creatures where they stand on the
+reviewed maps that ship with the module: each one a **hidden** token (the GM sees it, the players
+do not), taken from the core bestiary or your own imported monsters, and a named NPC comes in
+under its name. The City of Masks maps get none. Building a scene, **Auto-place**, or the
+**skull button** in the Place locations window puts them down; a creature already on the map is
+never placed twice, and one you delete comes back the next time.
 
-**Walls, doors and light come with the scene for some maps.** The module carries the wall and
-door positions of the maps it has measured (positions only, no map and no book text), and builds
-them with the pins: a wall along every room, corridor and cave, a closed door where the map
-draws one, and the book's fixed lights. Today that is every adventure's dungeon map: the Hideous Halls of Mugdulblub, the Iron Fortress
-and the Mines, the Sea Wolf King's caves, Wortwick Monastery, the nine Cursed Scroll 4 minis, the
-two Libraries of Leng and the six Western Reaches minis (not the City of Masks, which is a city
-and not a dungeon). Where a book names a secret door that its map does not draw, no door is
-built, so a room the map shows no way into stays sealed until you open the wall yourself. The
-creatures filed under a room are placed in that room's own squares, never in the rock, in
-another room or behind a closed door. Building again on a scene that already has the module's
-walls or lights changes nothing, so walls and lights you corrected by hand stay as they are
-(delete the module's walls yourself to get the book's back), and a scene whose picture is not
-the shape of the book's map gets none. The lights shine as soon as they are built. The Iron Fortress map is also
+**Walls, doors, traps, stairs and light come with the scene.** The module carries the wall and
+door positions of every adventure's dungeon map (positions only, no map and no book text), and
+builds them with the pins: a wall along every room, corridor and cave, every door where the map
+has one, secret and locked doors included, and the book's fixed lights. That is the Hideous Halls
+of Mugdulblub, the Iron Fortress and the Mines, the Sea Wolf King's caves, Wortwick Monastery, the
+nine Cursed Scroll 4 minis, the two Libraries of Leng and the six Western Reaches minis (not the
+City of Masks, which is a city and not a dungeon).
+
+- **Traps** are built where the book's map has them, as trap regions with their check, DC and
+  damage. The trap's own words come from your book when it is linked. A hazard that fills a whole
+  room is left to you.
+- **Stairs, ladders, shafts and trapdoors** are teleports: step on one and it asks before moving
+  you to the other end. That works between two maps of one adventure too (the Library of Leng's
+  levels, the Iron Fortress and the Mines) as soon as both maps are in your world, built or
+  imported from the Adventures compendium.
+- **The key map's symbols** (S for a secret door, L for a locked one, B for a barricade) are read
+  from your book and put on the scene as hidden tiles, so you see them and the players never do.
+
+Building again on a scene only adds what is missing: walls and lights you corrected by hand stay
+as they are (delete the module's walls yourself to get the book's back), and a scene whose picture
+is not the shape of the book's map gets none. The lights shine as soon as they are built. The Iron Fortress map is also
 darkened part way the first time its lights are built, so the magma glows; the module never darkens a scene fully,
 because a fully dark scene hides even your own hidden creatures from you.
 

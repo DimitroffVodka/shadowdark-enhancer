@@ -127,10 +127,19 @@ export const importMissingOnly = (data, actors = globalThis.game?.actors ?? []) 
 /**
  * `preImportAdventure` handler: an Adventure from the Adventures pack only ever creates, whichever way it is imported (the
  * wizard, or the Import button on the Adventure's own sheet, which calls Adventure#import with no preImport of its own).
+ * Once it is in, its stairs and ladders to the adventure's other maps are joined (Adventure#import awaits postImport).
  */
 export function onPreImportAdventure(adventure, options) {
   if (!adventure.getFlag?.(MODULE_ID, ADVENTURE_PACK_FLAG)) return;
   options.preImport = [...(options.preImport ?? []), (data) => { importMissingOnly(data); }];
+  options.postImport = [...(options.postImport ?? []), async (result) => {
+    try {   // the documents are in by now: a failed join must not report the whole import as failed
+      const { wireImportedLinks } = await import("./adventure-links.mjs");
+      await wireImportedLinks(result.created?.Scene);
+    } catch (err) {
+      console.error(`${MODULE_ID} | adventure pack: joining the imported stairs and ladders failed`, err);
+    }
+  }];
 }
 
 /** Hook the create-only import (once, at init). */
