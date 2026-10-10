@@ -3,8 +3,9 @@
  *
  * A link is a pair of Regions with Foundry's Teleport Token behavior, one at each end, each sending a token to the other
  * (the mover is asked first). The two ends may be on two maps (a stair down to the next level): the end on a map is made
- * when that map's scene is built, and the pair is wired as soon as both ends exist, so whichever scene is built second
- * completes it. Positions only, as fractions of each map (REVIEWED_LINKS in adventure-reviewed.mjs).
+ * when that map's scene is built, and the pair is wired as soon as both ends are in the world, so whichever scene is built
+ * or imported from the Adventures pack second completes it. Positions only, as fractions of each map (REVIEWED_LINKS in
+ * adventure-reviewed.mjs).
  */
 
 import { MODULE_ID } from "../../shared/module-id.mjs";
@@ -47,7 +48,7 @@ export function planLinkEnds({ links, siteId, rect, regions = [] }) {
         link, end,
         data: {
           name: e.name, color: LINK_COLOR, shapes: regionShapes(e, rect),
-          behaviors: [{ type: TELEPORT, name: link.name, system: { destinations: [], choice: true } }],
+          behaviors: [{ type: TELEPORT, name: link.name, disabled: !!e.disabled, system: { destinations: [], choice: true } }],
           flags: { [MODULE_ID]: { [LINK_FLAG]: { site: e.site, link: link.name, end } } },
         },
       });
@@ -68,24 +69,54 @@ export function planLinkEnds({ links, siteId, rect, regions = [] }) {
 export async function placeSiteLinks(scene, site, rect) {
   const links = linksOf(REVIEWED_LINKS, site.id);
   if (!links.length) return { placed: 0, wired: 0 };
-  const { findSiteScene } = await import("./adventure-scene.mjs");
-  const regionsOf = (s) => s.regions.map((r) => ({ name: r.name, flag: r.getFlag(MODULE_ID, LINK_FLAG), doc: r }));
   const plan = planLinkEnds({ links, siteId: site.id, rect, regions: regionsOf(scene) });
   const made = plan.length ? await scene.createEmbeddedDocuments("Region", plan.map((p) => p.data)) : [];
+  return { placed: made.length, wired: await wireSiteLinks(scene, site.id) };
+}
+
+const regionsOf = (s) => s.regions.map((r) => ({ name: r.name, flag: r.getFlag(MODULE_ID, LINK_FLAG), doc: r }));
+
+/**
+ * Wire every pair of a site's links whose two ends are both in the world. A teleport is filled only when none of its
+ * destinations is still there (empty, or every one deleted with its map): one the GM re-aimed stays as it is.
+ * @param {Scene} scene  the site's scene
+ * @param {string} siteId
+ * @returns {Promise<number>}  how many teleports were filled
+ */
+export async function wireSiteLinks(scene, siteId) {
+  const { findSiteScene } = await import("./adventure-scene.mjs");
   const endDoc = (link, end) => {
-    const on = link[end].site === site.id ? scene : findSiteScene(link[end].site);
+    const on = link[end].site === siteId ? scene : findSiteScene(link[end].site);
     return on ? regionsOf(on).find((r) => isLinkEnd(r.flag, r.name, link, end))?.doc ?? null : null;
   };
   let wired = 0;
-  for (const link of links) {
+  for (const link of linksOf(REVIEWED_LINKS, siteId)) {
     const a = endDoc(link, "a"), b = endDoc(link, "b");
     if (!a || !b) continue;
     for (const [from, to] of [[a, b], [b, a]]) {
       const teleport = from.behaviors.find((x) => x.type === TELEPORT);
-      if (!teleport || [...(teleport.system.destinations ?? [])].length) continue;
+      if (!teleport) continue;
+      const live = [...(teleport.system.destinations ?? [])].some((uuid) => fromUuidSync(uuid, { relative: from, strict: false }));
+      if (live) continue;
       await teleport.update({ "system.destinations": [to.uuid] });
       wired++;
     }
   }
-  return { placed: made.length, wired };
+  return wired;
+}
+
+/**
+ * Wire the links of every adventure map an Adventure import just put in the world: a map built, packed and taken away
+ * before its partner was built has an empty end until both are back (the wizard's "Keep them in the compendium").
+ * @param {Scene[]} scenes  the imported scenes
+ * @returns {Promise<number>}
+ */
+export async function wireImportedLinks(scenes) {
+  const { MAP_FLAG } = await import("./adventure-scene.mjs");
+  let wired = 0;
+  for (const scene of scenes ?? []) {
+    const site = scene.getFlag(MODULE_ID, MAP_FLAG)?.site;
+    if (site) wired += await wireSiteLinks(scene, site);
+  }
+  return wired;
 }

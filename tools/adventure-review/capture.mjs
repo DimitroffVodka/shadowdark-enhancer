@@ -191,7 +191,7 @@ function captureTraps(id, s) {
     const book = byBook.get(pin);
     if (book) byBook.delete(pin);
     const nth = book ? book.nth : (flag?.nth ?? `hand${++hand}`);
-    out.push({ pin, nth, ...(book?.dc !== undefined ? { dc: book.dc } : {}), ...area, trap });
+    out.push({ pin, nth, ...(book?.dc !== undefined ? { dc: book.dc } : {}), ...area, trap, ...(b.disabled ? { disabled: true } : {}) });
   }
   return out.sort((p, q) => (p.pin ?? Infinity) - (q.pin ?? Infinity) || String(p.nth).localeCompare(String(q.nth), "en", { numeric: true }));
 }
@@ -225,7 +225,8 @@ function captureLinks() {
         seen.add(pair);
         paired.add(uuid).add(dest);
         const [a, z] = [from, to].sort((p, q) => keyOf(p) < keyOf(q) ? -1 : 1);
-        const end = (e) => ({ name: e.r.name, site: e.site, ...areaOf(e.r, rectOf(e.s), `link "${e.r.name}"`) });
+        const off = (e) => (e.r._behaviors ?? []).some((x) => x.type === TELEPORT && x.disabled);
+        const end = (e) => ({ name: e.r.name, site: e.site, ...areaOf(e.r, rectOf(e.s), `link "${e.r.name}"`), ...(off(e) ? { disabled: true } : {}) });
         const name = a.r.flags?.[MOD]?.adventureLink?.link ?? z.r.flags?.[MOD]?.adventureLink?.link ?? a.r.name;
         out.push({ name, a: end(a), b: end(z) });
       }
@@ -304,7 +305,7 @@ async function write() {
  *   REVIEWED_LIGHTS     per site: drop, the data's lights (by index) the scene no longer has where they were; add, the lights
  *                       it has besides, each with its config as it differs from Foundry's defaults
  *   REVIEWED_LINKS      the stairs, ladders, shafts and trapdoors: a pair of teleport ends {name, site, box|shape}, each
- *                       sending a token to the other (adventure-links.mjs)
+ *                       sending a token to the other (adventure-links.mjs); disabled on an end the GM switched off
  */
 
 `;
@@ -391,21 +392,22 @@ async function verify() {
     // Each token's own two names, where they differ, can only carry one of them.
     for (const tk of s._tokens ?? []) if (tk.delta?.name && tk.name !== tk.delta.name) warn(`${id}: token "${tk.name}" is named "${tk.delta.name}" on its sheet; both are built as "${tk.delta.name}"`);
 
-    // Traps: same name, area within 2 px and mechanics.
+    // Traps: same name, area within 2 px, mechanics and whether it is switched off.
     const { traps } = planSiteTraps({ entries: ADVENTURE_TRAPS[id] ?? [], texts: {}, pins: {}, rect, gridSize: s.grid?.size ?? 100, squaresOf: () => [] });
     const regions = (s._regions ?? []).filter((r) => (r._behaviors ?? []).some((b) => b.type === TRAP));
     const mech = (sys) => JSON.stringify([...TRAP_KEYS, ...Object.keys(TRAP_EXTRAS)].map((k) => sys[k] ?? TRAP_EXTRAS[k]));
     const tm = pairUp(traps, regions, (t, r) => {
-      const sys = r._behaviors.find((b) => b.type === TRAP).system;
-      return t.name === r.name && mech({ ...TRAP_EXTRAS, ...t.system }) === mech(sys) ? shapeDist(t.shapes, r.shapes) : Infinity;
+      const b = r._behaviors.find((x) => x.type === TRAP);
+      return t.name === r.name && !!t.disabled === !!b.disabled && mech({ ...TRAP_EXTRAS, ...t.system }) === mech(b.system) ? shapeDist(t.shapes, r.shapes) : Infinity;
     }, 2);
     row.traps = `${tm.size}/${regions.length}`;
     if (tm.size !== traps.length || tm.size !== regions.length) bad(id, `traps: ${traps.length} planned, ${regions.length} on the scene, ${tm.size} the same`);
 
-    // Link ends on this map: same name and area.
+    // Link ends on this map: same name, area and whether it is switched off.
     const ends = planLinkEnds({ links: REVIEWED_LINKS, siteId: id, rect });
     const mine = worldEnds.filter((e) => e.site === id);
-    const lm = pairUp(ends, mine, (e, w) => (e.data.name === w.r.name ? shapeDist(e.data.shapes, w.r.shapes) : Infinity), 2);
+    const offIn = (w) => w.r._behaviors.some((b) => b.type === TELEPORT && b.disabled);
+    const lm = pairUp(ends, mine, (e, w) => (e.data.name === w.r.name && !!e.data.behaviors[0].disabled === offIn(w) ? shapeDist(e.data.shapes, w.r.shapes) : Infinity), 2);
     row.links = `${lm.size}/${mine.length}`;
     if (lm.size !== ends.length || lm.size !== mine.length) bad(id, `link ends: ${ends.length} planned, ${mine.length} in the world, ${lm.size} the same`);
 

@@ -16,7 +16,7 @@
  *   REVIEWED_LIGHTS     per site: drop, the data's lights (by index) the scene no longer has where they were; add, the lights
  *                       it has besides, each with its config as it differs from Foundry's defaults
  *   REVIEWED_LINKS      the stairs, ladders, shafts and trapdoors: a pair of teleport ends {name, site, box|shape}, each
- *                       sending a token to the other (adventure-links.mjs)
+ *                       sending a token to the other (adventure-links.mjs); disabled on an end the GM switched off
  */
 
 export const REVIEWED_WALLS = {
@@ -760,7 +760,7 @@ export const REVIEWED_LINKS = [
   { name: "Ladder: west walkway to Area 16", a: { name: "Ladder to Area 16", site: "cs2-iron-fortress", box: [0.12222, 0.59286, 0.02222, 0.02857] }, b: { name: "Ladder to west walkway", site: "cs2-iron-fortress", box: [0.12222, 0.53571, 0.02222, 0.02857] } },
   { name: "Ladder: west walkway to Area 17", a: { name: "Ladder to Area 17", site: "cs2-iron-fortress", box: [0.12222, 0.69286, 0.02222, 0.02857] }, b: { name: "Ladder to west walkway", site: "cs2-iron-fortress", box: [0.12222, 0.74643, 0.02222, 0.02857] } },
   { name: "To the Mines (Area 14, vault stairs to Area 20)", a: { name: "To the Mines (Area 14, vault stairs to Area 20)", site: "cs2-iron-fortress", box: [0.31111, 0.22857, 0.02222, 0.02857] }, b: { name: "To the Fortress (Area 14, vault stairs to Area 20)", site: "cs2-mines", box: [0.28889, 0.23529, 0.02222, 0.02941] } },
-  { name: "To the Mines (Area 16, trapdoor to Area 24)", a: { name: "To the Mines (Area 16, trapdoor to Area 24)", site: "cs2-iron-fortress", box: [0.08889, 0.54286, 0.02222, 0.02857] }, b: { name: "To the Fortress (Area 16, trapdoor to Area 24)", site: "cs2-mines", box: [0.13333, 0.55882, 0.02222, 0.02941] } },
+  { name: "To the Mines (Area 16, trapdoor to Area 24)", a: { name: "To the Mines (Area 16, trapdoor to Area 24)", site: "cs2-iron-fortress", box: [0.08889, 0.54286, 0.02222, 0.02857], disabled: true }, b: { name: "To the Fortress (Area 16, trapdoor to Area 24)", site: "cs2-mines", box: [0.13333, 0.55882, 0.02222, 0.02941] } },
   { name: "To the Mines (Area 19, hidden stairs)", a: { name: "To the Mines (Area 19, hidden stairs)", site: "cs2-iron-fortress", box: [0.08889, 0.08571, 0.02222, 0.02857] }, b: { name: "To the Fortress (Area 19, hidden stairs)", site: "cs2-mines", box: [0.06667, 0.08824, 0.04444, 0.02941] } },
   { name: "Digway: Area 5 to Area 9", a: { name: "Climb down the digway to Area 9", site: "cs4-army-ants", box: [0.13889, 0.26667, 0.02778, 0.03333] }, b: { name: "Climb up the digway to Area 5", site: "cs4-army-ants", box: [0.22222, 0.23333, 0.02778, 0.03333] } },
   { name: "Shaft: Area 1 tunnel to Area 2 (180')", a: { name: "Climb down the shaft (Area 2)", site: "cs4-army-ants", box: [0.52778, 0.75, 0.02778, 0.03333] }, b: { name: "Climb up to the mound tunnel at 180' (Area 1)", site: "cs4-army-ants", box: [0.52778, 0.43333, 0.02778, 0.03333] } },

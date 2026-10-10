@@ -10,6 +10,7 @@ import { ADVENTURE_LAYOUTS } from "../scripts/importer/adventure/adventure-layou
 import { REVIEWED_WALLS, REVIEWED_CREATURES, REVIEWED_LIGHTS, REVIEWED_LINKS } from "../scripts/importer/adventure/adventure-reviewed.mjs";
 import { planReviewedCreatures, markerTokenData, placeReviewedCreatures, MARKER_FLAG } from "../scripts/importer/adventure/adventure-scene.mjs";
 import { planLinkEnds, isLinkEnd, linksOf, placeSiteLinks, LINK_FLAG } from "../scripts/importer/adventure/adventure-links.mjs";
+import { onPreImportAdventure, ADVENTURE_PACK_FLAG } from "../scripts/importer/adventure/adventure-pack.mjs";
 import { regionRef } from "../tools/adventure-review/region-uuid.mjs";
 
 const TYPES = wallTypes({});
@@ -80,14 +81,15 @@ test("a scene whose creatures were placed before the review list existed keeps t
 
 const LINKS = [
   { name: "Stairs: 1 to 2", a: { name: "Stairs down", site: "s1", box: [0.1, 0.1, 0.1, 0.1] }, b: { name: "Stairs up", site: "s2", box: [0.5, 0.5, 0.1, 0.2] } },
-  { name: "Ladder", a: { name: "Ladder up", site: "s1", box: [0, 0, 0.1, 0.1] }, b: { name: "Ladder down", site: "s1", shape: [[0, 0], [0.1, 0], [0.1, 0.1]] } },
+  { name: "Ladder", a: { name: "Ladder up", site: "s1", box: [0, 0, 0.1, 0.1] }, b: { name: "Ladder down", site: "s1", shape: [[0, 0], [0.1, 0], [0.1, 0.1]], disabled: true } },
 ];
 
 test("a site's build makes its own ends of each link, unwired, and the other map's end waits for that map", () => {
   const s1 = planLinkEnds({ links: LINKS, siteId: "s1", rect: RECT });
   assert.deepEqual(s1.map((p) => `${p.link.name}/${p.end}`), ["Stairs: 1 to 2/a", "Ladder/a", "Ladder/b"]);
   assert.deepEqual(s1[0].data.shapes, [{ type: "rectangle", x: 100, y: 50, width: 100, height: 50, rotation: 0, hole: false }]);
-  assert.deepEqual(s1[0].data.behaviors, [{ type: "teleportToken", name: "Stairs: 1 to 2", system: { destinations: [], choice: true } }]);
+  assert.deepEqual(s1[0].data.behaviors, [{ type: "teleportToken", name: "Stairs: 1 to 2", disabled: false, system: { destinations: [], choice: true } }]);
+  assert.equal(s1[2].data.behaviors[0].disabled, true, "an end the GM switched off is built switched off");
   assert.deepEqual(s1[0].data.flags[MOD][LINK_FLAG], { site: "s1", link: "Stairs: 1 to 2", end: "a" });
   assert.equal(s1[2].data.shapes[0].type, "polygon");
   const s2 = planLinkEnds({ links: LINKS, siteId: "s2", rect: RECT });
@@ -106,11 +108,11 @@ test("an end already on the scene is not made again, whether the module flagged 
 });
 
 /** A scene stub that keeps the Regions created on it, each with a teleport behavior that records its updates. */
-function linkScene(site) {
+function linkScene(site, sceneId = site) {
   const scene = { site, regions: [] };
   scene.createEmbeddedDocuments = async (type, docs) => docs.map((d) => {
     const flags = d.flags;
-    const region = { name: d.name, uuid: `Scene.${site}.Region.${scene.regions.length}`, getFlag: (m, k) => flags?.[m]?.[k] };
+    const region = { name: d.name, uuid: `Scene.${sceneId}.Region.${scene.regions.length}`, getFlag: (m, k) => flags?.[m]?.[k] };
     region.behaviors = d.behaviors.map((b) => {
       const behavior = { type: b.type, system: { ...b.system } };
       behavior.update = async (u) => { behavior.system.destinations = u["system.destinations"]; };
@@ -123,12 +125,18 @@ function linkScene(site) {
   return scene;
 }
 
+/** A world of stub scenes: game.scenes finds in `scenes`, and fromUuidSync finds only a Region on one of them. */
+function linkWorld(t, scenes) {
+  const before = { game: globalThis.game, fromUuidSync: globalThis.fromUuidSync };
+  globalThis.game = { scenes: { find: (fn) => scenes.find(fn) } };
+  globalThis.fromUuidSync = (uuid) => scenes.flatMap((s) => s.regions).find((r) => r.uuid === uuid) ?? null;
+  t.after(() => Object.assign(globalThis, before));
+}
+
 test("the second map to be built wires the pair both ways; a re-run adds nothing and re-aims nothing", async (t) => {
   const s1 = linkScene("cs5-leng-1"), s2 = linkScene("cs5-leng-2");
   const scenes = [s1];
-  const before = globalThis.game;
-  globalThis.game = { scenes: { find: (fn) => scenes.find(fn) } };
-  t.after(() => { globalThis.game = before; });
+  linkWorld(t, scenes);
   const pair = REVIEWED_LINKS.find((l) => l.a.site === "cs5-leng-1" && l.b.site === "cs5-leng-2");
   const first = await placeSiteLinks(s1, { id: "cs5-leng-1" }, RECT);
   assert.equal(first.wired, 0, "the other map is not built yet");
@@ -139,6 +147,49 @@ test("the second map to be built wires the pair both ways; a re-run adds nothing
   assert.deepEqual(a.behaviors[0].system.destinations, [b.uuid]);
   assert.deepEqual(b.behaviors[0].system.destinations, [a.uuid]);
   assert.deepEqual(await placeSiteLinks(s2, { id: "cs5-leng-2" }, RECT), { placed: 0, wired: 0 });
+});
+
+test("kept in the compendium, each map packed and taken away before the next is built: importing them back joins every pair", async (t) => {
+  const cross = REVIEWED_LINKS.filter((l) => l.a.site !== l.b.site);
+  const sites = [...new Set(cross.flatMap((l) => [l.a.site, l.b.site]))];
+  const world = [];
+  linkWorld(t, world);
+  const packed = [];
+  for (const site of sites) {   // the wizard: build, pack, remove
+    const scene = linkScene(site);
+    world.push(scene);
+    await placeSiteLinks(scene, { id: site }, RECT);
+    world.splice(world.indexOf(scene), 1);
+    packed.push(scene);
+  }
+  for (const scene of packed) {   // import each Adventure back, as Foundry's Adventure#import runs the hook's postImport
+    const options = { preImport: [], postImport: [] };
+    onPreImportAdventure({ getFlag: (m, k) => (k === ADVENTURE_PACK_FLAG ? { site: scene.site } : undefined) }, options);
+    world.push(scene);
+    for (const fn of options.postImport) await fn({ created: { Scene: [scene] } }, options);
+  }
+  const ends = cross.flatMap((l) => [[l, "a", "b"], [l, "b", "a"]]);
+  const endOf = (l, e) => packed.find((s) => s.site === l[e].site).regions.find((r) => r.name === l[e].name);
+  const wired = ends.filter(([l, from, to]) => endOf(l, from).behaviors[0].system.destinations?.[0] === endOf(l, to).uuid);
+  assert.equal(wired.length, ends.length, `${wired.length} of ${ends.length} cross-map ends wired`);
+});
+
+test("an end whose destination was deleted with its map is aimed again at the rebuilt map; a live one is left", async (t) => {
+  const s1 = linkScene("cs5-leng-1"), old = linkScene("cs5-leng-2");
+  const scenes = [s1, old];
+  linkWorld(t, scenes);
+  await placeSiteLinks(s1, { id: "cs5-leng-1" }, RECT);
+  await placeSiteLinks(old, { id: "cs5-leng-2" }, RECT);
+  scenes.pop();   // the GM deletes level 2 and builds it again: its Regions have new ids
+  const rebuilt = linkScene("cs5-leng-2", "rebuilt");
+  scenes.push(rebuilt);
+  const res = await placeSiteLinks(rebuilt, { id: "cs5-leng-2" }, RECT);
+  const pair = REVIEWED_LINKS.find((l) => l.a.site === "cs5-leng-1" && l.b.site === "cs5-leng-2");
+  const a = s1.regions.find((r) => r.name === pair.a.name), b = rebuilt.regions.find((r) => r.name === pair.b.name);
+  assert.deepEqual(a.behaviors[0].system.destinations, [b.uuid], "the stale end follows the rebuilt map");
+  assert.deepEqual(b.behaviors[0].system.destinations, [a.uuid]);
+  assert.ok(res.wired >= 2);
+  assert.equal(await placeSiteLinks(rebuilt, { id: "cs5-leng-2" }, RECT).then((r) => r.wired), 0, "live ends are not re-aimed");
 });
 
 // The shipped data.

@@ -606,7 +606,7 @@ export async function placeSiteTraps(scene, site, rect, texts) {
   const { traps, skipped } = planSiteTraps({ entries: todo, texts, pins, rect, gridSize, squaresOf: (pin) => reachableSquares(walls, rect, gridSize, pin, true) });
   const docs = traps.map((trap) => ({
     name: trap.name, color: "#c0392b", shapes: trap.shapes,
-    behaviors: [{ type: TRAP_TYPE, name: trap.name, system: trap.system }],
+    behaviors: [{ type: TRAP_TYPE, name: trap.name, system: trap.system, disabled: !!trap.disabled }],
     flags: { [MODULE_ID]: { [TRAP_REGION_FLAG]: { site: site.id, pin: trap.pin, nth: trap.nth } } },
   }));
   const made = docs.length ? await scene.createEmbeddedDocuments("Region", docs) : [];
@@ -616,7 +616,7 @@ export async function placeSiteTraps(scene, site, rect, texts) {
 /**
  * Put the symbols the book's key map prints (secret doors, locked doors, barricades) on a site's scene as hidden Tiles (GM only), in
  * the places the key map has them. Run again, it only adds the ones that are missing: a mark the module made before is left
- * exactly as it is (moved, resized or deleted by the GM, it stays that way) and nothing is ever deleted.
+ * exactly as it is (moved or resized by the GM, it stays that way), one the GM deleted is made again, and nothing is ever deleted.
  * @param {Scene} scene
  * @param {{id:string}} site
  * @param {{x:number,y:number,width:number,height:number}} rect  the scene's image area

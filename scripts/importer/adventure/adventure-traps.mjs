@@ -17,6 +17,7 @@
  *   radius  (an entry without `trap` or an area) how many squares around the pin the trap reaches along walkable floor; its
  *           mechanics are then read from the book line alone, and the trap is skipped when that line is missing
  *   when    (an entry without `trap`) how the trap fires, for one the words do not tell
+ *   disabled  true for a trap the GM switched off in the review: it is built switched off
  */
 import { parseTrapText } from "../../traps/trap-core.mjs";
 import { stripBold } from "../pdf-text-utils.mjs";
@@ -240,7 +241,7 @@ export function regionShapes(e, rect) {
  * @param {{x:number, y:number, width:number, height:number}} args.rect  the scene's image area
  * @param {number} args.gridSize
  * @param {(pin:{x:number, y:number}) => Array<[number, number, number?]>} args.squaresOf  the floor squares reachable from a pin as [column, row, steps walked from the pin]
- * @returns {{traps: Array<{pin:number, nth:number, name:string, system:object, shapes:object[]}>, skipped: Array<{pin:number, nth:number, why:"text"|"dc"|"pin"|"floor"}>}}
+ * @returns {{traps: Array<{pin:number, nth:number, name:string, system:object, shapes:object[], disabled?:boolean}>, skipped: Array<{pin:number, nth:number, why:"text"|"dc"|"pin"|"floor"}>}}
  */
 export function planSiteTraps({ entries, texts, pins, rect, gridSize, squaresOf }) {
   const traps = [], skipped = [];
@@ -252,7 +253,7 @@ export function planSiteTraps({ entries, texts, pins, rect, gridSize, squaresOf 
       const read = text ? parseTrapText(text) : null;
       const fits = read && (e.dc === undefined || (read.checkAbility !== "none" && read.checkDc === e.dc));
       const name = e.pin ? `${e.pin}. ${e.trap.trap}` : e.trap.trap;
-      traps.push({ pin: e.pin, nth: e.nth, name, system: { trigger: "", effect: fits ? read.effect : "", ...e.trap }, shapes: regionShapes(e, rect) });
+      traps.push({ pin: e.pin, nth: e.nth, name, system: { trigger: "", effect: fits ? read.effect : "", ...e.trap }, shapes: regionShapes(e, rect), disabled: !!e.disabled });
       continue;
     }
     if (!text) { skip("text"); continue; }

@@ -104,13 +104,14 @@ test("a trap that ships its mechanics is built from them, the book adding only t
   const { traps, skipped } = planSiteTraps({ ...common, texts, pins: {}, squaresOf: () => [], entries: [
     { pin: 7, nth: 3, dc: 12, box: [0.1, 0.2, 0.3, 0.4], trap },
     { pin: 7, nth: 1, dc: 15, box: [0.1, 0.2, 0.3, 0.4], trap },   // the line's DC is not 15: built, without the book's words
-    { pin: null, nth: "hand1", shapes: [[[0, 0], [0.1, 0], [0.1, 0.1]], [[0.5, 0.5], [0.6, 0.5], [0.6, 0.6]]], trap: { ...trap, trap: "Magma", applyDamage: false } },
+    { pin: null, nth: "hand1", shapes: [[[0, 0], [0.1, 0], [0.1, 0.1]], [[0.5, 0.5], [0.6, 0.5], [0.6, 0.6]]], trap: { ...trap, trap: "Magma", applyDamage: false }, disabled: true },
   ] });
   assert.deepEqual(skipped, []);
   assert.deepEqual(traps.map((x) => x.name), ["7. Tar Pit", "7. Tar Pit", "Magma"]);
   assert.equal(traps[0].system.effect, "Floor. Sticky tar pit trap. DC 12 DEX to escape, 1d6 damage/round.");
   assert.deepEqual({ ...traps[1].system }, { trigger: "", effect: "", ...trap });
   assert.equal(traps[2].system.applyDamage, false);
+  assert.deepEqual(traps.map((x) => x.disabled), [false, false, true], "a trap the GM switched off is built switched off");
   assert.deepEqual(traps[2].shapes.map((x) => x.points), [[0, 0, 100, 0, 100, 50], [500, 250, 600, 250, 600, 300]]);
   assert.equal(planSiteTraps({ ...common, texts: {}, entries: [{ pin: 7, nth: 3, box: [0, 0, 0.1, 0.1], trap }] }).traps[0].system.effect, "", "no book: still built");
 });
