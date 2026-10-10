@@ -71,13 +71,13 @@ export function darknessAt({ hour, sunrise, sunset, illumination, cap = 1, overr
 export const darknessMoved = (current, next) => Math.abs((Number(current) || 0) - next) >= MIN_STEP - 1e-9;
 
 /**
- * What a fair day shows, by season (#294): Foundry's snow in winter and
- * falling leaves in autumn, nothing in spring and summer. Cosmetic only: the
+ * What a fair day shows, by season (#294): falling leaves in autumn, nothing
+ * in winter (snow on a fair day read as a storm), spring or summer. Cosmetic only: the
  * weather kind, and the rules that read it, are unchanged. Stormy and
  * excellent days are not in this table (a storm is a rain storm, or a
  * blizzard in the cold; an excellent day shows nothing). Change a row here.
  */
-export const FAIR_DAY_EFFECT = { winter: "snow", autumn: "leaves", spring: "", summer: "" };
+export const FAIR_DAY_EFFECT = { winter: "", autumn: "leaves", spring: "", summer: "" };
 
 /**
  * The weather on an outdoor scene: Foundry's rain storm when stormy, its
