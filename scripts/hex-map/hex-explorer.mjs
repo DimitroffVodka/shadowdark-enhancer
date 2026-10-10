@@ -1,4 +1,4 @@
-/** Hexplorer: a read-only canvas observer and a GM edit path over existing authorities. */
+/** Hex Data: a read-only canvas observer and a GM edit path over existing authorities. */
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { FEATURES, normalizeTerrainWord, decodeTags, encodeTags, applySheet } from "./tag-store.mjs";
@@ -13,7 +13,7 @@ import { HexTagOverlay, isDoubleClick } from "./tag-overlay.mjs";
 const pick = (v, keys) => Object.fromEntries(keys.filter(k => typeof v?.[k] === "string").map(k => [k, v[k]]));
 /** GM hover is player-safe too; GM-private content belongs only in the editor. */
 export function explorerView(record, isGM = false, partyIds = []) {
-  // The GM sees what the viewed party's players see, the same discovery the fog and the Hexplorer window use.
+  // The GM sees what the viewed party's players see, the same discovery the fog and the Hex Data window use.
   const r = isGM ? playerProjection({ ...record, discovery: effectiveDiscovery(record.discovery, partyIds) }) : record;
   if (!disclosure(r?.discovery)) return null;
   const location = disclosure(r.discovery, "location");
@@ -108,21 +108,22 @@ export function explorerClick(press, event, longPress) {
     && event.timeStamp - press.at < longPress
     && !event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey;
 }
-let tip = null, hovered = null, selected = null, press = null, stage = null, warned = false, lastUp = null;
+let tip = null, hovered = null, selected = null, press = null, stage = null, lastUp = null;
 const nativeHovers = new Set();
 function placeableTarget(target) {
   for (let node = target; node; node = node.parent) if (node.document) return true;
   return false;
 }
 const t = (key) => game.i18n.localize(key);
-function enabled(scene) {
-  if (!hasHexNumbering(scene) && !isHexAdopted(scene)) return false;
-  const extras = game.modules?.get("shadowdark-extras");
-  if (!extras?.active) return true;
-  let disabled = false;
-  try { disabled = game.settings.get("shadowdark-extras", "disabledFeatures")?.includes("hex.tooltip") === true; } catch { /* overlap remains off */ }
-  if (!disabled && !warned) { warned = true; ui.notifications?.info(t("SDE.hexExplorer.overlap")); }
-  return disabled;
+/**
+ * Hex Data always runs on a hex scene it can read: it does not wait for Shadowdark Extras' Hex Tooltip to be
+ * switched off. Where both are active the Enhancer wins; `owns("hex.tooltip")` says so to Extras.
+ */
+function enabled(scene) { return hasHexNumbering(scene) || isHexAdopted(scene); }
+/** The contract Extras reads (`game.shadowdarkEnhancer.owns("hex.tooltip", scene)`): Hex Data has this scene's hover card and editor. */
+export function ownsHexData(target) {
+  const scene = sceneRef(target);
+  return !!scene?.grid?.isHexagonal && enabled(scene);
 }
 function atEvent(event) {
   if (!canvas?.ready || !enabled(canvas.scene) || nativeHovers.size || placeableTarget(event.target)) return null;
@@ -188,7 +189,7 @@ function up(event) {
   if (!explorerClick(held, event, duration)) return;
   const cell = atEvent(event);
   if (!cell || cell.scene !== held.cell.scene || offsetKey(cell.offset) !== offsetKey(held.cell.offset)) return;
-  // A GM never gets the pinned card: a double click opens the Hexplorer window, and with the tagging overlay up a
+  // A GM never gets the pinned card: a double click opens the Hex Data window, and with the tagging overlay up a
   // single click is the overlay's own. Players keep the card, since their journal links live in it.
   const key = offsetKey(cell.offset), again = isDoubleClick(lastUp, key, event.timeStamp);
   lastUp = again ? null : { key, at: event.timeStamp };

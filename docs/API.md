@@ -58,11 +58,11 @@ The currently inspected SDX source does not advertise this guard.
 native consumers (`kind` is `terrain` or `location`). GM-only
 `setDisclosure(offset, {revealed, locationRevealed}, scene)` changes disclosure
 without clearing visit or first-entry history; it reveals to every party, while
-travel and the Hexplorer write to one party's own entry. `setEnabled(boolean, scene)`
+travel and Hex Data write to one party's own entry. `setEnabled(boolean, scene)`
 controls native fog without modifying any SDX state. `revealParty(token,
 {weather})` is a reveal-only pass: it never visits or rolls arrival tables.
 Committed travel is invoked by Overland after payment. Keyed location notes
-may additionally be marked in the Hexplorer editor; public terrain notes remain
+may additionally be marked in the Hex Data editor; public terrain notes remain
 visible on revealed cells. Deliberate raw Foundry document access is outside
 this ordinary-play spoiler-protection boundary.
 
