@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { makeBitmap } from "../scripts/hex-map/bitmap.mjs";
-import { featureVector, nearestExemplar, buildStamps, classifyCells, parseTruthCsv, compareTags, scaledOverlayThresholds, DEFAULT_THRESHOLDS, waveStrokes, buildWaterArbiter, waterFromStrokes, createClassifier } from "../scripts/hex-map/classify.mjs";
+import { featureVector, nearestExemplar, buildStamps, classifyCells, parseTruthCsv, compareTags, scaledOverlayThresholds, classifyOverlay, DEFAULT_THRESHOLDS, waveStrokes, buildWaterArbiter, waterFromStrokes, createClassifier } from "../scripts/hex-map/classify.mjs";
 
 // Invented glyphs on a 64×64 cell (D1): a filled blob, a chevron, a dot grid.
 const W = 64, H = 64;
@@ -48,6 +48,18 @@ test("higher sensitivity lowers overlay thresholds", () => {
   const high = scaledOverlayThresholds(100, { ...DEFAULT_THRESHOLDS, sensitivity: 2 });
   assert.equal(high.ink, normal.ink / 2);
   assert.equal(high.stroke, normal.stroke / 2);
+});
+
+test("classifyOverlay: a river that only clips the hex is still a river; a dot is a path", () => {
+  const px = scaledOverlayThresholds(95 * 87, DEFAULT_THRESHOLDS);
+  // Take 10, hexes 654, 958, 1926: a double-line chunk entering one edge and
+  // ending at the icon. 70 px is the median of the 30 that read as paths.
+  assert.equal(classifyOverlay({ ink: 170, biggest: 70, sectors: 1 }, px).overlay, "stroke");
+  // A dotted path: its biggest piece is one dot (42-44 px) however many edges it crosses.
+  assert.equal(classifyOverlay({ ink: 114, biggest: 44, sectors: 2 }, px).overlay, "path");
+  // A big blob that touches no edge is stamp leftover, not a stroke through the cell.
+  assert.equal(classifyOverlay({ ink: 120, biggest: 70, sectors: 0 }, px).overlay, "path");
+  assert.equal(classifyOverlay({ ink: 8, biggest: 5, sectors: 0 }, px).overlay, "none");
 });
 
 test("buildStamps makes one stamp per terrain from at least three exemplars and reports coverage", () => {
