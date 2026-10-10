@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1929 tracked files · ~245,500 lines of code/markup across scripts+templates+styles+test.
+1929 tracked files · ~245,600 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -74,7 +74,7 @@
 | `hex-map/a0-print.mjs` | 173 | The Western Reaches A0 print, pure (#257): its lattice as numbers only (D1), isA0 by the image's size, A0_TOTAL (4736 hexes), a0Origin (the printed 0000 on a scene's grid from the image's rect, checked on four corner hexes), copyTags and copySource (another scene of the same print), and playablePlan (which of anchor, copy, pins, handoff, fog and legend Make this map playable runs, each gated on its own done). |
 | `hex-map/a0-prompt.mjs` | 39 | The one-time offer to make a Western Reaches A0 scene playable (#257): on canvasReady the active GM, on a scene showing the print that isn't numbered, is asked once (the scene's hexPlayableAsked flag); yes runs HexTaggerApp.makePlayable. |
 | `hex-map/bitmap.mjs` | 145 | 0/1 cell bitmaps: dilate, 8-connected components, majority stamps, hex masks, residual features, label zone. Pure. |
-| `hex-map/classify.mjs` | 886 | Nearest-exemplar terrain + stamp-subtraction river/path classifier with a review queue; truth-CSV comparison for the dev check. Pure. |
+| `hex-map/classify.mjs` | 892 | Nearest-exemplar terrain + stamp-subtraction river/path classifier with a review queue; truth-CSV comparison for the dev check. Pure. |
 | `hex-map/coordinate-overlay.mjs` | 109 | Opt-in per-user native published-number labels on flat-top hex maps; reads native geometry and current fog without changing numbering or calibration. |
 | `hex-map/extras-records.mjs` | 27 | Read-only SDX legacy/authoring record reader, retained for painter-feature merges and unadopted gameplay; native adopted scenes use hex-records instead. |
 | `hex-map/geometry.mjs` | 221 | Hex numbering by cube difference from one anchor cell; printed offset ↔ cube under the map's column-shift rule. Pure. |
