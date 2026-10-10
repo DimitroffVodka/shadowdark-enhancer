@@ -3,6 +3,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { ABILITIES } from "../stat-damage/stat-damage-core.mjs";
 import { mountScores, effectiveMountScores, mountModifier } from "./mount-scores-core.mjs";
+import { grownSize } from "../mounted/mounted-core.mjs";
 export const isMount = actor => actor?.type === `${MODULE_ID}.mount`;
 export const scoresOf = actor => mountScores(actor?._source?.system?.abilities ?? actor?.system?.abilities, actor?.flags?.[MODULE_ID]?.mountScores);
 export async function adoptMountScores(actor) {
@@ -30,7 +31,13 @@ export function buildMountNpcModel(NpcModel) {
 }
 export function registerMountScores() {
   Hooks.on("preCreateActor", (doc) => {
-    if (isMount(doc)) doc.updateSource({ [`flags.${MODULE_ID}.mountScores`]: scoresOf(doc) });
+    if (!isMount(doc)) return;
+    // A new mount's token is 2x2 (#326); a bigger one stays. Existing mounts are not touched.
+    const size = grownSize(doc._source.prototypeToken);
+    doc.updateSource({
+      [`flags.${MODULE_ID}.mountScores`]: scoresOf(doc),
+      ...(size ? { "prototypeToken.width": size.width, "prototypeToken.height": size.height } : {}),
+    });
   });
   // Adopt existing documents once, on the authority client, not on sheet render.
   Hooks.once("ready", async () => {

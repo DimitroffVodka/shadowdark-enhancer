@@ -62,10 +62,12 @@ test("segmentFeet: default/unknown diagonal rule remains equidistant for backwar
   assert.equal(segmentFeet({ ...diagonal, diagonals: 999 }), 30);
 });
 
-test("movement tracker forwards the scene diagonal rule at both accounting call sites", () => {
+test("movement tracker forwards the scene diagonal rule at every accounting call site", () => {
   const source = readFileSync(new URL("../scripts/crawl-strip/movement-tracker.mjs", import.meta.url), "utf8");
   const forwards = source.match(/diagonals:\s*scene\?\.grid\?\.diagonals/g) ?? [];
-  assert.equal(forwards.length, 2);
+  const calls = source.match(/segmentFeet\(\{/g) ?? [];
+  assert.ok(calls.length >= 1);
+  assert.equal(forwards.length, calls.length, "every segmentFeet call forwards the scene's rule");
 });
 
 test("sumCommittedSegments: multi-segment additive movement sums independently-rounded segments", () => {
