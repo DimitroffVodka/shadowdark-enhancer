@@ -2,6 +2,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { queryActiveGM, registerQuery, refuseQuery, isActiveGM } from "../shared/gm-relay.mjs";
 import { tokenSourceFor } from "../shared/token-placement.mjs";
+import { mountOf } from "../mounted/mounted-tokens.mjs";
 import { Party, isParty } from "./party.mjs";
 import { normalizeParty } from "./party-core.mjs";
 import { fillFormation, deploymentOrder, followOrder, planPlacement, headingTurns, routeToward, safeTrail, turnSlot } from "./party-movement-core.mjs";
@@ -169,7 +170,7 @@ async function follow(token, leader, movement, user) {
   for (const uuid of followOrder(data, roster(actor, user)).filter(u => u !== data.leaderUuid)) {
     if (inPartyCombat(scene)) return;
     const doc = linked(scene, uuid, actor.uuid)[0];
-    if (!doc) continue;
+    if (!doc || mountOf(doc)) continue;   // a rider goes where its mount goes (#326)
     const width = doc.width * sizeX, height = doc.height * sizeY, blocked = collisionFor(scene, doc), start = { x: doc.x, y: doc.y };
     const slot = slots.get(uuid) ?? lead;
     const offset = turnSlot({ col: slot.col - lead.col, row: slot.row - lead.row }, turns);

@@ -128,3 +128,92 @@ test("reconcile: nothing when the rider is in its corner, off the mount, or the 
   assert.equal(snapPoint({ mount: horseThere, rider: left, gridSize: G, mountMoving: true }), null,
     "the mount has segments to go; their carries follow");
 });
+
+/**
+ * The Foundry half, driven through its hooks with stub documents. Core records
+ * a client's own token update for Ctrl+Z unless it is an isUndo write, so every
+ * write the module makes carries isUndo: Ctrl+Z then finds the mount's move,
+ * reverts it (method "undo", a fresh movement id), and the rider follows.
+ */
+async function wiring() {
+  const MOD = "shadowdark-enhancer";
+  const hooks = new Map();
+  globalThis.Hooks = { on: (name, fn) => hooks.set(name, fn), once() {}, callAll() {} };
+  globalThis.CONFIG = { queries: {} };
+  globalThis.game = { userId: "u1", user: { id: "u1", isGM: true, targets: new Set() }, users: { activeGM: { id: "u1" } }, i18n: { localize: (k) => k } };
+  globalThis.foundry = { utils: { randomID: () => "Ab3dEf7h" } };
+  globalThis._replace = (v) => ({ replaced: v });
+  globalThis._del = Symbol("del");
+  const { registerMountedTokens } = await import("../scripts/mounted/mounted-tokens.mjs");
+  registerMountedTokens();
+  const tokens = new Map();
+  const scene = { id: "s", grid: { size: G }, tokens: { get: (id) => tokens.get(id), find: (fn) => [...tokens.values()].find(fn) } };
+  const token = (id, src, flags = {}) => {
+    const doc = { id, parent: scene, _source: { ...src }, flags: { [MOD]: flags }, movement: null, writes: [], moves: [],
+      canUserModify: () => true,
+      update: async (changes, options) => { doc.writes.push({ changes, options }); },
+      move: async (waypoints, options) => { doc.moves.push({ waypoints, options }); Object.assign(doc._source, waypoints.at(-1)); return true; } };
+    tokens.set(id, doc);
+    return doc;
+  };
+  const horse = token("horse", { x: 500, y: 300, width: 2, height: 2 });
+  const rider = token("knight", { x: 500, y: 400, width: 1, height: 1 }, { mountedOn: "horse" });
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 5));
+  /** A move this tab made: preMoveToken, then the update lands. */
+  const moved = (doc, movement, changes, { here = true } = {}) => {
+    if (here) hooks.get("preMoveToken")(doc, movement);
+    doc.movement = movement;
+    hooks.get("updateToken")(doc, changes, {}, "u1");
+  };
+  return { MOD, hooks, horse, rider, moved, settle };
+}
+
+test("Ctrl+Z on a ridden mount: the mount's undo carries the rider, and no module write enters the undo history", async () => {
+  const { horse, rider, moved, settle } = await wiring();
+  // Core's undo of the mount's move: a displace back to the origin, method "undo", a new movement id.
+  const undo = { id: "UndoMove00000001", chain: [], method: "undo", passed: { waypoints: [{ x: 500, y: 300, width: 2, height: 2, elevation: 0, action: "displace" }] } };
+  Object.assign(horse._source, { x: 500, y: 300 });
+  rider._source.y = 900;   // where the carry had put it before the undo
+  moved(horse, undo, { x: 500, y: 300 });
+  await settle();
+  assert.equal(rider.moves.length, 1, "one carry");
+  const [{ waypoints, options }] = rider.moves;
+  assert.deepEqual(waypoints.map((w) => [w.x, w.y, w.action]), [[500, 400, "displace"]], "into the corner");
+  assert.equal(options.isUndo, true, "kept out of the undo history");
+  assert.ok(isCarryMovement({ id: options.id }));
+  assert.equal(rider.writes.length, 0, "the rider stays mounted");
+
+  // That carry landing is not the rider's own move.
+  moved(rider, { id: options.id, chain: [] }, { y: 400 });
+  await settle();
+  assert.equal(rider.writes.length, 0);
+});
+
+test("the rider moving on its own dismounts it, unrecorded; another tab of the same user does nothing", async () => {
+  const { MOD, rider, horse, moved, settle } = await wiring();
+  moved(rider, { id: "OwnMove000000001", chain: [] }, { x: 900 }, { here: false });
+  moved(horse, { id: "OwnMove000000002", chain: [], passed: { waypoints: [{ x: 700, y: 300, width: 2, height: 2 }] } }, { x: 700 }, { here: false });
+  await settle();
+  assert.equal(rider.writes.length + rider.moves.length, 0, "the other tab neither dismounts nor carries");
+  moved(rider, { id: "OwnMove000000003", chain: [] }, { x: 900 });
+  await settle();
+  assert.deepEqual(rider.writes.map((w) => [w.changes[`flags.${MOD}.mountedOn`], w.options.isUndo]), [[{ replaced: null }, true]]);
+});
+
+test("a ridden mount that changes size puts its rider in the new bottom-left corner", async () => {
+  const { horse, rider, moved, settle } = await wiring();
+  Object.assign(horse._source, { width: 3, height: 3 });
+  moved(horse, { id: "Resize0000000001", chain: [], passed: { waypoints: [{ x: 500, y: 300, width: 3, height: 3, action: "walk" }] } }, { width: 3, height: 3 });
+  await settle();
+  assert.deepEqual(rider.moves.map((m) => [m.waypoints.at(-1).x, m.waypoints.at(-1).y]), [[500, 500]]);
+});
+
+test("a pasted copy of a rider rides nothing", async () => {
+  const { MOD, hooks } = await wiring();
+  const sets = [];
+  const copy = { flags: { [MOD]: { mountedOn: "horse" } }, updateSource: (d) => sets.push(d) };
+  hooks.get("preCreateToken")(copy);
+  assert.deepEqual(sets, [{ [`flags.${MOD}.mountedOn`]: globalThis._del }]);
+  hooks.get("preCreateToken")({ flags: {}, updateSource: (d) => sets.push(d) });
+  assert.equal(sets.length, 1);
+});

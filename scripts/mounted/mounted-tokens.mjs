@@ -11,6 +11,10 @@
  * (isCarryMovement). A player rides only a Mount they own; a GM any. The rider moving any other way, Dismount, or the mount
  * being deleted ends the pair. Overland's `occupants` (who rides what while
  * travelling) is a different thing and is not touched.
+ *
+ * None of the module's own writes (carry, reconcile, grow, Mount, Dismount) go
+ * into the token undo history, so Ctrl+Z reverts the mount in one press and
+ * the rider follows it like any other mount move.
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
@@ -21,9 +25,12 @@ import { carryInFlight, carryMovementId, followPath, grownSize, isCarryMovement,
 
 export const MOUNTED_QUERY = `${MODULE_ID}.mounted`;
 const FLAG = "mountedOn";
-const CARRY = { constrainOptions: { ignoreWalls: true, ignoreCost: true }, autoRotate: false, showRuler: false };
+// Core records a client's own token updates for Ctrl+Z unless they are isUndo writes
+// (Scene#_preUpdateDescendantDocuments), as its own revertRecordedMovement is. A move with it is
+// method "undo": applied whole, never paused by a Region, never rotated, no ruler, walls not checked.
+const UNRECORDED = { isUndo: true };
 // Growing a mount to 2x2 is a size change, not a move: the movement tracker lets it through out of turn.
-const GROW = { [MODULE_ID]: { mountGrow: true } };
+const GROW = { ...UNRECORDED, [MODULE_ID]: { mountGrow: true } };
 
 const gridSize = (doc) => doc.parent?.grid?.size ?? 100;
 const flagOf = (doc) => doc?.flags?.[MODULE_ID]?.[FLAG] ?? null;
@@ -35,7 +42,7 @@ export const mountOf = (rider) => (flagOf(rider) ? rider.parent?.tokens?.get(fla
 export const riderOf = (mount) => mount?.parent?.tokens?.find((t) => flagOf(t) === mount.id) ?? null;
 
 /** Move options for a carry: its movement id marks it, so the movement tracker charges and locks nothing for it. */
-const carryOptions = () => ({ ...CARRY, id: carryMovementId(foundry.utils.randomID(8)) });
+const carryOptions = () => ({ ...UNRECORDED, id: carryMovementId(foundry.utils.randomID(8)) });
 
 /** The last carry this client started per rider id, so each waits for the one before. */
 const carries = new Map();
@@ -108,11 +115,11 @@ async function mountUp(rider) {
   // A mount's token is 2x2: grow a smaller one first (top-left kept). The user owns the mount, so may.
   const size = grownSize(mount._source);
   if (size) await mount.update(size, GROW);
-  await replaceModuleFlag(rider, FLAG, mount.id, rider.sort > mount.sort ? {} : { sort: mount.sort + 1 });
+  await replaceModuleFlag(rider, FLAG, mount.id, rider.sort > mount.sort ? {} : { sort: mount.sort + 1 }, UNRECORDED);
   walk(rider, [mount._source]);
 }
 
-const dismount = (rider) => rider.unsetFlag(MODULE_ID, FLAG)
+const dismount = (rider) => replaceModuleFlag(rider, FLAG, null, {}, UNRECORDED)
   .catch((err) => console.warn(`${MODULE_ID} | dismounting failed`, err));
 
 /**
@@ -158,13 +165,21 @@ export function registerMountedTokens() {
     root.querySelector(".col.left")?.append(btn);
   });
 
-  // Runs on the client that moved the token, which may update it.
-  Hooks.on("updateToken", (doc, changes, _options, userId) => {
-    if (userId !== game.userId) return;
-    if (changes.x === undefined && changes.y === undefined && changes.elevation === undefined) return;
-    if (flagOf(doc) && !isCarryMovement(doc.movement)) void dismount(doc);
-    const rider = riderOf(doc);
+  // Only the tab that made a move reacts to it (preMoveToken runs there alone), not that user's other tabs.
+  const started = new Set();
+  Hooks.on("preMoveToken", (_doc, move) => { started.add(move.id); });
+  Hooks.on("updateToken", (doc, changes) => {
+    if (!started.delete(doc.movement?.id)) return;
+    const moved = changes.x !== undefined || changes.y !== undefined || changes.elevation !== undefined;
+    if (moved && flagOf(doc) && !isCarryMovement(doc.movement)) void dismount(doc);
+    // A mount that moved, Ctrl+Z included, or changed size takes its rider to its (new) corner.
+    const rider = (moved || changes.width !== undefined || changes.height !== undefined) ? riderOf(doc) : null;
     if (rider) void follow(doc, rider);
+  });
+
+  // A pasted copy of a rider rides nothing.
+  Hooks.on("preCreateToken", (doc) => {
+    if (flagOf(doc)) doc.updateSource({ [`flags.${MODULE_ID}.${FLAG}`]: _del });
   });
 
   Hooks.on("deleteToken", (doc) => {

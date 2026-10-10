@@ -260,6 +260,17 @@ test("followers keep their formation slot, turned to face the way the leader wal
     assert.deepEqual(paths, [[expected]], heading);
   }
 });
+test("a follower riding a mount stays with its mount; once off it, it follows again (#326)", async () => {
+  const { f, paths, leaderMove } = marchFixture({ x: 100, y: 500 });
+  const pc2 = f.scene.tokens.get("pc2Token");
+  f.scene.tokens.contents.push({ id: "horse", flags: {} });
+  pc2.flags[MOD].mountedOn = "horse";
+  await leaderMove("north");
+  assert.deepEqual(paths, [], "the rider is not walked off its horse");
+  pc2.flags[MOD].mountedOn = null;
+  await leaderMove("north");
+  assert.equal(paths.length, 1);
+});
 test("turning the leader around reverses the order", async () => {
   const north = marchFixture({ x: 100, y: 500 }), south = marchFixture({ x: 100, y: 500 });
   await north.leaderMove("north"); await south.leaderMove("south");

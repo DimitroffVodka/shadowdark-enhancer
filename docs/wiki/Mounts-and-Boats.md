@@ -53,20 +53,22 @@ death is at full CON zero, not modifier zero. Riders, gear and UUIDs remain.
 
 ### Riding on the map
 
-A character can ride a Mount actor's token on any scene (other creatures,
-however big, can't be ridden). A new Mount's token is 2x2; an older one that
+A character can ride a Mount actor's token on a square-grid scene (other
+creatures, however big, can't be ridden). A new Mount's token is 2x2; an older one that
 is smaller grows to 2x2 the moment someone mounts it, keeping its top-left
 corner. Existing actors are otherwise left as they are.
 
 - **Mount:** open the rider's Token HUD (right-click the token). A horse
-  button sits in the left column when a free mount is within 5 ft. It
-  climbs onto the targeted mount, or else the nearest. The rider moves
+  button sits in the left column when a free mount is next to it (one
+  square). It climbs onto the targeted mount, or else the nearest. The rider moves
   into the mount's bottom-left square and is drawn on top of it.
 - **Moving:** move the mount. The rider follows in its corner along the
   same path. The mount spends its own movement (an NPC's move from its
   stat block). The rider spends nothing for the ride, and the out-of-turn
   lock doesn't stop the rider following. If the mount's move is refused,
-  the rider stays put too.
+  the rider stays put too. Ctrl+Z on the mount puts it back and the rider
+  goes back with it. In a marching party, a rider stays with its mount
+  rather than following the leader on foot.
 - **Dismount:** the same horse button, lit while riding. The rider stays
   where it is.
 
