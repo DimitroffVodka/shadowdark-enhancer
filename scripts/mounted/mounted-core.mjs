@@ -15,34 +15,40 @@ export function riderCorner(mount, rider, gridSize) {
   return { x: mount.x, y: mount.y + (mount.height - rider.height) * gridSize };
 }
 
-/** Is `point` the rider's corner of `mount` (to the pixel)? */
-export function isAtCorner(point, mount, rider, gridSize) {
-  if (!point || !mount || !rider) return false;
-  const c = riderCorner(mount, rider, gridSize);
-  return Math.abs(point.x - c.x) < 1 && Math.abs(point.y - c.y) < 1;
-}
-
 /**
- * Where a movement ends: the last pending waypoint while it is paused part way
- * (a region split it), else this update's destination.
+ * Every carry is started with a movement id that says so: Foundry movement ids
+ * are 16 letters and digits, and a carry's begin with these 8.
  */
-export function finalPoint(move) {
-  return move?.pending?.waypoints?.at(-1) ?? move?.destination ?? null;
-}
+export const CARRY_PREFIX = "sdeCarry";
+
+/** A carry's movement id, from 8 random letters/digits (foundry.utils.randomID(8)). */
+export const carryMovementId = (random8) => `${CARRY_PREFIX}${random8}`;
 
 /**
- * Is this rider movement the carry (its mount moving it), or the rider moving
- * on its own? Decided by where it ends, not by an update option: a carry a
- * region pauses part way is continued by core without the options it started
- * with, and must still count as a carry. A carry spends no movement and keeps
- * the pair; any other move of the rider splits it.
+ * Is this rider movement a carry (its mount moving it), or the rider moving
+ * on its own? Decided by the movement's id, which survives what v14 does to a
+ * carry a Region pauses part way: core resumes it as a NEW movement with a new
+ * id whose `chain` starts with the original one, and without the update
+ * options it began with. Position can't decide it either: a resumed carry
+ * still heads for the corner the mount had when it started, which is not the
+ * mount's corner any more once the mount's next segment has moved it.
+ * A carry spends no movement, is never locked out of turn, and keeps the pair;
+ * any other move of the rider splits it.
  *
- * @param {object} move   the rider's movement (TokenMovementData or the pre-update operation)
- * @param {?object} mount the mount's stored position and size, null when it is gone
- * @param {object} rider  the rider's stored size
+ * @param {object} move  the rider's TokenMovementData, or the pre-update movement operation
  */
-export function isCarried(move, mount, rider, gridSize) {
-  return !!mount && isAtCorner(finalPoint(move), mount, rider, gridSize);
+export function isCarryMovement(move) {
+  const first = move?.chain?.[0] ?? move?.id;
+  return typeof first === "string" && first.startsWith(CARRY_PREFIX);
+}
+
+/**
+ * Is the rider still part way through a carry (paused at a Region, the rest
+ * pending)? Then the next carry stops it first: one carry in flight, so core
+ * never resumes an old carry after the new one has started.
+ */
+export function carryInFlight(move) {
+  return isCarryMovement(move) && move.state !== "stopped" && move.state !== "completed";
 }
 
 /**

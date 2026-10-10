@@ -74,8 +74,10 @@ One rider per mount. The pair also ends when the rider is moved on its own
 (dragged, keyboard, or rolled back) or when either token is deleted. Rider
 and mount remain separate actors with their own sheets, HP and turns.
 
-Players can ride tokens they own. A player who moves a mount but does not
-own its rider needs a GM connected, who moves the rider for them.
+A player can mount only a Mount they own; the GM can seat anyone on any
+Mount. If the GM seats one player's character on another player's Mount, the
+Mount's owner can still ride it around: a connected GM moves the rider for
+them.
 
 The Riders tab is something else: it records who rides what while the party
 travels overland. Riding on the map doesn't change it.

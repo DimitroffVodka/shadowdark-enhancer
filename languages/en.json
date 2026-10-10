@@ -692,7 +692,7 @@
   "SDE.crawlStrip.movement.rolledBack": "{name} rolled back to turn start — movement restored.",
   "SDE.mounted.mount": "Mount (climb onto the targeted or nearest free mount within 5 ft)",
   "SDE.mounted.dismount": "Dismount",
-  "SDE.mounted.noMount": "No free mount within 5 ft. Only a Mount actor's token can be ridden.",
+  "SDE.mounted.noMount": "No free mount within 5 ft. Only a Mount actor's token you own can be ridden.",
   "SDE.mounted.relay": "carrying riders",
   "SDE.mounted.gone": "That mount has no rider any more.",
   "SDE.mounted.notYours": "You don't control that mount.",

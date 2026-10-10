@@ -301,24 +301,17 @@ test("wiring free crawl: a started combat still locks the out-of-turn combatant"
   assert.strictEqual(preUpdateToken(tokenDoc("tok-out"), { x: 200 }, {}, "u1"), false);
 });
 
-/** A rider standing on a 2x2 mount (#326): the pair is the rider's `mountedOn` flag. */
-function riderOnMount() {
-  const tokens = new Map();
-  const parent = { id: SCENE_A, grid: { size: 100 }, tokens };
-  const mount = { id: "tok-horse", parent, _source: { x: 500, y: 300, width: 2, height: 2 } };
-  const rider = { id: "tok-out", parent, flags: { [MODULE_ID]: { mountedOn: mount.id } }, _source: { x: 500, y: 400, width: 1, height: 1 } };
-  tokens.set(mount.id, mount).set(rider.id, rider);
-  return { mount, rider };
-}
-
-test("wiring: a rider carried by its mount is not locked out of turn (#326)", () => {
+test("wiring: a rider carried by its mount is not locked out of turn, nor charged, even when a Region resumed the carry (#326)", () => {
   boot();
   stubGame({ combatantTokenIds: ["tok-out", "tok-current"], currentTokenId: "tok-current" });
-  const { rider } = riderOnMount();
-  const carried = { _movement: { [rider.id]: { destination: { x: 500, y: 400 }, pending: { waypoints: [] } } } };
-  assert.strictEqual(preUpdateToken(rider, { x: 500, y: 400 }, carried, "u1"), undefined);
-  assert.equal(MovementTracker._pendingDeduct[rider.id], undefined, "and nothing is left to deduct");
-  const own = { _movement: { [rider.id]: { destination: { x: 900, y: 400 }, pending: { waypoints: [] } } } };
+  const rider = tokenDoc("tok-out");
+  const carry = { _movement: { [rider.id]: { id: "sdeCarryAAAAAAAA", chain: [] } } };
+  const resumed = { _movement: { [rider.id]: { id: "Zq81LmNo0PpQrStU", chain: ["sdeCarryAAAAAAAA"] } } };
+  for (const opts of [carry, resumed]) {
+    assert.strictEqual(preUpdateToken(rider, { x: 600, y: 901 }, opts, "u1"), undefined);
+    assert.equal(MovementTracker._pendingDeduct[rider.id], undefined, "and nothing is left to deduct");
+  }
+  const own = { _movement: { [rider.id]: { id: "Hh12Jj34Kk56Ll78", chain: [] } } };
   assert.strictEqual(preUpdateToken(rider, { x: 900, y: 400 }, own, "u1"), false, "moving on its own is an ordinary move");
 });
 

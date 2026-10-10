@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  riderCorner, isAtCorner, finalPoint, isCarried, followPath, gapSquares, pickMount, grownSize,
+  riderCorner, followPath, gapSquares, pickMount, grownSize, CARRY_PREFIX, carryMovementId, isCarryMovement, carryInFlight,
 } from "../scripts/mounted/mounted-core.mjs";
 
 const G = 100;
@@ -10,26 +10,48 @@ const knight = { id: "knight", x: 0, y: 0, width: 1, height: 1 };
 
 test("the rider stands in the mount's bottom-left square", () => {
   assert.deepEqual(riderCorner(horse, knight, G), { x: 500, y: 400 });
-  assert.ok(isAtCorner({ x: 500, y: 400 }, horse, knight, G));
-  assert.ok(!isAtCorner({ x: 600, y: 400 }, horse, knight, G));
-  assert.ok(!isAtCorner(null, horse, knight, G));
 });
 
-test("a movement ends at its last pending waypoint while paused, else at its destination", () => {
-  assert.deepEqual(finalPoint({ destination: { x: 1, y: 2 }, pending: { waypoints: [] } }), { x: 1, y: 2 });
-  assert.deepEqual(finalPoint({ destination: { x: 1, y: 2 }, pending: { waypoints: [{ x: 7, y: 8 }] } }), { x: 7, y: 8 });
-  assert.equal(finalPoint(undefined), null);
+test("a carry's movement id is a valid Foundry id that says it is a carry", () => {
+  const id = carryMovementId("Ab3dEf7h");
+  assert.match(id, /^[a-zA-Z0-9]{16}$/);
+  assert.ok(id.startsWith(CARRY_PREFIX));
 });
 
-test("a move that ends in the mount's corner is the carry; anything else splits the pair", () => {
-  const carry = { destination: { x: 500, y: 400 }, pending: { waypoints: [] } };
-  const own = { destination: { x: 700, y: 400 }, pending: { waypoints: [] } };
-  // Paused at a trap region part way: still the carry, because it is still headed for the corner.
-  const paused = { destination: { x: 450, y: 400 }, pending: { waypoints: [{ x: 500, y: 400 }] } };
-  assert.ok(isCarried(carry, horse, knight, G));
-  assert.ok(isCarried(paused, horse, knight, G));
-  assert.ok(!isCarried(own, horse, knight, G));
-  assert.ok(!isCarried(carry, null, knight, G), "a deleted mount carries nothing");
+/**
+ * The lane repro (#326): a Trap Region covers y 900-1000 (grid 100). The mount
+ * (2x2 at 600,600, rider at 600,700) moves south to 600,1100. Core pauses the
+ * mount at y 801, so the mount moves in two segments and the module starts a
+ * carry for each. The first carry is itself paused at y 851 with 901 pending;
+ * core may resume it (a NEW movement id, chain = [first carry's id]) after the
+ * mount's second segment has moved it to 1100, so that resumed move ends at the
+ * mount's PREVIOUS corner (901), not its current one (1200).
+ */
+test("a carry a Region paused and core resumed is still a carry; the rider's own moves are not", () => {
+  const first = carryMovementId("AAAAAAAA");
+  const second = carryMovementId("BBBBBBBB");
+  const carry1 = { id: first, chain: [], destination: { x: 600, y: 851 }, pending: { waypoints: [{ x: 600, y: 901 }] }, state: "pending" };
+  const carry1Resumed = { id: "Zq81LmNo0PpQrStU", chain: [first], destination: { x: 600, y: 901 }, pending: { waypoints: [] }, state: "completed" };
+  const carry2 = { id: second, chain: [], destination: { x: 600, y: 951 }, pending: { waypoints: [{ x: 600, y: 1200 }] }, state: "pending" };
+  const carry2Resumed = { id: "Yx72KkMm1NnOoPpQ", chain: [second], destination: { x: 600, y: 1200 }, pending: { waypoints: [] }, state: "completed" };
+  for (const move of [carry1, carry1Resumed, carry2, carry2Resumed]) assert.ok(isCarryMovement(move), move.id);
+
+  // The rider dragged on its own, and that drag resumed after its own Region pause: both split the pair.
+  const own = { id: "Hh12Jj34Kk56Ll78", chain: [], destination: { x: 700, y: 851 }, pending: { waypoints: [{ x: 700, y: 1000 }] } };
+  const ownResumed = { id: "Mm90Nn12Oo34Pp56", chain: [own.id], destination: { x: 700, y: 1000 }, pending: { waypoints: [] } };
+  assert.ok(!isCarryMovement(own));
+  assert.ok(!isCarryMovement(ownResumed));
+  assert.ok(!isCarryMovement(undefined));
+  assert.ok(!isCarryMovement({ id: "", chain: [] }), "a token that never moved (core's empty movement)");
+});
+
+test("one carry in flight: the mount's next segment stops a carry still paused part way", () => {
+  const first = carryMovementId("AAAAAAAA");
+  assert.ok(carryInFlight({ id: first, chain: [], state: "pending" }), "paused at y 851, 901 pending: stop it");
+  assert.ok(carryInFlight({ id: "Zq81LmNo0PpQrStU", chain: [first], state: "pending" }), "a resumed part, paused again");
+  assert.ok(!carryInFlight({ id: first, chain: [], state: "completed" }), "already arrived: nothing to stop");
+  assert.ok(!carryInFlight({ id: first, chain: [], state: "stopped" }));
+  assert.ok(!carryInFlight({ id: "Hh12Jj34Kk56Ll78", chain: [], state: "pending" }), "the rider's own paused move is not ours to stop");
 });
 
 test("the rider follows the mount's waypoints in its corner, keeping elevation, level and action", () => {

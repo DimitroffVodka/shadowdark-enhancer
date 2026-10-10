@@ -8,7 +8,7 @@
  * client that moved the mount; a player who cannot update the rider asks the
  * active GM to. The carried move ignores walls (the mount's own move already
  * met them) and the movement tracker charges and locks nothing for it
- * (isCarriedMove). The rider moving any other way, Dismount, or the mount
+ * (isCarryMovement). A player rides only a Mount they own; a GM any. The rider moving any other way, Dismount, or the mount
  * being deleted ends the pair. Overland's `occupants` (who rides what while
  * travelling) is a different thing and is not touched.
  */
@@ -17,7 +17,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { isActiveGM, refuseQuery, registerQuery, relayToGM } from "../shared/gm-relay.mjs";
 import { isMount } from "../actors/mount-scores.mjs";
-import { REACH_SQUARES, followPath, gapSquares, grownSize, isCarried, pickMount } from "./mounted-core.mjs";
+import { carryInFlight, carryMovementId, followPath, grownSize, isCarryMovement, pickMount } from "./mounted-core.mjs";
 
 export const MOUNTED_QUERY = `${MODULE_ID}.mounted`;
 const FLAG = "mountedOn";
@@ -34,15 +34,15 @@ export const mountOf = (rider) => (flagOf(rider) ? rider.parent?.tokens?.get(fla
 /** The token riding this mount, or null. */
 export const riderOf = (mount) => mount?.parent?.tokens?.find((t) => flagOf(t) === mount.id) ?? null;
 
-/** Is this rider movement its mount carrying it? The movement tracker spends and locks nothing for one. */
-export function isCarriedMove(rider, move) {
-  const mount = mountOf(rider);
-  return isCarried(move, mount?._source, rider?._source, gridSize(rider));
-}
-
-/** Walk the rider through the mount's waypoints, shifted to its corner. */
+/**
+ * Walk the rider through the mount's waypoints, shifted to its corner, as a
+ * carry (its movement id marks it; the movement tracker charges and locks
+ * nothing for one). A carry a Region paused part way is stopped first, so
+ * core doesn't resume it after this one starts.
+ */
 function walk(rider, mountWaypoints) {
-  rider.move(followPath(mountWaypoints, rider._source, gridSize(rider)), CARRY)
+  if (carryInFlight(rider.movement) && rider.movement.user?.isSelf) rider.stopMovement();
+  rider.move(followPath(mountWaypoints, rider._source, gridSize(rider)), { ...CARRY, id: carryMovementId(foundry.utils.randomID(8)) })
     .catch((err) => console.warn(`${MODULE_ID} | carrying a rider failed`, err));
 }
 
@@ -65,7 +65,8 @@ function findMount(rider) {
   const busy = new Set();
   for (const t of tokens) if (flagOf(t) && tokens.get(flagOf(t))) busy.add(t.id).add(flagOf(t));
   const shape = (t) => ({ id: t.id, x: t._source.x, y: t._source.y, width: t._source.width, height: t._source.height, busy: busy.has(t.id) });
-  const candidates = tokens.filter((t) => t !== rider && isMount(t.actor) && (game.user.isGM || !t.hidden)).map(shape);
+  // A player rides only a Mount they own; a GM any (isOwner is true for a GM).
+  const candidates = tokens.filter((t) => t !== rider && isMount(t.actor) && t.isOwner).map(shape);
   const id = pickMount(shape(rider), candidates, { targets: [...(game.user.targets ?? [])].map((t) => t.id), gridSize: gridSize(rider) });
   return id ? tokens.get(id) : null;
 }
@@ -73,11 +74,9 @@ function findMount(rider) {
 async function mountUp(rider) {
   const mount = findMount(rider);
   if (!mount) return ui.notifications.warn(game.i18n.localize("SDE.mounted.noMount"));
-  // A mount's token is 2x2: grow a smaller one first (top-left kept), through the GM when it isn't ours.
+  // A mount's token is 2x2: grow a smaller one first (top-left kept). The user owns the mount, so may.
   const size = grownSize(mount._source);
-  if (size && mount.canUserModify(game.user, "update")) await mount.update(size, GROW);
-  else if (size && !(await relayToGM(MOUNTED_QUERY, { action: "grow", sceneId: mount.parent.id, mountId: mount.id, riderId: rider.id },
-    { label: game.i18n.localize("SDE.mounted.relay") }))) return;
+  if (size) await mount.update(size, GROW);
   await replaceModuleFlag(rider, FLAG, mount.id, rider.sort > mount.sort ? {} : { sort: mount.sort + 1 });
   walk(rider, [mount._source]);
 }
@@ -86,35 +85,20 @@ const dismount = (rider) => rider.unsetFlag(MODULE_ID, FLAG)
   .catch((err) => console.warn(`${MODULE_ID} | dismounting failed`, err));
 
 /**
- * The GM side of what a player could not do themselves. "carry": the mount's
- * mover may not own its rider. "grow": a rider's owner mounting a small mount
- * they may not own. Positions and sizes come from this client's documents,
- * never the payload.
+ * The GM side of a carry a player could not make: the mount's mover owns the
+ * mount but may not own its rider (a GM seated another player's character on
+ * it). The requester must own the mount. Positions come from this client's
+ * documents, never the payload.
  */
 export async function handleMountedQuery(data, user) {
   const refusal = refuseQuery(user, game.i18n.localize("SDE.mounted.relay"));
   if (refusal) return refusal;
-  const tokens = game.scenes?.get(data?.sceneId)?.tokens;
-  const mount = tokens?.get(data?.mountId);
-  const gone = { ok: false, error: game.i18n.localize("SDE.mounted.gone") };
-  const notYours = { ok: false, error: game.i18n.localize("SDE.mounted.notYours") };
-  if (data?.action === "carry") {
-    const rider = riderOf(mount);
-    if (!rider) return gone;
-    if (!mount.testUserPermission(user, "OWNER")) return notYours;
-    carry(mount, rider);
-    return { ok: true };
-  }
-  if (data?.action === "grow") {
-    const rider = tokens?.get(data?.riderId);
-    if (!rider || !isMount(mount?.actor) || riderOf(mount)) return gone;
-    if (!rider.testUserPermission(user, "OWNER")) return notYours;
-    if (gapSquares(rider._source, mount._source, gridSize(mount)) > REACH_SQUARES) return gone;
-    const size = grownSize(mount._source);
-    if (size) await mount.update(size, GROW);
-    return { ok: true };
-  }
-  return gone;
+  const mount = game.scenes?.get(data?.sceneId)?.tokens.get(data?.mountId);
+  const rider = data?.action === "carry" ? riderOf(mount) : null;
+  if (!rider) return { ok: false, error: game.i18n.localize("SDE.mounted.gone") };
+  if (!isMount(mount.actor) || !mount.testUserPermission(user, "OWNER")) return { ok: false, error: game.i18n.localize("SDE.mounted.notYours") };
+  carry(mount, rider);
+  return { ok: true };
 }
 
 export function registerMountedTokens() {
@@ -147,7 +131,7 @@ export function registerMountedTokens() {
   Hooks.on("updateToken", (doc, changes, _options, userId) => {
     if (userId !== game.userId) return;
     if (changes.x === undefined && changes.y === undefined && changes.elevation === undefined) return;
-    if (flagOf(doc) && !isCarriedMove(doc, doc.movement)) void dismount(doc);
+    if (flagOf(doc) && !isCarryMovement(doc.movement)) void dismount(doc);
     const rider = riderOf(doc);
     if (rider) void follow(doc, rider);
   });

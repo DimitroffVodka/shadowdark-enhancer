@@ -39,7 +39,7 @@ import { ICONS }      from "../shared/icons.mjs";
 import { segmentFeet } from "./movement-calc.mjs";
 import { shouldBlockMovement } from "./movement-lock-core.mjs";
 import { relayToGM, authorizeActorFor, refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
-import { isCarriedMove } from "../mounted/mounted-tokens.mjs";
+import { isCarryMovement } from "../mounted/mounted-core.mjs";
 
 /** The "Free movement crawl" setting applies now: no budget, ruler colours or lock out of combat. */
 const freeCrawl = () => freeCrawlActive(game.settings.get(MODULE_ID, "crawlFreeMovement"), CrawlState.mode);
@@ -391,7 +391,7 @@ export const MovementTracker = {
     if (opts?.[MODULE_ID]?.rollback) return; // skip accounting for rollback moves
     if (opts?.[MODULE_ID]?.mountGrow) return; // a mount's token grown to 2x2 when mounted (#326): a size change, not a move
     // A rider carried by its mount (#326): the mount's move paid for it, and the out-of-turn lock does not apply.
-    if (isCarriedMove(doc, opts?._movement?.[doc.id])) { delete this._pendingDeduct[doc.id]; return; }
+    if (isCarryMovement(opts?._movement?.[doc.id])) { delete this._pendingDeduct[doc.id]; return; }
     if (changes.x !== undefined || changes.y !== undefined) {
 
       // Compute and cache the distance now, while we still have old position.
