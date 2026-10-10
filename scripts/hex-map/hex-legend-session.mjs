@@ -41,7 +41,7 @@ export async function openLegendSession({ sceneId, folder = "", onProgress = nul
   app._headless = true;
   app._onProgress = onProgress;
   app._loadState();
-  // As the window does: tags painted elsewhere meanwhile (brush, overlay, Hexplorer) are taken in, so Apply and Confirm
+  // As the window does: tags painted elsewhere meanwhile (brush, overlay, Hex Data) are taken in, so Apply and Confirm
   // never write an old copy back over them.
   const hook = app._hearOutsideTags();
   const stop = () => Hooks.off("updateScene", hook);

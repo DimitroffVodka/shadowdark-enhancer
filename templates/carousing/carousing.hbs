@@ -1,7 +1,6 @@
 <section class="sde-ui ui-body sde-carousing-body cr-root">
   <h3 class="ui-h">{{#unless embedded}}{{title}} {{/unless}}{{#if holiday}}<small>{{holiday}}</small>{{/if}}</h3>
   <p class="ui-muted cr-hint">{{localize "SDE.carousing.sharedRule"}}</p>
-  {{#if overlap}}<div class="ui-note bad">{{localize "SDE.carousing.sdxOverlap"}}</div>{{/if}}
   {{#if error}}<div class="ui-note bad" role="alert">{{error}}</div>{{/if}}
   {{#if missingTables}}<div class="ui-note bad" role="alert">{{localize "SDE.carousing.tablesMissing"}}</div>{{/if}}
   {{#if manualHoliday}}<p class="ui-muted cr-hint">{{localize "SDE.carousing.manualHoliday"}}</p>{{/if}}
@@ -67,7 +66,7 @@
     </div>
   </details>
 
-  {{#if manager}}{{#unless overlap}}
+  {{#if manager}}
   <div class="ui-actions">
     {{#if setup}}<button type="button" class="ui-btn ghost" data-action="cancel">{{localize "SDE.carousing.cancel"}}</button>{{/if}}
     <div class="ui-right">
@@ -77,5 +76,5 @@
       {{#if complete}}<button type="button" class="ui-btn primary" data-action="begin">{{localize "SDE.carousing.begin"}}</button>{{/if}}
     </div>
   </div>
-  {{/unless}}{{/if}}
+  {{/if}}
 </section>

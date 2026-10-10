@@ -9,7 +9,7 @@ import { registerA0Prompt } from "./hex-map/a0-prompt.mjs";
 import { hexNumberAt, hasHexNumbering } from "./hex-map/hex-number-api.mjs";
 import { registerHexCoordinates } from "./hex-map/coordinate-overlay.mjs";
 import { registerHexMapControls } from "./hex-map/hex-map-controls.mjs";
-import { HexExplorer, registerHexExplorer } from "./hex-map/hex-explorer.mjs";
+import { HexExplorer, registerHexExplorer, ownsHexData } from "./hex-map/hex-explorer.mjs";
 import { HexRecords, isHexAdopted } from "./hex-map/hex-records.mjs";
 import { adoptHexScene, registerHexAdoption } from "./hex-map/hex-adoption.mjs";
 import { HexFog, ownsHexFog, registerHexFog } from "./hex-map/hex-fog.mjs";
@@ -148,7 +148,7 @@ const STYLESHEET_REV = "7883b351acf9";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "95f2eed97d94";
+const BUILD_REV = "cad40485398e";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -955,7 +955,7 @@ Hooks.once("init", () => {
     // background cell by cell and stores the GM's terrain tags on the scene;
     // datasets go to Shadowdark Extras' hexcrawl builder or download as JSON.
     // Nothing from a published map ships with the module (docs/plans/hex-map-dataset.md).
-    owns: (feature, target) => feature === "hex.fog" && ownsHexFog(target),
+    owns: (feature, target) => (feature === "hex.fog" && ownsHexFog(target)) || (feature === "hex.tooltip" && ownsHexData(target)),
     hexMaps: {
       fog: HexFog,
       explorer: HexExplorer,

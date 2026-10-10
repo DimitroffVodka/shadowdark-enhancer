@@ -99,7 +99,7 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._capture(); this.saving = true;
     this.element.querySelector('[data-action="save"]').disabled = true;
     try { await HexExplorer.save(this.offset, this.draft, this.scene, this.partyId); this.draft = null; }
-    catch (error) { console.error(`${MODULE_ID} | Hexplorer edit`, error); ui.notifications.warn(t(error.message.startsWith("SDE.") ? error.message : "SDE.hexExplorer.failed")); }
+    catch (error) { console.error(`${MODULE_ID} | Hex Data edit`, error); ui.notifications.warn(t(error.message.startsWith("SDE.") ? error.message : "SDE.hexExplorer.failed")); }
     finally { this.saving = false; this.render(); }
   }
 }

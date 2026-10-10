@@ -37,9 +37,6 @@ export function bestProjection(projections) {
   const rank = p => (p.discovery?.locationRevealed ? 2 : 0) + (p.discovery?.visited ? 1 : 0);
   return projections.filter(Boolean).sort((a, b) => rank(b) - rank(a))[0] ?? null;
 }
-export function overlapAllowed({ active = false, disabled = false, guardVersion = 0 } = {}) {
-  return !active || disabled || guardVersion >= 1;
-}
 /** Keep a full archival copy, including malformed/unknown inputs. Native values win. */
 export function importFog(existing, flags = {}) {
   const cells = structuredClone(existing), legacy = structuredClone(flags);

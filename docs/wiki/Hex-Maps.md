@@ -18,7 +18,7 @@ its own:
 Everything is built from your own book text and your own map image in your
 browser. Nothing is uploaded, and nothing from a book ships with the module.
 
-## Native coordinates, Hexplorer and fog
+## Native coordinates, Hex Data and fog
 
 These work without Extras. Each user's **Show hex coordinates** setting follows
 `hexMaps.numberAt`, preserving leading zeroes and calibration. Flat-top odd/even
@@ -26,7 +26,7 @@ column grids are supported; unsupported grids and unnumbered cells get no invent
 labels. Eligible scenes adopt native records once; unnumbered adopted maps use
 scene UUID plus offset. Hover for disclosed terrain/public notes (the GM's card also names the terrain of hexes the players have not found); a player's
 short click keeps the small card with permitted links. The GM gets no pinned
-card or Edit button: a double click opens the Hexplorer, which saves terrain,
+card or Edit button: a double click opens Hex Data, which saves terrain,
 line features, rich locations, notes and discovery; travel prices update
 immediately. Pins, token drags and long-press pings retain their handlers.
 
@@ -51,7 +51,7 @@ parties that have one of their characters on the roster, plus anything the GM
 revealed to everyone. A party made from a world that held only shared fog starts
 with that shared map: nothing already revealed is lost. The GM sees the map of the
 party they have selected (else the one travelling); selecting another party in the
-Party window redraws it, and the Hexplorer's Revealed/Visited/Location boxes edit
+Party window redraws it, and Hex Data's Revealed/Visited/Location boxes edit
 that party's entry, not everyone's. A first-entry roll table is rolled once per
 party. **Start travel** asks which party when more than one has a token on the map
 (or exists and has none), and a different party starts a fresh travel day.
@@ -67,14 +67,18 @@ Adoption cannot undo data already disclosed by a legacy Extras store.
 native hex gameplay do not require Extras. Map painting/authoring and unrelated
 Extras features remain available; their authoring readers are retained.
 `game.shadowdarkEnhancer.owns('hex.fog', scene)` returns enabled/adopted fog
-ownership; other feature keys currently return false. A cooperating Extras
-must stand down for that scene. Available Extras 6.15.0 has no fog guard:
-native fog stays off with a notice while Extras scene fog is on. Native Parties
-use native camping; pending Extras camps keep their original executor.
-Carousing gates on the Extras Carousing setting; the native
-Hexplorer requires the Extras tooltip to be disabled. Enhancer never toggles
-those settings. Guarded-provider integration is not yet verified; this does
-not prevent native play with Extras disabled.
+ownership, and `game.shadowdarkEnhancer.owns('hex.tooltip', scene)` returns
+true on any numbered or adopted hex scene (Hex Data's hover card and editor);
+other feature keys return false. A cooperating Extras must stand down for that
+scene. Where both modules have the same feature the Enhancer takes priority and
+nothing has to be switched off: native fog, Hex Data's hover card and editor,
+the hex coordinate labels and Carousing all run without waiting for Extras, and
+Extras defers to them (hard-coded, no setting; shadowdark-extras#204). Extras'
+Map Coordinates steps aside only where your **Show hex coordinates** is on for a
+scene the Enhancer has numbered; with it off, or on a scene the Enhancer has not
+numbered, Extras draws as before. Native
+Parties use native camping; pending Extras camps keep their original executor.
+Enhancer never toggles Extras' settings. Native play does not need Extras.
 
 Legacy flagged NPC Parties adopt in place with UUIDs/items/ownership/foreign
 flags retained. SDX `type: Party` documents are not converted. Native hex adoption
@@ -104,7 +108,7 @@ never mixed up. The word *river* is both, which is why this matters:
 - **Only terrain chooses an encounter column**, apart from that coast rule.
 - **Keyed locations and settlements stand on the ground their book row names.**
   They are tagged with what sits on them (keyed location, village, town, city),
-  which is no ground, so for an encounter check, the Hexplorer card and the
+  which is no ground, so for an encounter check, the Hex Data card and the
   Encounter zones picture such a hex takes the terrain printed on its keyed row
   ("Mountain", "Swamp, coast"), coast included. A row that prints only features
   ("Coast, river") names no ground, and that hex finds no column.
