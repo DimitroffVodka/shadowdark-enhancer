@@ -389,6 +389,7 @@ export const MovementTracker = {
    */
   _onPreUpdateToken(doc, changes, opts, userId) {
     if (opts?.[MODULE_ID]?.rollback) return; // skip accounting for rollback moves
+    if (opts?.[MODULE_ID]?.mountGrow) return; // a mount's token grown to 2x2 when mounted (#326): a size change, not a move
     // A rider carried by its mount (#326): the mount's move paid for it, and the out-of-turn lock does not apply.
     if (isCarriedMove(doc, opts?._movement?.[doc.id])) { delete this._pendingDeduct[doc.id]; return; }
     if (changes.x !== undefined || changes.y !== undefined) {

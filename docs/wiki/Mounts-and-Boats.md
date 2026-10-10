@@ -53,8 +53,10 @@ death is at full CON zero, not modifier zero. Riders, gear and UUIDs remain.
 
 ### Riding on the map
 
-A character can ride a mount's token on any scene. Give the mount a 2x2
-token (any token bigger than the rider works, Mount actor or not).
+A character can ride a Mount actor's token on any scene (other creatures,
+however big, can't be ridden). A new Mount's token is 2x2; an older one that
+is smaller grows to 2x2 the moment someone mounts it, keeping its top-left
+corner. Existing actors are otherwise left as they are.
 
 - **Mount:** open the rider's Token HUD (right-click the token). A horse
   button sits in the left column when a free mount is within 5 ft. It

@@ -321,3 +321,10 @@ test("wiring: a rider carried by its mount is not locked out of turn (#326)", ()
   const own = { _movement: { [rider.id]: { destination: { x: 900, y: 400 }, pending: { waypoints: [] } } } };
   assert.strictEqual(preUpdateToken(rider, { x: 900, y: 400 }, own, "u1"), false, "moving on its own is an ordinary move");
 });
+
+test("wiring: growing a mount's token to 2x2 when it is mounted is not a move (#326)", () => {
+  boot();
+  stubGame({ combatantTokenIds: ["tok-out", "tok-current"], currentTokenId: "tok-current" });
+  const grow = { [MODULE_ID]: { mountGrow: true } };
+  assert.strictEqual(preUpdateToken(tokenDoc("tok-out"), { x: 0, y: 0, width: 2, height: 2 }, grow, "u1"), undefined);
+});

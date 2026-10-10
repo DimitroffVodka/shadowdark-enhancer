@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  riderCorner, isAtCorner, finalPoint, isCarried, followPath, gapSquares, pickMount,
+  riderCorner, isAtCorner, finalPoint, isCarried, followPath, gapSquares, pickMount, grownSize,
 } from "../scripts/mounted/mounted-core.mjs";
 
 const G = 100;
@@ -61,12 +61,27 @@ test("pick the targeted mount in reach, else the nearest free one", () => {
   assert.equal(pickMount(rider, [horse, pony, far], { targets: new Set(["far"]), gridSize: G }), "horse", "a target out of reach is not picked");
 });
 
-test("no mount: too small, ridden, out of reach, itself, or the rider carries someone", () => {
+test("no mount: ridden, out of reach, itself, or the rider carries someone", () => {
   const rider = { ...knight, x: 400, y: 300 };
-  const dog = { id: "dog", x: 300, y: 300, width: 1, height: 1 };
-  assert.equal(pickMount(rider, [dog], { gridSize: G }), null);
   assert.equal(pickMount(rider, [{ ...horse, busy: true }], { gridSize: G }), null);
   assert.equal(pickMount(rider, [{ ...horse, x: 700 }], { gridSize: G }), null);
   assert.equal(pickMount({ ...rider, width: 2, height: 2, id: "horse" }, [horse], { gridSize: G }), null);
   assert.equal(pickMount({ ...rider, busy: true }, [horse], { gridSize: G }), null);
+});
+
+test("a mount's token grows to 2x2 and never shrinks", () => {
+  assert.deepEqual(grownSize({ width: 1, height: 1 }), { width: 2, height: 2 });
+  assert.deepEqual(grownSize({ width: 2, height: 1 }), { width: 2, height: 2 });
+  assert.deepEqual(grownSize({ width: 3, height: 1 }), { width: 3, height: 2 });
+  assert.deepEqual(grownSize({}), { width: 2, height: 2 }, "a prototype token with no size set is 1x1");
+  assert.equal(grownSize({ width: 2, height: 2 }), null);
+  assert.equal(grownSize({ width: 3, height: 3 }), null);
+});
+
+test("a small mount in reach is picked; it is grown before the rider is placed", () => {
+  const rider = { ...knight, x: 400, y: 300 };
+  const pony = { id: "pony", x: 500, y: 300, width: 1, height: 1 };
+  assert.equal(pickMount(rider, [pony], { gridSize: G }), "pony");
+  const grown = { ...pony, ...grownSize(pony) };
+  assert.deepEqual(riderCorner(grown, rider, G), { x: 500, y: 400 });
 });

@@ -2,7 +2,8 @@
  * Shadowdark Enhancer — riding a mount on the map (#326), the Foundry half.
  *
  * Mount and Dismount are one Token HUD button on the rider (left column, a
- * horse; lit while riding). The pair is the rider's `mountedOn` flag, nothing
+ * horse; lit while riding). A mount is a Mount actor's token, grown to 2x2
+ * when it is mounted if it is smaller. The pair is the rider's `mountedOn` flag, nothing
  * on the mount. Moving the mount carries the rider along in its corner on the
  * client that moved the mount; a player who cannot update the rider asks the
  * active GM to. The carried move ignores walls (the mount's own move already
@@ -15,11 +16,14 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { isActiveGM, refuseQuery, registerQuery, relayToGM } from "../shared/gm-relay.mjs";
-import { followPath, isCarried, pickMount } from "./mounted-core.mjs";
+import { isMount } from "../actors/mount-scores.mjs";
+import { REACH_SQUARES, followPath, gapSquares, grownSize, isCarried, pickMount } from "./mounted-core.mjs";
 
 export const MOUNTED_QUERY = `${MODULE_ID}.mounted`;
 const FLAG = "mountedOn";
 const CARRY = { constrainOptions: { ignoreWalls: true, ignoreCost: true }, autoRotate: false, showRuler: false };
+// Growing a mount to 2x2 is a size change, not a move: the movement tracker lets it through out of turn.
+const GROW = { [MODULE_ID]: { mountGrow: true } };
 
 const gridSize = (doc) => doc.parent?.grid?.size ?? 100;
 const flagOf = (doc) => doc?.flags?.[MODULE_ID]?.[FLAG] ?? null;
@@ -54,14 +58,14 @@ async function follow(mount, rider) {
     { label: game.i18n.localize("SDE.mounted.relay") });
 }
 
-/** The mount this token would climb onto now, or null. */
+/** The mount this token would climb onto now, or null. Mounts are Mount actors' tokens; a mount rides nothing. */
 function findMount(rider) {
   const tokens = rider.parent?.tokens;
-  if (!tokens) return null;
+  if (!tokens || isMount(rider.actor)) return null;
   const busy = new Set();
   for (const t of tokens) if (flagOf(t) && tokens.get(flagOf(t))) busy.add(t.id).add(flagOf(t));
   const shape = (t) => ({ id: t.id, x: t._source.x, y: t._source.y, width: t._source.width, height: t._source.height, busy: busy.has(t.id) });
-  const candidates = tokens.filter((t) => t !== rider && (game.user.isGM || !t.hidden)).map(shape);
+  const candidates = tokens.filter((t) => t !== rider && isMount(t.actor) && (game.user.isGM || !t.hidden)).map(shape);
   const id = pickMount(shape(rider), candidates, { targets: [...(game.user.targets ?? [])].map((t) => t.id), gridSize: gridSize(rider) });
   return id ? tokens.get(id) : null;
 }
@@ -69,6 +73,11 @@ function findMount(rider) {
 async function mountUp(rider) {
   const mount = findMount(rider);
   if (!mount) return ui.notifications.warn(game.i18n.localize("SDE.mounted.noMount"));
+  // A mount's token is 2x2: grow a smaller one first (top-left kept), through the GM when it isn't ours.
+  const size = grownSize(mount._source);
+  if (size && mount.canUserModify(game.user, "update")) await mount.update(size, GROW);
+  else if (size && !(await relayToGM(MOUNTED_QUERY, { action: "grow", sceneId: mount.parent.id, mountId: mount.id, riderId: rider.id },
+    { label: game.i18n.localize("SDE.mounted.relay") }))) return;
   await replaceModuleFlag(rider, FLAG, mount.id, rider.sort > mount.sort ? {} : { sort: mount.sort + 1 });
   walk(rider, [mount._source]);
 }
@@ -77,18 +86,35 @@ const dismount = (rider) => rider.unsetFlag(MODULE_ID, FLAG)
   .catch((err) => console.warn(`${MODULE_ID} | dismounting failed`, err));
 
 /**
- * The GM side of a carry a player could not make: the mount's mover may not
- * own the rider. Positions come from this client's documents, never the payload.
+ * The GM side of what a player could not do themselves. "carry": the mount's
+ * mover may not own its rider. "grow": a rider's owner mounting a small mount
+ * they may not own. Positions and sizes come from this client's documents,
+ * never the payload.
  */
 export async function handleMountedQuery(data, user) {
   const refusal = refuseQuery(user, game.i18n.localize("SDE.mounted.relay"));
   if (refusal) return refusal;
-  const mount = game.scenes?.get(data?.sceneId)?.tokens.get(data?.mountId);
-  const rider = data?.action === "carry" ? riderOf(mount) : null;
-  if (!rider) return { ok: false, error: game.i18n.localize("SDE.mounted.gone") };
-  if (!mount.testUserPermission(user, "OWNER")) return { ok: false, error: game.i18n.localize("SDE.mounted.notYours") };
-  carry(mount, rider);
-  return { ok: true };
+  const tokens = game.scenes?.get(data?.sceneId)?.tokens;
+  const mount = tokens?.get(data?.mountId);
+  const gone = { ok: false, error: game.i18n.localize("SDE.mounted.gone") };
+  const notYours = { ok: false, error: game.i18n.localize("SDE.mounted.notYours") };
+  if (data?.action === "carry") {
+    const rider = riderOf(mount);
+    if (!rider) return gone;
+    if (!mount.testUserPermission(user, "OWNER")) return notYours;
+    carry(mount, rider);
+    return { ok: true };
+  }
+  if (data?.action === "grow") {
+    const rider = tokens?.get(data?.riderId);
+    if (!rider || !isMount(mount?.actor) || riderOf(mount)) return gone;
+    if (!rider.testUserPermission(user, "OWNER")) return notYours;
+    if (gapSquares(rider._source, mount._source, gridSize(mount)) > REACH_SQUARES) return gone;
+    const size = grownSize(mount._source);
+    if (size) await mount.update(size, GROW);
+    return { ok: true };
+  }
+  return gone;
 }
 
 export function registerMountedTokens() {

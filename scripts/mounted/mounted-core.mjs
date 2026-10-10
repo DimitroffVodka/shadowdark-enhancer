@@ -69,12 +69,22 @@ export function gapSquares(a, b, gridSize) {
 /** How far a mount may be from its rider: one square, Shadowdark's close. */
 export const REACH_SQUARES = 1;
 
+/** A mount's token is 2x2 (#326). */
+export const MOUNT_SQUARES = 2;
+
+/** The size a mount's token grows to, or null when it is 2x2 or bigger already. Never shrinks. */
+export function grownSize({ width = 1, height = 1 } = {}) {
+  if (width >= MOUNT_SQUARES && height >= MOUNT_SQUARES) return null;
+  return { width: Math.max(MOUNT_SQUARES, width), height: Math.max(MOUNT_SQUARES, height) };
+}
+
 /**
  * Pick the mount a rider climbs onto, or null.
  *
- * A mount is a bigger token than the rider in both directions, with no rider
- * and not riding anything itself, within reach. A targeted one wins; else the
- * nearest. A rider that carries a rider of its own mounts nothing (no chains).
+ * Candidates are mount tokens (the caller decides that from the actor type);
+ * one with no rider and not riding anything itself, within reach, qualifies.
+ * A targeted one wins; else the nearest. A rider that carries a rider of its
+ * own mounts nothing (no chains).
  *
  * @param {{id, x, y, width, height, busy?: boolean}} rider  busy: someone rides it
  * @param {Array<{id, x, y, width, height, busy?: boolean}>} candidates  busy: ridden or riding
@@ -85,7 +95,7 @@ export function pickMount(rider, candidates, { targets = [], gridSize }) {
   if (rider.busy) return null;
   const targeted = new Set(targets);
   const fits = candidates
-    .filter((m) => m.id !== rider.id && !m.busy && m.width > rider.width && m.height > rider.height)
+    .filter((m) => m.id !== rider.id && !m.busy)
     .map((m) => ({ id: m.id, gap: gapSquares(rider, m, gridSize), targeted: targeted.has(m.id) }))
     .filter((m) => m.gap <= REACH_SQUARES)
     .sort((a, b) => (b.targeted - a.targeted) || (a.gap - b.gap));
