@@ -16,7 +16,7 @@ import { parsePageRange } from "../pdf-text-extract.mjs";
 import { allSites } from "./adventure-manifest.mjs";
 import { MODULE_ID } from "../../shared/module-id.mjs";
 import { parseAdventurePages, bodyBlocks } from "./adventure-parser.mjs";
-import { trapCandidates } from "./adventure-traps.mjs";
+import { trapCandidates, trapsFor } from "./adventure-traps.mjs";
 import { creatureMentions, creatureResolver, creatureVocabulary } from "./adventure-creatures.mjs";
 import { commitAdventure, addOverviewToWorldCopy } from "./adventure-commit.mjs";
 import { assembleOverview, linkableItems } from "./adventure-journal.mjs";
@@ -201,20 +201,64 @@ export async function readSiteTraps(site) {
 }
 
 /**
+ * The book lines a site's traps take their effect text from: read from the GM's book only when one of the site's traps
+ * names a line, and empty when the book is not linked (the traps are built all the same, without that text).
+ * @returns {Promise<Record<number,string[]>>}
+ */
+export async function siteTrapTexts(site) {
+  if (!trapsFor(site?.id)?.some((e) => Number.isInteger(e.nth))) return {};
+  return (await readSiteTraps(site)) ?? {};
+}
+
+/**
  * Add a site's traps to its scene and nothing else: no pins, creatures or walls are touched, and a trap already there is
  * left as it is. The safe way to give a scene its traps once its walls have been corrected by hand.
  * @param {Scene} scene
- * @returns {Promise<{status:"built"|"none"|"mismatch"|"no-book"|"not-adventure", placed:number, existing:number, skipped:Array<{pin:number, nth:number, why:string}>}>}
+ * @returns {Promise<{status:"built"|"none"|"mismatch"|"not-adventure", placed:number, existing:number, skipped:Array<{pin:number, nth:number, why:string}>}>}
  */
 export async function addSiteTraps(scene) {
   const { MAP_FLAG, placeSiteTraps } = await import("./adventure-scene.mjs");
   const site = allSites().find((s) => s.id === scene?.getFlag(MODULE_ID, MAP_FLAG)?.site);
   const out = (status) => ({ status, placed: 0, existing: 0, skipped: [] });
   if (!site) return out("not-adventure");
-  const texts = await readSiteTraps(site);
-  if (!texts) return out("no-book");
+  const texts = await siteTrapTexts(site);
   const rect = scene.dimensions?.sceneRect ?? { x: 0, y: 0, width: scene.width, height: scene.height };
   return placeSiteTraps(scene, site, rect, texts);
+}
+
+/**
+ * The symbols a site's key map prints, read out of the GM's own book (map-labels.mjs stitchMapLabels): the places of its secret
+ * doors, locked doors and barricades. Read when they are placed, never stored.
+ * @returns {Promise<{marks:Array<{kind:string,x:number,y:number}>, aspect:number}|null|undefined>} undefined when the book is not linked, null when its key map cannot be read
+ */
+export async function readSiteMarks(site) {
+  const file = resolveSourcePdf(site.src);
+  const mapPages = site.markPages ?? site.mapPages;
+  if (!file || !mapPages) return undefined;
+  const pages = parsePageRange(mapPages).map((p) => sourcePdfTarget(site.src, String(p))?.page).filter(Number.isInteger);
+  const { extractMapLabels } = await import("../pdf-text-extract.mjs");
+  const { stitchMapLabels, clipToFrame } = await import("./map-labels.mjs");
+  const map = stitchMapLabels(await extractMapLabels(file, pages));
+  return map && clipToFrame(map, site.markFrame);
+}
+
+/**
+ * Add a site's key-map symbols to its scene and nothing else: no pins, creatures, traps or walls are touched, and a symbol
+ * already there is left as it is. The safe way to give a scene its symbols once its walls have been corrected by hand.
+ * @param {Scene} scene
+ * @returns {Promise<{status:"built"|"none"|"mismatch"|"no-book"|"unreadable"|"not-adventure", placed:number, existing:number}>}
+ */
+export async function addSiteMarks(scene) {
+  const { MAP_FLAG, placeSiteMarks } = await import("./adventure-scene.mjs");
+  const site = allSites().find((s) => s.id === scene?.getFlag(MODULE_ID, MAP_FLAG)?.site);
+  const out = (status) => ({ status, placed: 0, existing: 0 });
+  if (!site) return out("not-adventure");
+  if (!(site.markPages ?? site.mapPages)) return out("none");
+  const map = await readSiteMarks(site);
+  if (map === undefined) return out("no-book");
+  if (!map) return out("unreadable");
+  const rect = scene.dimensions?.sceneRect ?? { x: 0, y: 0, width: scene.width, height: scene.height };
+  return placeSiteMarks(scene, site, rect, map);
 }
 
 /**

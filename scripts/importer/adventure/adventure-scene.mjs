@@ -20,6 +20,8 @@ import { markersFor } from "./adventure-layouts.mjs";
 import { wallsFor, planWalls, wallTypes, WALL_FLAG, LIGHT_FLAG, planLights, reachableSquares } from "./adventure-walls.mjs";
 import { mapFits } from "./map-labels.mjs";
 import { trapsFor, planSiteTraps, TRAP_REGION_FLAG } from "./adventure-traps.mjs";
+import { planMarks, MARK_FLAG } from "./adventure-marks.mjs";
+import { REVIEWED_WALLS, REVIEWED_LIGHTS, REVIEWED_CREATURES } from "./adventure-reviewed.mjs";
 import { TRAP_TYPE } from "../../traps/traps.mjs";
 import { resolveMentions, bestiaryLookup } from "./adventure-creatures.mjs";
 import { L as t } from "../../shared/i18n.mjs";
@@ -176,6 +178,28 @@ export function planMarkerTokens({ markers, rect, gridSize = DEFAULT_GRID_SIZE, 
   return out;
 }
 
+/** The key of a creature placed from the reviewed list, before its place in that list. */
+const REVIEW_KEY = "review/";
+
+/**
+ * Pure: the tokens for a site's reviewed creatures (adventure-reviewed.mjs), each where the GM left it on the reviewed scene:
+ * its top-left corner as a fraction of the map, not snapped (a small creature sits inside its square), with the name the GM
+ * gave it. A creature whose key is already in `placed` is left out, so running this twice never doubles one.
+ * @param {{list:Array<[string, number, number, string?]>, rect:{x:number,y:number,width:number,height:number}, placed?:Iterable<string>}} args
+ *   list: [monster, x, y, name] per creature
+ * @returns {Array<{key:string, monster:string, x:number, y:number, name?:string}>}  x, y in scene pixels
+ */
+export function planReviewedCreatures({ list, rect, placed = [] }) {
+  const done = new Set(placed);
+  return (list ?? [])
+    .map(([monster, u, v, name], i) => ({
+      key: `${REVIEW_KEY}${i + 1}`, monster,
+      x: Math.round(rect.x + u * rect.width), y: Math.round(rect.y + v * rect.height),
+      ...(name ? { name } : {}),
+    }))
+    .filter((p) => !done.has(p.key));
+}
+
 /** The squares around a square, nearest ring first and each ring in a fixed turn: the middle itself is left to the pin. */
 function ringSquares(radius) {
   const out = [];
@@ -242,7 +266,7 @@ export function planCreatureTokens({ creatures, pins, rect, gridSize = DEFAULT_G
  * Pure: the token data for one planned creature. Hidden, so the players meet it by
  * walking in; the GM sees it, and reveals it when the party does.
  * @param {object} source  the actor's token source (id dropped)
- * @param {{key:string, x:number, y:number}} spot
+ * @param {{key:string, x:number, y:number, name?:string}} spot  name: the creature's own name, on the token and its actor
  * @param {string} siteId
  * @param {string} actorId
  */
@@ -254,6 +278,7 @@ export function markerTokenData(source, spot, siteId, actorId) {
     ...source, x: spot.x, y: spot.y, actorId, hidden: true,
     displayName: globalThis.CONST?.TOKEN_DISPLAY_MODES?.OWNER ?? 40,
     ...(placeholder ? { texture: { ...source.texture, tint: PLACEHOLDER_TINT } } : {}),
+    ...(spot.name ? { name: spot.name, delta: { ...(source.delta ?? {}), name: spot.name } } : {}),
     flags: { ...(source.flags ?? {}), [MODULE_ID]: { ...(source.flags?.[MODULE_ID] ?? {}), [MARKER_FLAG]: { site: siteId, key: spot.key } } },
   };
   delete data._id;
@@ -465,6 +490,21 @@ export async function placeMarkerTokens(scene, site, rect) {
 }
 
 /**
+ * Put a site's reviewed creatures on its scene, each where the GM left it. A creature already placed from the list is left
+ * alone, and a scene whose creatures were placed before the list existed (from the book's markers or text) keeps them as
+ * they are: adding the list as well would double every one.
+ * @param {Scene} scene
+ * @param {{id:string}} site
+ * @param {{x:number,y:number,width:number,height:number}} rect  the scene's image area
+ * @returns {Promise<{placed:number, missing:string[]}>}
+ */
+export async function placeReviewedCreatures(scene, site, rect) {
+  const placed = placedKeys(scene);
+  if (placed.some((k) => !k.startsWith(REVIEW_KEY))) return { placed: 0, missing: [] };
+  return spawnHiddenTokens(scene, site.id, planReviewedCreatures({ list: REVIEWED_CREATURES[site.id], rect, placed }));
+}
+
+/**
  * Put the creatures a site's text names on its scene, around each location's pin.
  * The names are matched against the world's monsters (NPC actors: core first, then
  * the GM's imports); a bold name the bestiary does not know places nothing.
@@ -493,7 +533,8 @@ export async function placeCreatureTokens(scene, site, rect, mentions) {
 }
 
 /**
- * Build a site's walls and doors on its scene from the data that ships with the module (adventure-walls.mjs). Run again,
+ * Build a site's walls and doors on its scene from the data that ships with the module (adventure-walls.mjs, with the GM's
+ * review of the map applied: adventure-reviewed.mjs). Run again,
  * it changes nothing: once the scene has any wall the module made, every wall stays exactly as it is, so a GM who moved
  * or retyped one keeps the correction. Nothing is ever deleted.
  * @param {Scene} scene
@@ -509,7 +550,7 @@ export async function placeSiteWalls(scene, site) {
   if (scene.walls.some((w) => w.getFlag(MODULE_ID, WALL_FLAG))) return { ...none, status: "kept" };
   const rect = scene.dimensions?.sceneRect ?? { x: 0, y: 0, width: scene.width, height: scene.height };
   if (!mapFits(data.aspect, rect.width, rect.height)) return { ...none, status: "mismatch" };
-  const docs = planWalls(data, rect, wallTypes()).map((w) => ({ ...w, flags: { [MODULE_ID]: { [WALL_FLAG]: true } } }));
+  const docs = planWalls(data, rect, wallTypes(), REVIEWED_WALLS[site.id]).map((w) => ({ ...w, flags: { [MODULE_ID]: { [WALL_FLAG]: true } } }));
   const made = await scene.createEmbeddedDocuments("Wall", docs);
   return { status: "built", walls: made.length, doors: made.filter((w) => w.door).length };
 }
@@ -525,12 +566,12 @@ export const LIT_FLAG = "adventureLit";
  */
 export async function placeSiteLights(scene, site) {
   const none = { status: "none", lights: 0, darkened: false };
-  const data = wallsFor(site?.id);
-  if (!data || (!data.lights?.length && data.dark === undefined)) return none;
+  const data = wallsFor(site?.id), patch = REVIEWED_LIGHTS[site?.id];
+  if (!data || (!data.lights?.length && data.dark === undefined && !patch?.add?.length)) return none;
   if (scene.lights.some((l) => l.getFlag(MODULE_ID, LIGHT_FLAG) !== undefined)) return { ...none, status: "kept" };
   const rect = scene.dimensions?.sceneRect ?? { x: 0, y: 0, width: scene.width, height: scene.height };
   if (!mapFits(data.aspect, rect.width, rect.height)) return { ...none, status: "mismatch" };
-  const docs = planLights(data, rect);
+  const docs = planLights(data, rect, patch);
   const made = docs.length ? await scene.createEmbeddedDocuments("AmbientLight", docs) : [];
   let darkened = false;
   if (data.dark !== undefined && !scene.getFlag(MODULE_ID, LIT_FLAG)) {
@@ -542,14 +583,14 @@ export async function placeSiteLights(scene, site) {
 }
 
 /**
- * Build the traps a site's book prints on its scene, from the positions that ship with the module (adventure-traps.mjs) and
- * the trap lines read out of the GM's own book. Each is a hidden Region around its pin with a Trap behavior (the one a GM
- * adds by hand), filled in from the book's words. Run again, it only adds traps that are missing: a Region the module
+ * Build a site's traps on its scene from the data that ships with the module (adventure-traps.mjs): where each one is and
+ * what it does, with its effect read from the GM's own book where the data names the line. Each is a Region with a Trap
+ * behavior (the one a GM adds by hand). Run again, it only adds traps that are missing: a Region the module
  * made before is left exactly as it is, so a GM who reshaped or edited one keeps it, and nothing is ever deleted.
  * @param {Scene} scene
  * @param {{id:string}} site
  * @param {{x:number,y:number,width:number,height:number}} rect  the scene's image area
- * @param {Record<number,string[]>} texts  trapCandidates per location number, read from the book
+ * @param {Record<number,string[]>} texts  trapCandidates per location number, read from the book (empty when it is not needed or not linked)
  * @returns {Promise<{status:"built"|"none"|"mismatch", placed:number, existing:number, skipped:Array<{pin:number, nth:number, why:string}>}>}
  *   none: the module has no traps (or no walls to bound them) for this map; mismatch: the picture is not the shape the data was made on
  */
@@ -565,11 +606,31 @@ export async function placeSiteTraps(scene, site, rect, texts) {
   const { traps, skipped } = planSiteTraps({ entries: todo, texts, pins, rect, gridSize, squaresOf: (pin) => reachableSquares(walls, rect, gridSize, pin, true) });
   const docs = traps.map((trap) => ({
     name: trap.name, color: "#c0392b", shapes: trap.shapes,
-    behaviors: [{ type: TRAP_TYPE, name: trap.name, system: trap.system }],
+    behaviors: [{ type: TRAP_TYPE, name: trap.name, system: trap.system, disabled: !!trap.disabled }],
     flags: { [MODULE_ID]: { [TRAP_REGION_FLAG]: { site: site.id, pin: trap.pin, nth: trap.nth } } },
   }));
   const made = docs.length ? await scene.createEmbeddedDocuments("Region", docs) : [];
   return { status: "built", placed: made.length, existing: entries.length - todo.length, skipped };
+}
+
+/**
+ * Put the symbols the book's key map prints (secret doors, locked doors, barricades) on a site's scene as hidden Tiles (GM only), in
+ * the places the key map has them. Run again, it only adds the ones that are missing: a mark the module made before is left
+ * exactly as it is (moved or resized by the GM, it stays that way), one the GM deleted is made again, and nothing is ever deleted.
+ * @param {Scene} scene
+ * @param {{id:string}} site
+ * @param {{x:number,y:number,width:number,height:number}} rect  the scene's image area
+ * @param {{marks:Array<{kind:string,x:number,y:number}>, aspect:number}} map  stitchMapLabels of the book's key map
+ * @returns {Promise<{status:"built"|"none"|"mismatch", placed:number, existing:number}>}
+ *   none: the key map shows no such symbols; mismatch: the scene's picture is not the shape of the book's map
+ */
+export async function placeSiteMarks(scene, site, rect, map) {
+  if (!map?.marks?.length) return { status: "none", placed: 0, existing: 0 };
+  if (!mapFits(map.aspect, rect.width, rect.height)) return { status: "mismatch", placed: 0, existing: 0 };
+  const have = scene.tiles.map((tile) => tile.getFlag(MODULE_ID, MARK_FLAG)?.key).filter(Boolean);
+  const plan = planMarks({ marks: map.marks, rect, gridSize: scene.grid?.size ?? DEFAULT_GRID_SIZE, siteId: site.id, placed: have });
+  const made = plan.length ? await scene.createEmbeddedDocuments("Tile", plan.map((p) => p.data)) : [];
+  return { status: "built", placed: made.length, existing: map.marks.length - plan.length };
 }
 
 /** Mark a location skipped (or not) on its scene. Written whole, never merged. */

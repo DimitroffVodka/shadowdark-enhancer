@@ -306,7 +306,6 @@ export async function placeAdventureTraps(scene = canvas?.scene) {
   const built = await addSiteTraps(scene);
   const say = (key, data) => game.i18n.format(key, data ?? {});
   if (built.status === "not-adventure") ui.notifications.warn(say("SDE.trap.notify.notAdventure"));
-  else if (built.status === "no-book") ui.notifications.warn(say("SDE.importer.pdf.bookNotLinked"));
   else if (built.status === "none") ui.notifications.info(say("SDE.adventure.placer.trapsNoData"));
   else if (built.status === "mismatch") ui.notifications.warn(say("SDE.adventure.placer.trapsMismatch"));
   else {
@@ -317,8 +316,27 @@ export async function placeAdventureTraps(scene = canvas?.scene) {
   return built;
 }
 
+/**
+ * Add the symbols an adventure's key map prints (secret doors, locked doors, barricades) to its scene as hidden tiles only a GM sees, and say
+ * what happened. Like placeAdventureTraps it touches nothing else and leaves a symbol already there as it is. GM only.
+ * @param {Scene} [scene]  defaults to the viewed scene
+ * @returns {Promise<{status:string, placed:number, existing:number}|null>}
+ */
+export async function placeAdventureMarks(scene = canvas?.scene) {
+  if (!game.user?.isGM || !scene) return null;
+  const { addSiteMarks } = await import("../importer/adventure/adventure-book-import.mjs");
+  const built = await addSiteMarks(scene);
+  const say = (key, data) => game.i18n.format(key, data ?? {});
+  const warn = { "not-adventure": "SDE.trap.notify.notAdventure", "no-book": "SDE.adventure.placer.marksNoBook", none: "SDE.adventure.placer.marksNoData", mismatch: "SDE.adventure.placer.bookMapMismatch", unreadable: "SDE.adventure.placer.bookMapUnreadable" }[built.status];
+  if (warn) ui.notifications.warn(say(warn));
+  else if (built.placed) ui.notifications.info(say("SDE.adventure.placer.marksDone", { placed: built.placed }));
+  else ui.notifications.info(say("SDE.adventure.placer.marksNone"));
+  return built;
+}
+
 export const trapsApi = () => ({
   type: TRAP_TYPE, roll: () => rollTrap(), create: (options) => createTrap(options), spring: (region, options) => springTrap(region, options),
   placeAdventure: (scene) => placeAdventureTraps(scene),
+  placeAdventureMarks: (scene) => placeAdventureMarks(scene),
   release: (token) => releaseToken(token),
 });

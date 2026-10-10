@@ -43,6 +43,13 @@
  *          two-page spread for the big dungeons). The pins are then placed from
  *          where the book puts them (map-labels.mjs); a site without it is placed
  *          by clicking. Verified against the PDFs: every number in `range` is found
+ *   markPages  the key map's PDF pages for reading its symbols (secret doors, locked
+ *          doors, barricades) when the site has no `mapPages` (its pins are placed from
+ *          a saved layout). Defaults to `mapPages`
+ *   markFrame  [x, y, width, height] of the clean map as fractions of the key map
+ *          picture, when the two differ (Cursed Scroll 2 crops the key picture and lays
+ *          a legend over its edge). Measured by registering the two pictures; absent:
+ *          the same rectangle
  *
  * Verified against the six PDFs with the module's own extractor and parser,
  * page by page: 33, 35 (19 + 16), 36 (7 + 29), 9 x 9 (+ 10 + 3 + 8), 64
@@ -93,8 +100,8 @@ export const ADVENTURE_SITES = {
     { id: "cs1-mugdulblub", title: "The Hideous Halls of Mugdulblub", pages: "53-64", range: [1, 33], style: "caps", grid: [68, 44], mapPages: "66-67", mapNames: ["Ruins of Bittermold Keep"], overview: "50-52", tables: { rumors: "cs1-rumors-the-hideous-halls-of-mugdulblub", encounters: "cs1-random-encounters" }, phraseTables: { "random diabolical treasure": "Diabolical Treasure" } },
   ],
   CS2: [
-    { id: "cs2-iron-fortress", title: "Fortress of the Burning Brothers: The Iron Fortress", pages: "49-55", range: [1, 19], style: "caps", grid: [45, 35], mapNames: ["The Iron Fortress"], overview: "46-48", tables: { rumors: "cs2-rumors-fortress-of-the-burning-brothers", encounters: "cs2-iron-fortress-1-19-random-encounters" } },
-    { id: "cs2-mines", title: "Fortress of the Burning Brothers: The Mines", pages: "56-62", range: [20, 35], style: "caps", grid: [45, 34], mapNames: ["The Mines"], overview: "46-47,56", tables: { rumors: "cs2-rumors-fortress-of-the-burning-brothers", encounters: "cs2-mines-20-35-random-encounters" } },
+    { id: "cs2-iron-fortress", markPages: "66", markFrame: [0, -0.0384, 1.0045, 1.0853], title: "Fortress of the Burning Brothers: The Iron Fortress", pages: "49-55", range: [1, 19], style: "caps", grid: [45, 35], mapNames: ["The Iron Fortress"], overview: "46-48", tables: { rumors: "cs2-rumors-fortress-of-the-burning-brothers", encounters: "cs2-iron-fortress-1-19-random-encounters" } },
+    { id: "cs2-mines", markPages: "67", markFrame: [-0.0045, -0.0217, 1.0073, 1.0358], title: "Fortress of the Burning Brothers: The Mines", pages: "56-62", range: [20, 35], style: "caps", grid: [45, 34], mapNames: ["The Mines"], overview: "46-47,56", tables: { rumors: "cs2-rumors-fortress-of-the-burning-brothers", encounters: "cs2-mines-20-35-random-encounters" } },
   ],
   CS3: [
     { id: "cs3-wortwick", title: "Wortwick Monastery", pages: "24-25", range: [1, 7], style: "caps", grid: [28, 28], intro: true, skip: WORTWICK_FURNITURE, creatureAliases: { monk: "Acolyte" } },
