@@ -16,7 +16,7 @@ import { parsePageRange } from "../pdf-text-extract.mjs";
 import { allSites } from "./adventure-manifest.mjs";
 import { MODULE_ID } from "../../shared/module-id.mjs";
 import { parseAdventurePages, bodyBlocks } from "./adventure-parser.mjs";
-import { trapCandidates } from "./adventure-traps.mjs";
+import { trapCandidates, trapsFor } from "./adventure-traps.mjs";
 import { creatureMentions, creatureResolver, creatureVocabulary } from "./adventure-creatures.mjs";
 import { commitAdventure, addOverviewToWorldCopy } from "./adventure-commit.mjs";
 import { assembleOverview, linkableItems } from "./adventure-journal.mjs";
@@ -201,18 +201,27 @@ export async function readSiteTraps(site) {
 }
 
 /**
+ * The book lines a site's traps take their effect text from: read from the GM's book only when one of the site's traps
+ * names a line, and empty when the book is not linked (the traps are built all the same, without that text).
+ * @returns {Promise<Record<number,string[]>>}
+ */
+export async function siteTrapTexts(site) {
+  if (!trapsFor(site?.id)?.some((e) => Number.isInteger(e.nth))) return {};
+  return (await readSiteTraps(site)) ?? {};
+}
+
+/**
  * Add a site's traps to its scene and nothing else: no pins, creatures or walls are touched, and a trap already there is
  * left as it is. The safe way to give a scene its traps once its walls have been corrected by hand.
  * @param {Scene} scene
- * @returns {Promise<{status:"built"|"none"|"mismatch"|"no-book"|"not-adventure", placed:number, existing:number, skipped:Array<{pin:number, nth:number, why:string}>}>}
+ * @returns {Promise<{status:"built"|"none"|"mismatch"|"not-adventure", placed:number, existing:number, skipped:Array<{pin:number, nth:number, why:string}>}>}
  */
 export async function addSiteTraps(scene) {
   const { MAP_FLAG, placeSiteTraps } = await import("./adventure-scene.mjs");
   const site = allSites().find((s) => s.id === scene?.getFlag(MODULE_ID, MAP_FLAG)?.site);
   const out = (status) => ({ status, placed: 0, existing: 0, skipped: [] });
   if (!site) return out("not-adventure");
-  const texts = await readSiteTraps(site);
-  if (!texts) return out("no-book");
+  const texts = await siteTrapTexts(site);
   const rect = scene.dimensions?.sceneRect ?? { x: 0, y: 0, width: scene.width, height: scene.height };
   return placeSiteTraps(scene, site, rect, texts);
 }

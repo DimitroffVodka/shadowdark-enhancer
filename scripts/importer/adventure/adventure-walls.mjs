@@ -2707,23 +2707,42 @@ export const hasWalls = (siteId) => !!ADVENTURE_WALLS[siteId];
 export const WALL_FLAG = "adventureWall";
 
 /**
+ * Pure: every edge the data draws, in a fixed order (each loop's edges, then each solid's, then the doors), as fractions of the
+ * map. The position in this list is how the reviewed patch (adventure-reviewed.mjs) names a wall, so it does not depend on the
+ * scene's size: an edge too short to survive rounding on a small picture is still counted.
+ * @returns {Array<[number[], number[], boolean]>} [from, to, isDoor]
+ */
+export function wallEdges(data) {
+  const out = [];
+  for (const ring of [...(data?.loops ?? []), ...(data?.solids ?? [])]) {
+    for (let i = 0; i < ring.length; i++) out.push([ring[i], ring[(i + 1) % ring.length], false]);
+  }
+  for (const [u1, v1, u2, v2] of data?.doors ?? []) out.push([[u1, v1], [u2, v2], true]);
+  return out;
+}
+
+/**
  * Pure: the Wall documents for a site's data on a scene.
  * @param {{loops:number[][][], solids:number[][][], doors:number[][]}} data
  * @param {{x:number, y:number, width:number, height:number}} rect  the scene's image area, in scene pixels
  * @param {{wall:object, door:object}} types  the Foundry values for a plain wall and a closed door (wallTypes)
- * @returns {object[]} Wall creation data, a loop's edges first, then the solids', then the doors
+ * @param {{drop?:number[], set?:Record<number,object>, add?:number[][]}} [patch]  the GM's review of the map (adventure-reviewed.mjs):
+ *   edges (by wallEdges index) that were removed, edges whose door, door state or senses changed, and walls that were added as
+ *   [x1, y1, x2, y2, door, ds, move, sight, light, sound] with the points as fractions of the map
+ * @returns {object[]} Wall creation data, a loop's edges first, then the solids', then the doors, then the added walls
  */
-export function planWalls(data, rect, types) {
+export function planWalls(data, rect, types, patch = null) {
   const at = ([u, v]) => [Math.round(rect.x + u * rect.width), Math.round(rect.y + v * rect.height)];
   const out = [];
   const edge = (a, b, base) => {
     const [x1, y1] = at(a), [x2, y2] = at(b);
     if (x1 !== x2 || y1 !== y2) out.push({ c: [x1, y1, x2, y2], ...base });
   };
-  for (const ring of [...(data?.loops ?? []), ...(data?.solids ?? [])]) {
-    for (let i = 0; i < ring.length; i++) edge(ring[i], ring[(i + 1) % ring.length], types.wall);
-  }
-  for (const [u1, v1, u2, v2] of data?.doors ?? []) edge([u1, v1], [u2, v2], types.door);
+  const drop = new Set(patch?.drop ?? []);
+  wallEdges(data).forEach(([a, b, door], i) => {
+    if (!drop.has(i)) edge(a, b, { ...(door ? types.door : types.wall), ...patch?.set?.[i] });
+  });
+  for (const [u1, v1, u2, v2, door, ds, move, sight, light, sound] of patch?.add ?? []) edge([u1, v1], [u2, v2], { door, ds, move, sight, light, sound });
   return out;
 }
 
@@ -2744,14 +2763,24 @@ export const LIGHT_FLAG = "adventureLight";
  * Pure: the ambient lights for a site's data on a scene.
  * @param {{lights?:Array<{at:number[], bright:number, dim:number, color:string, label?:string}>}} data
  * @param {{x:number, y:number, width:number, height:number}} rect  the scene's image area, in scene pixels
+ * @param {{drop?:number[], add?:Array<{at:number[], config:object, label?:string, elevation?:number}>}} [patch]  the GM's review
+ *   (adventure-reviewed.mjs): the data's lights (by index) that were removed or moved, and the lights the scene has besides,
+ *   each with its config as it differs from Foundry's defaults
  */
-export function planLights(data, rect) {
-  return (data?.lights ?? []).map((l) => ({
-    x: Math.round(rect.x + l.at[0] * rect.width), y: Math.round(rect.y + l.at[1] * rect.height),
+export function planLights(data, rect, patch = null) {
+  const drop = new Set(patch?.drop ?? []);
+  const at = ([u, v]) => ({ x: Math.round(rect.x + u * rect.width), y: Math.round(rect.y + v * rect.height) });
+  const planned = (data?.lights ?? []).filter((l, i) => !drop.has(i)).map((l) => ({
+    ...at(l.at),
     // No darkness range: the scenes are built at darkness 0 and a range starting above 0 kept every light off until the GM darkened the scene.
     config: { bright: l.bright, dim: l.dim, color: l.color, alpha: 0.7, luminosity: 0.15, animation: { type: "torch", speed: 3, intensity: 3 } },
     flags: { [WALL_MODULE]: { [LIGHT_FLAG]: l.label ?? true } },
   }));
+  const added = (patch?.add ?? []).map((l) => ({
+    ...at(l.at), config: l.config, ...(l.elevation ? { elevation: l.elevation } : {}),
+    flags: { [WALL_MODULE]: { [LIGHT_FLAG]: l.label ?? true } },
+  }));
+  return [...planned, ...added];
 }
 const WALL_MODULE = "shadowdark-enhancer";
 

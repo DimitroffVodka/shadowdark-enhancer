@@ -117,10 +117,9 @@ api.traps.type;                  // "shadowdark-enhancer.trap"
 await api.traps.roll();          // { trap, trigger, effect, damage } from the system's Trap tables, or null
 await api.traps.spring(regionOrId, { token });  // GM only: fire the trap by hand (for the token, else every token in it); false if the region has no trap
 await api.traps.release(token);  // GM only: free a held token; false if it was not held
-await api.traps.placeAdventure(scene);  // GM only: add the traps an adventure's book prints to its scene (default: the viewed scene),
-                                 // as hidden regions; touches no pins, creatures or walls, and leaves a trap that is already there
-                                 // alone. Resolves { status, placed, existing, skipped }. No map has its book traps built in yet,
-                                 // so for now it answers status "none"
+await api.traps.placeAdventure(scene);  // GM only: add the traps the module knows for an adventure's scene (default: the viewed scene),
+                                 // as regions; touches no pins, creatures or walls, and leaves a trap that is already there
+                                 // alone. Resolves { status, placed, existing, skipped }; status "none" for a map with no traps
 await api.traps.placeAdventureMarks(scene);  // GM only: add the secret doors, locked doors and barricades an adventure's key map prints to its
                                  // scene (default: the viewed scene), as hidden tiles only a GM sees; touches nothing else and leaves a symbol that is
                                  // already there alone. Resolves { status, placed, existing }

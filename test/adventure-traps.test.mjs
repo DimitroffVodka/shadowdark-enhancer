@@ -98,27 +98,46 @@ test("a trap with a box is one plain rectangle of that size, needing no pin or f
   assert.deepEqual(traps[0].shapes, [{ type: "rectangle", x: 100, y: 100, width: 300, height: 200, rotation: 0, hole: false }]);
 });
 
-test("a site with trap data also has the pins and walls that place them", () => {
+test("a trap that ships its mechanics is built from them, the book adding only the effect of the line it names", () => {
+  const texts = { 7: trapCandidates(blocks) };
+  const trap = { trap: "Tar Pit", checkAbility: "dex", checkDc: 12, damage: "1d6", when: "round", holds: true };
+  const { traps, skipped } = planSiteTraps({ ...common, texts, pins: {}, squaresOf: () => [], entries: [
+    { pin: 7, nth: 3, dc: 12, box: [0.1, 0.2, 0.3, 0.4], trap },
+    { pin: 7, nth: 1, dc: 15, box: [0.1, 0.2, 0.3, 0.4], trap },   // the line's DC is not 15: built, without the book's words
+    { pin: null, nth: "hand1", shapes: [[[0, 0], [0.1, 0], [0.1, 0.1]], [[0.5, 0.5], [0.6, 0.5], [0.6, 0.6]]], trap: { ...trap, trap: "Magma", applyDamage: false } },
+  ] });
+  assert.deepEqual(skipped, []);
+  assert.deepEqual(traps.map((x) => x.name), ["7. Tar Pit", "7. Tar Pit", "Magma"]);
+  assert.equal(traps[0].system.effect, "Floor. Sticky tar pit trap. DC 12 DEX to escape, 1d6 damage/round.");
+  assert.deepEqual({ ...traps[1].system }, { trigger: "", effect: "", ...trap });
+  assert.equal(traps[2].system.applyDamage, false);
+  assert.deepEqual(traps[2].shapes.map((x) => x.points), [[0, 0, 100, 0, 100, 50], [500, 250, 600, 250, 600, 300]]);
+  assert.equal(planSiteTraps({ ...common, texts: {}, entries: [{ pin: 7, nth: 3, box: [0, 0, 0.1, 0.1], trap }] }).traps[0].system.effect, "", "no book: still built");
+});
+
+test("the shipped traps: each has an area, its mechanics and a key of its own; a book line only where the data names one", () => {
+  const abilities = ["none", "str", "dex", "con", "int", "wis", "cha"];
   for (const [id, entries] of Object.entries(ADVENTURE_TRAPS)) {
-    assert.ok(ADVENTURE_LAYOUTS[id], `${id} has no pin layout`);
-    assert.ok(ADVENTURE_WALLS[id], `${id} has no walls to bound its traps`);
+    assert.ok(ADVENTURE_WALLS[id] && ADVENTURE_LAYOUTS[id], `${id} has walls and pins`);
     const seen = new Set();
     for (const e of entries) {
-      assert.ok(ADVENTURE_LAYOUTS[id].pins[e.pin], `${id}: pin ${e.pin} is not on the layout`);
-      assert.ok(Number.isInteger(e.nth) && e.nth >= 1, `${id}: pin ${e.pin} nth`);
-      assert.ok(!seen.has(`${e.pin}/${e.nth}`), `${id}: pin ${e.pin} trap ${e.nth} twice`);
+      const where = `${id}: ${e.pin}/${e.nth}`;
+      assert.ok(e.pin === null || ADVENTURE_LAYOUTS[id].pins[e.pin], `${where}: pin is not on the layout`);
+      assert.ok((Number.isInteger(e.nth) && e.nth >= 1) || (typeof e.nth === "string" && e.nth), `${where}: nth`);
+      assert.ok(!seen.has(`${e.pin}/${e.nth}`), `${where}: twice`);
       seen.add(`${e.pin}/${e.nth}`);
-      assert.ok(e.radius === undefined || e.radius >= 1, `${id}: pin ${e.pin} radius`);
-      assert.ok(!e.box || (e.box.length === 4 && e.box[0] >= 0 && e.box[1] >= 0 && e.box[2] > 0 && e.box[3] > 0 && e.box[0] + e.box[2] <= 1 && e.box[1] + e.box[3] <= 1), `${id}: pin ${e.pin} box`);
-      assert.ok(!e.shape || (e.shape.length >= 3 && e.shape.every(([u, v]) => u >= 0 && u <= 1 && v >= 0 && v <= 1)), `${id}: pin ${e.pin} shape`);
-      assert.ok(e.when === undefined || ["enter", "round", "manual"].includes(e.when), `${id}: pin ${e.pin} when`);
+      const inside = ([u, v]) => u >= 0 && u <= 1 && v >= 0 && v <= 1;
+      assert.ok(e.box || e.shape || e.shapes, `${where}: no area`);
+      assert.ok(!e.box || (e.box.length === 4 && inside(e.box) && e.box[2] > 0 && e.box[3] > 0 && e.box[0] + e.box[2] <= 1.0001 && e.box[1] + e.box[3] <= 1.0001), `${where}: box`);
+      for (const poly of e.shapes ?? (e.shape ? [e.shape] : [])) assert.ok(poly.length >= 3 && poly.every(inside), `${where}: shape`);
+      assert.ok(e.trap?.trap && abilities.includes(e.trap.checkAbility) && e.trap.checkDc >= 1 && ["enter", "round", "manual"].includes(e.trap.when), `${where}: mechanics`);
     }
   }
   assert.equal(trapsFor("nowhere"), null);
+  assert.deepEqual(ADVENTURE_TRAPS["cs1-mugdulblub"].filter((e) => Number.isInteger(e.nth)).map((e) => e.pin), [2, 3, 13, 20, 28], "the Halls' book traps keep their lines; the room-wide hazards are gone");
 });
 
-test("the importer places a map's book traps only while the switch is on; the data is kept either way", () => {
-  assert.ok(ADVENTURE_TRAPS["cs1-mugdulblub"].length > 0);
-  assert.deepEqual(trapsFor("cs1-mugdulblub"), PLACE_ADVENTURE_TRAPS ? ADVENTURE_TRAPS["cs1-mugdulblub"] : null);
-  assert.equal(PLACE_ADVENTURE_TRAPS, false);   // held back for a later release
+test("the importer places the shipped traps", () => {
+  assert.equal(PLACE_ADVENTURE_TRAPS, true);
+  assert.deepEqual(trapsFor("cs1-mugdulblub"), ADVENTURE_TRAPS["cs1-mugdulblub"]);
 });

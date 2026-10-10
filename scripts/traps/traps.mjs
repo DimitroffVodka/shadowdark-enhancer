@@ -306,7 +306,6 @@ export async function placeAdventureTraps(scene = canvas?.scene) {
   const built = await addSiteTraps(scene);
   const say = (key, data) => game.i18n.format(key, data ?? {});
   if (built.status === "not-adventure") ui.notifications.warn(say("SDE.trap.notify.notAdventure"));
-  else if (built.status === "no-book") ui.notifications.warn(say("SDE.importer.pdf.bookNotLinked"));
   else if (built.status === "none") ui.notifications.info(say("SDE.adventure.placer.trapsNoData"));
   else if (built.status === "mismatch") ui.notifications.warn(say("SDE.adventure.placer.trapsMismatch"));
   else {

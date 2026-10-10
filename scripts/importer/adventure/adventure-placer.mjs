@@ -14,10 +14,12 @@
  */
 
 import { MODULE_ID } from "../../shared/module-id.mjs";
-import { MAP_FLAG, buildSiteScene, placeSiteWalls, placeSiteLights, entryPages, scenePins, placementRows, nextPending, noteData, setSkipped, placementGate, restoreSiteJournal, planBookPins, refreshPinArt, placeMarkerTokens, placeCreatureTokens, placeSiteTraps } from "./adventure-scene.mjs";
+import { MAP_FLAG, buildSiteScene, placeSiteWalls, placeSiteLights, entryPages, scenePins, placementRows, nextPending, noteData, setSkipped, placementGate, restoreSiteJournal, planBookPins, refreshPinArt, placeMarkerTokens, placeCreatureTokens, placeReviewedCreatures, placeSiteTraps } from "./adventure-scene.mjs";
 import { findSite } from "./adventure-manifest.mjs";
 import { stitchMapLabels, mapFits } from "./map-labels.mjs";
 import { trapsFor } from "./adventure-traps.mjs";
+import { REVIEWED_CREATURES } from "./adventure-reviewed.mjs";
+import { placeSiteLinks } from "./adventure-links.mjs";
 import { layoutFor, layoutPoints, layoutFromPins, layoutSnippet, markersFor, hasKnownPositions } from "./adventure-layouts.mjs";
 import { resolveSourcePdf, sourcePdfTarget } from "../source-pdf-registry.mjs";
 import { parsePageRange } from "../pdf-text-extract.mjs";
@@ -255,6 +257,7 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
       await this._placeMonsters(site, rect);
       await this._placeWalls(site);
       await this._placeTraps(site, rect);
+      await this._placeLinks(site, rect);
       await this._placeMarks();
       return { placed: create.length, left: left.length };
     } catch (err) {
@@ -268,14 +271,16 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /**
-   * Put the creatures onto the scene as hidden tokens: where the book's map marks
-   * them if it does, else around the pin of each location whose text names them.
-   * A failure here never costs the pins that were just placed.
+   * Put the creatures onto the scene as hidden tokens: where the GM's review left
+   * them when the module has that, else where the book's map marks them if it does,
+   * else around the pin of each location whose text names them. A failure here
+   * never costs the pins that were just placed.
    */
   async _placeMonsters(site, rect) {
     try {
       let found;
-      if (markersFor(site.id)) found = await placeMarkerTokens(this.scene, site, rect);
+      if (REVIEWED_CREATURES[site.id]) found = await placeReviewedCreatures(this.scene, site, rect);
+      else if (markersFor(site.id)) found = await placeMarkerTokens(this.scene, site, rect);
       else {
         const { readSiteCreatures } = await import("./adventure-book-import.mjs");
         const mentions = await readSiteCreatures(site);
@@ -293,16 +298,15 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /**
-   * The traps the book prints for this map, as hidden Regions around their pins, when the module knows where they sit. Needs
-   * the walls (they bound a trap to its room) and the GM's book (it says what each trap is). Only adds what is missing,
-   * so a re-run never touches a trap the GM edited. A failure here never costs the pins that were just placed.
+   * The map's traps, as Regions, when the module knows them. The GM's book adds each trap's own effect text where the data
+   * names its line; without the book the traps are still built. Only adds what is missing, so a re-run never touches a trap
+   * the GM edited. A failure here never costs the pins that were just placed.
    */
   async _placeTraps(site, rect) {
     try {
       if (!trapsFor(site.id)) return null;
-      const { readSiteTraps } = await import("./adventure-book-import.mjs");
-      const texts = await readSiteTraps(site);
-      if (!texts) { ui.notifications?.warn(t("SDE.importer.pdf.bookNotLinked")); return null; }
+      const { siteTrapTexts } = await import("./adventure-book-import.mjs");
+      const texts = await siteTrapTexts(site);
       const built = await placeSiteTraps(this.scene, site, rect, texts);
       if (built.placed) ui.notifications?.info(t("SDE.adventure.placer.trapsDone", { placed: built.placed }));
       if (built.skipped.length) ui.notifications?.warn(t("SDE.adventure.placer.trapsSkipped", { n: built.skipped.length, pins: built.skipped.map((x) => x.pin).join(", ") }));
@@ -310,6 +314,22 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
     } catch (err) {
       console.error(`${MODULE_ID} | adventure placer: placing the traps failed`, err);
       ui.notifications?.error(t("SDE.adventure.placer.trapsFailed"));
+      return null;
+    }
+  }
+
+  /**
+   * The map's stairs, ladders, shafts and trapdoors, as paired teleport Regions, when the module knows them: this map's ends
+   * are made, and every pair whose other end is already built is wired. A failure here never costs the pins that were just placed.
+   */
+  async _placeLinks(site, rect) {
+    try {
+      const built = await placeSiteLinks(this.scene, site, rect);
+      if (built.placed) ui.notifications?.info(t("SDE.adventure.placer.linksDone", { placed: built.placed }));
+      return built;
+    } catch (err) {
+      console.error(`${MODULE_ID} | adventure placer: placing the stairs and ladders failed`, err);
+      ui.notifications?.error(t("SDE.adventure.placer.linksFailed"));
       return null;
     }
   }
