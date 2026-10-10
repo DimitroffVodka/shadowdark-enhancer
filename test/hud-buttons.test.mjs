@@ -8,7 +8,7 @@ const read = path => readFileSync(join(ROOT, path), "utf8");
 const en = JSON.parse(read("languages/en.json"));
 
 test("Token HUD controls are keyboard-reachable buttons with a name and a tooltip", () => {
-  for (const path of ["scripts/crawl-strip/movement-tracker.mjs", "scripts/loot/item-drops.mjs", "scripts/monster-creator/quick-adjust-app.mjs"]) {
+  for (const path of ["scripts/crawl-strip/movement-tracker.mjs", "scripts/loot/item-drops.mjs", "scripts/monster-creator/quick-adjust-app.mjs", "scripts/mounted/mounted-tokens.mjs"]) {
     const source = read(path);
     assert.doesNotMatch(source, /createElement\("div"\);\s*btn\.classList\.add\("control-icon"\)/, path);
     assert.match(source, /const btn = document\.createElement\("button"\);\s*btn\.type = "button";\s*btn\.className = "control-icon sde-hud-btn";/, path);

@@ -56,6 +56,7 @@ import { CrawlBar }      from "./crawl-bar/crawl-bar.mjs";
 import { registerHiddenSync } from "./crawl-strip/hidden-sync.mjs";
 import { registerTurnSkip } from "./crawl-strip/turn-skip.mjs";
 import { MovementTracker } from "./crawl-strip/movement-tracker.mjs";
+import { registerMountedTokens } from "./mounted/mounted-tokens.mjs";
 import { EncounterCheck } from "./encounter/encounter-check.mjs";
 import { tableForHex } from "./encounter/encounter-terrain.mjs";
 import { migrateEncounterSources } from "./encounter/encounter-sources.mjs";
@@ -147,7 +148,7 @@ const STYLESHEET_REV = "7883b351acf9";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "0cf14e7ad025";
+const BUILD_REV = "cb632c5263cb";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -1159,6 +1160,7 @@ Hooks.once("ready", () => {
   // settings (one-shot, GM-only). Fire-and-forget — errors log inside.
   ClassAbilityUses.init();
   MovementTracker.init();
+  registerMountedTokens();
   CrawlStrip.init();
   luckRerollInit();
   blitzInit();

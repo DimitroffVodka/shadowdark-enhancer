@@ -51,6 +51,33 @@ for that camp. They take no PC tasks. A missed meal deals one full-score CON
 damage once/day across reloads and Party changes. CON 16 (+3) becomes 15 (+2);
 death is at full CON zero, not modifier zero. Riders, gear and UUIDs remain.
 
+### Riding on the map
+
+A character can ride a mount's token on any scene. Give the mount a 2x2
+token (any token bigger than the rider works, Mount actor or not).
+
+- **Mount:** open the rider's Token HUD (right-click the token). A horse
+  button sits in the left column when a free mount is within 5 ft. It
+  climbs onto the targeted mount, or else the nearest. The rider moves
+  into the mount's bottom-left square and is drawn on top of it.
+- **Moving:** move the mount. The rider follows in its corner along the
+  same path. The mount spends its own movement (an NPC's move from its
+  stat block). The rider spends nothing for the ride, and the out-of-turn
+  lock doesn't stop the rider following. If the mount's move is refused,
+  the rider stays put too.
+- **Dismount:** the same horse button, lit while riding. The rider stays
+  where it is.
+
+One rider per mount. The pair also ends when the rider is moved on its own
+(dragged, keyboard, or rolled back) or when either token is deleted. Rider
+and mount remain separate actors with their own sheets, HP and turns.
+
+Players can ride tokens they own. A player who moves a mount but does not
+own its rider needs a GM connected, who moves the rider for them.
+
+The Riders tab is something else: it records who rides what while the party
+travels overland. Riding on the map doesn't change it.
+
 ---
 
 ## Boat
