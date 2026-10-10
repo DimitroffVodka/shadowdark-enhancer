@@ -4,7 +4,7 @@
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import {
-  ANCHORS, HOLIDAYS, HOLIDAY_PRESET, buildLore, fileLinkedChapters, linkedCalendarBooks, withGmOnly, calendarHolidays, calendarHolyDays, holidaysToday, listHolidays, normalizeLore,
+  ANCHORS, HOLIDAYS, HOLIDAY_PRESET, buildLore, fileLinkedChapters, importerHasRun, linkedCalendarBooks, withGmOnly, calendarHolidays, calendarHolyDays, holidaysToday, listHolidays, normalizeLore,
   placeMatches, whenMatches,
 } from "../scripts/holidays/holidays.mjs";
 import { CHAPTER_PRESETS } from "../scripts/importer/chapter-journal.mjs";
@@ -222,4 +222,29 @@ test("an existing world files the calendar chapters from the books it has linked
   // A player has nothing to file.
   globalThis.game.user = { isGM: false };
   assert.equal(await fileLinkedChapters(), 0);
+});
+
+test("the world-load filing reads quietly: no column-warning toasts for a read nobody asked for", async () => {
+  const { readFileSync } = await import("node:fs");
+  const holidays = readFileSync(new URL("../scripts/holidays/holidays.mjs", import.meta.url), "utf8");
+  const chapter = readFileSync(new URL("../scripts/importer/chapter-journal.mjs", import.meta.url), "utf8");
+  assert.match(holidays, /importHolidays\(src, \{ quiet: true \}\)/, "fileLinkedChapters files quietly");
+  assert.match(holidays, /readChapter\(\{ \.\.\.req, notify: !quiet \}\)/, "the quiet flag reaches the read");
+  assert.match(chapter, /if \(notify\) notifyGutterWarnings\(result\)/, "readChapter honours it; the wizard and hub still toast");
+});
+
+test("a world that has not imported yet is left alone: only the tables, items and actors packs count", async () => {
+  const pack = (label, size) => ({
+    collection: "world.x", metadata: { packageType: "world", label }, getIndex: async () => new Map(Array.from({ length: size }, (_, i) => [i, {}])),
+  });
+  const withPacks = (...packs) => { globalThis.game = { packs, user: { isGM: true } }; };
+  withPacks();
+  assert.equal(await importerHasRun(), false, "no suite packs at all");
+  withPacks(pack("Shadowdark Enhancer — Journals", 3), pack("Shadowdark Enhancer — Roll Tables", 0));
+  assert.equal(await importerHasRun(), false, "the journals pack holds the calendar chapters themselves; an empty table pack is not an import");
+  assert.equal(await fileLinkedChapters(), 0, "nothing is read or filed");
+  withPacks(pack("Shadowdark Enhancer — Roll Tables", 2));
+  assert.equal(await importerHasRun(), true);
+  withPacks(pack("Shadowdark Enhancer — Actors", 1));
+  assert.equal(await importerHasRun(), true);
 });
