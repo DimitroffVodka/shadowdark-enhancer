@@ -46,10 +46,9 @@ never overwrite or remove existing documents.
 
 ## `owns` — adopted gameplay ownership
 
-`api.owns("hex.fog", scene)` is true only for an adopted hex scene with native
-fog enabled and no incompatible Extras overlap. It does not toggle Extras.
-An SDX provider advertising `api.hex.enhancerOwnershipGuardVersion >= 1` must
-stand down its fog writes, arrival rolls and overlay, and use native disclosure
+`api.owns("hex.fog", scene)` is true for an adopted hex scene with native fog
+enabled, whether or not Extras is active. It does not toggle Extras. Extras
+stands down its fog writes, arrival rolls and overlay there, and native disclosure
 for its token/pin/tooltip/coordinate consumers on scenes owned by Enhancer.
 An older provider must have its fog explicitly off before native fog can run.
 The currently inspected SDX source does not advertise this guard.
@@ -789,9 +788,8 @@ legacy recap-shaped nights once by `logId`, marked `historyOnly`; they are never
 assigned as the current outing, charged or awarded. There is no hidden SDX
 journal watcher. Explicit old feed compatibility calls remain available.
 
-If SDX's Carousing is enabled, this overlapping native flow refuses and explains
-how the GM can disable that SDX feature; it never toggles SDX settings. Works
-without SDX, tokens or a map. No live deployment is implied by this API.
+Works with or without SDX: Extras' Carousing defers to this flow when the
+Enhancer is active. Needs no tokens or map. No live deployment is implied by this API.
 
 ## `camping` — internal task setup slice
 

@@ -30,7 +30,6 @@ export function coordinateLabels({ scene, grid, cells, numberAt, visible }) {
 
 let container = null;
 let frame = null;
-let warned = false;
 
 function clear() {
   if (frame !== null) cancelAnimationFrame(frame);
@@ -60,15 +59,6 @@ function draw() {
   const geometry = sceneCells(canvas);
   if (geometry.error) return;
   const extras = game.modules.get("shadowdark-extras");
-  // Older SDX has no stand-down guard. Only its explicit feature switch permits coexistence.
-  if (extras?.active) {
-    let disabled = false;
-    try { disabled = game.settings.get("shadowdark-extras", "disabledFeatures")?.includes("hex.coordinates") === true; } catch { /* unknown means overlapping */ }
-    if (!disabled) {
-      if (!warned) { warned = true; ui.notifications?.info(game.i18n.localize("SDE.hexMap.coordinates.sdxOverlap")); }
-      return;
-    }
-  }
   const pass = readPass(canvas.scene);
   const labels = coordinateLabels({
     scene: canvas.scene, grid: canvas.grid, cells: geometry.cells, numberAt: api.numberAt,

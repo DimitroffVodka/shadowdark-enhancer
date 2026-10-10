@@ -70,15 +70,13 @@ Extras features remain available; their authoring readers are retained.
 ownership, and `game.shadowdarkEnhancer.owns('hex.tooltip', scene)` returns
 true on any numbered or adopted hex scene (Hex Data's hover card and editor);
 other feature keys return false. A cooperating Extras must stand down for that
-scene. Available Extras 6.15.0 has no fog guard:
-native fog stays off with a notice while Extras scene fog is on. Native Parties
-use native camping; pending Extras camps keep their original executor.
-Carousing gates on the Extras Carousing setting. Hex Data does not
-wait for Extras' Hex Tooltip to be switched off: with both modules active the
-Enhancer's hover card and editor run, and Extras' tooltip keeps drawing its own
-card until Extras reads `owns('hex.tooltip', scene)` (Extras 6.15.0 does not
-yet). Enhancer never toggles Extras' settings. Guarded-provider integration is
-not yet verified; this does not prevent native play with Extras disabled.
+scene. Where both modules have the same feature the Enhancer takes priority and
+nothing has to be switched off: native fog, Hex Data's hover card and editor,
+the hex coordinate labels and Carousing all run without waiting for Extras, and
+Extras defers to them (hard-coded, no setting; shadowdark-extras#204). Extras'
+coordinates keep drawing on a scene the Enhancer has not numbered. Native
+Parties use native camping; pending Extras camps keep their original executor.
+Enhancer never toggles Extras' settings. Native play does not need Extras.
 
 Legacy flagged NPC Parties adopt in place with UUIDs/items/ownership/foreign
 flags retained. SDX `type: Party` documents are not converted. Native hex adoption

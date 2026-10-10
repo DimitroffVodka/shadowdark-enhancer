@@ -8,29 +8,17 @@ import { Party, isParty } from "../party/party.mjs";
 import { isActiveGM } from "../shared/gm-relay.mjs";
 import { HexRecords, isHexAdopted, sceneRef, recordJournal, offsetKey, readPass, RECORD_FLAG, publishHexProjection, assertPrivateJournal, loadHexRecords, partyMemberIds, PUBLIC_FLAG } from "./hex-records.mjs";
 import { adoptHexScene, withHexLock } from "./hex-adoption.mjs";
-import { disclosure, effectiveDiscovery, withPartyDiscovery, overlapAllowed, revealRadius, revealCells, arrivalDue } from "./hex-fog-core.mjs";
+import { disclosure, effectiveDiscovery, withPartyDiscovery, revealRadius, revealCells, arrivalDue } from "./hex-fog-core.mjs";
 
-let overlay = null, warned = false;
+let overlay = null;
 /** The GM sees the unexplored hexes through a 60% veil; this draws them as a player does, solid black. Kept per browser. */
 export const playerViewOn = () => { try { return game.settings.get(MODULE_ID, "hexPlayerFogView") === true; } catch { return false; } };
 /** The setting's onChange redraws the fog. */
 export const togglePlayerView = () => game.settings.set(MODULE_ID, "hexPlayerFogView", !playerViewOn());
-/** SDX must explicitly advertise the full writer/overlay/disclosure stand-down contract. */
+/** Native fog runs on every adopted hex scene the GM has not switched it off on. It does not wait for Extras: Extras defers (shadowdark-extras#204). */
 export function ownsHexFog(target) {
   const scene = sceneRef(target);
-  if (!scene?.grid?.isHexagonal || !isHexAdopted(scene) || scene.flags?.[MODULE_ID]?.hexFog?.enabled === false) return false;
-  const extras = game.modules?.get("shadowdark-extras");
-  let disabled = false;
-  if (extras?.active) {
-    try { disabled = game.settings.get("shadowdark-extras", "disabledFeatures")?.includes("hex.fog") === true; } catch { /* absence is not permission */ }
-    try { disabled ||= extras.api?.hex?.isFogEnabled?.(scene.id) === false; } catch { /* unknown stays off */ }
-  }
-  const allowed = overlapAllowed({ active: !!extras?.active, disabled, guardVersion: extras?.api?.hex?.enhancerOwnershipGuardVersion ?? 0 });
-  if (!allowed && !warned) {
-    warned = true;
-    try { ui.notifications?.info(game.i18n.localize("SDE.hexFog.overlap")); } catch { /* no mutation depends on reporting */ }
-  }
-  return allowed;
+  return !!scene?.grid?.isHexagonal && isHexAdopted(scene) && scene.flags?.[MODULE_ID]?.hexFog?.enabled !== false;
 }
 /** The party whose map the GM sees: the one selected, else the one travelling. A player's own parties are chosen in HexRecords.read. */
 export function viewedPartyIds() {

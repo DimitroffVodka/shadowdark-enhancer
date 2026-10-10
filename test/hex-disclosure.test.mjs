@@ -42,16 +42,16 @@ test("real registered token/note getters, coordinate and tooltip consume one nat
     assert.equal(token.isVisible, true); assert.equal(note.isVisible, true);
   } finally { for (const key of ["game", "CONFIG", "Hooks"]) delete globalThis[key]; }
 });
-test("ownership claims neither unadopted scenes nor old overlapping SDX; settings never written", () => {
+test("the Enhancer owns an adopted scene even while Extras' fog is on; an unadopted or switched-off scene it never claims; settings never written", () => {
   const scene = { grid: { isHexagonal: true }, flags: {}, getFlag: (m, k) => scene.flags[m]?.[k] };
   let sets = 0;
   globalThis.game = { modules: { get: () => ({ active: true, api: { hex: { isFogEnabled: () => true } } }) }, settings: { get: () => [], set: () => sets++ } };
   try {
     assert.equal(ownsHexFog(scene), false);
     scene.flags[M] = { hexRecords: { adopted: true } };
-    assert.equal(ownsHexFog(scene), false);
-    globalThis.game.modules.get = () => ({ active: true, api: { hex: { enhancerOwnershipGuardVersion: 1 } } });
     assert.equal(ownsHexFog(scene), true);
+    scene.flags[M].hexFog = { enabled: false };
+    assert.equal(ownsHexFog(scene), false);
     assert.equal(sets, 0);
   } finally { delete globalThis.game; }
 });
