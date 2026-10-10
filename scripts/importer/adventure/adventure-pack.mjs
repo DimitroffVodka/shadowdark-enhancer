@@ -133,8 +133,12 @@ export function onPreImportAdventure(adventure, options) {
   if (!adventure.getFlag?.(MODULE_ID, ADVENTURE_PACK_FLAG)) return;
   options.preImport = [...(options.preImport ?? []), (data) => { importMissingOnly(data); }];
   options.postImport = [...(options.postImport ?? []), async (result) => {
-    const { wireImportedLinks } = await import("./adventure-links.mjs");
-    await wireImportedLinks(result.created?.Scene);
+    try {   // the documents are in by now: a failed join must not report the whole import as failed
+      const { wireImportedLinks } = await import("./adventure-links.mjs");
+      await wireImportedLinks(result.created?.Scene);
+    } catch (err) {
+      console.error(`${MODULE_ID} | adventure pack: joining the imported stairs and ladders failed`, err);
+    }
   }];
 }
 

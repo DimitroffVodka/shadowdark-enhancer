@@ -107,15 +107,83 @@ test("an end already on the scene is not made again, whether the module flagged 
   assert.equal(isLinkEnd({ link: "Other" }, "Ladder up", LINKS[1], "a"), false);
 });
 
-/** A scene stub that keeps the Regions created on it, each with a teleport behavior that records its updates. */
+/**
+ * Foundry 14's buildRelativeUuid (common/utils/helpers.mjs), for world uuids: a teleportToken's destinations are a
+ * DocumentUUIDField with relativize, so they are stored relative to the behavior ("..<regionId>", "...<sceneId>.Region.<id>").
+ */
+function buildRelativeUuid(target, origin) {
+  const parts = origin.split(".");
+  let prefix = origin, rel, lastType, k = 0;
+  for (;;) {
+    if (target === prefix) { rel = "."; break; }
+    if (target.startsWith(`${prefix}.`)) {
+      rel = target.slice(prefix.length);
+      if (lastType && rel.startsWith(`.${lastType}.`)) { rel = rel.slice(lastType.length + 1); k--; }
+      break;
+    }
+    lastType = parts.at(-2);
+    parts.length -= 2;
+    if (parts.length <= 0) {
+      if (!target.startsWith(`${lastType}.`)) return target;
+      rel = target.slice(lastType.length);
+      break;
+    }
+    prefix = parts.join(".");
+    k++;
+  }
+  return `${".".repeat(k)}${rel}`;
+}
+
+/** Foundry 14's parseUuid(uuid, { relative }) (_resolveRelativeUuid), world documents only: the absolute uuid, or null. */
+function resolveUuid(uuid, relative) {
+  if (typeof uuid !== "string") return null;
+  if (!uuid.startsWith(".")) return uuid;
+  if (!relative) return null;
+  let k = 1;
+  while (uuid.at(k) === ".") k++;
+  uuid = uuid.substring(k);
+  while (--k && relative) relative = relative.parent;
+  if (!relative) return null;
+  if (!uuid) return relative.uuid;
+  const parts = uuid.split(".");
+  const root = (doc) => { if (doc.parent) parts.unshift(doc.documentName, doc.id); return doc.parent ? root(doc.parent) : doc; };
+  let top;
+  if (parts.length % 2 === 0) top = root(relative);
+  else if (relative.parent) { parts.unshift(relative.documentName); top = root(relative.parent); }
+  else return [relative.documentName, ...parts].join(".");
+  return [top.documentName, top.id, ...parts].join(".");
+}
+
+test("the uuid port behaves as Foundry's own helpers, when a Foundry install is at hand", async (t) => {
+  const helpers = "/home/patricks/FoundryV14/app/common/utils/helpers.mjs";
+  const { existsSync } = await import("node:fs");
+  if (!existsSync(helpers)) return t.skip("no local Foundry 14");
+  class Document {}
+  const before = { foundry: globalThis.foundry, CONFIG: globalThis.CONFIG };
+  globalThis.foundry = { abstract: { Document } };
+  globalThis.CONFIG = {};
+  t.after(() => Object.assign(globalThis, before));
+  const H = await import(helpers);
+  const doc = (documentName, id, parent) => Object.assign(new Document(), { documentName, id, parent, uuid: parent ? `${parent.uuid}.${documentName}.${id}` : `${documentName}.${id}` });
+  const behavior = doc("RegionBehavior", "B1", doc("Region", "R1", doc("Scene", "S1", null)));
+  for (const target of ["Scene.S1.Region.R2", "Scene.S2.Region.R9", "Scene.S1.Region.R1", "Scene.S1.Region.R1.RegionBehavior.B2", "Scene.S1"]) {
+    const rel = H.buildRelativeUuid(target, behavior);
+    assert.equal(buildRelativeUuid(target, behavior.uuid), rel, target);
+    for (const from of [behavior, behavior.parent, behavior.parent.parent]) {
+      assert.equal(resolveUuid(rel, from), H.parseUuid(rel, { relative: from })?.uuid ?? null, `${rel} from ${from.documentName}`);
+    }
+  }
+});
+
+/** A scene stub that keeps the Regions created on it, each with a teleport behavior that stores its destinations as Foundry does. */
 function linkScene(site, sceneId = site) {
-  const scene = { site, regions: [] };
+  const scene = { documentName: "Scene", id: sceneId, parent: null, uuid: `Scene.${sceneId}`, site, regions: [] };
   scene.createEmbeddedDocuments = async (type, docs) => docs.map((d) => {
-    const flags = d.flags;
-    const region = { name: d.name, uuid: `Scene.${sceneId}.Region.${scene.regions.length}`, getFlag: (m, k) => flags?.[m]?.[k] };
-    region.behaviors = d.behaviors.map((b) => {
-      const behavior = { type: b.type, system: { ...b.system } };
-      behavior.update = async (u) => { behavior.system.destinations = u["system.destinations"]; };
+    const flags = d.flags, id = `R${scene.regions.length}`;
+    const region = { documentName: "Region", id, parent: scene, name: d.name, uuid: `${scene.uuid}.Region.${id}`, getFlag: (m, k) => flags?.[m]?.[k] };
+    region.behaviors = (d.behaviors ?? []).map((b, i) => {
+      const behavior = { documentName: "RegionBehavior", id: `B${i}`, parent: region, uuid: `${region.uuid}.RegionBehavior.B${i}`, type: b.type, system: { ...b.system } };
+      behavior.update = async (u) => { behavior.system.destinations = u["system.destinations"].map((to) => buildRelativeUuid(to, behavior.uuid)); };
       return behavior;
     });
     scene.regions.push(region);
@@ -125,13 +193,19 @@ function linkScene(site, sceneId = site) {
   return scene;
 }
 
-/** A world of stub scenes: game.scenes finds in `scenes`, and fromUuidSync finds only a Region on one of them. */
+/** A world of stub scenes: game.scenes finds in `scenes`, and fromUuidSync resolves (relative as Foundry does) to a Region on one of them. */
 function linkWorld(t, scenes) {
   const before = { game: globalThis.game, fromUuidSync: globalThis.fromUuidSync };
   globalThis.game = { scenes: { find: (fn) => scenes.find(fn) } };
-  globalThis.fromUuidSync = (uuid) => scenes.flatMap((s) => s.regions).find((r) => r.uuid === uuid) ?? null;
+  globalThis.fromUuidSync = (uuid, { relative } = {}) => {
+    const abs = resolveUuid(uuid, relative);
+    return scenes.flatMap((s) => s.regions).find((r) => r.uuid === abs) ?? null;
+  };
   t.after(() => Object.assign(globalThis, before));
 }
+
+/** Where an end's teleport points, as an absolute uuid. */
+const aimOf = (region) => resolveUuid(region.behaviors[0].system.destinations?.[0], region.behaviors[0]);
 
 test("the second map to be built wires the pair both ways; a re-run adds nothing and re-aims nothing", async (t) => {
   const s1 = linkScene("cs5-leng-1"), s2 = linkScene("cs5-leng-2");
@@ -144,9 +218,11 @@ test("the second map to be built wires the pair both ways; a re-run adds nothing
   const second = await placeSiteLinks(s2, { id: "cs5-leng-2" }, RECT);
   assert.ok(second.wired >= 2);
   const a = s1.regions.find((r) => r.name === pair.a.name), b = s2.regions.find((r) => r.name === pair.b.name);
-  assert.deepEqual(a.behaviors[0].system.destinations, [b.uuid]);
-  assert.deepEqual(b.behaviors[0].system.destinations, [a.uuid]);
+  assert.match(a.behaviors[0].system.destinations[0], /^\.\.\./, "stored relative, as Foundry stores it");
+  assert.equal(aimOf(a), b.uuid);
+  assert.equal(aimOf(b), a.uuid);
   assert.deepEqual(await placeSiteLinks(s2, { id: "cs5-leng-2" }, RECT), { placed: 0, wired: 0 });
+  assert.equal((await placeSiteLinks(s1, { id: "cs5-leng-1" }, RECT)).wired, 0, "same-map ends are live too");
 });
 
 test("kept in the compendium, each map packed and taken away before the next is built: importing them back joins every pair", async (t) => {
@@ -170,7 +246,7 @@ test("kept in the compendium, each map packed and taken away before the next is 
   }
   const ends = cross.flatMap((l) => [[l, "a", "b"], [l, "b", "a"]]);
   const endOf = (l, e) => packed.find((s) => s.site === l[e].site).regions.find((r) => r.name === l[e].name);
-  const wired = ends.filter(([l, from, to]) => endOf(l, from).behaviors[0].system.destinations?.[0] === endOf(l, to).uuid);
+  const wired = ends.filter(([l, from, to]) => aimOf(endOf(l, from)) === endOf(l, to).uuid);
   assert.equal(wired.length, ends.length, `${wired.length} of ${ends.length} cross-map ends wired`);
 });
 
@@ -180,16 +256,20 @@ test("an end whose destination was deleted with its map is aimed again at the re
   linkWorld(t, scenes);
   await placeSiteLinks(s1, { id: "cs5-leng-1" }, RECT);
   await placeSiteLinks(old, { id: "cs5-leng-2" }, RECT);
-  scenes.pop();   // the GM deletes level 2 and builds it again: its Regions have new ids
+  scenes.pop();   // the GM deletes level 2 and builds it again: a new scene id
   const rebuilt = linkScene("cs5-leng-2", "rebuilt");
   scenes.push(rebuilt);
   const res = await placeSiteLinks(rebuilt, { id: "cs5-leng-2" }, RECT);
   const pair = REVIEWED_LINKS.find((l) => l.a.site === "cs5-leng-1" && l.b.site === "cs5-leng-2");
   const a = s1.regions.find((r) => r.name === pair.a.name), b = rebuilt.regions.find((r) => r.name === pair.b.name);
-  assert.deepEqual(a.behaviors[0].system.destinations, [b.uuid], "the stale end follows the rebuilt map");
-  assert.deepEqual(b.behaviors[0].system.destinations, [a.uuid]);
+  assert.equal(aimOf(a), b.uuid, "the stale end follows the rebuilt map");
+  assert.equal(aimOf(b), a.uuid);
   assert.ok(res.wired >= 2);
   assert.equal(await placeSiteLinks(rebuilt, { id: "cs5-leng-2" }, RECT).then((r) => r.wired), 0, "live ends are not re-aimed");
+  const [own] = await rebuilt.createEmbeddedDocuments("Region", [{ name: "GM's own landing" }]);   // the GM re-aims an end
+  await a.behaviors[0].update({ "system.destinations": [own.uuid] });
+  assert.equal(await placeSiteLinks(rebuilt, { id: "cs5-leng-2" }, RECT).then((r) => r.wired), 0);
+  assert.equal(aimOf(a), own.uuid, "the GM's re-aim is kept");
 });
 
 // The shipped data.

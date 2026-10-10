@@ -96,7 +96,8 @@ export async function wireSiteLinks(scene, siteId) {
     for (const [from, to] of [[a, b], [b, a]]) {
       const teleport = from.behaviors.find((x) => x.type === TELEPORT);
       if (!teleport) continue;
-      const live = [...(teleport.system.destinations ?? [])].some((uuid) => fromUuidSync(uuid, { relative: from, strict: false }));
+      // Foundry 14 stores a destination relative to the behavior ("..<regionId>"), so it resolves against the behavior.
+      const live = [...(teleport.system.destinations ?? [])].some((uuid) => fromUuidSync(uuid, { relative: teleport, strict: false }));
       if (live) continue;
       await teleport.update({ "system.destinations": [to.uuid] });
       wired++;

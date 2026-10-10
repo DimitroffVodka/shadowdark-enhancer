@@ -5887,7 +5887,7 @@
   "SDE.adventure.placer.lightsDone": "Added {lights} fixed light to the map.",
   "SDE.adventure.placer.wallsFailed": "The walls could not be added to this map.",
   "SDE.adventure.placer.trapsDone": "Added {placed} traps to the map as regions.",
-  "SDE.adventure.placer.linksDone": "Added {placed} stairs, ladders and trapdoors to the map. Each one is joined to its other end once both maps are built.",
+  "SDE.adventure.placer.linksDone": "Added {placed} stairs, ladders and trapdoors to the map. Each one is joined to its other end once both maps are in the world, built here or imported from the Adventures pack.",
   "SDE.adventure.placer.linksFailed": "The stairs and ladders could not be added to this map.",
   "SDE.adventure.placer.trapsSkipped": "{n} traps were left out because the book's text did not match what the module expects (areas {pins}).",
   "SDE.adventure.placer.trapsFailed": "The traps could not be added to this map.",
