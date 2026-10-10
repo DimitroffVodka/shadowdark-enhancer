@@ -40,6 +40,24 @@ import { segmentFeet } from "./movement-calc.mjs";
 import { shouldBlockMovement } from "./movement-lock-core.mjs";
 import { relayToGM, authorizeActorFor, refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
 import { isCarryMovement } from "../mounted/mounted-core.mjs";
+import { replaceModuleFlag } from "../shared/module-flags.mjs";
+
+// The tracker's own token writes (budget, turn anchor, rollback) stay out of the
+// token undo history: core records a client's own updates unless they are isUndo
+// (Scene#_preUpdateDescendantDocuments). Ctrl+Z then finds the move itself.
+const UNRECORDED = { isUndo: true };
+
+/** Feet of the straight segment a token update moves (terrain deferred: multiplier 1). */
+function updateFeet(doc, changes) {
+  const scene = doc.parent;
+  // Foundry v14 interpolates doc.x/doc.y mid-animation — use _source for the data-model coords.
+  const oldX = doc._source?.x ?? doc.x;
+  const oldY = doc._source?.y ?? doc.y;
+  return segmentFeet({
+    oldX, oldY, newX: changes.x ?? oldX, newY: changes.y ?? oldY,
+    gridSize: scene?.grid?.size ?? 100, gridDistance: scene?.grid?.distance ?? 5, diagonals: scene?.grid?.diagonals,
+  });
+}
 
 /** The "Free movement crawl" setting applies now: no budget, ruler colours or lock out of combat. */
 const freeCrawl = () => freeCrawlActive(game.settings.get(MODULE_ID, "crawlFreeMovement"), CrawlState.mode);
@@ -254,14 +272,17 @@ export const MovementTracker = {
           if (actor && tracked) {
             const distanceFt = this._pendingDeduct[doc.id] ?? 0;
             delete this._pendingDeduct[doc.id];
-            if (distanceFt > 0) {
+            if (distanceFt !== 0) {
               const stored = doc.getFlag(MODULE_ID, "moveRemaining");
-              const moveRemaining = (typeof stored === "number") ? stored : _getBaseSpeed(actor, doc);
+              const full = Math.round(_getBaseSpeed(actor, doc) / 5) * 5;
+              const moveRemaining = (typeof stored === "number") ? stored : full;
               // No floor at 0 — when the user disables enforcement (combat is
               // off by default), we WANT to record overflow as a negative so
               // the GM can see how far past the soft cap a token moved.
-              const newRemaining = Math.round((moveRemaining - distanceFt) / 5) * 5;
-              doc.setFlag(MODULE_ID, "moveRemaining", newRemaining)
+              // A refund (an undone move, negative) never gives back more than a full turn.
+              const spent = Math.round((moveRemaining - distanceFt) / 5) * 5;
+              const newRemaining = distanceFt < 0 ? Math.min(spent, full) : spent;
+              replaceModuleFlag(doc, "moveRemaining", newRemaining, {}, UNRECORDED)
                 .then(() => CrawlStrip.queueRender())
                 .catch(err => console.warn(`${MODULE_ID} | movement deduction failed`, err));
             }
@@ -392,32 +413,16 @@ export const MovementTracker = {
     if (opts?.[MODULE_ID]?.mountGrow) return; // a mount's token grown to 2x2 when mounted (#326): a size change, not a move
     // A rider carried by its mount (#326): the mount's move paid for it, and the out-of-turn lock does not apply.
     if (isCarryMovement(opts?._movement?.[doc.id])) { delete this._pendingDeduct[doc.id]; return; }
-    if (changes.x !== undefined || changes.y !== undefined) {
-
-      // Compute and cache the distance now, while we still have old position.
-      // Foundry v14 interpolates doc.x/doc.y mid-animation — use _source for
-      // the data-model coords.
-      if (CrawlState.isActive) {
-        const scene    = doc.parent;
-        const gridSize = scene?.grid?.size     ?? 100;
-        const gridDist = scene?.grid?.distance ?? 5;
-        const oldX = doc._source?.x ?? doc.x;
-        const oldY = doc._source?.y ?? doc.y;
-        const newX = changes.x ?? oldX;
-        const newY = changes.y ?? oldY;
-        // Terrain difficulty deferred — multiplier of 1.
-        const distanceFt = segmentFeet({
-          oldX,
-          oldY,
-          newX,
-          newY,
-          gridSize,
-          gridDistance: gridDist,
-          diagonals: scene?.grid?.diagonals,
-        });
-        this._pendingDeduct[doc.id] = distanceFt;
-      }
+    const moves = changes.x !== undefined || changes.y !== undefined;
+    // Ctrl+Z (core's undo of a recorded move is an isUndo update): like a rollback it is never locked or
+    // refused, and it refunds what the undone update was charged, the same straight segment walked back.
+    if (opts?.isUndo) {
+      delete this._pendingDeduct[doc.id];
+      if (moves && CrawlState.isActive) this._pendingDeduct[doc.id] = -updateFeet(doc, changes);
+      return;
     }
+    // Compute and cache the distance now, while we still have old position.
+    if (moves && CrawlState.isActive) this._pendingDeduct[doc.id] = updateFeet(doc, changes);
     // Block move if it exceeds remaining movement
     return this._onPreUpdate(doc, changes, userId, this._pendingDeduct[doc.id]);
   },
@@ -498,25 +503,7 @@ export const MovementTracker = {
     const stored = doc.getFlag(MODULE_ID, "moveRemaining");
     const moveRemaining = (typeof stored === "number") ? stored : _getBaseSpeed(actor, doc);
 
-    let segFt = precomputedFt;
-    if (segFt == null) {
-      const scene    = doc.parent;
-      const gridSize = scene?.grid?.size     ?? 100;
-      const gridDist = scene?.grid?.distance ?? 5;
-      const oldX = doc._source?.x ?? doc.x;
-      const oldY = doc._source?.y ?? doc.y;
-      const newX = changes.x ?? oldX;
-      const newY = changes.y ?? oldY;
-      segFt = segmentFeet({
-        oldX,
-        oldY,
-        newX,
-        newY,
-        gridSize,
-        gridDistance: gridDist,
-        diagonals: scene?.grid?.diagonals,
-      });
-    }
+    const segFt = precomputedFt ?? updateFeet(doc, changes);
 
     // Shadowdark has no Rush — the cap is just moveRemaining in both modes.
     const limit = moveRemaining;
@@ -622,7 +609,7 @@ export const MovementTracker = {
     };
     await doc.update({ x: start.x, y: start.y }, {
       movement: { [doc.id]: { waypoints: [waypoint] } },
-      animate: false, [MODULE_ID]: { rollback: true },
+      animate: false, [MODULE_ID]: { rollback: true }, ...UNRECORDED,
     });
 
     // Wipe the recorded movement path. Core draws the token's turn movement as
@@ -651,7 +638,7 @@ export const MovementTracker = {
     // Refund full turn movement (base speed — no Rush in Shadowdark)
     if (actor) {
       const fullSpeed = Math.round(_getBaseSpeed(actor, doc) / 5) * 5;
-      await doc.setFlag(MODULE_ID, "moveRemaining", fullSpeed);
+      await replaceModuleFlag(doc, "moveRemaining", fullSpeed, {}, UNRECORDED);
       CrawlStrip.queueRender();
       ui.notifications.info(game.i18n.format("SDE.crawlStrip.movement.rolledBack", { name: actor.name }));
     }
@@ -675,7 +662,7 @@ export const MovementTracker = {
         elevation: tokenDoc._source?.elevation ?? tokenDoc.elevation,
         ...(tokenDoc._source?.level ? { level: tokenDoc._source.level } : {}),
       },
-    });
+    }, UNRECORDED);
   },
 
   /**
@@ -715,7 +702,7 @@ export const MovementTracker = {
         this._turnStartPos[tokenDoc.id] = startPos;
       }
       for (const [scene, updates] of byScene) {
-        await scene.updateEmbeddedDocuments("Token", updates);
+        await scene.updateEmbeddedDocuments("Token", updates, UNRECORDED);
       }
     }
     CrawlStrip.queueRender();
@@ -814,7 +801,7 @@ export const MovementTracker = {
       await t.update({
         [`flags.${MODULE_ID}.moveRemaining`]: _del,
         [`flags.${MODULE_ID}.turnStart`]: _del,
-      }).catch(() => {});
+      }, UNRECORDED).catch(() => {});
     }
     this._turnStartPos = {};
   },

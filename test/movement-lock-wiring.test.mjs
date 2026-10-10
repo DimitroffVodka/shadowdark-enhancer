@@ -25,6 +25,7 @@ const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
 const { normalizeCrawlState, defaultCrawlState } = await import("../scripts/crawl-strip/crawl-state-core.mjs");
 
 let preUpdateToken; // the handler as registered by MovementTracker.init()
+let updateToken;    // likewise, the post-move deduction
 
 /** Install the given OoC order on the shared CrawlState singleton. */
 function setOocState({ mode = "crawl", members = [], rolls = {}, oocTurn = null, raw = false } = {}) {
@@ -54,6 +55,7 @@ function boot() {
   };
   MovementTracker.init();
   preUpdateToken = hooks.preUpdateToken.at(-1);
+  updateToken = hooks.updateToken.at(-1);
 }
 
 /**
@@ -320,4 +322,84 @@ test("wiring: growing a mount's token to 2x2 when it is mounted is not a move (#
   stubGame({ combatantTokenIds: ["tok-out", "tok-current"], currentTokenId: "tok-current" });
   const grow = { [MODULE_ID]: { mountGrow: true } };
   assert.strictEqual(preUpdateToken(tokenDoc("tok-out"), { x: 0, y: 0, width: 2, height: 2 }, grow, "u1"), undefined);
+});
+
+/**
+ * Ctrl+Z during a crawl or combat (#453). Core keeps an update out of the undo
+ * history when it is an isUndo write, so the tracker's own budget write is one;
+ * then Ctrl+Z finds the move itself. Core's undo of that move is an isUndo
+ * update too: never locked, and it refunds what the move was charged.
+ */
+function trackedToken(id, { moveRemaining } = {}) {
+  const doc = {
+    ...tokenDoc(id, { actorId: "a1" }),
+    actor: { system: {} },
+    _source: { x: 0, y: 0 },
+    flags: { [MODULE_ID]: moveRemaining === undefined ? {} : { moveRemaining } },
+    writes: [],
+    getFlag: (_mod, key) => doc.flags[MODULE_ID][key],
+    update: async (changes, options) => {
+      doc.writes.push({ changes, options });
+      const v = changes[`flags.${MODULE_ID}.moveRemaining`];
+      if (v !== undefined) doc.flags[MODULE_ID].moveRemaining = v;
+    },
+  };
+  return doc;
+}
+
+function stubCrawlGame(mode) {
+  stubGame({ started: mode === "combat", combatantTokenIds: ["tok-out", "tok-current"], currentTokenId: "tok-current" });
+  globalThis.game.settings.get = (_mod, key) => ({ lockMovementOutOfTurn: true, crawlFreeMovement: false, oocEnforceBudget: true,
+    combatEnforceBudget: true, oocMovementBudget: 90, combatMovementDefault: 30 })[key];
+  globalThis._replace = (v) => v;
+  setOocState({ mode, members: ["a1"] });
+}
+
+async function moveThenUndo(mode) {
+  boot();
+  stubCrawlGame(mode);
+  const doc = trackedToken("tok-out");
+  const grid = { size: 100, distance: 5 };
+  doc.parent.grid = grid;
+  // GM-free move of 3 squares east (a player's in the crawl; the current combatant's turn is someone else's in combat).
+  globalThis.game.user.isGM = true;
+  assert.strictEqual(preUpdateToken(doc, { x: 300 }, {}, "u1"), undefined);
+  updateToken(doc, { x: 300 }, {}, "u1");
+  await new Promise((r) => setImmediate(r));
+  doc._source.x = 300;
+  const charged = doc.flags[MODULE_ID].moveRemaining;
+  // Ctrl+Z, by the player whose turn it is not: core displaces it back with isUndo.
+  globalThis.game.user.isGM = false;
+  assert.strictEqual(preUpdateToken(doc, { x: 0 }, { isUndo: true }, "u1"), undefined, "an undo is never locked or refused");
+  updateToken(doc, { x: 0 }, { isUndo: true }, "u1");
+  await new Promise((r) => setImmediate(r));
+  return { doc, charged };
+}
+
+test("wiring: Ctrl+Z in a crawl refunds the undone move, and no budget write enters the undo history (#453)", async () => {
+  const { doc, charged } = await moveThenUndo("crawl");
+  assert.equal(charged, 75, "a 3-square move costs 15 ft of the 90 ft crawl budget");
+  assert.equal(doc.flags[MODULE_ID].moveRemaining, 90, "the undo gives it back");
+  assert.ok(doc.writes.every((w) => w.options?.isUndo === true), "every tracker write is unrecorded");
+});
+
+test("wiring: Ctrl+Z in combat refunds the undone move even out of turn, never past a full turn (#453)", async () => {
+  const { doc, charged } = await moveThenUndo("combat");
+  assert.equal(charged, 15);
+  assert.equal(doc.flags[MODULE_ID].moveRemaining, 30);
+  assert.ok(doc.writes.every((w) => w.options?.isUndo === true));
+  // A turn reset since the move: the refund stops at the full turn.
+  doc._source.x = 300;
+  preUpdateToken(doc, { x: 0 }, { isUndo: true }, "u1");
+  updateToken(doc, { x: 0 }, { isUndo: true }, "u1");
+  await new Promise((r) => setImmediate(r));
+  assert.equal(doc.flags[MODULE_ID].moveRemaining, 30);
+});
+
+test("wiring: a turn reset is an unrecorded write (#453)", async () => {
+  boot();
+  stubCrawlGame("crawl");
+  const doc = trackedToken("tok-out");
+  await MovementTracker.resetToken(doc);
+  assert.equal(doc.writes.at(-1).options?.isUndo, true);
 });

@@ -127,6 +127,11 @@ budget is refunded in full, and a notification confirms the rollback.
 Players can roll back their own tokens. The action executes on the active GM
 client to ensure state consistency.
 
+To undo just the last move, press **Ctrl+Z** with the token layer active. The
+token goes back where that move started and gets back the movement it spent,
+never more than a full turn. It works out of turn too, and the budget
+bookkeeping never takes a Ctrl+Z of its own.
+
 ---
 
 ## Troubleshooting

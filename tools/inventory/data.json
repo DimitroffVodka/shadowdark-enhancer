@@ -543,7 +543,7 @@
     "scripts/crawl-strip/hidden-sync.mjs": "Bidirectional `token.hidden` ↔ `combatant.hidden` sync, GM-only.",
     "scripts/crawl-strip/turn-skip.mjs": "Auto-advances past combatants the strip renders no card for (dead enemies). Active-GM gated. Also drives Chaos Mode: queues each held Chaos round (updateCombat) and replays it under the same lock (#259).",
     "scripts/crawl-strip/turn-skip-core.mjs": "Pure strip-visibility test shared by the strip and the auto-skip, so the two can't drift.",
-    "scripts/crawl-strip/movement-tracker.mjs": "Crawl-mode movement budget enforcement + turn-start rollback (`displace` waypoints).",
+    "scripts/crawl-strip/movement-tracker.mjs": "Crawl-mode movement budget enforcement + turn-start rollback (`displace` waypoints); its token writes stay out of the undo history, and a Ctrl+Z undo refunds the move it reverts.",
     "scripts/mounted/mounted-core.mjs": "Riding a mount on the map (#326), pure: the rider's corner square, the carried path, carry movement ids (`isCarryMovement`, read by the movement tracker), the snap-to-corner reconcile after a carry, picking the mount in reach, the 2x2 size a mount grows to.",
     "scripts/mounted/mounted-tokens.mjs": "Riding a mount on the map (#326), Foundry glue: the Mount/Dismount Token HUD button, the rider following its mount (one carry at a time per rider, then a reconcile; also when the mount is resized or reverted with Ctrl+Z, in the tab that moved it), the 2x2 grow on mounting, the GM relay for a carry the mover cannot make, and a pasted rider riding nothing. Its writes stay out of the token undo history.",
     "scripts/crawl-strip/movement-calc.mjs": "Pure per-segment feet-moved math.",
