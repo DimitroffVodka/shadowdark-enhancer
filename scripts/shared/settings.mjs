@@ -114,6 +114,53 @@ export function registerSettings() {
     },
   });
 
+  // Strip display: each option is a pair. The GM's world setting (in the Crawl
+  // Strip window) applies to everyone; the client setting is each user's own
+  // choice for their computer and shows in everyone's Configure Settings. The
+  // strip uses either (stripOptions), so a player cannot undo the GM's.
+  const redrawStrip = () => {
+    import("../crawl-strip/crawl-strip.mjs").then(({ CrawlStrip }) => CrawlStrip.queueRender());
+  };
+  game.settings.register(MODULE_ID, "crawlStripOffForAll", {
+    name: "SDE.settings.crawlStripOffForAll.name",
+    hint: "SDE.settings.crawlStripOffForAll.hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: false,
+    onChange: redrawStrip,
+  });
+
+  game.settings.register(MODULE_ID, "crawlStripSlimForAll", {
+    name: "SDE.settings.crawlStripSlimForAll.name",
+    hint: "SDE.settings.crawlStripSlimForAll.hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: false,
+    onChange: redrawStrip,
+  });
+
+  game.settings.register(MODULE_ID, "crawlStripDisabled", {
+    name: "SDE.settings.crawlStripDisabled.name",
+    hint: "SDE.settings.crawlStripDisabled.hint",
+    scope: "client",
+    config: true,
+    type: Boolean,
+    default: false,
+    onChange: redrawStrip,
+  });
+
+  game.settings.register(MODULE_ID, "crawlStripSlim", {
+    name: "SDE.settings.crawlStripSlim.name",
+    hint: "SDE.settings.crawlStripSlim.hint",
+    scope: "client",
+    config: true,
+    type: Boolean,
+    default: false,
+    onChange: redrawStrip,
+  });
+
   game.settings.register(MODULE_ID, "warnIfCrawlHelperEnabled", {
     name: "SDE.settings.warnIfCrawlHelperEnabled.name",
     hint: "SDE.settings.warnIfCrawlHelperEnabled.hint",

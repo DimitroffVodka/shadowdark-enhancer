@@ -22,11 +22,25 @@ const VALID_PRIOR_MODES = new Set(["off", "crawl", "overland"]);
  * Does the Crawl Strip show (#257, #298)? While a crawl or a combat runs, on a
  * map that is not a hex map: the party travels a hex map as one token and the
  * clock HUD holds the top of the screen there. A combat's own display takes
- * over on any map.
- * @param {{active:boolean, mode:string, hex:boolean}} q  active: a crawl or a combat; hex: the viewed scene is a hex map
+ * over on any map. Never, when the user has disabled the strip: the Crawl Bar
+ * and the crawl itself carry on without it.
+ * @param {{active:boolean, mode:string, hex:boolean, disabled?:boolean}} q  active: a crawl or a combat; hex: the viewed scene is a hex map; disabled: this user turned the strip off
  * @returns {boolean}
  */
-export const stripShown = ({ active, mode, hex }) => !!active && (mode === "combat" || !hex);
+export const stripShown = ({ active, mode, hex, disabled = false }) =>
+  !disabled && !!active && (mode === "combat" || !hex);
+
+/**
+ * The strip's display options for one user. Each option is a pair: the GM's
+ * world setting (everyone) and the user's own client setting (this computer).
+ * Either one turns it on, so a player can add to the GM's choice, never undo it.
+ * @param {{offForAll?:boolean, offMine?:boolean, slimForAll?:boolean, slimMine?:boolean}} s
+ * @returns {{disabled:boolean, slim:boolean}}
+ */
+export const stripOptions = ({ offForAll, offMine, slimForAll, slimMine } = {}) => ({
+  disabled: offForAll === true || offMine === true,
+  slim: slimForAll === true || slimMine === true,
+});
 
 /**
  * Was this persisted value written by a newer client than this one? Such a

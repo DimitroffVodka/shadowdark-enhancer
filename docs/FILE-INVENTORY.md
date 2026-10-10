@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1929 tracked files · ~245,500 lines of code/markup across scripts+templates+styles+test.
+1933 tracked files · ~245,900 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -175,7 +175,7 @@
 | `curated-icon-maps/sea-wolf-plunder-icons.mjs` | 38 | The N3 §5.1/D4 Sea Wolf Plunder map: exactly 20 CS3 p68 source-qualified item phrases and reviewed native Foundry `icons/**.webp` paths, keyed without each row's terminal gp price. |
 | `curated-icon-maps/weapon-icons.mjs` | 47 | N3's 37 reviewed Foundry-native weapon icons, keyed by source-agnostic normalized final Item name and registered through the A4 discovery seam. |
 | `attack-card.mjs` | 107 | Reading a Shadowdark attack card — was it an attack at all (a targeted spell is not), did it land, who was it aimed at, who swung. Shared by Parry and Taunt so the two can never disagree about the target (they once did, silently). |
-| `settings.mjs` | 969 | All `game.settings.register` calls + migration-safe defaults. |
+| `settings.mjs` | 1016 | All `game.settings.register` calls + migration-safe defaults. |
 | `icons.mjs` | 101 | Centralized icon registry — FontAwesome snippets and vendored SVG references. |
 | `i18n.mjs` | 19 | `L(key, data)`: one string from `languages/en.json`, localized, or formatted when there is data; the key itself before Foundry's i18n is mounted and in node tests. The one copy of the helper some 60 files used to define for themselves (as `L` or `t`). |
 | `compendium-suite.mjs` | 471 | Find-or-create layer for managed world packs, ownership, sidebar folders, and source folders. |
@@ -202,9 +202,9 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `crawl-strip.mjs` | 1706 | The core feature: the top strip. Plain DOM (`#shadowdark-enhancer-strip`), not ApplicationV2. |
+| `crawl-strip.mjs` | 1735 | The core feature: the top strip. Plain DOM (`#shadowdark-enhancer-strip`), not ApplicationV2. |
 | `crawl-state.mjs` | 515 | Foundry-coupled state singleton — persistence, sockets, hook emission. |
-| `crawl-state-core.mjs` | 414 | Pure reducer/normalizer behind crawl-state. Node-testable. |
+| `crawl-state-core.mjs` | 428 | Pure reducer/normalizer behind crawl-state. Node-testable. |
 | `crawl-lights-core.mjs` | 93 | Pure light-source logic for the strip's flame badges. |
 | `crawl-tracker.mjs` | 346 | The out-of-combat tracker as a real sidebar tab (`AbstractSidebarTab`), registered into `Sidebar.TABS` + `CONFIG.ui` beside Combat. Hidden unless a crawl is running; carries the roll-all / advance / reset controls. |
 | `crawl-tracker-core.mjs` | 138 | Pure view model for the tracker tab: `buildTrackerRows()` (rolled first, unrolled last, holder flagged), `showOocReset()`, and `parseInitiativeInput()` — which treats a blanked box as "no change" rather than the initiative of 0 that `Number("")` yields. Node-testable. |

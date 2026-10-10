@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   stripShown,
+  stripOptions,
   STATE_VERSION,
   defaultCrawlState,
   normalizeCrawlState,
@@ -703,6 +704,22 @@ test("the Crawl Strip shows on a map that is not a hex map, and on a hex map onl
   assert.equal(stripShown({ active: true, mode: "combat", hex: true }), true, "a combat's own display takes over there");
   assert.equal(stripShown({ active: false, mode: "off", hex: false }), false, "nothing running");
   assert.equal(stripShown({ active: false, mode: "overland", hex: true }), false);
+});
+
+test("stripOptions: the GM's setting and the user's own are both honoured, either one is enough", () => {
+  assert.deepEqual(stripOptions({}), { disabled: false, slim: false }, "nothing set");
+  assert.deepEqual(stripOptions({ offForAll: true }), { disabled: true, slim: false }, "GM turned it off for everyone");
+  assert.deepEqual(stripOptions({ offMine: true }), { disabled: true, slim: false }, "one user turned it off for themselves");
+  assert.deepEqual(stripOptions({ slimForAll: true, slimMine: false }), { disabled: false, slim: true }, "a user cannot undo the GM's slim");
+  assert.deepEqual(stripOptions({ slimMine: true }), { disabled: false, slim: true });
+  assert.deepEqual(stripOptions({ offForAll: "yes" }), { disabled: false, slim: false }, "only a real true counts");
+});
+
+test("a user who disabled the Crawl Strip never sees it, in a crawl or a combat", () => {
+  assert.equal(stripShown({ active: true, mode: "crawl", hex: false, disabled: true }), false);
+  assert.equal(stripShown({ active: true, mode: "combat", hex: false, disabled: true }), false);
+  assert.equal(stripShown({ active: true, mode: "combat", hex: true, disabled: true }), false);
+  assert.equal(stripShown({ active: true, mode: "crawl", hex: false, disabled: false }), true, "off by default");
 });
 
 test("freeCrawlActive: the setting shapes the crawl only, never combat", () => {

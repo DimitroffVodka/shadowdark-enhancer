@@ -18,7 +18,7 @@ import { ICONS }            from "../shared/icons.mjs";
 import { relayToGM, authorizeActorFor, refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
 import { computeLightState, isLightItem } from "./crawl-lights-core.mjs";
 import { canAdvanceTurn, canAdvanceOocTurn, nextTurnWouldRollRound } from "./crawl-turn-core.mjs";
-import { oocOrderComplete, stripShown, freeCrawlActive } from "./crawl-state-core.mjs";
+import { oocOrderComplete, stripShown, stripOptions, freeCrawlActive } from "./crawl-state-core.mjs";
 import { combatantEntry, isHiddenFromStrip, isTurnless, commanderCombatant } from "./turn-skip-core.mjs";
 import { showOocReset } from "./crawl-tracker-core.mjs";
 import { dyingState, badgeHTML as dyingBadgeHTML, openMenu as openDyingMenu } from "../dying/dying.mjs";
@@ -647,7 +647,15 @@ export const CrawlStrip = {
     // No Crawl Strip on a hex map outside a combat (#257, #298): the party
     // travels there as one token, and the clock HUD holds the top of the
     // screen. Any hex grid is a hex map; the strip belongs to the other maps.
-    if (!stripShown({ active: state.isActive, mode: state.mode, hex: isHexMapScene() })) {
+    // A user can turn the strip off for their own screen; the Crawl Bar and the
+    // relays above keep working, only this drawing stops.
+    const { disabled, slim } = stripOptions({
+      offForAll:  game.settings.get(MODULE_ID, "crawlStripOffForAll"),
+      offMine:    game.settings.get(MODULE_ID, "crawlStripDisabled"),
+      slimForAll: game.settings.get(MODULE_ID, "crawlStripSlimForAll"),
+      slimMine:   game.settings.get(MODULE_ID, "crawlStripSlim"),
+    });
+    if (!stripShown({ active: state.isActive, mode: state.mode, hex: isHexMapScene(), disabled })) {
       this._el.innerHTML = "";
       this._el.classList.remove("sde-strip-visible");
       document.body.classList.remove("sde-strip-active");
@@ -670,6 +678,10 @@ export const CrawlStrip = {
     const freeCrawl = freeCrawlActive(game.settings.get(MODULE_ID, "crawlFreeMovement"), state.mode);
     const oocOrderActive = !inCombat && !freeCrawl && oocOrderComplete(state) && !!state.oocTurn;
 
+    // Slim strip (the GM's setting for everyone, or the user's own): the same
+    // cards as a few short rows, no portrait. Everything else (pills, badges,
+    // the action menu) is shared. `slim` comes from stripOptions above.
+
     const combatantMap = new Map(
       (game.combat?.combatants ?? []).map(c => [c.tokenId, c])
     );
@@ -680,14 +692,15 @@ export const CrawlStrip = {
       // Special-case the synthetic GM card — no actor lookup, no stats, just
       // a visible marker for the GM's turn in the crawl loop.
       if (m.type === "gm") {
-        const gmTitle = game.user.isGM
+        const gmEditable = game.user.isGM && !slim;   // slim has no portrait to change
+        const gmTitle = gmEditable
           ? game.i18n.localize("SDE.crawlStrip.gmAvatarPick")
           : esc(m.name);
         return `
         <div class="sde-strip-card-wrap">
-          <div class="sde-strip-member sde-strip-active sde-strip-type-gm${game.user.isGM ? " sde-strip-gm-editable" : ""}"
+          <div class="sde-strip-member sde-strip-active sde-strip-type-gm${gmEditable ? " sde-strip-gm-editable" : ""}"
                data-member-id="${m.id}" title="${gmTitle}">
-            <img class="sde-strip-portrait" src="${esc(m.img)}" alt="${esc(m.name)}" />
+            ${slim ? "" : `<img class="sde-strip-portrait" src="${esc(m.img)}" alt="${esc(m.name)}" />`}
             <div class="sde-strip-overlay">
               <div class="sde-strip-name">${esc(m.name)}</div>
             </div>
@@ -766,7 +779,7 @@ export const CrawlStrip = {
 
       // AC sub-line — rendered right under the name to keep the pill row uncrowded.
       const acLine = (data && data.ac != null && !concealStats)
-        ? `<div class="sde-strip-ac-line" title="${esc(game.i18n.localize("SDE.crawlStrip.acTitle"))}">${esc(game.i18n.format("SDE.crawlStrip.acLine", { ac: data.ac }))}</div>`
+        ? `<div class="sde-strip-ac-line" title="${esc(game.i18n.localize("SDE.crawlStrip.acTitle"))}" aria-label="${esc(game.i18n.format("SDE.crawlStrip.acLine", { ac: data.ac }))}">${slim ? `<i class="fas fa-shield-halved"></i>${esc(data.ac)}` : esc(game.i18n.format("SDE.crawlStrip.acLine", { ac: data.ac }))}</div>`
         : "";
 
       // Pills:
@@ -787,12 +800,12 @@ export const CrawlStrip = {
           pills = `
         <div class="sde-strip-pills">
           <div class="sde-strip-pill ${luckClass}" data-actor-id="${m.actorId ?? ""}" ${luckClickable} title="${luckTitle}">${ICONS.shamrock}${data.luck}</div>
-          ${freeCrawl ? "" : `<div class="sde-strip-pill ${moveClass}">${ICONS.walking}${data.moveRemaining}/${data.activeSpeed}ft</div>`}
+          ${freeCrawl ? "" : `<div class="sde-strip-pill ${moveClass}">${ICONS.walking}${data.moveRemaining}/${data.activeSpeed}${slim ? "" : "ft"}</div>`}
         </div>`;
         } else if (m.type === "npc" && inCombat && !concealStats) {
           pills = `
         <div class="sde-strip-pills">
-          <div class="sde-strip-pill ${moveClass}">${ICONS.walking}${data.moveRemaining}/${data.activeSpeed}ft</div>
+          <div class="sde-strip-pill ${moveClass}">${ICONS.walking}${data.moveRemaining}/${data.activeSpeed}${slim ? "" : "ft"}</div>
         </div>`;
         }
       }
@@ -807,12 +820,12 @@ export const CrawlStrip = {
         : "";
 
       const cardHTML = `
-        <div class="sde-strip-member ${isActivePhase ? "sde-strip-active" : "sde-strip-dim"} ${isTurn ? "sde-strip-is-turn" : ""} ${isDefeated ? "sde-strip-defeated" : ""} ${isHidden ? "sde-strip-hidden" : ""} sde-strip-type-${m.type}"
-             data-member-id="${m.id}" data-token-id="${m.tokenId ?? ""}" data-actor-id="${m.actorId ?? ""}" ${m.combatantId ? `data-combatant-id="${m.combatantId}"` : ""} title="${!inCombat && isTurn ? game.i18n.localize("SDE.crawlStrip.currentTurn") : ""}" tabindex="0">
-          <img class="sde-strip-portrait" src="${esc(m.img)}" alt="${esc(m.name)}" />
+        <div class="sde-strip-member ${isActivePhase ? "sde-strip-active" : "sde-strip-dim"} ${isTurn ? "sde-strip-is-turn" : ""} ${isDefeated ? "sde-strip-defeated" : ""} ${isHidden ? "sde-strip-hidden" : ""} sde-strip-type-${m.type}${slim ? ` sde-strip-fill ${hpClass}` : ""}"
+             ${slim ? `style="--sde-fill:${hpPct}%"` : ""} data-member-id="${m.id}" data-token-id="${m.tokenId ?? ""}" data-actor-id="${m.actorId ?? ""}" ${m.combatantId ? `data-combatant-id="${m.combatantId}"` : ""} title="${!inCombat && isTurn ? game.i18n.localize("SDE.crawlStrip.currentTurn") : ""}" tabindex="0">
+          ${slim ? "" : `<img class="sde-strip-portrait" src="${esc(m.img)}" alt="${esc(m.name)}" />`}
           ${isHidden ? `<div class="sde-strip-hidden-icon" title="${esc(game.i18n.localize("SDE.crawlStrip.hiddenTip"))}">${ICONS.eyeSlash}</div>` : ""}
           <div class="sde-strip-overlay">
-            ${displayName ? `<div class="sde-strip-name">${displayName}</div>` : ""}
+            ${displayName ? `<div class="sde-strip-name"${slim ? ` title="${displayName}"` : ""}>${displayName}</div>` : ""}
             ${acLine}
             <div class="sde-strip-bottom">
               <div class="sde-strip-hp-bar-wrap">
@@ -934,7 +947,9 @@ export const CrawlStrip = {
     // because MerchantShop calls CrawlStrip.queueRender() when it toggles.
     // Never shown in combat: shopping isn't a combat action, and the strip is
     // the initiative board there.
-    const shopAvailable = !inCombat
+    // Not on the slim strip, which has no room for it: the GM opens the shop
+    // from the Crawl Bar's Tools, a player from the shop's chat card.
+    const shopAvailable = !inCombat && !slim
       && (game.user.isGM || game.settings.get(MODULE_ID, "shopAvailableToPlayers"));
     const shopButton = shopAvailable
       ? `<button class="sde-strip-merchant-btn" data-action="openMerchant" title="${esc(game.i18n.localize("SDE.crawlStrip.openMerchant"))}"><i class="fas fa-store"></i></button>`
@@ -965,7 +980,7 @@ export const CrawlStrip = {
     const looseShopButton = heroCards ? "" : shopButton;
 
     this._el.innerHTML = `
-      <div class="sde-strip-inner ${inCombat ? "sde-strip-paused" : ""}">
+      <div class="sde-strip-inner ${inCombat ? "sde-strip-paused" : ""} ${slim ? "sde-strip-slim-mode" : ""}">
         ${leftBadge}
         ${heroesBlock}
         ${npcsBlock}
@@ -1019,22 +1034,36 @@ export const CrawlStrip = {
     const available = this._el.getBoundingClientRect().width;
     if (available < 10) return;
 
-    const cards = this._el.querySelectorAll(".sde-strip-member");
+    // The slim GM card is just its name: it keeps its own width and takes no
+    // share of the sizing, only a fixed allowance in the reserved space.
+    const slim  = !!this._el.querySelector(".sde-strip-slim-mode");
+    const all   = [...this._el.querySelectorAll(".sde-strip-member")];
+    const cards = slim ? all.filter(c => !c.classList.contains("sde-strip-type-gm")) : all;
     if (!cards.length) return;
 
     const n      = cards.length;
     const gap    = 2;
-    const reserved = 36 + 16 + 16 + 32;
+    // Slim cards are the same width at most, shrink the same way, and stop at
+    // the narrowest that still holds a row of text: past that the row wraps.
+    // They are as tall as their rows, so only the width is set.
+    // Slim measures what is not a card (the controls, the PARTY plate, the GM
+    // chip) rather than guessing, so a big party and the GM chip share one line.
+    const wide = (el) => el?.offsetWidth ?? 0;
+    const slimChrome = wide(this._el.querySelector(".sde-strip-combat-controls"))
+      + wide(this._el.querySelector(".sde-strip-label-col"))
+      + all.filter(c => !cards.includes(c)).reduce((w, c) => w + wide(c), 0) + 14;
+    const reserved = slim ? slimChrome : 36 + 16 + 16 + 32;
+    const minW   = slim ? 66 : 36;
     const maxW   = 110;
     const maxH   = 130;
 
     const idealW = (available - reserved - gap * (n - 1)) / n;
-    const cardW  = Math.min(maxW, Math.max(36, Math.floor(idealW)));
+    const cardW  = Math.min(maxW, Math.max(minW, Math.floor(idealW)));
     const cardH  = Math.round(cardW * (maxH / maxW));
 
     cards.forEach(c => {
       c.style.width  = cardW + "px";
-      c.style.height = cardH + "px";
+      if (!slim) c.style.height = cardH + "px";
     });
   },
 
@@ -1240,7 +1269,7 @@ export const CrawlStrip = {
         // GM avatar card → click to pick a portrait (GM only). The synthetic
         // GM card has no token/actor, so it owns its own click behaviour.
         if (card.classList.contains("sde-strip-type-gm")) {
-          if (!game.user.isGM) return;
+          if (!game.user.isGM || card.closest(".sde-strip-slim-mode")) return;
           ev.stopPropagation();
           const FilePickerImpl = foundry.applications?.apps?.FilePicker?.implementation ?? FilePicker;
           const fp = new FilePickerImpl({

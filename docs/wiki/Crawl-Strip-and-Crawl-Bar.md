@@ -387,6 +387,40 @@ Players see only the HP bar on a hostile NPC's card: no HP numbers, no AC, and
 no movement pill. The same applies to an NPC whose token disposition is
 **Secret**. The GM always sees the full card.
 
+### Turning the strip off
+
+The strip is optional. The GM can turn it off for everyone with **Turn off the
+crawl strip for everyone** in the Crawl Strip settings, and any player (or the
+GM) can turn it off on their own computer with **Turn off the crawl strip for
+me** in Configure Settings, which is kept per browser. Either one is enough; a
+player cannot bring back a strip the GM turned off.
+
+The Crawl Bar is a separate piece and keeps working: starting and ending a crawl,
+advancing turns, rolling initiative and Tools are all there. Only the strip's
+cards are not drawn. The slim and GM-avatar options have no effect while it is
+off.
+
+### Slim strip
+
+For a small screen, turn on **Slim crawl strip for me** in Configure Settings,
+or let the GM turn on **Slim crawl strip for everyone** in the Crawl Strip
+settings. Either one is enough; a player cannot switch back to full cards while
+the GM's is on. The strip drops every portrait. Each character is a short card
+in three rows: the name, then initiative, AC and HP (the number), then Luck,
+movement and the light; a dying character's badge takes a fourth row. There is
+no HP bar: the card's own background fills to the HP fraction in the bar's
+colours (green, yellow, orange, red) and empties as HP drops, and the HP number
+takes the same colour once it is low. A card is never wider than a full one and
+gets narrower as more characters join the strip, just as full cards do (movement
+drops its "ft" to fit); text shrinks with it, and under 90px wide the shield,
+heart and walker icons give way to colour (blue AC, green movement). A name cut
+short shows in full when you hover it. The round and turn buttons shrink to a
+small block, and the **Merchant Shop** button is left off: the GM opens the shop
+from **Tools** on the Crawl Bar, and a player from the button on the shop's chat
+card. Hovering a character opens the same action menu as a full card. A party too
+big for one line wraps onto another. The Game Master card shows only its name, so
+its portrait cannot be changed while the strip is slim.
+
 ### The GM card
 
 The strip includes a **Game Master** card. Click its portrait to open a file
