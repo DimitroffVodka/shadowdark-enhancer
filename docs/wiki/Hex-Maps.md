@@ -74,7 +74,9 @@ scene. Where both modules have the same feature the Enhancer takes priority and
 nothing has to be switched off: native fog, Hex Data's hover card and editor,
 the hex coordinate labels and Carousing all run without waiting for Extras, and
 Extras defers to them (hard-coded, no setting; shadowdark-extras#204). Extras'
-coordinates keep drawing on a scene the Enhancer has not numbered. Native
+Map Coordinates steps aside only where your **Show hex coordinates** is on for a
+scene the Enhancer has numbered; with it off, or on a scene the Enhancer has not
+numbered, Extras draws as before. Native
 Parties use native camping; pending Extras camps keep their original executor.
 Enhancer never toggles Extras' settings. Native play does not need Extras.
 
