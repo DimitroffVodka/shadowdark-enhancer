@@ -225,7 +225,8 @@ function captureLinks() {
         seen.add(pair);
         paired.add(uuid).add(dest);
         const [a, z] = [from, to].sort((p, q) => keyOf(p) < keyOf(q) ? -1 : 1);
-        const off = (e) => (e.r._behaviors ?? []).some((x) => x.type === TELEPORT && x.disabled);
+        // The "(Levels)" copy is an experiment: what it switched off is not the real map's, so its ends ship switched on.
+        const off = (e) => !SCENE_ALIASES[e.s._id] && (e.r._behaviors ?? []).some((x) => x.type === TELEPORT && x.disabled);
         const end = (e) => ({ name: e.r.name, site: e.site, ...areaOf(e.r, rectOf(e.s), `link "${e.r.name}"`), ...(off(e) ? { disabled: true } : {}) });
         const name = a.r.flags?.[MOD]?.adventureLink?.link ?? z.r.flags?.[MOD]?.adventureLink?.link ?? a.r.name;
         out.push({ name, a: end(a), b: end(z) });
@@ -406,8 +407,9 @@ async function verify() {
     // Link ends on this map: same name, area and whether it is switched off.
     const ends = planLinkEnds({ links: REVIEWED_LINKS, siteId: id, rect });
     const mine = worldEnds.filter((e) => e.site === id);
-    const offIn = (w) => w.r._behaviors.some((b) => b.type === TELEPORT && b.disabled);
-    const lm = pairUp(ends, mine, (e, w) => (e.data.name === w.r.name && !!e.data.behaviors[0].disabled === offIn(w) ? shapeDist(e.data.shapes, w.r.shapes) : Infinity), 2);
+    // An end on the "(Levels)" copy ships switched on whatever the experiment did to it, so its state is not compared.
+    const sameState = (e, w) => !!SCENE_ALIASES[w.s._id] || !!e.data.behaviors[0].disabled === w.r._behaviors.some((b) => b.type === TELEPORT && b.disabled);
+    const lm = pairUp(ends, mine, (e, w) => (e.data.name === w.r.name && sameState(e, w) ? shapeDist(e.data.shapes, w.r.shapes) : Infinity), 2);
     row.links = `${lm.size}/${mine.length}`;
     if (lm.size !== ends.length || lm.size !== mine.length) bad(id, `link ends: ${ends.length} planned, ${mine.length} in the world, ${lm.size} the same`);
 
