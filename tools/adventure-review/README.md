@@ -34,6 +34,11 @@ size, and compares it with the scene: walls (within 2 px, same door, state and s
 within a pixel), traps (name, area within 2 px, mechanics), link ends and which ends each pair joins, lights (place,
 radii, colour), darkness and pins. It exits 1 on any difference and prints what differs.
 
+A teleport's destinations are read in every form Foundry stores them (`Scene.<id>.Region.<id>`, and the relative
+`..<regionId>` and `...<sceneId>.Region.<regionId>` that Foundry 14 writes; `region-uuid.mjs`). A teleport on an
+adventure map that joins no other adventure map's region stops the capture with a list of them, rather than being left
+out of the data. `--verify` on a world that has built only some of the maps checks the links between the maps it has.
+
 ## What it does not keep
 
 - A wall's direction, threshold, door sound or animation (the reviewed maps have none; the capture warns if one does).

@@ -19,6 +19,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { wallEdges, wallsFor, planWalls, wallTypes, planLights } from "../../scripts/importer/adventure/adventure-walls.mjs";
 import { ADVENTURE_TRAPS, planSiteTraps, regionShapes } from "../../scripts/importer/adventure/adventure-traps.mjs";
 import { layoutFromPins, layoutSnippet, layoutFor, layoutPoints } from "../../scripts/importer/adventure/adventure-layouts.mjs";
+import { regionRef } from "./region-uuid.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const ADV = join(ROOT, "scripts/importer/adventure");
@@ -195,29 +196,45 @@ function captureTraps(id, s) {
   return out.sort((p, q) => (p.pin ?? Infinity) - (q.pin ?? Infinity) || String(p.nth).localeCompare(String(q.nth), "en", { numeric: true }));
 }
 
-/** Every teleport between two adventure maps, once per pair. */
+/** A teleport behavior's destinations, each as the absolute "Scene.<id>.Region.<id>" (null for one that names no region). */
+const destinationsOf = (s, r, b) => [...(b.system?.destinations ?? [])].map((d) => {
+  const ref = regionRef(d, [s._id, r._id, b._id]);
+  return ref ? `Scene.${ref.sceneId}.Region.${ref.regionId}` : null;
+});
+
+/**
+ * Every teleport between two adventure maps, once per pair. A teleport on an adventure map that ends up in no pair (its
+ * destination unreadable, gone, or on a map that is not an adventure's) stops the capture: dropping it silently would take
+ * the link out of the shipped data.
+ */
 function captureLinks() {
   const where = new Map();   // region uuid -> {site, scene, region}
   for (const s of scenes) {
     const site = siteOf(s) ?? SCENE_ALIASES[s._id];
     if (site) for (const r of s._regions ?? []) where.set(`Scene.${s._id}.Region.${r._id}`, { site, s, r });
   }
-  const seen = new Set(), out = [];
+  const seen = new Set(), paired = new Set(), out = [];
   const keyOf = ({ site, r }) => `${site}\u0000${r.name}\u0000${r._id}`;
   for (const [uuid, from] of [...where].sort((p, q) => keyOf(p[1]) < keyOf(q[1]) ? -1 : 1)) {
     for (const b of from.r._behaviors ?? []) {
       if (b.type !== TELEPORT) continue;
-      for (const dest of b.system?.destinations ?? []) {
+      for (const dest of destinationsOf(from.s, from.r, b)) {
         const to = where.get(dest);
         const pair = [uuid, dest].sort().join("|");
         if (!to || seen.has(pair)) continue;
         seen.add(pair);
+        paired.add(uuid).add(dest);
         const [a, z] = [from, to].sort((p, q) => keyOf(p) < keyOf(q) ? -1 : 1);
         const end = (e) => ({ name: e.r.name, site: e.site, ...areaOf(e.r, rectOf(e.s), `link "${e.r.name}"`) });
         const name = a.r.flags?.[MOD]?.adventureLink?.link ?? z.r.flags?.[MOD]?.adventureLink?.link ?? a.r.name;
         out.push({ name, a: end(a), b: end(z) });
       }
     }
+  }
+  const lost = [...where].filter(([uuid, { r }]) => !paired.has(uuid) && (r._behaviors ?? []).some((b) => b.type === TELEPORT));
+  if (lost.length) {
+    const say = ([, { s, r }]) => `${siteOf(s) ?? s.name}: "${r.name}" -> ${JSON.stringify((r._behaviors ?? []).filter((b) => b.type === TELEPORT).flatMap((b) => [...(b.system?.destinations ?? [])]))}`;
+    throw new Error(`teleports that join no other adventure map's region, not captured:\n${lost.map(say).join("\n")}`);
   }
   const names = out.map((l) => l.name);
   const twice = names.filter((n, i) => names.indexOf(n) !== i);
@@ -319,7 +336,7 @@ async function write() {
     if (!pins.length) continue;
     const head = `  ${JSON.stringify(id)}: {\n`, at = layouts.indexOf(head);
     if (at < 0) throw new Error(`${id}: no layout to replace in adventure-layouts.mjs`);
-    const stop = layouts.indexOf("\n  },\n", at) + 5;
+    const stop = layouts.indexOf("\n  },\n", at) + 6;
     layouts = layouts.slice(0, at) + layoutSnippet(id, layoutFromPins(pins, rectOf(sites.get(id)))) + "\n" + layouts.slice(stop);
   }
   await writeFile(layoutsPath, layouts);
@@ -410,9 +427,10 @@ async function verify() {
   // Every pair joins the two ends the world joins.
   const uuidOf = (e) => `Scene.${e.s._id}.Region.${e.r._id}`;
   for (const link of REVIEWED_LINKS) {
+    if (!sites.has(link.a.site) || !sites.has(link.b.site)) continue;   // a map this world has not built
     const find = (end) => worldEnds.find((e) => e.site === end.site && e.r.name === end.name && shapeDist(regionShapes(end, rectOf(e.s)), e.r.shapes) <= 2);
     const a = find(link.a), b = find(link.b);
-    const joined = a && b && [[a, b], [b, a]].some(([x, y]) => x.r._behaviors.some((bh) => bh.type === TELEPORT && (bh.system.destinations ?? []).includes(uuidOf(y))));
+    const joined = a && b && [[a, b], [b, a]].some(([x, y]) => x.r._behaviors.some((bh) => bh.type === TELEPORT && destinationsOf(x.s, x.r, bh).includes(uuidOf(y))));
     if (!joined) bad(link.a.site, `link "${link.name}" does not join the same two ends in the world`);
   }
   console.table(rows);

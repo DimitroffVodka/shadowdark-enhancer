@@ -35,8 +35,6 @@ export const ADVENTURE_LAYOUTS = {
       33: [0.8217, 0.4006],
     },
   },
-
-
   "cs2-iron-fortress": {
     aspect: 1.2857,
     pins: {
@@ -47,8 +45,6 @@ export const ADVENTURE_LAYOUTS = {
       17: [0.0886, 0.7964], 18: [0.2189, 0.6446], 19: [0.0911, 0.0864],
     },
   },
-
-
   "cs2-mines": {
     aspect: 1.3235,
     pins: {
@@ -58,8 +54,6 @@ export const ADVENTURE_LAYOUTS = {
       32: [0.8056, 0.4228], 33: [0.8242, 0.1574], 34: [0.5786, 0.1548], 35: [0.9106, 0.2838],
     },
   },
-
-
   "cs3-wortwick": {
     aspect: 1,
     pins: {
@@ -67,8 +61,6 @@ export const ADVENTURE_LAYOUTS = {
       5: [0.5801, 0.1827], 6: [0.752, 0.3852], 7: [0.534, 0.6867],
     },
   },
-
-
   "cs3-sea-wolf": {
     aspect: 1.5451,
     pins: {
@@ -82,8 +74,6 @@ export const ADVENTURE_LAYOUTS = {
       29: [0.1028, 0.091],
     },
   },
-
-
   "cs4-army-ants": {
     aspect: 1.2,
     pins: {
@@ -92,8 +82,6 @@ export const ADVENTURE_LAYOUTS = {
       9: [0.5679, 0.1397],
     },
   },
-
-
   "cs4-basilisk-cult": {
     aspect: 1.25,
     pins: {
@@ -102,8 +90,6 @@ export const ADVENTURE_LAYOUTS = {
       9: [0.8836, 0.7689],
     },
   },
-
-
   "cs4-black-ziggurat": {
     aspect: 0.5625,
     pins: {
@@ -112,8 +98,6 @@ export const ADVENTURE_LAYOUTS = {
       9: [0.4, 0.78],
     },
   },
-
-
   "cs4-chanichu": {
     aspect: 1,
     pins: {
@@ -122,8 +106,6 @@ export const ADVENTURE_LAYOUTS = {
       9: [0.5311, 0.377],
     },
   },
-
-
   "cs4-eclipse-dial": {
     aspect: 1.2917,
     pins: {
@@ -131,8 +113,6 @@ export const ADVENTURE_LAYOUTS = {
       5: [0.6432, 0.1974], 6: [0.8428, 0.2146], 7: [0.5469, 0.4964], 8: [0.84, 0.495],
     },
   },
-
-
   "cs4-flooded-ruins": {
     aspect: 0.7742,
     pins: {
@@ -141,8 +121,6 @@ export const ADVENTURE_LAYOUTS = {
       9: [0.1221, 0.1304],
     },
   },
-
-
   "cs4-star-map-temple": {
     aspect: 1.0952,
     pins: {
@@ -150,16 +128,12 @@ export const ADVENTURE_LAYOUTS = {
       5: [0.1293, 0.3289], 6: [0.2651, 0.5479], 7: [0.2175, 0.8552], 8: [0.5217, 0.8102],
     },
   },
-
-
   "cs4-black-seed": {
     aspect: 1.037,
     pins: {
       1: [0.5018, 0.2589], 2: [0.2504, 0.7411], 3: [0.7496, 0.7381],
     },
   },
-
-
   "cs4-tsibalba": {
     aspect: 1.0526,
     pins: {
@@ -168,8 +142,6 @@ export const ADVENTURE_LAYOUTS = {
       9: [0.8928, 0.4954], 10: [0.7035, 0.7951],
     },
   },
-
-
   "cs5-leng-1": {
     aspect: 1.5717,
     pins: {
@@ -182,8 +154,6 @@ export const ADVENTURE_LAYOUTS = {
       25: [0.2102, 0.6177], 26: [0.18, 0.7886], 27: [0.0605, 0.7642], 28: [0.107, 0.5933],
     },
   },
-
-
   "cs5-leng-2": {
     aspect: 1.5717,
     pins: {
@@ -198,8 +168,6 @@ export const ADVENTURE_LAYOUTS = {
       61: [0.2065, 0.323], 62: [0.3342, 0.3108], 63: [0.1852, 0.0802], 64: [0.079, 0.2185],
     },
   },
-
-
   "cs6-gedgarrin": {
     aspect: 2.4506,
     pins: {
@@ -207,8 +175,6 @@ export const ADVENTURE_LAYOUTS = {
       5: [0.5861, 0.2791], 6: [0.4972, 0.4187],
     },
   },
-
-
   "cs6-gutterwash": {
     aspect: 2.4506,
     pins: {
@@ -216,8 +182,6 @@ export const ADVENTURE_LAYOUTS = {
       11: [0.2472, 0.2995], 12: [0.4694, 0.6549],
     },
   },
-
-
   "cs6-high-harbor": {
     aspect: 2.4506,
     pins: {
@@ -225,8 +189,6 @@ export const ADVENTURE_LAYOUTS = {
       17: [0.4736, 0.2689], 18: [0.6444, 0.5037],
     },
   },
-
-
   "cs6-montmar-castle": {
     aspect: 2.4506,
     pins: {
@@ -234,8 +196,6 @@ export const ADVENTURE_LAYOUTS = {
       23: [0.4861, 0.7386], 24: [0.5569, 0.1872],
     },
   },
-
-
   "cs6-ninestones": {
     aspect: 2.4506,
     pins: {
@@ -243,8 +203,6 @@ export const ADVENTURE_LAYOUTS = {
       29: [0.5222, 0.3165], 30: [0.4528, 0.194],
     },
   },
-
-
   "cs6-rilken-row": {
     aspect: 2.4506,
     pins: {
@@ -252,8 +210,6 @@ export const ADVENTURE_LAYOUTS = {
       35: [0.6444, 0.6535], 36: [0.7444, 0.4289],
     },
   },
-
-
   "cs6-silvertop": {
     aspect: 2.4506,
     pins: {
@@ -261,8 +217,6 @@ export const ADVENTURE_LAYOUTS = {
       41: [0.6403, 0.1293], 42: [0.6944, 0.3268], 43: [0.7486, 0.2723],
     },
   },
-
-
   "cs6-the-rooks": {
     aspect: 2.4506,
     pins: {
@@ -270,8 +224,6 @@ export const ADVENTURE_LAYOUTS = {
       48: [0.2708, 0.5888], 49: [0.4819, 0.4935], 50: [0.3375, 0.2893],
     },
   },
-
-
   "cs6-city": {
     aspect: 1.1215,
     pins: {
@@ -290,8 +242,6 @@ export const ADVENTURE_LAYOUTS = {
       49: [0.7214, 0.1791], 50: [0.6381, 0.1268],
     },
   },
-
-
   "wrma-house-of-rogues": {
     aspect: 1.6667,
     pins: {
@@ -300,8 +250,6 @@ export const ADVENTURE_LAYOUTS = {
       9: [0.8811, 0.3048],
     },
   },
-
-
   "wrma-grotto-golden-swan": {
     aspect: 1.1,
     pins: {
@@ -309,8 +257,6 @@ export const ADVENTURE_LAYOUTS = {
       5: [0.8617, 0.5002], 6: [0.8402, 0.125], 7: [0.5703, 0.1263], 8: [0.5061, 0.4902],
     },
   },
-
-
   "wrma-forge-metallic-sisters": {
     aspect: 1.2857,
     pins: {
@@ -318,8 +264,6 @@ export const ADVENTURE_LAYOUTS = {
       5: [0.6804, 0.5195], 6: [0.8457, 0.773], 7: [0.4, 0.235], 8: [0.6068, 0.114],
     },
   },
-
-
   "wrma-fallen-keep-emerald-knight": {
     aspect: 1.0476,
     pins: {
@@ -328,8 +272,6 @@ export const ADVENTURE_LAYOUTS = {
       9: [0.4348, 0.4468], 10: [0.3142, 0.8046], 11: [0.1989, 0.8214],
     },
   },
-
-
   "wrma-burial-mound-kaghan": {
     aspect: 1.3333,
     pins: {
@@ -337,8 +279,6 @@ export const ADVENTURE_LAYOUTS = {
       5: [0.8958, 0.5756], 6: [0.6796, 0.4787], 7: [0.5976, 0.2471], 8: [0.8542, 0.1476],
     },
   },
-
-
   "wrma-chapel-plague-priestesses": {
     aspect: 1.35,
     pins: {
@@ -347,8 +287,6 @@ export const ADVENTURE_LAYOUTS = {
       9: [0.8704, 0.425], 10: [0.7605, 0.8218],
     },
   },
-
-
 };
 
 /**

@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1925 tracked files · ~244,700 lines of code/markup across scripts+templates+styles+test.
+1926 tracked files · ~244,700 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -404,7 +404,7 @@
 | `adventure/adventure-commit.mjs` | 298 | Parsed locations → one JournalEntry per adventure in sde-journal, one page per location (plus an Introduction page when the book prints one before the first), filed under the adventure flag (not the hex flag, so the tagger never lists a dungeon as a crawl); pure planner plus a two-pass link rewrite, same contract as hex-commit. |
 | `adventure/adventure-creatures.mjs` | 196 | Who is in each keyed location (pure): a creature the book sets in bold with a count beside it ("12 unruly Howlers", "Three." after a bold bullet label), matched to the world's bestiary by name (and linked in the filed text: a bold creature name becomes an @UUID link); dice rolls, chances and creatures said to be in another Area place nothing. Reads the GM's own book text at run time; ships none. |
 | `adventure/adventure-journal.mjs` | 330 | An adventure's overview in the Lost Citadel quickstart's layout (pure): an Overview page with an H2 a section and a page for what holds in every area (danger level, light, the random encounters), the PDF's flattened numbered rows back as tables (rumors with no header row, d-tables with one), bullets as nested lists, run-in names bold, and dice and DC checks as inline rolls and requests. |
-| `adventure/adventure-layouts.mjs` | 424 | Where each adventure's room numbers sit on its map, as fractions of the map (positions only; no art, no book text), so a scene can place its pins without the GM clicking each one; plus the pure helpers that turn a placed scene into a layout to paste here and a layout into placement points; also where the book's map marks creatures (a letter per kind), as positions only. |
+| `adventure/adventure-layouts.mjs` | 362 | Where each adventure's room numbers sit on its map, as fractions of the map (positions only; no art, no book text), so a scene can place its pins without the GM clicking each one; plus the pure helpers that turn a placed scene into a layout to paste here and a layout into placement points; also where the book's map marks creatures (a letter per kind), as positions only. |
 | `adventure/adventure-links.mjs` | 91 | The stairs, ladders, shafts and trapdoors between parts of an adventure's maps: paired teleport Regions, each map's ends made when its scene is built and the pair wired once both ends exist. |
 | `adventure/adventure-manifest.mjs` | 169 | Where each Cursed Scroll adventure's numbered key is: per site (a dungeon, a mini-adventure, a city district) its title, printed pages, the numbers the book prints, the heading style, and the map's printed grid. Page numbers and titles only; no book text, no art. |
 | `adventure/adventure-marks.mjs` | 56 | The secret doors, locked doors and barricades a book's key map prints but its clean map leaves out: their kinds, looks and the planning that turns the places read from the GM's own book into hidden Tiles. |

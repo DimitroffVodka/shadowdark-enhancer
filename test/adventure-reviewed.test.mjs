@@ -10,6 +10,7 @@ import { ADVENTURE_LAYOUTS } from "../scripts/importer/adventure/adventure-layou
 import { REVIEWED_WALLS, REVIEWED_CREATURES, REVIEWED_LIGHTS, REVIEWED_LINKS } from "../scripts/importer/adventure/adventure-reviewed.mjs";
 import { planReviewedCreatures, markerTokenData, placeReviewedCreatures, MARKER_FLAG } from "../scripts/importer/adventure/adventure-scene.mjs";
 import { planLinkEnds, isLinkEnd, linksOf, placeSiteLinks, LINK_FLAG } from "../scripts/importer/adventure/adventure-links.mjs";
+import { regionRef } from "../tools/adventure-review/region-uuid.mjs";
 
 const TYPES = wallTypes({});
 const RECT = { x: 0, y: 0, width: 1000, height: 500 };
@@ -164,4 +165,18 @@ test("every reviewed site has its creature list, its pins, and links whose ends 
     names.add(link.name);
     for (const end of [link.a, link.b]) assert.ok(REVIEWED_CREATURES[end.site] && (end.box || end.shape), `${link.name}: ${end.name}`);
   }
+});
+
+test("a teleport's destination is read in every form Foundry stores: absolute, same scene and another scene", () => {
+  const from = ["S1", "R1", "B1"];
+  assert.deepEqual(regionRef("Scene.S2.Region.R9", from), { sceneId: "S2", regionId: "R9" });
+  assert.deepEqual(regionRef("..R2", from), { sceneId: "S1", regionId: "R2" }, "a region beside the behavior's own");
+  assert.deepEqual(regionRef("...S2.Region.R9", from), { sceneId: "S2", regionId: "R9" }, "a region on another scene");
+  assert.deepEqual(regionRef("...Region.R3", from), { sceneId: "S1", regionId: "R3" }, "a typed path down from the scene");
+  assert.equal(regionRef("..Region.R3", from), null, "a typed path down from the region names its child, no region of the scene");
+  assert.deepEqual(regionRef(".", ["S1", "R1", "B1"]), null, "the behavior itself");
+  assert.equal(regionRef(".B2", from), null, "a sibling behavior is no region");
+  assert.equal(regionRef("....R1", from), null, "above the scene there is nothing");
+  assert.equal(regionRef("Compendium.x.y.Region.R1", from), null);
+  assert.equal(regionRef(undefined, from), null);
 });
