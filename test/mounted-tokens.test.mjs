@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  riderCorner, followPath, gapSquares, pickMount, grownSize, CARRY_PREFIX, carryMovementId, isCarryMovement, carryInFlight,
+  riderCorner, followPath, gapSquares, pickMount, grownSize, CARRY_PREFIX, carryMovementId, isCarryMovement, carryInFlight, snapPoint,
 } from "../scripts/mounted/mounted-core.mjs";
 
 const G = 100;
@@ -106,4 +106,25 @@ test("a small mount in reach is picked; it is grown before the rider is placed",
   assert.equal(pickMount(rider, [pony], { gridSize: G }), "pony");
   const grown = { ...pony, ...grownSize(pony) };
   assert.deepEqual(riderCorner(grown, rider, G), { x: 500, y: 400 });
+});
+
+/**
+ * The rest of the lane repro (14.369, ~1 run in 10): the carry to 1200 was
+ * built while core's resumed update to 901 was in flight and was silently
+ * dropped, leaving the rider mounted at (600,901) and the horse at (600,1100).
+ */
+test("reconcile: a rider left behind when the mount stops is put in its corner", () => {
+  const horseThere = { x: 600, y: 1100, width: 2, height: 2 };
+  const left = { x: 600, y: 901, width: 1, height: 1 };
+  assert.deepEqual(snapPoint({ mount: horseThere, rider: left, gridSize: G }), { x: 600, y: 1200 });
+});
+
+test("reconcile: nothing when the rider is in its corner, off the mount, or the mount is still on its way", () => {
+  const horseThere = { x: 600, y: 1100, width: 2, height: 2 };
+  const inCorner = { x: 600, y: 1200, width: 1, height: 1 };
+  const left = { x: 600, y: 901, width: 1, height: 1 };
+  assert.equal(snapPoint({ mount: horseThere, rider: inCorner, gridSize: G }), null, "already there: idempotent");
+  assert.equal(snapPoint({ mount: null, rider: left, gridSize: G }), null, "dismounted, or the mount is gone");
+  assert.equal(snapPoint({ mount: horseThere, rider: left, gridSize: G, mountMoving: true }), null,
+    "the mount has segments to go; their carries follow");
 });

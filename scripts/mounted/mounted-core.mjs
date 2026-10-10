@@ -16,6 +16,28 @@ export function riderCorner(mount, rider, gridSize) {
 }
 
 /**
+ * The reconciliation after a carry: where the rider must be put, or null.
+ *
+ * A carry can be lost: core resumes a carry a Region paused, and a carry sent
+ * while that resumed update is in flight can be silently dropped (lane, 14.369:
+ * rider left at the mount's previous corner, still mounted). So when the
+ * mount has stopped moving, a rider not in its corner is put there. Nothing
+ * while the mount still has segments to go (their carries follow), and
+ * nothing for a rider that is in its corner or no longer on that mount.
+ *
+ * @param {object} p
+ * @param {?object} p.mount   the mount's stored position and size; null when the rider is not on one (dismounted, mount gone)
+ * @param {object}  p.rider   the rider's stored position and size
+ * @param {boolean} p.mountMoving  the mount's movement still has pending segments
+ * @returns {?{x: number, y: number}}
+ */
+export function snapPoint({ mount, rider, gridSize, mountMoving = false }) {
+  if (!mount || !rider || mountMoving) return null;
+  const c = riderCorner(mount, rider, gridSize);
+  return Math.abs(rider.x - c.x) < 1 && Math.abs(rider.y - c.y) < 1 ? null : c;
+}
+
+/**
  * Every carry is started with a movement id that says so: Foundry movement ids
  * are 16 letters and digits, and a carry's begin with these 8.
  */
@@ -43,9 +65,9 @@ export function isCarryMovement(move) {
 }
 
 /**
- * Is the rider still part way through a carry (paused at a Region, the rest
- * pending)? Then the next carry stops it first: one carry in flight, so core
- * never resumes an old carry after the new one has started.
+ * Is the rider still part way through a carry (paused, the rest pending)?
+ * The next carry waits for the last one to land; if it is still paused after
+ * that wait (a behaviour paused it), it is stopped so only one is in flight.
  */
 export function carryInFlight(move) {
   return isCarryMovement(move) && move.state !== "stopped" && move.state !== "completed";

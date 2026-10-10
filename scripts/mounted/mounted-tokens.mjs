@@ -17,7 +17,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { isActiveGM, refuseQuery, registerQuery, relayToGM } from "../shared/gm-relay.mjs";
 import { isMount } from "../actors/mount-scores.mjs";
-import { carryInFlight, carryMovementId, followPath, grownSize, isCarryMovement, pickMount } from "./mounted-core.mjs";
+import { carryInFlight, carryMovementId, followPath, grownSize, isCarryMovement, pickMount, snapPoint } from "./mounted-core.mjs";
 
 export const MOUNTED_QUERY = `${MODULE_ID}.mounted`;
 const FLAG = "mountedOn";
@@ -34,16 +34,47 @@ export const mountOf = (rider) => (flagOf(rider) ? rider.parent?.tokens?.get(fla
 /** The token riding this mount, or null. */
 export const riderOf = (mount) => mount?.parent?.tokens?.find((t) => flagOf(t) === mount.id) ?? null;
 
+/** Move options for a carry: its movement id marks it, so the movement tracker charges and locks nothing for it. */
+const carryOptions = () => ({ ...CARRY, id: carryMovementId(foundry.utils.randomID(8)) });
+
+/** The last carry this client started per rider id, so each waits for the one before. */
+const carries = new Map();
+/** How long a carry waits for the one before it (a behaviour may pause that one indefinitely). */
+const CARRY_WAIT_MS = 3000;
+
 /**
- * Walk the rider through the mount's waypoints, shifted to its corner, as a
- * carry (its movement id marks it; the movement tracker charges and locks
- * nothing for one). A carry a Region paused part way is stopped first, so
- * core doesn't resume it after this one starts.
+ * Walk the rider through the mount's waypoints, shifted to its corner.
+ *
+ * One carry at a time, each built after the one before has landed: core
+ * resumes a carry a Region paused, and a carry sent while that resumed update
+ * is in flight can be silently dropped. After the last carry, the rider is put
+ * in its corner if it still isn't there (reconcile).
  */
 function walk(rider, mountWaypoints) {
-  if (carryInFlight(rider.movement) && rider.movement.user?.isSelf) rider.stopMovement();
-  rider.move(followPath(mountWaypoints, rider._source, gridSize(rider)), { ...CARRY, id: carryMovementId(foundry.utils.randomID(8)) })
-    .catch((err) => console.warn(`${MODULE_ID} | carrying a rider failed`, err));
+  const before = carries.get(rider.id);
+  const next = (async () => {
+    if (before) await Promise.race([before, new Promise((resolve) => setTimeout(resolve, CARRY_WAIT_MS))]);
+    if (carryInFlight(rider.movement) && rider.movement.user?.isSelf) rider.stopMovement();
+    await rider.move(followPath(mountWaypoints, rider._source, gridSize(rider)), carryOptions());
+    if (carries.get(rider.id) !== next) return;   // a later carry follows; it reconciles
+    carries.delete(rider.id);
+    await reconcile(rider);
+  })().catch((err) => console.warn(`${MODULE_ID} | carrying a rider failed`, err));
+  carries.set(rider.id, next);
+}
+
+/**
+ * Once its mount has stopped moving, put a rider that is not in its corner
+ * there: a displace tagged as a carry, so not charged, not locked, and not
+ * read as the rider's own move. Idempotent; it starts no further carry.
+ */
+async function reconcile(rider) {
+  const mount = mountOf(rider);
+  const to = snapPoint({
+    mount: mount?._source, rider: rider._source, gridSize: gridSize(rider),
+    mountMoving: mount?.movement?.state === "pending",
+  });
+  if (to) await rider.move(followPath([{ ...mount._source, action: "displace" }], rider._source, gridSize(rider))[0], carryOptions());
 }
 
 /** Carry the rider along the path the mount just moved (this update's part of it). */
