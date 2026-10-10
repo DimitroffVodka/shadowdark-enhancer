@@ -223,3 +223,12 @@ test("an existing world files the calendar chapters from the books it has linked
   globalThis.game.user = { isGM: false };
   assert.equal(await fileLinkedChapters(), 0);
 });
+
+test("the world-load filing reads quietly: no column-warning toasts for a read nobody asked for", async () => {
+  const { readFileSync } = await import("node:fs");
+  const holidays = readFileSync(new URL("../scripts/holidays/holidays.mjs", import.meta.url), "utf8");
+  const chapter = readFileSync(new URL("../scripts/importer/chapter-journal.mjs", import.meta.url), "utf8");
+  assert.match(holidays, /importHolidays\(src, \{ quiet: true \}\)/, "fileLinkedChapters files quietly");
+  assert.match(holidays, /readChapter\(\{ \.\.\.req, notify: !quiet \}\)/, "the quiet flag reaches the read");
+  assert.match(chapter, /if \(notify\) notifyGutterWarnings\(result\)/, "readChapter honours it; the wizard and hub still toast");
+});

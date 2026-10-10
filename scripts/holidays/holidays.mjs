@@ -213,10 +213,11 @@ async function importedPages(presetId = HOLIDAY_PRESET) {
  * or holy day once its page is there. The wizard calls this after the book's
  * library import, so nothing is asked.
  * @param {string} [src]  only the presets of this book ("CS6", "WR"); every one when omitted
+ * @param {{quiet?:boolean}} [opts]  quiet: no column-warning toasts (the world-load filing; nobody asked for the read)
  * @returns {Promise<{status:"imported"|"already"|"failed", created?:number}>}
  */
-export function importHolidays(src = null) {
-  const run = filing.then(() => fileCalendarChapters(src));
+export function importHolidays(src = null, { quiet = false } = {}) {
+  const run = filing.then(() => fileCalendarChapters(src, quiet));
   filing = run.catch(() => {});
   return run;
 }
@@ -224,13 +225,14 @@ export function importHolidays(src = null) {
 // One filing at a time: the wizard and the ready step must not both file the same journal.
 let filing = Promise.resolve();
 
-async function fileCalendarChapters(src) {
+async function fileCalendarChapters(src, quiet) {
   const presets = CHAPTER_PRESETS.filter((p) => [HOLIDAY_PRESET, HOLY_DAY_PRESET].includes(p.id) && (!src || p.src === src));
   let created = 0, failed = false;
   for (const preset of presets) {
     if ((await importedPages(preset.id)).size) continue;
     const req = { src: preset.src, pages: preset.pages, name: preset.name, sections: preset.sections, lead: preset.lead, preset: preset.id };
-    const read = await readChapter(req);
+    const read = await readChapter({ ...req, notify: !quiet });
+    if (quiet && read?.warnings.length) console.warn(`${MODULE_ID} | holidays: ${preset.id} column check`, read.warnings);
     if (!read?.pages.length) { failed = true; continue; }
     const report = await commitChapterJournal(req, read.pages);
     if (report.uuid) created += report.created; else failed = true;
@@ -260,7 +262,7 @@ export async function fileLinkedChapters() {
   let created = 0;
   try {
     const { listSourcePdfs } = await import("../importer/source-pdf-registry.mjs");
-    for (const src of linkedCalendarBooks(await listSourcePdfs())) created += (await importHolidays(src)).created ?? 0;
+    for (const src of linkedCalendarBooks(await listSourcePdfs())) created += (await importHolidays(src, { quiet: true })).created ?? 0;
   } catch (err) {
     console.warn(`${MODULE_ID} | holidays: could not file the calendar chapters`, err);
   }
