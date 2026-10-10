@@ -12,10 +12,13 @@
 
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { HexTagOverlay, TOOLS_HOOK } from "./tag-overlay.mjs";
-import { ownsHexFog, playerViewOn, togglePlayerView } from "./hex-fog.mjs";
+import { ownsHexFog, playerViewOn, togglePlayerView, fogHiddenOn, toggleFogHidden } from "./hex-fog.mjs";
 import { hexTooltipHidden, toggleHexTooltip } from "./hex-explorer.mjs";
+import { isHexAdopted } from "./hex-records.mjs";
 
 const BRUSH_ID = "sde-hex-brush";
+/** What a scene with no tags can still use: the fog switches and the hover card read the records, not the tags. */
+const UNTAGGED_TOOLS = ["hexPlayerView", "hexFogHidden", "hexTooltip"];
 
 const brushOpen = () => !!foundry.applications.instances?.get?.(BRUSH_ID);
 /**
@@ -24,11 +27,13 @@ const brushOpen = () => !!foundry.applications.instances?.get?.(BRUSH_ID);
  */
 export const refreshOptions = (selected, stays) => (selected === "sdeHexMap" && !stays ? { reset: true, control: "tokens" } : { reset: true });
 /** Foundry rebuilds the toolbar's controls (and so runs getSceneControlButtons again) only on a reset render. */
-const refresh = () => ui.controls?.render(refreshOptions(ui.controls?.control?.name, !!hexMapTools(canvas?.scene, { isGM: !!game.user?.isGM })));
+const refresh = () => ui.controls?.render(refreshOptions(ui.controls?.control?.name, !!hexMapTools(canvas?.scene, { isGM: !!game.user?.isGM, fog: ownsHexFog(canvas?.scene) })));
 
-/** The tools for a scene, or null when it has no hex numbering (nothing to show, paint or review). */
-export function hexMapTools(scene, { mode = "", brush = false, isGM = false, fog = false, playerView = false, tooltipHidden = false } = {}) {
-  if (!isGM || !scene?.getFlag?.(MODULE_ID, "hexTags")?.origin) return null;
+/** The tools for a scene, or null when it is neither numbered nor an adopted hex scene (nothing to show, paint or review). */
+export function hexMapTools(scene, { mode = "", brush = false, isGM = false, fog = false, playerView = false, fogHidden = false, tooltipHidden = false } = {}) {
+  const tagged = !!scene?.getFlag?.(MODULE_ID, "hexTags")?.origin;
+  // The painted scene Extras builds has the hex records but never the tags: it keeps the switches that need none.
+  if (!isGM || !(tagged || isHexAdopted(scene))) return null;
   const overlay = (name, picked, icon, title, order) => ({
     name, title, icon, order, toggle: true, active: mode === picked,
     onChange: async () => { await HexTagOverlay.toggle({ mode: picked }); refresh(); },
@@ -38,6 +43,11 @@ export function hexMapTools(scene, { mode = "", brush = false, isGM = false, fog
   if (fog) tools.hexPlayerView = {
     name: "hexPlayerView", title: "SDE.hexMap.controls.playerView", icon: "fa-solid fa-users", order: 0, toggle: true, active: playerView,
     onChange: async () => { await togglePlayerView(); refresh(); },
+  };
+  // Beside it: take the veil off altogether, to read the painted map.
+  if (fog) tools.hexFogHidden = {
+    name: "hexFogHidden", title: "SDE.hexMap.controls.fogHidden", icon: "fa-solid fa-cloud-sun", order: 0.5, toggle: true, active: fogHidden,
+    onChange: async () => { await toggleFogHidden(); refresh(); },
   };
   tools.hexTerrain = overlay("hexTerrain", "terrain", "fa-solid fa-eye", "SDE.hexMap.controls.terrain", 1);
   // Regions and zones both come from the border scan.
@@ -64,12 +74,13 @@ export function hexMapTools(scene, { mode = "", brush = false, isGM = false, fog
     name: "hexTooltip", title: "SDE.hexMap.controls.tooltip", icon: "fa-solid fa-comment-slash", order: 7, toggle: true, active: tooltipHidden,
     onChange: async () => { await toggleHexTooltip(); refresh(); },
   };
+  if (!tagged) for (const name of Object.keys(tools)) if (!UNTAGGED_TOOLS.includes(name)) delete tools[name];
   return tools;
 }
 
 export function registerHexMapControls() {
   Hooks.on("getSceneControlButtons", (controls) => {
-    const tools = hexMapTools(canvas?.scene, { mode: HexTagOverlay.current?.mode ?? "", brush: brushOpen(), isGM: !!game.user?.isGM, fog: ownsHexFog(canvas?.scene), playerView: playerViewOn(), tooltipHidden: hexTooltipHidden() });
+    const tools = hexMapTools(canvas?.scene, { mode: HexTagOverlay.current?.mode ?? "", brush: brushOpen(), isGM: !!game.user?.isGM, fog: ownsHexFog(canvas?.scene), playerView: playerViewOn(), fogHidden: fogHiddenOn(), tooltipHidden: hexTooltipHidden() });
     if (!tools) return;
     controls.sdeHexMap = { name: "sdeHexMap", title: "SDE.hexMap.controls.title", icon: "fa-solid fa-hexagon-nodes", order: 90, activeTool: "", tools };
   });

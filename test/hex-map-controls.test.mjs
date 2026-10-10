@@ -46,8 +46,26 @@ test("the player-view switch is there only where the module draws the fog, and s
   assert.deepEqual(all.map((t) => t.order), all.map((t) => t.order).sort((a, b) => a - b));
 });
 
+test("the fog-hide switch sits beside the player view, only where the module draws the fog, and shows as on while hidden", () => {
+  const numbered = scene({ hexTags: { origin: { num: "0000" } } });
+  assert.equal(hexMapTools(numbered, { isGM: true }).hexFogHidden, undefined);
+  assert.equal(hexMapTools(numbered, { isGM: true, fog: true }).hexFogHidden.active, false);
+  assert.equal(hexMapTools(numbered, { isGM: true, fog: true, fogHidden: true }).hexFogHidden.active, true);
+  const all = Object.values(hexMapTools(numbered, { isGM: true, fog: true }));
+  assert.equal(all[1].name, "hexFogHidden");
+  assert.deepEqual(all.map((t) => t.order), all.map((t) => t.order).sort((a, b) => a - b));
+});
+
 test("the hover-card switch is last in the group and shows as on while the card is hidden", () => {
   const numbered = scene({ hexTags: { origin: { num: "0000" } } });
   assert.equal(hexMapTools(numbered, { isGM: true }).hexTooltip.active, false);
   assert.equal(hexMapTools(numbered, { isGM: true, tooltipHidden: true }).hexTooltip.active, true);
+});
+
+test("a painted scene Extras built has records but no tags: only the switches that need no tags", () => {
+  const painted = scene({ hexRecords: { adopted: true } });
+  assert.deepEqual(Object.keys(hexMapTools(painted, { isGM: true, fog: true })), ["hexPlayerView", "hexFogHidden", "hexTooltip"]);
+  assert.deepEqual(Object.keys(hexMapTools(painted, { isGM: true })), ["hexTooltip"], "no fog switches where the module draws no fog");
+  assert.equal(hexMapTools(painted, { isGM: false }), null);
+  assert.equal(hexMapTools(scene({ hexRecords: { version: 1 } }), { isGM: true }), null, "records that were never adopted are not a hex scene");
 });
