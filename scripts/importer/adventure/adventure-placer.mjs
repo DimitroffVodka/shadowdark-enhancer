@@ -255,6 +255,7 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
       await this._placeMonsters(site, rect);
       await this._placeWalls(site);
       await this._placeTraps(site, rect);
+      await this._placeMarks();
       return { placed: create.length, left: left.length };
     } catch (err) {
       console.error(`${MODULE_ID} | adventure placer: placing from known positions failed`, err);
@@ -339,6 +340,25 @@ export class AdventurePlacer extends HandlebarsApplicationMixin(ApplicationV2) {
       if (found && !found.placed && !found.missing.length) ui.notifications?.info(t("SDE.adventure.placer.monstersNone"));
     } finally {
       this._gate.release();
+    }
+  }
+
+  /**
+   * The symbols the book's key map prints (secret doors, locked doors, barricades) as hidden tiles only a GM sees, when the module can read
+   * that map. Only adds what is missing, so a re-run never touches a mark the GM moved. A failure here never costs the pins that
+   * were just placed.
+   * @returns {Promise<{status:string, placed:number, existing:number}|null>}
+   */
+  async _placeMarks() {
+    try {
+      const { addSiteMarks } = await import("./adventure-book-import.mjs");
+      const built = await addSiteMarks(this.scene);
+      if (built.placed) ui.notifications?.info(t("SDE.adventure.placer.marksDone", { placed: built.placed }));
+      return built;
+    } catch (err) {
+      console.error(`${MODULE_ID} | adventure placer: placing the key map's symbols failed`, err);
+      ui.notifications?.error(t("SDE.adventure.placer.marksFailed"));
+      return null;
     }
   }
 

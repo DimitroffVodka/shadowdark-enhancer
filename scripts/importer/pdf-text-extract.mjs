@@ -904,16 +904,22 @@ const _mul = (m, n) => [
  * room numbers are. The Cursed Scrolls' key maps are one raster with the numbers
  * laid over it as live text, so a number's position needs no image analysis.
  *
- * `box` is the largest image painted on the page in page points (PDF y runs up),
- * `upright` is false when the page paints it turned or flipped, and each label is
+ * `box` is the largest image painted on the page as its own frame in points (x across, y up, origin bottom left of the picture
+ * as the reader sees it, however the page turns it), `upright` is false when the page paints it mirrored or skewed, and each label is
  * the CENTRE of a one- or two-digit text item that lies inside the box. A number
  * printed twice (the book repeats a label across the seam of a spread) is
  * reported once, at its first place in the page's text.
  *
+ * The map's own symbols are text too: a single S, L or B in a shape is a secret door,
+ * a locked door or a barricade. `marks` is every such letter on the picture, centred
+ * like a label, and `legend` the letters this page's legend explains ("L  Locked"):
+ * the legend's own letters are not marks, and a letter no legend explains is not one
+ * either (map-labels.mjs decides that, over the whole spread).
+ *
  * Takes the page and pdf.js's OPS so it can be driven without a browser.
  * @param {object} page  a pdf.js page
  * @param {object} OPS   pdfjs.OPS
- * @returns {Promise<{box:{x:number,y:number,w:number,h:number}|null, upright:boolean, labels:Array<{num:number,cx:number,cy:number}>}>}
+ * @returns {Promise<{box:{x:number,y:number,w:number,h:number}|null, upright:boolean, labels:Array<{num:number,cx:number,cy:number}>, marks:Array<{letter:string,cx:number,cy:number}>, legend:string[]}>}
  */
 export async function readPageMap(page, OPS) {
   const ops = await page.getOperatorList();
@@ -930,10 +936,24 @@ export async function readPageMap(page, OPS) {
       if (!best || area > best.area) best = { area, ctm };
     }
   }
-  if (!best) return { box: null, upright: false, labels: [] };
+  if (!best) return { box: null, upright: false, labels: [], marks: [], legend: [] };
   const [a, b, c, d, e, f] = best.ctm;
-  const box = { x: Math.min(e, e + a), y: Math.min(f, f + d), w: Math.abs(a), h: Math.abs(d) };
-  const upright = a > 0 && d > 0 && Math.abs(b) < 1e-6 && Math.abs(c) < 1e-6;
+  // The picture's own frame: x across and y up the picture as the reader sees it, in points. A page that paints it turned a
+  // quarter (the Cursed Scroll 2 key maps) has its text turned the same way, so everything is read in this frame and a turn
+  // costs nothing. A mirrored or skewed picture is still refused: its text would not match it.
+  const W = Math.hypot(a, b), H = Math.hypot(c, d), det = a * d - b * c;
+  const box = { x: 0, y: 0, w: W, h: H };
+  const axisAligned = (Math.abs(b) < 1e-6 && Math.abs(c) < 1e-6) || (Math.abs(a) < 1e-6 && Math.abs(d) < 1e-6);
+  const upright = axisAligned && det > 0;
+  if (!upright) return { box, upright, labels: [], marks: [], legend: [] };
+  const toFrame = (px, py) => ({ cx: ((d * (px - e) - c * (py - f)) / det) * W, cy: ((a * (py - f) - b * (px - e)) / det) * H });
+  /** The middle of a short text item, in the picture's frame: along its own baseline half its width, a little over a third of its size up. */
+  const middle = (it) => {
+    const [ta, tb, tc2, td, tx, ty] = it.transform, along = Math.hypot(ta, tb) || 1;
+    const k = (it.width || 0) / 2 / along;
+    return toFrame(tx + ta * k + tc2 * 0.36, ty + tb * k + td * 0.36);
+  };
+  const inside = (p) => p.cx >= 0 && p.cx <= W && p.cy >= 0 && p.cy <= H;
   const seen = new Set();
   const labels = [];
   const tc = await page.getTextContent();
@@ -942,14 +962,41 @@ export async function readPageMap(page, OPS) {
     if (!/^\d{1,2}$/.test(text)) continue;
     const num = Number(text);
     if (seen.has(num)) continue;
-    // Digits sit on the baseline; their middle is a little over a third of the size up.
-    const cx = it.transform[4] + (it.width || 0) / 2, cy = it.transform[5] + Math.abs(it.transform[3]) * 0.36;
-    if (cx < box.x || cx > box.x + box.w || cy < box.y || cy > box.y + box.h) continue;
+    const p = middle(it);
+    if (!inside(p)) continue;
     seen.add(num);
-    labels.push({ num, cx, cy });
+    labels.push({ num, cx: p.cx, cy: p.cy });
   }
-  return { box, upright, labels };
+  // The legend line of a symbol is its letter then its words ("L" "Locked"), a little to the right along the same line of text.
+  // A letter set at the start of a legend line ("L" Locked, "S" Salamander) is the legend's, not a symbol on the map. The words next to it say
+  // which: a key word makes it a key symbol's legend (and explains the letter), any other capitalised word just keeps it off the map.
+  const nextTo = (it, test, reach) => {
+    const [ta, tb, tc2, td, tx, ty] = it.transform, along = Math.hypot(ta, tb) || 1, up = Math.hypot(tc2, td) || 1;
+    return tc.items.some((w) => {
+      if (w === it || !test(String(w.str ?? "").trim())) return false;
+      const dx = w.transform[4] - tx, dy = w.transform[5] - ty;
+      const ahead = (dx * ta + dy * tb) / along - (it.width || 0), across = (dx * tc2 + dy * td) / up;
+      return Math.abs(across) < (reach > 20 ? 8 : 4) && ahead > -2 && ahead < reach;
+    });
+  };
+  const inLegend = (it, letter) => nextTo(it, (w) => MAP_KEY_WORDS[w.split(/\s/)[0]] === letter, 40);
+  const marks = [], legend = new Set();
+  for (const it of tc.items) {
+    const letter = String(it.str ?? "").trim();
+    if (!/^[SLB]$/.test(letter)) continue;
+    if (inLegend(it, letter)) { legend.add(letter); continue; }
+    if (nextTo(it, (w) => /^[A-Z][a-z]{3,}/.test(w), 20)) continue;
+    const p = middle(it);
+    if (!inside(p)) continue;
+    // The book sets some of its letters twice, a shadow under the letter: one symbol, one mark.
+    if (marks.some((m) => m.letter === letter && Math.abs(m.cx - p.cx) < 4 && Math.abs(m.cy - p.cy) < 4)) continue;
+    marks.push({ letter, cx: p.cx, cy: p.cy });
+  }
+  return { box, upright, labels, marks, legend: [...legend] };
 }
+
+/** The word a map legend opens a symbol's line with, and the letter set in that symbol. */
+const MAP_KEY_WORDS = { Locked: "L", Secret: "S", Barricaded: "B" };
 
 /**
  * The keyed-map reads of several PDF pages of one book (a spread's two halves).

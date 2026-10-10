@@ -20,6 +20,7 @@ import { markersFor } from "./adventure-layouts.mjs";
 import { wallsFor, planWalls, wallTypes, WALL_FLAG, LIGHT_FLAG, planLights, reachableSquares } from "./adventure-walls.mjs";
 import { mapFits } from "./map-labels.mjs";
 import { trapsFor, planSiteTraps, TRAP_REGION_FLAG } from "./adventure-traps.mjs";
+import { planMarks, MARK_FLAG } from "./adventure-marks.mjs";
 import { TRAP_TYPE } from "../../traps/traps.mjs";
 import { resolveMentions, bestiaryLookup } from "./adventure-creatures.mjs";
 import { L as t } from "../../shared/i18n.mjs";
@@ -570,6 +571,26 @@ export async function placeSiteTraps(scene, site, rect, texts) {
   }));
   const made = docs.length ? await scene.createEmbeddedDocuments("Region", docs) : [];
   return { status: "built", placed: made.length, existing: entries.length - todo.length, skipped };
+}
+
+/**
+ * Put the symbols the book's key map prints (secret doors, locked doors, barricades) on a site's scene as hidden Tiles (GM only), in
+ * the places the key map has them. Run again, it only adds the ones that are missing: a mark the module made before is left
+ * exactly as it is (moved, resized or deleted by the GM, it stays that way) and nothing is ever deleted.
+ * @param {Scene} scene
+ * @param {{id:string}} site
+ * @param {{x:number,y:number,width:number,height:number}} rect  the scene's image area
+ * @param {{marks:Array<{kind:string,x:number,y:number}>, aspect:number}} map  stitchMapLabels of the book's key map
+ * @returns {Promise<{status:"built"|"none"|"mismatch", placed:number, existing:number}>}
+ *   none: the key map shows no such symbols; mismatch: the scene's picture is not the shape of the book's map
+ */
+export async function placeSiteMarks(scene, site, rect, map) {
+  if (!map?.marks?.length) return { status: "none", placed: 0, existing: 0 };
+  if (!mapFits(map.aspect, rect.width, rect.height)) return { status: "mismatch", placed: 0, existing: 0 };
+  const have = scene.tiles.map((tile) => tile.getFlag(MODULE_ID, MARK_FLAG)?.key).filter(Boolean);
+  const plan = planMarks({ marks: map.marks, rect, gridSize: scene.grid?.size ?? DEFAULT_GRID_SIZE, siteId: site.id, placed: have });
+  const made = plan.length ? await scene.createEmbeddedDocuments("Tile", plan.map((p) => p.data)) : [];
+  return { status: "built", placed: made.length, existing: map.marks.length - plan.length };
 }
 
 /** Mark a location skipped (or not) on its scene. Written whole, never merged. */

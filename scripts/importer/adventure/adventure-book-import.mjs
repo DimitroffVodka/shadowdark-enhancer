@@ -218,6 +218,41 @@ export async function addSiteTraps(scene) {
 }
 
 /**
+ * The symbols a site's key map prints, read out of the GM's own book (map-labels.mjs stitchMapLabels): the places of its secret
+ * doors, locked doors and barricades. Read when they are placed, never stored.
+ * @returns {Promise<{marks:Array<{kind:string,x:number,y:number}>, aspect:number}|null|undefined>} undefined when the book is not linked, null when its key map cannot be read
+ */
+export async function readSiteMarks(site) {
+  const file = resolveSourcePdf(site.src);
+  const mapPages = site.markPages ?? site.mapPages;
+  if (!file || !mapPages) return undefined;
+  const pages = parsePageRange(mapPages).map((p) => sourcePdfTarget(site.src, String(p))?.page).filter(Number.isInteger);
+  const { extractMapLabels } = await import("../pdf-text-extract.mjs");
+  const { stitchMapLabels, clipToFrame } = await import("./map-labels.mjs");
+  const map = stitchMapLabels(await extractMapLabels(file, pages));
+  return map && clipToFrame(map, site.markFrame);
+}
+
+/**
+ * Add a site's key-map symbols to its scene and nothing else: no pins, creatures, traps or walls are touched, and a symbol
+ * already there is left as it is. The safe way to give a scene its symbols once its walls have been corrected by hand.
+ * @param {Scene} scene
+ * @returns {Promise<{status:"built"|"none"|"mismatch"|"no-book"|"unreadable"|"not-adventure", placed:number, existing:number}>}
+ */
+export async function addSiteMarks(scene) {
+  const { MAP_FLAG, placeSiteMarks } = await import("./adventure-scene.mjs");
+  const site = allSites().find((s) => s.id === scene?.getFlag(MODULE_ID, MAP_FLAG)?.site);
+  const out = (status) => ({ status, placed: 0, existing: 0 });
+  if (!site) return out("not-adventure");
+  if (!(site.markPages ?? site.mapPages)) return out("none");
+  const map = await readSiteMarks(site);
+  if (map === undefined) return out("no-book");
+  if (!map) return out("unreadable");
+  const rect = scene.dimensions?.sceneRect ?? { x: 0, y: 0, width: scene.width, height: scene.height };
+  return placeSiteMarks(scene, site, rect, map);
+}
+
+/**
  * File every adventure site of one book, or of the listed site ids. GM-gated.
  * @param {string} src  source key ("CS1")
  * @param {{ids?:string[], onSite?:(title:string, i:number, total:number)=>void, keepExisting?:boolean}} [opts]

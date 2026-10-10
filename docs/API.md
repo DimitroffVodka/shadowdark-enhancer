@@ -121,6 +121,9 @@ await api.traps.placeAdventure(scene);  // GM only: add the traps an adventure's
                                  // as hidden regions; touches no pins, creatures or walls, and leaves a trap that is already there
                                  // alone. Resolves { status, placed, existing, skipped }. No map has its book traps built in yet,
                                  // so for now it answers status "none"
+await api.traps.placeAdventureMarks(scene);  // GM only: add the secret doors, locked doors and barricades an adventure's key map prints to its
+                                 // scene (default: the viewed scene), as hidden tiles only a GM sees; touches nothing else and leaves a symbol that is
+                                 // already there alone. Resolves { status, placed, existing }
 await api.traps.create({         // GM only; returns the Region
   scene,                         // default: the viewed scene
   points: [x1, y1, x2, y2, …],   // scene pixels, or [{x, y}, …]; default: one square at the scene centre
