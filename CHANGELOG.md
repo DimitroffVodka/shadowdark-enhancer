@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.18.2] — 2026-10-11
+
+### Fixed
+
+- **The Western Reaches keyed hexes painted the old picks, not your numbered tiles.** 0.18.1 shipped the earlier hand-picked table, so a painted map showed generic tiles on hexes that have their own art. The table now points each keyed hex at its own numbered tile (257 of the 270; the 13 without one keep the earlier tile and icon). A numbered tile is a finished picture, so the centre icon that sat on the generic tile is no longer drawn over it.
+
 ## [0.18.1] — 2026-10-11
 
 The Western Reaches map now carries its hand-picked tile art.

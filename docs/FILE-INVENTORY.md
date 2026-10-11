@@ -1,8 +1,8 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1955 tracked files · ~249,100 lines of code/markup across scripts+templates+styles+test.
-`v0.18.1` in both `module.json` and `package.json`.
+1955 tracked files · ~249,200 lines of code/markup across scripts+templates+styles+test.
+`v0.18.2` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
 
@@ -106,7 +106,7 @@
 | `hex-map/tag-corrections.mjs` | 337 | What the GM judged about the classifier, kept on the scene: per-cell corrections (was, now, margin, whether it was flagged) and wrong/judged counts per margin band, plus the scene's review margin and the report that says what it catches. Pure. |
 | `hex-map/tag-overlay.mjs` | 853 | The tag overlay: every numbered hex drawn on the map in its terrain colour, dots for river/path/coast, an amber ring on unsure automatic cells; hover names a hex, a click edits it through the same scene-flag write. |
 | `hex-map/tag-store.mjs` | 517 | The tagger's scene-flag store: compact `terrain;feature\|source` strings (terrain is what a hex is, features what runs through it), coast derivation, sheet selection (random/keyed/review), dataset tags. Pure. |
-| `hex-map/wr-keyed-art.mjs` | 284 | The hand-picked tile and centre icon for each of the Western Reaches map's 270 keyed hexes, as hex number to an Extras tile path: the Tile art default for that print until the GM loads a file of their own. Data only, no book text. |
+| `hex-map/wr-keyed-art.mjs` | 285 | The hand-picked tile and centre icon for each of the Western Reaches map's 270 keyed hexes, as hex number to an Extras tile path: the Tile art default for that print until the GM loads a file of their own. Data only, no book text. |
 | `holidays/holidays.mjs` | 506 | Holidays for carousing (#191): the four City of Masks holidays (CS6 pp.46-47) as recipes (name, page, place, `when` anchor, carousing mechanics, garb questions with modifiers), no book wording; pure `whenMatches(rule, dateInfo)` / `placeMatches`, and `holidays.list()` / `today({place})`, which list a holiday once its page is imported by the Chapter-to-journal preset. importHolidays(src) files the CS6 holidays and the Player's Guide holy days (the wizard's step 3b, and fileLinkedChapters at ready for a world that imported its books earlier), one filing at a time; a GM's month view reads the pack, a player's a world-setting copy (calendarLore) that leaves out what is switched to GM only. Solar days follow the calendar's own sun table (1200-1500), so the Duke's Ball is 13 June in 1348. `currentDateInfo()` reads the core calendar, with `isLastFullMoonOfYear` from the time API's `anchor("lastFullMoon")` (#227), so Lastmoon falls. |
 | `holidays/holy-days.mjs` | 144 | The gods' holy days for the calendar (Player's Guide pp.190-205): name, god, printed page and a timing rule over the calendar's seasons and moon (a day, a stretch of a season, or a moon), no book wording; `holyOnDay` and `holyWindows` say what shows on a day or only in a month. The four with no date are left out. |
 | `luck-reroll/hard-luck.mjs` | 57 | Hard Luck Mode (GMWR p.30, #186), pure: the system's criticalFailure test with a plain-d20 fallback, and the luck-granting spell/ability (Bless, Trance, Omen) a roll came from, by name. |
