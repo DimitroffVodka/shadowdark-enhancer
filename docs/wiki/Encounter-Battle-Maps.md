@@ -11,14 +11,19 @@ already standing on it, and brings the table over when you are ready.
 
 ## The buttons
 
-A GM gets **Battle map** in two places:
+A GM gets **Battle map** in three places:
 
 - the **Encounter** panel that drops from the clock bar when a travel check hits
   (see [Clock and Calendar](Clock-and-Calendar.md#encounters-while-travelling-gm)).
   **Choose map…** sits beside it;
+- the **Random Encounter** window (Tools on the Crawl Bar, then Encounter). A
+  creature's row in a table, and a creature in a built table, has a map icon beside
+  Place; a creature the window has rolled has **Battle map** and **Choose map…**
+  beside Post and Place. The battle is set up where the party stands, as from the
+  panel. A row with no creature in it (a line of text) has no map icon;
 - the encounter card posted to chat. The button is the GM's; players do not see it.
   The card has **Battle map** only: to choose the map yourself, use the Encounter
-  panel.
+  panel or the Random Encounter window.
 
 **Battle map** opens the default map for the party's terrain (see
 [A default for each terrain](#a-default-for-each-terrain)). **Choose map…** opens
@@ -142,7 +147,9 @@ Night if it happened at night, Camp if the party is camping.
   is lit by its owner as usual.
 - **Camp** is separate art for the same ground, with the camp set out and its
   fire lit. It is greyed out for a map that has no camp version. River, lake,
-  ocean and arctic sea maps have none: the boat is the camp.
+  ocean and arctic sea maps have none: the boat is the camp. Before any map is
+  chosen it can be switched on, and the cards show their camp art; the map you
+  then choose opens as its camp.
 - A camp at night is both switched on. The fire is a light on the map, in the
   middle of the camp, and it lights about 30 feet around it: with the
   characters' torches out it is the only light, and the foes come out of the dark
