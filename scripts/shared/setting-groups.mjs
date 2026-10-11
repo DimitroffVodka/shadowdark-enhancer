@@ -124,7 +124,7 @@ export const SETTING_GROUPS = [
   {
     key: "crawlStripMenu",
     icon: "fa-solid fa-table-columns",
-    sections: [{ entries: ["gmAvatarImage", "warnIfCrawlHelperEnabled"] }],
+    sections: [{ entries: ["crawlStripOffForAll", "crawlStripSlimForAll", "gmAvatarImage", "warnIfCrawlHelperEnabled"] }],
   },
   {
     key: "overlandMenu",

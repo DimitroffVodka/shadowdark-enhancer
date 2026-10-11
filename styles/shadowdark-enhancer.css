@@ -2316,6 +2316,223 @@ body.theme-light .sde-hub-monsters-row td {
 }
 .sde-strip-label-col .sde-strip-merchant-btn:hover { background: rgba(218, 165, 32, 0.15); }
 
+/* ── Slim strip (setting crawlStripSlim) ─────────────────────────────────────
+   The same cards with no portrait, never wider than a full card (110px). The
+   strip sizes them from the party exactly as it does full cards (_sizeCards),
+   and the text scales with the card (container units), so a big party gets
+   narrower cards and a very big one wraps onto another line. Three short rows:
+     row 1  name
+     row 2  initiative, AC, HP (the number)
+     row 3  luck, movement, light (and the dying badge)
+   There is no bar: the card's own background fills to the HP fraction, in the
+   bar's colour band, so the card is the health bar.
+   The card keeps its wrapper and its tab strip, so the dropdown menu hangs below
+   it exactly as it does on a full card. The overlay, bottom block and pill row
+   dissolve (display: contents) so every readout is an item of the card. */
+.sde-strip-slim-mode { max-width: 100%; }
+
+/* Round / turn controls: a compact 3 x 2 block, not a column or a long row. */
+.sde-strip-slim-mode .sde-strip-combat-controls {
+  display: grid;
+  grid-template-columns: repeat(3, 22px);
+  grid-auto-rows: 20px;
+  align-content: center;
+  gap: 1px;
+  width: auto;
+  min-width: 0;
+  padding: 2px 3px;
+}
+.sde-strip-slim-mode .sde-strip-cbtn { width: 100%; height: 100%; padding: 0; font-size: 11px; }
+.sde-strip-slim-mode .sde-strip-cbtn::after { inset: 0; }
+.sde-strip-slim-mode .sde-strip-turn-num,
+.sde-strip-slim-mode .sde-strip-crawl-turn,
+.sde-strip-slim-mode .sde-strip-round-num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  padding: 0;
+  font-size: 13px;
+  border-right: none;
+}
+/* PARTY keeps its vertical word, smaller, so it costs a sliver of width. */
+.sde-strip-slim-mode .sde-strip-group-label { font-size: 11px; padding: 4px 3px; }
+
+/* Wrap onto a further line when the party is wider than the strip. */
+.sde-strip-slim-mode .sde-strip-group { min-width: 0; }
+.sde-strip-slim-mode .sde-strip-members {
+  flex-wrap: wrap;
+  flex-shrink: 1;
+  min-width: 0;
+  align-items: stretch;
+  padding: 2px 3px;
+}
+
+/* Cards in a row share the tallest one's height (a dying PC adds a row). */
+.sde-strip-slim-mode .sde-strip-card-wrap { display: flex; flex-direction: column; }
+.sde-strip-slim-mode .sde-strip-card-wrap > .sde-strip-member { flex: 1 1 auto; }
+
+.sde-strip-slim-mode .sde-strip-member {
+  container-type: inline-size;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  align-items: center;
+  column-gap: clamp(2px, 4cqw, 6px);
+  row-gap: 1px;
+  width: 100px;            /* the fallback; _sizeCards sets the real width */
+  height: auto;
+  padding: 2px 4px;
+  line-height: 1.1;        /* three rows of text, not three rows of body leading */
+}
+.sde-strip-slim-mode .sde-strip-overlay,
+.sde-strip-slim-mode .sde-strip-bottom,
+.sde-strip-slim-mode .sde-strip-pills { display: contents; }
+
+/* Row breaks: a full-width empty item between the row groups (order 1, 5). */
+.sde-strip-slim-mode .sde-strip-member::before,
+.sde-strip-slim-mode .sde-strip-member::after { content: ""; flex: 0 0 100%; height: 0; }
+.sde-strip-slim-mode .sde-strip-member::before { order: 1; }
+.sde-strip-slim-mode .sde-strip-member::after  { order: 5; }
+
+/* Row 1 (order 0) is the name; row 2 is the initiative, AC, HP (orders 2, 3, 4);
+   row 3 (order 6) is luck, movement, light. */
+.sde-strip-slim-mode .sde-strip-init-badge,
+.sde-strip-slim-mode .sde-strip-rollinit-btn { order: 2; }
+.sde-strip-slim-mode .sde-strip-ac-line { order: 3; }
+.sde-strip-slim-mode .sde-strip-hp-bar-wrap { order: 4; }
+.sde-strip-slim-mode .sde-strip-pill,
+.sde-strip-slim-mode .sde-strip-light-badge,
+.sde-strip-slim-mode .sde-strip-dying { order: 6; }
+
+/* The card is the health bar: filled to the HP fraction in the bar's colour
+   band. The !important is the late layer's flat black card, which it must beat. */
+.sde-strip-slim-mode .sde-strip-member.sde-strip-fill {
+  --sde-fill-c: var(--sde-bar-hp-ok);
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--sde-fill-c) 34%, #000) var(--sde-fill, 0%),
+    #000 var(--sde-fill, 0%)) !important;
+}
+.sde-strip-slim-mode .sde-strip-member.sde-strip-fill.sde-strip-hp-mid      { --sde-fill-c: var(--sde-bar-hp-mid); }
+.sde-strip-slim-mode .sde-strip-member.sde-strip-fill.sde-strip-hp-low      { --sde-fill-c: var(--sde-bar-hp-low); }
+.sde-strip-slim-mode .sde-strip-member.sde-strip-fill.sde-strip-hp-critical { --sde-fill-c: var(--sde-bar-hp-critical); }
+.sde-strip-slim-mode .sde-strip-member.sde-strip-fill.sde-strip-hp-dead     { background: #1a0808 !important; }
+
+.sde-strip-slim-mode .sde-strip-name {
+  display: block;
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+  padding: 0;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-align: left;
+  background: none;
+}
+.sde-strip-slim-mode .sde-strip-ac-line { margin: 0; padding: 0; background: none; white-space: nowrap; }
+.sde-strip-slim-mode .sde-strip-ac-line i { margin-right: 2px; font-size: 0.85em; color: #9db4e8; }
+/* The GM card is only its name: its own width, no share of the sizing. */
+.sde-strip-slim-mode .sde-strip-member.sde-strip-type-gm { container-type: normal; width: auto; padding: 2px 10px; }
+.sde-strip-slim-mode .sde-strip-hp-bar-wrap { margin-left: auto; }
+
+/* The text follows the card: 13px / 12px on a full-width slim card, down to 9px. */
+.sde-strip-slim-mode .sde-strip-name,
+.sde-strip-slim-mode .sde-strip-init-badge { font-size: clamp(8px, 13cqw, 13px); }
+.sde-strip-slim-mode .sde-strip-ac-line,
+.sde-strip-slim-mode .sde-strip-hp-bar-wrap,
+.sde-strip-slim-mode .sde-strip-hp-label,
+.sde-strip-slim-mode .sde-strip-pill,
+.sde-strip-slim-mode .sde-strip-light-badge,
+.sde-strip-slim-mode .sde-strip-dying { font-size: clamp(8px, 12cqw, 12px); }
+
+/* HP as a number: the bar is dropped, the figure keeps the bar's colour band. */
+.sde-strip-slim-mode .sde-strip-hp-bar-wrap {
+  position: static;
+  width: auto;
+  height: auto;
+  background: none;
+  border: none;
+}
+.sde-strip-slim-mode .sde-strip-hp-bar { display: none; }
+.sde-strip-slim-mode .sde-strip-hp-label {
+  position: static;
+  display: inline;
+  white-space: nowrap;
+}
+.sde-strip-slim-mode .sde-strip-hp-label:not(:empty)::before {
+  content: "\f004"; /* fa heart */
+  font-family: "Font Awesome 7 Pro", "Font Awesome 6 Free", "Font Awesome 5 Free", "FontAwesome";
+  font-weight: 900;
+  font-size: 0.85em;
+  margin-right: 2px;
+  color: #d65a5a;
+}
+.sde-strip-slim-mode .sde-strip-hp-bar.sde-strip-hp-mid + .sde-strip-hp-label { color: var(--sde-bar-hp-mid); }
+.sde-strip-slim-mode .sde-strip-hp-bar.sde-strip-hp-low + .sde-strip-hp-label { color: var(--sde-bar-hp-low); }
+.sde-strip-slim-mode .sde-strip-hp-bar.sde-strip-hp-critical + .sde-strip-hp-label,
+.sde-strip-slim-mode .sde-strip-hp-bar.sde-strip-hp-dead + .sde-strip-hp-label { color: #ff8a8a; }
+
+.sde-strip-slim-mode .sde-strip-pill {
+  flex: none;
+  justify-content: flex-start;
+  padding: 0;
+  gap: 2px;
+}
+.sde-strip-slim-mode .sde-strip-pill i { font-size: 0.9em; }
+.sde-strip-slim-mode .sde-bar-icon-shamrock { width: 1.1em; height: 1.1em; margin-right: 0; }
+.sde-strip-slim-mode .sde-strip-light-badge { margin-left: auto; }
+
+/* Badges that sat on the portrait become ordinary row items. */
+.sde-strip-slim-mode .sde-strip-init-badge,
+.sde-strip-slim-mode .sde-strip-rollinit-btn,
+.sde-strip-slim-mode .sde-strip-hidden-icon,
+.sde-strip-slim-mode .sde-strip-light-badge,
+.sde-strip-slim-mode .sde-strip-dying,
+.sde-strip-slim-mode .sde-strip-defeated-icon,
+.sde-strip-slim-mode .sde-strip-activate-btn {
+  position: static;
+  transform: none;
+  inset: auto;
+  flex: none;
+}
+.sde-strip-slim-mode .sde-strip-init-badge { height: auto; min-width: 0; padding: 0; background: none; }
+.sde-strip-slim-mode .sde-strip-rollinit-btn,
+.sde-strip-slim-mode .sde-strip-activate-btn {
+  box-sizing: border-box;
+  width: clamp(12px, 15cqw, 16px);
+  height: clamp(12px, 15cqw, 16px);
+  padding: 0;
+  font-size: clamp(7px, 10cqw, 10px);
+}
+.sde-strip-slim-mode .sde-strip-rollinit-btn::after { display: none; }
+.sde-strip-slim-mode .sde-strip-light-badge { width: auto; height: auto; }
+.sde-strip-slim-mode .sde-strip-dying { padding: 0 4px; line-height: 13px; }
+.sde-strip-slim-mode .sde-strip-defeated-icon i { font-size: 14px; }
+.sde-strip-slim-mode .sde-strip-hidden-icon { font-size: 11px; }
+
+/* A card under 90px has no room for the two icons that only label a number
+   (the shield, the heart): AC keeps its blue, HP its band colour, and both
+   keep their tooltips. Without this, a two-digit HP wrapped to a fourth row. */
+@container (max-width: 90px) {
+  /* font-size, not display: Font Awesome's display rule sits outside the
+     module's cascade layer and would win. */
+  .sde-strip-slim-mode .sde-strip-ac-line i { font-size: 0; margin: 0; }
+  .sde-strip-slim-mode .sde-strip-hp-label:not(:empty)::before { display: none; }
+  .sde-strip-slim-mode .sde-strip-ac-line { color: #9db4e8; }
+  /* Movement keeps its green but loses the walker, so luck, movement and the
+     light share one row at 70px; the shamrock stays to tell luck apart. */
+  .sde-strip-slim-mode .sde-strip-pill i.fa-person-walking { font-size: 0; margin: 0; }
+  .sde-strip-slim-mode .sde-strip-pill:has(.fa-person-walking) { color: #60d060; }
+}
+
+/* Dim, defeated and hidden fade the readouts themselves: the overlay they sit
+   in has no box here, so the full card's fade on it would do nothing. */
+.sde-strip-slim-mode .sde-strip-member.sde-strip-dim :is(.sde-strip-name, .sde-strip-ac-line, .sde-strip-hp-bar-wrap, .sde-strip-pill) { opacity: 0.8; }
+.sde-strip-slim-mode .sde-strip-member.sde-strip-hidden:not(.sde-strip-is-turn) :is(.sde-strip-name, .sde-strip-ac-line, .sde-strip-hp-bar-wrap, .sde-strip-pill) { opacity: 0.6; }
+.sde-strip-slim-mode .sde-strip-member.sde-strip-defeated:not(.sde-strip-is-turn) :is(.sde-strip-name, .sde-strip-ac-line, .sde-strip-hp-bar-wrap, .sde-strip-pill) { opacity: 0.4; }
+
 /* ── Merchant Shop chat cards (availability + buy/sell announcements) ────────
    These render in the chat log, OUTSIDE the shop window, so they can't use the
    shop-scoped --vcb-* vars. Give the card its own dark theme + light text so it
