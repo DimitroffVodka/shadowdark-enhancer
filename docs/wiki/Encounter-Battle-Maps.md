@@ -147,7 +147,9 @@ Night if it happened at night, Camp if the party is camping.
   is lit by its owner as usual.
 - **Camp** is separate art for the same ground, with the camp set out and its
   fire lit. It is greyed out for a map that has no camp version. River, lake,
-  ocean and arctic sea maps have none: the boat is the camp.
+  ocean and arctic sea maps have none: the boat is the camp. Before any map is
+  chosen it can be switched on, and the cards show their camp art; the map you
+  then choose opens as its camp.
 - A camp at night is both switched on. The fire is a light on the map, in the
   middle of the camp, and it lights about 30 feet around it: with the
   characters' torches out it is the only light, and the foes come out of the dark

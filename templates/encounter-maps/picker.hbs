@@ -15,8 +15,8 @@
       <button type="button" class="ui-btn{{#unless night}} bmp-on{{/unless}}" id="{{partId}}-day" data-action="setNight" data-night="false" aria-pressed="{{#if night}}false{{else}}true{{/if}}"{{#if looksOff}} disabled{{/if}}><i class="fa-solid fa-sun"></i> {{localize "SDE.encounterMaps.picker.day"}}</button>
       <button type="button" class="ui-btn{{#if night}} bmp-on{{/if}}" id="{{partId}}-night" data-action="setNight" data-night="true" aria-pressed="{{#if night}}true{{else}}false{{/if}}" data-tooltip="{{localize 'SDE.encounterMaps.picker.nightTip'}}"{{#if looksOff}} disabled{{/if}}><i class="fa-solid fa-moon"></i> {{localize "SDE.encounterMaps.picker.night"}}</button>
     </div>
-    <label class="ui-switch" data-tooltip="{{#if campAvailable}}{{localize 'SDE.encounterMaps.picker.campTip'}}{{else if looksOff}}{{localize 'SDE.encounterMaps.picker.lookScene'}}{{else}}{{localize 'SDE.encounterMaps.picker.campNone'}}{{/if}}">
-      <input type="checkbox" id="{{partId}}-camp" data-action="toggleCamp"{{#if camp}} checked{{/if}}{{#unless campAvailable}} disabled{{/unless}}>
+    <label class="ui-switch" data-tooltip="{{#if campOpen}}{{localize 'SDE.encounterMaps.picker.campTip'}}{{else if looksOff}}{{localize 'SDE.encounterMaps.picker.lookScene'}}{{else}}{{localize 'SDE.encounterMaps.picker.campNone'}}{{/if}}">
+      <input type="checkbox" id="{{partId}}-camp" data-action="toggleCamp"{{#if camp}} checked{{/if}}{{#unless campOpen}} disabled{{/unless}}>
       <span><i class="fa-solid fa-campground"></i> {{localize "SDE.encounterMaps.picker.camp"}}</span>
     </label>
   </div>
