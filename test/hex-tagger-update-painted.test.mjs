@@ -33,6 +33,21 @@ test("only a built painted scene of the same size and origin is a target, never 
   assert.deepEqual(paintedScenesFor(scenes, "print", { ...GRID, origin: 0 }).map((s) => s.id), ["zero-based"]);
 });
 
+test("the scene you are on is a target when it is itself a built painted map", () => {
+  const painted = { ...scene("here"), tiles: [{ flags: { [EX]: { painted: true } } }] };
+  assert.deepEqual(paintedScenesFor([painted], "here", GRID).map((s) => s.id), ["here"]);
+  assert.deepEqual(paintedScenesFor([scene("here")], "here", GRID), []);
+});
+
+test("a painted copy of the Western Reaches keeps the shipped tile art, so an update cannot swap it for a pool tile", () => {
+  const app = Object.create(HexTaggerApp.prototype);
+  app._scene = () => ({ getFlag: () => undefined });
+  app._state = { origin: { bounds: { cols: 64, rows: 75 } } };
+  assert.equal(Object.keys(app._artAssignments()).length, 270);
+  app._state = { origin: { bounds: { cols: 17, rows: 11 } } };
+  assert.equal(Object.keys(app._artAssignments()).length, 0);
+});
+
 test("corrections are the hexes whose terrain differs, case aside, with their art", () => {
   const dataset = { hexes: [
     { num: 101, terrain: "forest" },                 // same as the record

@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.18.3] — 2026-10-11
+
+### Fixed
+
+- **Update painted map refused to run on the painted map itself.** Tagging a painted scene (the Hex Paint Brush there, then Update painted map) answered "No painted Extras map of this size to update", because the scene you are on was always counted as the print. A scene that holds painted tiles is now a target. A painted copy of the Western Reaches also keeps the shipped tile art, so a retagged keyed hex is repainted with its own tile, not a pool tile.
+
 ## [0.18.2] — 2026-10-11
 
 ### Fixed

@@ -1904,7 +1904,10 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const own = scene?.getFlag?.(MODULE_ID, ART_FLAG);
     if (own && Object.keys(own).length) return own;
     const tf = globalThis.canvas ? backgroundTransform(canvas) : null;
-    const wr = String(scene?.getFlag?.(MODULE_ID, "hexMapId") ?? "").split(":")[0] === WR_MAP_ID || isA0(tf?.texW, tf?.texH);
+    // A painted copy has no hexMapId and no A0 picture, but it carries the print's 64 x 75 bounds in its tags.
+    const b = this._state?.origin?.bounds;
+    const wr = String(scene?.getFlag?.(MODULE_ID, "hexMapId") ?? "").split(":")[0] === WR_MAP_ID || isA0(tf?.texW, tf?.texH)
+      || (b?.cols === A0_PRINT.bounds.cols && b?.rows === A0_PRINT.bounds.rows);
     return wr ? assignmentsFromManifest(WR_KEYED_ART) : {};
   }
 

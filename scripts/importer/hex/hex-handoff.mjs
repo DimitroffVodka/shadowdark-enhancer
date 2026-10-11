@@ -213,7 +213,9 @@ const sameWord = (a, b) => String(a ?? "").trim().toLowerCase() === String(b ?? 
  * The painted Extras scenes a terrain correction can repaint: built by
  * buildHexcrawl (`hexScene`), at this dataset's size and numbering origin, and
  * not the tagged print itself. The print is out even when Extras adopted it:
- * a repaint would lay painted tiles over the publisher's art.
+ * a repaint would lay painted tiles over the publisher's art. The scene being
+ * tagged counts as the print unless it holds painted tiles: then it is a
+ * painted map, and updating it from its own tagger is the point.
  *
  * ponytail: firstRow and rowsLowered are not compared. A scene that matches on
  * size and origin but not on those is one the GM picked by hand; Extras still
@@ -224,7 +226,9 @@ const sameWord = (a, b) => String(a ?? "").trim().toLowerCase() === String(b ?? 
  */
 export function paintedScenesFor(scenes, printId, grid) {
   return [...(scenes ?? [])].filter((scene) => {
-    if (scene.id === printId || !scene.getFlag?.(EXTRAS_ID, "hexScene")) return false;
+    if (!scene.getFlag?.(EXTRAS_ID, "hexScene")) return false;
+    // The scene the GM is on is a target only when it is itself a built painted map (it holds painted tiles); a print is not.
+    if (scene.id === printId && !scene.tiles?.some?.((tile) => tile.flags?.[EXTRAS_ID]?.painted)) return false;
     const layout = scene.getFlag(EXTRAS_ID, "hexcrawl");
     const g = layout?.version === 1 ? layout.grid : null;
     return !!g && g.cols === grid?.cols && g.rows === grid?.rows && (g.origin ?? 1) === (grid?.origin ?? 1);
