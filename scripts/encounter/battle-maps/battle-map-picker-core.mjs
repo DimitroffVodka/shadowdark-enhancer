@@ -251,7 +251,10 @@ export function pickerModel({
 
   const chosenMap = sel?.mapId ? byId.get(sel.mapId) : null;
   const campAvailable = !!(chosenMap && campOf(chosenMap));
-  const camp = !!camping && campAvailable;
+  // Nothing chosen yet (no default for this terrain): the switch is an ask, the cards show their camp art, and the
+  // ask holds for the map that is chosen. It goes quiet only for a chosen map that has none, or a scene.
+  const campOpen = campAvailable || !sel;
+  const camp = !!camping && campOpen;
 
   const card = (map, extra) => {
     const campMap = campOf(map);
@@ -350,6 +353,7 @@ export function pickerModel({
     night: !!night,
     camp,
     campAvailable,
+    campOpen,
     looksOff: !!sel?.sceneId,
     selected: sel,
     chosen: chosenMap

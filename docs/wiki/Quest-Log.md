@@ -144,6 +144,9 @@ A quest's **Jump to pin** button appears when it has somewhere to go:
   a scene; or
 - the pin the Hex Tagger placed for the quest's **Hex** (set it under
   *Location*). This covers settlements and keyed hexes.
+  A **Hex** typed there matches that number on any map. To tie a quest to one
+  map's hex, open that hex in Hex Data (double click) and link it under
+  **Quests here**; typing a number in *Location* afterwards drops that scene.
 
 The GM is taken to the pin's scene. A player is panned to it only on the scene
 they are viewing.

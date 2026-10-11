@@ -419,6 +419,16 @@ describe("what is chosen", () => {
     assert.equal(pickerModel({ ...base, camping: false }).camp, false);
   });
 
+  test("with nothing chosen yet the Camp switch is an ask that can be set, and it goes quiet only for a map with none or a scene", () => {
+    const none = pickerModel({ ...base, terrain: "", scenes, camping: true });
+    assert.deepEqual([none.chosen, none.result], [null, null]);
+    assert.deepEqual([none.campOpen, none.campAvailable, none.camp], [true, false, true]);
+    // The ask holds: the map that is then chosen is the camp version.
+    assert.equal(pickerModel({ ...base, terrain: "", scenes, camping: true, selected: { mapId: "forest-woods" } }).result.variant, "camp");
+    assert.equal(pickerModel({ ...base, camping: true, selected: { mapId: "forest-glade" } }).campOpen, false);
+    assert.equal(pickerModel({ ...base, scenes, camping: true, selected: { sceneId: "s1" } }).campOpen, false);
+  });
+
   test("night is darkness: a night map is the night variant, and a camp at night says so", () => {
     assert.deepEqual(pickerModel({ ...base, night: true }).result, { mapId: "forest-woods", variant: "night", night: true });
     const lit = pickerModel({ ...base, night: true, camping: true });

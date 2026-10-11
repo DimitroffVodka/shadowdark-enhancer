@@ -81,7 +81,7 @@ function routeTo(token, goal) {
     return cells.get(k);
   };
   // Off the numbered map (the scene's padding): nothing to search for.
-  if (!hex(goal)) return { blocked: null };
+  if (!hex(goal)) return { blocked: null, offMap: true };
   const hidden = new Set();
   const cost = (from, to) => {
     if (unknown(to)) { hidden.add(offsetKey(to)); return 1; }
@@ -166,6 +166,8 @@ function showTip(event, route) {
     text = route?.blocked?.terrain
       ? t("SDE.route.closed", { terrain: route.blocked.terrain.replace(/_/g, " ") })
       : t("SDE.route.none");
+    // Fast travel needs no way there: water without a boat is still a hex to jump to.
+    if (game.user.isGM && route && !route.offMap) text += t("SDE.route.fastHint");
   } else {
     const hexes = route.path.length - 1;
     const dist = canvas.scene.grid.distance ?? 6, units = canvas.scene.grid.units ?? "";
@@ -225,6 +227,19 @@ function hover(event) {
   showTip(event, route);
 }
 
+/**
+ * The GM's Shift-click on any mapped hex, with or without a way there: fast travel
+ * prices nothing, so water with no boat or a closed terrain is still a place to jump to.
+ */
+function fastArm(event) {
+  if (!event.shiftKey || !game.user.isGM) return null;
+  const token = travelToken();
+  if (!token) return null;
+  const goal = canvas.grid.getOffset(event.getLocalPosition(canvas.stage));
+  if (offsetKey(goal) === offsetKey(canvas.grid.getOffset(token.center)) || !hexReader(canvas)?.(goal)) return null;
+  return { token, route: { path: [goal] } };
+}
+
 /** A press only arms: the walk waits for the release, so a box-select drag or a ping isn't a click. */
 function onDown(event) {
   _press = null;
@@ -233,7 +248,8 @@ function onDown(event) {
   if (event.target && event.target !== canvas.stage && event.target.document) return;
   // Routes again when the shown route is stale, and for a touch tap, which has no move first.
   hover(event);
-  if (_armed) _press = { x: event.global.x, y: event.global.y, at: event.timeStamp, key: _hovered, armed: _armed };
+  const armed = _armed ?? fastArm(event);
+  if (armed) _press = { x: event.global.x, y: event.global.y, at: event.timeStamp, key: _hovered, armed };
 }
 
 function onUp(event) {

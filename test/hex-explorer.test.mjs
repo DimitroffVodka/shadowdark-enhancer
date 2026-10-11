@@ -89,3 +89,10 @@ test("Hex Data owns an adopted hex scene even while Extras' Hex Tooltip is on, a
     assert.equal(ownsHexData(scene(true, false)), false);
   } finally { globalThis.game = before; }
 });
+test("river, path and coast are always disclosed, whatever an old record stored", () => {
+  const features = [{ type: "river", discovered: false }, { type: "path" }, { type: "dungeon", name: "Lair", discovered: false }];
+  const view = explorerView({ ...record, features, discovery: { revealed: true, visited: false } }, false);
+  assert.deepEqual(view.features, [{ type: "river" }, { type: "path" }]);
+  const plan = planExplorerEdit({ ...record, features: [] }, { ...input, lines: ["river", "coast"], features: [] }, structuredClone(flag));
+  assert.deepEqual(plan.patch.features.map(f => [f.type, f.discovered]), [["river", true], ["coast", true]]);
+});

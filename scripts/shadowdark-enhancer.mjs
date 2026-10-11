@@ -47,6 +47,8 @@ import { init as pulpInit } from "./modes-of-play/pulp.mjs";
 import * as Dying from "./dying/dying.mjs";
 import { init as spellMishapInit } from "./spell-mishap/spell-mishap.mjs";
 import { init as prayerRollInit } from "./character-sheet/prayer-roll.mjs";
+import { init as tempHpFieldInit } from "./character-sheet/temp-hp-field.mjs";
+import { registerTempHp, tempHpOf, setTempHp, giveTempHp } from "./shared/temp-hp.mjs";
 import { init as scavengerInit } from "./scavenger/scavenger.mjs";
 import { Parry } from "./parry/parry.mjs";
 import { Taunt } from "./taunt/taunt.mjs";
@@ -133,7 +135,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "cbb9eae55a98";
+const STYLESHEET_REV = "27b9462f5136";
 
 // The same problem for the SCRIPTS, which cannot be solved the same way: their
 // URLs come from the manifest, which Foundry validates as real package paths,
@@ -148,7 +150,7 @@ const STYLESHEET_REV = "cbb9eae55a98";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "8e0a2d383001";
+const BUILD_REV = "c2c020d46ee8";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -444,6 +446,7 @@ Hooks.once("init", () => {
   registerPartyLight();
   registerPartyRoll();
   registerCamping();
+  registerTempHp();
   registerCarousing();
 
   // "Character Builder" launch button in the Actors sidebar header — the single
@@ -523,7 +526,8 @@ Hooks.once("init", () => {
     //   Shadowdark Extras' Map Coordinates.
     // 1.27.0 — additive: the bastion namespace, the Bastion actor type and its sheet.
     // 1.28.0 — additive: the traps namespace and the trap Region behavior.
-    apiVersion: "1.28.0",
+    // 1.29.0 — additive: the tempHp namespace, a temporary-hit-point pool that damage spends before HP.
+    apiVersion: "1.29.0",
     // The one travel state per world (scripts/overland/overland.mjs): a copy
     // with hexes left, climate, storm, harshness and night derived; whether
     // travel is on; today's weather roll, the travel day's start, Continue
@@ -994,6 +998,11 @@ Hooks.once("init", () => {
         const m = await import("./hex-map/hex-region.mjs");
         return m.regionSeeds(await m.crawlEntries());
       },
+      // The master Key Locations journal of an already-imported book ("GMWR"), rebuilt from the regions
+      // filed in the Journals pack. Reads no PDF and leaves the regions' pages alone (GM only).
+      buildKeyIndex: async (src) => (await import("./importer/hex/key-location-index.mjs")).buildKeyLocationIndex(src),
+      // Pan the viewed scene to a published hex number, as a hex link in a journal does.
+      goto: async (num, src) => (await import("./hex-map/hex-goto.mjs")).gotoHex(num, src),
       // Pure builder for the Extras dataset from drafts, keyed rows and tags.
       buildDataset: async (args) => (await import("./importer/hex/hex-dataset.mjs")).buildHexDataset(args),
       // Dev check: what a first-time user would get on a map you have verified,
@@ -1035,6 +1044,13 @@ Hooks.once("init", () => {
       apply: (actor, ability, amount) => StatDamage.apply(actor, ability, amount),
       heal: (actor, opts) => StatDamage.heal(actor, opts),
       of: (actor) => StatDamage.of(actor),
+    },
+    // 1.29.0 — additive: temporary hit points. One pool per actor in front of HP: damage spends it first and
+    // HP is never raised past its maximum. Temp HP do not stack (a grant replaces the pool only when larger).
+    tempHp: {
+      of: (actor) => tempHpOf(actor),
+      set: (actor, value, opts) => setTempHp(actor, value, opts),
+      grant: (actor, value, opts) => giveTempHp(actor, value, opts),
     },
     // 1.23.0 — additive: the Trouble tracker (#193): the weekly check, and troubles counting down on the world clock.
     troubles: {
@@ -1145,6 +1161,8 @@ Hooks.once("ready", () => {
     }
   })();
   CrawlState.init();
+  // The hex-number links of the master Key Locations journal.
+  import("./hex-map/hex-goto.mjs").then((m) => m.registerHexGoto()).catch((err) => console.error(`${MODULE_ID} | hex links`, err));
   registerOverland();
   // The calendar's journal lines, and the campaign start date on a world still at year 0.
   registerCalendar();
@@ -1169,6 +1187,7 @@ Hooks.once("ready", () => {
   Dying.init();
   spellMishapInit();
   prayerRollInit();
+  tempHpFieldInit();
   scavengerInit();
   Parry.init();
   Taunt.init();
@@ -1273,25 +1292,50 @@ Hooks.once("ready", () => {
       }
     }, 2000);
 
+    // Every user is told what the update changed, once per version (whats-new.mjs). Read before any
+    // timer fires: the backfill below stamps `backfillVersion`, and a stamped world is what tells an
+    // update from a fresh install.
+    const ranBefore = !!game.settings.get(MODULE_ID, "backfillVersion");
+
     // A release grows the import library — a book, a bestiary, a hundred table
     // rows — and a GM who already imported what they own would never find out.
     // Once per module version (the census is not cheap), diff the library
     // against what this world last saw and ASK whether they want the new
     // material, opening the hub on it if they say yes. Gated to the single
     // active GM because it stamps a world setting; every other GM reads the
-    // badges it leaves in the Manage tree.
+    // badges it leaves in the Manage tree. It runs after the what's-new window
+    // closes, so an update shows one dialog at a time.
     setTimeout(async () => {
+      try {
+        const { checkWhatsNew, SEEN_SETTING } = await import("./shared/whats-new.mjs");
+        await checkWhatsNew({
+          version: String(game.modules.get(MODULE_ID)?.version ?? ""),
+          seen: game.settings.get(MODULE_ID, SEEN_SETTING),
+          history: ranBefore,
+          write: (value) => game.settings.set(MODULE_ID, SEEN_SETTING, value),
+        });
+      } catch (err) {
+        console.error(`${MODULE_ID} | what's new failed:`, err);
+      }
       if (!isActiveGM()) return;
       try {
-        const { checkImporterNews, promptImporterUpdate, CATALOG_SETTING } = await import("./importer/importer-hub-news.mjs");
-        // A world that has imported nothing yet is not told "new content": all of it is new to them, and
-        // the first-time wizard is already the importer's front door there.
+        const { checkImporterNews, promptImporterUpdate, checkFirstImport, CATALOG_SETTING, ASKED_SETTING } =
+          await import("./importer/importer-hub-news.mjs");
+        // A world that has imported nothing yet is not told "new content": all of it is new to them.
+        // It is told to run the quick wizard first instead (once per version, below).
         const { wizardFirst } = await import("./importer/wizard/wizard-app.mjs");
+        const version = String(game.modules.get(MODULE_ID)?.version ?? "");
+        const first = wizardFirst();
         await checkImporterNews({
-          version: String(game.modules.get(MODULE_ID)?.version ?? ""),
+          version,
           read: () => game.settings.get(MODULE_ID, CATALOG_SETTING),
           write: (value) => game.settings.set(MODULE_ID, CATALOG_SETTING, value),
-          announce: wizardFirst() ? () => {} : promptImporterUpdate,
+          announce: first ? () => {} : promptImporterUpdate,
+        });
+        await checkFirstImport({
+          version, first,
+          read: () => game.settings.get(MODULE_ID, ASKED_SETTING),
+          write: (value) => game.settings.set(MODULE_ID, ASKED_SETTING, value),
         });
       } catch (err) {
         console.error(`${MODULE_ID} | importer news check failed:`, err);

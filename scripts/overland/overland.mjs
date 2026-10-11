@@ -983,23 +983,6 @@ async function addRation(actor) {
   return actor.createEmbeddedDocuments("Item", [data]);
 }
 
-/** The Forage dialog (GM): tick who forages. Resolves to their actor ids, or null when closed. */
-export async function askForage() {
-  const members = _state.members.map((id) => game.actors.get(id)).filter(Boolean);
-  const rows = members.map((a) => `<label class="checkbox"><input type="checkbox" name="${esc(a.id)}"${
-    _state.foraged.includes(a.id) ? " disabled" : " checked"}> ${esc(a.name)}</label>`).join("");
-  return foundry.applications.api.DialogV2.prompt({
-    classes: ["sde-ui", "sde-dialog"],
-    window: { title: t("SDE.overland.forage.dialogTitle") },
-    content: `<p>${esc(t("SDE.overland.forage.dialogPick"))}</p><div class="form-fields">${rows}</div>`,
-    ok: {
-      label: t("SDE.overland.forage.button"),
-      callback: (event, button) => members.filter((a) => button.form.elements[a.id]?.checked).map((a) => a.id),
-    },
-    rejectClose: false,
-  });
-}
-
 // ── Camp (#233, §5.5) ─────────────────────────────────────────────────────────
 
 /**

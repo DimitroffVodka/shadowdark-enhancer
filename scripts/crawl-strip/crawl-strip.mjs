@@ -11,6 +11,7 @@
 
 import { MODULE_ID }        from "../shared/module-id.mjs";
 import { esc }              from "../shared/esc.mjs";
+import { tempHpOf }          from "../shared/temp-hp.mjs";
 import { CrawlState }       from "./crawl-state.mjs";
 import { isHexMapScene } from "../encounter/encounter-terrain.mjs";
 import { MovementTracker }  from "./movement-tracker.mjs";
@@ -830,7 +831,7 @@ export const CrawlStrip = {
             <div class="sde-strip-bottom">
               <div class="sde-strip-hp-bar-wrap">
                 <div class="sde-strip-hp-bar ${hpClass}" style="width:${hpPct}%"></div>
-                <span class="sde-strip-hp-label">${data && !concealStats ? `${data.hp}/${data.hpMax}` : ""}</span>
+                <span class="sde-strip-hp-label">${data && !concealStats ? `${data.hp}/${data.hpMax}${data.temp ? ` +${data.temp}` : ""}` : ""}</span>
               </div>
               ${pills}
             </div>
@@ -1106,6 +1107,7 @@ export const CrawlStrip = {
     return {
       hp:           hp.value ?? 0,
       hpMax:        hp.max   ?? 0,
+      temp:         tempHpOf(actor),
       ac,
       luck,
       activeSpeed,

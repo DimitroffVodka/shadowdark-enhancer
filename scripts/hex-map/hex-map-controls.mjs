@@ -18,7 +18,7 @@ import { isHexAdopted } from "./hex-records.mjs";
 
 const BRUSH_ID = "sde-hex-brush";
 /** What a scene with no tags can still use: the fog switches and the hover card read the records, not the tags. */
-const UNTAGGED_TOOLS = ["hexPlayerView", "hexFogHidden", "hexTooltip"];
+const UNTAGGED_TOOLS = ["hexPlayerView", "hexFogHidden", "hexFogReset", "hexTooltip"];
 
 const brushOpen = () => !!foundry.applications.instances?.get?.(BRUSH_ID);
 /**
@@ -48,6 +48,11 @@ export function hexMapTools(scene, { mode = "", brush = false, isGM = false, fog
   if (fog) tools.hexFogHidden = {
     name: "hexFogHidden", title: "SDE.hexMap.controls.fogHidden", icon: "fa-solid fa-cloud-sun", order: 0.5, toggle: true, active: fogHidden,
     onChange: async () => { await toggleFogHidden(); refresh(); },
+  };
+  // Beside the fog switches: put hexes back to unexplored, for one party or everyone (it has its own dialog and an undo).
+  if (fog) tools.hexFogReset = {
+    name: "hexFogReset", title: "SDE.hexMap.controls.fogReset", icon: "fa-solid fa-cloud-arrow-down", order: 0.6, button: true,
+    onChange: async () => (await import("./hex-fog-reset-dialog.mjs")).openFogReset(),
   };
   tools.hexTerrain = overlay("hexTerrain", "terrain", "fa-solid fa-eye", "SDE.hexMap.controls.terrain", 1);
   // Regions and zones both come from the border scan.

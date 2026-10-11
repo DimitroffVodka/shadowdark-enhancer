@@ -3,7 +3,7 @@ import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { Party, isNativeParty } from "../party/party.mjs";
 import { CAMP_LABELS, taskDefinitions, selectTask, carryOver, lockCamp, torchPlan, fireDecision, fireAlive } from "./camping-core.mjs";
 import { queryActiveGM, registerQuery, refuseQuery, isActiveGM } from "../shared/gm-relay.mjs";
-import { registerCook, expireCook } from "./camping-cook.mjs";
+import { expireTempHp } from "../shared/temp-hp.mjs";
 import { foodPreview, feedCamp, restCamp } from "./camping-nutrition.mjs";
 import { isMount, adoptMountScores } from "../actors/mount-scores.mjs";
 import { secondsPerHour } from "../time/time-core.mjs";
@@ -197,7 +197,7 @@ async function perform(party, action, data, user) {
     } else if (!data.accept && camp.fuelPlan) invalid();
     camp.phase = "tasks"; await save(party, camp); return resolveTasks(party, camp);
   }
-  if (action === "resume") { for (const p of camp.participants) { const a = actorOf(p.uuid); if (a) await expireCook(a); } return resolveTasks(party, camp); }
+  if (action === "resume") { for (const p of camp.participants) { const a = actorOf(p.uuid); if (a) await expireTempHp(a); } return resolveTasks(party, camp); }
   invalid();
 }
 export async function handleCamp(data, user) {
@@ -262,7 +262,7 @@ export async function refreshCampFires() {
   }
 }
 export function registerCamping() {
-  registerQuery(QUERY, (data, { user }) => handleCamp(data, user)); registerCook();
+  registerQuery(QUERY, (data, { user }) => handleCamp(data, user));
   // Embedded-token hooks can run before the Scene collection finishes updating.
   // Read proximity after that document operation, not inside its hook dispatch.
   for (const hook of ["updateWorldTime", "updateToken", "deleteToken"]) Hooks.on(hook, () => { setTimeout(() => { void refreshCampFires().catch(error => console.error(`${MODULE_ID} | Camp fire`, error)); }, 0); });

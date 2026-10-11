@@ -1,4 +1,4 @@
-// Audit fixture: Carousing, embedded in the Party sheet's Travel tab as PartyApp embeds it. state = setup | complete (add -full for a tall window)
+// Audit fixture: Carousing, embedded in the Party sheet's Carousing tab as PartyApp embeds it. state = setup | complete (add -full for a tall window)
 import { renderTemplate, inParty, asActivity } from "./_audit-embed.mjs";
 const names = ["Creeg Greythorn", "Elbin Grizzlegut", "Iraga Draguul", "Jorbin Ironhelm", "Martin Rast"];
 const ctxFor = (state, setup, complete) => {
@@ -19,6 +19,6 @@ const build = (state) => {
   const full = state.endsWith("-full"); state = state.replace("-full", "");
   const setup = state === "setup", complete = state === "complete";
   const html = asActivity(renderTemplate("templates/carousing/carousing.hbs", ctxFor(state, setup, complete)));
-  return { ...inParty("gm.travel", { activityHTML: html, carousingActive: true, campingActive: false }), height: full ? 2800 : 650 };
+  return { ...inParty("gm.carousing", { activityHTML: html }), height: full ? 2800 : 650 };
 };
 export default { previewHeight: 900, initial: "setup", build, toolbar: "", actions: {}, title: "The Lantern Guild", icon: "fa-solid fa-users", classes: ["shadowdark", "sheet", "party", "sde-party", "sde-ui"], resizable: true, width: 750, height: 650, template: "templates/party/party.hbs" };

@@ -18,6 +18,8 @@
  *   objectives   [{ id, text, done }]
  *   rewards      { xp, renown, items: [{ uuid, name, img }], training }
  *   hex          a published hex number whose map pin the quest jumps to
+ *   hexScene     the scene uuid that number belongs to (a number repeats between
+ *                books), or null for "any scene"; null whenever hex is null
  *   paid         true once the rewards were handed out; they never are twice
  */
 import { esc } from "../shared/esc.mjs";
@@ -115,6 +117,7 @@ export function normalizeQuest(raw = {}, { newId = defaultId } = {}) {
     source.task = Number.isInteger(src.task) ? src.task : null;
   }
   const r = raw?.rewards ?? {};
+  const hex = hexNumber(raw?.hex);
   return {
     status: isStatus(raw?.status) ? raw.status : "hidden",
     source,
@@ -130,7 +133,8 @@ export function normalizeQuest(raw = {}, { newId = defaultId } = {}) {
         .map((i) => ({ uuid: str(i.uuid), name: str(i.name), img: str(i.img) })),
       training: trainerByKey(str(r.training)) ? str(r.training) : null,
     },
-    hex: hexNumber(raw?.hex),
+    hex,
+    hexScene: hex === null ? null : str(raw?.hexScene) || null,
     paid: raw?.paid === true,
     ...(raw?.payout ? { payout: structuredClone(raw.payout) } : {}),
   };
@@ -300,6 +304,15 @@ export function matchesFilter(q, { status, party, character, sourceKind, sourceU
   if (sourceKind && q.source.kind !== sourceKind) return false;
   if (sourceUuid && q.source.uuid !== sourceUuid) return false;
   return true;
+}
+
+/**
+ * The quests tied to one hex of one scene. A quest with no scene of its own
+ * (typed in the Quest Log) matches that number on any scene, as its pin does.
+ */
+export function questsAtHex(quests, { num, sceneUuid }) {
+  if (!Number.isInteger(num)) return [];
+  return quests.filter((q) => q.hex === num && (!q.hexScene || q.hexScene === sceneUuid));
 }
 
 /**

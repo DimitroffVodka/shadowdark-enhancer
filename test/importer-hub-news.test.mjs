@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { catalogKeys, lockedKeys, entryKey, checkImporterNews } from "../scripts/importer/importer-hub-news.mjs";
+import { catalogKeys, lockedKeys, entryKey, checkImporterNews, checkFirstImport } from "../scripts/importer/importer-hub-news.mjs";
 
 /** A slice of the shape buildManageTree() produces. */
 const tree = (extra = []) => [{
@@ -83,4 +83,36 @@ test("a census that read nothing is not stamped as this version's library", asyn
   const before = store.value;
   assert.equal(await checkImporterNews({ version: "1.1.0", ...store, build: async () => [] }), null);
   assert.equal(store.value, before);
+});
+
+const asked = (initial = "") => {
+  let value = initial;
+  const calls = [];
+  return { read: () => value, write: async (v) => { value = v; }, announce: () => calls.push(1), calls, get value() { return value; } };
+};
+
+test("a world that has imported nothing is asked to run the quick wizard, once per version", async () => {
+  const s = asked();
+  assert.equal(await checkFirstImport({ version: "1.0.0", first: true, ...s }), true);
+  assert.equal(s.calls.length, 1);
+  assert.equal(s.value, "1.0.0");
+  // Same version, next load: silent. A release brings it back.
+  assert.equal(await checkFirstImport({ version: "1.0.0", first: true, ...s }), false);
+  assert.equal(await checkFirstImport({ version: "1.1.0", first: true, ...s }), true);
+  assert.equal(s.calls.length, 2);
+});
+
+test("a world that has imported is not asked to run the wizard first", async () => {
+  const s = asked();
+  assert.equal(await checkFirstImport({ version: "1.0.0", first: false, ...s }), false);
+  assert.equal(s.calls.length, 0);
+  assert.equal(s.value, "");
+});
+
+test("the first-import stamp is written before the prompt, so a throwing dialog cannot nag every load", async () => {
+  const s = asked();
+  const boom = () => { throw new Error("dialog failed"); };
+  await assert.rejects(checkFirstImport({ version: "1.0.0", first: true, ...s, announce: boom }), /dialog failed/);
+  assert.equal(s.value, "1.0.0");
+  assert.equal(await checkFirstImport({ version: "1.0.0", first: true, ...s }), false);
 });

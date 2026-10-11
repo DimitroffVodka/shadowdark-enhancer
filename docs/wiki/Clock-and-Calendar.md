@@ -77,7 +77,9 @@ check rolls an encounter or the day's points run out.
 **Fast travel** (GM): with the party token selected, **Shift-click** the end of the
 route the cursor shows and the party is there at once. No day has to be open, and
 nothing is spent: no hexes of the day, no encounter checks, no time, no camp, no
-rations. The fog lifts along the way as a walk would lift it. Move the clock
+rations. It needs no way there either: Shift-click open water without a boat, or
+any hex the party could not enter, and the party is simply there. The fog lifts
+along the way as a walk would lift it. Move the clock
 yourself from the bar if the trip should take time. It is refused while an
 encounter is held, until you press Continue. Players' Shift-clicks do nothing.
 

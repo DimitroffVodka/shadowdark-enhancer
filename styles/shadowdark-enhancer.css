@@ -4770,6 +4770,8 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-prayer-roll { width: 24px; height: 24px; margin-left: 6px; padding: 0; display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; background: transparent; border: 0; cursor: pointer; opacity: 0.7; }
 .sde-prayer-roll:hover, .sde-prayer-roll:focus-visible { opacity: 1; }
 .sde-prayer-roll img { width: 16px; height: 16px; border: 0; }
+.sde-temp-hp { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 4px; font-size: var(--font-size-12, 12px); }
+.sde-temp-hp input { width: 3.5em; text-align: center; }
 
 /* ═══ Chat cards (UI kit card-scale parts) ═══════════════════════════════════ */
 
