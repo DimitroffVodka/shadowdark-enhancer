@@ -392,7 +392,7 @@ no movement pill. The same applies to an NPC whose token disposition is
 The strip is optional. The GM can turn it off for everyone with **Turn off the
 crawl strip for everyone** in the Crawl Strip settings, and any player (or the
 GM) can turn it off on their own computer with **Turn off the crawl strip for
-me** in Configure Settings, which is kept per browser. Either one is enough; a
+me** in the Crawl Strip settings, which is kept per browser. Either one is enough; a
 player cannot bring back a strip the GM turned off.
 
 The Crawl Bar is a separate piece and keeps working: starting and ending a crawl,
@@ -402,9 +402,8 @@ off.
 
 ### Slim strip
 
-For a small screen, turn on **Slim crawl strip for me** in Configure Settings,
-or let the GM turn on **Slim crawl strip for everyone** in the Crawl Strip
-settings. Either one is enough; a player cannot switch back to full cards while
+For a small screen, turn on **Slim crawl strip for me** in the Crawl Strip
+settings, or let the GM turn on **Slim crawl strip for everyone** there. Either one is enough; a player cannot switch back to full cards while
 the GM's is on. The strip drops every portrait. Each character is a short card
 in three rows: the name, then initiative, AC and HP (the number), then Luck,
 movement and the light; a dying character's badge takes a fourth row. There is

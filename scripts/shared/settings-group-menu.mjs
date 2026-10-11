@@ -53,6 +53,10 @@ export class SettingsGroupMenu extends HandlebarsApplicationMixin(ApplicationV2)
 
   /** One section entry, by its shape (see setting-groups.mjs); null renders nothing. */
   _entry(e) {
+    // A group open to everyone holds the GM's world settings beside each
+    // user's own; a player is shown only the ones they can write.
+    const own = typeof e === "string" ? e : e.key;
+    if (own && !game.user.isGM && game.settings.settings.get(`${MODULE_ID}.${own}`)?.scope === "world") return null;
     if (typeof e === "string") return this._settingEntry(game.settings.settings.get(`${MODULE_ID}.${e}`));
     if (e.menu) return this._menuEntry(e);
     if (e.note) return { note: e.note };
@@ -187,8 +191,8 @@ export class SettingsGroupMenu extends HandlebarsApplicationMixin(ApplicationV2)
 }
 
 /**
- * Register one GM-only Configure Settings button per group, in SETTING_GROUPS
- * order. `menuTypes` maps each nested `{ menu }` key to the window it opens.
+ * Register one Configure Settings button per group, in SETTING_GROUPS order:
+ * GM-only unless the group says `everyone`. `menuTypes` maps each nested `{ menu }` key to the window it opens.
  */
 export function registerSettingGroups(menuTypes) {
   SettingsGroupMenu.MENU_TYPES = menuTypes;
@@ -204,7 +208,7 @@ export function registerSettingGroups(menuTypes) {
       label: `SDE.settings.${group.key}.label`,
       icon: group.icon,
       type: Menu,
-      restricted: true,
+      restricted: !group.everyone,
     });
   }
 }
