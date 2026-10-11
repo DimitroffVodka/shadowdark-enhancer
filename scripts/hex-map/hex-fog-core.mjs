@@ -32,6 +32,59 @@ export function withPartyDiscovery(discovery, partyId, patch) {
   for (const [field, value] of Object.entries(patch)) if (value === undefined) delete own[field]; else own[field] = value;
   return { ...discovery, by: { ...discovery?.by, [partyId]: own } };
 }
+/** The cell fields a fog reset may change, and so the only ones an undo stashes and restores. */
+export const RESET_FIELDS = ["discovery", "arrivalRolled", "arrivalRolledBy"];
+/**
+ * One cell put back to unexplored. `partyId` null is everyone: the shared layer and every party's own entry.
+ * A party's reset hides the hex for that party only: where the shared layer would show it anyway an explicit
+ * `false` overrides it, and where it would not the party's field is deleted so a later reveal to everyone still
+ * works. Its own `locationRevealed` is deleted, not set false, so a fresh visit shows the location again.
+ * `rearm` also lets a first-entry table roll again: for a party only its own id leaves `arrivalRolledBy` (the
+ * legacy `arrivalRolled` flag belongs to every party, so only a reset for everyone clears it). Nothing else of
+ * the cell is read or written. Nothing is mutated.
+ */
+export function resetCell(cell, { partyId = null, rearm = false } = {}) {
+  const next = structuredClone(cell ?? {}), d = next.discovery;
+  if (d && partyId) {
+    const own = { ...d.by?.[partyId] };
+    for (const field of ["revealed", "visited"]) if (d[field] === true) own[field] = false; else delete own[field];
+    delete own.locationRevealed;
+    const by = { ...d.by };
+    if (Object.keys(own).length) by[partyId] = own; else delete by[partyId];
+    if (Object.keys(by).length) d.by = by; else delete d.by;
+  } else if (d) {
+    if (d.revealed) d.revealed = false;
+    if (d.visited) d.visited = false;
+    delete d.locationRevealed;
+    delete d.by;
+  }
+  if (rearm && partyId && next.arrivalRolledBy) {
+    next.arrivalRolledBy = next.arrivalRolledBy.filter(id => id !== partyId);
+    if (!next.arrivalRolledBy.length) delete next.arrivalRolledBy;
+  } else if (rearm && !partyId) {
+    delete next.arrivalRolledBy;
+    delete next.arrivalRolled;
+  }
+  return { cell: next, changed: JSON.stringify(next) !== JSON.stringify(cell ?? {}) };
+}
+/**
+ * What a reset would do to `cells` (the store's `{ "i_j": cell }`), for `keys` or, with none, every cell.
+ * Only a key that exists and would actually change is reported, so the count is exactly what the write touches.
+ * @returns {{changed: string[], next: Object<string, object>, prev: Object<string, object>}} `prev` holds only the
+ *   reset fields of each changed cell: the stash an undo restores.
+ */
+export function planFogReset(cells, { partyId = null, keys = null, rearm = false } = {}) {
+  const changed = [], next = {}, prev = {};
+  for (const key of keys ?? Object.keys(cells ?? {})) {
+    const cell = cells?.[key];
+    if (!cell) continue;
+    const result = resetCell(cell, { partyId, rearm });
+    if (!result.changed) continue;
+    changed.push(key); next[key] = result.cell;
+    prev[key] = Object.fromEntries(RESET_FIELDS.filter(f => cell[f] !== undefined).map(f => [f, structuredClone(cell[f])]));
+  }
+  return { changed, next, prev };
+}
 /** Of the projections one player can see for a hex (one per party, plus what everyone knows), the most revealing. */
 export function bestProjection(projections) {
   const rank = p => (p.discovery?.locationRevealed ? 2 : 0) + (p.discovery?.visited ? 1 : 0);
