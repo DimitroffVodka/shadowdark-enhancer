@@ -654,7 +654,7 @@ export class HexTagOverlay {
     if (!down || Math.hypot(up.x - down.x, up.y - down.y) > 8) return;
     const num = this.numberAt(up);
     if (num === null) return;
-    // A double click belongs to the Hexplorer window: drop the box the first click opened.
+    // A double click belongs to the Hex Data window: drop the box the first click opened.
     const again = isDoubleClick(this._lastUp, num, event.timeStamp);
     this._lastUp = again ? null : { key: num, at: event.timeStamp };
     // The box opens under the cursor, so it would catch the second click: wait out the double-click window first.
