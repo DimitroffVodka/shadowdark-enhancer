@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1941 tracked files · ~247,300 lines of code/markup across scripts+templates+styles+test.
+1942 tracked files · ~247,500 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -78,14 +78,14 @@
 | `hex-map/coordinate-overlay.mjs` | 99 | Opt-in per-user native published-number labels on flat-top hex maps; reads native geometry and current fog without changing numbering or calibration. |
 | `hex-map/extras-records.mjs` | 27 | Read-only SDX legacy/authoring record reader, retained for painter-feature merges and unadopted gameplay; native adopted scenes use hex-records instead. |
 | `hex-map/geometry.mjs` | 221 | Hex numbering by cube difference from one anchor cell; printed offset ↔ cube under the map's column-shift rule. Pure. |
-| `hex-map/hex-adoption.mjs` | 179 | Read-once SDX record adoption with negative offset parsing, lossless original archives, existing-native conflict precedence, reports and automatic eligibility hooks. |
+| `hex-map/hex-adoption.mjs` | 183 | Read-once SDX record adoption with negative offset parsing, lossless original archives, existing-native conflict precedence, reports and automatic eligibility hooks. |
 | `hex-map/hex-brush-app.mjs` | 262 | The hex brush: a small window that sets one terrain (a picture tile per Legend terrain) plus features, so clicking or dragging across the tag overlay retags whole patches; a stroke is one scene write and Undo puts it back. |
 | `hex-map/hex-explorer-app.mjs` | 129 | Small scene-offset GM Hexplorer editor for terrain, line/structured features, public/private notes, document links and discovery. |
 | `hex-map/hex-explorer.mjs` | 229 | Player-safe Hexplorer canvas hover/select observer and GM writes over authoritative terrain tags and rich offset records; preserves discovery and imported metadata. |
-| `hex-map/hex-fog-core.mjs` | 141 | Pure shared terrain/location disclosure, lossless fog/history migration, native-grid sight, arrival/overlap decisions and the fog reset plan (resetCell, planFogReset). |
+| `hex-map/hex-fog-core.mjs` | 144 | Pure shared terrain/location disclosure, lossless fog/history migration, native-grid sight, arrival/overlap decisions and the fog reset plan (resetCell, planFogReset). |
 | `hex-map/hex-fog-reset-dialog.mjs` | 76 | The GM's Reset fog window: whose map, which hexes (whole map or one region), first-entry tables roll again, a live count from the same plan the write uses, and undo of the last reset. |
 | `hex-map/hex-fog.mjs` | 228 | Adopted-scene native static fog overlay, GM disclosure, selected-party committed visits/arrival history, SDX ownership guard and the fog reset with its one-level undo. |
-| `hex-map/hex-goto.mjs` | 45 | The hex-number links of the master Key Locations journal: one delegated click listener that pans the viewed scene to the hex (its own numbering, then the hex's map pin on any scene). |
+| `hex-map/hex-goto.mjs` | 46 | The hex-number links of the master Key Locations journal: one delegated click listener that pans the viewed scene to the hex (its own numbering, then the hex's map pin on any scene). |
 | `hex-map/hex-legend-session.mjs` | 88 | The Hex Tagger's Legend without its window: runs the tagger unshown as the engine (reads the map, builds the picture cards, applies the names) and hands a page just the cards and five calls, so the import wizard can show them on its Terrain page. Also legendNamed(scene). |
 | `hex-map/hex-map-controls.mjs` | 101 | The Hex map group on the left toolbar (GM, any scene with hex numbering): show terrain tags, regions and encounter zones, the paint brush, the most-likely-wrong review and the Hex Tagger, each calling what the tagger's own buttons call; refreshed through the hexTools hook when an overlay or the brush opens or closes. |
 | `hex-map/hex-map-flow.mjs` | 499 | Hex map from an image: file dialog, lattice detection, confirmation preview with corners set by hand, upload into the world folder, an aligned scene (stretch to Foundry's pitches, offset to cell 0,0), tagger opened on its legend. |
@@ -95,7 +95,7 @@
 | `hex-map/hex-prints.mjs` | 86 | What is known of each book's hex map, pure: which book's key locations pin onto it, where its crawls are filed, the printed number of its first hex, and for the two black maps the grid finder cannot read (the Black River, joined from two halves, and Morzomotha) their measured grids. Numbers and names only, no part of the print. |
 | `hex-map/hex-records.mjs` | 242 | Scene-offset native rich-record facade over existing tags, keyed pins/pages and regions, private compendium records and allowlisted public disclosure projections. |
 | `hex-map/hex-region.mjs` | 317 | Which region is a hex in: the book's own word for a keyed hex, the nearest keyed hex's region for any other (84.8% on the Western Reaches, leave-one-out over the book's own keyed rows). Seeds come from the filed crawls; nothing is stored. |
-| `hex-map/hex-tagger-app.mjs` | 1967 | Hex Tagger AppV2: contact sheet over the active hex scene, anchor numbering, tags on the scene flag, dataset hand-off. |
+| `hex-map/hex-tagger-app.mjs` | 1981 | Hex Tagger AppV2: contact sheet over the active hex scene, anchor numbering, tags on the scene flag, dataset hand-off. |
 | `hex-map/hex-tagger-tabs.mjs` | 14 | Hex Tagger tab list and the pure rule that keeps the chosen tab when the scene still offers it, else Sheet. |
 | `hex-map/ink.mjs` | 62 | Whole-image 0/1 ink bitmap at a working scale, one browser resize then strip reads; ink threshold from the paper's brightness. Browser-bound. |
 | `hex-map/lattice.mjs` | 448 | Hex lattice detection from a map's ink: row and column pitch by autocorrelation, phase by folding long horizontal runs, the hex field by outline support with frame-cut half cells, edge-band pitch refinement, and a lattice hung on two hand-placed corner cells. Pure. |
@@ -387,7 +387,7 @@
 | `monsters/creature-type-map-data.mjs` | 134 | N4 reviewed source/name-scoped creature taxonomy map for managed imported Actors. |
 | `monsters/creature-type-backfill.mjs` | 262 | E3 missing-only N4 creature-type flags over managed NPC/Mount Actors, with optional SDX runtime-map gap mirroring and outcome counts. |
 | `monsters/actor-migration.mjs` | 419 | World-side imported actors → the managed `sde-actors` pack. |
-| `monsters/monster-linker.mjs` | 156 | Table encounter text → clickable `@UUID` monster links. |
+| `monsters/monster-linker.mjs` | 157 | Table encounter text → clickable `@UUID` monster links. |
 | `monsters/monster-pack.mjs` | 48 | Shared pack-identity leaf so importer and linker agree. |
 | `items/item-parser.mjs` | 493 | Generic item recognizer (name/cost/slots). Pure. |
 | `items/gear-parser.mjs` | 576 | Real Weapon/Armor stat parser (WR letter codes, treasure flags). Pure. |
@@ -427,7 +427,7 @@
 | `hex/hex-book-import.mjs` | 161 | A book's whole hex key in one pass: per region, the keyed-location table and the pages of write-ups after it → one crawl entry per region. Page map only; no book text. |
 | `hex/hex-commit.mjs` | 232 | Hex-key drafts → JournalEntry pages in sde-journal (one entry per crawl, one page per hex); pure planner + two-pass link rewrite. |
 | `hex/hex-dataset.mjs` | 357 | Drafts + summary rows + tags → the Shadowdark Extras hexcrawl dataset (numbers only at the boundary); river, path and coast as record features, merged by id with what Extras holds. Pure. |
-| `hex/hex-handoff.mjs` | 464 | Crawl entry → dataset; puts it on the tagged print through Extras (adoptHexcrawl), merging each hex's features into the record Extras holds, builds a painted Extras scene, or downloads JSON. |
+| `hex/hex-handoff.mjs` | 466 | Crawl entry → dataset; puts it on the tagged print through Extras (adoptHexcrawl), merging each hex's features into the record Extras holds, builds a painted Extras scene, or downloads JSON. |
 | `hex/hex-summary.mjs` | 174 | Keyed hex summary rows (number, region, terrain, name) → structured rows; zone/terrain split decided by the table. Pure. |
 | `hex/key-location-index.mjs` | 133 | The master Key Locations journal of a book: one entry, a page per region, a table row per keyed hex with a go-to link and a link to its write-up, built from the regions the import filed (pure planner plus the pack write; carries its own flag, never the crawl flag). |
 | `importer-hub-adventures.mjs` | 186 | Hub Tools → Adventures (file a Cursed Scroll's adventures as journals) and Adventure map (build the scene from the GM's image and open the placer); installed onto the hub class. |
@@ -589,7 +589,7 @@ The report and idiom seams are pure data policy. Foundry adapters must translate
 | File | Lines | Description |
 |---|---:|---|
 | `quest-core.mjs` | 376 | The Quest Log's rules, pure: the quest flag's one shape, status changes and the ownership each status gives, who a player may see, objectives, when rewards are paid (once, on the way into Completed) and to whom, list filters, which trainer tasks a character has taken, which map pin to jump to, and the player page's HTML. |
-| `quests.mjs` | 569 | The Quest Log's data and public API: one world JournalEntry per quest in a flagged Quests folder, with a player page rewritten from the flag and a GM notes page left alone. GM-only writes serialized per client through replaceModuleFlag; the payout confirmation and payout through Party XP, the renown ledger and item copies; Shadowdark Extras parties read from its flags behind a feature check; jump to pin; the Ctrl+Q keybinding, the Journal sidebar button and the debounced questsChanged hook. |
+| `quests.mjs` | 574 | The Quest Log's data and public API: one world JournalEntry per quest in a flagged Quests folder, with a player page rewritten from the flag and a GM notes page left alone. GM-only writes serialized per client through replaceModuleFlag; the payout confirmation and payout through Party XP, the renown ledger and item copies; Shadowdark Extras parties read from its flags behind a feature check; jump to pin; the Ctrl+Q keybinding, the Journal sidebar button and the debounced questsChanged hook. |
 | `quest-log-app.mjs` | 273 | The Quest Log window (AppV2): a tab per status (Hidden for the GM only), filters by character, party and source, the quest list and the chosen quest. The GM edits in place (objectives, rewards with items dropped on, characters, party, hex); players get the same quest read-only. |
 
 One world JournalEntry per quest, its state one flag on the entry. World journals rather than the managed journal pack, because a compendium has one ownership for the whole pack and a quest's visibility is per quest. Every write is the GM's.

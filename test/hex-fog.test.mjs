@@ -273,6 +273,28 @@ test("a reset for everyone returns the cell to pristine, shared layer and every 
   assert.deepEqual(next.discovery, { revealed: false, visited: false });
   assert.equal(next.title, "Keep");
 });
+test("a reset for everyone keeps a location the GM hid, shared or for one party, and a later visit does not show it", () => {
+  const cell = { discovery: { revealed: true, visited: true, locationRevealed: false, by: { a: { revealed: true, visited: true, locationRevealed: false }, b: { revealed: true, visited: true, locationRevealed: true } } } };
+  const { cell: next } = resetCell(cell, {});
+  assert.equal(next.discovery.locationRevealed, false, "the shared hide stays");
+  assert.deepEqual(next.discovery.by, { a: { locationRevealed: false } }, "a party's hide stays; the rest of every party's entry goes");
+  for (const id of ["a", "b"]) {
+    const visited = withPartyDiscovery(next.discovery, id, { revealed: true, visited: true });
+    assert.equal(disclosure(effectiveDiscovery(visited, [id]), "location"), false, `${id} still does not see the location`);
+  }
+  const only = resetCell({ discovery: { revealed: true, visited: true, by: { a: { locationRevealed: false }, b: { locationRevealed: true } } } }, {}).cell;
+  const seen = id => disclosure(effectiveDiscovery(withPartyDiscovery(only.discovery, id, { revealed: true, visited: true }), [id]), "location");
+  assert.deepEqual([seen("a"), seen("b")], [false, true], "a hide for one party does not hide the location from another");
+});
+test("a party's reset keeps a location the GM hid for that party, so its next visit still does not show it", () => {
+  const cell = { discovery: { revealed: true, visited: true, by: { a: { revealed: true, visited: true, locationRevealed: false } } } };
+  const { cell: next } = resetCell(cell, { partyId: "a" });
+  assert.deepEqual(next.discovery.by, { a: { revealed: false, visited: false, locationRevealed: false } });
+  const visited = withPartyDiscovery(next.discovery, "a", { revealed: true, visited: true });
+  assert.equal(disclosure(effectiveDiscovery(visited, ["a"]), "terrain"), true);
+  assert.equal(disclosure(effectiveDiscovery(visited, ["a"]), "location"), false);
+  assert.equal(resetCell({ discovery: { revealed: false, visited: false, by: { a: { locationRevealed: false } } } }, { partyId: "a" }).changed, false, "nothing left to reset");
+});
 test("first-entry history is kept unless asked: a party's reset clears only its id, everyone's clears the legacy flag too", () => {
   const cell = { discovery: { revealed: true }, arrivalRolled: true, arrivalRolledBy: ["a", "b"] };
   assert.deepEqual(resetCell(cell, { partyId: "a" }).cell.arrivalRolledBy, ["a", "b"]);

@@ -1782,7 +1782,21 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!ok) return;
     // The dialog awaited the GM: as in _onBuildDataset, data from the old map must not land after a scene switch.
     if (!this._requireCurrentScene() || this._stateSceneId !== sceneId) return;
-    await importDatasetRecords(target.id, { hexes: changes.map(({ num, terrain, art }) => ({ num, terrain, ...(art ? { art } : {}) })) });
+    // Tiles first. Extras refuses the whole batch for one art id it does not know, and records written ahead
+    // of that would name the new terrain over tiles showing the old one, so a retry would find nothing to do.
+    const edits = changes.map(({ num, terrain, art }) => ({ num, terrain, ...(art ? { art } : {}) }));
+    let repaint;
+    try {
+      repaint = await extrasHexApi().repaintHexTiles(target.id, edits);
+    } catch (err) {
+      console.error(`${MODULE_ID} | hex tile repaint failed`, err);
+      ui.notifications?.error(t("SDE.importer.hexHandoff.notify.refused", { error: err.message }));
+      return;
+    }
+    const res = await importDatasetRecords(target.id, { hexes: edits }, { repaint: false, quiet: true });
+    if (res.via !== "extras") return;
+    ui.notifications?.info(t(edits.length === 1 ? "SDE.importer.hexHandoff.notify.updatedOne" : "SDE.importer.hexHandoff.notify.updatedMany",
+      { n: edits.length, painted: repaint ? t("SDE.importer.hexHandoff.notify.repainted", { n: repaint.repainted }) : "" }));
   }
 
   /** Which painted scene a correction goes to, when more than one matches. Null when cancelled. */
