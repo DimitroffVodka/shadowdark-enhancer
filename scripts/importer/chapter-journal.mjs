@@ -264,11 +264,13 @@ export function withLink(content, uuid, paragraph) {
 /**
  * Read a chapter out of the GM's own PDF. Printed pages are offset to PDF
  * pages the way every grab does it (sourcePdfTarget).
- * @param {{src:string, pages:string, name:string, sections?:Array<{name:string,pages:string}>, lead?:boolean}} req
+ * @param {{src:string, pages:string, name:string, sections?:Array<{name:string,pages:string}>, lead?:boolean, notify?:boolean}} req
+ *   `notify: false` keeps the column warnings out of the GM's toasts (they still come back in `warnings`);
+ *   for a read nobody asked for, such as the one at world load.
  * @returns {Promise<{pages:Array<{key,name,html}>, warnings:string[], dropped:string[]}|null>}
  *   null when the book has no PDF; `dropped` = lines removed as page titles
  */
-export async function readChapter({ src, pages, name, sections = null, lead = true, rowNumbers = false }) {
+export async function readChapter({ src, pages, name, sections = null, lead = true, rowNumbers = false, notify = true }) {
   const { resolveSourcePdf, sourcePdfTarget } = await import("./source-pdf-registry.mjs");
   const { extractPdfText, parsePageRange, notifyGutterWarnings } = await import("./pdf-text-extract.mjs");
   const file = resolveSourcePdf(src);
@@ -278,7 +280,7 @@ export async function readChapter({ src, pages, name, sections = null, lead = tr
   const result = await extractPdfText(file, { pages: parsePageRange(pages).map((p) => p + offset), columns: "auto" });
   // The extractor names PDF pages ("p98: …"); the GM typed printed ones.
   result.warnings = printedPageWarnings(result.warnings, offset);
-  notifyGutterWarnings(result);
+  if (notify) notifyGutterWarnings(result);
   const printed = (result.pages ?? []).map((p) => ({ ...p, page: p.page - offset }));
   const secs = sections?.map((s) => ({ name: s.name, pages: parsePageRange(s.pages) })) ?? null;
   const dropped = [];
