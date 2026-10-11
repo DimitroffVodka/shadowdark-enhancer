@@ -50,26 +50,37 @@ test("corrections are the hexes whose terrain differs, case aside, with their ar
 });
 
 /** The tagger with its dataset, the painted scene's records and the dialogs stubbed. */
-function setup({ scenes, records, ok = true, hexes }) {
+function setup({ scenes, records, ok = true, hexes, repaintFailures = 0 }) {
   const calls = { upsert: [], repaint: [], confirm: 0 };
+  // Extras keeps what it was sent: a record written is what the next click compares against.
+  const held = structuredClone(records);
+  let failures = repaintFailures;
   globalThis.game = {
     user: { isGM: true }, scenes,
     shadowdarkExtras: { hex: {
       buildHexcrawl: async () => {},
-      getHexRecords: async () => records,
-      upsertHexRecords: async (id, r) => { calls.upsert.push([id, r]); return { sceneId: id, records: r.length }; },
-      repaintHexTiles: async (id, h) => { calls.repaint.push([id, h]); return { sceneId: id, repainted: h.length, removed: h.length }; },
+      getHexRecords: async () => held,
+      upsertHexRecords: async (id, r) => {
+        calls.upsert.push([id, r]);
+        for (const rec of r) held[rec.num] = { ...held[rec.num], ...rec };
+        return { sceneId: id, records: r.length };
+      },
+      repaintHexTiles: async (id, h) => {
+        calls.repaint.push([id, h]);
+        if (failures-- > 0) throw new Error("unknown art id");
+        return { sceneId: id, repainted: h.length, removed: h.length };
+      },
     } },
     i18n: { localize: (k) => k, format: (k, d) => k + JSON.stringify(d) },
   };
-  const warnings = [];
-  globalThis.ui = { notifications: { info() {}, warn: (m) => warnings.push(m), error() {} } };
+  const warnings = [], notices = [];
+  globalThis.ui = { notifications: { info: (m) => notices.push(m), warn: (m) => warnings.push(m), error: (m) => notices.push(m) } };
   globalThis.foundry.applications.api.DialogV2 = { confirm: async () => { calls.confirm++; return ok; }, wait: async () => "painted-b" };
   const app = Object.create(HexTaggerApp.prototype);
   Object.assign(app, { _stateSceneId: "print" });
   app._handoffDataset = async () => ({ dataset: { grid: GRID, hexes }, tags: {}, chosen: [], sceneId: "print", origin: {} });
   app._requireCurrentScene = () => true;
-  return { app, calls, warnings };
+  return { app, calls, warnings, notices };
 }
 
 const HEXES = [{ num: 101, terrain: "forest" }, { num: 103, terrain: "swamp", art: "a/b.webp" }];
@@ -80,6 +91,21 @@ test("a confirmed update repaints only the corrected hex, and words are not rewr
   await app._onUpdatePainted();
   assert.deepEqual(calls.repaint, [["painted", [{ num: 103, terrain: "swamp", art: "a/b.webp" }]]]);
   assert.deepEqual(calls.upsert, [["painted", [{ num: 103, terrain: "swamp" }]]], "terrain only: no name, desc or features");
+});
+
+test("a refused repaint leaves the records alone, so a second click still sees the difference", async () => {
+  // Extras refuses the whole batch for one art id it does not know. Records written before that would
+  // say the new terrain over tiles showing the old one, and the retry would find "already current".
+  const { app, calls, notices } = setup({ scenes: [scene("print"), scene("painted")], records: RECORDS, hexes: HEXES, repaintFailures: 1 });
+  await app._onUpdatePainted();
+  assert.deepEqual(calls.upsert, [], "nothing written when the tiles did not change");
+  assert.equal(calls.repaint.length, 1);
+  assert.match(notices.join("\n"), /unknown art id/, "the GM is told why");
+  await app._onUpdatePainted();
+  assert.equal(calls.confirm, 2, "the second click still lists the change");
+  assert.equal(calls.repaint.length, 2);
+  assert.deepEqual(calls.repaint[1], ["painted", [{ num: 103, terrain: "swamp", art: "a/b.webp" }]]);
+  assert.deepEqual(calls.upsert, [["painted", [{ num: 103, terrain: "swamp" }]]], "written once the tiles are");
 });
 
 test("declining the confirmation changes nothing", async () => {

@@ -462,6 +462,46 @@ test("handoff leaves the crawl alone when the world already holds every referenc
   assert.deepEqual(built.hexes[0].journal, { entryId: "crawl1", pageId: "pageA" });
 });
 
+test("handoff does not rewrite a journal the world already has, even when one referenced page is missing", async () => {
+  // A GM pinned the region, edited its pages, then imported again (a page added) or deleted one:
+  // the redeploy would put the compendium text back over every page the world copy still has.
+  const { MODULE_ID } = await import("../scripts/shared/module-id.mjs");
+  const writes = [];
+  const worldPages = new Map([["p1", { id: "p1", text: { content: "<p>The GM's own words</p>" } }]]);
+  const world = {
+    id: "crawl1", pages: { has: (id) => worldPages.has(id), get: (id) => worldPages.get(id) },
+    getFlag: () => ({ crawl: "Crawl" }),
+    update: async (d) => { writes.push(["update", d]); },
+    updateEmbeddedDocuments: async (...a) => { writes.push(["updateEmbedded", ...a]); },
+    createEmbeddedDocuments: async (...a) => { writes.push(["createEmbedded", ...a]); },
+  };
+  const page = (id) => ({ id, toObject: () => ({ _id: id, text: { content: `<p>Book text ${id}</p>` } }) });
+  const packEntry = { id: "crawl1", uuid: "Compendium.w.j.JournalEntry.crawl1", pages: { contents: [page("p1"), page("p2")] },
+    getFlag: (scope, key) => (scope === MODULE_ID && key === "hex" ? { crawl: "Crawl" } : undefined),
+    toObject: () => ({ _id: "crawl1", name: "Crawl", flags: {} }) };
+  let built;
+  globalThis.JournalEntry = { create: async (d) => { writes.push(["create", d]); } };
+  globalThis.game = {
+    user: { isGM: true },
+    journal: { get: (id) => (id === "crawl1" ? world : undefined) },
+    packs: [{ metadata: { packageType: "world", label: "Shadowdark Enhancer — Journals" }, collection: "world.sde-journal", getDocuments: async () => [packEntry] }],
+    shadowdarkExtras: { hex: { buildHexcrawl: async (ds) => { built = ds; return {}; } } },
+  };
+  try {
+    const dataset = { name: "T", hexes: [
+      { num: 101, name: "Mill", journal: { entryId: "crawl1", pageId: "p1" } },
+      { num: 102, name: "Keep", journal: { entryId: "crawl1", pageId: "p2" } },
+    ] };
+    const result = await handoffDataset(dataset);
+    assert.equal(result.via, "extras");
+    assert.deepEqual(writes, [], "no journal write of any kind");
+    assert.equal(worldPages.get("p1").text.content, "<p>The GM's own words</p>");
+    assert.equal(built.hexes.length, 2, "the build still goes on; the missing page just has no note");
+  } finally {
+    delete globalThis.JournalEntry;
+  }
+});
+
 test("a crawl that cannot be deployed does not stop the build", async () => {
   let built = false;
   const warn = console.warn;

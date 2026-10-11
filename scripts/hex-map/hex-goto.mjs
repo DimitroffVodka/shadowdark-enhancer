@@ -10,7 +10,8 @@
  * The viewed scene answers first, from its own numbering, so it works with no pin
  * placed. A scene that belongs to another book is skipped (hex numbers repeat
  * between books), and so is a scene with no numbering; the Hex Tagger's pin for
- * that number, on whichever scene holds one, is the fallback (quests.jumpToHex).
+ * that number, on whichever scene holds one, is the fallback (quests.jumpToHex). A scene of
+ * another book is left out of that search too: its pin of the same number is not this hex.
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
@@ -28,7 +29,7 @@ export async function gotoHex(num, src = "") {
   const keySrc = hexPrint(scene?.getFlag(MODULE_ID, "hexMapId"))?.keySrc;
   const otherBook = !!src && !!keySrc && keySrc !== src;
   const at = !otherBook && canvas?.ready ? numberedCenters(scene).numbered?.get(num) : null;
-  if (!at) return (await import("../quests/quests.mjs")).jumpToHex(num, "SDE.hexMap.notify.gotoNowhere");
+  if (!at) return (await import("../quests/quests.mjs")).jumpToHex(num, "SDE.hexMap.notify.gotoNowhere", otherBook ? scene?.id : null);
   await canvas.animatePan({ x: at.x, y: at.y, scale: Math.max(canvas.stage?.scale?.x ?? 1, 1) });
   return true;
 }
