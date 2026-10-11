@@ -22,8 +22,9 @@ const flat = (text) => text.replace(/\s+/g, " ");
 
 const wiki = flat(read("docs/wiki/Encounter-Battle-Maps.md"));
 const api = flat(read("docs/API.md").match(/## `encounterMaps`[\s\S]*?\n## `loot`/)?.[0] ?? "");
-const unreleased = read("CHANGELOG.md").split(/\n## \[/)[1] ?? "";
-const entry = flat(unreleased.match(/- \*\*A battle map for a travel encounter, one click away\.\*\*[^\n]*/)?.[0] ?? "");
+// The whole file, not its first section: once a release is cut the entry sits under that version, with an empty [Unreleased] above it.
+const changelog = read("CHANGELOG.md");
+const entry = flat(changelog.match(/- \*\*A battle map for a travel encounter, one click away\.\*\*[^\n]*/)?.[0] ?? "");
 
 test("the pages are there to be read", () => {
   assert.ok(wiki.length > 1000, "the wiki page");
