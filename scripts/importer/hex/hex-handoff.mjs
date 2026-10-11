@@ -410,10 +410,12 @@ export async function handoffToPrint(sceneId, dataset, { tags } = {}) {
  * Extras makes its map notes from journal ids and a Note needs a WORLD entry,
  * while the importer files the crawl in a compendium pack. The pin action
  * deploys the same entry with its ids kept, so the ids in the dataset already
- * point at the copy this makes. Only an entry the world lacks a referenced page
- * of is deployed: a hand-off is repeated for corrections and must not overwrite
- * what the GM has edited in a journal they already have. A failure is logged
- * and the build goes on, since Extras leaves out the notes it cannot resolve.
+ * point at the copy this makes. Only an entry the world does not have at all is
+ * deployed: a hand-off is repeated for corrections, and deploying over an entry
+ * the world holds rewrites every page it has with the book's text, taking the
+ * GM's edits with it. A page that entry lacks simply gets no note, which Extras
+ * allows. A failure is logged and the build goes on, since Extras leaves out
+ * the notes it cannot resolve.
  * @param {object} dataset
  */
 async function deployReferencedCrawls(dataset) {
@@ -421,7 +423,7 @@ async function deployReferencedCrawls(dataset) {
   for (const h of dataset?.hexes ?? []) {
     const ref = h.journal;
     if (!ref?.entryId || !ref.pageId) continue;
-    if (!globalThis.game?.journal?.get?.(ref.entryId)?.pages?.has?.(ref.pageId)) wanted.set(ref.entryId, true);
+    if (!globalThis.game?.journal?.get?.(ref.entryId)) wanted.set(ref.entryId, true);
   }
   if (!wanted.size) return;
   try {
