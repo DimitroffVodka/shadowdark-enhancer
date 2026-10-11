@@ -487,8 +487,8 @@ the player-owned PCs, and Overland runs its own camp rations. The only thing mis
 - **Weather effects** set `scene.weather` (`common/documents/scene.mjs:160`) on outdoor scenes:
   - `rainStorm` when stormy;
   - `blizzard` when stormy and the climate is Cold or Freezing;
-  - on a fair day, the season's effect (#294, `FAIR_DAY_EFFECT` in `sky-core.mjs`): `snow` in
-    winter, `leaves` in autumn, none in spring and summer. Cosmetic only, the weather kind and its
+  - on a fair day, the season's effect (#294, `FAIR_DAY_EFFECT` in `sky-core.mjs`): `leaves` in
+    autumn, none in winter, spring and summer. Cosmetic only, the weather kind and its
     rules are unchanged;
   - empty otherwise (an excellent day included).
   - The effects are core's (`config.mjs:1437-1548`). The value is written only when it changes.
