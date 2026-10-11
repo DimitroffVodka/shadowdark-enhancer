@@ -149,6 +149,8 @@ Review is optional; **Send to Extras** works with the tags as they are.
 
 ### 3. Load your tile art (optional)
 
+The Western Reaches print needs no file: from 0.18.1 the Enhancer carries that map's hand-picked tiles, and the button reads **Tile art (270)** from the start. A file you load replaces them whole.
+
 Only a painted map uses this. Skip it and Extras chooses every tile from the
 hex's terrain (see *How a tile is chosen* below).
 

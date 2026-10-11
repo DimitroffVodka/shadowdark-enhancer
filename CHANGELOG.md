@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [0.18.1] — 2026-10-11
+
+The Western Reaches map now carries its hand-picked tile art.
+
+### Fixed
+
+- **Western Reaches keyed hexes got no hand-picked tile art.** The 270 tile choices were only read from a file the GM loaded on each map, so a map built from the release painted every keyed hex from its terrain pool. The Hex Tagger now loads the Western Reaches table itself on the Western Reaches print (the button reads Tile art (270)) and Build painted map paints it. A file you load with Tile art still replaces it whole. The table names tile and icon files only: no book text. Send to Extras still paints nothing, and Update painted map still repaints only the hexes whose terrain changed, so build the painted map to get the art.
+
 ## [0.18.0] — 2026-10-11
 
 The Western Reaches release: overland travel across the map that came with

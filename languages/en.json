@@ -1985,7 +1985,7 @@
   "SDE.hexMap.help.export": "Saves this map's tags as a file: a backup, or a way to copy them into another world.",
   "SDE.hexMap.help.readAgain": "Reads the pictures from the scene image again. Every tag is kept.",
   "SDE.hexMap.help.learnFrom": "Brings in the hexes you tagged by hand on another go at this same print, as examples for Classify. Your tags here are not touched.",
-  "SDE.hexMap.help.art": "Loads a file saying which tile picture paints each hex. Only for painted maps built through Extras.",
+  "SDE.hexMap.help.art": "Which tile picture paints each hex. The Western Reaches map already has its hand-picked tiles; load a file to use your own instead. Only for painted maps built through Extras.",
   "SDE.hexMap.help.reference": "Puts this map's image on another hex scene as a hidden, locked tile, so you can trace rivers and roads there.",
   "SDE.hexMap.help.clear": "Removes every tag and the anchor from this map. You are asked to confirm first, and it cannot be undone.",
   "SDE.hexMap.help.settings": "Set these once, when the numbers or the edge of the map come out wrong.",

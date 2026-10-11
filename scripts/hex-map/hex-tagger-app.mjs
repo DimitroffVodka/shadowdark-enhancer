@@ -39,6 +39,7 @@ import { datasetFromEntries, handoffDataset, handoffToPrint, extrasHexApi, extra
 import { buildHexDataset, validateHexDataset, hexNum, assignmentsFromManifest } from "../importer/hex/hex-dataset.mjs";
 import { A0_PRINT, A0_TOTAL, isA0, a0Origin, copyTags, copiedTerrain, copySource, regionSource, playablePlan } from "./a0-print.mjs";
 import { L as t } from "../shared/i18n.mjs";
+import { WR_KEYED_ART, WR_MAP_ID } from "./wr-keyed-art.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -1897,9 +1898,14 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render();
   }
 
-  /** The tile art loaded for this scene, if any. */
+  /** The tile art for this scene: the one the GM loaded, else the table shipped for the Western Reaches print. */
   _artAssignments() {
-    return this._scene()?.getFlag?.(MODULE_ID, ART_FLAG) ?? {};
+    const scene = this._scene();
+    const own = scene?.getFlag?.(MODULE_ID, ART_FLAG);
+    if (own && Object.keys(own).length) return own;
+    const tf = globalThis.canvas ? backgroundTransform(canvas) : null;
+    const wr = String(scene?.getFlag?.(MODULE_ID, "hexMapId") ?? "").split(":")[0] === WR_MAP_ID || isA0(tf?.texW, tf?.texH);
+    return wr ? assignmentsFromManifest(WR_KEYED_ART) : {};
   }
 
   /** Side door out: the raw tag flag as JSON (re-importable here; the dataset is Build dataset's job). */
