@@ -15,6 +15,7 @@ import { absDay } from "../time/time-core.mjs";
 import * as core from "./bastion-core.mjs";
 import { BastionDataModel } from "./bastion-data-model.mjs";
 import { BastionSheet } from "./bastion-sheet.mjs";
+import { effectOf } from "./bastion-text.mjs";
 import { BASTION_TYPE, bastionArt } from "./bastion-art.mjs";
 import { registerBastionEntryPoints } from "./bastion-entry-points.mjs";
 import { registerBastionIncome } from "./bastion-income.mjs";
@@ -58,9 +59,10 @@ export function bastionApi() {
   const isBastion = (actor) => actor?.type === BASTION_TYPE;
   return {
     type: BASTION_TYPE,
-    // The printed numbers: costs, AC, HP, upgrade slots and build time of the four types, and the twenty upgrades.
+    // The printed numbers: costs, AC, HP, upgrade slots and build time of the four types, and the twenty upgrades
+    // (an upgrade's `effect` is the GM's own PDF's wording, "" until the GM has read it).
     types: () => core.BASTION_TYPES.map((t) => ({ ...t })),
-    upgrades: () => core.BASTION_UPGRADES.map((u) => ({ ...u })),
+    upgrades: () => core.BASTION_UPGRADES.map((u) => ({ ...u, effect: effectOf(u.id) })),
     // GM only. A new bastion of a type, not yet raised; its treasury starts at `treasury` gp.
     create: async ({ name, type = "house", treasury = 0 } = {}) => {
       if (!game.user.isGM) return null;

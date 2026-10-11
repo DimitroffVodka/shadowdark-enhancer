@@ -165,7 +165,7 @@ api.bastion.forParty(party);      // the bastion actors a party owns, [] for non
 |---|---|---|
 | `bastion.type` | any | The actor type id. |
 | `bastion.types()` | any | A copy of the four types. `name` and `blurb` are language keys. |
-| `bastion.upgrades()` | any | A copy of the twenty upgrades. `name` and `effect` are language keys. |
+| `bastion.upgrades()` | any | A copy of the twenty upgrades. `name` is a language key; `effect` is the upgrade's wording as the GM's own Player's Guide PDF prints it (read from p.247 with the sheet's **Read upgrade text** button), `""` until then. |
 | `bastion.create({ name, type, treasury })` | GM | Returns the new actor, or `null` for a non-GM or an unknown type. A House takes a week to build, an Outpost two, a Keep four, a Castle eight; upgrades wait until it stands. |
 | `bastion.open(actorOrIdOrUuid)` | any | Renders the sheet. Returns whether the argument was a bastion. |
 | `bastion.state(actorOrIdOrUuid)` | any | A plain copy of the rules state, or `null`. An upgrade's `slot` is its place on the plan (`-1` for the moat, which has none). |

@@ -16,7 +16,7 @@ import { renderPlan } from "./bastion-plan.mjs";
 import { isPartyActor } from "./bastion-funding.mjs";
 import { ensureSprites } from "./bastion-art.mjs";
 import { absDay } from "../time/time-core.mjs";
-import { t, format, WHY, logText, monthLine } from "./bastion-text.mjs";
+import { t, format, WHY, logText, monthLine, effectOf, readUpgradeText, upgradeTextMissing } from "./bastion-text.mjs";
 import { writeState, fundBastion, trophyBastion, takeOutBastion, storeBastion, pigeonBastion } from "./bastion-writes.mjs";
 import { slotsOf, usedSlots, VAULT_SLOTS, VAULT_TYPES } from "./bastion-vault-core.mjs";
 import { openShops } from "./bastion-shop-core.mjs";
@@ -49,6 +49,7 @@ export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       openShop: BastionSheet.prototype._onOpenShop,
       exportSvg: BastionSheet.prototype._onExportSvg,
       exportPng: BastionSheet.prototype._onExportPng,
+      readUpgradeText: BastionSheet.prototype._onReadUpgradeText,
     },
   };
 
@@ -95,7 +96,7 @@ export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const have = state.upgrades.find((x) => x.id === u.id);
       const check = core.canBuild(state, u.id);
       return {
-        id: u.id, name: t(u.name), effect: t(u.effect), cost: u.cost,
+        id: u.id, name: t(u.name), effect: effectOf(u.id), cost: u.cost,
         isBuilt: !!have && have.weeksLeft <= 0,
         isBuilding: !!have && have.weeksLeft > 0,
         isNone: !have,
@@ -104,6 +105,8 @@ export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         why: check.reason && check.reason !== "built" ? t(WHY[check.reason]) : "",
       };
     });
+    // The upgrades' wording is read from the GM's own PDF; until it is, a GM is offered the read.
+    context.canReadText = gm && upgradeTextMissing();
     const fx = core.effects(state);
     const stored = this.document.items.filter((i) => VAULT_TYPES.includes(i.type));
     context.vault = { shown: fx.vault || stored.length > 0, open: fx.vault, used: usedSlots(stored), max: VAULT_SLOTS,
@@ -129,7 +132,7 @@ export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const plan = renderPlan({
       type: state.type, slots: st.slots, upgrades: state.upgrades, built: st.standing, name: this.document.name,
       view: this._view, roofs: this._roofs,
-      label: (id) => { const u = core.upgradeOf(id); return `${t(u.name)}: ${t(u.effect)}`; },
+      label: (id) => { const u = core.upgradeOf(id); return [t(u.name), effectOf(id)].filter(Boolean).join(": "); },
       t,
     });
     const key = `${state.type}|${this._view}`;
@@ -245,6 +248,11 @@ export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     foundry.utils.saveDataToFile(this._planSvg().svg, "image/svg+xml", this._fileName("svg"));
   }
 
+  /** Read each upgrade's wording from the GM's Player's Guide PDF, then redraw. */
+  async _onReadUpgradeText() {
+    if (await readUpgradeText()) this.render();
+  }
+
   _onExportPng() {
     const { svg, w, h } = this._planSvg();
     const k = Math.min(2, 6000 / Math.max(w, h)), img = new Image();
@@ -326,6 +334,6 @@ export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         <figcaption>${esc(inside ? t("SDE.bastion.card.inside") : t("SDE.bastion.card.moat"))}</figcaption>
       </figure>
       <span class="cost">${esc(format("SDE.bastion.card.cost", { cost: u.cost }))}</span><strong>${esc(t(u.name))}</strong>
-      <p>${esc(t(u.effect))}</p>`;
+      ${effectOf(id) ? `<p>${esc(effectOf(id))}</p>` : ""}`;
   }
 }

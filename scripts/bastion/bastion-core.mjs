@@ -34,27 +34,48 @@ export const BASTION_TYPES = [
 
 /** One of each; every one takes a week and a slot (the moat takes a slot but no room on the plan). */
 export const BASTION_UPGRADES = [
-  { id: "aviary", cost: 100, name: "SDE.bastion.upgrade.aviary.name", effect: "SDE.bastion.upgrade.aviary.effect" },
-  { id: "armorer", cost: 200, name: "SDE.bastion.upgrade.armorer.name", effect: "SDE.bastion.upgrade.armorer.effect" },
-  { id: "barracks", cost: 200, name: "SDE.bastion.upgrade.barracks.name", effect: "SDE.bastion.upgrade.barracks.effect" },
-  { id: "blacksmith", cost: 100, name: "SDE.bastion.upgrade.blacksmith.name", effect: "SDE.bastion.upgrade.blacksmith.effect" },
-  { id: "brewery", cost: 200, name: "SDE.bastion.upgrade.brewery.name", effect: "SDE.bastion.upgrade.brewery.effect" },
-  { id: "casino", cost: 300, name: "SDE.bastion.upgrade.casino.name", effect: "SDE.bastion.upgrade.casino.effect" },
-  { id: "dungeon", cost: 300, name: "SDE.bastion.upgrade.dungeon.name", effect: "SDE.bastion.upgrade.dungeon.effect" },
-  { id: "granary", cost: 100, name: "SDE.bastion.upgrade.granary.name", effect: "SDE.bastion.upgrade.granary.effect" },
-  { id: "idol", cost: 400, name: "SDE.bastion.upgrade.idol.name", effect: "SDE.bastion.upgrade.idol.effect" },
-  { id: "infirmary", cost: 200, name: "SDE.bastion.upgrade.infirmary.name", effect: "SDE.bastion.upgrade.infirmary.effect" },
-  { id: "kennels", cost: 300, name: "SDE.bastion.upgrade.kennels.name", effect: "SDE.bastion.upgrade.kennels.effect" },
-  { id: "library", cost: 400, name: "SDE.bastion.upgrade.library.name", effect: "SDE.bastion.upgrade.library.effect" },
-  { id: "moat", cost: 200, name: "SDE.bastion.upgrade.moat.name", effect: "SDE.bastion.upgrade.moat.effect" },
-  { id: "stable", cost: 100, name: "SDE.bastion.upgrade.stable.name", effect: "SDE.bastion.upgrade.stable.effect" },
-  { id: "tavern", cost: 400, name: "SDE.bastion.upgrade.tavern.name", effect: "SDE.bastion.upgrade.tavern.effect" },
-  { id: "temple", cost: 400, name: "SDE.bastion.upgrade.temple.name", effect: "SDE.bastion.upgrade.temple.effect" },
-  { id: "trading-post", cost: 100, name: "SDE.bastion.upgrade.tradingPost.name", effect: "SDE.bastion.upgrade.tradingPost.effect" },
-  { id: "trophy-room", cost: 100, name: "SDE.bastion.upgrade.trophyRoom.name", effect: "SDE.bastion.upgrade.trophyRoom.effect" },
-  { id: "vault", cost: 200, name: "SDE.bastion.upgrade.vault.name", effect: "SDE.bastion.upgrade.vault.effect" },
-  { id: "wizard-tower", cost: 400, name: "SDE.bastion.upgrade.wizardTower.name", effect: "SDE.bastion.upgrade.wizardTower.effect" },
+  { id: "aviary", cost: 100, name: "SDE.bastion.upgrade.aviary.name" },
+  { id: "armorer", cost: 200, name: "SDE.bastion.upgrade.armorer.name" },
+  { id: "barracks", cost: 200, name: "SDE.bastion.upgrade.barracks.name" },
+  { id: "blacksmith", cost: 100, name: "SDE.bastion.upgrade.blacksmith.name" },
+  { id: "brewery", cost: 200, name: "SDE.bastion.upgrade.brewery.name" },
+  { id: "casino", cost: 300, name: "SDE.bastion.upgrade.casino.name" },
+  { id: "dungeon", cost: 300, name: "SDE.bastion.upgrade.dungeon.name" },
+  { id: "granary", cost: 100, name: "SDE.bastion.upgrade.granary.name" },
+  { id: "idol", cost: 400, name: "SDE.bastion.upgrade.idol.name" },
+  { id: "infirmary", cost: 200, name: "SDE.bastion.upgrade.infirmary.name" },
+  { id: "kennels", cost: 300, name: "SDE.bastion.upgrade.kennels.name" },
+  { id: "library", cost: 400, name: "SDE.bastion.upgrade.library.name" },
+  { id: "moat", cost: 200, name: "SDE.bastion.upgrade.moat.name" },
+  { id: "stable", cost: 100, name: "SDE.bastion.upgrade.stable.name" },
+  { id: "tavern", cost: 400, name: "SDE.bastion.upgrade.tavern.name" },
+  { id: "temple", cost: 400, name: "SDE.bastion.upgrade.temple.name" },
+  { id: "trading-post", cost: 100, name: "SDE.bastion.upgrade.tradingPost.name" },
+  { id: "trophy-room", cost: 100, name: "SDE.bastion.upgrade.trophyRoom.name" },
+  { id: "vault", cost: 200, name: "SDE.bastion.upgrade.vault.name" },
+  { id: "wizard-tower", cost: 400, name: "SDE.bastion.upgrade.wizardTower.name" },
 ];
+
+/**
+ * Each upgrade's printed line from the Player's Guide's upgrade table (PGWR p.247), read with the
+ * extractor's "auto" columns: after the "BASTION UPGRADES" heading, one "Name  100 gp  Description"
+ * row per upgrade. Only the twenty known names count, first one wins. The module ships none of the
+ * wording: the GM's PDF supplies it (bastion-text.mjs readUpgradeText).
+ * @param {string} text
+ * @returns {Object<string,string>} upgrade id → its printed description
+ */
+export function parseUpgradeLines(text) {
+  const lines = String(text ?? "").split("\n").map((l) => l.trim());
+  const at = lines.findIndex((l) => /^BASTION UPGRADES$/i.test(l));
+  const out = {};
+  if (at < 0) return out;
+  for (const line of lines.slice(at + 1)) {
+    const m = /^(.+?)\s+[\d,]+\s*gp\s+(.+)$/i.exec(line);
+    const id = m && m[1].toLowerCase().replace(/[^a-z]+/g, "-");
+    if (id && BASTION_UPGRADES.some((u) => u.id === id) && !(id in out)) out[id] = m[2].trim();
+  }
+  return out;
+}
 
 export const MOAT = "moat";
 const LOG_CAP = 60;

@@ -3,7 +3,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  BASTION_TYPES, BASTION_UPGRADES, newBastion, stats, worth, canBuild, build, takeDown, changeType,
+  BASTION_TYPES, BASTION_UPGRADES, parseUpgradeLines, newBastion, stats, worth, canBuild, build, takeDown, changeType,
   damage, startRepair, advanceWeek, rollDisaster, applyDisaster, builtUpgrades, stateOf, updateOf, effects, GRANARY_SAVING_GP, BARRACKS_HEAL,
 } from "../scripts/bastion/bastion-core.mjs";
 
@@ -182,4 +182,39 @@ test("a bastion's effects are its finished Granary and Barracks, and only while 
   assert.deepEqual(effects(going), { granary: false, barracks: false, casino: false, library: false, trophyRoom: false, vault: false, stable: false, aviary: false, infirmary: false, armorer: false, blacksmith: false, tradingPost: false });
   assert.deepEqual(effects(advanceWeek(buildAll(standing("keep"), ["stable"]))), { granary: false, barracks: false, casino: false, library: false, trophyRoom: false, vault: false, stable: true, aviary: false, infirmary: false, armorer: false, blacksmith: false, tradingPost: false });
   assert.deepEqual(effects({ ...built, weeksLeft: 2 }), { granary: false, barracks: false, casino: false, library: false, trophyRoom: false, vault: false, stable: false, aviary: false, infirmary: false, armorer: false, blacksmith: false, tradingPost: false });   // not raised
+});
+
+// ── The upgrades' wording comes from the GM's PDF, never from this module ──────
+
+test("no upgrade carries a wording of its own: only an id, a cost and a name key", () => {
+  for (const u of BASTION_UPGRADES) assert.deepEqual(Object.keys(u).sort(), ["cost", "id", "name"], u.id);
+});
+
+test("parseUpgradeLines reads the rows after the heading, by name, first one winning", () => {
+  const text = [
+    "BASTIONS", "Type Cost AC", "House 200 gp 12",
+    "BASTION UPGRADES", "Name Cost Description",
+    "Aviary 100 gp A made-up line about birds, 2 gp each",
+    "Trading Post 100 gp Another made-up line",
+    "Wizard Tower 400 gp Third invented line",
+    "Aviary 999 gp A second aviary row is ignored",
+    "Gazebo 50 gp Not an upgrade of this module",
+    "247",
+  ].join("\n");
+  assert.deepEqual(parseUpgradeLines(text), {
+    aviary: "A made-up line about birds, 2 gp each",
+    "trading-post": "Another made-up line",
+    "wizard-tower": "Third invented line",
+  });
+});
+
+test("parseUpgradeLines reads nothing from a page with no upgrade table", () => {
+  assert.deepEqual(parseUpgradeLines("Aviary 100 gp A line before any heading"), {});
+  assert.deepEqual(parseUpgradeLines(""), {});
+  assert.deepEqual(parseUpgradeLines(undefined), {});
+});
+
+test("the language file holds no upgrade wording", async () => {
+  const en = JSON.parse((await import("node:fs")).readFileSync(new URL("../languages/en.json", import.meta.url), "utf8"));
+  assert.deepEqual(Object.keys(en).filter((k) => /^SDE\.bastion\.upgrade\.\w+\.effect$/.test(k)), []);
 });
