@@ -51,7 +51,11 @@ export function datasetFromEntries(entries, { tags = {}, gridHint, assignments, 
     for (const p of entry.pages?.contents ?? []) {
       const f = p.getFlag?.(MODULE_ID, HEX_FLAG);
       if (!f?.key) continue;
-      drafts.push({ hexId: f.num, key: f.key, name: String(p.name ?? "").replace(/^\d{3,4}\s*/, ""), html: p.text?.content ?? "" });
+      drafts.push({
+        hexId: f.num, key: f.key, name: String(p.name ?? "").replace(/^\d{3,4}\s*/, ""), html: p.text?.content ?? "",
+        // The page a map note opens. Ids survive the world deploy (hex-pins deployCrawlJournal keeps them).
+        ...(entry.id && p.id ? { journal: { entryId: entry.id, pageId: p.id } } : {}),
+      });
     }
   }
   if (list.length > 1 && source) name = source;
@@ -401,6 +405,36 @@ export async function handoffToPrint(sceneId, dataset, { tags } = {}) {
 }
 
 /**
+ * Put the crawl entries a dataset's keyed hexes open into the world.
+ *
+ * Extras makes its map notes from journal ids and a Note needs a WORLD entry,
+ * while the importer files the crawl in a compendium pack. The pin action
+ * deploys the same entry with its ids kept, so the ids in the dataset already
+ * point at the copy this makes. Only an entry the world lacks a referenced page
+ * of is deployed: a hand-off is repeated for corrections and must not overwrite
+ * what the GM has edited in a journal they already have. A failure is logged
+ * and the build goes on, since Extras leaves out the notes it cannot resolve.
+ * @param {object} dataset
+ */
+async function deployReferencedCrawls(dataset) {
+  const wanted = new Map();
+  for (const h of dataset?.hexes ?? []) {
+    const ref = h.journal;
+    if (!ref?.entryId || !ref.pageId) continue;
+    if (!globalThis.game?.journal?.get?.(ref.entryId)?.pages?.has?.(ref.pageId)) wanted.set(ref.entryId, true);
+  }
+  if (!wanted.size) return;
+  try {
+    const [{ crawlEntries }, { deployCrawlJournal }] = await Promise.all([
+      import("../../hex-map/hex-region.mjs"), import("../../hex-map/hex-pins.mjs"),
+    ]);
+    for (const entry of (await crawlEntries()).filter((e) => wanted.has(e.id))) await deployCrawlJournal(entry);
+  } catch (err) {
+    console.warn(`${MODULE_ID} | could not deploy the crawl journal for the map notes`, err);
+  }
+}
+
+/**
  * Hand a dataset to Extras, or download it. The guard lives here as well as in
  * the UI callers because this function is a documented public macro surface.
  * @param {object} dataset
@@ -416,6 +450,7 @@ export async function handoffDataset(dataset, opts = {}) {
   const api = extrasHexApi();
   if (api) {
     try {
+      await deployReferencedCrawls(dataset);
       const summary = await api.buildHexcrawl(dataset, opts.sceneName ? { sceneName: opts.sceneName } : undefined);
       return { via: "extras", summary };
     } catch (err) {

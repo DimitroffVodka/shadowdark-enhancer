@@ -1018,6 +1018,12 @@ so its hex field lands exactly on the scene's cells (a print whose hexes are
 taller than regular is squared up in the process). Hide the tile and the
 painted map is back.
 
+The painted scene also takes a copy of the print's tags and region scan the first time the GM opens it, so the
+**Terrain**, **Regions** and **Zones** pictures, the hex numbers and the regions' own encounter columns work there as
+they do on the print. It finds the print by its numbering size and grid, and only when exactly one tagged print
+fits; with two the same size, nothing is copied. Edits to the print after that are not carried over: build the painted
+map again.
+
 **Update painted map**, also under **More**, fixes a painted map after you
 retag. Correct the hexes the tagger got wrong, press the button, and the tagger
 looks at the painted map it matches (it asks when you have more than one) and

@@ -177,6 +177,7 @@ export function buildHexDataset({ name = "", source = "", drafts = [], summaryRo
     if (num === null) continue;
     const h = slot(num);
     if (!h.name && d.name) h.name = d.name;
+    if (d.journal) h.journal = d.journal;
     const html = d.html ?? buildHexPageHtml(d, keySet);
     // Links to hexes exist only once pages do; in a dataset the label is enough.
     h.desc = rewriteHexPlaceholders(html, new Map());
@@ -255,6 +256,9 @@ export function buildHexDataset({ name = "", source = "", drafts = [], summaryRo
       if (h.zoneColor) out.zoneColor = h.zoneColor;
       if (h.art) out.art = h.art;
       if (h.icon) out.icon = h.icon;
+      // The crawl page this hex opens; Extras makes a map note of it and does
+      // not keep it on the record, like art and icon.
+      if (h.journal) out.journal = h.journal;
       // Extras wants an id per entry; one of each per hex, so the number makes it.
       const features = terrainFeatures(h.num, h.marks);
       if (SETTLEMENT_FEATURES.has(h.feature)) features.unshift({ id: `settlement-${h.num}`, type: h.feature, name: h.name ?? "", discovered: false });
@@ -305,6 +309,10 @@ export function validateHexDataset(ds) {
     if (!h.name && !h.terrain && !h.desc && !h.zone && !h.art && !h.features?.length) errors.push(`hex ${h.num} carries nothing`);
     for (const key of ["art", "icon"]) {
       if (key in h && typeof h[key] !== "string") errors.push(`hex ${h.num} ${key} must be text`);
+    }
+    // Extras refuses the whole build over a journal that is not both ids.
+    if ("journal" in h && !(typeof h.journal?.entryId === "string" && typeof h.journal?.pageId === "string")) {
+      errors.push(`hex ${h.num} journal needs an entryId and a pageId`);
     }
     // Extras refuses the whole build over one colour it cannot parse.
     if ("zoneColor" in h && !ZONE_COLOR.test(h.zoneColor)) errors.push(`hex ${h.num} zoneColor must be empty or #rrggbb`);
