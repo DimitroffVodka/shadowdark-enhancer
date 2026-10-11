@@ -24,9 +24,11 @@ export const BARE = ["river", "coast"];
 const CAL_AREA = 95 * 87;
 export const DEFAULT_THRESHOLDS = {
   ink: 45 / CAL_AREA,         // residual ink at or above this → an overlay is present
-  // Largest residual piece at or above this (with ≥ 2 sectors) → a stroke (river).
-  // The probe used 60; registration can bite into a stroke where it crosses the
-  // icon, so the live threshold is one step lower (river recall 86% at 60).
+  // Largest residual piece at or above this, touching the cell's edge → a stroke
+  // (river). A path's biggest piece is one dot, a near-constant 42-44 px, and a
+  // river's is 70 or more, so size alone tells them apart. The probe used 60;
+  // registration can bite into a stroke where it crosses the icon, so the live
+  // threshold is one step lower (river recall 86% at 60).
   stroke: 50 / CAL_AREA,
   minPiece: 6 / CAL_AREA,     // pieces smaller than this do not count towards sectors
   inkLow: 20 / CAL_AREA, inkHigh: 60 / CAL_AREA,        // ambiguous band → review
@@ -538,8 +540,12 @@ export function registeredResidual(cell, stamp, maxShift = 3) {
 export function classifyOverlay(feat, px) {
   const present = feat.ink >= px.ink;
   if (!present) return { overlay: "none", ambiguous: feat.ink >= px.inkLow };
-  const stroke = feat.sectors >= 2 && feat.biggest >= px.stroke;
-  const ambiguous = (feat.ink < px.inkHigh) || (feat.sectors >= 2 && feat.biggest >= px.strokeLow && feat.biggest < px.strokeHigh);
+  // One edge is enough. A river that only clips a hex (a corner, a side) leaves
+  // a short chunk entering and ending in the same sector; asking for two sectors
+  // read 30 of Take 10's 186 river hexes as paths, the largest error on the map.
+  // Paths cannot reach this branch with a big piece: a dot is below `stroke`.
+  const stroke = feat.sectors >= 1 && feat.biggest >= px.stroke;
+  const ambiguous = (feat.ink < px.inkHigh) || (feat.sectors >= 1 && feat.biggest >= px.strokeLow && feat.biggest < px.strokeHigh);
   return { overlay: stroke ? "stroke" : "path", ambiguous };
 }
 
