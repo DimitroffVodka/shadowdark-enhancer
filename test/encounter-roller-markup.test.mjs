@@ -43,3 +43,15 @@ test("a creature result offers the Battle map and Choose map buttons, both route
   assert.match(app, /battleMap:\s+EncounterRollerApp\.prototype\._onBattleMap/);
   assert.match(app, /chooseBattleMap:\s+EncounterRollerApp\.prototype\._onBattleMap/);
 });
+
+test("a table row and a built slot with a creature each carry a map button, and a flavor row does not", async () => {
+  const [app, tpl] = await Promise.all([
+    read("scripts/encounter/encounter-roller-app.mjs"),
+    read("templates/encounter-roller.hbs"),
+  ]);
+  // Beside Place, inside the same {{#unless this.flavor}} that guards it.
+  assert.match(tpl, /\{\{#unless this\.flavor\}\}<button[^>]*data-action="previewPlace"[\s\S]*?data-action="previewBattleMap"[\s\S]*?\{\{\/unless\}\}/);
+  assert.match(tpl, /\{\{#if this\.isMonster\}\}\s*<button[^>]*data-action="buildPostSlot"[\s\S]*?data-action="buildBattleMapSlot"[\s\S]*?\{\{else if this\.isFlavor\}\}/);
+  assert.match(app, /previewBattleMap:\s+EncounterRollerApp\.prototype\._onPreviewBattleMap/);
+  assert.match(app, /buildBattleMapSlot:\s+EncounterRollerApp\.prototype\._onBuildBattleMapSlot/);
+});

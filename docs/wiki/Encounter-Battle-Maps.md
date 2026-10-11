@@ -16,9 +16,11 @@ A GM gets **Battle map** in three places:
 - the **Encounter** panel that drops from the clock bar when a travel check hits
   (see [Clock and Calendar](Clock-and-Calendar.md#encounters-while-travelling-gm)).
   **Choose map…** sits beside it;
-- the **Random Encounter** window (Tools on the Crawl Bar, then Encounter), on any
-  creature it rolls or builds, beside Post and Place. **Choose map…** sits beside
-  it, and the battle is set up where the party stands, as from the panel;
+- the **Random Encounter** window (Tools on the Crawl Bar, then Encounter). A
+  creature's row in a table, and a creature in a built table, has a map icon beside
+  Place; a creature the window has rolled has **Battle map** and **Choose map…**
+  beside Post and Place. The battle is set up where the party stands, as from the
+  panel. A row with no creature in it (a line of text) has no map icon;
 - the encounter card posted to chat. The button is the GM's; players do not see it.
   The card has **Battle map** only: to choose the map yourself, use the Encounter
   panel or the Random Encounter window.

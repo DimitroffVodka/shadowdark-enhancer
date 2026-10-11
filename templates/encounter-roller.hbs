@@ -36,7 +36,8 @@
                   <td>{{#if this.flavor}}<i class="fas fa-scroll ui-muted"></i> {{/if}}{{this.name}}{{#if this.appearing}} <span class="ui-chip">{{this.appearing}}</span>{{/if}}</td>
                   <td class="er-acts">
                     <button type="button" class="ui-icon" data-action="previewPost" title="{{localize 'SDE.encounter.roller.postEntryTip'}}"><i class="fas fa-clipboard-list"></i></button>
-                    {{#unless this.flavor}}<button type="button" class="ui-icon" data-action="previewPlace" title="{{localize 'SDE.encounter.roller.placeEntryTip'}}"><i class="fas fa-bullseye"></i></button>{{/unless}}
+                    {{#unless this.flavor}}<button type="button" class="ui-icon" data-action="previewPlace" title="{{localize 'SDE.encounter.roller.placeEntryTip'}}"><i class="fas fa-bullseye"></i></button>
+                    <button type="button" class="ui-icon" data-action="previewBattleMap" title="{{localize 'SDE.encounterMaps.hud.battleMapHint'}}" aria-label="{{localize 'SDE.encounterMaps.hud.battleMap'}}"><i class="fa-solid fa-map"></i></button>{{/unless}}
                   </td>
                 </tr>
                 {{/each}}
@@ -149,6 +150,7 @@
                 {{#if this.isMonster}}
                   <button type="button" class="ui-icon" data-action="buildPostSlot" title="{{localize 'SDE.encounter.roller.postEntryTip'}}"><i class="fas fa-clipboard-list"></i></button>
                   <button type="button" class="ui-icon" data-action="buildPlaceSlot" title="{{localize 'SDE.encounter.roller.placeEntryTip'}}"><i class="fas fa-bullseye"></i></button>
+                  <button type="button" class="ui-icon" data-action="buildBattleMapSlot" title="{{localize 'SDE.encounterMaps.hud.battleMapHint'}}" aria-label="{{localize 'SDE.encounterMaps.hud.battleMap'}}"><i class="fa-solid fa-map"></i></button>
                 {{else if this.isFlavor}}
                   <button type="button" class="ui-icon" data-action="buildPostSlot" title="{{localize 'SDE.encounter.build.postFlavorTip'}}"><i class="fas fa-clipboard-list"></i></button>
                 {{/if}}
