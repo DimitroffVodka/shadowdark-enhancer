@@ -14,7 +14,7 @@ import { replaceModuleFlag } from "../../shared/module-flags.mjs";
 import { HEX_FLAG } from "./hex-commit.mjs";
 import { buildHexDataset, hexNum, mergeFeatures, ZONE_COLOR } from "./hex-dataset.mjs";
 import { t } from "../importer-hub-shared.mjs";
-import { extrasRecordsByOffset } from "../../hex-map/extras-records.mjs";
+import { extrasRecordsByOffset, EXTRAS_ID } from "../../hex-map/extras-records.mjs";
 
 /**
  * Extras' compatible hex API when it mounts the agreed namespace, else null.
@@ -201,6 +201,51 @@ export async function importDatasetRecords(sceneId, dataset, opts = {}) {
       { n: records.length, painted }));
   }
   return { via: "extras", summary, repaint };
+}
+
+const sameWord = (a, b) => String(a ?? "").trim().toLowerCase() === String(b ?? "").trim().toLowerCase();
+
+/**
+ * The painted Extras scenes a terrain correction can repaint: built by
+ * buildHexcrawl (`hexScene`), at this dataset's size and numbering origin, and
+ * not the tagged print itself. The print is out even when Extras adopted it:
+ * a repaint would lay painted tiles over the publisher's art.
+ *
+ * ponytail: firstRow and rowsLowered are not compared. A scene that matches on
+ * size and origin but not on those is one the GM picked by hand; Extras still
+ * refuses a hex outside its own grid.
+ * @param {Iterable<Scene>} scenes
+ * @param {string} printId  the tagged print's scene id
+ * @param {{cols:number, rows:number, origin?:0|1}} grid  the dataset's
+ */
+export function paintedScenesFor(scenes, printId, grid) {
+  return [...(scenes ?? [])].filter((scene) => {
+    if (scene.id === printId || !scene.getFlag?.(EXTRAS_ID, "hexScene")) return false;
+    const layout = scene.getFlag(EXTRAS_ID, "hexcrawl");
+    const g = layout?.version === 1 ? layout.grid : null;
+    return !!g && g.cols === grid?.cols && g.rows === grid?.rows && (g.origin ?? 1) === (grid?.origin ?? 1);
+  });
+}
+
+/**
+ * What a re-tag changes on a painted scene: every hex whose terrain the tagger
+ * now names differently from the record Extras holds, with the art the GM's
+ * manifest assigns it. A hex with no terrain word is skipped: Extras refuses a
+ * repaint without one rather than guess. Words, features and the hexes that
+ * still agree are never in the list, so a repaint cannot touch them.
+ * @param {object} dataset  from buildHexDataset / datasetFromEntries
+ * @param {Object<number, object>} records  extrasHexRecords' result
+ * @returns {{num:number, terrain:string, was:string, art?:string}[]}
+ */
+export function terrainCorrections(dataset, records) {
+  const out = [];
+  for (const hex of dataset?.hexes ?? []) {
+    if (typeof hex.terrain !== "string" || !hex.terrain) continue;
+    const was = records?.[hex.num]?.terrain ?? "";
+    if (sameWord(was, hex.terrain)) continue;
+    out.push({ num: hex.num, terrain: hex.terrain, was, ...(hex.art ? { art: hex.art } : {}) });
+  }
+  return out;
 }
 
 /**
