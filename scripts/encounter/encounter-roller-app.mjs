@@ -74,8 +74,11 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       renownToggle: EncounterRollerApp.prototype._onRenownToggle,
       postToChat:   EncounterRollerApp.prototype._onPostToChat,
       placeTokens:  EncounterRollerApp.prototype._onPlaceTokens,
+      battleMap:       EncounterRollerApp.prototype._onBattleMap,
+      chooseBattleMap: EncounterRollerApp.prototype._onBattleMap,
       previewPost:  EncounterRollerApp.prototype._onPreviewPost,
       previewPlace: EncounterRollerApp.prototype._onPreviewPlace,
+      previewBattleMap: EncounterRollerApp.prototype._onPreviewBattleMap,
       browseToggleSource:      EncounterRollerApp.prototype._onBrowseToggleSource,
       browseSort:              EncounterRollerApp.prototype._onBrowseSort,
       browseToggleAlign:       EncounterRollerApp.prototype._onBrowseToggleAlign,
@@ -88,6 +91,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       buildClearSlot:     EncounterRollerApp.prototype._onBuildClearSlot,
       buildPostSlot:      EncounterRollerApp.prototype._onBuildPostSlot,
       buildPlaceSlot:     EncounterRollerApp.prototype._onBuildPlaceSlot,
+      buildBattleMapSlot: EncounterRollerApp.prototype._onBuildBattleMapSlot,
       buildSave:          EncounterRollerApp.prototype._onBuildSave,
     }
   };
@@ -836,6 +840,18 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     await this._onPlaceTokens();
   }
 
+  /** A table row's map button: show the row's creature, then the battle map flow of the result card. */
+  async _onPreviewBattleMap(event, target) {
+    const result = await this._getPreviewResult(target);
+    if (!result) return;
+    await this._buildResultFrom(result);
+    if (this._lastResult.kind !== "monster") {
+      ui.notifications.warn(game.i18n.localize("SDE.encounter.notify.entryNoMonster"));
+      return;
+    }
+    await this._onBattleMap(event, target);
+  }
+
   async _roll(formula) {
     const r = await new Roll(formula).evaluate();
     return r.total;
@@ -923,6 +939,15 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
 
   async _onPostToChat() {
     await postEncounter(this._lastResult);
+  }
+
+  /** Set a battle map up for the shown creature, where the party stands (the chat card's and the HUD's flow). */
+  async _onBattleMap(_event, target) {
+    const { openBattleMap, partyContext } = await import("./battle-maps/battle-actions.mjs");
+    const { terrain, hexNum, originSceneId } = partyContext();
+    await openBattleMap({
+      enc: this._lastResult, terrain, hex: hexNum, originSceneId, choose: target?.dataset.action === "chooseBattleMap",
+    });
   }
 
   /**
@@ -1267,6 +1292,17 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       return;
     }
     await this._onPlaceTokens();
+  }
+
+  async _onBuildBattleMapSlot(event, target) {
+    const slot = this._slotFromEvent(target);
+    if (!slot) return;
+    await this._buildResultFromSlot(slot);
+    if (this._lastResult.kind !== "monster") {
+      ui.notifications.warn(game.i18n.localize("SDE.encounter.notify.slotNoMonster"));
+      return;
+    }
+    await this._onBattleMap(event, target);
   }
 
   async _onBuildSave() {
