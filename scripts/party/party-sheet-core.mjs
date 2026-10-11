@@ -7,19 +7,19 @@ import { computeLightState } from "../crawl-strip/crawl-lights-core.mjs";
  */
 
 /**
- * The tab row. Travel stays for everyone: each PC's owner confirms their own camping and carousing choices
- * there. Downtime and Warbands are there for everyone too (a player sees their own characters' picks, and the warbands
+ * The tab row. Travel and Carousing stay for everyone: each PC's owner confirms their own camping and carousing
+ * choices there. Downtime and Warbands are there for everyone too (a player sees their own characters' picks, and the warbands
  * they may see). Bastion is there once the party has a bastion its viewer may see.
  * @param {{ hasBastion?: boolean }} view
  * @returns {string[]}
  */
 export function partyTabs({ hasBastion = false } = {}) {
-  return ["members", "items", "travel", "quests", "downtime", "warbands", ...(hasBastion ? ["bastion"] : []), "description"];
+  return ["members", "items", "travel", "carousing", "quests", "downtime", "warbands", ...(hasBastion ? ["bastion"] : []), "description"];
 }
 
 /** Each tab's name (an en.json key) and icon. */
-export const TAB_LABELS = { members: "SDE.party.members", items: "SDE.party.sheet.inventory", travel: "SDE.party.sheet.travel", quests: "SDE.party.quests", downtime: "SDE.party.downtime.tab", warbands: "SDE.party.warbands.tab", bastion: "SDE.party.sheet.bastion", description: "SDE.party.sheet.description" };
-export const TAB_ICONS = { members: "fas fa-users", items: "fas fa-box", travel: "fas fa-campground", quests: "fas fa-scroll", downtime: "fas fa-mug-hot", warbands: "fas fa-flag", bastion: "fas fa-chess-rook", description: "fas fa-book-open" };
+export const TAB_LABELS = { members: "SDE.party.members", items: "SDE.party.sheet.inventory", travel: "SDE.party.sheet.travel", carousing: "SDE.carousing.title", quests: "SDE.party.quests", downtime: "SDE.party.downtime.tab", warbands: "SDE.party.warbands.tab", bastion: "SDE.party.sheet.bastion", description: "SDE.party.sheet.description" };
+export const TAB_ICONS = { members: "fas fa-users", items: "fas fa-box", travel: "fas fa-campground", carousing: "fas fa-beer-mug-empty", quests: "fas fa-scroll", downtime: "fas fa-mug-hot", warbands: "fas fa-flag", bastion: "fas fa-chess-rook", description: "fas fa-book-open" };
 
 /** The tab row as the template draws it. `say` localizes a key. */
 export const tabRow = (keys, active, say) => keys.map((key) => ({ key, label: say(TAB_LABELS[key]), icon: TAB_ICONS[key], active: key === active }));

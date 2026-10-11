@@ -127,7 +127,7 @@
 | `overland/sky-core.mjs` | 132 | The sky on scenes (#235, O9), pure: darkness by the sun and moon (0 by day, a four-hour cosine twilight each way (#389), night 1 - 0.2 x illumination, the hex map capped at 0.6), the Isles of Andrik's Midnight Sun and Long Dark by region and season, the weather effect (rainStorm, blizzard in the cold, the season's snow or leaves on a fair day: #294), and which scenes follow the sky and are written (the active scene and the party's). |
 | `overland/sky.mjs` | 250 | The sky on scenes (#235, O9): the active GM writes the darkness of the active scene and of the party's scene, the one the travel token is on (#294; only on a 0.02 change, animated for steps under an hour, never on a locked scene; no other module is consulted) and weather effect (never over one the GM chose) on each clock move, weather change and scene activation; one pass at a time. While the clock is paced every screen paints the darkness from the time it shows and the GM writes it once the slices stop (#257). Also the per-device Show weather effects setting and its drawWeatherEffects hook (#294). Adds the Follows the sky choice to Scene Configuration's Environment tab (the followsSky scene flag). |
 | `overland/travel-panel.mjs` | 215 | The clock HUD's Travel panel (#257): the day as the book's travel procedure in eight steps (weather, sight, method, speed, traveling, encounters, resting, night), the step list as the day's record with the current step marked; step bodies read Overland's state (the weather and its roll, sight in hexes by hex rules, the budget meter, forage by member with INT and DC, the checks by half for a GM) and carry the day's buttons. |
-| `party/party-app.mjs` | 618 | Native ApplicationV2 Party actor sheet and directory/token-HUD entry points, preserving detailed member cards with inline activities, scoped quests/payouts and description editing. |
+| `party/party-app.mjs` | 616 | Native ApplicationV2 Party actor sheet and directory/token-HUD entry points, preserving detailed member cards with inline activities, scoped quests/payouts and description editing. |
 | `party/party-core.mjs` | 32 | Pure versioned roster validation, membership permissions, groups and quest scoping. |
 | `party/party-create-option.mjs` | 15 | Adds the Enhancer's Party entry to the Create Actor type list and drops Extras' duplicate Party entry. |
 | `party/party-emblem-core.mjs` | 110 | Pure party emblem: the curated icon and colour sets, the default, the safe read of the stored flag and the picker's choices. |
@@ -176,7 +176,7 @@
 | `curated-icon-maps/weapon-icons.mjs` | 47 | N3's 37 reviewed Foundry-native weapon icons, keyed by source-agnostic normalized final Item name and registered through the A4 discovery seam. |
 | `attack-card.mjs` | 107 | Reading a Shadowdark attack card — was it an attack at all (a targeted spell is not), did it land, who was it aimed at, who swung. Shared by Parry and Taunt so the two can never disagree about the target (they once did, silently). |
 | `settings.mjs` | 1025 | All `game.settings.register` calls + migration-safe defaults. |
-| `icons.mjs` | 101 | Centralized icon registry — FontAwesome snippets and vendored SVG references. |
+| `icons.mjs` | 102 | Centralized icon registry — FontAwesome snippets and vendored SVG references. |
 | `i18n.mjs` | 19 | `L(key, data)`: one string from `languages/en.json`, localized, or formatted when there is data; the key itself before Foundry's i18n is mounted and in node tests. The one copy of the helper some 60 files used to define for themselves (as `L` or `t`). |
 | `compendium-suite.mjs` | 471 | Find-or-create layer for managed world packs, ownership, sidebar folders, and source folders. |
 | `loading-dialog-guard.mjs` | 112 | Guards the system's leaked `LoadingSD` spinner when `ItemSheetSD.getData` throws. |
@@ -222,8 +222,8 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `crawl-bar.mjs` | 777 | GM-only persistent bottom bar above the macro bar (mode toggles, tools, launchers). |
-| `crawl-bar-core.mjs` | 130 | The crawl bar's Foundry-free half: which controls each mode shows, the overland badge text, and the Tools panel's sections. |
+| `crawl-bar.mjs` | 778 | GM-only persistent bottom bar above the macro bar (mode toggles, tools, launchers). |
+| `crawl-bar-core.mjs` | 131 | The crawl bar's Foundry-free half: which controls each mode shows, the overland badge text, and the Tools panel's sections. |
 
 ### 3.5 `scripts/encounter/` — the Encounter Roller
 

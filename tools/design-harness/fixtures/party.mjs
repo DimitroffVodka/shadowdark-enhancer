@@ -4,7 +4,7 @@
 //
 // State is  view.tab.mode.icon.color  (every part optional after view and tab):
 //   view  gm | player          who is looking (the buttons above the window are the harness's, not the sheet's)
-//   tab   members | items | travel | quests | bastion | description
+//   tab   members | items | travel | carousing | quests | bastion | description
 //   mode  -        marching, the party token placed and following
 //   notoken -       the scene has no party token: the warning strip under the header
 //         paused   following stopped on a blocked path (a GM gets Resume)
@@ -71,7 +71,7 @@ const build = (state) => {
       emblemIcons: picker.icons.map((i) => ({ ...i, path: "/" + i.path })), emblemColors: picker.colors,
       slots, followLeader: follow, march: { ...march, warn: march.mode === "notice" }, hasLeader: !empty, leaderName: "Creeg Greythorn", canResume: !!march.canResume, movementDisabled: !v.canEdit, movementReason: say("SDE.party.movement.importExport"),
       status, tabs: tabRow(keys, tab, say),
-      membersTab: tab === "members", itemsTab: tab === "items", travelTab: tab === "travel", questsTab: tab === "quests", bastionTab: tab === "bastion", descriptionTab: tab === "description",
+      membersTab: tab === "members", itemsTab: tab === "items", travelTab: tab === "travel", carousingTab: tab === "carousing", questsTab: tab === "quests", bastionTab: tab === "bastion", descriptionTab: tab === "description",
       members, groups: [["characters", "Characters"], ["hirelings", "Hirelings"], ["mounts", "Mounts"], ["missing", "Missing member"]].map(([k, label]) => ({ label, rows: members.filter((m) => m.group === k).map((m) => ({ ...m, canEdit: v.canEdit })) })),
       coinList: [["gp", 42], ["sp", 17], ["cp", 3]].map(([key, value]) => ({ key, labelKey: "SHADOWDARK.coins." + key, value })), inventorySlots: { used: 14, max: 20 },
       items: ["Rope, 60'", "Torches (6)", "Rations (12)", "Crowbar", "Iron spikes", "Lantern"].map((name, i) => ({ id: "i" + i, name, img: svg("#555", name[0]), quantity: i + 1, slots: 1 })),

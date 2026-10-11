@@ -44,6 +44,7 @@ const TOOL_OPENERS = {
   merchant:    (api) => api.merchant.openLocally(),
   partyXp:     (api) => api.partyXp.open(),
   downtime:    (api) => api.downtime.open(),
+  carousing:   (api) => api.carousing.open(),
   training:    (api) => api.training.open(),
   renown:      (api) => api.renown.open(),
   recap:       (api) => api.recap.open(),

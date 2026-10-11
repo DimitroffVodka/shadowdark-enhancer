@@ -270,8 +270,6 @@
 
 .sde-party .sde-party-picker button { flex: 0; white-space: nowrap; }
 
-.sde-party .sde-party-activities [aria-pressed="true"] { border-color: var(--ui-gold); color: var(--ui-gold); background: var(--ui-raised); }
-
 .sde-party .sde-quest-log-root { flex: 0 0 auto; min-height: 340px; background: transparent; }
 .sde-party .sde-quest-log-root .ql-body { overflow: visible; padding-left: 0; padding-right: 0; }
 .sde-party .sde-quest-log-root .ql-filters { padding-left: 0; padding-right: 0; }

@@ -102,7 +102,8 @@
 <ol class="sdp-itemlist sdp-gems">{{#each gems}}<li class="item" data-item-id="{{id}}"><img src="{{img}}" alt=""><a class="n" data-action="item" data-id="{{id}}" data-tooltip="{{name}}">{{name}}</a><span class="q">&times;{{quantity}}</span><span class="s">{{value}} {{localize "SHADOWDARK.coins.gp"}}</span><span class="act"></span></li>{{else}}<li class="empty-list">{{localize "SDE.party.empty"}}</li>{{/each}}</ol></div>
 </div>
 </div></div>
-<div class="tab tab-travel {{#if travelTab}}active{{/if}}"><div class="party-actions sde-party-activities"><a data-action="camp" aria-pressed="{{campingActive}}"><i class="fas fa-campground"></i> {{localize "SDE.camping.title"}}</a><a data-action="carouse" aria-pressed="{{carousingActive}}"><i class="fas fa-beer-mug-empty"></i> {{localize "SDE.carousing.title"}}</a></div>{{{activityHTML}}}</div>
+<div class="tab tab-travel {{#if travelTab}}active{{/if}}">{{#if travelTab}}{{{activityHTML}}}{{/if}}</div>
+<div class="tab tab-carousing {{#if carousingTab}}active{{/if}}">{{#if carousingTab}}{{{activityHTML}}}{{/if}}</div>
 <div class="tab tab-quests {{#if questsTab}}active{{/if}}">{{{questHTML}}}</div>
 <div class="tab tab-downtime {{#if downtimeTab}}active{{/if}}">
 {{#if downtime.inSession}}

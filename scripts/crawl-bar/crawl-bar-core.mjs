@@ -112,6 +112,7 @@ export function toolsSections({ mode, hasBastion = false }) {
       entries: [
         e("partyXp", "star", "SDE.crawlBar.toolsMenu.partyXp"),
         e("downtime", "downtime", "SDE.crawlBar.toolsMenu.downtime"),
+        e("carousing", "carousing", "SDE.crawlBar.toolsMenu.carousing"),
         e("training", "training", "SDE.crawlBar.toolsMenu.training"),
         e("renown", "gm", "SDE.crawlBar.toolsMenu.renown"),
         e("rumors", "rumors", "SDE.crawlBar.toolsMenu.rumors"),
