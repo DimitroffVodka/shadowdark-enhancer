@@ -1,6 +1,6 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { Party } from "../party/party.mjs";
-import { carousingOf, carousingTables, carousingAvailable, requestCarousing } from "./carousing.mjs";
+import { carousingOf, carousingTables, requestCarousing } from "./carousing.mjs";
 import { splitCost } from "./carousing-core.mjs";
 import { holidaysToday } from "../holidays/holidays.mjs";
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -42,7 +42,7 @@ export class CarousingApp extends HandlebarsApplicationMixin(ApplicationV2) {
       tierEditable: setup && Party.canManage(this.party),
       tier: tier ? { bonus: tier.bonus } : null, count: joining, costText: tier ? gp(tier.cost) : "", shareText: shares.length ? gp(each) : each,
       eachLabel: joining ? game.i18n.format("SDE.carousing.eachPays", { n: joining }) : t("SDE.carousing.eachPaysNobody"), error: this.error, manager: Party.canManage(this.party), isGM: game.user.isGM,
-      overlap: !carousingAvailable(), empty: !night, setup, complete: night?.phase === "complete", resume: night && !setup,
+      empty: !night, setup, complete: night?.phase === "complete", resume: night && !setup,
       phase: night?.phase, holiday: holiday?.name, manualHoliday: !!holiday && (!!holiday.carousing?.extraBenefit || !!holiday.carousing?.extraMishap || !!holiday.carousing?.benefitBonus || !!holiday.carousing?.benefitAdvantage || !!holiday.carousing?.chances?.length),
       canConfigure: !night || setup || night.phase === "complete", missingTables: setup && (!night.tiers.length || !night.outcomes.length),
       config, events: tables.map(v => ({ ...v, selected: v.uuid === (night?.event ?? config.event) })), outcomes: tables.map(v => ({ ...v, selected: v.uuid === (night?.outcome ?? config.outcome) })),

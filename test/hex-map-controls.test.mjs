@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { hexMapTools, refreshOptions } from "../scripts/hex-map/hex-map-controls.mjs";
+import { hexMapTools, refreshOptions, registerHexMapControls } from "../scripts/hex-map/hex-map-controls.mjs";
 
 const scene = (flags) => ({ getFlag: (_mod, key) => flags[key] });
 
@@ -46,8 +46,58 @@ test("the player-view switch is there only where the module draws the fog, and s
   assert.deepEqual(all.map((t) => t.order), all.map((t) => t.order).sort((a, b) => a - b));
 });
 
+test("the fog-hide switch sits beside the player view, only where the module draws the fog, and shows as on while hidden", () => {
+  const numbered = scene({ hexTags: { origin: { num: "0000" } } });
+  assert.equal(hexMapTools(numbered, { isGM: true }).hexFogHidden, undefined);
+  assert.equal(hexMapTools(numbered, { isGM: true, fog: true }).hexFogHidden.active, false);
+  assert.equal(hexMapTools(numbered, { isGM: true, fog: true, fogHidden: true }).hexFogHidden.active, true);
+  const all = Object.values(hexMapTools(numbered, { isGM: true, fog: true }));
+  assert.equal(all[1].name, "hexFogHidden");
+  assert.deepEqual(all.map((t) => t.order), all.map((t) => t.order).sort((a, b) => a - b));
+});
+
 test("the hover-card switch is last in the group and shows as on while the card is hidden", () => {
   const numbered = scene({ hexTags: { origin: { num: "0000" } } });
   assert.equal(hexMapTools(numbered, { isGM: true }).hexTooltip.active, false);
   assert.equal(hexMapTools(numbered, { isGM: true, tooltipHidden: true }).hexTooltip.active, true);
+});
+
+test("a painted scene Extras built has records but no tags: only the switches that need no tags", () => {
+  const painted = scene({ hexRecords: { adopted: true } });
+  assert.deepEqual(Object.keys(hexMapTools(painted, { isGM: true, fog: true })), ["hexPlayerView", "hexFogHidden", "hexTooltip"]);
+  assert.deepEqual(Object.keys(hexMapTools(painted, { isGM: true })), ["hexTooltip"], "no fog switches where the module draws no fog");
+  assert.equal(hexMapTools(painted, { isGM: false }), null);
+  assert.equal(hexMapTools(scene({ hexRecords: { version: 1 } }), { isGM: true }), null, "records that were never adopted are not a hex scene");
+});
+
+test("a flag update on a scene that owns the fog redraws the toolbar only when the tool set changes", () => {
+  const handlers = [];
+  const saved = Object.fromEntries(["Hooks", "ui", "canvas", "game"].map((k) => [k, globalThis[k]]));
+  globalThis.Hooks = { on: (name, fn) => { if (name === "updateScene") handlers.push(fn); } };
+  try {
+    const flags = { hexRecords: { adopted: true } };
+    const painted = { id: "s1", grid: { isHexagonal: true }, flags: {}, getFlag: (_mod, key) => flags[key] };
+    let renders = 0, shown = [];
+    globalThis.canvas = { scene: painted };
+    globalThis.game = { user: { isGM: true }, modules: new Map() };
+    globalThis.ui = { controls: { render: () => { renders++; }, controls: { sdeHexMap: { get tools() { return Object.fromEntries(shown.map((k) => [k, {}])); } } } } };
+    registerHexMapControls();
+    const [onUpdate] = handlers;
+    const changed = { flags: { "shadowdark-enhancer": { anything: 1 } } };
+    shown = ["hexPlayerView", "hexFogHidden", "hexTooltip"];
+    onUpdate(painted, changed);
+    assert.equal(renders, 0, "the fog tools are already up and still owned: no redraw");
+    shown = ["hexTooltip"];
+    onUpdate(painted, changed);
+    assert.equal(renders, 1, "the fog tools are missing from the toolbar: redraw");
+    painted.grid.isHexagonal = false; // ownership flips off
+    shown = ["hexTooltip"];
+    onUpdate(painted, changed);
+    assert.equal(renders, 1, "the module no longer draws the fog and the fog tools are gone: no redraw");
+    shown = ["hexPlayerView", "hexFogHidden", "hexTooltip"];
+    onUpdate(painted, changed);
+    assert.equal(renders, 2, "the fog tools are up but no longer owned: redraw");
+  } finally {
+    for (const [k, v] of Object.entries(saved)) { if (v === undefined) delete globalThis[k]; else globalThis[k] = v; }
+  }
 });

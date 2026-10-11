@@ -459,7 +459,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   /** The updateScene listener that takes in other writers' tags; the headless engine (hex-legend-session.mjs) needs it too. */
   _hearOutsideTags() {
-    // Named now, not at the first save: the brush and the Hexplorer write unstamped, and an unset id would take them for ours.
+    // Named now, not at the first save: the brush and Hex Data write unstamped, and an unset id would take them for ours.
     this._writerId ??= foundry.utils.randomID();
     return Hooks.on("updateScene", (doc, changed, options) => {
       if (!tagsWrittenElsewhere(doc, changed, options, { sceneId: this._stateSceneId, writer: this._writerId })) return;

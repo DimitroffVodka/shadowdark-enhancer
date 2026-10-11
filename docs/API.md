@@ -46,23 +46,26 @@ never overwrite or remove existing documents.
 
 ## `owns` — adopted gameplay ownership
 
-`api.owns("hex.fog", scene)` is true only for an adopted hex scene with native
-fog enabled and no incompatible Extras overlap. It does not toggle Extras.
-An SDX provider advertising `api.hex.enhancerOwnershipGuardVersion >= 1` must
-stand down its fog writes, arrival rolls and overlay, and use native disclosure
-for its token/pin/tooltip/coordinate consumers on scenes owned by Enhancer.
-An older provider must have its fog explicitly off before native fog can run.
-The currently inspected SDX source does not advertise this guard.
+`api.owns("hex.fog", scene)` is true for a hexagonal scene that is adopted and
+has not had its fog switched off on that scene. Extras is not consulted: native
+fog runs whether or not Extras is installed or active, and Extras stands down its
+fog writes, arrival rolls and overlay there, and its token/pin/tooltip/coordinate
+consumers use native disclosure on scenes the Enhancer owns.
+
+`api.owns("hex.tooltip", scene)` is true for a hexagonal scene that is numbered
+or adopted, where the Enhancer's Hex Data hover card and editor are in use;
+Extras reads it to leave its own hover card off. Any other feature name returns
+`false`.
 
 `api.hexMaps.fog.disclosed(scene, offset, kind)` uses the same predicate as the
 native consumers (`kind` is `terrain` or `location`). GM-only
 `setDisclosure(offset, {revealed, locationRevealed}, scene)` changes disclosure
 without clearing visit or first-entry history; it reveals to every party, while
-travel and the Hexplorer write to one party's own entry. `setEnabled(boolean, scene)`
+travel and Hex Data write to one party's own entry. `setEnabled(boolean, scene)`
 controls native fog without modifying any SDX state. `revealParty(token,
 {weather})` is a reveal-only pass: it never visits or rolls arrival tables.
 Committed travel is invoked by Overland after payment. Keyed location notes
-may additionally be marked in the Hexplorer editor; public terrain notes remain
+may additionally be marked in the Hex Data editor; public terrain notes remain
 visible on revealed cells. Deliberate raw Foundry document access is outside
 this ordinary-play spoiler-protection boundary.
 
@@ -789,9 +792,8 @@ legacy recap-shaped nights once by `logId`, marked `historyOnly`; they are never
 assigned as the current outing, charged or awarded. There is no hidden SDX
 journal watcher. Explicit old feed compatibility calls remain available.
 
-If SDX's Carousing is enabled, this overlapping native flow refuses and explains
-how the GM can disable that SDX feature; it never toggles SDX settings. Works
-without SDX, tokens or a map. No live deployment is implied by this API.
+Works with or without SDX: Extras' Carousing defers to this flow when the
+Enhancer is active. Needs no tokens or map. No live deployment is implied by this API.
 
 ## `camping` — internal task setup slice
 
@@ -2228,8 +2230,8 @@ untouched unless marked.
 **Weather.**
 - `scene.weather` is Foundry's `rainStorm` while today's weather is stormy,
   or its `blizzard` when the region's climate is cold or freezing. On a fair
-  day it is the season's effect (#294): `snow` in winter, `leaves` in autumn,
-  nothing in spring and summer. Nothing on an excellent day or when no
+  day it is the season's effect (#294): `leaves` in autumn, nothing in
+  winter, spring and summer. Nothing on an excellent day or when no
   weather holds. The table is `FAIR_DAY_EFFECT` in `sky-core.mjs`.
 - Overland takes only an empty weather slot. It records the effect it put
   there as the scene flag `shadowdark-enhancer.skyWeather`, in the same

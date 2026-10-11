@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { explorerView, planExplorerEdit, explorerClick, encounterReadout } from "../scripts/hex-map/hex-explorer.mjs";
+import { explorerView, planExplorerEdit, explorerClick, encounterReadout, ownsHexData } from "../scripts/hex-map/hex-explorer.mjs";
 const record = { sceneUuid: "Scene.a", offset: { i: -2, j: 3 }, num: 101, terrain: "forest", title: "Cave", features: [{ type: "river", discovered: true, secret: "private" }, { type: "dungeon", name: "Secret cave", discovered: true, custom: { x: 1 } }], notes: [{ text: "Bridge", visible: true }, { text: "GM SECRET", visible: false }], links: [{ uuid: "JournalEntry.a", label: "Clue", visible: true }], keyed: [{ title: "Keyed cave", uuid: "JournalEntry.a.JournalEntryPage.b" }], discovery: { revealed: true, visited: false } };
 test("tooltip discloses only safe terrain/public notes until location disclosure", () => {
   const view = explorerView(record, true);
@@ -78,4 +78,14 @@ test("the encounter readout says where the hex's table came from", () => {
     "the terrain's own table is named as such even when it is also the active one");
   assert.equal(encounterReadout({ uuid: "", zone: null, verdict: { status: "none" } }).state, "none");
   assert.equal(encounterReadout().state, "none");
+});
+test("Hex Data owns an adopted hex scene even while Extras' Hex Tooltip is on, and a square or plain scene never", () => {
+  const scene = (hexagonal, adopted) => ({ grid: { isHexagonal: hexagonal }, getFlag: (_m, key) => (adopted && key === "hexRecords" ? { adopted: true } : undefined) });
+  const before = globalThis.game;
+  globalThis.game = { modules: new Map([["shadowdark-extras", { active: true }]]), settings: { get: () => [] } };
+  try {
+    assert.equal(ownsHexData(scene(true, true)), true);
+    assert.equal(ownsHexData(scene(false, true)), false);
+    assert.equal(ownsHexData(scene(true, false)), false);
+  } finally { globalThis.game = before; }
 });

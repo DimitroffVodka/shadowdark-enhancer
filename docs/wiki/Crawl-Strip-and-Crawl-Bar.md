@@ -339,7 +339,7 @@ the party token travels.
     | Today's weather | Winter | Autumn | Spring | Summer |
     |---|---|---|---|---|
     | Stormy | rain storm (blizzard in a cold climate) | same | same | same |
-    | Fair | snow | falling leaves | nothing | nothing |
+    | Fair | nothing | falling leaves | nothing | nothing |
     | Excellent | nothing | nothing | nothing | nothing |
 
     Overland only ever changes or clears an effect it put there; one you

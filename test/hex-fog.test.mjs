@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { disclosure, importFog, revealCells, revealRadius, arrivalDue, overlapAllowed, effectiveDiscovery, withPartyDiscovery, bestProjection } from "../scripts/hex-map/hex-fog-core.mjs";
+import { disclosure, importFog, revealCells, revealRadius, arrivalDue, effectiveDiscovery, withPartyDiscovery, bestProjection } from "../scripts/hex-map/hex-fog-core.mjs";
 import { revealParty, refreshHexFog, registerHexFog } from "../scripts/hex-map/hex-fog.mjs";
 import { cacheHexJournal, recordJournal } from "../scripts/hex-map/hex-records.mjs";
 const grid = { getAdjacentOffsets: ({ i, j }) => [{ i: i - 1, j }, { i: i + 1, j }], getDirectPath: ([a, b]) => Array.from({ length: Math.abs(b.i - a.i) + 1 }, (_, n) => ({ i: a.i + Math.sign(b.i - a.i) * n, j: a.j })) };
@@ -46,12 +46,6 @@ test("arrival is independent of visit/conceal and only committed entries can rol
   assert.equal(arrivalDue(r, { entered: true }), true);
   assert.equal(arrivalDue({ ...r, arrivalRolled: true }, { entered: true }), false);
   assert.equal(arrivalDue(r, { entered: false }), false);
-});
-test("old SDX overlap is off unless its fog is explicitly off; guarded provider may stand down", () => {
-  assert.equal(overlapAllowed({ active: false }), true);
-  assert.equal(overlapAllowed({ active: true }), false);
-  assert.equal(overlapAllowed({ active: true, disabled: true }), true);
-  assert.equal(overlapAllowed({ active: true, guardVersion: 1 }), true);
 });
 test("a first-entry arrival saves once, before its chat card", async () => {
   const MOD = "shadowdark-enhancer";

@@ -29,10 +29,6 @@ export function carousingOf(party) {
   memo = { raw, revision, state: structuredClone(raw) };
   return memo.state;
 }
-export function carousingAvailable() {
-  if (!game.modules.get("shadowdark-extras")?.active) return true;
-  try { return !game.settings.get("shadowdark-extras", "enableCarousing"); } catch { return true; }
-}
 export const carousingOpen = () => game.actors.contents.some(a => isNativeParty(a) && carousingOf(a).current && carousingOf(a).current.phase !== "complete");
 const save = (party, state) => { revision += 1; return replaceModuleFlag(party, "carousing", state); };
 /** One sweep per table set, refreshed by the table hooks — never once per sheet render. */
@@ -127,7 +123,6 @@ export function handleCarousing(data, user) {
     try {
       const party = game.actors.get(data.partyId); if (!isNativeParty(party)) invalid();
       const state = carousingOf(party), manager = own(party, user), current = state.current;
-      if (!carousingAvailable()) invalid("SDE.carousing.sdxOverlap");
       if (data.action === "begin") {
         if (!manager) invalid(); if (current && current.phase !== "complete") return { ok: true, state };
         if (carousingOpen() || (await context(state.config ?? {})).downtime) invalid("SDE.carousing.downtime");

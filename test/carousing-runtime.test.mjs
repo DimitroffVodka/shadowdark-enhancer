@@ -41,15 +41,10 @@ test("missing tables and downtime reject before charge", async () => {
   assert.equal((await f.call("start")).ok,false); assert.equal(f.rolls(),0);
   await f.call("cancel"); f.downtime(true); assert.equal((await f.call("begin")).ok,false);
 });
-test("enabled Extras Carousing refuses native actions; feature-disabled Extras remains optional", async () => {
+test("Extras' Carousing being on does not stop native carousing", async () => {
   const f = fixture(); await setup(f);
   globalThis.game.modules.set("shadowdark-extras", { active: true });
   globalThis.game.settings.get = (module, key) => module === "shadowdark-extras" && key === "enableCarousing";
-  const before = structuredClone({ state: carousingOf(f.party), coins: f.a.system.coins });
-  const refused = await f.call("start");
-  assert.equal(refused.ok, false); assert.equal(refused.error, "SDE.carousing.sdxOverlap");
-  assert.deepEqual({ state: carousingOf(f.party), coins: f.a.system.coins }, before); assert.equal(f.rolls(), 0);
-  globalThis.game.settings.get = () => false;
   assert.equal((await f.call("start")).ok, true); assert.equal(f.a.system.coins.gp, 20);
 });
 test("saved partial night resumes after real effect write failure; double click/reopen repeats nothing", async () => {
