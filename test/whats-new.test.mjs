@@ -112,3 +112,22 @@ test("a version with no changelog section is stamped and silent", async () => {
   assert.equal(await checkWhatsNew(d), null);
   assert.deepEqual([calls.shown.length, calls.wrote], [0, ["0.19.0"]]);
 });
+
+// The entry script cannot be imported in Node, so this reads its source (as ancestry-adopt.test.mjs does).
+// The What's new check was once written inside the GM-only block of the ready hook, where no player's
+// browser ever ran it; the unit tests above inject everything and could not see that.
+test("the ready hook runs What's new for every user, then the importer prompts for the active GM only", async () => {
+  const { readFileSync } = await import("node:fs");
+  const src = readFileSync(new URL("../scripts/shadowdark-enhancer.mjs", import.meta.url), "utf8");
+  const gmStart = src.indexOf("\n  if (game.user.isGM) {\n");
+  const gmEnd = src.indexOf("\n  }\n});", gmStart);
+  const check = src.indexOf("await checkWhatsNew({");
+  const read = src.indexOf('const ranBefore = !!game.settings.get(MODULE_ID, "backfillVersion")');
+  assert.ok(gmStart > -1 && gmEnd > gmStart, "the GM-only block of the ready hook was not found");
+  assert.ok(check > -1 && read > -1, "the ready hook no longer runs the What's new check");
+  const outside = (at) => at < gmStart || at > gmEnd;
+  assert.ok(outside(check) && outside(read), "What's new must run on every client, outside the GM-only block");
+  // One timer, so an update shows one dialog at a time: What's new, then (active GM only) the importer prompts.
+  const timer = src.slice(check, src.indexOf("}, 2500);", check));
+  assert.match(timer, /checkWhatsNew[\s\S]*if \(!isActiveGM\(\)\) return;[\s\S]*checkImporterNews[\s\S]*checkFirstImport/);
+});

@@ -349,9 +349,10 @@ async function pay(entry, quest) {
 // ── Pins ────────────────────────────────────────────────────────────────────
 
 /** A note placed for the quest itself, else the Hex Tagger's pin for its hex. */
-function findPin(quest) {
+function findPin(quest, skipSceneId = null) {
   const candidates = [];
   for (const scene of game.scenes?.contents ?? []) {
+    if (scene.id === skipSceneId) continue;
     for (const note of scene.notes?.contents ?? []) {
       const own = !!quest.id && note.entryId === quest.id;
       const hexPin = quest.hex !== null && (!quest.hexScene || quest.hexScene === scene.uuid)
@@ -377,8 +378,12 @@ async function panToPin(pin, missingKey) {
   return true;
 }
 
-/** Pan to the Hex Tagger's pin for a hex number (the Trouble tracker's settlements, #193). */
-export const jumpToHex = (num, missingKey = "SDE.troubles.notify.noPin") => panToPin(findPin({ id: null, hex: Number(num) }), missingKey);
+/**
+ * Pan to the Hex Tagger's pin for a hex number (the Trouble tracker's settlements, #193).
+ * `skipSceneId` leaves one scene's pins out: the viewed scene of another book, whose pin of the same number is not this hex.
+ */
+export const jumpToHex = (num, missingKey = "SDE.troubles.notify.noPin", skipSceneId = null) =>
+  panToPin(findPin({ id: null, hex: Number(num) }, skipSceneId), missingKey);
 
 // ── The API ─────────────────────────────────────────────────────────────────
 

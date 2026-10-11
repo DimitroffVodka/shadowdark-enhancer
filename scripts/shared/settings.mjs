@@ -610,8 +610,8 @@ export function registerSettings() {
     scope: "world", config: false, type: Boolean, default: false,
   });
 
-  // The last module version this user was shown the "What's new" window for. Per browser: every
-  // user is told once per update. See scripts/shared/whats-new.mjs.
+  // The last module version this browser was shown the "What's new" window for. Client scope is
+  // per browser: each browser is told once per update. See scripts/shared/whats-new.mjs.
   game.settings.register(MODULE_ID, "whatsNewSeen", {
     scope: "client", config: false, type: String, default: "",
   });
