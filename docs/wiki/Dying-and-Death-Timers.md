@@ -146,7 +146,7 @@ is larger.
 - **Seeing them.** The crawl strip writes the pool beside HP (`3/3 +2`).
 - **Damage.** A hit takes the pool first; only what is left reaches HP. A hit the pool absorbs entirely leaves HP, and the
   dying rules, alone. This holds for damage the system applies (its own chat card's Apply damage button) and for trap damage.
-- **Shadowdark Extras' damage card.** From the Extras release that closed
+- **Shadowdark Extras' damage card.** From Extras 6.16.1, the release that closed
   [shadowdark-extras#215](https://github.com/DimitroffVodka/shadowdark-extras/issues/215), Extras' Apply damage button, and its
   aura, template, duration and focus damage, spend the pool before HP, the same as the system's own card. Older Extras write HP
   directly and do not: a 2-point hit on 3/3 with 2 temp HP leaves 1/3 and the pool at 2. A source that writes HP directly, and a

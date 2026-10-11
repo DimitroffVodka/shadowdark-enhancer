@@ -154,7 +154,7 @@ and temp HP do not stack. Added in `1.29.0`.
 
 **Limit.** A source that writes `system.attributes.hp.value` directly never calls `applyDamage`, so it does not spend the
 pool, and neither does a manual edit of the HP number. Shadowdark Extras spends the pool itself, through `api.tempHp`, for its
-damage card's Apply damage button and for its aura, template, duration-spell and focus-spell damage, from the Extras release
+damage card's Apply damage button and for its aura, template, duration-spell and focus-spell damage, from Extras 6.16.1, the release
 that closed [shadowdark-extras#215](https://github.com/DimitroffVodka/shadowdark-extras/issues/215); older Extras write hit
 points directly, so their hits take HP and leave the pool as it was. A module that deals damage should call
 `actor.applyDamage(amount)` rather than write HP.
