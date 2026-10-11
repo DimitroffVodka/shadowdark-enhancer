@@ -82,6 +82,7 @@ Each row links to its full manual page.
 |---|---|
 |  **[Importer Hub](docs/wiki/Importer-Hub.md)** | Paste a section from your own PDF. It's recognised, parsed, previewed editably, and committed into managed packs. Never overwriting, never deleting, idempotent on re-import. |
 | **[Hex Maps](docs/wiki/Hex-Maps.md)** | Turn a printed hex map into a scene: the grid found from the image, keyed locations pinned, terrain and regions tagged, and the whole map handed to Shadowdark Extras. |
+| **[Colour Map with Extras](docs/wiki/Colour-Map-with-Extras.md)** | The route from a tagged map to a painted map in Shadowdark Extras: send the details to the print, build a painted scene, or repaint only what you retagged, with what each step overwrites and keeps. |
 |  **[Class & Spell Importers](docs/wiki/Class-and-Spell-Importers.md)** | Dedicated workspaces for the two hardest types: per-part paste zones for a class's writeup, talent table and titles, plus spells organised by Class → Tier → Alignment. |
 |  **[Table Import & Shapes](docs/wiki/Table-Import-and-Shapes.md)** | 158 tables carry a parsing recipe, so messy PDF copies parse deterministically: prayer generators, wrapped-cell lookups, mix-and-match grids, reflowed pastes. |
 | **[Rules Data](docs/wiki/Rules-Data.md)** | The Western Reaches lookup tables (terrain costs, hexes per day, visibility, climate, carousing and recruiting limits), filled from your own PDFs or typed in. |

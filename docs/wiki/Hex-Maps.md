@@ -979,6 +979,10 @@ the image's URL.
 
 ## Playing on the print itself
 
+For the whole route from a tagged map to a painted map, step by step, with
+what each button changes and leaves alone, see
+[Making a colour map with Extras](Colour-Map-with-Extras.md).
+
 **Send to Extras** puts the hex details on the map you tagged. Shadowdark
 Extras takes the scene on as a hexcrawl, and every tagged hex gets its record:
 terrain, region and zone colour, and for keyed hexes the name, the
