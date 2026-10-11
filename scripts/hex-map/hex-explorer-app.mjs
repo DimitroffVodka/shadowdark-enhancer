@@ -58,7 +58,6 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!this.draft) this.draft = {
       terrain: record.terrain ?? "", title: record.title ?? "",
       lines: FEATURES.filter(type => record.features?.some(f => f.type === type)),
-      lineDiscovery: Object.fromEntries(FEATURES.map(type => [type, record.features?.find(f => f.type === type)?.discovered === true])),
       features: (record.features ?? []).map((f, index) => ({ ...f, index })).filter(f => !FEATURES.includes(f.type)),
       notes: (record.notes ?? []).map((n, index) => ({ ...n, index })), links: (record.links ?? []).map((l, index) => ({ ...l, index })),
       revealed: !!seen.revealed, visited: !!seen.visited,
@@ -83,7 +82,7 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       number: record.num === null ? game.i18n.format("SDE.hexExplorer.offset", this.offset) : String(record.num).padStart(4, "0"),
       locationAuto: d.location === "auto", locationShow: d.location === "show", locationHide: d.location === "hide",
       terrainOptions: this._terrainOptions(d.terrain),
-      lineRows: FEATURES.map(type => ({ type, label: t(LABELS[type]), checked: d.lines.includes(type), discovered: d.lineDiscovery[type] })) };
+      lineRows: FEATURES.map(type => ({ type, label: t(LABELS[type]), checked: d.lines.includes(type) })) };
   }
   async _setQuestHex(uuid, num) {
     if (!uuid || !game.user?.isGM) return;
@@ -116,7 +115,6 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       })) };
     });
     this.draft = { terrain: value("terrain") === OTHER ? value("terrainOther") : value("terrain"), title: value("title"), lines: FEATURES.filter(type => checked(type)),
-      lineDiscovery: Object.fromEntries(FEATURES.map(type => [type, checked(`${type}Discovered`)])),
       features: collection("feature", ["type", "name", "uuid", "discovered"]), notes: collection("note", ["text", "visible", "location"]), links: collection("link", ["uuid", "label", "visible"]),
       revealed: checked("revealed"), visited: checked("visited"), location: value("location") };
   }

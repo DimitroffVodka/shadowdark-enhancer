@@ -64,6 +64,16 @@ without clearing visit or first-entry history; it reveals to every party, while
 travel and Hex Data write to one party's own entry. `setEnabled(boolean, scene)`
 controls native fog without modifying any SDX state. `revealParty(token,
 {weather})` is a reveal-only pass: it never visits or rolls arrival tables.
+GM-only `reset({partyId, keys, rearm}, scene)` puts hexes back to unexplored:
+`partyId` is one party's map (null: everyone's, the shared layer and every
+party's own entry), `keys` limits it to `"i_j"` cell keys (null: every hex),
+and `rearm` also lets first-entry tables roll again (a party's own ids only; the
+legacy `arrivalRolled` flag clears only for everyone). It resolves
+`{count}` of the hexes it changed, writes once, and never touches terrain,
+notes, links or roll-table settings. `resetPreview(options, scene)` returns that
+count without writing, `undoInfo(scene)` returns `{at, partyId, count}` of the
+reset an undo would reverse (or null), and `undoReset(scene)` restores exactly
+those hexes, once.
 Committed travel is invoked by Overland after payment. Keyed location notes
 may additionally be marked in the Hex Data editor; public terrain notes remain
 visible on revealed cells. Deliberate raw Foundry document access is outside
