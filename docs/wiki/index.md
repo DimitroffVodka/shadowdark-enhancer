@@ -60,6 +60,7 @@ Tools you use in prep between sessions.
 |---|---|
 | [Importer Hub](Importer-Hub.md) | The front door: paste from your own PDF, preview, commit into suite compendiums |
 | [Hex Maps](Hex-Maps.md) | Tag a hex-map scene's terrain from a contact sheet and hand the dataset to Shadowdark Extras |
+| [Colour Map with Extras](Colour-Map-with-Extras.md) | From a tagged map to a painted map in Shadowdark Extras, step by step: what each button changes, what it leaves alone, and what to do when it refuses |
 | [Class & Spell Importers](Class-and-Spell-Importers.md) | Dedicated workspaces for complex class and spell statblocks |
 | [Table Import & Shapes](Table-Import-and-Shapes.md) | How PDF tables parse deterministically and how to add parsing recipes |
 | [Rules Data](Rules-Data.md) | The Western Reaches lookup tables (terrain costs, travel, visibility, climate, carousing and recruiting limits), imported from your own PDF or typed in |
