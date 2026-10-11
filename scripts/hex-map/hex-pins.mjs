@@ -95,6 +95,22 @@ export async function deployCrawlJournal(packEntry, { flag = HEX_FLAG, idKey = "
 }
 
 /**
+ * Every published hex number of the viewed scene with its centre point.
+ * @returns {{numbered:Map<number,{x:number,y:number}>}|{error:string}} `error` is a translation key: the
+ *   scene has no numbering yet (tagger anchor), or is not a hex scene the sampler can read
+ */
+export function numberedCenters(scene = canvas?.scene, canvasRef = canvas) {
+  const origin = scene?.getFlag(MODULE_ID, "hexTags")?.origin;
+  if (!origin) return { error: "SDE.hexMap.notify.noNumbering" };
+  const geom = sceneCells(canvasRef);
+  if (geom.error) return { error: geom.error };
+  const numbered = new Map();
+  const o = originFromFlag(origin);
+  for (const c of geom.cells) { const n = cellNumber(c.cube, o); if (n.num !== null) numbered.set(n.num, { x: c.x, y: c.y }); }
+  return { numbered };
+}
+
+/**
  * Pin the crawl's keyed hexes on the ACTIVE scene (numbered from its tag
  * flag's anchor). GM only.
  * @param {JournalEntry} packEntry  the crawl entry in the Journals pack
@@ -104,13 +120,9 @@ export async function deployCrawlJournal(packEntry, { flag = HEX_FLAG, idKey = "
 export async function pinCrawlOnActiveScene(packEntry, { iconSize } = {}) {
   if (!game.user?.isGM) { ui.notifications?.warn(t("SDE.hexMap.notify.gmOnlyPin")); return null; }
   const scene = canvas?.scene;
-  const origin = scene?.getFlag(MODULE_ID, "hexTags")?.origin;
-  if (!origin) { ui.notifications?.warn(t("SDE.hexMap.notify.noNumbering")); return null; }
-  const geom = sceneCells(canvas);
-  if (geom.error) { ui.notifications?.warn(t(geom.error)); return null; }
-  const numbered = new Map();
-  const o = originFromFlag(origin);
-  for (const c of geom.cells) { const n = cellNumber(c.cube, o); if (n.num !== null) numbered.set(n.num, { x: c.x, y: c.y }); }
+  const centers = numberedCenters(scene);
+  if (centers.error) { ui.notifications?.warn(t(centers.error)); return null; }
+  const { numbered } = centers;
   const journal = await deployCrawlJournal(packEntry);
   const keyedRows = new Map((packEntry.getFlag(MODULE_ID, HEX_FLAG)?.keyed ?? []).map((r) => [hexNum(r.num), r]));
   const pages = journal.pages.contents
