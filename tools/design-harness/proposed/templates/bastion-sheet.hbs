@@ -35,7 +35,6 @@
           <select data-bastion-type {{#unless editable}}disabled{{/unless}}>
             {{#each types}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}: {{line}}</option>{{/each}}
           </select>
-          <p class="ui-muted">{{type.blurb}}</p>
           <div class="ui-field"><span class="ui-label">{{localize "SDE.bastion.field.party"}}</span>
             <select name="system.party" {{#unless editable}}disabled{{/unless}}>
               <option value="">{{localize "SDE.bastion.party.none"}}</option>
@@ -58,7 +57,6 @@
             <button type="button" class="ui-btn" data-action="rollMonth"><i class="fa-solid fa-dice-d6"></i> {{localize "SDE.bastion.rollMonth"}}</button>
           </div>
           {{#if stats.repairing}}<div class="ui-note info">{{localize "SDE.bastion.repairing"}}</div>{{/if}}
-          <p class="ui-muted">{{localize "SDE.bastion.rules"}}</p>
         </section>
         {{/if}}
       </div>

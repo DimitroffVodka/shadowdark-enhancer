@@ -176,7 +176,7 @@ from outside or in. Since 1.27.0.
 
 ```js
 api.bastion.type;                 // "shadowdark-enhancer.bastion"
-api.bastion.types();              // [{ id, cost, ac, hp, slots, weeks, name, blurb }, ...] house, outpost, keep, castle
+api.bastion.types();              // [{ id, cost, ac, hp, slots, weeks, name }, ...] house, outpost, keep, castle
 api.bastion.upgrades();           // [{ id, cost, name, effect }, ...] the twenty, one of each per bastion
 
 // GM only. A new bastion of a type, not yet raised; the treasury starts at `treasury` gp.
@@ -197,8 +197,8 @@ api.bastion.forParty(party);      // the bastion actors a party owns, [] for non
 | Call | Who | Notes |
 |---|---|---|
 | `bastion.type` | any | The actor type id. |
-| `bastion.types()` | any | A copy of the four types. `name` and `blurb` are language keys. |
-| `bastion.upgrades()` | any | A copy of the twenty upgrades. `name` and `effect` are language keys. |
+| `bastion.types()` | any | A copy of the four types. `name` is a language key (the type's description is in your Player's Guide, not here). |
+| `bastion.upgrades()` | any | A copy of the twenty upgrades. `name` is a language key; `effect` is the upgrade's wording as the GM's own Player's Guide PDF prints it (read from p.247 with the sheet's **Read upgrade text** button), `""` until then. |
 | `bastion.create({ name, type, treasury })` | GM | Returns the new actor, or `null` for a non-GM or an unknown type. A House takes a week to build, an Outpost two, a Keep four, a Castle eight; upgrades wait until it stands. |
 | `bastion.open(actorOrIdOrUuid)` | any | Renders the sheet. Returns whether the argument was a bastion. |
 | `bastion.state(actorOrIdOrUuid)` | any | A plain copy of the rules state, or `null`. An upgrade's `slot` is its place on the plan (`-1` for the moat, which has none). |
@@ -418,14 +418,14 @@ api.loot.open(); api.loot.openSetup();
 const hit = await api.loot.resolve("Dagger (1 gp)");
 // → { status: "exact", query: "Dagger", uuid, name, matched }   // exact/alias carry a link
 //   { status: "alias",  ... }  // alias tier: article/count, trailing parenthetical, final-word plural all folded (anchored only)
-await api.loot.resolve("Unopened bottle of exceptionally potent Murgazi wine (25 gp)");
+await api.loot.resolve("Sealed bottle of rare river-valley wine (25 gp)");
 // → { status: "unresolved", query: "…" }                        // generic containers are refused — not a containment search
 await api.loot.resolve("3 bolts (2 gp)"); // when both "Bolt" and "Bolts" exist
 // → { status: "ambiguous", query: "3 bolts", candidates: [{uuid,name},…] }
 await api.loot.resolve("Bolts"); // exact tier wins first, so just "Bolts" resolves as "exact"
 ```
 
-`resolve` is **whole-name and anchored**. It tries the priced-row-as-a-name `exact` tier first (case/spacing/curly-quote folded, trailing sentence punctuation and `each` stripped to a fixed point — `Dagger (1 gp).` is still exact), then anchored `alias` normalizations at the start, end, or final word — these can compose, e.g. `2 daggers (steel)` folds count, parenthetical, and plural together — each remaining anchored, none ever becoming containment. Nothing else matches: interior-word containment (`Murgazi wine` → `Bottle`, `flask of oil` → `Flask`) is structurally unreachable, and a row that lands on more than one distinct Item at the same tier is `ambiguous` and also resolves to nothing (two plausible answers is not a confident match, and picking one by index order would be the containment bug again). The **candidate index is system-first** (built by `LootLinker.buildItemIndex`): system Item packs come before world/module packs (including `world.shadowdark-enhancer--items`), so on a same-name clash a system Item wins — imports fill gaps. The index is session-cached; call `api.linker.invalidate()` after bulk compendium changes. `api.loot.resolve` reads the same session cache as `loot.linkTables()` and the five `findLink` consumers (merchant shop, treasure classification, loot generator, roll-table catalog, importer-hub paste preview), which all share the `exact`/`alias`-confident `null`-or-link shape; `resolve` is the caller that needs to distinguish `ambiguous` from `unresolved`.
+`resolve` is **whole-name and anchored**. It tries the priced-row-as-a-name `exact` tier first (case/spacing/curly-quote folded, trailing sentence punctuation and `each` stripped to a fixed point — `Dagger (1 gp).` is still exact), then anchored `alias` normalizations at the start, end, or final word — these can compose, e.g. `2 daggers (steel)` folds count, parenthetical, and plural together — each remaining anchored, none ever becoming containment. Nothing else matches: interior-word containment (`river-valley wine` → `Bottle`, `flask of oil` → `Flask`) is structurally unreachable, and a row that lands on more than one distinct Item at the same tier is `ambiguous` and also resolves to nothing (two plausible answers is not a confident match, and picking one by index order would be the containment bug again). The **candidate index is system-first** (built by `LootLinker.buildItemIndex`): system Item packs come before world/module packs (including `world.shadowdark-enhancer--items`), so on a same-name clash a system Item wins — imports fill gaps. The index is session-cached; call `api.linker.invalidate()` after bulk compendium changes. `api.loot.resolve` reads the same session cache as `loot.linkTables()` and the five `findLink` consumers (merchant shop, treasure classification, loot generator, roll-table catalog, importer-hub paste preview), which all share the `exact`/`alias`-confident `null`-or-link shape; `resolve` is the caller that needs to distinguish `ambiguous` from `unresolved`.
 
 ### `loot.generated` — stable identity and replace-always reconciliation
 
@@ -442,8 +442,8 @@ takeover, and is reported as `name-collision` with `monsterSpell: true`.
 
 ```js
 // Pure, synchronous. "" when either half is missing or blank.
-const id = api.loot.generated.identity("CS1", "Carved Bone");
-// → "fnv1a32:573d24a5" | ""
+const id = api.loot.generated.identity("CS1", "Brass Whistle");
+// → "fnv1a32:2cd3bf2b" | ""
 
 // Pure, no-write — the whole rerun decision for a definition set (A7).
 // Source precedence per definition: `item.source` → `{source}` → `flags[MODULE_ID].source`.

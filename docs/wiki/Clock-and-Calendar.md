@@ -166,9 +166,11 @@ what, day by day.
   line, with no day, for each month it touches (the thirds of a season: early
   is its first month, mid its second, late its third). Four have no date to
   show and are left out: Ord's Chariot and the Blood Moon (every three years),
-  Catterghat and Imprisonment (a day a priest chooses). Only the name, god and
-  timing are in the calendar; open the god's page for what the day is (a GM can;
-  players read the calendar's own line).
+  Catterghat and Imprisonment (a day a priest chooses). The module ships only the
+  name, god and timing. The line on what each day is comes from your own
+  Player's Guide PDF: the import reads each god's Holy Days table when it files
+  the pages, and a GM can press **Read holy day text** on a holy day that has no
+  line yet. It is kept in a world setting, so players read it too.
 - **Entries**: notes and quests a GM adds, and lines the module writes as the
   party plays.
 
@@ -187,8 +189,9 @@ holy days, with a line on each, in the same calendar. They cannot read the
 module's journal compendium (it holds every imported book), so a GM's client
 keeps a copy of just the holiday pages and the list of imported holy days in a
 world setting, and refreshes it when the world loads, when the month view opens
-and after an import. A player sees them once a GM has loaded the world with the
-pages imported; there is no page for them to open.
+and after an import. The holy days' lines are a world setting of their own,
+read from the Player's Guide PDF. A player sees them once a GM has loaded the
+world with the pages imported; there is no page for them to open.
 
 A GM can keep any one of them from players: open the holiday or holy day (click
 it) and press the **Players can see this** button, which becomes **GM only:

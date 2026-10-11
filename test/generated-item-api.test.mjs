@@ -44,7 +44,7 @@ function nestedApiObjects(source) {
   return { api, loot, generated: objectAt(loot, loot.indexOf("{", generatedStart)) };
 }
 
-const definition = (name = "Carved Bone") => ({
+const definition = (name = "Glass Acorn") => ({
   name,
   type: "Basic",
   img: "icons/commodities/bones/bone-carved-brown.webp",
@@ -71,10 +71,10 @@ describe("A7 public API — nested surface", () => {
 
 describe("A7 public API — return shapes", () => {
   test("identity is synchronous, source-qualified, and blank-safe", () => {
-    const id = generatedItemId("CS1", "Carved Bone");
+    const id = generatedItemId("CS1", "Glass Acorn");
     assert.equal(typeof id, "string");
     assert.match(id, /^fnv1a32:[0-9a-f]{8}$/);
-    assert.equal(generatedItemId("", "Carved Bone"), "");
+    assert.equal(generatedItemId("", "Glass Acorn"), "");
     assert.equal(generatedItemId("CS1", "   "), "");
   });
 
@@ -89,7 +89,7 @@ describe("A7 public API — return shapes", () => {
     assert.deepEqual(Object.keys(ambiguous).sort(), ["candidates", "query", "status"]);
     assert.equal(ambiguous.status, LOOT_MATCH.AMBIGUOUS);
 
-    const unresolved = resolveLootItem("A bottle of Murgazi wine", [
+    const unresolved = resolveLootItem("A bottle of vintage wine", [
       { uuid: "u1", name: "Bottle" },
     ]);
     assert.deepEqual(Object.keys(unresolved).sort(), ["query", "status"]);

@@ -1,8 +1,8 @@
 /**
  * A7/#57–#59 — precise loot-row resolution.
  *
- * The governing failure is #58: "Unopened bottle of exceptionally potent
- * Murgazi wine" resolved to the plain system `Bottle` because the old matcher
+ * The governing failure is #58: "Sealed bottle of exceptionally
+ * rare vintage wine" resolved to the plain system `Bottle` because the old matcher
  * asked whether the row CONTAINED a known name. These fixtures pin the four
  * outcomes — exact, alias, ambiguous, and the false positives that must now be
  * refused — plus the callers that read the result.
@@ -38,7 +38,7 @@ const GEAR = [
 
 describe("loot resolution — the #58 false positives", () => {
   const ROWS = [
-    ["Unopened bottle of exceptionally potent Murgazi wine (25 gp)", "Bottle"],
+    ["Sealed bottle of exceptionally rare vintage wine (25 gp)", "Bottle"],
     ["A flask of exceptionally fine oil (5 gp)", "Flask"],
     ["Bolt of shimmering foreign silk (50 gp)", "Bolt"],
     ["Coil of tarred rope taken from a wreck", "Rope, 60'"],
@@ -55,10 +55,10 @@ describe("loot resolution — the #58 false positives", () => {
   }
 
   test("the exact #58 row keeps its own name and price when fabricated", () => {
-    const row = "Unopened bottle of exceptionally potent Murgazi wine (25 gp)";
+    const row = "Sealed bottle of exceptionally rare vintage wine (25 gp)";
     const out = classifyEntry(row, GEAR);
     assert.equal(out.action, "create");
-    assert.equal(out.itemData.name, "Unopened bottle of exceptionally potent Murgazi wine");
+    assert.equal(out.itemData.name, "Sealed bottle of exceptionally rare vintage wine");
     assert.equal(out.itemData.system.cost.gp, 25);
   });
 
@@ -150,12 +150,12 @@ describe("loot resolution — alias tier", () => {
   });
 
   test("the fold is anchored — no candidate can shorten to an interior word", () => {
-    const keys = lootAliasKeys("Unopened bottle of exceptionally potent Murgazi wines");
+    const keys = lootAliasKeys("Sealed bottle of exceptionally rare vintage wines");
     assert.deepEqual(keys, [
-      "unopened bottle of exceptionally potent murgazi wines",
-      "unopened bottle of exceptionally potent murgazi wine",
+      "sealed bottle of exceptionally rare vintage wines",
+      "sealed bottle of exceptionally rare vintage wine",
     ]);
-    for (const k of keys) assert.match(k, /^unopened bottle of exceptionally potent murgazi wines?$/);
+    for (const k of keys) assert.match(k, /^sealed bottle of exceptionally rare vintage wines?$/);
   });
 });
 
@@ -214,7 +214,7 @@ describe("loot resolution — plumbing", () => {
 
   test("a prebuilt index resolves identically to a raw list", () => {
     const index = buildLootNameIndex(GEAR);
-    for (const row of ["Dagger (1 gp)", "Torches", "Murgazi wine in a bottle"]) {
+    for (const row of ["Dagger (1 gp)", "Torches", "Vintage wine in a bottle"]) {
       assert.deepEqual(resolveLootItem(row, index), resolveLootItem(row, GEAR), row);
     }
   });
@@ -289,7 +289,7 @@ describe("loot resolution — through the production item index", () => {
 
   test("the #58 refusals survive the widened index", () => {
     for (const row of [
-      "Unopened bottle of exceptionally potent Murgazi wine (25 gp)",
+      "Sealed bottle of exceptionally rare vintage wine (25 gp)",
       "A flask of exceptionally fine oil (5 gp)",
       "Coil of tarred rope taken from a wreck",
       "An axe-shaped birthmark on a dead man's shoulder",

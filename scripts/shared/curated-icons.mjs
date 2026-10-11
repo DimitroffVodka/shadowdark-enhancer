@@ -16,7 +16,7 @@
  *
  * Treasure is keyed by name QUALIFIED BY BOOK:
  *
- *     `${sourceKey(source)}:${normalize(name)}`         → "cs3:a golden skull…"
+ *     `${sourceKey(source)}:${normalize(name)}`         → "cs3:<name key>"
  *
  * That is not a stylistic choice. `buildItemData(draft)` — this module's single
  * item-construction choke point — structurally CANNOT know which book a draft
@@ -30,8 +30,8 @@
  *
  * Treasure has the opposite shape. Its items are minted by materializers that
  * know exactly which table they are draining, and its names are prose lifted
- * from a book ("Cracked mirror", "Vial of poison") — generic enough that two
- * Cursed Scrolls could easily print the same phrase for different objects.
+ * from a book — generic enough that two Cursed Scrolls could easily print the
+ * same phrase for different objects.
  * Qualifying by source is cheap there and forward-proof.
  *
  * ── Semantic category before broad fallback ──────────────────────────────────

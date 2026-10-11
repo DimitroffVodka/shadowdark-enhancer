@@ -2,9 +2,9 @@
  * Shadowdark Enhancer — Bastions: the rules (pure).
  *
  * A bastion is a place the party owns: a House, Outpost, Keep or Castle, with
- * up to a type's number of upgrades, one of each, a week each to build. Ordinary
- * weapons can't harm it; at 0 HP its walls are breached; repair is a week and 1
- * gp per HP. Each month a d6 roll of 1 brings a disaster (a d4).
+ * up to a type's number of upgrades, one of each, a week each to build. At 0 HP
+ * its walls are breached and a repair is a week and gold per HP missing. Each
+ * month's roll can bring a disaster.
  *
  * State (the actor's `system`):
  *   type        "house" | "outpost" | "keep" | "castle"
@@ -26,35 +26,56 @@
 
 /** Costs in gp, AC, HP, upgrade slots, build time in weeks, and the plan's size. */
 export const BASTION_TYPES = [
-  { id: "house", name: "SDE.bastion.type.house.name", blurb: "SDE.bastion.type.house.blurb", cost: 200, ac: 12, hp: 40, slots: 3, weeks: 1 },
-  { id: "outpost", name: "SDE.bastion.type.outpost.name", blurb: "SDE.bastion.type.outpost.blurb", cost: 300, ac: 15, hp: 50, slots: 5, weeks: 2 },
-  { id: "keep", name: "SDE.bastion.type.keep.name", blurb: "SDE.bastion.type.keep.blurb", cost: 1000, ac: 18, hp: 100, slots: 10, weeks: 4 },
-  { id: "castle", name: "SDE.bastion.type.castle.name", blurb: "SDE.bastion.type.castle.blurb", cost: 5000, ac: 18, hp: 300, slots: 20, weeks: 8 },
+  { id: "house", name: "SDE.bastion.type.house.name", cost: 200, ac: 12, hp: 40, slots: 3, weeks: 1 },
+  { id: "outpost", name: "SDE.bastion.type.outpost.name", cost: 300, ac: 15, hp: 50, slots: 5, weeks: 2 },
+  { id: "keep", name: "SDE.bastion.type.keep.name", cost: 1000, ac: 18, hp: 100, slots: 10, weeks: 4 },
+  { id: "castle", name: "SDE.bastion.type.castle.name", cost: 5000, ac: 18, hp: 300, slots: 20, weeks: 8 },
 ];
 
 /** One of each; every one takes a week and a slot (the moat takes a slot but no room on the plan). */
 export const BASTION_UPGRADES = [
-  { id: "aviary", cost: 100, name: "SDE.bastion.upgrade.aviary.name", effect: "SDE.bastion.upgrade.aviary.effect" },
-  { id: "armorer", cost: 200, name: "SDE.bastion.upgrade.armorer.name", effect: "SDE.bastion.upgrade.armorer.effect" },
-  { id: "barracks", cost: 200, name: "SDE.bastion.upgrade.barracks.name", effect: "SDE.bastion.upgrade.barracks.effect" },
-  { id: "blacksmith", cost: 100, name: "SDE.bastion.upgrade.blacksmith.name", effect: "SDE.bastion.upgrade.blacksmith.effect" },
-  { id: "brewery", cost: 200, name: "SDE.bastion.upgrade.brewery.name", effect: "SDE.bastion.upgrade.brewery.effect" },
-  { id: "casino", cost: 300, name: "SDE.bastion.upgrade.casino.name", effect: "SDE.bastion.upgrade.casino.effect" },
-  { id: "dungeon", cost: 300, name: "SDE.bastion.upgrade.dungeon.name", effect: "SDE.bastion.upgrade.dungeon.effect" },
-  { id: "granary", cost: 100, name: "SDE.bastion.upgrade.granary.name", effect: "SDE.bastion.upgrade.granary.effect" },
-  { id: "idol", cost: 400, name: "SDE.bastion.upgrade.idol.name", effect: "SDE.bastion.upgrade.idol.effect" },
-  { id: "infirmary", cost: 200, name: "SDE.bastion.upgrade.infirmary.name", effect: "SDE.bastion.upgrade.infirmary.effect" },
-  { id: "kennels", cost: 300, name: "SDE.bastion.upgrade.kennels.name", effect: "SDE.bastion.upgrade.kennels.effect" },
-  { id: "library", cost: 400, name: "SDE.bastion.upgrade.library.name", effect: "SDE.bastion.upgrade.library.effect" },
-  { id: "moat", cost: 200, name: "SDE.bastion.upgrade.moat.name", effect: "SDE.bastion.upgrade.moat.effect" },
-  { id: "stable", cost: 100, name: "SDE.bastion.upgrade.stable.name", effect: "SDE.bastion.upgrade.stable.effect" },
-  { id: "tavern", cost: 400, name: "SDE.bastion.upgrade.tavern.name", effect: "SDE.bastion.upgrade.tavern.effect" },
-  { id: "temple", cost: 400, name: "SDE.bastion.upgrade.temple.name", effect: "SDE.bastion.upgrade.temple.effect" },
-  { id: "trading-post", cost: 100, name: "SDE.bastion.upgrade.tradingPost.name", effect: "SDE.bastion.upgrade.tradingPost.effect" },
-  { id: "trophy-room", cost: 100, name: "SDE.bastion.upgrade.trophyRoom.name", effect: "SDE.bastion.upgrade.trophyRoom.effect" },
-  { id: "vault", cost: 200, name: "SDE.bastion.upgrade.vault.name", effect: "SDE.bastion.upgrade.vault.effect" },
-  { id: "wizard-tower", cost: 400, name: "SDE.bastion.upgrade.wizardTower.name", effect: "SDE.bastion.upgrade.wizardTower.effect" },
+  { id: "aviary", cost: 100, name: "SDE.bastion.upgrade.aviary.name" },
+  { id: "armorer", cost: 200, name: "SDE.bastion.upgrade.armorer.name" },
+  { id: "barracks", cost: 200, name: "SDE.bastion.upgrade.barracks.name" },
+  { id: "blacksmith", cost: 100, name: "SDE.bastion.upgrade.blacksmith.name" },
+  { id: "brewery", cost: 200, name: "SDE.bastion.upgrade.brewery.name" },
+  { id: "casino", cost: 300, name: "SDE.bastion.upgrade.casino.name" },
+  { id: "dungeon", cost: 300, name: "SDE.bastion.upgrade.dungeon.name" },
+  { id: "granary", cost: 100, name: "SDE.bastion.upgrade.granary.name" },
+  { id: "idol", cost: 400, name: "SDE.bastion.upgrade.idol.name" },
+  { id: "infirmary", cost: 200, name: "SDE.bastion.upgrade.infirmary.name" },
+  { id: "kennels", cost: 300, name: "SDE.bastion.upgrade.kennels.name" },
+  { id: "library", cost: 400, name: "SDE.bastion.upgrade.library.name" },
+  { id: "moat", cost: 200, name: "SDE.bastion.upgrade.moat.name" },
+  { id: "stable", cost: 100, name: "SDE.bastion.upgrade.stable.name" },
+  { id: "tavern", cost: 400, name: "SDE.bastion.upgrade.tavern.name" },
+  { id: "temple", cost: 400, name: "SDE.bastion.upgrade.temple.name" },
+  { id: "trading-post", cost: 100, name: "SDE.bastion.upgrade.tradingPost.name" },
+  { id: "trophy-room", cost: 100, name: "SDE.bastion.upgrade.trophyRoom.name" },
+  { id: "vault", cost: 200, name: "SDE.bastion.upgrade.vault.name" },
+  { id: "wizard-tower", cost: 400, name: "SDE.bastion.upgrade.wizardTower.name" },
 ];
+
+/**
+ * Each upgrade's printed line from the Player's Guide's upgrade table (PGWR p.247), read with the
+ * extractor's "auto" columns: after the "BASTION UPGRADES" heading, one "Name  100 gp  Description"
+ * row per upgrade. Only the twenty known names count, first one wins. The module ships none of the
+ * wording: the GM's PDF supplies it (bastion-text.mjs readUpgradeText).
+ * @param {string} text
+ * @returns {Object<string,string>} upgrade id → its printed description
+ */
+export function parseUpgradeLines(text) {
+  const lines = String(text ?? "").split("\n").map((l) => l.trim());
+  const at = lines.findIndex((l) => /^BASTION UPGRADES$/i.test(l));
+  const out = {};
+  if (at < 0) return out;
+  for (const line of lines.slice(at + 1)) {
+    const m = /^(.+?)\s+[\d,]+\s*gp\s+(.+)$/i.exec(line);
+    const id = m && m[1].toLowerCase().replace(/[^a-z]+/g, "-");
+    if (id && BASTION_UPGRADES.some((u) => u.id === id) && !(id in out)) out[id] = m[2].trim();
+  }
+  return out;
+}
 
 export const MOAT = "moat";
 const LOG_CAP = 60;
@@ -122,7 +143,7 @@ const TROPHY_NAME_MAX = 60;
  * vault: the bastion can hold items, up to VAULT_SLOTS gear slots (bastion-vault-core.mjs).
  * aviary: one pigeon message can be sent a day.
  * armorer, blacksmith, tradingPost: the party can buy that kind of ordinary gear here at 10% over (bastion-shop-core.mjs).
- * infirmary: the monthly pestilence check is made with advantage by the bastion's patients.
+ * infirmary: a pestilence on the month's roll names it (the check itself is run at the table).
  * stable: mounts stabled here (a mount's `bastion`) need no grazing or rations.
  */
 export function effects(state) {
@@ -290,10 +311,9 @@ export function advanceWeek(state) {
 }
 
 /**
- * The monthly disaster: a d6, and on a 1 a d4.
+ * The monthly disaster: a d6, and on a 1 a d4 picks the kind from `kinds` below,
+ * with a count of warbands or the damage rolled for the two that have one.
  * `die(n)` rolls 1..n (injected so a test can fix the dice).
- * 1 an army of 2d8 enemy warbands, 2 a natural disaster of 1d100 damage,
- * 3 pestilence (DC 12 CON or rat disease), 4 a dragonstrike.
  */
 export function rollDisaster(die) {
   const d6 = die(6);

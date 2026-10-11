@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { HOLY_DAYS, HOLY_DAY_PRESET, holyOnDay, holyWindows } from "../scripts/holidays/holy-days.mjs";
+import { HOLY_DAYS, HOLY_DAY_PRESET, HOLY_DAY_TABLES, holyOnDay, holyWindows, parseHolyDayRows } from "../scripts/holidays/holy-days.mjs";
 import { CHAPTER_PRESETS, nameKey } from "../scripts/importer/chapter-journal.mjs";
 import { dayEvents } from "../scripts/calendar/calendar-core.mjs";
 import { monthGrid } from "../scripts/overland/hud-core.mjs";
@@ -73,7 +73,55 @@ test("every holy day's page key is a section of the preset the import files", ()
   assert.equal(new Set(HOLY_DAYS.map((h) => h.key)).size, HOLY_DAYS.length, "keys are unique");
 });
 
-test("every holy day says what it is in the module's own words, and the strings exist", async () => {
+test("no holy day's wording ships: no `about` field and no holy.about strings", async () => {
   const en = JSON.parse((await import("node:fs")).readFileSync(new URL("../languages/en.json", import.meta.url), "utf8"));
-  for (const h of HOLY_DAYS) assert.ok(en[h.about]?.length > 20, `${h.name}: ${h.about}`);
+  for (const h of HOLY_DAYS) assert.equal("about" in h, false, h.name);
+  assert.deepEqual(Object.keys(en).filter((k) => k.startsWith("SDE.calendar.holy.about.")), []);
+});
+
+test("every dated holy day's page has a table the reader knows the names of", () => {
+  for (const h of HOLY_DAYS) assert.ok(HOLY_DAY_TABLES.get(h.page)?.includes(h.name), `${h.name} p. ${h.page}`);
+  assert.equal([...HOLY_DAY_TABLES.values()].flat().length, HOLY_DAYS.length + 4, "the four undated names are known too");
+});
+
+// Invented tables in the shapes the extractor's "layout" columns give a vertically centred cell.
+const NAMES = ["Moss Vigil", "Ember Walk", "Lantern Tide", "Quiet Hour"];
+const TABLE = [
+  "Some heading above",
+  "HOLY DAYS",
+  "Name            Details",
+  "On the first dusk, the keepers",
+  "Moss Vigil      light a row of green candles and",
+  "sing until the last one gutters",
+  "Barefoot pilgrims cross a bed",
+  "Ember Walk",
+  "of coals before the sun is up",
+  "Paper lamps are made all day,",
+  "Lantern Tide    and set on the river at dusk;",
+  "each floats until the water takes it",
+  "Nothing is told",
+  "Quiet Hour",
+  "of this day",
+  "PRAYER GENERATOR",
+  "d6  Detail 1",
+].join("\n");
+
+test("parseHolyDayRows cuts rows by the centred name: inline names, names on their own line, odd and even cells", () => {
+  const rows = parseHolyDayRows(TABLE, NAMES);
+  assert.equal(rows["Moss Vigil"], "On the first dusk, the keepers light a row of green candles and sing until the last one gutters");
+  assert.equal(rows["Ember Walk"], "Barefoot pilgrims cross a bed of coals before the sun is up");
+  assert.equal(rows["Lantern Tide"], "Paper lamps are made all day, and set on the river at dusk; each floats until the water takes it");
+  assert.equal(rows["Quiet Hour"], "Nothing is told of this day");
+});
+
+test("parseHolyDayRows stops at the next heading and reads nothing from a page with no table", () => {
+  assert.equal(Object.keys(parseHolyDayRows(TABLE, NAMES)).length, 4);
+  assert.deepEqual(parseHolyDayRows("PRAYER GENERATOR\nd6 Detail 1", NAMES), {});
+  assert.deepEqual(parseHolyDayRows("", NAMES), {});
+  assert.deepEqual(parseHolyDayRows(null, NAMES), {});
+});
+
+test("parseHolyDayRows leaves out a day whose name the table does not print", () => {
+  const rows = parseHolyDayRows(TABLE, ["Moss Vigil", "Not Here"]);
+  assert.deepEqual(Object.keys(rows), ["Moss Vigil"]);
 });

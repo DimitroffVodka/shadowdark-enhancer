@@ -430,6 +430,24 @@ export function registerSettings() {
     default: {},
     onChange: () => Hooks.callAll(`${MODULE_ID}.calendarLoreChanged`),
   });
+  // What each holy day is, read from the GM's Player's Guide (holidays.mjs readHolyDayText).
+  game.settings.register(MODULE_ID, "holyDayText", {
+    scope: "world",
+    config: false,
+    type: Object,
+    default: {},
+    onChange: () => Hooks.callAll(`${MODULE_ID}.calendarLoreChanged`),
+  });
+  // What each bastion upgrade does, read from the GM's Player's Guide (bastion-text.mjs readUpgradeText).
+  game.settings.register(MODULE_ID, "bastionUpgradeText", {
+    scope: "world",
+    config: false,
+    type: Object,
+    default: {},
+    onChange: () => {
+      for (const app of foundry.applications.instances.values()) if (app.document?.type === `${MODULE_ID}.bastion`) app.render();
+    },
+  });
   game.settings.register(MODULE_ID, "calendarGmOnly", {
     scope: "world",
     config: false,

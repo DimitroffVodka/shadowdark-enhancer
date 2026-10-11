@@ -45,8 +45,8 @@ const gearFixture = () => defineCuratedIconMap("gear-fixture", {
 
 /** A sourced-space fixture spanning two books. */
 const treasureFixture = () => defineCuratedIconMap("treasure-fixture", {
-  cs2: { "Tarnished, bronze oil lamp": LAMP, "Cracked mirror": MIRROR },
-  cs1: { "Cracked mirror": PUTTY },
+  cs2: { "Dented, pewter ladle": LAMP, "Chipped teacup": MIRROR },
+  cs1: { "Chipped teacup": PUTTY },
 }, { space: CURATED_KEY_SPACES.SOURCED });
 
 // ── normalization ────────────────────────────────────────────────────────────
@@ -82,9 +82,9 @@ test("curatedNameKey is idempotent and total", () => {
 });
 
 test("curatedSourcedKey canonicalizes every spelling of a book", () => {
-  const expected = "cs3:a golden skull studded with small sapphires";
+  const expected = "cs3:a jade frog studded with tiny rubies";
   for (const spelling of ["cs3", "CS3", "Cursed Scroll 3", "Cursed Scroll #3", "Midnight Sun"]) {
-    assert.equal(curatedSourcedKey(spelling, "A golden skull studded with small sapphires"), expected, spelling);
+    assert.equal(curatedSourcedKey(spelling, "A jade frog studded with tiny rubies"), expected, spelling);
   }
   // Both Western Reaches guides are one book.
   assert.equal(curatedSourcedKey("pgwr", "Net"), curatedSourcedKey("Western Reaches", "Net"));
@@ -106,10 +106,10 @@ test("defineCuratedIconMap derives keys from display names", () => {
 test("defineCuratedIconMap nests the sourced space by book", () => {
   const map = treasureFixture();
   assert.deepEqual(map.problems, []);
-  assert.equal(map.entries.get("cs2:tarnished, bronze oil lamp"), LAMP);
+  assert.equal(map.entries.get("cs2:dented, pewter ladle"), LAMP);
   // The same name in two books is two distinct entries — the whole point.
-  assert.equal(map.entries.get("cs2:cracked mirror"), MIRROR);
-  assert.equal(map.entries.get("cs1:cracked mirror"), PUTTY);
+  assert.equal(map.entries.get("cs2:chipped teacup"), MIRROR);
+  assert.equal(map.entries.get("cs1:chipped teacup"), PUTTY);
 });
 
 test("a duplicate key keeps the first row and records the loser", () => {
@@ -184,21 +184,21 @@ test("a bare-space entry is source-agnostic", () => {
 
 test("a treasure lookup needs its book and gets the right one", () => {
   const registry = buildCuratedIconRegistry([treasureFixture()]);
-  assert.equal(resolveCuratedIcon({ name: "Cracked mirror", source: "cs2" }, registry), MIRROR);
-  assert.equal(resolveCuratedIcon({ name: "Cracked mirror", source: "Diablerie" }, registry), PUTTY);
+  assert.equal(resolveCuratedIcon({ name: "Chipped teacup", source: "cs2" }, registry), MIRROR);
+  assert.equal(resolveCuratedIcon({ name: "Chipped teacup", source: "Diablerie" }, registry), PUTTY);
   // Without the book the sourced space is unreachable — by design, not by accident.
-  assert.equal(resolveCuratedIcon({ name: "Cracked mirror" }, registry), null);
+  assert.equal(resolveCuratedIcon({ name: "Chipped teacup" }, registry), null);
   // A book that has no entry for the name does not borrow another book's.
-  assert.equal(resolveCuratedIcon({ name: "Cracked mirror", source: "cs6" }, registry), null);
+  assert.equal(resolveCuratedIcon({ name: "Chipped teacup", source: "cs6" }, registry), null);
 });
 
 test("a qualified entry outranks a bare one of the same name", () => {
   const registry = buildCuratedIconRegistry([gearFixture(), treasureFixture()]);
-  const bare = defineCuratedIconMap("b", { "Cracked mirror": BLADE }, { space: CURATED_KEY_SPACES.BARE });
+  const bare = defineCuratedIconMap("b", { "Chipped teacup": BLADE }, { space: CURATED_KEY_SPACES.BARE });
   const both = buildCuratedIconRegistry([bare, treasureFixture()]);
-  assert.equal(resolveCuratedIcon({ name: "Cracked mirror", source: "cs2" }, both), MIRROR);
+  assert.equal(resolveCuratedIcon({ name: "Chipped teacup", source: "cs2" }, both), MIRROR);
   // …and falls back to the bare space when that book has no opinion.
-  assert.equal(resolveCuratedIcon({ name: "Cracked mirror", source: "cs6" }, both), BLADE);
+  assert.equal(resolveCuratedIcon({ name: "Chipped teacup", source: "cs6" }, both), BLADE);
   assert.equal(resolveCuratedIcon({ name: "Mirror", source: "cs2" }, registry), MIRROR);
 });
 
@@ -213,7 +213,7 @@ test("an unmatched name degrades to null rather than guessing", () => {
 
 test("the empty registry answers null for everything without failing", () => {
   assert.equal(resolveCuratedIcon({ name: "Bastard sword" }), null);
-  assert.equal(resolveCuratedIcon({ name: "Cracked mirror", source: "cs2" }, EMPTY_CURATED_ICON_REGISTRY), null);
+  assert.equal(resolveCuratedIcon({ name: "Chipped teacup", source: "cs2" }, EMPTY_CURATED_ICON_REGISTRY), null);
   assert.equal(curatedArtFor({ name: "Bastard sword" }), null);
   assert.deepEqual(auditCuratedIconRegistry().problems, []);
   assert.equal(auditCuratedIconRegistry().total, 0);
@@ -295,10 +295,10 @@ test("the D1-D6 coverage gate reports a valid-looking path missing from the supp
 
 test("a name living in both spaces is reported as informational, not a problem", () => {
   // Qualified-wins makes this resolvable, so it is counted rather than failed.
-  const bare = defineCuratedIconMap("b", { "Cracked mirror": BLADE }, { space: CURATED_KEY_SPACES.BARE });
+  const bare = defineCuratedIconMap("b", { "Chipped teacup": BLADE }, { space: CURATED_KEY_SPACES.BARE });
   const report = auditCuratedIconRegistry(buildCuratedIconRegistry([bare, treasureFixture()]));
   assert.deepEqual(report.problems, []);
-  assert.deepEqual(report.crossSpaceNames, ["cracked mirror"]);
+  assert.deepEqual(report.crossSpaceNames, ["chipped teacup"]);
 });
 
 // ── discovery-based registration ─────────────────────────────────────────────
@@ -324,8 +324,8 @@ test("registering a map publishes it to the live registry", (t) => {
   assert.equal(resolveCuratedIcon({ name: "Bastard sword" }), BLADE);
 
   // A second map lands in the same spaces — registration order is the merge order.
-  registerCuratedIconMap("plunder", { cs2: { "Tarnished, bronze oil lamp": LAMP } }, { space: CURATED_KEY_SPACES.SOURCED });
-  assert.equal(resolveCuratedIcon({ name: "Tarnished, bronze oil lamp", source: "Cursed Scroll #2" }), LAMP);
+  registerCuratedIconMap("plunder", { cs2: { "Dented, pewter ladle": LAMP } }, { space: CURATED_KEY_SPACES.SOURCED });
+  assert.equal(resolveCuratedIcon({ name: "Dented, pewter ladle", source: "Cursed Scroll #2" }), LAMP);
   assert.equal(auditCuratedIconRegistry().total, 2);
   assert.deepEqual(auditCuratedIconRegistry().perMap.map((m) => m.label), ["weapons", "plunder"]);
 });

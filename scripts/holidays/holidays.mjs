@@ -36,7 +36,7 @@ import { CHAPTER_FLAG, CHAPTER_PRESETS, commitChapterJournal, isSameChapter, nam
 import { timeApi } from "../time/time.mjs";
 import { startOfDay } from "../time/time-core.mjs";
 import { paragraphs, solarOn } from "../calendar/calendar-core.mjs";
-import { HOLY_DAYS, HOLY_DAY_PRESET } from "./holy-days.mjs";
+import { HOLY_DAYS, HOLY_DAY_PRESET, HOLY_DAY_TABLES, HOLY_TEXT_SETTING, parseHolyDayRows } from "./holy-days.mjs";
 
 /** The chapter preset that imports the holiday pages (its src + pages are the journal's identity). */
 export const HOLIDAY_PRESET = "cs6-holidays";
@@ -238,6 +238,7 @@ async function fileCalendarChapters(src, quiet) {
     if (report.uuid) created += report.created; else failed = true;
   }
   if (created) await publishLore();
+  if (!src || src === "WR") await readMissingHolyDayText();
   if (failed) return { status: "failed" };
   return created ? { status: "imported", created } : { status: "already" };
 }
@@ -293,15 +294,77 @@ export async function fileLinkedChapters() {
  */
 export async function listHolyDays() {
   const pages = await importedPages(HOLY_DAY_PRESET);
-  return HOLY_DAYS.filter((h) => pages.has(h.pageKey)).map((h) => ({ ...structuredClone(h), pageUuid: pages.get(h.pageKey) }));
+  const text = holyDayText();
+  return HOLY_DAYS.filter((h) => pages.has(h.pageKey)).map((h) => ({ ...structuredClone(h), pageUuid: pages.get(h.pageKey), about: text[h.key] ?? "" }));
+}
+
+// ── What a holy day is ───────────────────────────────────────────────────────
+// The calendar shows a line on each holy day. It is the book's own, read once
+// from the GM's Player's Guide into a world setting every client reads; this
+// module ships none of it. Until it is read, a holy day shows its name, god and
+// date, and a GM sees a button that reads it.
+
+/** What each holy day is, as the GM's PDF prints it: key → text. */
+export function holyDayText() {
+  try {
+    const v = game.settings.get(MODULE_ID, HOLY_TEXT_SETTING);
+    return v && typeof v === "object" ? v : {};
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * GM only: read each god's Holy Days table from the linked Player's Guide and keep it,
+ * over what is kept. Returns how many holy days are kept afterwards.
+ * @param {{quiet?:boolean}} [opts]  quiet: no toasts (the world-load read; nobody asked)
+ */
+export async function readHolyDayText({ quiet = false } = {}) {
+  if (!game.user?.isGM) return 0;
+  const t = (k, d) => game.i18n.format(k, d);
+  const note = (level, key, data) => { if (!quiet) ui.notifications?.[level](t(key, data)); };
+  const { sourcePdfTarget } = await import("../importer/source-pdf-registry.mjs");
+  const { extractPdfText } = await import("../importer/pdf-text-extract.mjs");
+  const found = {};
+  let linked = false;
+  for (const [page, names] of HOLY_DAY_TABLES) {
+    const target = sourcePdfTarget("WR", String(page));
+    if (!target) break;
+    linked = true;
+    try {
+      const { text } = await extractPdfText(target.file, { pages: [target.page], columns: "layout" });
+      Object.assign(found, parseHolyDayRows(text, names));
+    } catch (err) {
+      console.warn(`${MODULE_ID} | holidays: could not read the holy days table on p.${page}`, err);
+    }
+  }
+  if (!linked) { note("warn", "SDE.calendar.holy.notify.noPdf"); return 0; }
+  const read = Object.fromEntries(HOLY_DAYS.filter((h) => found[h.name]).map((h) => [h.key, found[h.name]]));
+  if (!Object.keys(read).length) { note("warn", "SDE.calendar.holy.notify.notFound"); return 0; }
+  const merged = { ...holyDayText(), ...read };
+  if (JSON.stringify(merged) !== JSON.stringify(holyDayText())) await game.settings.set(MODULE_ID, HOLY_TEXT_SETTING, merged);
+  const n = Object.keys(merged).length;
+  if (n < HOLY_DAYS.length) note("warn", "SDE.calendar.holy.notify.partial", { n, of: HOLY_DAYS.length });
+  else note("info", "SDE.calendar.holy.notify.read", { n });
+  return n;
+}
+
+// The world-load filing asks once a session, and only while a filed holy day has no text.
+let triedHolyText = false;
+async function readMissingHolyDayText() {
+  if (triedHolyText || !game.user?.isGM) return;
+  const have = holyDayText();
+  if (!(await listHolyDays()).some((h) => !have[h.key])) return;
+  triedHolyText = true;
+  try { await readHolyDayText({ quiet: true }); } catch (err) { console.warn(`${MODULE_ID} | holidays: holy day text not read`, err); }
 }
 
 // ── What players may see ──────────────────────────────────────────────────────
 // The journals pack holds every imported book and is the GM's: a player cannot
 // read it. So a GM copies what the calendar shows into a world setting, which
 // everyone can read: each holiday's page text, and which holy days are filed.
-// Only those pages, never the pack. The holy days' text is this module's own
-// (en.json); a player gets no page for them.
+// Only those pages, never the pack. A holy day's line is a world setting of its own
+// (holyDayText); a player gets no page for them.
 
 /** The world setting that holds the copy. */
 export const LORE_SETTING = "calendarLore";
@@ -402,7 +465,8 @@ export async function calendarHolidays() {
 export async function calendarHolyDays() {
   if (game.user?.isGM) return listHolyDays();
   const { holy } = readLore();
-  return HOLY_DAYS.filter((h) => holy.includes(h.key)).map((h) => ({ ...structuredClone(h), pageUuid: null }));
+  const text = holyDayText();
+  return HOLY_DAYS.filter((h) => holy.includes(h.key)).map((h) => ({ ...structuredClone(h), pageUuid: null, about: text[h.key] ?? "" }));
 }
 
 /** A recipe as the API returns it: labels localised, the imported page's uuid added. */

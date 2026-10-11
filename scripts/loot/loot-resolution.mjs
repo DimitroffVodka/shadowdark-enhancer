@@ -1,8 +1,8 @@
 /**
  * Shadowdark Enhancer — precise loot-row → Item resolution (pure).
  *
- * A loot table row is prose, not a name: "Unopened bottle of exceptionally
- * potent Murgazi wine (25 gp)". The old resolver asked whether the row
+ * A loot table row is prose, not a name: "Sealed bottle of exceptionally
+ * rare vintage wine (25 gp)". The old resolver asked whether the row
  * CONTAINED any known item name as a word — `\b<name>s?\b` over the whole row,
  * longest candidate first — which is a containment test wearing a word-boundary
  * costume. Every generic container, material or body part in the system gear
@@ -130,8 +130,8 @@ function _singularCandidates(word) {
  *
  * Each fold is anchored — a LEADING article or count, a TRAILING parenthetical
  * or punctuation, the FINAL word's plural. None of them can shorten the phrase
- * to one of its interior words, which is the whole point: "unopened bottle of
- * exceptionally potent murgazi wine" folds to itself, never to "bottle".
+ * to one of its interior words, which is the whole point: "sealed bottle of
+ * exceptionally rare vintage wine" folds to itself, never to "bottle".
  *
  * The trailing strips also run to a fixed point, so `"rope (60 ft)."` loses the
  * period, then the parenthetical, rather than only the one it reaches first.

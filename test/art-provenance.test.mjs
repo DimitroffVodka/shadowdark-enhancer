@@ -228,21 +228,21 @@ test("the explicit A7/D6 marker in the protected Items pack IS still replace-alw
   // The other half of the contract: opting in explicitly still works, and only
   // inside the protected pack.
   const stored = {
-    name: "Murgazi Wine", type: "Basic", img: GM_ART,
+    name: "Vintage Wine", type: "Basic", img: GM_ART,
     flags: { [MODULE_ID]: { generated: true } },
     system: { description: "<p>A hand-written tasting note.</p>" },
   };
   assert.equal(isGeneratedManagedItem(stored, MANAGED_ITEMS_PACK), true);
 
-  const payload = buildItemData({ name: "Murgazi Wine", type: "Basic" });
+  const payload = buildItemData({ name: "Vintage Wine", type: "Basic" });
   preserveCuratedFields(payload, stored, {
     generatedArtifact: isGeneratedManagedItem(stored, MANAGED_ITEMS_PACK),
   });
-  assert.equal(payload.img, defaultItemImg({ name: "Murgazi Wine", type: "Basic" }));
+  assert.equal(payload.img, defaultItemImg({ name: "Vintage Wine", type: "Basic" }));
   assert.equal(payload.system.description, "<p></p>");
 
   // The same document outside the protected pack falls back to preservation.
-  const outside = buildItemData({ name: "Murgazi Wine", type: "Basic" });
+  const outside = buildItemData({ name: "Vintage Wine", type: "Basic" });
   preserveCuratedFields(outside, stored, {
     generatedArtifact: isGeneratedManagedItem(stored, "world.talents"),
   });
@@ -379,13 +379,13 @@ test("a plain re-import of untouched content is byte-stable", () => {
 
 test("inside the generated boundary the whole document is authoritative, art included", () => {
   const stored = {
-    name: "Murgazi Wine", type: "Basic", img: GM_ART,
+    name: "Vintage Wine", type: "Basic", img: GM_ART,
     flags: { [MODULE_ID]: { generated: true, art: { state: ART_STATES.CUSTOM, img: GM_ART } } },
     system: { description: "<p>A hand-written tasting note.</p>", properties: ["Compendium.x.Item.KEPT"] },
   };
-  const out = reimport({ name: "Murgazi Wine", type: "Basic" }, stored, { generatedArtifact: true });
+  const out = reimport({ name: "Vintage Wine", type: "Basic" }, stored, { generatedArtifact: true });
   assert.notEqual(out.img, GM_ART);
-  assert.equal(out.img, defaultItemImg({ name: "Murgazi Wine", type: "Basic" }));
+  assert.equal(out.img, defaultItemImg({ name: "Vintage Wine", type: "Basic" }));
   assert.equal(out.flags[MODULE_ID].art.state, ART_STATES.DEFAULT);
   // Replace-always means the GM's description and properties go too — this is
   // the A7/D6 boundary, not A3's preservation policy.
@@ -395,11 +395,11 @@ test("inside the generated boundary the whole document is authoritative, art inc
 
 test("the same document OUTSIDE the generated boundary keeps everything", () => {
   const stored = {
-    name: "Murgazi Wine", type: "Basic", img: GM_ART,
+    name: "Vintage Wine", type: "Basic", img: GM_ART,
     flags: { [MODULE_ID]: { imported: true } },
     system: { description: "<p>A hand-written tasting note.</p>" },
   };
-  const out = reimport({ name: "Murgazi Wine", type: "Basic" }, stored);
+  const out = reimport({ name: "Vintage Wine", type: "Basic" }, stored);
   assert.equal(out.img, GM_ART);
   assert.equal(out.system.description, "<p>A hand-written tasting note.</p>");
 });

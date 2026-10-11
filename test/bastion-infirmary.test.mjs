@@ -1,4 +1,4 @@
-// The Infirmary: a pestilence roll names it, so the patients make the CON check with advantage; other disasters don't.
+// The Infirmary: a pestilence roll names it (its effect is read from the GM's own PDF); other disasters don't.
 import test from "node:test";
 import assert from "node:assert/strict";
 
@@ -23,7 +23,7 @@ test("a finished Infirmary is an effect only while the bastion stands", () => {
   assert.equal(core.effects(core.build({ ...core.newBastion("keep"), weeksLeft: 0, treasury: 5000 }, "infirmary").state).infirmary, false, "still building");
 });
 
-test("a pestilence under an Infirmary says the patients have advantage; without one it is just the log line", () => {
+test("a pestilence under an Infirmary names the Infirmary; without one it is just the log line", () => {
   const withIt = monthLine(rolled(keep(["infirmary"]), "pestilence"));
   assert.match(withIt, /SDE\.bastion\.log\.pestilence/);
   assert.match(withIt, /SDE\.bastion\.infirmary\.pestilence/);

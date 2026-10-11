@@ -1,7 +1,13 @@
 /**
- * D5/#58 — exact CS2 Dead Bandit loot rows, curated art, and generated
- * materialization.  These fixtures cover the pure source seam and the
+ * D5/#58 — fingerprint-recognised CS2 Dead Bandit loot rows, curated art, and
+ * generated materialization.  These fixtures cover the pure source seam and the
  * Foundry-shaped table/pack adapters without mutating a world.
+ *
+ * No book text lives in this repo: the rows below are INVENTED.  Their shapes
+ * (which words of a row are the Item name, where the feature starts) and their
+ * art are installed through the module's test seam and the curated registry,
+ * then run through the same recogniser the shipped fingerprints use.  The
+ * shipped tables are checked for shape only.
  */
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
@@ -15,21 +21,23 @@ import {
   auditCuratedIconRegistry,
   buildCuratedIconRegistry,
   curatedIconRegistry,
-  curatedNameKey,
+  registerCuratedIconMap,
   resolveCuratedIcon,
 } from "../scripts/shared/curated-icons.mjs";
+import { textFingerprint } from "../scripts/shared/text-fingerprint.mjs";
 import { generatedItemId } from "../scripts/shared/generated-items.mjs";
 import {
   DEAD_BANDIT_LOOT_ICONS,
-  DEAD_BANDIT_LOOT_ROWS,
+  DEAD_BANDIT_LOOT_ROWS as SHIPPED_ICON_ROWS,
 } from "../scripts/shared/curated-icon-maps/dead-bandit-loot-icons.mjs";
 import "../scripts/shared/curated-icon-maps/index.mjs";
 import {
   DEAD_BANDIT_LOOT_CONTENT_ID,
   DEAD_BANDIT_LOOT_MANIFEST_ID,
   DEAD_BANDIT_LOOT_SOURCE,
-  DEAD_BANDIT_LOOT_SOURCE_ROWS,
+  DEAD_BANDIT_LOOT_SOURCE_ROWS as SHIPPED_SHAPES,
   DEAD_BANDIT_LOOT_TABLE_NAME,
+  _setDeadBanditLootRows,
   buildDeadBanditLootDefinitions,
   buildDeadBanditLootItem,
   deadBanditLootItemName,
@@ -66,51 +74,48 @@ const INVENTORY_SKIP_REASON = FOUNDRY_ICONS === null
   ? `Foundry icon directory unavailable: ${FOUNDRY_ICON_ROOT}`
   : false;
 
-const EXPECTED_SOURCE_TEXTS = [
-  "Cursed eye token; DISADV on next check or attack roll",
-  "Burlap bag tied shut with an angry cobra inside",
-  "Torn half of a treasure map; other half next time rolling this",
-  "Sealed clay jar with, 1d4: 1-2. 20 gp, 3-4. scarab beetle swarm",
-  "Brass wine cup with secret reservoir that dispenses poison",
-  "Three trick dice weighted to roll, 1d4: 1-2. high, 3-4. low",
-  "Invitation to a private pit fight at a powerful noble's palace",
-  "A jade comb that, by law, forgives its bearer of one crime",
-  "Corked glass vial with a tiny, living scorpion inside it",
-  "Unopened bottle of exceptionally potent Murgazi wine",
-  "Scarab beetle token; ADV on next check or attack roll",
-  "Gold signet ring belonging to a noble family in Alkesh",
-  "Bag of 1d4 sweet dates that each heal 1 HP when eaten",
-  "Worm oil; pour in sand to attract a purple worm in 1d4 rds",
-  "Vial of poison, 1d4: 1-2. common, 3. uncommon, 4. rare",
-  "Tube with 1d4 phoenix plumes, work as waterproof matches",
-  "Ownership papers for a prized war horse stabled in Alkesh",
-  "Shard of blue glass that sometimes reflects brief portents",
-  "Bag of magic sesame seeds; sprinkle on a door to unlock it",
-  "Tarnished, bronze oil lamp carved with a faded inscription",
-];
-
-const EXPECTED_FEATURES = [
-  "DISADV on next check or attack roll",
-  "tied shut with an angry cobra inside",
-  "other half next time rolling this",
-  "with, 1d4: 1-2. 20 gp, 3-4. scarab beetle swarm",
-  "with secret reservoir that dispenses poison",
-  "weighted to roll, 1d4: 1-2. high, 3-4. low",
-  "at a powerful noble's palace",
-  "that, by law, forgives its bearer of one crime",
-  "with a tiny, living scorpion inside it",
-  "",
-  "ADV on next check or attack roll",
-  "belonging to a noble family in Alkesh",
-  "of 1d4 sweet dates that each heal 1 HP when eaten",
-  "pour in sand to attract a purple worm in 1d4 rds",
-  "1d4: 1-2. common, 3. uncommon, 4. rare",
-  "1d4 phoenix plumes, work as waterproof matches",
-  "stabled in Alkesh",
-  "that sometimes reflects brief portents",
-  "sprinkle on a door to unlock it",
-  "carved with a faded inscription",
-];
+// Twenty made-up rows: [source text, Item name, feature, name word indices,
+// feature start].  They cover a contiguous name, a name with a skipped word,
+// a leading article dropped and the name capitalised, a trailing `;` or `,`
+// stripped, an interior comma kept, a row that is all name, and an interior
+// "10 gp" that is feature prose and not a terminal price.
+const INVENTED = Object.freeze([
+  ["Glass bead; glows near running water", "Glass bead", "glows near running water", [0, 1], 2],
+  ["Linen sack tied shut with a sleeping badger inside", "Linen sack", "tied shut with a sleeping badger inside", [0, 1], 2],
+  ["Torn corner of a seaside chart; rest of it turns up later", "Torn corner of a seaside chart", "rest of it turns up later", [0, 1, 2, 3, 4, 5], 6],
+  ["Wicker basket with, 1d6: 1-3. 10 gp, 4-6. a nest of wasps", "Wicker basket", "with, 1d6: 1-3. 10 gp, 4-6. a nest of wasps", [0, 1], 2],
+  ["Pewter flask with a hidden compartment for notes", "Pewter flask", "with a hidden compartment for notes", [0, 1], 2],
+  ["Four loaded coins weighted to land, 1d6: 1-3. heads, 4-6. tails", "Four loaded coins", "weighted to land, 1d6: 1-3. heads, 4-6. tails", [0, 1, 2], 3],
+  ["Summons to a secret tea party at a baron's cottage", "Summons to a secret tea party", "at a baron's cottage", [0, 1, 2, 3, 4, 5], 6],
+  ["An amber brooch that, by custom, excuses its wearer from one chore", "Amber brooch", "that, by custom, excuses its wearer from one chore", [1, 2], 3],
+  ["Stoppered ceramic bottle with a polite, living cricket inside it", "Stoppered ceramic bottle", "with a polite, living cricket inside it", [0, 1, 2], 3],
+  ["Sealed barrel of unusually fragrant harbour tea", "Sealed barrel of unusually fragrant harbour tea", "", [0, 1, 2, 3, 4, 5, 6], null],
+  ["Fox token; ADV on the next climb", "Fox token", "ADV on the next climb", [0, 1], 2],
+  ["Silver thimble belonging to a baker in Hollowmere", "Silver thimble", "belonging to a baker in Hollowmere", [0, 1], 2],
+  ["Satchel of 3d4 smooth pebbles that each skip twice", "Satchel of smooth pebbles", "of 3d4 smooth pebbles that each skip twice", [0, 1, 3, 4], 1],
+  ["Lamp wax; melt in a bowl to call a lazy moth in 1d4 rds", "Lamp wax", "melt in a bowl to call a lazy moth in 1d4 rds", [0, 1], 2],
+  ["Phial of ink, 1d4: 1-2. blue, 3. green, 4. gold", "Phial of ink", "1d4: 1-2. blue, 3. green, 4. gold", [0, 1, 2], 3],
+  ["Tin with 2d4 pressed daisies, work as lucky bookmarks", "Tin with pressed daisies", "2d4 pressed daisies, work as lucky bookmarks", [0, 1, 3, 4], 2],
+  ["Deed to a modest windmill kept in Hollowmere", "Deed to a modest windmill", "kept in Hollowmere", [0, 1, 2, 3, 4], 5],
+  ["Chip of green glass that sometimes hums quietly", "Chip of green glass", "that sometimes hums quietly", [0, 1, 2, 3], 4],
+  ["Pinch of salt; sprinkle on a stair to quiet it", "Pinch of salt", "sprinkle on a stair to quiet it", [0, 1, 2], 3],
+  ["Weathered, copper spoon etched with a tiny map", "Weathered, copper spoon", "etched with a tiny map", [0, 1, 2], 3],
+].map(([sourceText, name, feature, nameWords, featureFrom], index) => Object.freeze({
+  sourceText,
+  name,
+  feature,
+  img: `icons/invented/bandit-${index + 1}.webp`,
+  shape: Object.freeze({ fp: textFingerprint(sourceText), name: nameWords, feature: featureFrom }),
+})));
+const EXPECTED_SOURCE_TEXTS = INVENTED.map((row) => row.sourceText);
+const EXPECTED_FEATURES = INVENTED.map((row) => row.feature);
+const DEAD_BANDIT_LOOT_ROWS = INVENTED.map(({ name, img }) => ({ name, img }));
+_setDeadBanditLootRows(INVENTED.map((row) => row.shape));
+registerCuratedIconMap(
+  "invented-dead-bandit",
+  { cs2: Object.fromEntries(INVENTED.map((row) => [row.shape.fp, row.img])) },
+  { space: CURATED_KEY_SPACES.SOURCED },
+);
 
 function rowObject(text, index) {
   return {
@@ -220,36 +225,42 @@ function createAdapter(pack, { failName = null } = {}) {
   };
 }
 
-test("Dead Bandit source data pins exactly the twenty N3 §5.3 rows", () => {
-  assert.equal(DEAD_BANDIT_LOOT_SOURCE_ROWS.length, 20);
-  assert.deepEqual(DEAD_BANDIT_LOOT_SOURCE_ROWS.map((row) => row.sourceText), EXPECTED_SOURCE_TEXTS);
-  assert.deepEqual(DEAD_BANDIT_LOOT_SOURCE_ROWS.map((row) => row.feature), EXPECTED_FEATURES);
-  assert.deepEqual(DEAD_BANDIT_LOOT_SOURCE_ROWS.map((row) => row.name), DEAD_BANDIT_LOOT_ROWS.map((row) => row.name));
+test("the shipped Dead Bandit data is twenty fingerprints, word indices and art, and no text", () => {
+  assert.equal(SHIPPED_SHAPES.length, 20);
+  assert.equal(SHIPPED_ICON_ROWS.length, 20);
+  for (const shape of SHIPPED_SHAPES) {
+    assert.deepEqual(Object.keys(shape).sort(), ["feature", "fp", "name"]);
+    assert.match(shape.fp, /^[0-9a-f]{14}$/);
+    assert.ok(shape.name.length > 0 && shape.name.every(Number.isInteger));
+    assert.ok(shape.feature === null || Number.isInteger(shape.feature));
+  }
+  assert.deepEqual(SHIPPED_SHAPES.map((shape) => shape.fp), SHIPPED_ICON_ROWS.map((row) => row.fp));
 });
 
-test("Dead Bandit map is exactly twenty sourced rows with the reviewed paths", () => {
+test("Dead Bandit map is exactly twenty sourced fingerprints with native Foundry paths", () => {
   assert.equal(DEAD_BANDIT_LOOT_ICONS.label, "dead-bandit-loot");
   assert.equal(DEAD_BANDIT_LOOT_ICONS.space, CURATED_KEY_SPACES.SOURCED);
   assert.deepEqual([...DEAD_BANDIT_LOOT_ICONS.problems], []);
   assert.equal(DEAD_BANDIT_LOOT_ICONS.entries.size, 20);
   assert.deepEqual(
     [...DEAD_BANDIT_LOOT_ICONS.entries.keys()].sort(),
-    DEAD_BANDIT_LOOT_ROWS.map((row) => `cs2:${curatedNameKey(row.name)}`).sort(),
+    SHIPPED_ICON_ROWS.map((row) => `cs2:${row.fp}`).sort(),
   );
   assert.deepEqual(
-    DEAD_BANDIT_LOOT_ROWS.map((row) => DEAD_BANDIT_LOOT_ICONS.entries.get(`cs2:${curatedNameKey(row.name)}`)),
-    DEAD_BANDIT_LOOT_ROWS.map((row) => row.img),
+    SHIPPED_ICON_ROWS.map((row) => DEAD_BANDIT_LOOT_ICONS.entries.get(`cs2:${row.fp}`)),
+    SHIPPED_ICON_ROWS.map((row) => row.img),
   );
 });
 
 test("A4 discovery registers Dead Bandit art in the CS2 sourced space", () => {
   const registry = curatedIconRegistry();
+  const key = INVENTED[9].shape.fp;
   assert.ok(registry.maps.includes(DEAD_BANDIT_LOOT_ICONS));
-  assert.equal(registry.sourced.size, 60);
+  assert.equal(registry.sourced.size, 60 + INVENTED.length);
   assert.equal(registry.bare.size, 94);
-  assert.equal(resolveCuratedIcon({ name: "Unopened bottle of exceptionally potent Murgazi wine", source: "CS2" }), DEAD_BANDIT_LOOT_ROWS[9].img);
-  assert.equal(resolveCuratedIcon({ name: "Unopened bottle of exceptionally potent Murgazi wine", source: "CS3" }), null);
-  assert.equal(resolveCuratedIcon({ name: "Unopened bottle of exceptionally potent Murgazi wine" }), null);
+  assert.equal(resolveCuratedIcon({ name: key, source: "CS2" }), INVENTED[9].img);
+  assert.equal(resolveCuratedIcon({ name: key, source: "CS3" }), null);
+  assert.equal(resolveCuratedIcon({ name: key }), null);
 });
 
 test("the Dead Bandit map passes the real Foundry icon path gate", { skip: INVENTORY_SKIP_REASON }, () => {
@@ -264,9 +275,10 @@ test("the Dead Bandit map passes the real Foundry icon path gate", { skip: INVEN
 
 test("all composed curated maps remain collision-free after D5", () => {
   const report = auditCuratedIconRegistry(curatedIconRegistry());
-  assert.equal(report.total, 154);
+  // 94 bare + the three shipped treasure maps' 60 + this file's invented 20.
+  assert.equal(report.total, 154 + INVENTED.length);
   assert.equal(report.bare, 94);
-  assert.equal(report.sourced, 60);
+  assert.equal(report.sourced, 60 + INVENTED.length);
   assert.deepEqual(report.problems, []);
   assert.deepEqual(report.crossSpaceNames, []);
 });
@@ -306,16 +318,49 @@ test("source-exact definitions expose canonical names, visible features, and ter
   assert.equal(definitions.desired[3].system.cost.gp, 0, "interior 20 gp is feature prose, not a terminal price");
 });
 
+test("every row's Item name and feature are cut out of the printed text by its shipped shape", () => {
+  for (const row of INVENTED) {
+    const built = buildDeadBanditLootItem(row.sourceText);
+    assert.equal(built.status, "resolved", row.sourceText);
+    assert.equal(built.name, row.name);
+    assert.equal(built.feature, row.feature);
+    assert.equal(built.img, row.img);
+  }
+});
+
+test("curly quotes and stray whitespace in the printed text do not change the minted Item", () => {
+  const row = INVENTED[6];
+  const messy = row.sourceText.replace("'", "\u2019").replace(/ /g, "  ");
+  const built = buildDeadBanditLootItem(` ${messy} `);
+  assert.equal(built.status, "resolved");
+  assert.equal(built.name, row.name);
+  assert.equal(built.feature, row.feature);
+});
+
+test("a row whose fingerprint is unknown is refused, and art is source-qualified", () => {
+  const unknown = buildDeadBanditLootItem("Glass bead; glows near running snow");
+  assert.equal(unknown.status, "unresolved");
+  assert.equal(unknown.reason, "unmapped-row");
+  assert.equal(unknown.itemData, undefined);
+  for (const book of ["CS1", "CS3"]) {
+    assert.equal(buildDeadBanditLootItem(EXPECTED_SOURCE_TEXTS[0], { source: book }).reason, "wrong-source");
+  }
+  // The row's art is registered under CS2 only: no other book resolves it.
+  assert.equal(resolveCuratedIcon({ name: INVENTED[0].shape.fp, source: "cs2" }), INVENTED[0].img);
+  assert.equal(resolveCuratedIcon({ name: INVENTED[0].shape.fp, source: "cs1" }), null);
+  assert.equal(resolveCuratedIcon({ name: INVENTED[0].shape.fp, source: "cs3" }), null);
+});
+
 test("negative rows never use generic Bottle/Flask containment or neighboring source art", () => {
-  const murgaziNearMiss = buildDeadBanditLootItem("Murgazi wine in a bottle (25 gp)");
+  const teaNearMiss = buildDeadBanditLootItem("Harbour tea in a barrel (25 gp)");
   const oilNearMiss = buildDeadBanditLootItem("A flask of exceptionally fine oil (2 gp)");
-  assert.equal(murgaziNearMiss.status, "unresolved");
-  assert.equal(murgaziNearMiss.reason, "unmapped-row");
+  assert.equal(teaNearMiss.status, "unresolved");
+  assert.equal(teaNearMiss.reason, "unmapped-row");
   assert.equal(oilNearMiss.status, "unresolved");
   assert.equal(oilNearMiss.reason, "unmapped-row");
   assert.equal(buildDeadBanditLootItem(EXPECTED_SOURCE_TEXTS[0], { source: "CS3" }).reason, "wrong-source");
   assert.equal(buildDeadBanditLootItem("100 gp").status, "coin");
-  assert.equal(buildDeadBanditLootItem("Murgazi wine in a bottle (25 gp)").itemData, undefined);
+  assert.equal(buildDeadBanditLootItem("Harbour tea in a barrel (25 gp)").itemData, undefined);
 });
 
 describe("Dead Bandit generated materialization", () => {
@@ -496,4 +541,10 @@ test("generated identity remains source-qualified for every canonical row", () =
   const ids = DEAD_BANDIT_LOOT_ROWS.map((row) => generatedItemId("CS2", row.name));
   assert.equal(new Set(ids).size, 20);
   assert.ok(ids.every((id) => /^fnv1a32:[0-9a-f]{8}$/.test(id)));
+});
+
+test("restoring the shipped rows forgets an invented row", () => {
+  assert.equal(buildDeadBanditLootItem(EXPECTED_SOURCE_TEXTS[0]).status, "resolved");
+  _setDeadBanditLootRows();
+  assert.equal(buildDeadBanditLootItem(EXPECTED_SOURCE_TEXTS[0]).reason, "unmapped-row");
 });
