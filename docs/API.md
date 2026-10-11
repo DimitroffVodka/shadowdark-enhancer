@@ -153,9 +153,10 @@ system, whose clamp to the maximum then applies as usual. HP is never raised abo
 and temp HP do not stack. Added in `1.29.0`.
 
 **Limit.** A source that writes `system.attributes.hp.value` directly never calls `applyDamage`, so it does not spend the
-pool. Shadowdark Extras does this for its damage card's Apply damage button and for its aura, template, duration and focus
-damage: in a world with Extras those hits take HP and leave the pool as it was. This is tracked in
-[shadowdark-extras#215](https://github.com/DimitroffVodka/shadowdark-extras/issues/215). A module that deals damage should call
+pool, and neither does a manual edit of the HP number. Shadowdark Extras spends the pool itself, through `api.tempHp`, for its
+damage card's Apply damage button and for its aura, template, duration-spell and focus-spell damage, from the Extras release
+that closed [shadowdark-extras#215](https://github.com/DimitroffVodka/shadowdark-extras/issues/215); older Extras write hit
+points directly, so their hits take HP and leave the pool as it was. A module that deals damage should call
 `actor.applyDamage(amount)` rather than write HP.
 
 ```js
