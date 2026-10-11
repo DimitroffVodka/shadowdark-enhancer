@@ -91,6 +91,6 @@ export function registerHexMapControls() {
   Hooks.on("updateScene", (scene, changed) => {
     if (scene.id !== canvas?.scene?.id || !changed?.flags?.[MODULE_ID]) return;
     const had = Object.keys(ui.controls?.controls?.sdeHexMap?.tools ?? {}).join();
-    if (had !== Object.keys(hexMapTools(scene, { isGM: !!game.user?.isGM }) ?? {}).join()) refresh();
+    if (had !== Object.keys(hexMapTools(scene, { isGM: !!game.user?.isGM, fog: ownsHexFog(scene) }) ?? {}).join()) refresh();
   });
 }

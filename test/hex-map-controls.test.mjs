@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { hexMapTools, refreshOptions } from "../scripts/hex-map/hex-map-controls.mjs";
+import { hexMapTools, refreshOptions, registerHexMapControls } from "../scripts/hex-map/hex-map-controls.mjs";
 
 const scene = (flags) => ({ getFlag: (_mod, key) => flags[key] });
 
@@ -68,4 +68,36 @@ test("a painted scene Extras built has records but no tags: only the switches th
   assert.deepEqual(Object.keys(hexMapTools(painted, { isGM: true })), ["hexTooltip"], "no fog switches where the module draws no fog");
   assert.equal(hexMapTools(painted, { isGM: false }), null);
   assert.equal(hexMapTools(scene({ hexRecords: { version: 1 } }), { isGM: true }), null, "records that were never adopted are not a hex scene");
+});
+
+test("a flag update on a scene that owns the fog redraws the toolbar only when the tool set changes", () => {
+  const handlers = [];
+  const saved = Object.fromEntries(["Hooks", "ui", "canvas", "game"].map((k) => [k, globalThis[k]]));
+  globalThis.Hooks = { on: (name, fn) => { if (name === "updateScene") handlers.push(fn); } };
+  try {
+    const flags = { hexRecords: { adopted: true } };
+    const painted = { id: "s1", grid: { isHexagonal: true }, flags: {}, getFlag: (_mod, key) => flags[key] };
+    let renders = 0, shown = [];
+    globalThis.canvas = { scene: painted };
+    globalThis.game = { user: { isGM: true }, modules: new Map() };
+    globalThis.ui = { controls: { render: () => { renders++; }, controls: { sdeHexMap: { get tools() { return Object.fromEntries(shown.map((k) => [k, {}])); } } } } };
+    registerHexMapControls();
+    const [onUpdate] = handlers;
+    const changed = { flags: { "shadowdark-enhancer": { anything: 1 } } };
+    shown = ["hexPlayerView", "hexFogHidden", "hexTooltip"];
+    onUpdate(painted, changed);
+    assert.equal(renders, 0, "the fog tools are already up and still owned: no redraw");
+    shown = ["hexTooltip"];
+    onUpdate(painted, changed);
+    assert.equal(renders, 1, "the fog tools are missing from the toolbar: redraw");
+    painted.grid.isHexagonal = false; // ownership flips off
+    shown = ["hexTooltip"];
+    onUpdate(painted, changed);
+    assert.equal(renders, 1, "the module no longer draws the fog and the fog tools are gone: no redraw");
+    shown = ["hexPlayerView", "hexFogHidden", "hexTooltip"];
+    onUpdate(painted, changed);
+    assert.equal(renders, 2, "the fog tools are up but no longer owned: redraw");
+  } finally {
+    for (const [k, v] of Object.entries(saved)) { if (v === undefined) delete globalThis[k]; else globalThis[k] = v; }
+  }
 });
