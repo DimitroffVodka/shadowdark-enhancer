@@ -5,7 +5,8 @@ import assert from "node:assert/strict";
 class Replacement { constructor(value) { this.value = value; } }
 globalThis._replace = (value) => new Replacement(value);
 const ready = [];
-globalThis.Hooks = { once: (name, fn) => { if (name === "ready") ready.push(fn); }, on() {} };
+const hooked = [];
+globalThis.Hooks = { once: (name, fn) => { if (name === "ready") ready.push(fn); }, on: (name) => { hooked.push(name); } };
 globalThis.game = { time: { worldTime: 0 }, user: { isGM: false }, users: {}, actors: { contents: [] } };
 
 const MOD = "shadowdark-enhancer";
@@ -109,4 +110,11 @@ test("a Cook surplus the old meal left over the maximum moves into the pool, onc
   await expireTempHp(a);
   assert.deepEqual(a.flags[MOD].tempHp, { value: 2, expires: 500 }, "idempotent");
   assert.equal(a.system.attributes.hp.value, 3);
+});
+
+test("the sheet field hooks both sheet generations; the Shadowdark player sheet is ApplicationV1", async () => {
+  const { init } = await import("../scripts/character-sheet/temp-hp-field.mjs");
+  hooked.length = 0;
+  init();
+  assert.deepEqual(hooked.sort(), ["renderActorSheet", "renderActorSheetV2"]);
 });

@@ -523,7 +523,7 @@
 | File | Lines | Description |
 |---|---:|---|
 | `prayer-roll.mjs` | 183 | Prayer icon beside the sheet's Deity header; rolls that deity's `<Deity> Prayers` table (world first, then compendiums). |
-| `temp-hp-field.mjs` | 31 | A small Temp HP number under the HP box on a Player sheet (the owner or GM types the points; 0 clears them), rebuilt from the actor's pool on every render. |
+| `temp-hp-field.mjs` | 33 | A small Temp HP number under the HP box on a Player sheet (the owner or GM types the points; 0 clears them), rebuilt from the actor's pool on every render. |
 
 ### 3.18 `scripts/downtime/` — between-crawls downtime activities
 

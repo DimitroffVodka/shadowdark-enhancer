@@ -27,5 +27,7 @@ export function injectTempHpField(app, html, data = {}) {
 }
 
 export function init() {
+  // The Shadowdark player sheet is an ApplicationV1 ActorSheet (jQuery); a V2 sheet fires the other name.
+  Hooks.on("renderActorSheet", injectTempHpField);
   Hooks.on("renderActorSheetV2", injectTempHpField);
 }
