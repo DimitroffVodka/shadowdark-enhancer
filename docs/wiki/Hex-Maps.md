@@ -1025,7 +1025,7 @@ is named, not worked round.
   hexes.
 - No river or road is painted: the print already shows them.
 
-**Build painted map**, under **More**, is the other way: Extras builds a new
+**Build painted map**, under **Use this map**, is the other way: Extras builds a new
 scene painted from your tags, with its own rivers and roads. You can still lay
 the print over that scene: **Reference tile**, pick the painted scene, and tick
 **Use the print as the map**. The print goes on visible and opaque, stretched
@@ -1040,7 +1040,7 @@ map's top-left cell (a print numbered from anywhere else would carry Extras' num
 one tagged print fits; with two the same size, nothing is copied. Edits to the print after that are not carried over:
 build the painted map again.
 
-**Update painted map**, also under **More**, fixes a painted map after you
+**Update painted map**, also under **Use this map**, fixes a painted map after you
 retag. Correct the hexes the tagger got wrong, press the button, and the tagger
 looks at the painted map it matches (it asks when you have more than one) and
 lists every hex whose terrain you now name differently. Confirm and each of
@@ -1083,7 +1083,7 @@ printed. `grid.rowsLowered` is sent only when the lowered columns end one row
 short of the others, so no phantom cells are painted. The downloaded JSON
 preserves this column-major numbering; `grid.landscape: false` is not a
 transposition instruction. A direct Extras hand-off needs Shadowdark Extras
-with `game.shadowdarkExtras.hex.buildHexcrawl` (6.15 or later, with the
+with `game.shadowdarkExtras.hex.buildHexcrawl` (6.16.0 or later, with the
 origin option for maps numbered from 0); without it the dataset downloads as
 JSON. A hex's river, path and coast features are
 entries in its `features` list, one id per kind (`river-2849`), named by
