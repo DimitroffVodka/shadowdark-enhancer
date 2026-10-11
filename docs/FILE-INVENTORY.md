@@ -78,7 +78,7 @@
 | `hex-map/coordinate-overlay.mjs` | 99 | Opt-in per-user native published-number labels on flat-top hex maps; reads native geometry and current fog without changing numbering or calibration. |
 | `hex-map/extras-records.mjs` | 27 | Read-only SDX legacy/authoring record reader, retained for painter-feature merges and unadopted gameplay; native adopted scenes use hex-records instead. |
 | `hex-map/geometry.mjs` | 221 | Hex numbering by cube difference from one anchor cell; printed offset ↔ cube under the map's column-shift rule. Pure. |
-| `hex-map/hex-adoption.mjs` | 179 | Read-once SDX record adoption with negative offset parsing, lossless original archives, existing-native conflict precedence, reports and automatic eligibility hooks. |
+| `hex-map/hex-adoption.mjs` | 183 | Read-once SDX record adoption with negative offset parsing, lossless original archives, existing-native conflict precedence, reports and automatic eligibility hooks. |
 | `hex-map/hex-brush-app.mjs` | 262 | The hex brush: a small window that sets one terrain (a picture tile per Legend terrain) plus features, so clicking or dragging across the tag overlay retags whole patches; a stroke is one scene write and Undo puts it back. |
 | `hex-map/hex-explorer-app.mjs` | 129 | Small scene-offset GM Hexplorer editor for terrain, line/structured features, public/private notes, document links and discovery. |
 | `hex-map/hex-explorer.mjs` | 229 | Player-safe Hexplorer canvas hover/select observer and GM writes over authoritative terrain tags and rich offset records; preserves discovery and imported metadata. |

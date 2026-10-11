@@ -1030,9 +1030,10 @@ painted map is back.
 
 The painted scene also takes a copy of the print's tags and region scan the first time the GM opens it, so the
 **Terrain**, **Regions** and **Zones** pictures, the hex numbers and the regions' own encounter columns work there as
-they do on the print. It finds the print by its numbering size and grid, and only when exactly one tagged print
-fits; with two the same size, nothing is copied. Edits to the print after that are not carried over: build the painted
-map again.
+they do on the print. It finds the print by its numbering size and grid, and only when the print's first hex is the
+map's top-left cell (a print numbered from anywhere else would carry Extras' numbers to the wrong hexes) and exactly
+one tagged print fits; with two the same size, nothing is copied. Edits to the print after that are not carried over:
+build the painted map again.
 
 **Update painted map**, also under **More**, fixes a painted map after you
 retag. Correct the hexes the tagger got wrong, press the button, and the tagger

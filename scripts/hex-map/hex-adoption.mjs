@@ -3,6 +3,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { EXTRAS_ID, EXTRAS_HEX_JOURNAL } from "./extras-records.mjs";
 import { hexNumberAt } from "./hex-number-api.mjs";
+import { extrasNumbersAlike, originFromFlag } from "./geometry.mjs";
 import { normalizeTerrainWord, FEATURES } from "./tag-store.mjs";
 import { importFog } from "./hex-fog-core.mjs";
 import { REGIONS_FLAG } from "./region-scan.mjs";
@@ -130,6 +131,8 @@ const LAYOUT_KEYS = ["cols", "rows", "firstRow", "rowsLowered"];
 /**
  * The tagged print an Extras-built scene was painted from. Extras keeps no link back, so it is found by what
  * the build takes from the print: its numbering bounds and grid type. null unless exactly one print fits.
+ * Extras paints its first hex at Foundry offset {0, 0}, so a print is the one only when its own numbering
+ * lands there too (extrasNumbersAlike): the tags are copied by hex number, onto the same cells or wrong ones.
  * @param {object} painted  the scene
  * @param {object[]} scenes  the world's scenes
  */
@@ -137,7 +140,8 @@ export function printFor(painted, scenes) {
   const extras = painted?.flags?.[EXTRAS_ID], layout = extras?.hexcrawl?.grid;
   if (extras?.hexScene !== true || !layout || layout.flipX || layout.flipY || layout.landscape) return null;
   const fits = scenes.filter(s => s !== painted && s.flags?.[EXTRAS_ID]?.hexScene !== true && s.grid?.type === painted.grid?.type
-    && LAYOUT_KEYS.every(k => s.flags?.[MODULE_ID]?.hexTags?.origin?.bounds && (s.flags[MODULE_ID].hexTags.origin.bounds[k] ?? null) === (layout[k] ?? null)));
+    && LAYOUT_KEYS.every(k => s.flags?.[MODULE_ID]?.hexTags?.origin?.bounds && (s.flags[MODULE_ID].hexTags.origin.bounds[k] ?? null) === (layout[k] ?? null))
+    && extrasNumbersAlike(originFromFlag(s.flags[MODULE_ID].hexTags.origin), layout.origin ?? 1));
   return fits.length === 1 ? fits[0] : null;
 }
 /**
