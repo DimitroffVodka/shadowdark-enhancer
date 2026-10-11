@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1933 tracked files · ~246,000 lines of code/markup across scripts+templates+styles+test.
+1935 tracked files · ~246,300 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 1444 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 1461 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 172 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 271 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 | `scavenger/scavenger-core.mjs` | 171 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
@@ -175,7 +175,7 @@
 | `curated-icon-maps/sea-wolf-plunder-icons.mjs` | 38 | The N3 §5.1/D4 Sea Wolf Plunder map: exactly 20 CS3 p68 source-qualified item phrases and reviewed native Foundry `icons/**.webp` paths, keyed without each row's terminal gp price. |
 | `curated-icon-maps/weapon-icons.mjs` | 47 | N3's 37 reviewed Foundry-native weapon icons, keyed by source-agnostic normalized final Item name and registered through the A4 discovery seam. |
 | `attack-card.mjs` | 107 | Reading a Shadowdark attack card — was it an attack at all (a targeted spell is not), did it land, who was it aimed at, who swung. Shared by Parry and Taunt so the two can never disagree about the target (they once did, silently). |
-| `settings.mjs` | 1025 | All `game.settings.register` calls + migration-safe defaults. |
+| `settings.mjs` | 1031 | All `game.settings.register` calls + migration-safe defaults. |
 | `icons.mjs` | 101 | Centralized icon registry — FontAwesome snippets and vendored SVG references. |
 | `i18n.mjs` | 19 | `L(key, data)`: one string from `languages/en.json`, localized, or formatted when there is data; the key itself before Foundry's i18n is mounted and in node tests. The one copy of the helper some 60 files used to define for themselves (as `L` or `t`). |
 | `compendium-suite.mjs` | 471 | Find-or-create layer for managed world packs, ownership, sidebar folders, and source folders. |
@@ -197,6 +197,7 @@
 | `property-note.mjs` | 194 | Stamps and preserves the "no core Shadowdark property" note on imported gear (pure). Also owns which description survives a REPLACE: the GM's own text beats importer output, and importer output is the empty placeholder, the note alone, or — since A8 — a description that merely echoes the document's name, which is exactly what `buildItemData`'s Spell path writes when a paste brings no prose. |
 | `setting-groups.mjs` | 190 | Feature groups for Configure Settings — which settings, nested editors, other packages' settings and notes each pop-out shows, in display order, incl. the Modes of Play boxes. Pure data; the docs-contract test imports it. |
 | `settings-group-menu.mjs` | 210 | The per-feature settings pop-out (ApplicationV2): builds a DataField per setting the way SettingsConfig does (other packages' settings too), renders nested editor buttons, notes and Modes of Play switches, saves on submit, and mints one registerMenu class per group. |
+| `whats-new.mjs` | 169 | The once-per-update "What's new" window every user sees: reads the shipped CHANGELOG.md for the versions since the user's client setting `whatsNewSeen` (Added headlines, Changed/Fixed counts; a `### Highlights` section wins), seeds a fresh install silently and stamps only after the changelog loaded. `checkWhatsNew` takes its dependencies by injection; `showWhatsNew` is the DialogV2. |
 
 ### 3.3 `scripts/crawl-strip/` — the top strip + movement + combat sync
 
