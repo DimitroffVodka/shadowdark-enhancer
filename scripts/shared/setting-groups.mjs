@@ -2,7 +2,9 @@
  * Feature groups for Configure Settings.
  *
  * Each group is one GM-only pop-out button under Shadowdark Enhancer
- * (registered by settings-group-menu.mjs). A section's `entries` are:
+ * (registered by settings-group-menu.mjs); a group with `everyone: true` is
+ * open to every user and shows a player only its client-scope settings. A
+ * section's `entries` are:
  *   - a setting key of this module, registered elsewhere with `config: false`
  *     so it leaves the main list; or `{ key, pending: true }` for one whose
  *     automation is not built yet, which renders with a note saying so; or
@@ -124,7 +126,13 @@ export const SETTING_GROUPS = [
   {
     key: "crawlStripMenu",
     icon: "fa-solid fa-table-columns",
-    sections: [{ entries: ["crawlStripOffForAll", "crawlStripSlimForAll", "gmAvatarImage", "warnIfCrawlHelperEnabled"] }],
+    everyone: true,
+    sections: [{
+      entries: [
+        "crawlStripOffForAll", "crawlStripSlimForAll", "gmAvatarImage", "warnIfCrawlHelperEnabled",
+        "crawlStripDisabled", "crawlStripSlim",
+      ],
+    }],
   },
   {
     key: "overlandMenu",

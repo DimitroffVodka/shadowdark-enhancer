@@ -29,3 +29,29 @@ test("the Monster Creator opens one tab at a time", async () => {
   // No call site opens a tab by assigning its flag directly (that would leave two open).
   assert.doesNotMatch(src, /this\._sectionOpen\.\w+ = true/);
 });
+
+test("a creature result offers the Battle map and Choose map buttons, both routed to one handler", async () => {
+  const [app, tpl] = await Promise.all([
+    read("scripts/encounter/encounter-roller-app.mjs"),
+    read("templates/encounter-roller.hbs"),
+  ]);
+  // Only the creature card: the flavor card has no creature to put on a map.
+  const creature = tpl.slice(tpl.indexOf('class="ui-card sel"'));
+  assert.match(creature, /data-action="battleMap"/);
+  assert.match(creature, /data-action="chooseBattleMap"/);
+  assert.doesNotMatch(tpl.slice(0, tpl.indexOf('class="ui-card sel"')), /data-action="battleMap"/);
+  assert.match(app, /battleMap:\s+EncounterRollerApp\.prototype\._onBattleMap/);
+  assert.match(app, /chooseBattleMap:\s+EncounterRollerApp\.prototype\._onBattleMap/);
+});
+
+test("a table row and a built slot with a creature each carry a map button, and a flavor row does not", async () => {
+  const [app, tpl] = await Promise.all([
+    read("scripts/encounter/encounter-roller-app.mjs"),
+    read("templates/encounter-roller.hbs"),
+  ]);
+  // Beside Place, inside the same {{#unless this.flavor}} that guards it.
+  assert.match(tpl, /\{\{#unless this\.flavor\}\}<button[^>]*data-action="previewPlace"[\s\S]*?data-action="previewBattleMap"[\s\S]*?\{\{\/unless\}\}/);
+  assert.match(tpl, /\{\{#if this\.isMonster\}\}\s*<button[^>]*data-action="buildPostSlot"[\s\S]*?data-action="buildBattleMapSlot"[\s\S]*?\{\{else if this\.isFlavor\}\}/);
+  assert.match(app, /previewBattleMap:\s+EncounterRollerApp\.prototype\._onPreviewBattleMap/);
+  assert.match(app, /buildBattleMapSlot:\s+EncounterRollerApp\.prototype\._onBuildBattleMapSlot/);
+});

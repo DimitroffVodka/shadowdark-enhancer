@@ -19,8 +19,8 @@ export function explorerView(record, isGM = false, partyIds = []) {
   const location = disclosure(r.discovery, "location");
   return { sceneUuid: r.sceneUuid, offset: { ...r.offset }, num: r.num, terrain: r.terrain,
     ...(location && typeof r.title === "string" ? { title: r.title } : {}),
-    // Hiding markers are re-checked even on pre-filtered input, not merely trusted.
-    features: (r.features ?? []).filter(f => f?.discovered !== false && (FEATURES.includes(f.type) || location)).map(f => pick(f, ["type", "name"])),
+    // River, path and coast are always disclosed; hiding markers on other features are re-checked, not merely trusted.
+    features: (r.features ?? []).filter(f => FEATURES.includes(f?.type) || f?.discovered !== false && location).map(f => pick(f, ["type", "name"])),
     notes: (r.notes ?? []).filter(n => n?.visible !== false).map(n => pick(n, ["text"])),
     links: location ? [...(r.links ?? []).filter(l => l?.visible !== false).map(l => pick(l, ["uuid", "label"])), ...(record.keyed ?? []).map(k => ({ uuid: k.uuid, label: k.title }))] : [],
   };
@@ -44,7 +44,7 @@ export function planExplorerEdit(record, input, flag, partyId = null) {
   if (features.some(f => FEATURES.includes(f.type))) throw new Error("SDE.hexExplorer.invalidFeature");
   for (const type of lines) {
     const old = record.features?.find(f => f.type === type);
-    features.push({ ...(old ?? {}), type, discovered: input.lineDiscovery?.[type] ?? old?.discovered ?? false });
+    features.push({ ...(old ?? {}), type, discovered: true });
   }
   const seen = { revealed: !!input.revealed, visited: !!input.visited, locationRevealed: input.location === "auto" ? undefined : input.location === "show" };
   const discovery = partyId ? withPartyDiscovery(record.discovery, partyId, seen) : { ...record.discovery, ...seen };
@@ -108,7 +108,7 @@ export function explorerClick(press, event, longPress) {
     && event.timeStamp - press.at < longPress
     && !event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey;
 }
-let tip = null, hovered = null, selected = null, press = null, stage = null, lastUp = null;
+let tip = null, hovered = null, selected = null, press = null, stage = null, view = null, lastUp = null;
 const nativeHovers = new Set();
 function placeableTarget(target) {
   for (let node = target; node; node = node.parent) if (node.document) return true;
@@ -127,6 +127,8 @@ export function ownsHexData(target) {
 }
 function atEvent(event) {
   if (!canvas?.ready || !enabled(canvas.scene) || nativeHovers.size || placeableTarget(event.target)) return null;
+  // PIXI maps document-wide pointer moves onto the stage, so a pointer over a window or the HUD still arrives here.
+  if (view && event.nativeEvent?.target !== view) return null;
   const offset = canvas.grid.getOffset(event.getLocalPosition(canvas.stage));
   if (!explorerCell(canvas.scene, offset)) return null;
   return { scene: canvas.scene, offset, x: event.client?.x ?? event.global.x, y: event.client?.y ?? event.global.y };
@@ -198,10 +200,13 @@ function up(event) {
 }
 function clear() {
   stage?.off("pointermove", move); stage?.off("pointerdown", down); stage?.off("pointerup", up); stage?.off("pointerupoutside", cancelPress);
-  stage = null; tip?.remove(); tip = null; hovered = selected = press = null;
+  view?.removeEventListener("pointerleave", leave);
+  stage = view = null; tip?.remove(); tip = null; hovered = selected = press = null;
   nativeHovers.clear();
 }
 function cancelPress() { press = null; }
+/** The pointer left the canvas altogether (a window edge, the browser frame): no further move event reaches the stage. */
+function leave() { hovered = null; if (!selected) refreshHexExplorer(); }
 export function registerHexExplorer() {
   // Core can consume a Note/Token pointermove before it bubbles to the stage.
   // Its hover hooks also clear a previous blank-cell tooltip in that case.
@@ -213,6 +218,7 @@ export function registerHexExplorer() {
   Hooks.on("canvasReady", () => {
     clear(); stage = canvas.stage;
     stage.on("pointermove", move); stage.on("pointerdown", down); stage.on("pointerup", up); stage.on("pointerupoutside", cancelPress);
+    view = canvas.app.canvas ?? canvas.app.view; view?.addEventListener("pointerleave", leave);
   });
   Hooks.on("canvasTearDown", clear);
   Hooks.on("updateScene", refreshHexExplorer);

@@ -354,7 +354,8 @@ function findPin(quest) {
   for (const scene of game.scenes?.contents ?? []) {
     for (const note of scene.notes?.contents ?? []) {
       const own = !!quest.id && note.entryId === quest.id;
-      const hexPin = quest.hex !== null && note.flags?.[MODULE_ID]?.hexPin?.num === quest.hex;
+      const hexPin = quest.hex !== null && (!quest.hexScene || quest.hexScene === scene.uuid)
+        && note.flags?.[MODULE_ID]?.hexPin?.num === quest.hex;
       if (own || hexPin) candidates.push({ sceneId: scene.id, noteId: note.id, own });
     }
   }
@@ -377,7 +378,7 @@ async function panToPin(pin, missingKey) {
 }
 
 /** Pan to the Hex Tagger's pin for a hex number (the Trouble tracker's settlements, #193). */
-export const jumpToHex = (num) => panToPin(findPin({ id: null, hex: Number(num) }), "SDE.troubles.notify.noPin");
+export const jumpToHex = (num, missingKey = "SDE.troubles.notify.noPin") => panToPin(findPin({ id: null, hex: Number(num) }), missingKey);
 
 // ── The API ─────────────────────────────────────────────────────────────────
 

@@ -54,8 +54,14 @@ export function embedLinks(text, index) {
     let mm;
     while ((mm = re.exec(src))) for (let i = mm.index; i < mm.index + mm[0].length; i++) taken[i] = true;
   }
+  // A table row prints "Willowman" where the bestiary names "The Willowman". The bare names
+  // go after every full one, so the stable sort lets a real monster of that name win.
+  const bare = index.flatMap((e) => {
+    const name = e?.name?.replace(/^the\s+/i, "");
+    return name && name !== e.name ? [{ name, uuid: e.uuid }] : [];
+  });
   const matches = [];
-  for (const e of index) {
+  for (const e of [...index, ...bare].sort((a, b) => (b.name?.length ?? 0) - (a.name?.length ?? 0))) {
     if (!e?.name) continue;
     const re = new RegExp(`\\b(${escapeRegex(e.name)})(s?)\\b`, "i");
     const m = re.exec(src);

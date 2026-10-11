@@ -25,6 +25,7 @@ import { REVIEWED_WALLS, REVIEWED_LIGHTS, REVIEWED_CREATURES } from "./adventure
 import { TRAP_TYPE } from "../../traps/traps.mjs";
 import { resolveMentions, bestiaryLookup } from "./adventure-creatures.mjs";
 import { L as t } from "../../shared/i18n.mjs";
+import { ensureSceneThumb } from "../../shared/scene-thumb.mjs";
 
 /** Scene flag: { site, entryId, skipped:[numbers] }. */
 export const MAP_FLAG = "adventureMap";
@@ -378,6 +379,7 @@ export async function buildSiteScene(site, src) {
   const imageW = tex?.width, imageH = tex?.height;
   if (!imageW || !imageH) { ui.notifications?.error(t("SDE.adventure.notify.badImage")); return null; }
   const scene = await Scene.create(sceneData(site, { src, imageW, imageH, entryId: journal.id }));
+  await ensureSceneThumb(scene);
   return { scene, skewed: sceneSize(site, imageW, imageH).skewed };
 }
 

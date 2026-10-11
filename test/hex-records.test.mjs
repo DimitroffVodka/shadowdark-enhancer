@@ -57,6 +57,13 @@ test("player facade applies effective location disclosure to readable pinned pag
     else globalThis.game = oldGame;
   }
 });
+test("a keyed hex with no typed title is named by its journal page, without the printed number", () => {
+  const keyed = [{ uuid: "JournalEntry.a.JournalEntryPage.p", title: "3826 Haldrin's Tower" }];
+  assert.equal(recordView({ ...base, cell: {}, keyed }).title, "Haldrin's Tower");
+  assert.equal(recordView({ ...base, cell: { title: "My name" }, keyed }).title, "My name", "a typed title wins");
+  assert.equal(recordView({ ...base, cell: {}, keyed: [] }).title, undefined, "no page, no invented title");
+  assert.deepEqual(recordView({ ...base, cell: {}, keyed }).keyed, keyed);
+});
 test("private store reads are GM only; same offset in different scenes never shares data", async () => {
   const journals = ["a", "b"].map(id => ({ id, flags: { "shadowdark-enhancer": { hexRecords: { version: 1, sceneUuid: `Scene.${id}`, cells: { "-2_3": { title: id, terrain: "Forest", discovery: { revealed: true, visited: true } } } } } } }));
   const scene = id => ({ id, uuid: `Scene.${id}`, getFlag: () => null });

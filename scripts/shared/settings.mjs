@@ -145,7 +145,7 @@ export function registerSettings() {
     name: "SDE.settings.crawlStripDisabled.name",
     hint: "SDE.settings.crawlStripDisabled.hint",
     scope: "client",
-    config: true,
+    config: false,
     type: Boolean,
     default: false,
     onChange: redrawStrip,
@@ -155,7 +155,7 @@ export function registerSettings() {
     name: "SDE.settings.crawlStripSlim.name",
     hint: "SDE.settings.crawlStripSlim.hint",
     scope: "client",
-    config: true,
+    config: false,
     type: Boolean,
     default: false,
     onChange: redrawStrip,
@@ -610,6 +610,12 @@ export function registerSettings() {
     scope: "world", config: false, type: Boolean, default: false,
   });
 
+  // The last module version this user was shown the "What's new" window for. Per browser: every
+  // user is told once per update. See scripts/shared/whats-new.mjs.
+  game.settings.register(MODULE_ID, "whatsNewSeen", {
+    scope: "client", config: false, type: String, default: "",
+  });
+
   // Importer library snapshot — { version, keys, fresh }. `keys` is every row
   // the Manage tree knew about when this module version first loaded; `fresh`
   // is the subset that version ADDED, which the hub badges and its "New"
@@ -623,6 +629,12 @@ export function registerSettings() {
   // record of an import done from books used once, which leave no linked file behind.
   game.settings.register(MODULE_ID, "importerWizardRun", {
     scope: "world", config: false, type: Object, default: {},
+  });
+
+  // Module version whose "run the quick import wizard first" prompt this world last saw, so a GM who
+  // answers Not now is asked again once per release, not on every load. See importer-hub-news.mjs.
+  game.settings.register(MODULE_ID, "importerWizardAsked", {
+    scope: "world", config: false, type: String, default: "",
   });
 
   // The one-time rewrite of hex pages filed one <p> per printed line has run

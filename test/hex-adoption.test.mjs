@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { planHexAdoption, planHexFogImport, parseOffsetKey } from "../scripts/hex-map/hex-adoption.mjs";
+import { planHexAdoption, planHexFogImport, parseOffsetKey, printFor } from "../scripts/hex-map/hex-adoption.mjs";
 
 const numberAt = ({ i, j }) => i === 0 && j === 0 ? 101 : null;
 test("already adopted E3 records import revealed/near fog, preserving native conceal and arrival history", () => {
@@ -87,4 +87,18 @@ test("a cell's own legacy field is archived whole and reported, not silently ove
   assert.deepEqual(p.cells["0_0"].legacy, { name: "Old", terrain: "Forest", legacy: "USER" }, "the archive keeps the original field nested");
   assert.equal(p.cells["0_0"].legacy.legacy, "USER");
   assert.ok(p.report.conflicts.some(c => c.key === "0_0" && c.field === "legacy"));
+});
+
+const MOD = "shadowdark-enhancer", XTRA = "shadowdark-extras";
+const bounds = { cols: 64, rows: 75, rowsLowered: 74, firstRow: 1 };
+const print = (extra = {}) => ({ grid: { type: 4 }, flags: { [MOD]: { hexTags: { origin: { bounds } } }, [XTRA]: { hexcrawl: {} } }, ...extra });
+const painted = (grid = { ...bounds, origin: 0 }, type = 4) => ({ grid: { type }, flags: { [XTRA]: { hexScene: true, hexcrawl: { grid } } } });
+test("a painted scene finds the one tagged print with its numbering bounds and grid type", () => {
+  const a = print(), p = painted();
+  assert.equal(printFor(p, [a, p, print({ grid: { type: 5 } })]), a);
+  assert.equal(printFor(p, [a, print()]), null, "two prints fit: it cannot pick");
+  assert.equal(printFor(p, [p]), null, "no print");
+  assert.equal(printFor(painted({ ...bounds, cols: 40 }), [a]), null, "another map's size");
+  assert.equal(printFor(painted({ ...bounds, flipX: true }), [a]), null, "mirrored numbering is not the print's");
+  assert.equal(printFor(a, [a, print()]), null, "a print is not a painted scene");
 });

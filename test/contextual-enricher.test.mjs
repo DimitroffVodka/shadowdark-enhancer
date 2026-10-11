@@ -277,6 +277,18 @@ describe("A5 — the composed encounter enrichment still holds", () => {
     assert.equal(enrichEncounterText(labelled, index), labelled);
   });
 
+  test("a row without the monster's leading \"The\" still links to it", () => {
+    const the = [{ name: "The Willowman", uuid: "Compendium.world.sde-actors.willowman" }];
+    assert.equal(enrichEncounterText("Willowman*", the),
+      "@UUID[Compendium.world.sde-actors.willowman]{Willowman}*");
+    // The full name still wins where the text has it, and a real monster of the bare name is kept.
+    assert.equal(enrichEncounterText("The Willowman", the),
+      "@UUID[Compendium.world.sde-actors.willowman]{The Willowman}");
+    const both = [...the, { name: "Willowman", uuid: "Compendium.shadowdark.monsters.willowman" }];
+    assert.equal(enrichEncounterText("Willowman", both),
+      "@UUID[Compendium.shadowdark.monsters.willowman]{Willowman}");
+  });
+
   test("an explicitly supplied context remains A5-validated", () => {
     assert.throws(
       () => enrichEncounterText("DC 15 DEX", index, { context: "not-a-context" }),

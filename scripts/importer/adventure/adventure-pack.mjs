@@ -188,6 +188,10 @@ export async function packAdventure(siteId) {
   const pack = (await ensureSuite())?.adventures;
   if (!pack) return { status: "noPack" };
 
+  // A scene built with no canvas up has no thumbnail, and the Adventure takes its picture from it.
+  const { ensureSceneThumb } = await import("../../shared/scene-thumb.mjs");
+  await ensureSceneThumb(docs.scene);
+
   const data = adventureData({
     name: docs.scene.name, img: docs.scene.thumb || null, site: siteId,
     scene: docs.scene.toObject(), journal: docs.journal?.toObject() ?? null,
