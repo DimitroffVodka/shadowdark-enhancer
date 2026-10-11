@@ -980,6 +980,24 @@ so its hex field lands exactly on the scene's cells (a print whose hexes are
 taller than regular is squared up in the process). Hide the tile and the
 painted map is back.
 
+**Update painted map**, also under **More**, fixes a painted map after you
+retag. Correct the hexes the tagger got wrong, press the button, and the tagger
+looks at the painted map it matches (it asks when you have more than one) and
+lists every hex whose terrain you now name differently. Confirm and each of
+those hexes is repainted with the tile for its new terrain, its stored terrain
+is updated, and the beaches around it are redone. Nothing else on the map
+changes: hexes that still agree, their names and descriptions, tokens, pins,
+notes and fog are left alone, which **Build painted map** would not do.
+
+- It only offers painted maps built by **Build painted map**, at this map's size
+  and numbering. The tagged print itself is never repainted.
+- A tile you placed by hand on a listed hex is replaced; that is the point of
+  the correction.
+- A hex whose terrain you cleared in the tagger is skipped: there is nothing to
+  repaint it from.
+- It needs a Shadowdark Extras that can repaint tiles. An older one is told so
+  and nothing is written.
+
 ## The dataset
 
 ```js
