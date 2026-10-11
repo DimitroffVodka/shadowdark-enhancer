@@ -148,9 +148,15 @@ await api.traps.create({         // GM only; returns the Region
 
 One pool of temporary hit points per actor, kept in the `tempHp` flag as `{ value, expires }` (`expires` is a world time, or
 `null` for none). Damage spends the pool before HP: the module wraps `ActorSD#applyDamage`, so every damage source that goes
-through it (a chat card's Apply damage, a trap, parry) honours the pool, and only what is left over reaches the system, whose
-clamp to the maximum then applies as usual. HP is never raised above its maximum. Healing leaves the pool alone, and temp HP
-do not stack. Added in `1.29.0`.
+through it (the system's own chat-card Apply damage, and trap damage) honours the pool, and only what is left over reaches the
+system, whose clamp to the maximum then applies as usual. HP is never raised above its maximum. Healing leaves the pool alone,
+and temp HP do not stack. Added in `1.29.0`.
+
+**Limit.** A source that writes `system.attributes.hp.value` directly never calls `applyDamage`, so it does not spend the
+pool. Shadowdark Extras does this for its damage card's Apply damage button and for its aura, template, duration and focus
+damage: in a world with Extras those hits take HP and leave the pool as it was. This is tracked in
+[shadowdark-extras#215](https://github.com/DimitroffVodka/shadowdark-extras/issues/215). A module that deals damage should call
+`actor.applyDamage(amount)` rather than write HP.
 
 ```js
 api.tempHp.of(actor);                          // the points right now (0 when none, or the pool has expired)
