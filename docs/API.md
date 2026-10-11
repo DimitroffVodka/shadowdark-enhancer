@@ -442,8 +442,8 @@ takeover, and is reported as `name-collision` with `monsterSpell: true`.
 
 ```js
 // Pure, synchronous. "" when either half is missing or blank.
-const id = api.loot.generated.identity("CS1", "Carved Bone");
-// → "fnv1a32:573d24a5" | ""
+const id = api.loot.generated.identity("CS1", "Brass Whistle");
+// → "fnv1a32:2cd3bf2b" | ""
 
 // Pure, no-write — the whole rerun decision for a definition set (A7).
 // Source precedence per definition: `item.source` → `{source}` → `flags[MODULE_ID].source`.
