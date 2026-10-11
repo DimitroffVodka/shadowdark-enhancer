@@ -684,6 +684,11 @@ are the ones below, without opening the Hex Tagger:
 - **See the fog as the players do**: the first button (two people), on any scene where the module draws the fog.
   The GM normally sees unexplored hexes through a faint veil so the map can be edited; with this on they are solid
   black, as the players see them. It is kept in this browser.
+- **Hide the fog to review the map**: the button beside it (a sun behind a cloud). It takes the veil off completely, so
+  a freshly painted map can be read in full. It is for your screen only: players' fog and what each party has
+  discovered are not touched, and it is kept in this browser. Press it again to bring the veil back.
+  On a painted scene Extras built, which has no tags of its own, the group shows only the two fog buttons and the
+  hover-card button.
 - **Show terrain tags**, **Show regions** and **Show encounter zones**: the three pictures of the map. They switch
   between each other, and pressing the one that is up hides it. Regions and zones appear once the map's borders have
   been read.
@@ -865,7 +870,7 @@ better tagged by hand (they are small).
   agree on something else takes their answer. It never turns land into water,
   so the coast survives, and it never overrules your own tags.
 - The terrain's stamp is then subtracted from the cell and whatever ink is left
-  decides the feature: one long stroke reaching two edges is a **river**, a
+  decides the feature: one long stroke reaching an edge of the hex is a **river**, a
   chain of short marks is a **path**. Coast is not read from the ink; it is
   worked out from the water around the hex afterwards.
 - The **Review queue** serves every cell it tagged, the least sure first: a

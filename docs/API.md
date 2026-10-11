@@ -46,12 +46,16 @@ never overwrite or remove existing documents.
 
 ## `owns` — adopted gameplay ownership
 
-`api.owns("hex.fog", scene)` is true for an adopted hex scene with native fog
-enabled, whether or not Extras is active. It does not toggle Extras. Extras
-stands down its fog writes, arrival rolls and overlay there, and native disclosure
-for its token/pin/tooltip/coordinate consumers on scenes owned by Enhancer.
-An older provider must have its fog explicitly off before native fog can run.
-The currently inspected SDX source does not advertise this guard.
+`api.owns("hex.fog", scene)` is true for a hexagonal scene that is adopted and
+has not had its fog switched off on that scene. Extras is not consulted: native
+fog runs whether or not Extras is installed or active, and Extras stands down its
+fog writes, arrival rolls and overlay there, and its token/pin/tooltip/coordinate
+consumers use native disclosure on scenes the Enhancer owns.
+
+`api.owns("hex.tooltip", scene)` is true for a hexagonal scene that is numbered
+or adopted, where the Enhancer's Hex Data hover card and editor are in use;
+Extras reads it to leave its own hover card off. Any other feature name returns
+`false`.
 
 `api.hexMaps.fog.disclosed(scene, offset, kind)` uses the same predicate as the
 native consumers (`kind` is `terrain` or `location`). GM-only
@@ -2226,8 +2230,8 @@ untouched unless marked.
 **Weather.**
 - `scene.weather` is Foundry's `rainStorm` while today's weather is stormy,
   or its `blizzard` when the region's climate is cold or freezing. On a fair
-  day it is the season's effect (#294): `snow` in winter, `leaves` in autumn,
-  nothing in spring and summer. Nothing on an excellent day or when no
+  day it is the season's effect (#294): `leaves` in autumn, nothing in
+  winter, spring and summer. Nothing on an excellent day or when no
   weather holds. The table is `FAIR_DAY_EFFECT` in `sky-core.mjs`.
 - Overland takes only an empty weather slot. It records the effect it put
   there as the scene flag `shadowdark-enhancer.skyWeather`, in the same

@@ -937,6 +937,15 @@ export function registerSettings() {
     onChange: () => import("../hex-map/hex-fog.mjs").then((m) => m.refreshHexFog()),
   });
 
+  // The GM's "no fog at all, I am reviewing the map" switch (hex-fog.mjs): this browser's, kept over a reload.
+  game.settings.register(MODULE_ID, "hexFogHidden", {
+    scope: "client",
+    config: false,
+    type: Boolean,
+    default: false,
+    onChange: () => import("../hex-map/hex-fog.mjs").then((m) => m.refreshHexFog()),
+  });
+
   // Feature pop-outs (Configure Settings → this module). Every setting listed
   // in SETTING_GROUPS is registered with `config: false` — here or in its
   // feature file — and rendered inside its group's window instead.

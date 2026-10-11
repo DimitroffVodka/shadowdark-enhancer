@@ -213,10 +213,11 @@ async function importedPages(presetId = HOLIDAY_PRESET) {
  * or holy day once its page is there. The wizard calls this after the book's
  * library import, so nothing is asked.
  * @param {string} [src]  only the presets of this book ("CS6", "WR"); every one when omitted
+ * @param {{quiet?:boolean}} [opts]  quiet: no column-warning toasts (the world-load filing; nobody asked for the read)
  * @returns {Promise<{status:"imported"|"already"|"failed", created?:number}>}
  */
-export function importHolidays(src = null) {
-  const run = filing.then(() => fileCalendarChapters(src));
+export function importHolidays(src = null, { quiet = false } = {}) {
+  const run = filing.then(() => fileCalendarChapters(src, quiet));
   filing = run.catch(() => {});
   return run;
 }
@@ -224,13 +225,14 @@ export function importHolidays(src = null) {
 // One filing at a time: the wizard and the ready step must not both file the same journal.
 let filing = Promise.resolve();
 
-async function fileCalendarChapters(src) {
+async function fileCalendarChapters(src, quiet) {
   const presets = CHAPTER_PRESETS.filter((p) => [HOLIDAY_PRESET, HOLY_DAY_PRESET].includes(p.id) && (!src || p.src === src));
   let created = 0, failed = false;
   for (const preset of presets) {
     if ((await importedPages(preset.id)).size) continue;
     const req = { src: preset.src, pages: preset.pages, name: preset.name, sections: preset.sections, lead: preset.lead, preset: preset.id };
-    const read = await readChapter(req);
+    const read = await readChapter({ ...req, notify: !quiet });
+    if (quiet && read?.warnings.length) console.warn(`${MODULE_ID} | holidays: ${preset.id} column check`, read.warnings);
     if (!read?.pages.length) { failed = true; continue; }
     const report = await commitChapterJournal(req, read.pages);
     if (report.uuid) created += report.created; else failed = true;
@@ -250,17 +252,33 @@ export function linkedCalendarBooks(rows) {
 }
 
 /**
+ * Has the importer put anything in this world? Its roll-table, item and actor packs stay empty until an
+ * import fills them (the journals pack does not count: the calendar chapters themselves live there).
+ * The wizard records its runs, but a world imported through the hub leaves no record, so the packs are the signal.
+ */
+export async function importerHasRun() {
+  const { findSuitePack } = await import("../shared/compendium-suite.mjs");
+  for (const key of ["tables", "items", "actors"]) {
+    const pack = findSuitePack(key);
+    if (pack && (await pack.getIndex()).size) return true;
+  }
+  return false;
+}
+
+/**
  * GM only, at ready: a world that imported its books before the calendar chapters existed files them
  * from the linked PDFs, with no step to find. importHolidays skips what is filed already, so this is
- * a few index reads once everything is there. Never throws.
+ * a few index reads once everything is there. A world that has not imported yet is left alone: linking a
+ * book is not asking for its chapters, and the wizard files them after the import. Never throws.
  * @returns {Promise<number>} pages created
  */
 export async function fileLinkedChapters() {
   if (!game.user?.isGM) return 0;
   let created = 0;
   try {
+    if (!(await importerHasRun())) return 0;
     const { listSourcePdfs } = await import("../importer/source-pdf-registry.mjs");
-    for (const src of linkedCalendarBooks(await listSourcePdfs())) created += (await importHolidays(src)).created ?? 0;
+    for (const src of linkedCalendarBooks(await listSourcePdfs())) created += (await importHolidays(src, { quiet: true })).created ?? 0;
   } catch (err) {
     console.warn(`${MODULE_ID} | holidays: could not file the calendar chapters`, err);
   }
