@@ -70,7 +70,7 @@ the button.
 
 | Section | Entries |
 |---|---|
-| **This travel day** (overland travel only) | Start day, Forage, Roll weather, Start a crawl |
+| **This travel day** (overland travel only) | Start day, Roll weather, Start a crawl |
 | **At the table** | **Encounter** (opens the [Encounter Roller](Random-Encounters.md); the button beside it, or a right-click, opens the encounter menu: check, threshold, frequency, tables by terrain), Roll tables, [Loot](Loot-and-Treasure.md), [Magic items](Magic-Item-Forge.md), [Merchant](Merchant-Shop.md), and in a crawl **Reset Initiative** |
 | **Between sessions** | [Party XP](Party-XP.md), [Downtime](Downtime.md), [Training](Regional-Training.md), [Renown](Renown.md), [Rumors](Rumors.md), [Recap](Session-Recap.md), [Pit fighting](Pit-Fighting.md) |
 | **Set up** | [Importer](Importer-Hub.md), and Bastions once the world has one |
@@ -187,7 +187,7 @@ left** (the terrain is left out on a map with no terrain tags; hover the badge
 for the hex number and its features). Then one main button, **Continue** when
 an encounter stopped the clock partway through a move, or **Start day** while no
 day is open (a day opens by itself at travel start; after a camp you press it), then
-**Make camp**, **Tools** and **End travel**. **Forage**, **Roll weather** and
+**Make camp**, **Tools** and **End travel**. **Roll weather** and
 **Start a crawl** are in Tools under *This travel day*. Add Tokens is not shown:
 the party token travels.
 
@@ -302,7 +302,7 @@ the party token travels.
 
 - **Forage** looks for food. At a normal pace it happens by itself: the day's
   first move rolls it for every traveller, with no one asked to stop. The
-  button (or Tools > Forage, to tick who) is for anyone it missed.
+  button is for anyone it missed.
   - The INT roll is DC 12, or 18 in a harsh climate. The automatic roll is made
     for the character; a button forage is rolled by the character's player, or
     by you when they aren't connected.

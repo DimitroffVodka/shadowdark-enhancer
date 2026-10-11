@@ -17,7 +17,7 @@ import { esc }             from "../shared/esc.mjs";
 import { BUTTONS, barItems, overlandBadge, toolsSections } from "./crawl-bar-core.mjs";
 import {
   startOverland, endOverland, rollWeather, weatherNow, weatherName, startDayFromParty, resume, overlandState, OVERLAND_CHANGED,
-  askForage, forage, makeCamp,
+  makeCamp,
 } from "../overland/overland.mjs";
 import { L as loc } from "../shared/i18n.mjs";
 
@@ -409,12 +409,6 @@ export const CrawlBar = {
             { date: game.shadowdarkEnhancer.time.format(reply.weather.until) }));
         }
         this.render();
-        break;
-      }
-
-      case "forage": {
-        const ids = await askForage();
-        for (const id of ids ?? []) await forage(id);
         break;
       }
 

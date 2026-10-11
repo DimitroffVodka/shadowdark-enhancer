@@ -78,7 +78,7 @@ const entries = (opts) => toolsSections(opts).flatMap((s) => s.entries.map((e) =
 test("Tools: sections in order, 'This travel day' only while travelling", () => {
   assert.deepEqual(toolsSections({ mode: "crawl" }).map((s) => s.id), ["table", "between", "setup"]);
   assert.deepEqual(toolsSections({ mode: "overland" }).map((s) => s.id), ["travelDay", "table", "between", "setup"]);
-  assert.deepEqual(toolsSections({ mode: "overland" })[0].entries.map((e) => e.action), ["startDay", "forage", "rollWeather", "startCrawl"]);
+  assert.deepEqual(toolsSections({ mode: "overland" })[0].entries.map((e) => e.action), ["startDay", "rollWeather", "startCrawl"]);
 });
 
 test("Tools: the table, between-sessions and set-up entries", () => {

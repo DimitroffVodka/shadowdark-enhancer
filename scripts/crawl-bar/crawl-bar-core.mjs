@@ -92,7 +92,6 @@ export function toolsSections({ mode, hasBastion = false }) {
       id: "travelDay", label: "SDE.crawlBar.toolsMenu.travelDay",
       entries: [
         e("startDay", "sunrise", "SDE.overland.startDay", "SDE.overland.startDayHint"),
-        e("forage", "forage", "SDE.overland.forage.button", "SDE.overland.forage.buttonHint"),
         e("rollWeather", "weather", "SDE.overland.rollWeather", "SDE.overland.rollWeatherHint"),
         e("startCrawl", "startCrawl", "SDE.crawlBar.toolsMenu.startCrawl"),
       ],
