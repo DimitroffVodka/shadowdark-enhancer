@@ -7,6 +7,7 @@ const { handleCarousing, carousingOf, carousingTables, registerCarousing } = awa
 const { PartyXP } = await import("../scripts/party-xp/party-xp.mjs");
 const { Renown } = await import("../scripts/renown/renown.mjs");
 const { SessionRecap } = await import("../scripts/session-recap/session-recap.mjs");
+const { CarousingFeed } = await import("../scripts/session-recap/carousing-feed.mjs");
 function doc(id, type, system = {}) {
   const a = { id, uuid: `Actor.${id}`, name: id, type, system, flags: { [M]: { sentinel: true }, other: { kept: true } }, testUserPermission: u => u.isGM || u.id === id || (id === "party" && u.id === "a"), getFlag: (m,k) => a.flags[m]?.[k] };
   a.update = async data => { for (const [key,v] of Object.entries(data)) { let target = a; const keys = key.split("."); for (const key of keys.slice(0,-1)) target = target[key] ??= {}; target[keys.at(-1)] = structuredClone(v); } return a; };
@@ -46,6 +47,43 @@ test("Extras' Carousing being on does not stop native carousing", async () => {
   globalThis.game.modules.set("shadowdark-extras", { active: true });
   globalThis.game.settings.get = (module, key) => module === "shadowdark-extras" && key === "enableCarousing";
   assert.equal((await f.call("start")).ok, true); assert.equal(f.a.system.coins.gp, 20);
+});
+// Extras installed with Carousing on and a sync journal holding `session`.
+function extras(session, { active = true, enabled = true } = {}) {
+  const journal = { documentName: "JournalEntry", name: "__sdx_carousing_sync__", getFlag: (m, k) => m === "shadowdark-extras" ? ({ carousingSession: session, carousingDrops: {} })[k] : undefined };
+  globalThis.game.modules.set("shadowdark-extras", { active });
+  globalThis.game.settings.get = (m, k) => m === "shadowdark-extras" && k === "enableCarousing" && enabled;
+  globalThis.game.journal = { find: fn => fn(journal) ? journal : undefined };
+}
+test("begin refuses while Extras has a carouse under way, and is untouched when Extras is off or idle", async () => {
+  for (const [session, opts] of [[{ phase: "complete" }, {}], [{ phase: "rolling" }, { active: false }], [{ phase: "rolling" }, { enabled: false }]]) {
+    const f = fixture(); extras(session, opts);
+    assert.equal((await f.call("begin")).ok, true);
+  }
+  const f = fixture(); extras({ phase: "rolling" });
+  const r = await f.call("begin");
+  assert.equal(r.ok, false); assert.equal(r.error, "SDE.carousing.sdxUnderway"); assert.equal(carousingOf(f.party).current, null);
+});
+test("a night still in setup cannot start while Extras has a carouse under way; a night past setup can resume", async () => {
+  const f = fixture(); await setup(f); extras({ phase: "rolling" });
+  const r = await f.call("start");
+  assert.equal(r.ok, false); assert.equal(r.error, "SDE.carousing.sdxUnderway");
+  assert.equal(f.a.system.coins.gp, 30); assert.equal(f.rolls(), 0); assert.equal(carousingOf(f.party).current.phase, "setup");
+  extras({ phase: "complete" });
+  const update = f.a.update; let failed = false;
+  f.a.update = async data => { if (data["system.renown"] !== undefined && !failed) { failed = true; throw Error("held renown write failed"); } return update(data); };
+  assert.equal((await f.call("start")).ok, false); assert.equal(carousingOf(f.party).current.phase, "effects");
+  extras({ phase: "rolling" });
+  assert.equal((await f.call("resume")).ok, true); assert.equal(carousingOf(f.party).current.phase, "complete");
+});
+test("CarousingFeed.isOpen is native-or-Extras; sdxUnderway is the Extras half only", () => {
+  const f = fixture(); let native = false;
+  globalThis.game.shadowdarkEnhancer.carousing = { isOpen: () => native };
+  assert.deepEqual([CarousingFeed.isOpen(), CarousingFeed.sdxUnderway()], [false, false]);
+  native = true; assert.deepEqual([CarousingFeed.isOpen(), CarousingFeed.sdxUnderway()], [true, false]);
+  native = false; extras({ phase: "rolling" }); assert.deepEqual([CarousingFeed.isOpen(), CarousingFeed.sdxUnderway()], [true, true]);
+  extras({ phase: "rolling" }, { enabled: false }); assert.deepEqual([CarousingFeed.isOpen(), CarousingFeed.sdxUnderway()], [false, false]);
+  assert.equal(f.party.id, "party");
 });
 test("saved partial night resumes after real effect write failure; double click/reopen repeats nothing", async () => {
   const f = fixture(); await setup(f);
