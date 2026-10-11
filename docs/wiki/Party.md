@@ -34,8 +34,9 @@ left out when its data is not available (with none, the bar is hidden):
   characters, the food camp spends. It is hidden when a member's items are
   hidden from you, because the total would be a partial one.
 
-Under it the tabs: **Members**, **Items**, **Travel**, **Quests**, **Bastion**
-(only when the Party has a bastion) and **Description**.
+Under it the tabs: **Members**, **Items**, **Travel**, **Carousing**, **Quests**,
+**Downtime**, **Warbands**, **Bastion** (only when the Party has a bastion) and
+**Description**.
 
 **Members** are two-column cards: portrait, name and class, an HP bar with
 numbers, AC / LV / SLOTS / XP chips, the six ability modifiers as one small
@@ -55,8 +56,9 @@ for anyone but the GM.
 The sheet has a GM view and a player view. A player (anyone who cannot manage
 the party) sees every member's full stats and the same tabs, but not the
 **Place / Recall** pin, remove (x), item and coin editing, or the emblem picker.
-The Marching order switch shows as read-only status. **Camp** and **Carouse**
-live under Travel, where each PC's owner confirms their own choices.
+The Marching order switch shows as read-only status. Camping
+lives under **Travel** and Carousing under **Carousing**, where each PC's owner
+confirms their own choices.
 
 ## Roster and ownership
 
@@ -163,12 +165,11 @@ Party's items of the Shadowdark system's Gem type. A gem is worth its cost
 and value and the total, quantity times value. Gems are kept out of the item list
 and take no Party slots, as in the system. Quantity buttons and **New Item** are
 a manager's. This feature does not add a trade/container transfer subsystem.
-The **Travel** tab contains [Camping](Camping.md) and [Carousing](Carousing.md)
-controls in the sheet: select each PC's task and ability, confirm their choices,
-then lock and roll. Results and food/fuel decisions stay in the same tab;
-**Camp** and **Carouse** (the two buttons at the top of Travel, and the
-`camping.open` / `carousing.open` API) switch to it rather than opening another
-window.
+The **Travel** tab holds [Camping](Camping.md) and the **Carousing** tab holds
+[Carousing](Carousing.md), each with its controls in the sheet: select each PC's
+task and ability, confirm their choices, then lock and roll. Results and
+food/fuel decisions stay in the same tab; the `camping.open` / `carousing.open`
+API opens the sheet on the matching tab rather than opening another window.
 The **Quests** tab uses the existing Quest Log's status tabs, objectives and
 rewards, scoped to this Party and its PCs. GMs create/edit quests and confirm
 payouts inline; players retain the normal read-only quest permissions. New quests
