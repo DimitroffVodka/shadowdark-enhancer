@@ -135,6 +135,23 @@ The [Regional Training](Regional-Training.md) benefits **+1 to death timer rolls
 **Stabilising is always DC 12** (Healer) and **Survive 0 CON** (Ancient Ritual)
 carry these effects when taught.
 
+## Temporary hit points
+
+A character can carry temporary hit points: a pool of their own that damage spends **before** HP. They are not part of the
+maximum, they do not heal, and they are not raised by healing. Temp HP do not stack: a new grant replaces the pool only when it
+is larger.
+
+- **Setting them.** The Player sheet has a **Temp HP** number under the HP box. The owner or the GM types the points; 0 clears
+  them.
+- **Seeing them.** The crawl strip writes the pool beside HP (`3/3 +2`).
+- **Damage.** A hit takes the pool first; only what is left reaches HP. A hit the pool absorbs entirely leaves HP, and the
+  dying rules, alone. This holds for damage the system applies (its own chat card's Apply damage button) and for trap damage.
+- **Not yet with Shadowdark Extras' damage card.** Extras' Apply damage button, and its aura, template, duration and focus
+  damage, write HP directly, so they do not spend the pool yet: a 2-point hit on 3/3 with 2 temp HP leaves 1/3 and the pool at
+  2. Until Extras routes them through the system, the GM can take the points off by hand in the **Temp HP** field. This is
+  tracked in [shadowdark-extras#215](https://github.com/DimitroffVodka/shadowdark-extras/issues/215).
+- **The Cook's meal** ([Camping](Camping.md)) grants two for a world day.
+
 ## Limits
 
 - "Within near" (30 feet) is measured on the scene the active GM is viewing,

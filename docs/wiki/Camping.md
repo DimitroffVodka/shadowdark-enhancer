@@ -45,10 +45,12 @@ starvation during the same rest. Persistent shortage warnings allow an explicit
 hungry night. Fed PCs rest individually; interrupted rest uses saved CON checks.
 Mount full-score nutrition/death/check behavior is in [Mounts & Boats](Mounts-and-Boats.md).
 
-Cook applies only after eligible full rest: 3/3 HP becomes 5/3, maximum unchanged.
-Damage spends surplus first (5/3 → 4/3); healing does not recreate spent bonus.
-After one world day only remaining over-max surplus expires, never subtracting
-another two from an injured PC. Resume/reload does not grant another bonus.
+Cook applies only after an eligible full rest: the meal gives two [temporary hit
+points](Dying-and-Death-Timers.md#temporary-hit-points) for one world day. HP and its
+maximum are untouched (3/3 HP with 2 temp HP). Damage spends the temp HP first and
+healing does not recreate spent ones. After one world day any that are left expire.
+Temp HP do not stack, so a character who already has more keeps them. Resume/reload
+does not grant another meal.
 
 ## Resume and Overland
 

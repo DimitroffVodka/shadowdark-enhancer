@@ -47,6 +47,8 @@ import { init as pulpInit } from "./modes-of-play/pulp.mjs";
 import * as Dying from "./dying/dying.mjs";
 import { init as spellMishapInit } from "./spell-mishap/spell-mishap.mjs";
 import { init as prayerRollInit } from "./character-sheet/prayer-roll.mjs";
+import { init as tempHpFieldInit } from "./character-sheet/temp-hp-field.mjs";
+import { registerTempHp, tempHpOf, setTempHp, giveTempHp } from "./shared/temp-hp.mjs";
 import { init as scavengerInit } from "./scavenger/scavenger.mjs";
 import { Parry } from "./parry/parry.mjs";
 import { Taunt } from "./taunt/taunt.mjs";
@@ -133,7 +135,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "cbb9eae55a98";
+const STYLESHEET_REV = "27b9462f5136";
 
 // The same problem for the SCRIPTS, which cannot be solved the same way: their
 // URLs come from the manifest, which Foundry validates as real package paths,
@@ -148,7 +150,7 @@ const STYLESHEET_REV = "cbb9eae55a98";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "6361bd748330";
+const BUILD_REV = "a2a722595b90";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -444,6 +446,7 @@ Hooks.once("init", () => {
   registerPartyLight();
   registerPartyRoll();
   registerCamping();
+  registerTempHp();
   registerCarousing();
 
   // "Character Builder" launch button in the Actors sidebar header — the single
@@ -523,7 +526,8 @@ Hooks.once("init", () => {
     //   Shadowdark Extras' Map Coordinates.
     // 1.27.0 — additive: the bastion namespace, the Bastion actor type and its sheet.
     // 1.28.0 — additive: the traps namespace and the trap Region behavior.
-    apiVersion: "1.28.0",
+    // 1.29.0 — additive: the tempHp namespace, a temporary-hit-point pool that damage spends before HP.
+    apiVersion: "1.29.0",
     // The one travel state per world (scripts/overland/overland.mjs): a copy
     // with hexes left, climate, storm, harshness and night derived; whether
     // travel is on; today's weather roll, the travel day's start, Continue
@@ -1041,6 +1045,13 @@ Hooks.once("init", () => {
       heal: (actor, opts) => StatDamage.heal(actor, opts),
       of: (actor) => StatDamage.of(actor),
     },
+    // 1.29.0 — additive: temporary hit points. One pool per actor in front of HP: damage spends it first and
+    // HP is never raised past its maximum. Temp HP do not stack (a grant replaces the pool only when larger).
+    tempHp: {
+      of: (actor) => tempHpOf(actor),
+      set: (actor, value, opts) => setTempHp(actor, value, opts),
+      grant: (actor, value, opts) => giveTempHp(actor, value, opts),
+    },
     // 1.23.0 — additive: the Trouble tracker (#193): the weekly check, and troubles counting down on the world clock.
     troubles: {
       check: (opts) => Troubles.check(opts),
@@ -1176,6 +1187,7 @@ Hooks.once("ready", () => {
   Dying.init();
   spellMishapInit();
   prayerRollInit();
+  tempHpFieldInit();
   scavengerInit();
   Parry.init();
   Taunt.init();

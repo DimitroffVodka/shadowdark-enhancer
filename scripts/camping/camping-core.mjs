@@ -86,17 +86,10 @@ export function fireDecision(camp, results) {
 // `hour` and `day` are the calendar's seconds per hour and per day (time-core's secondsPerHour / secondsPerDay): a
 // calendar with longer hours or days keeps the fire's eight hours and the meal's one day in its own time.
 export const fireAlive = (fire, time, near, hour = 3600) => !!fire?.lit && near && time < fire.started + 8 * hour;
-export function cookGrant(hp, previous, campId, time, eligible, day = 86400) {
-  if (!eligible || previous?.campId === campId || (previous?.expires > time && !previous.expired)) return null;
-  return { value: hp.value + 2, benefit: { campId, remaining: 2, expires: time + day, expired: false } };
-}
-export function cookHp(hp, benefit, amount) {
-  const value = amount >= 0 ? Math.max(0, hp.value - amount) : Math.min(Math.max(hp.max, hp.value), hp.value - amount);
-  return { value, benefit: { ...benefit, remaining: Math.min(benefit.remaining, Math.max(0, value - hp.max)) } };
-}
-export function cookExpiry(hp, benefit, time) {
-  if (!benefit || benefit.expired || time < benefit.expires) return null;
-  return { value: hp.value - Math.min(benefit.remaining, Math.max(0, hp.value - hp.max)), benefit: { ...benefit, remaining: 0, expired: true } };
+/** The meal's two temporary HP, once per camp and not again while a meal still holds; the pool itself is shared (temp-hp-core). */
+export function cookGrant(previous, campId, time, eligible, day = 86400) {
+  if (!eligible || previous?.campId === campId || previous?.expires > time) return null;
+  return { temp: 2, expires: time + day, benefit: { campId, expires: time + day } };
 }
 /** A whole meal or nothing. Own rations are used first, then the party's; short overall means no deductions. */
 export function mealPlan(stacks, actorUuid, partyUuid, each) {

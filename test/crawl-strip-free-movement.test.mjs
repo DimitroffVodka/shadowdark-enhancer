@@ -20,7 +20,7 @@ const pc = { id: "pc1", type: "Player", name: "Ayla", img: "a.png", isOwner: tru
   system: { attributes: { hp: { value: 5, max: 5 }, ac: { value: 12 } }, luck: { remaining: 1 } }, flags: {} };
 const settings = {};
 globalThis.game = {
-  user: { isGM: true }, users: { activeGM: null }, combat: null,
+  user: { isGM: true }, users: { activeGM: null }, combat: null, time: { worldTime: 0 },
   i18n: { localize: (k) => k, format: (k) => k },
   actors: { get: (id) => (id === pc.id ? pc : null) },
   settings: { get: (_m, key) => settings[key] ?? null, set: () => {} },
