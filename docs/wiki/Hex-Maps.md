@@ -329,6 +329,33 @@ edits to a page's name are kept and nothing is duplicated. Cross-references
 between hexes become links inside a region; a reference to a hex in another
 region stays as plain text, because the two are separate journal entries.
 
+## The master Key Locations journal
+
+Importing a book's key locations (Importer Hub → Tools → **Key locations**, or the
+import guide) also files **Key Locations: [book]** beside the region entries, in
+the Journals pack. It is one entry with a page per region, in the book's own
+region order, and each page is a table of that region's keyed hexes: the hex
+number, the location's name and its terrain.
+
+- **The name** links to the location's write-up page.
+- **The hex number** takes you to the hex: click it and the map you are viewing
+  pans there. It reads the scene's own numbering, so no pin has to be placed
+  first. If the scene you are viewing belongs to another book (hex numbers repeat
+  between books) or is not numbered, it pans to that hex's map pin on whichever
+  scene holds one, and says so when there is none.
+
+The journal holds nothing but what your import filed (no book text ships with the
+module), and importing again rebuilds it in place. To build it for a book you
+already imported without reading the PDF again, a GM runs:
+
+```js
+await game.shadowdarkEnhancer.hexMaps.buildKeyIndex("GMWR");
+```
+
+It leaves the region entries and their pages alone. Its links open the pack's
+pages, or the world copy of a region where you have pinned it, so rebuild it
+after pinning a region if you want the names to open the copy the map's pins open.
+
 ## Keyed locations on the map
 
 Once the hex key is filed as pages (Importer Hub, **Create hex pages**), the

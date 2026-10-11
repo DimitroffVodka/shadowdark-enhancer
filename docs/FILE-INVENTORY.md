@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1933 tracked files · ~246,100 lines of code/markup across scripts+templates+styles+test.
+1936 tracked files · ~246,400 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 1444 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 1451 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 172 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 271 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 | `scavenger/scavenger-core.mjs` | 171 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
@@ -84,12 +84,13 @@
 | `hex-map/hex-explorer.mjs` | 223 | Player-safe Hexplorer canvas hover/select observer and GM writes over authoritative terrain tags and rich offset records; preserves discovery and imported metadata. |
 | `hex-map/hex-fog-core.mjs` | 88 | Pure shared terrain/location disclosure, lossless fog/history migration, native-grid sight and arrival/overlap decisions. |
 | `hex-map/hex-fog.mjs` | 186 | Adopted-scene native static fog overlay, GM disclosure, selected-party committed visits/arrival history and SDX ownership guard. |
+| `hex-map/hex-goto.mjs` | 45 | The hex-number links of the master Key Locations journal: one delegated click listener that pans the viewed scene to the hex (its own numbering, then the hex's map pin on any scene). |
 | `hex-map/hex-legend-session.mjs` | 88 | The Hex Tagger's Legend without its window: runs the tagger unshown as the engine (reads the map, builds the picture cards, applies the names) and hands a page just the cards and five calls, so the import wizard can show them on its Terrain page. Also legendNamed(scene). |
 | `hex-map/hex-map-controls.mjs` | 96 | The Hex map group on the left toolbar (GM, any scene with hex numbering): show terrain tags, regions and encounter zones, the paint brush, the most-likely-wrong review and the Hex Tagger, each calling what the tagger's own buttons call; refreshed through the hexTools hook when an overlay or the brush opens or closes. |
 | `hex-map/hex-map-flow.mjs` | 499 | Hex map from an image: file dialog, lattice detection, confirmation preview with corners set by hand, upload into the world folder, an aligned scene (stretch to Foundry's pitches, offset to cell 0,0), tagger opened on its legend. |
 | `hex-map/hex-number-api.mjs` | 47 | `hexMaps.numberAt` / `hasNumbering`: the tagger's published hex number for a Foundry offset on a numbered scene, synchronous, so Shadowdark Extras' Map Coordinates shows what the tagger shows. |
 | `hex-map/hex-picture.mjs` | 188 | What the hex brush shows per terrain (pure): the Legend palette's terrains only, which tagged hex stands for each, the hexagon mask and printed-number patch geometry, and the edge-ink test that rejects a neighbour's border bleeding in. |
-| `hex-map/hex-pins.mjs` | 124 | Keyed hexes as map notes: deploys the crawl journal into the world with stable ids (links rewritten), plans one Note per keyed page at its hex centre (pure planner), moves existing pins on re-run. |
+| `hex-map/hex-pins.mjs` | 136 | Keyed hexes as map notes: deploys the crawl journal into the world with stable ids (links rewritten), plans one Note per keyed page at its hex centre (pure planner), moves existing pins on re-run. |
 | `hex-map/hex-prints.mjs` | 86 | What is known of each book's hex map, pure: which book's key locations pin onto it, where its crawls are filed, the printed number of its first hex, and for the two black maps the grid finder cannot read (the Black River, joined from two halves, and Morzomotha) their measured grids. Numbers and names only, no part of the print. |
 | `hex-map/hex-records.mjs` | 242 | Scene-offset native rich-record facade over existing tags, keyed pins/pages and regions, private compendium records and allowlisted public disclosure projections. |
 | `hex-map/hex-region.mjs` | 317 | Which region is a hex in: the book's own word for a keyed hex, the nearest keyed hex's region for any other (84.8% on the Western Reaches, leave-one-out over the book's own keyed rows). Seeds come from the filed crawls; nothing is stored. |
@@ -338,7 +339,7 @@
 | `importer-hub-app.mjs` | 980 | **The single front door (shell).** ApplicationV2 lifecycle, singleton, instance fields/caches, `_prepareContext`; installs the three method packs below onto the class (split 2026-07-22). |
 | `importer-hub-paste.mjs` | 1584 | Paste box, type selector, parse dispatch, per-type preview field/row wiring. |
 | `importer-hub-commit.mjs` | 975 | Conflict dialogs, quality gates, magic-bundle plan, all per-type commit flows. |
-| `importer-hub-manage.mjs` | 1294 | Manage strip: censuses + caches, manage tree, gap/seed/cull, source-PDF grab/extract. |
+| `importer-hub-manage.mjs` | 1295 | Manage strip: censuses + caches, manage tree, gap/seed/cull, source-PDF grab/extract. |
 | `importer-hub-batch.mjs` | 760 | Batch “Import everything” runner: seeds, grabs, parses and commits each planned entry unattended. |
 | `importer-hub-rules.mjs` | 113 | Importer Hub Rules Data step (#299; first in the Manage strip since #311): lists each Western Reaches lookup table with its book, page and filled or empty state, runs the settings window's own import (importAndSave) from the hub, opens the Edit window, and is Import everything's last step when a book is linked. |
 | `importer-hub-shared.mjs` | 107 | Hub-shared constants/helpers + `installMethods` (the split's descriptor copier). |
@@ -421,11 +422,12 @@
 | `adventure/map-detect.mjs` | 57 | Which adventure a map image is of (pure): the file name's words, minus sizes and version words, matched against each site's title and map names, the longest name winning and a tie meaning the GM is asked. |
 | `adventure/map-labels.mjs` | 73 | Where the book puts each room number on its own map (pure): the page reads of a keyed map (one picture per page, numbers as text over it, two pages for a spread) stitched into one point per number as a fraction of the map, plus the shape check against the GM's image. No coordinates ship; they come from the GM's own PDF. |
 | `chapter-journal.mjs` | 379 | Chapter to journal (#194): a printed page range of a linked book → one JournalEntry in the journals pack, split at ALL-CAPS headings (or a preset's sections, e.g. the GM Guide's City-States) and reflowed, with page furniture dropped. Identity by flag, so a re-import updates in place and keeps GM pages; pages naming a key location link to its hex page and back. Presets are page numbers only. |
-| `hex/hex-book-import.mjs` | 152 | A book's whole hex key in one pass: per region, the keyed-location table and the pages of write-ups after it → one crawl entry per region. Page map only; no book text. |
+| `hex/hex-book-import.mjs` | 161 | A book's whole hex key in one pass: per region, the keyed-location table and the pages of write-ups after it → one crawl entry per region. Page map only; no book text. |
 | `hex/hex-commit.mjs` | 232 | Hex-key drafts → JournalEntry pages in sde-journal (one entry per crawl, one page per hex); pure planner + two-pass link rewrite. |
 | `hex/hex-dataset.mjs` | 349 | Drafts + summary rows + tags → the Shadowdark Extras hexcrawl dataset (numbers only at the boundary); river, path and coast as record features, merged by id with what Extras holds. Pure. |
 | `hex/hex-handoff.mjs` | 384 | Crawl entry → dataset; puts it on the tagged print through Extras (adoptHexcrawl), merging each hex's features into the record Extras holds, builds a painted Extras scene, or downloads JSON. |
 | `hex/hex-summary.mjs` | 174 | Keyed hex summary rows (number, region, terrain, name) → structured rows; zone/terrain split decided by the table. Pure. |
+| `hex/key-location-index.mjs` | 133 | The master Key Locations journal of a book: one entry, a page per region, a table row per keyed hex with a go-to link and a link to its write-up, built from the regions the import filed (pure planner plus the pack write; carries its own flag, never the crawl flag). |
 | `importer-hub-adventures.mjs` | 186 | Hub Tools → Adventures (file a Cursed Scroll's adventures as journals) and Adventure map (build the scene from the GM's image and open the placer); installed onto the hub class. |
 | `items/record-boundary.mjs` | 208 | Where one pasted description record ends and the next begins. Pure. |
 | `session-pdf.mjs` | 61 | Source PDFs given from the GM's own computer for one session, for hosts that refuse a book-sized upload (The Forge): the picked files, the `session-pdf:` pseudo-path they resolve to, and the Forge check. Never uploaded or saved; released when the import is done. |

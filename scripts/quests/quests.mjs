@@ -378,7 +378,7 @@ async function panToPin(pin, missingKey) {
 }
 
 /** Pan to the Hex Tagger's pin for a hex number (the Trouble tracker's settlements, #193). */
-export const jumpToHex = (num) => panToPin(findPin({ id: null, hex: Number(num) }), "SDE.troubles.notify.noPin");
+export const jumpToHex = (num, missingKey = "SDE.troubles.notify.noPin") => panToPin(findPin({ id: null, hex: Number(num) }), missingKey);
 
 // ── The API ─────────────────────────────────────────────────────────────────
 
