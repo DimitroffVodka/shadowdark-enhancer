@@ -17,14 +17,14 @@ and Forge & Loot features.
 [`charBuilder`](#charbuilder--guided-character-creation) ·
 [`actors`](#actors--western-reaches-boats) · [`bastion`](#bastion--bastions) · [`traps`](#traps--trap-regions) ·
 [`statDamage`](#statdamage--tracked-ability-damage) · [`quests`](#quests--the-quest-log) ·
-[`dying`](#dying--death-timers-and-stabilizing) ·
+[`dying`](#dying--death-timers-and-stabilizing) · [`tempHp`](#temphp--temporary-hit-points) ·
 [`hexMaps`](#hexmaps--hex-map-tagging-and-the-extras-dataset) ·
 [`rules`](#rules--western-reaches-rules-data) ·
 [`holidays`](#holidays--when-a-holiday-falls-and-what-it-does-to-carousing) ·
 [`time`](#time--season-day-and-night-sun-moon-and-anchors) ·
 [`overland`](#overland--the-travel-state)
 
-**API version:** `1.27.0` (semver — additive changes bump the minor version,
+**API version:** `1.29.0` (semver — additive changes bump the minor version,
 breaking changes the major; check `apiVersion` before relying on newer keys).
 
 ## Discovery
@@ -133,6 +133,23 @@ await api.traps.create({         // GM only; returns the Region
   trap: { trap: "Pit", effect: "Fall 20 ft", checkAbility: "dex", checkDc: 12, damage: "2d6", when: "enter", gmNotes: "DC 12" },
 });
 ```
+
+## `tempHp` — temporary hit points
+
+One pool of temporary hit points per actor, kept in the `tempHp` flag as `{ value, expires }` (`expires` is a world time, or
+`null` for none). Damage spends the pool before HP: the module wraps `ActorSD#applyDamage`, so every damage source that goes
+through it (a chat card's Apply damage, a trap, parry) honours the pool, and only what is left over reaches the system, whose
+clamp to the maximum then applies as usual. HP is never raised above its maximum. Healing leaves the pool alone, and temp HP
+do not stack. Added in `1.29.0`.
+
+```js
+api.tempHp.of(actor);                          // the points right now (0 when none, or the pool has expired)
+await api.tempHp.set(actor, 5);                // set the pool to 5 (0 clears it); keeps the pool's own expiry unless { expires } is given
+await api.tempHp.grant(actor, 5, { expires });  // replaces the pool only when 5 is larger; resolves to the points after
+```
+
+Each call writes the actor, so the caller needs update permission on it. The Cook camping meal grants 2 points for one world
+day; a Player sheet has a **Temp HP** field under the HP box, and the crawl strip shows the pool as `+N` beside HP.
 
 ## `bastion` — bastions
 

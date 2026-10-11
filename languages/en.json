@@ -307,6 +307,8 @@
   "SDE.camping.rollFlavor": "{task}: {outcome} (DC {dc})",
   "SDE.camping.found": "{task}: found {count} {item}",
   "SDE.camping.outcome.battenDown": "interrupted sleep will not cost this PC their rest",
+  "SDE.tempHp.label": "Temp HP",
+  "SDE.tempHp.tooltip": "Temporary hit points. Damage takes these first. They are not part of your maximum, and they do not heal.",
   "SDE.camping.outcome.cook": "a hot meal; two temporary HP after an eligible full rest",
   "SDE.camping.outcome.craftTorch": "crafted a torch",
   "SDE.camping.outcome.craftRepair": "repaired the broken item",
