@@ -4,7 +4,7 @@ import {
   OWNERSHIP, STATUSES,
   addObjective, canSee, defaultRecipients, makeQueue, matchesFilter, mergeQuest, normalizeQuest, objectiveProgress,
   ownershipFor, payoutPlan, pickPin, planStatusChange, playerPageHtml, removeObjective, setObjectiveDone,
-  setObjectiveText, shouldPay, summarize, trainerTaskQuests, visibleStatuses,
+  questsAtHex, setObjectiveText, shouldPay, summarize, trainerTaskQuests, visibleStatuses,
 } from "../scripts/quests/quest-core.mjs";
 
 let n = 0;
@@ -56,6 +56,29 @@ describe("normalizeQuest", () => {
   test("hex is a positive whole number or null", () => {
     assert.equal(normalizeQuest({ hex: "353" }).hex, 353);
     for (const bad of ["", null, 0, -1, 3.5, "abc"]) assert.equal(normalizeQuest({ hex: bad }).hex, null, String(bad));
+  });
+});
+
+describe("hex links", () => {
+  test("a hex's scene is kept only with a hex, and only as text", () => {
+    assert.equal(normalizeQuest({ hex: 12, hexScene: "Scene.a" }).hexScene, "Scene.a");
+    assert.equal(normalizeQuest({ hex: 12 }).hexScene, null);
+    assert.equal(normalizeQuest({ hex: null, hexScene: "Scene.a" }).hexScene, null);
+    assert.equal(mergeQuest({ hex: 12, hexScene: "Scene.a" }, { hex: null }).hexScene, null);
+  });
+
+  test("questsAtHex: a scene-bound quest matches its own scene, an unbound one any scene", () => {
+    const qs = [
+      normalizeQuest({ hex: 101, hexScene: "Scene.a" }),
+      normalizeQuest({ hex: 101 }),
+      normalizeQuest({ hex: 101, hexScene: "Scene.b" }),
+      normalizeQuest({ hex: 102, hexScene: "Scene.a" }),
+      normalizeQuest({}),
+    ];
+    const at = (num, sceneUuid) => questsAtHex(qs, { num, sceneUuid }).map((q) => qs.indexOf(q));
+    assert.deepEqual(at(101, "Scene.a"), [0, 1]);
+    assert.deepEqual(at(101, "Scene.b"), [1, 2]);
+    assert.deepEqual(at(null, "Scene.a"), []);
   });
 });
 

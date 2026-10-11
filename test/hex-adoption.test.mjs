@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { planHexAdoption, planHexFogImport, parseOffsetKey } from "../scripts/hex-map/hex-adoption.mjs";
+import { planHexAdoption, planHexFogImport, parseOffsetKey, printFor } from "../scripts/hex-map/hex-adoption.mjs";
 
 const numberAt = ({ i, j }) => i === 0 && j === 0 ? 101 : null;
 test("already adopted E3 records import revealed/near fog, preserving native conceal and arrival history", () => {
@@ -87,4 +87,30 @@ test("a cell's own legacy field is archived whole and reported, not silently ove
   assert.deepEqual(p.cells["0_0"].legacy, { name: "Old", terrain: "Forest", legacy: "USER" }, "the archive keeps the original field nested");
   assert.equal(p.cells["0_0"].legacy.legacy, "USER");
   assert.ok(p.report.conflicts.some(c => c.key === "0_0" && c.field === "legacy"));
+});
+
+const MOD = "shadowdark-enhancer", XTRA = "shadowdark-extras";
+const bounds = { cols: 64, rows: 75, rowsLowered: 74, firstRow: 1 };
+// `at` is the Foundry offset {i, j} of the print's first hex; {0, 0} is the top-left cell Extras numbers 0000 from.
+const print = (extra = {}, { at = { i: 0, j: 0 }, num = "0000", shifted = "odd" } = {}) => ({ grid: { type: 4 }, flags: { [MOD]: { hexTags: {
+  origin: { q: at.j, r: at.i - (at.j - (at.j & 1)) / 2, num, shifted, bounds } } }, [XTRA]: { hexcrawl: {} } }, ...extra });
+const painted = (grid = { ...bounds, origin: 0 }, type = 4) => ({ grid: { type }, flags: { [XTRA]: { hexScene: true, hexcrawl: { grid } } } });
+test("a painted scene finds the one tagged print with its numbering bounds and grid type", () => {
+  const a = print(), p = painted();
+  assert.equal(printFor(p, [a, p, print({ grid: { type: 5 } })]), a);
+  assert.equal(printFor(p, [a, print()]), null, "two prints fit: it cannot pick");
+  assert.equal(printFor(p, [p]), null, "no print");
+  assert.equal(printFor(painted({ ...bounds, cols: 40 }), [a]), null, "another map's size");
+  assert.equal(printFor(painted({ ...bounds, flipX: true }), [a]), null, "mirrored numbering is not the print's");
+  assert.equal(printFor(a, [a, print()]), null, "a print is not a painted scene");
+});
+test("a print anchored off the top-left cell is not the painted scene's print: Extras numbers its hexes from another cell", () => {
+  const p = painted();
+  assert.equal(printFor(p, [print({}, { at: { i: 1, j: 0 } })]), null, "a row of margin above the first hex (topRows 1)");
+  assert.equal(printFor(p, [print({}, { at: { i: 2, j: 3 } })]), null, "anchored by hand on another cell");
+  assert.equal(printFor(p, [print({}, { at: { i: 0, j: 1 } })]), null, "anchored a column over");
+  assert.equal(printFor(p, [print({}, { shifted: "even" })]), null, "the print lowers the other columns");
+  const aligned = print({}, { num: "0101", shifted: "even" });
+  assert.equal(printFor(painted({ ...bounds, origin: 1 }), [aligned]), aligned, "numbered from 0101, still the top-left cell");
+  assert.equal(printFor(p, [{ grid: { type: 4 }, flags: { [MOD]: { hexTags: { origin: { bounds } } } } }]), null, "no anchor cell to place it by");
 });

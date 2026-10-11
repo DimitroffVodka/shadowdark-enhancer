@@ -1194,6 +1194,7 @@ class HubManageMethods {
     if (report.failed.length) {
       ui.notifications.warn(t("SDE.importer.hex.book.failed", { n: report.failed.length, first: report.failed[0].region }));
     }
+    if (report.index?.uuid) ui.notifications.info(t("SDE.importer.hex.index.done", { rows: report.index.rows, regions: report.index.regions }));
   }
 
   /**

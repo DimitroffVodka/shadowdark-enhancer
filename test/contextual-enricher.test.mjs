@@ -277,6 +277,30 @@ describe("A5 — the composed encounter enrichment still holds", () => {
     assert.equal(enrichEncounterText(labelled, index), labelled);
   });
 
+  test("a row without the monster's leading \"The\" still links to it", () => {
+    const the = [{ name: "The Willowman", uuid: "Compendium.world.sde-actors.willowman" }];
+    assert.equal(enrichEncounterText("Willowman*", the),
+      "@UUID[Compendium.world.sde-actors.willowman]{Willowman}*");
+    // The full name still wins where the text has it, and a real monster of the bare name is kept.
+    assert.equal(enrichEncounterText("The Willowman", the),
+      "@UUID[Compendium.world.sde-actors.willowman]{The Willowman}");
+    const both = [...the, { name: "Willowman", uuid: "Compendium.shadowdark.monsters.willowman" }];
+    assert.equal(enrichEncounterText("Willowman", both),
+      "@UUID[Compendium.shadowdark.monsters.willowman]{Willowman}");
+  });
+
+  test("a name without its \"The\" is matched as the row prints it, not as an ordinary word", () => {
+    const bestiary = [
+      { name: "The Dark", uuid: "Compendium.world.sde-actors.dark" },
+      { name: "The Lost", uuid: "Compendium.world.sde-actors.lost" },
+    ];
+    assert.equal(enrichEncounterText("a dark cave", bestiary), "a dark cave");
+    assert.equal(enrichEncounterText("2d4 lost souls", bestiary), "[[/r 2d4]] lost souls");
+    // The row still prints the capitalised name, and the full name keeps matching in any case.
+    assert.equal(enrichEncounterText("Dark*", bestiary), "@UUID[Compendium.world.sde-actors.dark]{Dark}*");
+    assert.equal(enrichEncounterText("the dark", bestiary), "@UUID[Compendium.world.sde-actors.dark]{the dark}");
+  });
+
   test("an explicitly supplied context remains A5-validated", () => {
     assert.throws(
       () => enrichEncounterText("DC 15 DEX", index, { context: "not-a-context" }),

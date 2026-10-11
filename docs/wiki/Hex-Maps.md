@@ -28,7 +28,18 @@ scene UUID plus offset. Hover for disclosed terrain/public notes (the GM's card 
 short click keeps the small card with permitted links. The GM gets no pinned
 card or Edit button: a double click opens Hex Data, which saves terrain,
 line features, rich locations, notes and discovery; travel prices update
-immediately. Pins, token drags and long-press pings retain their handlers.
+immediately. A hex with a keyed-location pin (see *Keyed locations on the map*)
+is named by its pinned page unless you type a title, and Hex Data lists that page
+with a button to open it. Pins, token drags and long-press pings retain their handlers.
+
+The window also has a **Quests here** card on a numbered hex: the quests tied to
+this hex, each with a button to open it and one to unlink it, and a picker of
+every other quest (one already tied to another hex shows that number, and
+linking it moves it). It writes the quest's own **Hex** at once, not with Save,
+and remembers the scene, so a book number that repeats on another map
+(0101 on each Cursed Scroll map) does not show the quest there and the quest's
+**Jump to pin** goes to this map's pin. A quest whose Hex was typed in the Quest
+Log has no scene and matches that number on any map.
 
 The GM's edit window also has a **Random encounters** card: the table a
 wandering check on this hex would roll now, the same one the check picks (its
@@ -317,6 +328,33 @@ matched by the hex number on their flag and updated where they sit, so your own
 edits to a page's name are kept and nothing is duplicated. Cross-references
 between hexes become links inside a region; a reference to a hex in another
 region stays as plain text, because the two are separate journal entries.
+
+## The master Key Locations journal
+
+Importing a book's key locations (Importer Hub → Tools → **Key locations**, or the
+import guide) also files **Key Locations: [book]** beside the region entries, in
+the Journals pack. It is one entry with a page per region, in the book's own
+region order, and each page is a table of that region's keyed hexes: the hex
+number, the location's name and its terrain.
+
+- **The name** links to the location's write-up page.
+- **The hex number** takes you to the hex: click it and the map you are viewing
+  pans there. It reads the scene's own numbering, so no pin has to be placed
+  first. If the scene you are viewing belongs to another book (hex numbers repeat
+  between books) or is not numbered, it pans to that hex's map pin on whichever
+  scene holds one, and says so when there is none.
+
+The journal holds nothing but what your import filed (no book text ships with the
+module), and importing again rebuilds it in place. To build it for a book you
+already imported without reading the PDF again, a GM runs:
+
+```js
+await game.shadowdarkEnhancer.hexMaps.buildKeyIndex("GMWR");
+```
+
+It leaves the region entries and their pages alone. Its links open the pack's
+pages, or the world copy of a region where you have pinned it, so rebuild it
+after pinning a region if you want the names to open the copy the map's pins open.
 
 ## Keyed locations on the map
 
@@ -990,6 +1028,31 @@ the print over that scene: **Reference tile**, pick the painted scene, and tick
 so its hex field lands exactly on the scene's cells (a print whose hexes are
 taller than regular is squared up in the process). Hide the tile and the
 painted map is back.
+
+The painted scene also takes a copy of the print's tags and region scan the first time the GM opens it, so the
+**Terrain**, **Regions** and **Zones** pictures, the hex numbers and the regions' own encounter columns work there as
+they do on the print. It finds the print by its numbering size and grid, and only when the print's first hex is the
+map's top-left cell (a print numbered from anywhere else would carry Extras' numbers to the wrong hexes) and exactly
+one tagged print fits; with two the same size, nothing is copied. Edits to the print after that are not carried over:
+build the painted map again.
+
+**Update painted map**, also under **More**, fixes a painted map after you
+retag. Correct the hexes the tagger got wrong, press the button, and the tagger
+looks at the painted map it matches (it asks when you have more than one) and
+lists every hex whose terrain you now name differently. Confirm and each of
+those hexes is repainted with the tile for its new terrain, its stored terrain
+is updated, and the beaches around it are redone. Nothing else on the map
+changes: hexes that still agree, their names and descriptions, tokens, pins,
+notes and fog are left alone, which **Build painted map** would not do.
+
+- It only offers painted maps built by **Build painted map**, at this map's size
+  and numbering. The tagged print itself is never repainted.
+- A tile you placed by hand on a listed hex is replaced; that is the point of
+  the correction.
+- A hex whose terrain you cleared in the tagger is skipped: there is nothing to
+  repaint it from.
+- It needs a Shadowdark Extras that can repaint tiles. An older one is told so
+  and nothing is written.
 
 ## The dataset
 

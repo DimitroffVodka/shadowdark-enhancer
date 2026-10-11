@@ -221,7 +221,8 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
       case "gp": return this._edit((q) => ({ ...q, rewards: { ...q.rewards, coins: { ...q.rewards.coins, gp: value } } }));
       case "renown": return this._edit((q) => ({ ...q, rewards: { ...q.rewards, renown: value } }));
       case "training": return this._edit((q) => ({ ...q, rewards: { ...q.rewards, training: value || null } }));
-      case "hex": return this._edit((q) => ({ ...q, hex: value }));
+      // A number typed here is the number on any map; Hex Data is what ties a quest to one scene's hex.
+      case "hex": return this._edit((q) => ({ ...q, hex: value, hexScene: null }));
       case "objectiveDone": return this._edit((q) => setObjectiveDone(q, el.dataset.objective, value));
       case "objectiveText": return this._edit((q) => setObjectiveText(q, el.dataset.objective, value));
     }

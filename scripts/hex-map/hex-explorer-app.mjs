@@ -6,6 +6,8 @@ import { effectiveDiscovery } from "./hex-fog-core.mjs";
 import { FEATURES, decodeTags } from "./tag-store.mjs";
 import { terrainOptions, OTHER } from "./tag-overlay.mjs";
 import { tableForCheck, pickTable, TERRAIN_TABLES } from "../encounter/encounter-terrain.mjs";
+import { Quests } from "../quests/quests.mjs";
+import { questsAtHex, STATUS_LABELS } from "../quests/quest-core.mjs";
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const t = key => game.i18n.localize(key);
 const LABELS = { river: "SDE.hexMap.feature.river", path: "SDE.hexMap.feature.path", coast: "SDE.hexMap.feature.coast" };
@@ -24,7 +26,16 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
         const roller = await game.shadowdarkEnhancer.encounter.openRoller("tables");
         return roller.rollActiveTable(this.encounterUuid);
       },
+      // Quest links are the quest's own flag, written at once: they are not part of this window's Save.
+      linkQuest: function () { return this._setQuestHex(this.element.querySelector('[name="questPick"]')?.value, this.record.num); },
+      unlinkQuest: function (_event, el) { return this._setQuestHex(el.dataset.uuid, null); },
+      openQuest: function (_event, el) { return fromUuid(el.dataset.uuid).then(doc => doc?.sheet?.render(true)); },
       openEncounterTable: async function () { (await fromUuid(this.encounterUuid))?.sheet?.render(true); },
+      openPage: async function (_event, el) {
+        const doc = await fromUuid(el.dataset.uuid);
+        if (doc?.documentName === "JournalEntryPage") doc.parent.sheet?.render(true, { pageId: doc.id });
+        else doc?.sheet?.render(true);
+      },
     },
   };
   static PARTS = { body: { template: `modules/${MODULE_ID}/templates/hex-map/hex-explorer.hbs`, scrollable: [".sde-hex-explorer-body"] } };
@@ -39,7 +50,7 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
   async _prepareContext() {
     if (!game.user?.isGM) return {};
-    const record = HexRecords.read(this.offset, this.scene);
+    const record = this.record = HexRecords.read(this.offset, this.scene);
     // The reveal boxes are the viewed party's: what they say is what that party's players see.
     const seen = effectiveDiscovery(record.discovery, viewedPartyIds());
     // The draft belongs to the party it was filled from; switching party while the window is open must not move its boxes to another.
@@ -59,11 +70,26 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const enc = encounterReadout(res, res.uuid ? (await fromUuid(res.uuid).catch(() => null))?.name ?? "" : "", game.settings.get(MODULE_ID, "encounterTableUuid"),
       pickTable(game.settings.get(MODULE_ID, TERRAIN_TABLES), hex.terrain));
     this.encounterUuid = enc.uuid;
-    return { ...d, rootId: this.id, encounter: { ...enc, note: game.i18n.format(ENCOUNTER_NOTES[enc.state], enc) }, isGM: true, saving: this.saving, sceneName: this.scene.name,
+    // Quests tie to a hex by its printed number, so an unnumbered hex has no quest section.
+    const numbered = Number.isInteger(record.num), all = numbered ? Quests.list() : [];
+    const here = questsAtHex(all, { num: record.num, sceneUuid: this.scene.uuid });
+    const pad = n => String(n).padStart(4, "0"), row = q => ({ uuid: q.uuid, name: q.name, status: t(STATUS_LABELS[q.status]) });
+    // The book's page for a keyed hex comes from the map's pin on it, not from the stored cell, so it is shown but never saved.
+    return { ...d, keyed: record.keyed ?? [], questSection: numbered, quests: here.map(row),
+      // A quest already tied to another hex says so, so moving it is a choice and not a surprise.
+      questChoices: all.filter(q => !here.includes(q)).map(q => ({ ...row(q), where: q.hex === null ? "" : ` → ${pad(q.hex)}` })),
+      rootId: this.id, encounter: { ...enc, note: game.i18n.format(ENCOUNTER_NOTES[enc.state], enc) }, isGM: true, saving: this.saving, sceneName: this.scene.name,
       number: record.num === null ? game.i18n.format("SDE.hexExplorer.offset", this.offset) : String(record.num).padStart(4, "0"),
       locationAuto: d.location === "auto", locationShow: d.location === "show", locationHide: d.location === "hide",
       terrainOptions: this._terrainOptions(d.terrain),
       lineRows: FEATURES.map(type => ({ type, label: t(LABELS[type]), checked: d.lines.includes(type) })) };
+  }
+  async _setQuestHex(uuid, num) {
+    if (!uuid || !game.user?.isGM) return;
+    this._capture();
+    try { await Quests.update(uuid, q => ({ ...q, hex: num, hexScene: num === null ? null : this.scene.uuid })); }
+    catch (error) { console.error(`${MODULE_ID} | Hex Data quest link`, error); ui.notifications.warn(game.i18n.localize("SDE.hexExplorer.failed")); }
+    this.render();
   }
   /** The map's own terrains (the on-map editor's list); a new one is made with "other…", never typed into a free box. */
   _terrainOptions(current) {

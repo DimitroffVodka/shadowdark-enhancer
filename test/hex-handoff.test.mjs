@@ -434,3 +434,91 @@ test("sending to the print is GM-only and needs Extras", async () => {
   globalThis.game = { user: { isGM: true } };
   assert.deepEqual(await handoffToPrint("print-1", printDataset), { via: "none", reason: "no-extras" });
 });
+
+// ── journal references: the pages a map note opens ───────────────────────────
+
+test("datasetFromEntries sends each keyed page's entry and page id", async () => {
+  const { datasetFromEntries } = await import("../scripts/importer/hex/hex-handoff.mjs");
+  const { HEX_FLAG } = await import("../scripts/importer/hex/hex-commit.mjs");
+  const { MODULE_ID } = await import("../scripts/shared/module-id.mjs");
+  const page = (id, num, key) => ({ id, name: `${num} Mill`, text: { content: "<p>x</p>" },
+    getFlag: (scope, flag) => (scope === MODULE_ID && flag === HEX_FLAG ? { num, key } : undefined) });
+  const entry = { id: "crawl1", name: "Crawl", pages: { contents: [page("pageA", "0101", "k1")] },
+    getFlag: () => ({ crawl: "Crawl", keyed: [] }) };
+  const ds = datasetFromEntries([entry]);
+  assert.deepEqual(ds.hexes.find((h) => h.num === 101).journal, { entryId: "crawl1", pageId: "pageA" });
+});
+
+test("handoff leaves the crawl alone when the world already holds every referenced page", async () => {
+  let built;
+  globalThis.game = {
+    user: { isGM: true },
+    journal: { get: (id) => (id === "crawl1" ? { pages: { has: (p) => p === "pageA" } } : undefined) },
+    shadowdarkExtras: { hex: { buildHexcrawl: async (ds) => { built = ds; return {}; } } },
+  };
+  const dataset = { name: "T", hexes: [{ num: 101, name: "Mill", journal: { entryId: "crawl1", pageId: "pageA" } }] };
+  const result = await handoffDataset(dataset);
+  assert.equal(result.via, "extras");
+  assert.deepEqual(built.hexes[0].journal, { entryId: "crawl1", pageId: "pageA" });
+});
+
+test("handoff does not rewrite a journal the world already has, even when one referenced page is missing", async () => {
+  // A GM pinned the region, edited its pages, then imported again (a page added) or deleted one:
+  // the redeploy would put the compendium text back over every page the world copy still has.
+  const { MODULE_ID } = await import("../scripts/shared/module-id.mjs");
+  const writes = [];
+  const worldPages = new Map([["p1", { id: "p1", text: { content: "<p>The GM's own words</p>" } }]]);
+  const world = {
+    id: "crawl1", pages: { has: (id) => worldPages.has(id), get: (id) => worldPages.get(id) },
+    getFlag: () => ({ crawl: "Crawl" }),
+    update: async (d) => { writes.push(["update", d]); },
+    updateEmbeddedDocuments: async (...a) => { writes.push(["updateEmbedded", ...a]); },
+    createEmbeddedDocuments: async (...a) => { writes.push(["createEmbedded", ...a]); },
+  };
+  const page = (id) => ({ id, toObject: () => ({ _id: id, text: { content: `<p>Book text ${id}</p>` } }) });
+  const packEntry = { id: "crawl1", uuid: "Compendium.w.j.JournalEntry.crawl1", pages: { contents: [page("p1"), page("p2")] },
+    getFlag: (scope, key) => (scope === MODULE_ID && key === "hex" ? { crawl: "Crawl" } : undefined),
+    toObject: () => ({ _id: "crawl1", name: "Crawl", flags: {} }) };
+  let built;
+  globalThis.JournalEntry = { create: async (d) => { writes.push(["create", d]); } };
+  globalThis.game = {
+    user: { isGM: true },
+    journal: { get: (id) => (id === "crawl1" ? world : undefined) },
+    packs: [{ metadata: { packageType: "world", label: "Shadowdark Enhancer — Journals" }, collection: "world.sde-journal", getDocuments: async () => [packEntry] }],
+    shadowdarkExtras: { hex: { buildHexcrawl: async (ds) => { built = ds; return {}; } } },
+  };
+  try {
+    const dataset = { name: "T", hexes: [
+      { num: 101, name: "Mill", journal: { entryId: "crawl1", pageId: "p1" } },
+      { num: 102, name: "Keep", journal: { entryId: "crawl1", pageId: "p2" } },
+    ] };
+    const result = await handoffDataset(dataset);
+    assert.equal(result.via, "extras");
+    assert.deepEqual(writes, [], "no journal write of any kind");
+    assert.equal(worldPages.get("p1").text.content, "<p>The GM's own words</p>");
+    assert.equal(built.hexes.length, 2, "the build still goes on; the missing page just has no note");
+  } finally {
+    delete globalThis.JournalEntry;
+  }
+});
+
+test("a crawl that cannot be deployed does not stop the build", async () => {
+  let built = false;
+  const warn = console.warn;
+  let warned = 0;
+  console.warn = () => { warned++; };
+  globalThis.game = {
+    user: { isGM: true },
+    journal: { get: () => undefined },
+    packs: { find: () => { throw new Error("no pack"); }, get: () => undefined, filter: () => [] },
+    shadowdarkExtras: { hex: { buildHexcrawl: async () => { built = true; return {}; } } },
+  };
+  try {
+    const result = await handoffDataset({ name: "T", hexes: [{ num: 101, journal: { entryId: "gone", pageId: "p" } }] });
+    assert.equal(result.via, "extras");
+    assert.equal(built, true);
+    assert.equal(warned, 1, "the failed deploy is logged, not thrown");
+  } finally {
+    console.warn = warn;
+  }
+});

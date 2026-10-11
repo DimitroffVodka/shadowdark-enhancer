@@ -148,7 +148,7 @@ const STYLESHEET_REV = "cbb9eae55a98";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "0b5a79b9363e";
+const BUILD_REV = "2ae62c88106f";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -994,6 +994,11 @@ Hooks.once("init", () => {
         const m = await import("./hex-map/hex-region.mjs");
         return m.regionSeeds(await m.crawlEntries());
       },
+      // The master Key Locations journal of an already-imported book ("GMWR"), rebuilt from the regions
+      // filed in the Journals pack. Reads no PDF and leaves the regions' pages alone (GM only).
+      buildKeyIndex: async (src) => (await import("./importer/hex/key-location-index.mjs")).buildKeyLocationIndex(src),
+      // Pan the viewed scene to a published hex number, as a hex link in a journal does.
+      goto: async (num, src) => (await import("./hex-map/hex-goto.mjs")).gotoHex(num, src),
       // Pure builder for the Extras dataset from drafts, keyed rows and tags.
       buildDataset: async (args) => (await import("./importer/hex/hex-dataset.mjs")).buildHexDataset(args),
       // Dev check: what a first-time user would get on a map you have verified,
@@ -1145,6 +1150,8 @@ Hooks.once("ready", () => {
     }
   })();
   CrawlState.init();
+  // The hex-number links of the master Key Locations journal.
+  import("./hex-map/hex-goto.mjs").then((m) => m.registerHexGoto()).catch((err) => console.error(`${MODULE_ID} | hex links`, err));
   registerOverland();
   // The calendar's journal lines, and the campaign start date on a world still at year 0.
   registerCalendar();

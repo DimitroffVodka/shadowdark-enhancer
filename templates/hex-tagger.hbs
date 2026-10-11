@@ -182,6 +182,7 @@
         <h3 class="ui-h">{{localize "SDE.hexMap.group.finish"}}</h3>
         <div class="hxt-row"><button type="button" data-action="hxtBuildDataset" class="ui-btn{{#if primaryBuild}} primary{{/if}}"{{#if viaExtras}} title="{{localize 'SDE.hexMap.tip.sendExtras'}}"{{/if}}>{{#if viaExtras}}<i class="fas fa-paper-plane"></i> {{localize "SDE.hexMap.btn.sendExtras"}}{{else}}<i class="fas fa-download"></i> {{localize "SDE.hexMap.btn.download"}}{{/if}}</button><p class="ui-muted">{{#if viaExtras}}{{localize "SDE.hexMap.help.sendExtras"}}{{else}}{{localize "SDE.hexMap.help.download"}}{{/if}}</p></div>
         {{#if viaExtras}}<div class="hxt-row"><button type="button" data-action="hxtBuildPainted" class="ui-btn" title="{{localize 'SDE.hexMap.tip.buildPainted'}}"><i class="fas fa-paint-roller"></i> {{localize "SDE.hexMap.btn.buildPainted"}}</button><p class="ui-muted">{{localize "SDE.hexMap.help.buildPainted"}}</p></div>{{/if}}
+        {{#if viaExtras}}<div class="hxt-row"><button type="button" data-action="hxtUpdatePainted" class="ui-btn" title="{{localize 'SDE.hexMap.tip.updatePainted'}}"><i class="fas fa-arrows-rotate"></i> {{localize "SDE.hexMap.btn.updatePainted"}}</button><p class="ui-muted">{{localize "SDE.hexMap.help.updatePainted"}}</p></div>{{/if}}
       </section>
       {{/if}}{{/if}}
       <section class="ui-card">

@@ -14,7 +14,7 @@ import { replaceModuleFlag } from "../../shared/module-flags.mjs";
 import { HEX_FLAG } from "./hex-commit.mjs";
 import { buildHexDataset, hexNum, mergeFeatures, ZONE_COLOR } from "./hex-dataset.mjs";
 import { t } from "../importer-hub-shared.mjs";
-import { extrasRecordsByOffset } from "../../hex-map/extras-records.mjs";
+import { extrasRecordsByOffset, EXTRAS_ID } from "../../hex-map/extras-records.mjs";
 
 /**
  * Extras' compatible hex API when it mounts the agreed namespace, else null.
@@ -51,7 +51,11 @@ export function datasetFromEntries(entries, { tags = {}, gridHint, assignments, 
     for (const p of entry.pages?.contents ?? []) {
       const f = p.getFlag?.(MODULE_ID, HEX_FLAG);
       if (!f?.key) continue;
-      drafts.push({ hexId: f.num, key: f.key, name: String(p.name ?? "").replace(/^\d{3,4}\s*/, ""), html: p.text?.content ?? "" });
+      drafts.push({
+        hexId: f.num, key: f.key, name: String(p.name ?? "").replace(/^\d{3,4}\s*/, ""), html: p.text?.content ?? "",
+        // The page a map note opens. Ids survive the world deploy (hex-pins deployCrawlJournal keeps them).
+        ...(entry.id && p.id ? { journal: { entryId: entry.id, pageId: p.id } } : {}),
+      });
     }
   }
   if (list.length > 1 && source) name = source;
@@ -201,6 +205,51 @@ export async function importDatasetRecords(sceneId, dataset, opts = {}) {
       { n: records.length, painted }));
   }
   return { via: "extras", summary, repaint };
+}
+
+const sameWord = (a, b) => String(a ?? "").trim().toLowerCase() === String(b ?? "").trim().toLowerCase();
+
+/**
+ * The painted Extras scenes a terrain correction can repaint: built by
+ * buildHexcrawl (`hexScene`), at this dataset's size and numbering origin, and
+ * not the tagged print itself. The print is out even when Extras adopted it:
+ * a repaint would lay painted tiles over the publisher's art.
+ *
+ * ponytail: firstRow and rowsLowered are not compared. A scene that matches on
+ * size and origin but not on those is one the GM picked by hand; Extras still
+ * refuses a hex outside its own grid.
+ * @param {Iterable<Scene>} scenes
+ * @param {string} printId  the tagged print's scene id
+ * @param {{cols:number, rows:number, origin?:0|1}} grid  the dataset's
+ */
+export function paintedScenesFor(scenes, printId, grid) {
+  return [...(scenes ?? [])].filter((scene) => {
+    if (scene.id === printId || !scene.getFlag?.(EXTRAS_ID, "hexScene")) return false;
+    const layout = scene.getFlag(EXTRAS_ID, "hexcrawl");
+    const g = layout?.version === 1 ? layout.grid : null;
+    return !!g && g.cols === grid?.cols && g.rows === grid?.rows && (g.origin ?? 1) === (grid?.origin ?? 1);
+  });
+}
+
+/**
+ * What a re-tag changes on a painted scene: every hex whose terrain the tagger
+ * now names differently from the record Extras holds, with the art the GM's
+ * manifest assigns it. A hex with no terrain word is skipped: Extras refuses a
+ * repaint without one rather than guess. Words, features and the hexes that
+ * still agree are never in the list, so a repaint cannot touch them.
+ * @param {object} dataset  from buildHexDataset / datasetFromEntries
+ * @param {Object<number, object>} records  extrasHexRecords' result
+ * @returns {{num:number, terrain:string, was:string, art?:string}[]}
+ */
+export function terrainCorrections(dataset, records) {
+  const out = [];
+  for (const hex of dataset?.hexes ?? []) {
+    if (typeof hex.terrain !== "string" || !hex.terrain) continue;
+    const was = records?.[hex.num]?.terrain ?? "";
+    if (sameWord(was, hex.terrain)) continue;
+    out.push({ num: hex.num, terrain: hex.terrain, was, ...(hex.art ? { art: hex.art } : {}) });
+  }
+  return out;
 }
 
 /**
@@ -356,6 +405,38 @@ export async function handoffToPrint(sceneId, dataset, { tags } = {}) {
 }
 
 /**
+ * Put the crawl entries a dataset's keyed hexes open into the world.
+ *
+ * Extras makes its map notes from journal ids and a Note needs a WORLD entry,
+ * while the importer files the crawl in a compendium pack. The pin action
+ * deploys the same entry with its ids kept, so the ids in the dataset already
+ * point at the copy this makes. Only an entry the world does not have at all is
+ * deployed: a hand-off is repeated for corrections, and deploying over an entry
+ * the world holds rewrites every page it has with the book's text, taking the
+ * GM's edits with it. A page that entry lacks simply gets no note, which Extras
+ * allows. A failure is logged and the build goes on, since Extras leaves out
+ * the notes it cannot resolve.
+ * @param {object} dataset
+ */
+async function deployReferencedCrawls(dataset) {
+  const wanted = new Map();
+  for (const h of dataset?.hexes ?? []) {
+    const ref = h.journal;
+    if (!ref?.entryId || !ref.pageId) continue;
+    if (!globalThis.game?.journal?.get?.(ref.entryId)) wanted.set(ref.entryId, true);
+  }
+  if (!wanted.size) return;
+  try {
+    const [{ crawlEntries }, { deployCrawlJournal }] = await Promise.all([
+      import("../../hex-map/hex-region.mjs"), import("../../hex-map/hex-pins.mjs"),
+    ]);
+    for (const entry of (await crawlEntries()).filter((e) => wanted.has(e.id))) await deployCrawlJournal(entry);
+  } catch (err) {
+    console.warn(`${MODULE_ID} | could not deploy the crawl journal for the map notes`, err);
+  }
+}
+
+/**
  * Hand a dataset to Extras, or download it. The guard lives here as well as in
  * the UI callers because this function is a documented public macro surface.
  * @param {object} dataset
@@ -371,6 +452,7 @@ export async function handoffDataset(dataset, opts = {}) {
   const api = extrasHexApi();
   if (api) {
     try {
+      await deployReferencedCrawls(dataset);
       const summary = await api.buildHexcrawl(dataset, opts.sceneName ? { sceneName: opts.sceneName } : undefined);
       return { via: "extras", summary };
     } catch (err) {
