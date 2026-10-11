@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1933 tracked files · ~246,000 lines of code/markup across scripts+templates+styles+test.
+1933 tracked files · ~246,100 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -80,7 +80,7 @@
 | `hex-map/geometry.mjs` | 221 | Hex numbering by cube difference from one anchor cell; printed offset ↔ cube under the map's column-shift rule. Pure. |
 | `hex-map/hex-adoption.mjs` | 145 | Read-once SDX record adoption with negative offset parsing, lossless original archives, existing-native conflict precedence, reports and automatic eligibility hooks. |
 | `hex-map/hex-brush-app.mjs` | 262 | The hex brush: a small window that sets one terrain (a picture tile per Legend terrain) plus features, so clicking or dragging across the tag overlay retags whole patches; a stroke is one scene write and Undo puts it back. |
-| `hex-map/hex-explorer-app.mjs` | 105 | Small scene-offset GM Hexplorer editor for terrain, line/structured features, public/private notes, document links and discovery. |
+| `hex-map/hex-explorer-app.mjs` | 125 | Small scene-offset GM Hexplorer editor for terrain, line/structured features, public/private notes, document links and discovery. |
 | `hex-map/hex-explorer.mjs` | 223 | Player-safe Hexplorer canvas hover/select observer and GM writes over authoritative terrain tags and rich offset records; preserves discovery and imported metadata. |
 | `hex-map/hex-fog-core.mjs` | 88 | Pure shared terrain/location disclosure, lossless fog/history migration, native-grid sight and arrival/overlap decisions. |
 | `hex-map/hex-fog.mjs` | 186 | Adopted-scene native static fog overlay, GM disclosure, selected-party committed visits/arrival history and SDX ownership guard. |
@@ -584,9 +584,9 @@ The report and idiom seams are pure data policy. Foundry adapters must translate
 
 | File | Lines | Description |
 |---|---:|---|
-| `quest-core.mjs` | 363 | The Quest Log's rules, pure: the quest flag's one shape, status changes and the ownership each status gives, who a player may see, objectives, when rewards are paid (once, on the way into Completed) and to whom, list filters, which trainer tasks a character has taken, which map pin to jump to, and the player page's HTML. |
-| `quests.mjs` | 568 | The Quest Log's data and public API: one world JournalEntry per quest in a flagged Quests folder, with a player page rewritten from the flag and a GM notes page left alone. GM-only writes serialized per client through replaceModuleFlag; the payout confirmation and payout through Party XP, the renown ledger and item copies; Shadowdark Extras parties read from its flags behind a feature check; jump to pin; the Ctrl+Q keybinding, the Journal sidebar button and the debounced questsChanged hook. |
-| `quest-log-app.mjs` | 272 | The Quest Log window (AppV2): a tab per status (Hidden for the GM only), filters by character, party and source, the quest list and the chosen quest. The GM edits in place (objectives, rewards with items dropped on, characters, party, hex); players get the same quest read-only. |
+| `quest-core.mjs` | 376 | The Quest Log's rules, pure: the quest flag's one shape, status changes and the ownership each status gives, who a player may see, objectives, when rewards are paid (once, on the way into Completed) and to whom, list filters, which trainer tasks a character has taken, which map pin to jump to, and the player page's HTML. |
+| `quests.mjs` | 569 | The Quest Log's data and public API: one world JournalEntry per quest in a flagged Quests folder, with a player page rewritten from the flag and a GM notes page left alone. GM-only writes serialized per client through replaceModuleFlag; the payout confirmation and payout through Party XP, the renown ledger and item copies; Shadowdark Extras parties read from its flags behind a feature check; jump to pin; the Ctrl+Q keybinding, the Journal sidebar button and the debounced questsChanged hook. |
+| `quest-log-app.mjs` | 273 | The Quest Log window (AppV2): a tab per status (Hidden for the GM only), filters by character, party and source, the quest list and the chosen quest. The GM edits in place (objectives, rewards with items dropped on, characters, party, hex); players get the same quest read-only. |
 
 One world JournalEntry per quest, its state one flag on the entry. World journals rather than the managed journal pack, because a compendium has one ownership for the whole pack and a quest's visibility is per quest. Every write is the GM's.
 
