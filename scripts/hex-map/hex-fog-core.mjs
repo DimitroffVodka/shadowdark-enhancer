@@ -38,7 +38,8 @@ export const RESET_FIELDS = ["discovery", "arrivalRolled", "arrivalRolledBy"];
  * One cell put back to unexplored. `partyId` null is everyone: the shared layer and every party's own entry.
  * A party's reset hides the hex for that party only: where the shared layer would show it anyway an explicit
  * `false` overrides it, and where it would not the party's field is deleted so a later reveal to everyone still
- * works. Its own `locationRevealed` is deleted, not set false, so a fresh visit shows the location again.
+ * works. Its own `locationRevealed: true` is deleted, not set false, so a fresh visit shows the location again;
+ * an explicit `false` is the GM's hide and is never cleared, here or by a reset for everyone.
  * `rearm` also lets a first-entry table roll again: for a party only its own id leaves `arrivalRolledBy` (the
  * legacy `arrivalRolled` flag belongs to every party, so only a reset for everyone clears it). Nothing else of
  * the cell is read or written. Nothing is mutated.
@@ -48,15 +49,17 @@ export function resetCell(cell, { partyId = null, rearm = false } = {}) {
   if (d && partyId) {
     const own = { ...d.by?.[partyId] };
     for (const field of ["revealed", "visited"]) if (d[field] === true) own[field] = false; else delete own[field];
-    delete own.locationRevealed;
+    if (own.locationRevealed === true) delete own.locationRevealed;
     const by = { ...d.by };
     if (Object.keys(own).length) by[partyId] = own; else delete by[partyId];
     if (Object.keys(by).length) d.by = by; else delete d.by;
   } else if (d) {
     if (d.revealed) d.revealed = false;
     if (d.visited) d.visited = false;
-    delete d.locationRevealed;
-    delete d.by;
+    if (d.locationRevealed === true) delete d.locationRevealed;
+    // Every party's own entry goes, except a location the GM hid for that party.
+    const hidden = Object.entries(d.by ?? {}).filter(([, own]) => own?.locationRevealed === false).map(([id]) => [id, { locationRevealed: false }]);
+    if (hidden.length) d.by = Object.fromEntries(hidden); else delete d.by;
   }
   if (rearm && partyId && next.arrivalRolledBy) {
     next.arrivalRolledBy = next.arrivalRolledBy.filter(id => id !== partyId);

@@ -692,7 +692,8 @@ are the ones below, without opening the Hex Tagger:
   asks whose map (one party, or **Everyone**: every party's map and anything you revealed to all of them), which hexes
   (**The whole map**, or one region when the scene has them) and whether first-entry tables may roll again. A line under
   the choices says how many hexes it will hide before you press Reset fog; hexes already hidden are not counted.
-  Terrain, notes, links, pins and roll-table settings are never touched, and first-entry history is kept unless you tick
+  Terrain, notes, links, pins and roll-table settings are never touched, a location you set to **Hide location (even if
+  visited)** stays hidden, and first-entry history is kept unless you tick
   **Let first-entry tables roll again**. That clears only the chosen party's own rolls; a table the world had rolled before
   parties were tracked apart stays rolled until you reset Everyone. The last reset can be undone from the same window
   (**Undo the last reset**); it puts back exactly the hexes it changed, so anything those hexes gained since is lost, and a
