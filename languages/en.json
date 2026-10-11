@@ -445,7 +445,7 @@
   "SDE.settings.movementMenu.hint": "Movement budgets in and out of combat.",
   "SDE.settings.movementMenu.label": "Configure",
   "SDE.settings.crawlStripMenu.name": "Crawl Strip",
-  "SDE.settings.crawlStripMenu.hint": "Turn the strip off or slim it for everyone, the GM's portrait and the crawl-helper warning.",
+  "SDE.settings.crawlStripMenu.hint": "Turn the strip off or slim it on this computer. The GM can also do either for everyone, and sets the GM's portrait and the crawl-helper warning.",
   "SDE.settings.crawlStripMenu.label": "Configure",
   "SDE.settings.clockBar.name": "Clock bar",
   "SDE.settings.clockBar.hint": "The date, time and sky at the top of the screen on a hex map, with the GM's clock controls and the month view. It hides during a combat and on any scene without a hex grid.",
