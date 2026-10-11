@@ -24,6 +24,19 @@
       </div>{{/each}}
     </section>{{/if}}
 
+    {{#if questSection}}<section class="ui-card">
+      <h3 class="ui-h">{{localize "SDE.hexExplorer.quests"}}</h3>
+      {{#each quests}}<div class="ui-row">
+        <div class="ui-row-main"><span>{{name}}</span><span class="ui-row-sub">{{status}}</span></div>
+        <button type="button" class="ui-icon" data-action="openQuest" data-uuid="{{uuid}}" title="{{localize 'SDE.hexExplorer.openQuest'}}" aria-label="{{localize 'SDE.hexExplorer.openQuest'}}"><i class="fa-solid fa-scroll"></i></button>
+        <button type="button" class="ui-icon danger" data-action="unlinkQuest" data-uuid="{{uuid}}" title="{{localize 'SDE.hexExplorer.unlinkQuest'}}" aria-label="{{localize 'SDE.hexExplorer.unlinkQuest'}}"><i class="fa-solid fa-link-slash"></i></button>
+      </div>{{else}}<p class="ui-muted">{{localize "SDE.hexExplorer.noQuests"}}</p>{{/each}}
+      {{#if questChoices.length}}<div class="ui-inline">
+        <select name="questPick" aria-label="{{localize 'SDE.hexExplorer.pickQuest'}}">{{#each questChoices}}<option value="{{uuid}}">{{name}} ({{status}}){{where}}</option>{{/each}}</select>
+        <button type="button" class="ui-btn" data-action="linkQuest"><i class="fa-solid fa-link"></i> {{localize "SDE.hexExplorer.linkQuest"}}</button>
+      </div>{{/if}}
+    </section>{{/if}}
+
     <section class="ui-card">
       <h3 class="ui-h">{{localize "SDE.hexExplorer.encounters"}}</h3>
       <div class="ui-row hx-enc">

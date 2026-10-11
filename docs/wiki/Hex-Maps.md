@@ -32,6 +32,15 @@ immediately. A hex with a keyed-location pin (see *Keyed locations on the map*)
 is named by its pinned page unless you type a title, and Hex Data lists that page
 with a button to open it. Pins, token drags and long-press pings retain their handlers.
 
+The window also has a **Quests here** card on a numbered hex: the quests tied to
+this hex, each with a button to open it and one to unlink it, and a picker of
+every other quest (one already tied to another hex shows that number, and
+linking it moves it). It writes the quest's own **Hex** at once, not with Save,
+and remembers the scene, so a book number that repeats on another map
+(0101 on each Cursed Scroll map) does not show the quest there and the quest's
+**Jump to pin** goes to this map's pin. A quest whose Hex was typed in the Quest
+Log has no scene and matches that number on any map.
+
 The GM's edit window also has a **Random encounters** card: the table a
 wandering check on this hex would roll now, the same one the check picks (its
 region's printed column for the terrain, else the table mapped to the terrain,
