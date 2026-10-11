@@ -27,6 +27,8 @@ const t = (key) => game.i18n.localize(key);
 const sayWith = (key, data) => game.i18n.format(key, data);
 const I18N = { say: t, sayWith };
 const LABELS = { characters: "SDE.party.characters", hirelings: "SDE.party.hirelings", mounts: "SDE.party.mounts", missing: "SDE.party.missing" };
+/** The tab an activity API call opens: Carousing has its own, Camping lives in Travel. */
+const activityTab = (activity) => (activity === "carousing" ? "carousing" : "travel");
 /** What the Bastion tab shows of a bastion actor: its numbers, rooms and last month's result. */
 function bastionCard(actor) {
   const state = bastionState(actor), st = bastionStats(state), last = lastMonthEntry(state.log);
@@ -61,8 +63,6 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
       adopt: function () { return this._change(() => Party.adopt(this.actor)); },
       leader: function (_event, el) { return this._change(() => configureMovement(this.actor, { leaderUuid: el.dataset.uuid })); },
       placeRecall: function () { return this._change(() => requestMovement(this.actor, "toggle")); },
-      camp: function () { this.activity = "camping"; this.tab = "travel"; this.render(); },
-      carouse: function () { this.activity = "carousing"; this.tab = "travel"; this.render(); },
       openBastion: function () { this._bastion()?.sheet?.render(true); },
       addCoins: function () { return this._change(() => this._addCoins(this._coinInputs("[data-add-coin]", "addCoin"))); },
       giveCoins: function () { return this._change(() => this._giveCoins(this._coinInputs("[data-give-coin]", "giveCoin"), this.element.querySelector("[data-give-to]")?.value)); },
@@ -103,7 +103,6 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
   };
   static PARTS = { body: { template: `modules/${MODULE_ID}/templates/party/party.hbs`, scrollable: [".SD-content-body"] } };
   tab = "members";
-  activity = "camping";
   /** The menus and forms the GM has open (Add item, Add coins, Give coins, a row's Give to): they survive a re-render. */
   openKeys = new Set();
   constructor(actor = null, options = {}) { super(options); this.actor = actor; }
@@ -122,13 +121,13 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const actor = ref ? Party.get(ref) : Party.selected();
     if (actor && !Party.list().includes(actor)) return null;
     if (actor) Party.select(actor);
-    if (isNativeParty(actor) && actor.sheet instanceof PartySheet) { const app = actor.sheet; if (activity) { app.activity = activity; app.tab = "travel"; } await app.render(true); app.bringToFront(); return app; }
+    if (isNativeParty(actor) && actor.sheet instanceof PartySheet) { const app = actor.sheet; if (activity) app.tab = activityTab(activity); await app.render(true); app.bringToFront(); return app; }
     // The picker and Create retarget this window; its identity must not retain
     // the first Party's id. Explicit actor/token opens always retarget it too.
     const id = "sde-party";
     const existing = foundry.applications.instances?.get(id);
-    if (existing) { existing.actor = actor; if (activity) { existing.activity = activity; existing.tab = "travel"; } await existing.render(true); existing.bringToFront(); return existing; }
-    const app = new PartyApp(actor, { id }); if (activity) { app.activity = activity; app.tab = "travel"; } await app.render(true); return app;
+    if (existing) { existing.actor = actor; if (activity) existing.tab = activityTab(activity); await existing.render(true); existing.bringToFront(); return existing; }
+    const app = new PartyApp(actor, { id }); if (activity) app.tab = activityTab(activity); await app.render(true); return app;
   }
   /** The Bastion actor linked to this party that the viewer may see (a GM sees any), or null. */
   _bastion() {
@@ -152,7 +151,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
   _quests() { return scopedQuests(Quests.list(), this.actor.uuid, Party.members(this.actor)); }
   _activityController() {
-    const Class = this.activity === "carousing" ? CarousingApp : CampingApp;
+    const Class = this.tab === "carousing" ? CarousingApp : CampingApp;
     if (this._activity?.party !== this.actor || !(this._activity instanceof Class)) this._activity = new Class(this.actor, {}, this);
     return this._activity;
   }
@@ -323,7 +322,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const keys = partyTabs({ hasBastion: !!bastionActor }), tab = resolveTab(this.tab, keys);
     const base = { parties, isGM: view.isGM, hasParty: !!this.actor, title: this.actor?.name,
       tabs: tabRow(keys, tab, t),
-      membersTab: tab === "members", questsTab: tab === "quests", itemsTab: tab === "items", travelTab: tab === "travel", downtimeTab: tab === "downtime", warbandsTab: tab === "warbands", bastionTab: tab === "bastion", descriptionTab: tab === "description", picker: !this.document };
+      membersTab: tab === "members", questsTab: tab === "quests", itemsTab: tab === "items", travelTab: tab === "travel", carousingTab: tab === "carousing", downtimeTab: tab === "downtime", warbandsTab: tab === "warbands", bastionTab: tab === "bastion", descriptionTab: tab === "description", picker: !this.document };
     if (!this.actor) return base;
     if (!Party.list().includes(this.actor)) return { ...base, hasParty: false };
     if (this.actor.type === "Party") return { ...base, unsupported: true };
@@ -351,7 +350,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const descriptionHTML = editor ? await editor.enrichHTML(description, { secrets: !!this.actor.isOwner, async: true, relativeTo: this.actor }) : "";
       let activityHTML = "", questHTML = "";
       const renderTemplate = foundry.applications.handlebars?.renderTemplate;
-      if (tab === "travel" && renderTemplate) {
+      if ((tab === "travel" || tab === "carousing") && renderTemplate) {
         const app = this._activityController();
         activityHTML = (await renderTemplate(app.constructor.PARTS.body.template, await app._prepareContext())).replace(/data-action="([^"]+)"/g, 'data-action="activityAction" data-activity-action="$1"');
       }
@@ -388,7 +387,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
         pcs: pcs.map(m => ({ uuid: m.uuid, name: m.name, checked: who.uuids.includes(m.uuid) })) } : null;
       const downtime = tab === "downtime" ? await this._downtime(rows) : null, warbandGroupsList = tab === "warbands" ? await this._warbands(rows) : [];
       return { ...base, gmBar, downtime, warbandGroups: warbandGroupsList, actor: this.actor, canEdit, owner: canEdit, players, members, memberCount: visible.length, coins, coinList, gems: gemBag.rows, gemTotal: gemBag.total, descriptionHTML, description, editingDescription: !!this.editingDescription,
-        activityHTML, questHTML, campingActive: this.activity !== "carousing", carousingActive: this.activity === "carousing",
+        activityHTML, questHTML,
         inventorySlots: { used: slotsUsed, max: slotsMax, over: slotsUsed > slotsMax }, coinSlots: Math.floor(["gp", "sp", "cp"].reduce((n, key) => n + coinList.find(c => c.key === key).value, 0) / 100),
         receivers: players.filter(m => !m.missing).map(m => ({ uuid: m.uuid, name: m.name })),
         addItemOpen: this.openKeys.has("addItem"), addCoinsOpen: this.openKeys.has("addCoins"), giveCoinsOpen: this.openKeys.has("giveCoins"),
@@ -518,7 +517,6 @@ export class PartySheet extends HandlebarsApplicationMixin(foundry.applications.
   static DEFAULT_OPTIONS = { ...PartyApp.DEFAULT_OPTIONS, window: { icon: "fa-solid fa-users", resizable: true } };
   static PARTS = PartyApp.PARTS;
   tab = "members";
-  activity = "camping";
   openKeys = new Set();
   get title() { return this.actor.name; }
   _onRender(context, options) { super._onRender(context, options); this._bindControls(); }

@@ -8,7 +8,7 @@ import { Party, isParty } from "../party/party.mjs";
 import { isActiveGM } from "../shared/gm-relay.mjs";
 import { HexRecords, isHexAdopted, sceneRef, recordJournal, offsetKey, readPass, RECORD_FLAG, publishHexProjection, assertPrivateJournal, loadHexRecords, partyMemberIds, PUBLIC_FLAG } from "./hex-records.mjs";
 import { adoptHexScene, withHexLock } from "./hex-adoption.mjs";
-import { disclosure, effectiveDiscovery, withPartyDiscovery, revealRadius, revealCells, arrivalDue } from "./hex-fog-core.mjs";
+import { disclosure, effectiveDiscovery, withPartyDiscovery, revealRadius, revealCells, arrivalDue, planFogReset, RESET_FIELDS } from "./hex-fog-core.mjs";
 
 let overlay = null;
 /** The GM sees the unexplored hexes through a 60% veil; this draws them as a player does, solid black. Kept per browser. */
@@ -73,7 +73,7 @@ async function saveCells(scene, work) {
     if (!journal) throw new Error("SDE.hexRecords.unreadable");
     assertPrivateJournal(journal);
     const saved = structuredClone(journal.flags[MODULE_ID][RECORD_FLAG]);
-    const result = await work(saved.cells);
+    const result = await work(saved.cells, saved);
     await replaceModuleFlag(journal, RECORD_FLAG, saved);
     // Both writes redraw the fog through their journal hooks.
     await publishHexProjection(scene);
@@ -89,6 +89,47 @@ export async function setHexDisclosure(offset, patch, target) {
     for (const field of ["revealed", "locationRevealed"]) if (typeof patch?.[field] === "boolean") discovery[field] = patch[field];
     if (patch?.locationRevealed === true) discovery.revealed = true;
     return structuredClone(discovery);
+  });
+}
+/** The cells a reset would change right now, for the count the dialog shows. Reads only; a scene with no store has none. */
+export function previewFogReset({ partyId = null, keys = null, rearm = false } = {}, target) {
+  const scene = sceneRef(target), cells = recordJournal(scene)?.flags?.[MODULE_ID]?.[RECORD_FLAG]?.cells;
+  return cells ? planFogReset(cells, { partyId, keys, rearm }).changed.length : 0;
+}
+/** The reset an undo would reverse, or null: `{ at, partyId, count }`. */
+export function fogUndoInfo(target) {
+  const undo = recordJournal(sceneRef(target))?.flags?.[MODULE_ID]?.[RECORD_FLAG]?.fogUndo;
+  return undo ? { at: undo.at, partyId: undo.partyId ?? null, count: Object.keys(undo.cells ?? {}).length } : null;
+}
+/**
+ * Put hexes back to unexplored: one party's map (`partyId`) or everyone's (null), every hex or only `keys` ("i_j").
+ * Terrain, notes, links and roll-table settings are never touched; first-entry history only with `rearm`. The
+ * previous state of exactly the changed hexes is kept in the same write, one level deep, for undoFogReset.
+ */
+export async function resetHexFog({ partyId = null, keys = null, rearm = false } = {}, target) {
+  const scene = sceneRef(target);
+  if (!scene) throw new Error("SDE.hexRecords.invalidCell");
+  return saveCells(scene, (cells, saved) => {
+    const { changed, next, prev } = planFogReset(cells, { partyId, keys, rearm });
+    if (!changed.length) return { count: 0 };
+    for (const key of changed) cells[key] = next[key];
+    saved.fogUndo = { at: Date.now(), partyId, cells: prev };
+    return { count: changed.length };
+  });
+}
+/** Restore what the last reset changed, by id, then forget it. Whatever those hexes gained since is overwritten. */
+export async function undoFogReset(target) {
+  const scene = sceneRef(target);
+  if (!scene) throw new Error("SDE.hexRecords.invalidCell");
+  return saveCells(scene, (cells, saved) => {
+    const undo = saved.fogUndo;
+    if (!undo?.cells) return { count: 0 };
+    for (const [key, before] of Object.entries(undo.cells)) {
+      const cell = cells[key] ??= {};
+      for (const field of RESET_FIELDS) if (before[field] === undefined) delete cell[field]; else cell[field] = structuredClone(before[field]);
+    }
+    delete saved.fogUndo;
+    return { count: Object.keys(undo.cells).length };
   });
 }
 /** Only Overland's paid, committed travel path may visit or roll; dawn is reveal-only. */
@@ -135,6 +176,7 @@ export async function revealParty(token, { path = null, weather = null, committe
   return result;
 }
 export const HexFog = { owns: ownsHexFog, disclosed: hexDisclosure, setDisclosure: setHexDisclosure, revealParty,
+  reset: resetHexFog, undoReset: undoFogReset, resetPreview: previewFogReset, undoInfo: fogUndoInfo,
   async setEnabled(enabled, target) {
     if (!game.user?.isGM) throw new Error("SDE.hexRecords.gmOnly");
     const scene = sceneRef(target);

@@ -154,7 +154,7 @@ test("Party member cards keep the portrait, HP, AC, level, slots, XP, ability mo
   assert.equal(context.players[0].xp.next, 20);
   assert.equal(context.players[0].effects, undefined, "the member card no longer lists active effects");
   assert.deepEqual([context.players[0].luck, context.players[0].lightOn], [1, true]);
-  assert.deepEqual(context.tabs.map(tab => tab.key), ["members", "items", "travel", "quests", "downtime", "warbands", "description"], "the GM sees Travel");
+  assert.deepEqual(context.tabs.map(tab => tab.key), ["members", "items", "travel", "carousing", "quests", "downtime", "warbands", "description"], "the GM sees Travel");
   const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
   for (const marker of ["sdp-head", "sdp-stats", "sdp-face", "sdp-hp", "sdp-chips", "sdp-abil", "sdp-luck", "sdp-light", "tab-inventory", "tab-travel", "tab-description"]) assert.ok(template.includes(marker), marker);
   assert.ok(!template.includes("sdp-fx") && !template.includes("member.effects"), "the active-effects loop is gone");
@@ -169,16 +169,12 @@ test("Party member cards keep the portrait, HP, AC, level, slots, XP, ability mo
 });
 
 test("Party activity buttons stay in the sheet instead of opening applications", async () => {
-  const app = new PartyApp();
-  PartyApp.DEFAULT_OPTIONS.actions.camp.call(app);
-  assert.equal(app.tab, "travel");
-  assert.equal(app.activity, "camping");
-  PartyApp.DEFAULT_OPTIONS.actions.carouse.call(app);
-  assert.equal(app.tab, "travel");
-  assert.equal(app.activity, "carousing");
+  assert.equal(PartyApp.DEFAULT_OPTIONS.actions.camp, undefined, "Carousing is its own tab; there is no Camp / Carouse switch");
+  assert.equal(PartyApp.DEFAULT_OPTIONS.actions.carouse, undefined);
   assert.equal(globalThis.foundry.applications.instances.has("sde-camping-undefined"), false);
   const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
   assert.ok(!/<button[^>]*data-action="(camp|carouse)"/.test(template), "the Camp/Carouse switch must work for a player: core disables buttons on a sheet they cannot edit");
+  assert.ok(template.includes("tab-carousing") && !template.includes('data-action="carouse"'));
   assert.ok(template.includes("activityHTML"));
   assert.ok(template.includes("questHTML"));
   assert.ok(!template.includes("sde-party-task-grid"), "no inert task catalogue masquerading as the Travel workflow");
@@ -199,14 +195,14 @@ test("Party inline controllers reuse activity actions and redraw their host only
   camp.change = (action, data) => ({ action, data });
   assert.deepEqual(PartyApp.DEFAULT_OPTIONS.actions.activityAction.call(app, null, { dataset: { activityAction: "resolve" } }), { action: "resolve", data: undefined });
   assert.equal(camp.host, app);
-  PartyApp.DEFAULT_OPTIONS.actions.carouse.call(app);
+  app.tab = "carousing";
   const carouse = app._activityController();
   assert.notEqual(carouse, camp);
   assert.equal(carouse.host, app);
   const quests = app._questController();
   assert.equal(quests.partyScope, p.uuid);
   quests.render();
-  assert.equal(renders, 2);
+  assert.equal(renders, 1);
   assert.equal(globalThis.foundry.applications.instances.size, 0);
 });
 
@@ -367,7 +363,7 @@ test("a player's sheet keeps Travel and drops every control that changes the par
   const context = await app._prepareContext();
   assert.equal(context.isGM, false);
   assert.equal(context.canEdit, false);
-  assert.deepEqual(context.tabs.map(tab => tab.key), ["members", "items", "travel", "quests", "downtime", "warbands", "description"]);
+  assert.deepEqual(context.tabs.map(tab => tab.key), ["members", "items", "travel", "carousing", "quests", "downtime", "warbands", "description"]);
   assert.equal(context.travelTab, true, "a player can open Travel: their own camping and carousing choices are confirmed there");
   assert.equal(context.players[0].canEdit, false, "no remove (x) on a card");
   assert.equal(context.players[0].hp.value, 5, "players still see a member's full stats");
@@ -382,7 +378,7 @@ test("the Bastion tab shows only when a bastion the viewer may see is linked to 
   let rendered = 0; bastion.sheet = { render: () => { rendered++; } };
   const app = new PartyApp(p);
   let context = await app._prepareContext();
-  assert.deepEqual(context.tabs.map(tab => tab.key), ["members", "items", "travel", "quests", "downtime", "warbands", "bastion", "description"]);
+  assert.deepEqual(context.tabs.map(tab => tab.key), ["members", "items", "travel", "carousing", "quests", "downtime", "warbands", "bastion", "description"]);
   assert.deepEqual([context.bastion.ac, context.bastion.hp, context.bastion.maxHp, context.bastion.used, context.bastion.slots, context.bastion.treasury], [18, 80, 100, 2, 10, 12]);
   assert.deepEqual(context.bastion.rooms.map(r => [r.name, r.building]), [["SDE.bastion.upgrade.stable.name", false], ["SDE.bastion.upgrade.library.name", true]]);
   assert.match(context.bastion.lastMonth, /quietMonth/, "the newest month result, not the later deposit");

@@ -17,6 +17,9 @@
  * two-column gutter split cuts every row in half), the write-ups are two
  * columns and need "auto".
  *
+ * When it is done the master Key Locations journal is rebuilt from what was
+ * filed (key-location-index.mjs): one entry, a page per region, every hex a row.
+ *
  * Ships ZERO book content — page numbers only (char-content-manifest.mjs), and
  * the text comes out of the GM's own PDF in their own browser.
  */
@@ -27,6 +30,7 @@ import { parsePageRange } from "../pdf-text-extract.mjs";
 import { hexcrawlRecognizer } from "../tables/hex-parser.mjs";
 import { splitSummaryRows } from "./hex-summary.mjs";
 import { commitHexDrafts } from "./hex-commit.mjs";
+import { buildKeyLocationIndex } from "./key-location-index.mjs";
 import { L as t } from "../../shared/i18n.mjs";
 
 
@@ -79,7 +83,7 @@ async function readRegion({ extractPdfText, notifyGutterWarnings }, file, { hexP
  * @param {string} src  source key ("GMWR")
  * @param {{onRegion?: (region:string, i:number, total:number) => void, keepExisting?: boolean}} [opts]
  *   keepExisting: pages already filed are left as they are (the import wizard, which promises not to overwrite)
- * @returns {Promise<{label:string, regions:Array<{region:string, hexes:number, keyed:number, uuid:string|null}>, hexes:number, created:number, keyed:number, failed:Array<{region:string, error:string}>}>}
+ * @returns {Promise<{label:string, regions:Array<{region:string, hexes:number, keyed:number, uuid:string|null}>, hexes:number, created:number, keyed:number, failed:Array<{region:string, error:string}>, index?:{uuid:string|null, regions:number, rows:number}}>}
  *   hexes counts pages written; created is the part of them that was new (a second run reads the same pages again)
  */
 export async function importKeyLocations(src, { onRegion, keepExisting = false } = {}) {
@@ -115,6 +119,11 @@ export async function importKeyLocations(src, { onRegion, keepExisting = false }
       console.error(`Shadowdark Enhancer | key locations: ${region.region} failed`, err);
       report.failed.push({ region: region.region, error: String(err?.message ?? err) });
     }
+  }
+  // The master journal is a convenience over what was just filed: its failure must not read as the import's.
+  if (report.regions.length) {
+    try { report.index = await buildKeyLocationIndex(src); }
+    catch (err) { console.error(`Shadowdark Enhancer | key locations: master journal failed`, err); }
   }
   report.gutter = summariseGutter(gutter);
   if (report.gutter) {

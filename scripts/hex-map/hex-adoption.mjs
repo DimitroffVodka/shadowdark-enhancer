@@ -5,6 +5,7 @@ import { EXTRAS_ID, EXTRAS_HEX_JOURNAL } from "./extras-records.mjs";
 import { hexNumberAt } from "./hex-number-api.mjs";
 import { normalizeTerrainWord, FEATURES } from "./tag-store.mjs";
 import { importFog } from "./hex-fog-core.mjs";
+import { REGIONS_FLAG } from "./region-scan.mjs";
 import { RECORD_FLAG, sceneRef, sceneUuid, offsetKey, recordJournal, isHexAdopted, publishHexProjection, assertPrivateJournal, loadHexRecords, ensurePrivateHexPack, cacheHexJournal } from "./hex-records.mjs";
 
 const object = v => !!v && typeof v === "object" && !Array.isArray(v);
@@ -125,10 +126,43 @@ function reportAdoption(report) {
   try { globalThis.ui?.notifications?.info?.(game.i18n.format(key, { count: report.imported, conflicts: report.conflicts.length, skipped: report.skipped.length })); } catch { /* adoption is already saved */ }
   console.info(`${MODULE_ID} | hex adoption`, report);
 }
+const LAYOUT_KEYS = ["cols", "rows", "firstRow", "rowsLowered"];
+/**
+ * The tagged print an Extras-built scene was painted from. Extras keeps no link back, so it is found by what
+ * the build takes from the print: its numbering bounds and grid type. null unless exactly one print fits.
+ * @param {object} painted  the scene
+ * @param {object[]} scenes  the world's scenes
+ */
+export function printFor(painted, scenes) {
+  const extras = painted?.flags?.[EXTRAS_ID], layout = extras?.hexcrawl?.grid;
+  if (extras?.hexScene !== true || !layout || layout.flipX || layout.flipY || layout.landscape) return null;
+  const fits = scenes.filter(s => s !== painted && s.flags?.[EXTRAS_ID]?.hexScene !== true && s.grid?.type === painted.grid?.type
+    && LAYOUT_KEYS.every(k => s.flags?.[MODULE_ID]?.hexTags?.origin?.bounds && (s.flags[MODULE_ID].hexTags.origin.bounds[k] ?? null) === (layout[k] ?? null)));
+  return fits.length === 1 ? fits[0] : null;
+}
+/**
+ * A painted scene holds the hex records Extras was sent but none of the tags or the region scan, so the
+ * terrain, region and encounter pictures and every hex's number came up empty there. Once adopted, it takes
+ * a copy of its print's: the numbering is the same cells, and both flags are keyed by hex number.
+ * Adoption runs first, so the records are in before there are tags to conflict with.
+ */
+export async function seedFromPrint(target) {
+  const scene = sceneRef(target);
+  if (!scene || !isHexAdopted(scene) || scene.getFlag?.(MODULE_ID, "hexTags")?.origin) return false;
+  const print = printFor(scene, game.scenes?.contents ?? []);
+  if (!print) return false;
+  return withHexLock(scene, async () => {
+    if (scene.getFlag(MODULE_ID, "hexTags")?.origin) return false;
+    const regions = print.getFlag(MODULE_ID, REGIONS_FLAG);
+    if (regions && !scene.getFlag(MODULE_ID, REGIONS_FLAG)) await replaceModuleFlag(scene, REGIONS_FLAG, clone(regions));
+    await replaceModuleFlag(scene, "hexTags", clone(print.getFlag(MODULE_ID, "hexTags")));
+    return true;
+  });
+}
 const activeGM = () => game.user?.isGM && (!game.users?.activeGM || game.users.activeGM.id === game.user.id);
 function autoAdopt(scene) {
   if (!activeGM()) return;
-  adoptHexScene(scene).catch(error => {
+  adoptHexScene(scene).then(() => seedFromPrint(scene)).catch(error => {
     console.error(`${MODULE_ID} | hex adoption skipped`, sceneUuid(scene), error);
     try { ui.notifications?.warn(game.i18n.format("SDE.hexRecords.failed", { scene: scene?.name ?? "", reason: game.i18n.localize(error.message) })); } catch { /* keep failure visible in console */ }
   });

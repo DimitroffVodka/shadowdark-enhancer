@@ -46,6 +46,7 @@ export const ICONS = {
   merchant:    `<i class="fas fa-store"></i>`,
   downtime:    `<i class="fas fa-mug-hot"></i>`,
   training:    `<i class="fas fa-dumbbell"></i>`,
+  carousing:   `<i class="fas fa-beer-mug-empty"></i>`,
   rumors:      `<i class="fas fa-comments"></i>`,
   pitFighting: `<i class="fas fa-hand-fist"></i>`,
   clock:       `<i class="fas fa-clock" style="font-size:20px;color:var(--sde-bar-accent)"></i>`,

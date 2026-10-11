@@ -64,6 +64,16 @@ without clearing visit or first-entry history; it reveals to every party, while
 travel and Hex Data write to one party's own entry. `setEnabled(boolean, scene)`
 controls native fog without modifying any SDX state. `revealParty(token,
 {weather})` is a reveal-only pass: it never visits or rolls arrival tables.
+GM-only `reset({partyId, keys, rearm}, scene)` puts hexes back to unexplored:
+`partyId` is one party's map (null: everyone's, the shared layer and every
+party's own entry), `keys` limits it to `"i_j"` cell keys (null: every hex),
+and `rearm` also lets first-entry tables roll again (a party's own ids only; the
+legacy `arrivalRolled` flag clears only for everyone). It resolves
+`{count}` of the hexes it changed, writes once, and never touches terrain,
+notes, links or roll-table settings. `resetPreview(options, scene)` returns that
+count without writing, `undoInfo(scene)` returns `{at, partyId, count}` of the
+reset an undo would reverse (or null), and `undoReset(scene)` restores exactly
+those hexes, once.
 Committed travel is invoked by Overland after payment. Keyed location notes
 may additionally be marked in the Hex Data editor; public terrain notes remain
 visible on revealed cells. Deliberate raw Foundry document access is outside
@@ -1332,6 +1342,8 @@ works on the GM's own scene image and book text.
 | `hexMaps.hasNumbering(scene?)` | any | Since 1.26.0. Whether the scene carries a numbering at all, which is what tells `numberAt`'s `null` for "off the map" from "never numbered". |
 | `hexMaps.openTagger({ legend, review })` | GM | Open the Hex Tagger on the active hex scene (see the wiki page *Hex Maps*). `legend: true` reads the map and opens the Legend at once; `review: true` reads it and shows the most-likely-wrong sheet. Both default to false. Lazy. |
 | `hexMaps.buildDataset({ name, source, drafts, summaryRows, tags, gridHint })` | any | Pure builder for the Shadowdark Extras hexcrawl dataset. `tags` is `{ [num]: { terrain, features } }`, where `features` lists `river`, `path` and `coast` (`overlays`, the old name, is still read). Each hex's river, path and coast come out as entries in its Extras `features` list. |
+| `hexMaps.buildKeyIndex(src)` | GM | Builds or refreshes the master Key Locations journal of an already-imported book (`"GMWR"`, `"CS1"`…) from the region entries filed in the Journals pack: a page per region, a row per keyed hex with a go-to link. Reads no PDF and changes no write-up page. Resolves `{ uuid, regions, rows }`, `uuid: null` when the book has no regions filed. |
+| `hexMaps.goto(num, src?)` | any | Pans the viewed scene to a published hex number, as a hex link in the master journal does; falls back to that number's map pin on any scene. `src` skips a scene that belongs to a different book. Resolves whether the view moved. |
 | `hexMaps.compare(csvText, { sources })` | GM + `hexMapsDevTools` | Score the active scene's tags against a truth CSV (`hex_id` plus `tags` or `terrain_tags`); returns terrain accuracy and river/path precision and recall. Dev check, ships no data. |
 | `hexMaps.importDetails(entriesOrDataset, sceneId?, { regionScene?, repaint? })` | GM | Write hex details onto a scene Extras already built (default: the active scene) through its `hex.upsertHexRecords`, then repaint the tiles unless `repaint: false`. Given crawl entries (one, a list, or `[]` for zones alone), every hex the print's region scan covers also gets `zone` and `zoneColor`; `regionScene` names the scanned print scene, needed when the world has more than one. |
 | `hexMaps.handoff(entryOrDataset)` | GM | Hand a dataset (or a filed crawl JournalEntry, converted first) to Extras' `hex.buildHexcrawl` when it exists, else download it as JSON. Returns `{ via: "extras" \| "download" \| "none", ... }`. |

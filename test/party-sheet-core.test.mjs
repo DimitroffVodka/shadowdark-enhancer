@@ -4,9 +4,9 @@ import assert from "node:assert/strict";
 import { esc } from "../scripts/shared/esc.mjs";
 import { partyTabs, resolveTab, sheetView, marchState, gemSummary, gpText, linkedBastion, lastMonthEntry, roomIcon, ROOM_ICONS, MONTH_LOG_KEYS, terrainLabel, lightReadout, rationsCount, torchCount, carriesLight, luckCount, statusBar, COIN_REFUSALS, coinsOf, coinText, poolAfterAdd, planGive, planDivide, purseAfter, searchItemIndex, TAB_LABELS, TAB_ICONS, tabRow, movementMessageKey, marchText, spellTiers, ROLL_STATS, ROLL_STAT_LABELS, DEFAULT_DC, cleanDc, whoSelection, whoAfter, rollRequest, rollOutcome, rollCardHtml, rollResultText, rollVerdict, withRollResult, defaultSource, downtimeSummary, warbandGroups } from "../scripts/party/party-sheet-core.mjs";
 
-test("everyone sees Travel (each PC's owner confirms their own camping and carousing there); Bastion needs a linked bastion", () => {
-  assert.deepEqual(partyTabs(), ["members", "items", "travel", "quests", "downtime", "warbands", "description"]);
-  assert.deepEqual(partyTabs({ hasBastion: true }), ["members", "items", "travel", "quests", "downtime", "warbands", "bastion", "description"]);
+test("everyone sees Travel and Carousing (each PC's owner confirms their own choices there); Bastion needs a linked bastion", () => {
+  assert.deepEqual(partyTabs(), ["members", "items", "travel", "carousing", "quests", "downtime", "warbands", "description"]);
+  assert.deepEqual(partyTabs({ hasBastion: true }), ["members", "items", "travel", "carousing", "quests", "downtime", "warbands", "bastion", "description"]);
 });
 
 test("a tab the viewer cannot see falls back to Members", () => {
@@ -186,7 +186,7 @@ test("every tab has a name and an icon, and the row marks the active one", () =>
   assert.deepEqual(Object.keys(TAB_LABELS).sort(), [...keys].sort());
   assert.deepEqual(Object.keys(TAB_ICONS).sort(), [...keys].sort());
   const row = tabRow(keys, "items", say);
-  assert.deepEqual(row.map((t) => t.label), ["Members", "Items", "Travel", "Quests", "Downtime", "Warbands", "Bastion", "Description"]);
+  assert.deepEqual(row.map((t) => t.label), ["Members", "Items", "Travel", "Carousing", "Quests", "Downtime", "Warbands", "Bastion", "Description"]);
   assert.deepEqual(row.filter((t) => t.active).map((t) => t.key), ["items"]);
 });
 
@@ -360,9 +360,9 @@ test("the result line says pass or fail only when there was a DC, from the syste
 // ---------------------------------------------------------------- Downtime and Warbands tabs
 
 test("Downtime and Warbands are tabs for everyone, between Quests and Bastion, and the row's labels come from en.json", () => {
-  assert.deepEqual(partyTabs().slice(3, 6), ["quests", "downtime", "warbands"]);
+  assert.deepEqual(partyTabs().slice(4, 7), ["quests", "downtime", "warbands"]);
   assert.equal(partyTabs({ hasBastion: true }).indexOf("bastion") > partyTabs().indexOf("warbands"), true);
-  for (const key of ["downtime", "warbands"]) assert.ok(en[TAB_LABELS[key]], key);
+  for (const key of ["carousing", "downtime", "warbands"]) assert.ok(en[TAB_LABELS[key]], key);
   assert.equal(resolveTab("downtime", partyTabs()), "downtime");
   assert.equal(resolveTab("warbands", partyTabs()), "warbands");
 });
