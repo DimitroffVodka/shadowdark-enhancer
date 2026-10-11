@@ -15,6 +15,9 @@ let overlay = null, warned = false;
 export const playerViewOn = () => { try { return game.settings.get(MODULE_ID, "hexPlayerFogView") === true; } catch { return false; } };
 /** The setting's onChange redraws the fog. */
 export const togglePlayerView = () => game.settings.set(MODULE_ID, "hexPlayerFogView", !playerViewOn());
+/** The GM's map-review switch: no veil at all on this browser. Players' fog and every disclosure check are untouched. */
+export const fogHiddenOn = () => { try { return game.settings.get(MODULE_ID, "hexFogHidden") === true; } catch { return false; } };
+export const toggleFogHidden = () => game.settings.set(MODULE_ID, "hexFogHidden", !fogHiddenOn());
 /** SDX must explicitly advertise the full writer/overlay/disclosure stand-down contract. */
 export function ownsHexFog(target) {
   const scene = sceneRef(target);
@@ -64,7 +67,7 @@ export function fogCells(scene) {
 export function refreshHexFog() {
   overlay?.destroy(); overlay = null;
   const scene = globalThis.canvas?.scene;
-  if (!canvas?.ready || !ownsHexFog(scene)) return;
+  if (!canvas?.ready || !ownsHexFog(scene) || (game.user.isGM && fogHiddenOn())) return;
   overlay = new PIXI.Graphics(); overlay.name = "sde-hex-fog"; overlay.eventMode = "none";
   overlay.beginFill(0x000000, game.user.isGM && !playerViewOn() ? 0.6 : 1);
   // One pass for every cell: the store journal, decoded tags and pin index are read once.
