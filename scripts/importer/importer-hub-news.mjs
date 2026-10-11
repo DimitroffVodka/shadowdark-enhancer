@@ -134,3 +134,47 @@ export async function checkImporterNews({ version, read, write, announce = promp
   if (fresh.length) await announce?.(fresh.length, { books: freshBooks(nodes, new Set(fresh)) });
   return fresh;
 }
+
+/** The world setting holding the module version whose first-import prompt was last shown. */
+export const ASKED_SETTING = "importerWizardAsked";
+
+/**
+ * Tell the GM of a world that has imported nothing to run the quick wizard first, and open it on yes.
+ * Not now (or closing the window) is not an error; the prompt does not return until the next release.
+ * @returns {Promise<boolean>} whether the wizard was opened
+ */
+export async function promptFirstImport() {
+  const go = await foundry.applications.api.DialogV2.confirm({
+    classes: ["sde-ui", "sde-dialog"],
+    window: { title: t("SDE.importer.first.title") },
+    content: `<p>${t("SDE.importer.first.body")}</p><p>${t("SDE.importer.first.where")}</p>`,
+    yes: { label: t("SDE.importer.first.open"), icon: "fa-solid fa-file-import", default: true },
+    no: { label: t("SDE.importer.news.later"), default: false },
+    rejectClose: false,
+  });
+  if (!go) return false;
+  const { ImportWizardApp } = await import("./wizard/wizard-app.mjs");
+  ImportWizardApp.open();
+  return true;
+}
+
+/**
+ * Ask a world that has not imported yet to run the quick wizard, at most once per module version.
+ * The checkImporterNews path above stays silent there (everything would be "new"); this is the
+ * front door's own nudge. Dependencies are injected so tests own the prompt and the stamp.
+ *
+ * @param {object} deps
+ * @param {string} deps.version  this module's version
+ * @param {boolean} deps.first   wizardFirst(): no finished run and no linked book
+ * @param {()=>string} deps.read   the version last asked at
+ * @param {(v:string)=>Promise} deps.write
+ * @param {()=>any} [deps.announce]  how the GM is asked
+ * @returns {Promise<boolean>} whether the prompt was shown
+ */
+export async function checkFirstImport({ version, first, read, write, announce = promptFirstImport } = {}) {
+  if (!first || !version || read() === version) return false;
+  // Stamped before asking: a dialog that throws must not nag on every load.
+  await write(version);
+  await announce();
+  return true;
+}

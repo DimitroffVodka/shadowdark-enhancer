@@ -148,7 +148,7 @@ const STYLESHEET_REV = "cbb9eae55a98";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "859680b364c3";
+const BUILD_REV = "902d6be3d59a";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -1300,15 +1300,23 @@ Hooks.once("ready", () => {
       }
       if (!isActiveGM()) return;
       try {
-        const { checkImporterNews, promptImporterUpdate, CATALOG_SETTING } = await import("./importer/importer-hub-news.mjs");
-        // A world that has imported nothing yet is not told "new content": all of it is new to them, and
-        // the first-time wizard is already the importer's front door there.
+        const { checkImporterNews, promptImporterUpdate, checkFirstImport, CATALOG_SETTING, ASKED_SETTING } =
+          await import("./importer/importer-hub-news.mjs");
+        // A world that has imported nothing yet is not told "new content": all of it is new to them.
+        // It is told to run the quick wizard first instead (once per version, below).
         const { wizardFirst } = await import("./importer/wizard/wizard-app.mjs");
+        const version = String(game.modules.get(MODULE_ID)?.version ?? "");
+        const first = wizardFirst();
         await checkImporterNews({
-          version: String(game.modules.get(MODULE_ID)?.version ?? ""),
+          version,
           read: () => game.settings.get(MODULE_ID, CATALOG_SETTING),
           write: (value) => game.settings.set(MODULE_ID, CATALOG_SETTING, value),
-          announce: wizardFirst() ? () => {} : promptImporterUpdate,
+          announce: first ? () => {} : promptImporterUpdate,
+        });
+        await checkFirstImport({
+          version, first,
+          read: () => game.settings.get(MODULE_ID, ASKED_SETTING),
+          write: (value) => game.settings.set(MODULE_ID, ASKED_SETTING, value),
         });
       } catch (err) {
         console.error(`${MODULE_ID} | importer news check failed:`, err);

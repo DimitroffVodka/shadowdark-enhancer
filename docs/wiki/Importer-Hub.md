@@ -13,8 +13,12 @@ managed compendium packs.
 
 ## Quick start: the import guide
 
-The first time you open the importer, it opens a step-by-step guide instead of
-the hub. You add your files once and it does the rest.
+A world that has imported nothing is asked to run this guide as soon as the
+GM loads it: a prompt, "Run the quick import wizard before anything else",
+with **Open the quick wizard** and **Not now**. **Not now** is remembered until
+the next module release, and the guide stays under **Crawl Bar** → **Tools** →
+**Importer**. The first time you open the importer, it opens this step-by-step
+guide instead of the hub. You add your files once and it does the rest.
 
 1. **Add your files.** Drop in your book PDFs (the Shadowdark rules, the
    Cursed Scrolls, the Western Reaches books) and your map images. You can drop
@@ -317,8 +321,9 @@ currently in your world packs.
   see them — **Show me** opens the Hub with the **New** filter already applied,
   **Not now** leaves the rows tagged for whenever you come back. You are asked
   once per module version, so dismissing it costs you nothing.
-  A world importing for the first time is told nothing: with no
-  earlier library to compare against, everything would be "new". Rows drop off
+  A world importing for the first time is not told "new content": with no
+  earlier library to compare against, everything would be "new". It is asked to
+  run the quick wizard instead (see Quick start). Rows drop off
   the list as you import them, and the list is replaced by the next update's.
 - **Search…** narrows the tree to rows whose name, book, or page cite matches
   what you type, and opens the folders holding them so the hits are visible
