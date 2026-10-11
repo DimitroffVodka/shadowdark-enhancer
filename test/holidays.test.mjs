@@ -237,14 +237,23 @@ test("a world that has not imported yet is left alone: only the tables, items an
   const pack = (label, size) => ({
     collection: "world.x", metadata: { packageType: "world", label }, getIndex: async () => new Map(Array.from({ length: size }, (_, i) => [i, {}])),
   });
-  const withPacks = (...packs) => { globalThis.game = { packs, user: { isGM: true } }; };
+  // The library journal is the first thing the filing reads once it is past the gate: count every touch.
+  let journalTouched = 0;
+  const withPacks = (...packs) => {
+    globalThis.game = { packs, user: { isGM: true }, get journal() { journalTouched += 1; return null; } };
+  };
   withPacks();
   assert.equal(await importerHasRun(), false, "no suite packs at all");
   withPacks(pack("Shadowdark Enhancer — Journals", 3), pack("Shadowdark Enhancer — Roll Tables", 0));
   assert.equal(await importerHasRun(), false, "the journals pack holds the calendar chapters themselves; an empty table pack is not an import");
+  journalTouched = 0;
   assert.equal(await fileLinkedChapters(), 0, "nothing is read or filed");
+  assert.equal(journalTouched, 0, "the gate stops the filing before it looks at any book");
   withPacks(pack("Shadowdark Enhancer — Roll Tables", 2));
   assert.equal(await importerHasRun(), true);
+  journalTouched = 0;
+  await fileLinkedChapters();
+  assert.ok(journalTouched > 0, "past the gate the filing does go looking for the books (the probe works)");
   withPacks(pack("Shadowdark Enhancer — Actors", 1));
   assert.equal(await importerHasRun(), true);
 });
