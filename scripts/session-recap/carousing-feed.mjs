@@ -52,8 +52,16 @@ export const CarousingFeed = {
   /** Whether a carouse is under way in SDX, so downtime must wait (#198). */
   isOpen() {
     if (game.shadowdarkEnhancer?.carousing?.isOpen?.()) return true;
+    return this.sdxUnderway();
+  },
+
+  /**
+   * Only the Extras half of `isOpen`: native Carousing asks this before it
+   * starts or rolls a night, when its own night is always open.
+   */
+  sdxUnderway() {
     if (!this.isEnabled()) return false;
-    const journal = game.journal.find((doc) => this._isSyncJournal(doc));
+    const journal = game.journal?.find((doc) => this._isSyncJournal(doc));
     return !!journal && carousingUnderway(journal.getFlag(SDX_ID, SESSION_FLAG), journal.getFlag(SDX_ID, DROPS_FLAG));
   },
 
