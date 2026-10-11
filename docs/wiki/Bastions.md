@@ -98,8 +98,7 @@ Ten of the upgrades have an effect the module applies for you while the bastion 
   and posts it from the bastion. A day is a world-clock day; the pigeon is ready again the next
   one, and a message that couldn't be posted doesn't use the day up;
 - the **Infirmary** is named on the month's disaster roll: when it comes up pestilence, the chat
-  message adds that the patients make the check with advantage. The check itself is still
-  rolled at the table;
+  message adds that your Infirmary applies. The check itself is still rolled at the table;
 - the **Armorer**, the **Blacksmith** and the **Trading Post** are shops: each finished room
   puts a button in the Shops box on the Overview tab (GM) that opens a shop window. The
   Armorer sells ordinary armor, the Blacksmith ordinary weapons and the Trading Post basic

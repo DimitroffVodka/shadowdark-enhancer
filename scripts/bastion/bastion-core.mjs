@@ -2,9 +2,9 @@
  * Shadowdark Enhancer — Bastions: the rules (pure).
  *
  * A bastion is a place the party owns: a House, Outpost, Keep or Castle, with
- * up to a type's number of upgrades, one of each, a week each to build. Ordinary
- * weapons can't harm it; at 0 HP its walls are breached; repair is a week and 1
- * gp per HP. Each month a d6 roll of 1 brings a disaster (a d4).
+ * up to a type's number of upgrades, one of each, a week each to build. At 0 HP
+ * its walls are breached and a repair is a week and gold per HP missing. Each
+ * month's roll can bring a disaster.
  *
  * State (the actor's `system`):
  *   type        "house" | "outpost" | "keep" | "castle"
@@ -26,10 +26,10 @@
 
 /** Costs in gp, AC, HP, upgrade slots, build time in weeks, and the plan's size. */
 export const BASTION_TYPES = [
-  { id: "house", name: "SDE.bastion.type.house.name", blurb: "SDE.bastion.type.house.blurb", cost: 200, ac: 12, hp: 40, slots: 3, weeks: 1 },
-  { id: "outpost", name: "SDE.bastion.type.outpost.name", blurb: "SDE.bastion.type.outpost.blurb", cost: 300, ac: 15, hp: 50, slots: 5, weeks: 2 },
-  { id: "keep", name: "SDE.bastion.type.keep.name", blurb: "SDE.bastion.type.keep.blurb", cost: 1000, ac: 18, hp: 100, slots: 10, weeks: 4 },
-  { id: "castle", name: "SDE.bastion.type.castle.name", blurb: "SDE.bastion.type.castle.blurb", cost: 5000, ac: 18, hp: 300, slots: 20, weeks: 8 },
+  { id: "house", name: "SDE.bastion.type.house.name", cost: 200, ac: 12, hp: 40, slots: 3, weeks: 1 },
+  { id: "outpost", name: "SDE.bastion.type.outpost.name", cost: 300, ac: 15, hp: 50, slots: 5, weeks: 2 },
+  { id: "keep", name: "SDE.bastion.type.keep.name", cost: 1000, ac: 18, hp: 100, slots: 10, weeks: 4 },
+  { id: "castle", name: "SDE.bastion.type.castle.name", cost: 5000, ac: 18, hp: 300, slots: 20, weeks: 8 },
 ];
 
 /** One of each; every one takes a week and a slot (the moat takes a slot but no room on the plan). */
@@ -143,7 +143,7 @@ const TROPHY_NAME_MAX = 60;
  * vault: the bastion can hold items, up to VAULT_SLOTS gear slots (bastion-vault-core.mjs).
  * aviary: one pigeon message can be sent a day.
  * armorer, blacksmith, tradingPost: the party can buy that kind of ordinary gear here at 10% over (bastion-shop-core.mjs).
- * infirmary: the monthly pestilence check is made with advantage by the bastion's patients.
+ * infirmary: a pestilence on the month's roll names it (the check itself is run at the table).
  * stable: mounts stabled here (a mount's `bastion`) need no grazing or rations.
  */
 export function effects(state) {
@@ -311,10 +311,9 @@ export function advanceWeek(state) {
 }
 
 /**
- * The monthly disaster: a d6, and on a 1 a d4.
+ * The monthly disaster: a d6, and on a 1 a d4 picks the kind from `kinds` below,
+ * with a count of warbands or the damage rolled for the two that have one.
  * `die(n)` rolls 1..n (injected so a test can fix the dice).
- * 1 an army of 2d8 enemy warbands, 2 a natural disaster of 1d100 damage,
- * 3 pestilence (DC 12 CON or rat disease), 4 a dragonstrike.
  */
 export function rollDisaster(die) {
   const d6 = die(6);

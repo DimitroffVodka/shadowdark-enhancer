@@ -86,7 +86,7 @@ export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       id: type.id, name: t(type.name), selected: type.id === state.type,
       line: format("SDE.bastion.type.line", { cost: type.cost, ac: type.ac, hp: type.hp, slots: type.slots }),
     }));
-    context.type = { name: t(st.type.name), blurb: t(st.type.blurb), cost: st.type.cost, weeks: st.type.weeks };
+    context.type = { name: t(st.type.name), cost: st.type.cost, weeks: st.type.weeks };
     context.stats = {
       ac: st.ac, hp: st.hp, maxHp: st.maxHp, used: st.used, slots: st.slots, breached: st.breached, standing: st.standing,
       repairCost: st.repairCost, worth: core.worth(state), weeksLeft: state.weeksLeft, week: state.week,
@@ -200,7 +200,7 @@ export class BastionSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const next = core.applyDisaster(before, core.rollDisaster(die));
     if (!(await this._write(next))) return;
     // Every line the roll added goes to chat (a breaching disaster adds two: the damage, then the breach;
-    // under a finished Infirmary the pestilence line says the patients have ADV).
+    // under a finished Infirmary the pestilence line names it).
     // The cap can drop old lines, so compare entries — the ones handed in are the same that come back — not indexes.
     const seen = new Set(before.log);
     const lines = next.log.filter((e) => !seen.has(e)).map((e) => monthLine(next, e));

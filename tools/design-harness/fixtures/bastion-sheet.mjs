@@ -28,7 +28,7 @@ const build = (s) => {
       gm: true, editable: true, document: { name: "Ashdown Keep", img: "/modules/shadowdark-enhancer/assets/bastion/art/keep.svg" },
       tab: Object.fromEntries(TABS.map((id) => [id, id === tab])), system: { treasury: state.treasury, notes: "The party's seat in the Western Reaches. Lord Ashdown holds the north gate." },
       types: core.BASTION_TYPES.map((ty) => ({ id: ty.id, name: t(ty.name), selected: ty.id === state.type, line: format("SDE.bastion.type.line", { cost: ty.cost, ac: ty.ac, hp: ty.hp, slots: ty.slots }) })),
-      type: { name: t(st.type.name), blurb: t(st.type.blurb), cost: st.type.cost, weeks: st.type.weeks },
+      type: { name: t(st.type.name), cost: st.type.cost, weeks: st.type.weeks },
       stats: { ac: st.ac, hp: st.hp, maxHp: st.maxHp, used: st.used, slots: st.slots, breached: false, standing: true, repairCost: 18, worth: core.worth(state), weeksLeft: 0, week: state.week, repairing: true },
       upgrades: core.BASTION_UPGRADES.map((u) => { const have = state.upgrades.find((x) => x.id === u.id); const check = core.canBuild(state, u.id);
         return { id: u.id, name: t(u.name), effect: "Sample upgrade text, read from your own book", cost: u.cost, isBuilt: !!have && have.weeksLeft <= 0, isBuilding: !!have && have.weeksLeft > 0, isNone: !have, weeksLeft: have?.weeksLeft ?? 0, canBuild: check.ok, why: check.ok ? "" : t("SDE.bastion.why." + check.reason) }; }),

@@ -176,7 +176,7 @@ from outside or in. Since 1.27.0.
 
 ```js
 api.bastion.type;                 // "shadowdark-enhancer.bastion"
-api.bastion.types();              // [{ id, cost, ac, hp, slots, weeks, name, blurb }, ...] house, outpost, keep, castle
+api.bastion.types();              // [{ id, cost, ac, hp, slots, weeks, name }, ...] house, outpost, keep, castle
 api.bastion.upgrades();           // [{ id, cost, name, effect }, ...] the twenty, one of each per bastion
 
 // GM only. A new bastion of a type, not yet raised; the treasury starts at `treasury` gp.
@@ -197,7 +197,7 @@ api.bastion.forParty(party);      // the bastion actors a party owns, [] for non
 | Call | Who | Notes |
 |---|---|---|
 | `bastion.type` | any | The actor type id. |
-| `bastion.types()` | any | A copy of the four types. `name` and `blurb` are language keys. |
+| `bastion.types()` | any | A copy of the four types. `name` is a language key (the type's description is in your Player's Guide, not here). |
 | `bastion.upgrades()` | any | A copy of the twenty upgrades. `name` is a language key; `effect` is the upgrade's wording as the GM's own Player's Guide PDF prints it (read from p.247 with the sheet's **Read upgrade text** button), `""` until then. |
 | `bastion.create({ name, type, treasury })` | GM | Returns the new actor, or `null` for a non-GM or an unknown type. A House takes a week to build, an Outpost two, a Keep four, a Castle eight; upgrades wait until it stands. |
 | `bastion.open(actorOrIdOrUuid)` | any | Renders the sheet. Returns whether the argument was a bastion. |

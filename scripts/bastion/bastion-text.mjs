@@ -24,7 +24,7 @@ export const WHY = {
   name: "SDE.bastion.why.name",
 };
 
-/** The line a monthly disaster roll is posted with: `entry`'s text (the newest log line by default), and under a finished Infirmary a pestilence says the patients have ADV. */
+/** The line a monthly disaster roll is posted with: `entry`'s text (the newest log line by default), and under a finished Infirmary a pestilence names it. */
 export function monthLine(state, entry = state.log.at(-1)) {
   const note = entry.key === "SDE.bastion.log.pestilence" && effects(state).infirmary ? ` ${t("SDE.bastion.infirmary.pestilence")}` : "";
   return `${logText(entry)}${note}`;

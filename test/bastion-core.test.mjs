@@ -218,3 +218,14 @@ test("the language file holds no upgrade wording", async () => {
   const en = JSON.parse((await import("node:fs")).readFileSync(new URL("../languages/en.json", import.meta.url), "utf8"));
   assert.deepEqual(Object.keys(en).filter((k) => /^SDE\.bastion\.upgrade\.\w+\.effect$/.test(k)), []);
 });
+
+test("the language file holds no bastion rules or type text, and a disaster's log line is its name and numbers", async () => {
+  const en = JSON.parse((await import("node:fs")).readFileSync(new URL("../languages/en.json", import.meta.url), "utf8"));
+  assert.deepEqual(Object.keys(en).filter((k) => k === "SDE.bastion.rules" || /^SDE\.bastion\.type\.\w+\.blurb$/.test(k)), []);
+  for (const ty of BASTION_TYPES) assert.deepEqual(Object.keys(ty).sort(), ["ac", "cost", "hp", "id", "name", "slots", "weeks"], ty.id);
+  assert.equal(en["SDE.bastion.breached"], "The walls are breached.");
+  assert.equal(en["SDE.bastion.log.warbands"], "Disaster: enemy warbands ({count}).");
+  assert.equal(en["SDE.bastion.log.naturalDisaster"], "Disaster: natural disaster ({amount} damage).");
+  assert.equal(en["SDE.bastion.log.pestilence"], "Disaster: pestilence.");
+  assert.equal(en["SDE.bastion.log.dragon"], "Disaster: dragonstrike.");
+});

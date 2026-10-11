@@ -603,7 +603,7 @@ One world JournalEntry per quest, its state one flag on the entry. World journal
 
 | File | Lines | Description |
 |---|---:|---|
-| `bastion-core.mjs` | 401 | The rules, pure: the four types and twenty upgrades with their costs and caps, building a week at a time, repairs, the monthly disaster, and the state the actor stores. |
+| `bastion-core.mjs` | 400 | The rules, pure: the four types and twenty upgrades with their costs and caps, building a week at a time, repairs, the monthly disaster, and the state the actor stores. |
 | `bastion-plan.mjs` | 315 | The plan, pure: SVG markup for a bastion from outside (buildings round the main one) or in (one connected compound of rooms, with roofs), each upgrade keeping the place it took. |
 | `bastion-funding.mjs` | 57 | The party link and paying into the treasury, pure: which actors are parties, who can pay, and the purse arithmetic for paying gold in and out. Extras' own party coins are never read or written. |
 | `bastion-art.mjs` | 33 | The actor type id, where the bastion art files are (assets/bastion/art), and the one-time load of the sprite sheet the plan and the panel draw from. |
