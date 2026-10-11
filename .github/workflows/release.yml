@@ -47,6 +47,21 @@ jobs:
             echo "::error::No CHANGELOG.md section found for $VERSION"
             exit 1
           fi
+          # GitHub rejects a release body over 125,000 characters. A section up to
+          # 120,000 ships whole. A longer one ships its intro and `### Highlights`
+          # block and a link to CHANGELOG.md, which is in the module zip and on the
+          # tag. (`wc -m` counts bytes under a non-UTF-8 locale, which can only
+          # make this switch to the short body earlier, never later.)
+          if [ "$(wc -m < RELEASE_NOTES.md)" -gt 120000 ]; then
+            echo "::notice::CHANGELOG.md section for $VERSION is over 120,000 characters; publishing the intro and Highlights only"
+            awk '
+              /^### / { hl = ($0 == "### Highlights"); seen = 1 }
+              !seen || hl { print }
+            ' RELEASE_NOTES.md > RELEASE_SHORT.md
+            printf '\nThe full list of changes ships in CHANGELOG.md inside the module: https://github.com/%s/blob/%s/CHANGELOG.md\n' \
+              "$GITHUB_REPOSITORY" "$GITHUB_REF_NAME" >> RELEASE_SHORT.md
+            mv RELEASE_SHORT.md RELEASE_NOTES.md
+          fi
 
       - name: Build module.zip
         run: |
