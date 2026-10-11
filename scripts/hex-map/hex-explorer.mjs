@@ -19,8 +19,8 @@ export function explorerView(record, isGM = false, partyIds = []) {
   const location = disclosure(r.discovery, "location");
   return { sceneUuid: r.sceneUuid, offset: { ...r.offset }, num: r.num, terrain: r.terrain,
     ...(location && typeof r.title === "string" ? { title: r.title } : {}),
-    // Hiding markers are re-checked even on pre-filtered input, not merely trusted.
-    features: (r.features ?? []).filter(f => f?.discovered !== false && (FEATURES.includes(f.type) || location)).map(f => pick(f, ["type", "name"])),
+    // River, path and coast are always disclosed; hiding markers on other features are re-checked, not merely trusted.
+    features: (r.features ?? []).filter(f => FEATURES.includes(f?.type) || f?.discovered !== false && location).map(f => pick(f, ["type", "name"])),
     notes: (r.notes ?? []).filter(n => n?.visible !== false).map(n => pick(n, ["text"])),
     links: location ? [...(r.links ?? []).filter(l => l?.visible !== false).map(l => pick(l, ["uuid", "label"])), ...(record.keyed ?? []).map(k => ({ uuid: k.uuid, label: k.title }))] : [],
   };
@@ -44,7 +44,7 @@ export function planExplorerEdit(record, input, flag, partyId = null) {
   if (features.some(f => FEATURES.includes(f.type))) throw new Error("SDE.hexExplorer.invalidFeature");
   for (const type of lines) {
     const old = record.features?.find(f => f.type === type);
-    features.push({ ...(old ?? {}), type, discovered: input.lineDiscovery?.[type] ?? old?.discovered ?? false });
+    features.push({ ...(old ?? {}), type, discovered: true });
   }
   const seen = { revealed: !!input.revealed, visited: !!input.visited, locationRevealed: input.location === "auto" ? undefined : input.location === "show" };
   const discovery = partyId ? withPartyDiscovery(record.discovery, partyId, seen) : { ...record.discovery, ...seen };

@@ -93,7 +93,7 @@ export function playerProjection(record) {
   const location = locationVisible(record.discovery);
   const out = { sceneUuid: record.sceneUuid, offset: { ...record.offset }, num: record.num,
     terrain: record.terrain, discovery: { revealed: true, visited: !!record.discovery.visited, locationRevealed: !!location },
-    features: (record.features ?? []).filter(f => f?.discovered === true && (FEATURES.includes(f.type) || location))
+    features: (record.features ?? []).filter(f => FEATURES.includes(f?.type) || f?.discovered === true && location)
       .map(f => pick(f, ["id", "type", "name", "uuid"])),
     notes: (record.notes ?? []).filter(n => n?.visible === true && (n.location !== true || location)).map(n => pick(n, ["id", "text"])),
   };
