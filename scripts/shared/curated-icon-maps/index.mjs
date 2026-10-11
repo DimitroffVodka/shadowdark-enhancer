@@ -21,7 +21,12 @@
  *    Treasure maps nest their rows by book instead, and use
  *    `CURATED_KEY_SPACES.SOURCED`:
  *
- *        { cs3: { "A golden skull studded with small sapphires": "icons/…webp" } }
+ *        { cs3: { "<item phrase>": "icons/…webp" } }
+ *
+ *    The three Cursed Scroll treasure maps ship no book wording: their keys are
+ *    `textFingerprint` hashes of the phrase (`scripts/shared/text-fingerprint.mjs`),
+ *    standing in for the display name, and the loot materializers hash the text
+ *    the GM's own PDF produced to look them up.
  *
  * 2. Append ONE side-effect import line below.
  *

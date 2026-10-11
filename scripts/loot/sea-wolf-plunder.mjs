@@ -6,15 +6,19 @@
  * must instead resolve only against the reviewed CS3 map and mint a generated
  * copy in the managed Items pack.  Anything outside that exact map remains a
  * TEXT result with its source phrase intact.
+ *
+ * No book wording ships here.  The map holds a fingerprint of each phrase; the
+ * Item is named from the text the GM's own PDF produced.
  */
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { ART_STATES, MANAGED_ITEMS_PACK, artProvenance } from "../shared/art-provenance.mjs";
 import { curatedArtFor, curatedNameKey } from "../shared/curated-icons.mjs";
+import { bookItemName, textFingerprint } from "../shared/text-fingerprint.mjs";
 import { generatedItemId, readGeneratedItem, reconcileGeneratedItems } from "../shared/generated-items.mjs";
 import { sourceKey } from "../shared/source-keys.mjs";
 import { ensureFolderPath } from "../shared/compendium-suite.mjs";
 import { fabricateTreasureItem, isCoinEntry, parseValue, ensureLootPack } from "./loot-pack.mjs";
-import { SEA_WOLF_PLUNDER_ROWS } from "../shared/curated-icon-maps/sea-wolf-plunder-icons.mjs";
+import "../shared/curated-icon-maps/sea-wolf-plunder-icons.mjs";
 import { L } from "../shared/i18n.mjs";
 
 
@@ -83,11 +87,6 @@ export function seaWolfPlunderItemName(text) {
     .trim();
 }
 
-function rowForName(name) {
-  const key = curatedNameKey(name);
-  return SEA_WOLF_PLUNDER_ROWS.find((row) => curatedNameKey(row.name) === key) ?? null;
-}
-
 /** Read the source phrase from a v14 TableResult or a plain fixture. */
 export function seaWolfResultText(result) {
   const object = typeof result?.toObject === "function" ? result.toObject() : result;
@@ -107,16 +106,15 @@ export function buildSeaWolfPlunderItem(text, { source = SEA_WOLF_PLUNDER_SOURCE
   }
 
   const finalName = seaWolfPlunderItemName(raw);
-  const row = rowForName(finalName);
-  if (!row) {
+  // The reviewed map is keyed by the fingerprint of the phrase; a phrase it
+  // does not hold stays a raw TEXT result.
+  const art = curatedArtFor({ name: textFingerprint(finalName), source: sourceId });
+  if (!art) {
     return { status: "unresolved", reason: "unmapped-row", text: raw, name: finalName };
   }
-  const art = curatedArtFor({ name: row.name, source: sourceId });
-  if (!art) {
-    return { status: "unresolved", reason: "unmapped-art", text: raw, name: row.name };
-  }
+  const name = bookItemName(finalName);
 
-  const itemData = fabricateTreasureItem({ name: row.name, value: parseValue(raw), source: sourceId });
+  const itemData = fabricateTreasureItem({ name, value: parseValue(raw), source: sourceId });
   itemData.img = art.img;
   itemData.flags = {
     ...(itemData.flags ?? {}),
@@ -130,7 +128,7 @@ export function buildSeaWolfPlunderItem(text, { source = SEA_WOLF_PLUNDER_SOURCE
     status: "resolved",
     source: sourceId,
     text: raw,
-    name: row.name,
+    name,
     img: art.img,
     value: parseValue(raw),
     itemData,

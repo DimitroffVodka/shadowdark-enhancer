@@ -57,27 +57,27 @@ const plan = (desired, existing, pack = MANAGED_ITEMS_PACK) =>
 
 describe("generated identity — derivation", () => {
   test("the key is source-qualified and canonical across spellings", () => {
-    const want = "cs1:carved bone";
+    const want = "cs1:glass acorn";
     for (const spelling of ["CS1", "cs1", "Cursed Scroll 1", "Cursed Scroll #1", "Diablerie"]) {
-      assert.equal(generatedItemKey(spelling, "Carved Bone"), want, spelling);
+      assert.equal(generatedItemKey(spelling, "Glass Acorn"), want, spelling);
     }
   });
 
   test("the same definition mints the same id every time", () => {
-    assert.equal(generatedItemId("CS1", "Carved Bone"), generatedItemId("cs1", " carved  bone "));
-    assert.match(generatedItemId("CS1", "Carved Bone"), /^fnv1a32:[0-9a-f]{8}$/);
+    assert.equal(generatedItemId("CS1", "Glass Acorn"), generatedItemId("cs1", " glass  acorn "));
+    assert.match(generatedItemId("CS1", "Glass Acorn"), /^fnv1a32:[0-9a-f]{8}$/);
   });
 
   test("two books printing one name are two identities", () => {
-    assert.notEqual(generatedItemId("CS1", "Carved Bone"), generatedItemId("CS3", "Carved Bone"));
+    assert.notEqual(generatedItemId("CS1", "Glass Acorn"), generatedItemId("CS3", "Glass Acorn"));
   });
 
   test("identity survives a definition whose art, price and prose all change", () => {
-    const before = stampGeneratedItem(definition("Carved Bone"), { source: "CS1" });
+    const before = stampGeneratedItem(definition("Glass Acorn"), { source: "CS1" });
     const after = stampGeneratedItem(
-      definition("Carved Bone", {
+      definition("Glass Acorn", {
         img: "icons/svg/mystery-man.svg",
-        system: { description: "<p>Ignites in flames once per day.</p>", cost: { gp: 50, sp: 0, cp: 0 } },
+        system: { description: "<p>Hums a tune at dusk once per day.</p>", cost: { gp: 50, sp: 0, cp: 0 } },
       }),
       { source: "CS1" },
     );
@@ -88,33 +88,33 @@ describe("generated identity — derivation", () => {
   });
 
   test("an unkeyable definition mints nothing rather than a guess", () => {
-    assert.equal(generatedItemKey("", "Carved Bone"), "");
+    assert.equal(generatedItemKey("", "Glass Acorn"), "");
     assert.equal(generatedItemKey("CS1", "   "), "");
-    assert.equal(stampGeneratedItem(definition("Carved Bone"), { source: "" }), null);
+    assert.equal(stampGeneratedItem(definition("Glass Acorn"), { source: "" }), null);
   });
 
   test("identity is not the image path, the folder, or the document id", () => {
-    const base = definition("Carved Bone");
+    const base = definition("Glass Acorn");
     const one = stampGeneratedItem({ ...base, img: "a.webp", folder: "f1" }, { source: "CS1" });
     const two = stampGeneratedItem({ ...base, img: "b.webp", folder: "f2" }, { source: "CS1" });
     assert.equal(one.flags[MODULE_ID].generatedItem.id, two.flags[MODULE_ID].generatedItem.id);
   });
 
   test("folder is placement, not content — moving one is not an edit", () => {
-    const base = definition("Carved Bone");
+    const base = definition("Glass Acorn");
     assert.equal(generatedItemFingerprint({ ...base, folder: "f1" }),
       generatedItemFingerprint({ ...base, folder: "f2" }));
   });
 
   test("the definition-level source hint never lands on the document", () => {
-    const payload = stampGeneratedItem({ ...definition("Carved Bone"), source: "CS1" });
+    const payload = stampGeneratedItem({ ...definition("Glass Acorn"), source: "CS1" });
     assert.equal("source" in payload, false);
     assert.equal(payload.flags[MODULE_ID].generatedItem.source, "cs1");
   });
 
   test("stamping is additive — other packages' flags survive", () => {
     const payload = stampGeneratedItem(
-      { ...definition("Carved Bone"), flags: { "shadowdark-extras": { alignment: "chaotic" } } },
+      { ...definition("Glass Acorn"), flags: { "shadowdark-extras": { alignment: "chaotic" } } },
       { source: "CS1" },
     );
     assert.equal(payload.flags["shadowdark-extras"].alignment, "chaotic");
@@ -123,7 +123,7 @@ describe("generated identity — derivation", () => {
 });
 
 describe("generated identity — the boundary", () => {
-  const payload = stampGeneratedItem(definition("Carved Bone"), { source: "CS1" });
+  const payload = stampGeneratedItem(definition("Glass Acorn"), { source: "CS1" });
 
   test("a stamped payload satisfies BOTH halves only in the managed pack", () => {
     assert.equal(isGeneratedArtifact(payload), true);
@@ -134,14 +134,14 @@ describe("generated identity — the boundary", () => {
   });
 
   test("a plan outside the managed pack writes nothing at all", () => {
-    const out = plan([definition("Carved Bone")], [], "shadowdark.gear");
+    const out = plan([definition("Glass Acorn")], [], "shadowdark.gear");
     assert.equal(out.boundary, false);
     assert.deepEqual([out.create, out.update, out.unchanged], [[], [], []]);
     assert.equal(out.refused[0].reason, GENERATED_ITEM_REFUSALS.OUT_OF_BOUNDARY);
   });
 
   test("the marker alone, without the block, is not an identity", () => {
-    const marked = { name: "Carved Bone", flags: { [MODULE_ID]: { generated: true } } };
+    const marked = { name: "Glass Acorn", flags: { [MODULE_ID]: { generated: true } } };
     assert.equal(isGeneratedArtifact(marked), true);
     assert.equal(readGeneratedItem(marked), null);
     assert.equal(isGeneratedItem(marked, MANAGED_ITEMS_PACK), false);
@@ -149,7 +149,7 @@ describe("generated identity — the boundary", () => {
 
   test("the block alone, without the marker, is not a generated artifact", () => {
     const unmarked = {
-      name: "Carved Bone",
+      name: "Glass Acorn",
       flags: { [MODULE_ID]: { generatedItem: { id: "fnv1a32:deadbeef" } } },
     };
     assert.equal(readGeneratedItem(unmarked), null);
@@ -158,7 +158,7 @@ describe("generated identity — the boundary", () => {
   test("monsterSpell.generated is NOT this marker — the contracts are opposites", () => {
     const spell = {
       _id: "spell-1",
-      name: "Carved Bone",
+      name: "Glass Acorn",
       flags: { [MODULE_ID]: { monsterSpell: { generated: true, libraryId: "fnv1a32:8a2810bf" } } },
     };
     assert.equal(isGeneratedMonsterSpell(spell), true);
@@ -166,7 +166,7 @@ describe("generated identity — the boundary", () => {
     assert.equal(isGeneratedItem(spell, MANAGED_ITEMS_PACK), false);
 
     // And a definition that would take its name is refused, not honoured.
-    const out = plan([definition("Carved Bone")], [spell]);
+    const out = plan([definition("Glass Acorn")], [spell]);
     assert.deepEqual([out.create, out.update], [[], []]);
     assert.equal(out.refused[0].reason, GENERATED_ITEM_REFUSALS.NAME_COLLISION);
     assert.equal(out.refused[0].monsterSpell, true);
@@ -187,7 +187,7 @@ describe("generated identity — the boundary", () => {
 });
 
 describe("generated reconciliation — create, update, rerun", () => {
-  const defs = [definition("Carved Bone"), definition("Eyeball"), definition("Iron Nail")];
+  const defs = [definition("Glass Acorn"), definition("Velvet Kazoo"), definition("Iron Nail")];
 
   test("a first run creates every definition once", () => {
     const out = plan(defs, []);
@@ -208,7 +208,7 @@ describe("generated reconciliation — create, update, rerun", () => {
     const first = plan(defs, []).create;
     const edited = stored({
       ...first[0].payload,
-      name: "Carved Bone of Utter Doom",             // renamed by hand
+      name: "Glass Acorn of Utter Doom",             // renamed by hand
       img: "worlds/mine/hand-picked.webp",           // re-arted by hand
       system: { ...first[0].payload.system, description: "<p>My own notes.</p>" },
     }, "doc-0");
@@ -223,15 +223,15 @@ describe("generated reconciliation — create, update, rerun", () => {
     assert.equal(hit.documentId, "doc-0");
     assert.equal(hit.documentMoved, true);
     assert.equal(hit.definitionMoved, false);
-    assert.equal(hit.payload.name, "Carved Bone");
+    assert.equal(hit.payload.name, "Glass Acorn");
     assert.equal(hit.payload.img, "icons/commodities/bones/bone-carved-brown.webp");
-    assert.equal(hit.payload.system.description, "<p>Carved Bone</p>");
+    assert.equal(hit.payload.system.description, "<p>Glass Acorn</p>");
   });
 
   test("a changed definition updates the same document", () => {
     const existing = plan(defs, []).create.map((c, i) => stored(c.payload, `doc-${i}`));
     const revised = [
-      definition("Carved Bone", { system: { description: "<p>Ignites in flames.</p>" } }),
+      definition("Glass Acorn", { system: { description: "<p>Hums a tune at dusk.</p>" } }),
       ...defs.slice(1),
     ];
     const out = plan(revised, existing);
@@ -245,8 +245,8 @@ describe("generated reconciliation — create, update, rerun", () => {
   test("Foundry's own DataModel defaults are not read as a hand edit", () => {
     // `stored` adds quantity/slots/equipped/sort/ownership the definition never
     // declared. Comparing whole documents would call every rerun an edit.
-    const [created] = plan([definition("Carved Bone")], []).create;
-    const out = plan([definition("Carved Bone")], [stored(created.payload)]);
+    const [created] = plan([definition("Glass Acorn")], []).create;
+    const out = plan([definition("Glass Acorn")], [stored(created.payload)]);
     assert.equal(out.unchanged.length, 1);
     assert.equal(out.update.length, 0);
   });
@@ -364,7 +364,7 @@ describe("generated reconciliation — create, update, rerun", () => {
     const out = plan(defs, half);
     assert.equal(out.unchanged.length, 1);
     assert.equal(out.create.length, 2);
-    assert.deepEqual(out.create.map((c) => c.name), ["Eyeball", "Iron Nail"]);
+    assert.deepEqual(out.create.map((c) => c.name), ["Velvet Kazoo", "Iron Nail"]);
     assert.equal(out.update.length, 0);
   });
 
@@ -386,20 +386,20 @@ describe("generated reconciliation — create, update, rerun", () => {
 
 describe("generated reconciliation — refusals", () => {
   test("a name already held by an unrelated document is refused, not taken over", () => {
-    const handMade = { _id: "hand-1", name: "Carved Bone", flags: {} };
-    const out = plan([definition("Carved Bone")], [handMade]);
+    const handMade = { _id: "hand-1", name: "Glass Acorn", flags: {} };
+    const out = plan([definition("Glass Acorn")], [handMade]);
     assert.equal(out.create.length, 0);
     assert.equal(out.refused[0].reason, GENERATED_ITEM_REFUSALS.NAME_COLLISION);
     assert.equal(out.refused[0].monsterSpell, false);
   });
 
   test("the collision check folds names the way the resolver does", () => {
-    const handMade = { _id: "hand-1", name: "  carved   BONE ", flags: {} };
-    assert.equal(plan([definition("Carved Bone")], [handMade]).refused.length, 1);
+    const handMade = { _id: "hand-1", name: "  glass   ACORN ", flags: {} };
+    assert.equal(plan([definition("Glass Acorn")], [handMade]).refused.length, 1);
   });
 
   test("one definition listed twice creates one document", () => {
-    const out = plan([definition("Carved Bone"), definition("carved bone")], []);
+    const out = plan([definition("Glass Acorn"), definition("glass acorn")], []);
     assert.equal(out.create.length, 1);
     assert.equal(out.refused[0].reason, GENERATED_ITEM_REFUSALS.DUPLICATE_DEFINITION);
   });
@@ -415,8 +415,8 @@ describe("generated reconciliation — refusals", () => {
   });
 
   test("two documents already sharing one identity are reported, not silently picked", () => {
-    const [created] = plan([definition("Carved Bone")], []).create;
-    const out = plan([definition("Carved Bone")], [
+    const [created] = plan([definition("Glass Acorn")], []).create;
+    const out = plan([definition("Glass Acorn")], [
       stored(created.payload, "doc-0"),
       stored(created.payload, "doc-1"),
     ]);
@@ -452,7 +452,7 @@ describe("generated reconciliation — refusals", () => {
   });
 
   test("a generated marker without its canonical key is not trusted by id alone", () => {
-    const payload = stampGeneratedItem(definition("Carved Bone"), { source: "CS1" });
+    const payload = stampGeneratedItem(definition("Glass Acorn"), { source: "CS1" });
     const legacy = stored({
       ...payload,
       flags: {
@@ -463,7 +463,7 @@ describe("generated reconciliation — refusals", () => {
         },
       },
     });
-    const out = plan([definition("Carved Bone")], [legacy]);
+    const out = plan([definition("Glass Acorn")], [legacy]);
     assert.equal(out.update.length, 0);
     assert.equal(out.refused[0].reason, GENERATED_ITEM_REFUSALS.IDENTITY_COLLISION);
   });
@@ -475,7 +475,7 @@ describe("generated reconciliation — refusals", () => {
       img: "worlds/mine/gm-art.webp",
       flags: { [MODULE_ID]: { imported: true, source: "cs1", art: { state: "custom", img: "worlds/mine/gm-art.webp" } } },
     };
-    const out = plan([definition("Carved Bone")], [imported]);
+    const out = plan([definition("Glass Acorn")], [imported]);
     assert.equal(out.create.length, 1, "an unrelated import is not in the way");
     assert.equal(isGeneratedItem(imported, MANAGED_ITEMS_PACK), false);
     assert.equal(decideImportArt({
