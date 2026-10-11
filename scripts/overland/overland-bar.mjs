@@ -60,7 +60,7 @@ import { L as t } from "../shared/i18n.mjs";
 import { isPacedStep, moonEpoch, onShownTime, shownTime } from "../time/time.mjs";
 import { dayEvents, paragraphs } from "../calendar/calendar-core.mjs";
 import { holyWindows } from "../holidays/holy-days.mjs";
-import { gmOnlyKeys, holidayEffects, setGmOnly } from "../holidays/holidays.mjs";
+import { gmOnlyKeys, holidayEffects, readHolyDayText, setGmOnly } from "../holidays/holidays.mjs";
 import { CALENDAR_CHANGED, addCalendarEntry, calendarEntries, removeCalendarEntry } from "../calendar/calendar.mjs";
 
 const BAR_ID = "shadowdark-enhancer-travel";
@@ -722,7 +722,10 @@ export const TravelBar = {
           + (text === null ? `<span class="sde-hud-fl">${esc(t("SDE.calendar.reading"))}</span>` : text.map((p) => `<p>${esc(p)}</p>`).join(""))
           + open(h?.pageUuid) + toggle(h?.key);
       } else if (ev.kind === "holy") {
-        more = `<p>${esc(t(ev.holy.about))}</p>${open(ev.holy.pageUuid)}${toggle(ev.holy.key)}`;
+        // The line is read from the GM's PDF; a GM sees a button that reads it while it is missing.
+        const read = game.user.isGM && !ev.holy.about
+          ? key("readHolyText", t("SDE.calendar.holy.readText"), { cls: "sde-hud-sm", hint: t("SDE.calendar.holy.readTextTip") }) : "";
+        more = `${ev.holy.about ? `<p>${esc(ev.holy.about)}</p>` : ""}${read}${open(ev.holy.pageUuid)}${toggle(ev.holy.key)}`;
       }
       return `<div class="sde-hud-dblock"><div class="sde-hud-dh"><i class="fa-solid ${icon} sde-hud-ai" aria-hidden="true"></i><span class="sde-hud-at">${html}</span></div>${more}</div>`;
     };
@@ -883,6 +886,7 @@ export const TravelBar = {
       case "pickDay": { const at = Number(id); this._info = this._info?.at === at ? null : { at }; return this.render(); }
       case "pickHoly": this._info = this._info?.holy === id ? null : { holy: id }; return this.render();
       case "toggleGmOnly": await setGmOnly(id, !gmOnlyKeys().includes(id)); return this.render();
+      case "readHolyText": await readHolyDayText(); await this._loadHolidays(); return this.render();
       case "closeInfo": this._info = null; return this.render();
       case "openPage": {
         const page = await fromUuid(id);

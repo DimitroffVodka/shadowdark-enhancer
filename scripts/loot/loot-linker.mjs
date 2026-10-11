@@ -12,7 +12,7 @@
  * name — imports fill gaps, system wins on clash.
  *
  * The MATCH itself lives in `loot-resolution.mjs` (A7). It used to be a
- * containment regex here, which is how "Unopened bottle of … Murgazi wine"
+ * containment regex here, which is how a long descriptive potion row
  * resolved to the plain system `Bottle` (#58). `findLink` keeps its shape for
  * the six call sites that read `{uuid,name,matched}`; callers that need to tell
  * an ambiguous row from an unmatched one call `resolveLootItem` directly.

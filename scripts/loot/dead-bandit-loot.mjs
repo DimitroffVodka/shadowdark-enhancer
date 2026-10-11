@@ -3,20 +3,23 @@
  *
  * This table has ordinary visible descriptive loot, not unidentified magic.
  * Its source phrase is therefore retained on the TableResult and its feature
- * remainder is visible in the generated Item description.  Only the exact
- * source rows below may mint an Item; generic system-pack lookup is deliberately
- * not consulted, so Murgazi wine cannot become a plain Bottle.
+ * remainder is visible in the generated Item description.  Only rows the
+ * reviewed census recognises may mint an Item; generic system-pack lookup is
+ * deliberately not consulted, so a flavourful row cannot become a plain Bottle.
+ *
+ * No book wording ships in this module.  A row is recognised by the
+ * fingerprint of its text, and its Item name and feature are cut out of the
+ * text the GM's own PDF produced, using a shipped word-index shape.
  */
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { ART_STATES, MANAGED_ITEMS_PACK, artProvenance } from "../shared/art-provenance.mjs";
 import { curatedArtFor, curatedNameKey } from "../shared/curated-icons.mjs";
+import { bookItemName, cleanBookText, textFingerprint } from "../shared/text-fingerprint.mjs";
 import { generatedItemId, readGeneratedItem, reconcileGeneratedItems } from "../shared/generated-items.mjs";
 import { sourceKey } from "../shared/source-keys.mjs";
 import { ensureFolderPath } from "../shared/compendium-suite.mjs";
 import { fabricateTreasureItem, isCoinEntry, parseValue, ensureLootPack } from "./loot-pack.mjs";
-import {
-  DEAD_BANDIT_LOOT_ROWS,
-} from "../shared/curated-icon-maps/dead-bandit-loot-icons.mjs";
+import "../shared/curated-icon-maps/dead-bandit-loot-icons.mjs";
 import { L } from "../shared/i18n.mjs";
 
 
@@ -35,38 +38,45 @@ export const DEAD_BANDIT_LOOT_MANIFEST_IDS = Object.freeze([
 export const DEAD_BANDIT_LOOT_TABLE_NAME = "In a Dead Bandit's Hand, You Find...";
 export const DEAD_BANDIT_LOOT_FOLDER_PATH = Object.freeze(["Cursed Scroll 2", "Treasure"]);
 
-/** The exact CS2 source phrase and feature remainder for every N3 row. */
+/**
+ * The shape of every N3 row, keyed by the fingerprint of its source text (the
+ * same key its icon is registered under): `name` lists the word indices of the
+ * source row that make up the Item name, `feature` is the word index where the
+ * feature remainder starts, or null when the whole row is the name.
+ */
 export const DEAD_BANDIT_LOOT_SOURCE_ROWS = Object.freeze([
-  Object.freeze({ sourceText: "Cursed eye token; DISADV on next check or attack roll", name: "Cursed eye token", feature: "DISADV on next check or attack roll" }),
-  Object.freeze({ sourceText: "Burlap bag tied shut with an angry cobra inside", name: "Burlap bag", feature: "tied shut with an angry cobra inside" }),
-  Object.freeze({ sourceText: "Torn half of a treasure map; other half next time rolling this", name: "Torn half of a treasure map", feature: "other half next time rolling this" }),
-  Object.freeze({ sourceText: "Sealed clay jar with, 1d4: 1-2. 20 gp, 3-4. scarab beetle swarm", name: "Sealed clay jar", feature: "with, 1d4: 1-2. 20 gp, 3-4. scarab beetle swarm" }),
-  Object.freeze({ sourceText: "Brass wine cup with secret reservoir that dispenses poison", name: "Brass wine cup", feature: "with secret reservoir that dispenses poison" }),
-  Object.freeze({ sourceText: "Three trick dice weighted to roll, 1d4: 1-2. high, 3-4. low", name: "Three trick dice", feature: "weighted to roll, 1d4: 1-2. high, 3-4. low" }),
-  Object.freeze({ sourceText: "Invitation to a private pit fight at a powerful noble's palace", name: "Invitation to a private pit fight", feature: "at a powerful noble's palace" }),
-  Object.freeze({ sourceText: "A jade comb that, by law, forgives its bearer of one crime", name: "Jade comb", feature: "that, by law, forgives its bearer of one crime" }),
-  Object.freeze({ sourceText: "Corked glass vial with a tiny, living scorpion inside it", name: "Corked glass vial", feature: "with a tiny, living scorpion inside it" }),
-  Object.freeze({ sourceText: "Unopened bottle of exceptionally potent Murgazi wine", name: "Unopened bottle of exceptionally potent Murgazi wine", feature: "" }),
-  Object.freeze({ sourceText: "Scarab beetle token; ADV on next check or attack roll", name: "Scarab beetle token", feature: "ADV on next check or attack roll" }),
-  Object.freeze({ sourceText: "Gold signet ring belonging to a noble family in Alkesh", name: "Gold signet ring", feature: "belonging to a noble family in Alkesh" }),
-  Object.freeze({ sourceText: "Bag of 1d4 sweet dates that each heal 1 HP when eaten", name: "Bag of sweet dates", feature: "of 1d4 sweet dates that each heal 1 HP when eaten" }),
-  Object.freeze({ sourceText: "Worm oil; pour in sand to attract a purple worm in 1d4 rds", name: "Worm oil", feature: "pour in sand to attract a purple worm in 1d4 rds" }),
-  Object.freeze({ sourceText: "Vial of poison, 1d4: 1-2. common, 3. uncommon, 4. rare", name: "Vial of poison", feature: "1d4: 1-2. common, 3. uncommon, 4. rare" }),
-  Object.freeze({ sourceText: "Tube with 1d4 phoenix plumes, work as waterproof matches", name: "Tube with phoenix plumes", feature: "1d4 phoenix plumes, work as waterproof matches" }),
-  Object.freeze({ sourceText: "Ownership papers for a prized war horse stabled in Alkesh", name: "Ownership papers for a prized war horse", feature: "stabled in Alkesh" }),
-  Object.freeze({ sourceText: "Shard of blue glass that sometimes reflects brief portents", name: "Shard of blue glass", feature: "that sometimes reflects brief portents" }),
-  Object.freeze({ sourceText: "Bag of magic sesame seeds; sprinkle on a door to unlock it", name: "Bag of magic sesame seeds", feature: "sprinkle on a door to unlock it" }),
-  Object.freeze({ sourceText: "Tarnished, bronze oil lamp carved with a faded inscription", name: "Tarnished, bronze oil lamp", feature: "carved with a faded inscription" }),
+  Object.freeze({ fp: "1b7abadbf43f67", name: [0, 1, 2], feature: 3 }),
+  Object.freeze({ fp: "0cbed079ddca75", name: [0, 1], feature: 2 }),
+  Object.freeze({ fp: "163d40f2fe34bb", name: [0, 1, 2, 3, 4, 5], feature: 6 }),
+  Object.freeze({ fp: "1ada56e5139229", name: [0, 1, 2], feature: 3 }),
+  Object.freeze({ fp: "1a9dac17b4bc7a", name: [0, 1, 2], feature: 3 }),
+  Object.freeze({ fp: "04f164d19a5754", name: [0, 1, 2], feature: 3 }),
+  Object.freeze({ fp: "00ce9820e08a56", name: [0, 1, 2, 3, 4, 5], feature: 6 }),
+  Object.freeze({ fp: "180b829a3fc12e", name: [1, 2], feature: 3 }),
+  Object.freeze({ fp: "002dbeb8143099", name: [0, 1, 2], feature: 3 }),
+  Object.freeze({ fp: "167be7d25c97c8", name: [0, 1, 2, 3, 4, 5, 6], feature: null }),
+  Object.freeze({ fp: "12a883338bc294", name: [0, 1, 2], feature: 3 }),
+  Object.freeze({ fp: "15826f0a4444b7", name: [0, 1, 2], feature: 3 }),
+  Object.freeze({ fp: "029c86a311e326", name: [0, 1, 3, 4], feature: 1 }),
+  Object.freeze({ fp: "1254cc9ad8078b", name: [0, 1], feature: 2 }),
+  Object.freeze({ fp: "04b35eeef8b4e3", name: [0, 1, 2], feature: 3 }),
+  Object.freeze({ fp: "1ca4d5f3b27f3b", name: [0, 1, 3, 4], feature: 2 }),
+  Object.freeze({ fp: "18a6de8d2457fd", name: [0, 1, 2, 3, 4, 5, 6], feature: 7 }),
+  Object.freeze({ fp: "09ffb1ed3961a7", name: [0, 1, 2, 3], feature: 4 }),
+  Object.freeze({ fp: "1378f39f8acbd1", name: [0, 1, 2, 3, 4], feature: 5 }),
+  Object.freeze({ fp: "19466eb8903514", name: [0, 1, 2, 3], feature: 4 }),
 ]);
 
 const MANIFEST_SET = new Set(DEAD_BANDIT_LOOT_MANIFEST_IDS);
 const TABLE_NAME_KEY = curatedNameKey(DEAD_BANDIT_LOOT_TABLE_NAME);
-const SOURCE_ROWS_BY_KEY = new Map(
-  DEAD_BANDIT_LOOT_SOURCE_ROWS.map((row) => [curatedNameKey(row.sourceText), row]),
+let sourceRowsByFingerprint = new Map(
+  DEAD_BANDIT_LOOT_SOURCE_ROWS.map((row) => [row.fp, row]),
 );
-const CANONICAL_ROWS_BY_NAME = new Map(
-  DEAD_BANDIT_LOOT_ROWS.map((row) => [curatedNameKey(row.name), row]),
-);
+
+/** Test-only: recognise an invented set of rows; no argument restores the shipped ones. */
+export function _setDeadBanditLootRows(rows = DEAD_BANDIT_LOOT_SOURCE_ROWS) {
+  sourceRowsByFingerprint = new Map(rows.map((row) => [row.fp, row]));
+}
 
 function readFlags(table) {
   if (typeof table?.getFlag === "function") {
@@ -116,15 +126,22 @@ function terminalPrice(text) {
   return match ? parseValue(match[0]) : { gp: 0, sp: 0, cp: 0 };
 }
 
+/**
+ * Recognise a source row by its fingerprint and cut its Item name and feature
+ * out of the text itself.  Matching is exact after only the terminal price is
+ * removed: feature-bearing prose cannot resolve by containing "bottle" or
+ * "vial", and there is no fuzzy fallback.
+ */
 function sourceRowForText(text) {
   const raw = deadBanditLootItemName(text);
-  const key = curatedNameKey(raw);
-  // Source matching is exact after only the terminal price is removed.  The
-  // canonical-name map is an additional consistency guard, never a fuzzy
-  // fallback: feature-bearing prose cannot resolve by containing "bottle" or
-  // "vial".
-  const row = SOURCE_ROWS_BY_KEY.get(key);
-  return row && CANONICAL_ROWS_BY_NAME.has(curatedNameKey(row.name)) ? row : null;
+  const shape = sourceRowsByFingerprint.get(textFingerprint(raw));
+  if (!shape) return null;
+  const words = cleanBookText(raw).split(" ");
+  return {
+    fp: shape.fp,
+    name: bookItemName(shape.name.map((index) => words[index]).join(" ").replace(/[;,]+$/, "")),
+    feature: shape.feature == null ? "" : words.slice(shape.feature).join(" "),
+  };
 }
 
 /** Read source text from a v14 TableResult or a plain fixture. */
@@ -154,14 +171,13 @@ export function buildDeadBanditLootItem(text, { source = DEAD_BANDIT_LOOT_SOURCE
     return { status: "unresolved", reason: "unmapped-row", text: raw, name: deadBanditLootItemName(raw) };
   }
 
-  const canonical = CANONICAL_ROWS_BY_NAME.get(curatedNameKey(row.name));
-  const art = curatedArtFor({ name: canonical.name, source: sourceId });
+  const art = curatedArtFor({ name: row.fp, source: sourceId });
   if (!art) {
-    return { status: "unresolved", reason: "unmapped-art", text: raw, name: canonical.name };
+    return { status: "unresolved", reason: "unmapped-art", text: raw, name: row.name };
   }
 
   const value = terminalPrice(raw);
-  const itemData = fabricateTreasureItem({ name: canonical.name, value, source: sourceId });
+  const itemData = fabricateTreasureItem({ name: row.name, value, source: sourceId });
   itemData.system.description = htmlFeature(row.feature);
   itemData.img = art.img;
   itemData.flags = {
@@ -176,7 +192,7 @@ export function buildDeadBanditLootItem(text, { source = DEAD_BANDIT_LOOT_SOURCE
     status: "resolved",
     source: sourceId,
     text: raw,
-    name: canonical.name,
+    name: row.name,
     feature: row.feature,
     img: art.img,
     value,

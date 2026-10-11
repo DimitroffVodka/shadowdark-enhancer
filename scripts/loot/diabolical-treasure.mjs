@@ -12,10 +12,21 @@
  * This module deliberately does not use the general LootLinker.  The table is
  * source-qualified and must never resolve a matching Item in the Shadowdark
  * system pack or an unrelated world pack.
+ *
+ * No book wording ships here.  Items and Features are recognised by the
+ * fingerprint of their cell text and paired by index; the Item name and the
+ * feature text come from the table the GM's own PDF produced.
  */
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { ART_STATES, MANAGED_ITEMS_PACK, artProvenance } from "../shared/art-provenance.mjs";
-import { buildCuratedIconRegistry, curatedArtFor, curatedNameKey } from "../shared/curated-icons.mjs";
+import {
+  CURATED_KEY_SPACES,
+  buildCuratedIconRegistry,
+  curatedArtFor,
+  curatedNameKey,
+  defineCuratedIconMap,
+} from "../shared/curated-icons.mjs";
+import { bookItemName, cleanBookText, textFingerprint } from "../shared/text-fingerprint.mjs";
 import { generatedItemId, readGeneratedItem, reconcileGeneratedItems } from "../shared/generated-items.mjs";
 import { sourceKey } from "../shared/source-keys.mjs";
 import { ensureFolderPath } from "../shared/compendium-suite.mjs";
@@ -44,50 +55,82 @@ const NOTIFY_TABLE = "Diabolical Treasure";
 
 const MANIFEST_SET = new Set(DIABOLICAL_TREASURE_MANIFEST_IDS);
 const TABLE_NAME_KEY = curatedNameKey(DIABOLICAL_TREASURE_TABLE_NAME);
-const D6_ICON_REGISTRY = buildCuratedIconRegistry([DIABOLICAL_TREASURE_ICONS]);
 
-/** Exact Feature column text from Cursed Scroll 1 p68 (#59). */
-const FEATURES = Object.freeze([
-  "Ignites in flames once/day for 1d4 rounds",
-  "Repels insects and spiders to arm's length",
-  "Floats in the air wherever it's placed",
-  "Turns toward due north when untouched",
-  "Attracts demonic creatures to its location",
-  "A creature holding it can't knowingly lie",
-  "You can smell if something is poisonous",
-  "Drips blood in the presence of undead",
-  "Sings a haunting lullaby when rattled",
-  "Belongs to a witch who wants it back",
-  "Causes pain and disgust in fey creatures",
-  "Can open a one-way gate to hell once",
-  "Allows you to hold your breath for an hour",
-  "A demon owes the item's owner a favor",
-  "Once/day, fire immunity 1d4 rounds",
-  "Slowly rolls away on its own if released",
-  "Once/day, briefly read one creature's mind",
-  "Object cannot be crushed by anything",
-  "As heavy as an anvil when not carried",
-  "Causes doubt and hesitation in demons",
+/**
+ * Fingerprints of the twenty Feature cells, paired by index with the Item
+ * cells in the icon map (the book's d20 order).
+ */
+const FEATURE_FINGERPRINTS = Object.freeze([
+  "161f890dc34df8",
+  "02be89488625bb",
+  "10b2663c85f517",
+  "1d279df06d41c3",
+  "0d6d7ca12b8ba4",
+  "1ad747a7d04a51",
+  "12578fcd125f43",
+  "1bb8a28d4ef9f8",
+  "141bde88e8af70",
+  "015415360b68d5",
+  "0a82d6af1bc75f",
+  "1558cfa55e6b8a",
+  "0dc4eb4597ab26",
+  "178fba2229831e",
+  "0184c96787fa6c",
+  "094452aa4c5719",
+  "11250129e31ef6",
+  "0246f426f2bf22",
+  "0d6d551f12ee1b",
+  "1d72020d678d30"
 ]);
 
 /**
- * The complete source census consumed by D6.  Icon data remains owned by the
- * N3 map module; this derived view keeps the feature text beside each item and
- * makes an Item/Feature mismatch impossible at materialization time.
+ * The complete source census consumed by D6: each reviewed Item (by
+ * fingerprint, with its art) beside the fingerprint of the Feature it is
+ * paired with.  The pairing makes an Item/Feature mismatch impossible at
+ * materialization time.
  */
 export const DIABOLICAL_TREASURE_ROWS = Object.freeze(
-  ICON_ROWS.map((row, index) => Object.freeze({ ...row, feature: FEATURES[index] })),
+  ICON_ROWS.map((row, index) => Object.freeze({ ...row, index, featureFp: FEATURE_FINGERPRINTS[index] })),
 );
 
-const ROW_BY_KEY = new Map(DIABOLICAL_TREASURE_ROWS.map((row) => [curatedNameKey(row.name), row]));
-const FEATURE_BY_KEY = new Map(DIABOLICAL_TREASURE_ROWS.map((row) => [curatedNameKey(row.feature), row.feature]));
-const REVIEWED_PAIR_KEYS = new Set(DIABOLICAL_TREASURE_ROWS.flatMap((item) => (
-  DIABOLICAL_TREASURE_ROWS.map((feature) => (
-    `${curatedNameKey(item.name)}\u0000${curatedNameKey(feature.feature)}`
-  ))
-)));
-const ROWS_BY_LONGEST_NAME = [...DIABOLICAL_TREASURE_ROWS]
-  .sort((a, b) => curatedNameKey(b.name).length - curatedNameKey(a.name).length);
+function censusOf(rows, registry) {
+  return {
+    rows,
+    registry,
+    byFingerprint: new Map(rows.map((row) => [row.fp, row])),
+    featureIndex: new Map(rows.map((row) => [row.featureFp, row.index])),
+  };
+}
+
+let census = censusOf(DIABOLICAL_TREASURE_ROWS, buildCuratedIconRegistry([DIABOLICAL_TREASURE_ICONS]));
+
+/**
+ * Test-only: recognise an invented census (`{ fp, featureFp, img }` rows)
+ * instead of the shipped one; no argument restores the shipped census.
+ */
+export function _setDiabolicalTreasureRows(rows) {
+  if (!rows) {
+    census = censusOf(DIABOLICAL_TREASURE_ROWS, buildCuratedIconRegistry([DIABOLICAL_TREASURE_ICONS]));
+    return;
+  }
+  const indexed = rows.map((row, index) => ({ ...row, index }));
+  const map = defineCuratedIconMap(
+    "diabolical-treasure",
+    { [DIABOLICAL_TREASURE_SOURCE]: Object.fromEntries(indexed.map((row) => [row.fp, row.img])) },
+    { space: CURATED_KEY_SPACES.SOURCED },
+  );
+  census = censusOf(indexed, buildCuratedIconRegistry([map]));
+}
+
+/** The reviewed row a piece of Item-cell text is, or undefined. */
+function rowFor(text) {
+  return census.byFingerprint.get(textFingerprint(text));
+}
+
+/** The index of the reviewed Feature a piece of text is, or undefined. */
+function featureIndexOf(text) {
+  return census.featureIndex.get(textFingerprint(text));
+}
 
 function readFlags(table) {
   if (typeof table?.getFlag === "function") {
@@ -163,36 +206,25 @@ function isManagedDocumentResult(value) {
   return String(object.documentUuid ?? "").startsWith(`Compendium.${MANAGED_ITEMS_PACK}.Item.`);
 }
 
-function sourceFeatureEvidence(raw, row) {
-  const withoutRoll = stripLeadingRoll(raw);
-  const pieces = withoutRoll.split(/\s*\|\s*/);
-  const itemPart = stripEmbeddedPrice(pieces.shift() ?? "");
-  if (curatedNameKey(itemPart) === curatedNameKey(row.name)) {
-    return pieces.join(" | ").trim().length > 0;
-  }
-
-  const reflowed = curatedNameKey(withoutRoll);
-  const nameKey = curatedNameKey(row.name);
-  if (reflowed === nameKey || !reflowed.startsWith(`${nameKey} `)) return false;
-  const rest = withoutRoll.slice(row.name.length)
-    .replace(/^\s*(?:[|:–—-]|with\s+feature\s+of)\s*/i, "")
-    .trim();
-  return rest.length > 0;
-}
-
 function parsedFromRowObject(value) {
   if (!value || typeof value !== "object" || !value.name) return null;
   const typed = typedTableResult(value);
   if (typed && !isManagedDocumentResult(typed)) return null;
-  const row = ROW_BY_KEY.get(curatedNameKey(value.name));
+  const row = rowFor(value.name);
   if (!row) return null;
-  return { row, feature: String(value.feature ?? row.feature).trim() || row.feature, raw: value.raw ?? "" };
+  return { row, name: bookItemName(value.name), feature: cleanBookText(value.feature), raw: value.raw ?? "" };
 }
+
+const REFLOW_SEPARATOR_RE = /^\s*(?:[|:–—-]|with\s+feature\s+of)\s*/i;
 
 /**
  * Parse either a normal `Item | Feature` result or a one-line/reflowed result
- * whose item name is followed by its feature.  The result is matched against
- * the exact reviewed Item census; interior-word containment is never used.
+ * whose item name is followed by its feature.  The Item cell must be a
+ * reviewed one (by fingerprint); interior-word containment is never used.
+ *
+ * The result carries the Item name and feature text AS THE SOURCE PRINTED
+ * them; `feature` is "" when the row has no feature cell (a bare name is not
+ * source evidence of a feature).
  */
 export function parseDiabolicalTreasureResult(value) {
   const fromObject = parsedFromRowObject(value);
@@ -201,31 +233,27 @@ export function parseDiabolicalTreasureResult(value) {
   const raw = diabolicalResultText(value);
   const typed = typedTableResult(value);
   if (typed && isDocumentResultType(typed.type) && !isManagedDocumentResult(typed)) return null;
-  if (typed) {
-    const bareRow = ROW_BY_KEY.get(curatedNameKey(stripEmbeddedPrice(stripLeadingRoll(raw))));
-    if (bareRow && !sourceFeatureEvidence(raw, bareRow)) return null;
-  }
   const withoutRoll = stripLeadingRoll(raw);
   const pieces = withoutRoll.split(/\s*\|\s*/);
   const itemPart = stripEmbeddedPrice(pieces.shift() ?? "");
-  const itemKey = curatedNameKey(itemPart);
-  const exact = ROW_BY_KEY.get(itemKey);
+  const exact = rowFor(itemPart);
   if (exact) {
-    return {
-      row: exact,
-      feature: pieces.join(" | ").trim() || exact.feature,
-      raw,
-    };
+    const feature = cleanBookText(pieces.join(" | "));
+    // A typed TEXT result holding only the Item name may be the unresolved
+    // placeholder of an earlier failed pass, not source evidence.
+    if (typed && !feature) return null;
+    return { row: exact, name: bookItemName(itemPart), feature, raw };
   }
 
   // Some PDF viewers reflow the two columns with no pipe.  Only accept a
-  // reviewed name at the beginning of the row, preferring the longest name.
-  const reflowed = curatedNameKey(withoutRoll);
-  for (const row of ROWS_BY_LONGEST_NAME) {
-    const nameKey = curatedNameKey(row.name);
-    if (reflowed === nameKey || !reflowed.startsWith(`${nameKey} `)) continue;
-    const rest = withoutRoll.slice(row.name.length).replace(/^\s*(?:[|:–—-]|with\s+feature\s+of)\s*/i, "").trim();
-    return { row, feature: rest || row.feature, raw };
+  // reviewed Item at the beginning of the row, preferring the longest one.
+  const words = cleanBookText(withoutRoll).split(" ");
+  for (let count = words.length - 1; count > 0; count--) {
+    const head = words.slice(0, count).join(" ");
+    const row = rowFor(head);
+    if (!row) continue;
+    const feature = words.slice(count).join(" ").replace(REFLOW_SEPARATOR_RE, "").trim();
+    return { row, name: bookItemName(head), feature, raw };
   }
   return null;
 }
@@ -242,8 +270,14 @@ function featureDescription(feature) {
  * Build one source-qualified generated Item definition. The definition has
  * Shadowdark's Basic + Magic Item + Treasure + Unidentified shape: physical
  * wording is public while the source feature is retained in identification.
+ *
+ * The feature must be the reviewed pair of the Item, as the source printed it;
+ * a missing or cross-wired one cannot be filled in from anywhere, so the row
+ * stays unresolved.  `featureHtml` is the one fallback: the identification
+ * text of the Item this module already generated, for a table whose rows were
+ * linked on an earlier pass and carry only the physical name.
  */
-export function buildDiabolicalTreasureItem(value, { source = DIABOLICAL_TREASURE_SOURCE } = {}) {
+export function buildDiabolicalTreasureItem(value, { source = DIABOLICAL_TREASURE_SOURCE, featureHtml = "" } = {}) {
   const sourceId = sourceKey(source);
   const raw = typeof value === "string" ? value : diabolicalResultText(value);
   if (sourceId !== DIABOLICAL_TREASURE_SOURCE) {
@@ -253,18 +287,23 @@ export function buildDiabolicalTreasureItem(value, { source = DIABOLICAL_TREASUR
   const parsed = parseDiabolicalTreasureResult(value);
   if (!parsed) return { status: "unresolved", reason: "unmapped-row", text: raw };
 
-  const { row } = parsed;
-  const art = curatedArtFor({ name: row.name, source: sourceId }, D6_ICON_REGISTRY);
+  const { row, name } = parsed;
+  const art = curatedArtFor({ name: row.fp, source: sourceId }, census.registry);
   if (!art) {
-    return { status: "unresolved", reason: "unmapped-art", text: raw, name: row.name };
+    return { status: "unresolved", reason: "unmapped-art", text: raw, name };
   }
 
-  const feature = row.feature;
+  const paired = featureIndexOf(parsed.feature) === row.index;
+  if (!paired && !featureHtml) {
+    return { status: "unresolved", reason: "missing-feature", text: raw, name };
+  }
+
+  const feature = paired ? parsed.feature : "";
   const authoredText = parsed.raw || raw;
-  const description = itemDescription(row.name);
-  const identifiedDescription = featureDescription(feature);
+  const description = itemDescription(name);
+  const identifiedDescription = paired ? featureDescription(feature) : featureHtml;
   const itemData = {
-    name: row.name,
+    name,
     type: "Basic",
     img: art.img,
     system: {
@@ -276,7 +315,7 @@ export function buildDiabolicalTreasureItem(value, { source = DIABOLICAL_TREASUR
       treasure: true,
       identification: {
         identified: false,
-        name: row.name,
+        name,
         description: identifiedDescription,
       },
       // Same slug the shared fabricator and the gear paths write — the field
@@ -294,34 +333,28 @@ export function buildDiabolicalTreasureItem(value, { source = DIABOLICAL_TREASUR
     status: "resolved",
     source: sourceId,
     text: raw,
-    name: row.name,
+    name,
     feature,
     img: art.img,
     itemData,
   };
 }
 
-function canonicalResultText(row) {
-  return row.name;
-}
-
 function censusRowEvidence(value) {
   const typed = typedTableResult(value);
   if (typed && isManagedDocumentResult(typed)) {
-    const row = ROW_BY_KEY.get(curatedNameKey(typed.name));
-    return row ? { row, kind: "linked" } : null;
+    const row = rowFor(typed.name);
+    return row ? { row, name: bookItemName(typed.name), kind: "linked" } : null;
   }
   if (typed && isDocumentResultType(typed.type)) return null;
 
   // Parse the source text as text, not through the permissive row-object
   // convenience shape.  The latter is useful for pure builders, but it must
   // never let a caller-supplied canonical name stand in for the feature cell.
-  const raw = diabolicalResultText(value);
-  const parsed = parseDiabolicalTreasureResult(raw);
-  const featureKey = curatedNameKey(parsed?.feature);
-  if (!parsed || !sourceFeatureEvidence(raw, parsed.row)
-    || !FEATURE_BY_KEY.has(featureKey)) return null;
-  return { row: parsed.row, feature: FEATURE_BY_KEY.get(featureKey), kind: "source" };
+  const parsed = parseDiabolicalTreasureResult(diabolicalResultText(value));
+  const featureIndex = parsed ? featureIndexOf(parsed.feature) : undefined;
+  if (featureIndex === undefined) return null;
+  return { row: parsed.row, name: parsed.name, feature: parsed.feature, featureIndex, kind: "source" };
 }
 
 function isLinkedDiabolicalTreasureCensus(rows) {
@@ -329,8 +362,7 @@ function isLinkedDiabolicalTreasureCensus(rows) {
   if (list.length !== 20) return false;
   return list.every((value) => {
     const typed = typedTableResult(value);
-    return isManagedDocumentResult(typed)
-      && ROW_BY_KEY.has(curatedNameKey(typed.name));
+    return isManagedDocumentResult(typed) && !!rowFor(typed.name);
   });
 }
 
@@ -349,41 +381,42 @@ export function isCompleteDiabolicalTreasureCensus(rows) {
 
   const counts = new Map();
   for (const candidate of evidence) {
-    const key = curatedNameKey(candidate.row.name);
-    counts.set(key, (counts.get(key) ?? 0) + 1);
+    counts.set(candidate.row.index, (counts.get(candidate.row.index) ?? 0) + 1);
   }
 
-  if (counts.size !== DIABOLICAL_TREASURE_ROWS.length) return false;
-  for (const row of DIABOLICAL_TREASURE_ROWS) {
+  if (counts.size !== census.rows.length) return false;
+  for (const row of census.rows) {
     const expected = list.length === 20 ? 1 : 20;
-    if (counts.get(curatedNameKey(row.name)) !== expected) return false;
+    if (counts.get(row.index) !== expected) return false;
   }
 
   if (list.length === 20) {
     const linked = evidence.every((candidate) => candidate.kind === "linked");
     if (linked) return true;
     if (evidence.some((candidate) => candidate.kind !== "source")) return false;
-    return evidence.every((candidate) => (
-      curatedNameKey(candidate.feature) === curatedNameKey(candidate.row.feature)
-    ));
+    return evidence.every((candidate) => candidate.featureIndex === candidate.row.index);
   }
 
   if (evidence.some((candidate) => candidate.kind !== "source")) return false;
-  const pairs = new Set(evidence.map((candidate) => (
-    `${curatedNameKey(candidate.row.name)}\u0000${curatedNameKey(candidate.feature)}`
-  )));
-  return pairs.size === REVIEWED_PAIR_KEYS.size
-    && [...pairs].every((pair) => REVIEWED_PAIR_KEYS.has(pair));
+  // Twenty Items x twenty Features, every pairing exactly once.
+  const pairs = new Set(evidence.map((candidate) => `${candidate.row.index}:${candidate.featureIndex}`));
+  return pairs.size === 400;
 }
 
 /**
  * Classify a table's rows before any pack write.  A 20×20 imported compound
  * contains each reviewed Item and Feature many times; one canonical entry is
  * selected per Item and materialized in N3 order.  A matching feature pair is
- * preferred when present, while the reviewed row text remains authoritative if
+ * preferred when present, while the reviewed pairing remains authoritative if
  * the source table is a cartesian expansion with cross-paired cells.
+ *
+ * `featureHtmlByIndex` supplies the identification text of Items generated on
+ * an earlier pass, for rows that arrive linked and so carry no feature text.
  */
-export function buildDiabolicalTreasureDefinitions(rows, { source = DIABOLICAL_TREASURE_SOURCE } = {}) {
+export function buildDiabolicalTreasureDefinitions(rows, {
+  source = DIABOLICAL_TREASURE_SOURCE,
+  featureHtmlByIndex = new Map(),
+} = {}) {
   const list = Array.from(rows ?? []);
   const parsed = list.map((result, index) => ({
     index,
@@ -406,49 +439,44 @@ export function buildDiabolicalTreasureDefinitions(rows, { source = DIABOLICAL_T
       censusComplete: false,
     };
   }
-  const byKey = new Map();
+  const byIndex = new Map();
   for (const candidate of parsed) {
-    const key = curatedNameKey(candidate.parsed?.row?.name);
-    if (!key) continue;
-    const prior = byKey.get(key);
-    const exactFeature = candidate.parsed.feature
-      && curatedNameKey(candidate.parsed.feature) === curatedNameKey(candidate.parsed.row.feature);
-    const priorExact = prior?.parsed?.feature
-      && curatedNameKey(prior.parsed.feature) === curatedNameKey(prior.parsed.row.feature);
-    if (!prior || (exactFeature && !priorExact)) byKey.set(key, candidate);
+    const key = candidate.parsed?.row?.index;
+    if (key === undefined) continue;
+    const prior = byIndex.get(key);
+    const exactFeature = featureIndexOf(candidate.parsed.feature) === key;
+    const priorExact = prior && featureIndexOf(prior.parsed.feature) === key;
+    if (!prior || (exactFeature && !priorExact)) byIndex.set(key, candidate);
   }
 
-  const entries = DIABOLICAL_TREASURE_ROWS.map((row, index) => {
-    const candidate = byKey.get(curatedNameKey(row.name));
+  // The reviewed feature wording for each Item, as the source table printed it.
+  const featureText = new Map();
+  for (const candidate of parsed) {
+    const featureIndex = featureIndexOf(candidate.parsed?.feature);
+    if (featureIndex !== undefined && !featureText.has(featureIndex)) featureText.set(featureIndex, candidate.parsed.feature);
+  }
+
+  const entries = census.rows.map((row, index) => {
+    const candidate = byIndex.get(row.index);
     if (!candidate) {
-      return {
-        index,
-        result: null,
-        text: canonicalResultText(row),
-        row,
-        name: row.name,
-        feature: row.feature,
-        status: "unresolved",
-        reason: "missing-row",
-      };
+      return { index, result: null, text: "", row, name: "", feature: "", displayText: "", status: "unresolved", reason: "missing-row" };
     }
+    // D6 always uses the reviewed pair, not a cross-product feature from a
+    // neighboring cell. The feature stays behind the Item identification
+    // boundary; a linked result exposes only the physical item's name.
     const built = buildDiabolicalTreasureItem({
-      name: row.name,
-      feature: row.feature,
+      name: candidate.parsed.name,
+      feature: featureText.get(row.index) ?? "",
       raw: candidate.text,
-    }, { source });
+    }, { source, featureHtml: featureHtmlByIndex.get(row.index) ?? "" });
     return {
       index,
       result: candidate.result,
       text: candidate.text,
       row,
       ...built,
-      // D6 always uses the reviewed pair, not a cross-product feature from a
-      // neighboring cell. The feature stays behind the Item identification
-      // boundary; a linked result exposes only the physical item's name.
-      name: row.name,
-      feature: row.feature,
-      displayText: canonicalResultText(row),
+      name: candidate.parsed.name,
+      displayText: candidate.parsed.name,
     };
   });
 
@@ -738,7 +766,7 @@ export async function materializeDiabolicalTreasure(table, {
 
   const results = asArray(table?.results);
   const linkedInput = isLinkedDiabolicalTreasureCensus(results);
-  const definitions = buildDiabolicalTreasureDefinitions(results, { source });
+  let definitions = buildDiabolicalTreasureDefinitions(results, { source });
   const summary = summaryFor(definitions, source);
   summary.tableRows = results.length;
   if (!definitions.censusComplete) {
@@ -778,6 +806,28 @@ export async function materializeDiabolicalTreasure(table, {
     folderId = await makeFolder(pack, DIABOLICAL_TREASURE_FOLDER_PATH);
   } catch (error) {
     summary.failures.push({ reason: "folder-failed", error: String(error?.message ?? error) });
+  }
+
+  // Rows linked on an earlier pass carry only the physical name; their feature
+  // text is the identification text of the Item already generated for them.
+  if (definitions.entries.some((entry) => entry.reason === "missing-feature")) {
+    const featureHtmlByIndex = new Map();
+    try {
+      const generated = new Map();
+      for (const doc of await packDocuments(pack)) {
+        const identity = readGeneratedItem(doc);
+        if (identity?.id) generated.set(identity.id, doc);
+      }
+      for (const entry of definitions.entries) {
+        const html = generated.get(generatedItemId(source, entry.name))?.system?.identification?.description;
+        if (html) featureHtmlByIndex.set(entry.row.index, html);
+      }
+    } catch {
+      // Unreadable pack: the rows stay unresolved, and the read below reports it.
+    }
+    definitions = buildDiabolicalTreasureDefinitions(results, { source, featureHtmlByIndex });
+    summary.unresolved = definitions.unresolved.length;
+    summary.unresolvedRows = definitions.unresolved.map((entry) => unresolvedRecord(entry));
   }
 
   const desired = definitions.desired.map((item) => ({
@@ -842,7 +892,7 @@ export async function materializeDiabolicalTreasure(table, {
       range: [index + 1, index + 1],
       weight: 1,
       drawn: false,
-      name: entry.displayText ?? canonicalResultText(entry.row),
+      name: entry.displayText,
     };
     if (entry.status !== "resolved") {
       out.type = TEXT;

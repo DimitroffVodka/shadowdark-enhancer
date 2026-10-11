@@ -1,9 +1,15 @@
 /**
- * D6/#59 — Diabolical Treasure's exact CS1 census, unidentified Item shape,
- * curated art, generated reconciliation, and safe RollTable materialization.
+ * D6/#59 — Diabolical Treasure's fingerprint-recognised CS1 census,
+ * unidentified Item shape, curated art, generated reconciliation, and safe
+ * RollTable materialization.
  *
- * These fixtures stay Foundry-free.  The live import/reimport/draw proof is a
- * separate bounded lease because the generated pack is shared world state.
+ * No book text lives in this repo, so the recogniser is exercised with an
+ * INVENTED twenty-row census: made-up Items and Features whose fingerprints are
+ * installed through the module's test seam and then run through the very same
+ * parse, census, and materialization paths.  The shipped fingerprint tables are
+ * checked for shape only.  These fixtures stay Foundry-free; the live
+ * import/reimport/draw proof is a separate bounded lease because the generated
+ * pack is shared world state.
  */
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
@@ -19,15 +25,17 @@ import {
   curatedIconRegistry,
 } from "../scripts/shared/curated-icons.mjs";
 import { generatedItemId, readGeneratedItem } from "../scripts/shared/generated-items.mjs";
+import { textFingerprint } from "../scripts/shared/text-fingerprint.mjs";
 import {
   DIABOLICAL_TREASURE_ICONS,
+  DIABOLICAL_TREASURE_ROWS as SHIPPED_ROWS,
 } from "../scripts/shared/curated-icon-maps/diabolical-treasure-icons.mjs";
 import "../scripts/shared/curated-icon-maps/index.mjs";
 import {
   DIABOLICAL_TREASURE_CONTENT_ID,
   DIABOLICAL_TREASURE_MANIFEST_ID,
-  DIABOLICAL_TREASURE_ROWS as SOURCE_ROWS,
   DIABOLICAL_TREASURE_TABLE_NAME,
+  _setDiabolicalTreasureRows,
   buildDiabolicalTreasureDefinitions,
   buildDiabolicalTreasureItem,
   isCompleteDiabolicalTreasureCensus,
@@ -38,6 +46,42 @@ import {
 } from "../scripts/loot/diabolical-treasure.mjs";
 // Foundry 14's forced-deletion operator, a global in the client.
 globalThis._del ??= Symbol("_del");
+
+// An invented census: twenty made-up Items paired by index with twenty made-up
+// Features.  "Brass bell" is a whole-word prefix of "Brass bell clapper" on
+// purpose, to pin longest-Item-first reflow matching.
+const INVENTED = Object.freeze([
+  ["Glass acorn", "Hums a tune at dusk"],
+  ["Velvet kazoo", "Warms to the touch near gold"],
+  ["Tin teapot", "Glows faintly in the rain"],
+  ["Paper lantern", "Whispers a name when dropped"],
+  ["Copper thimble", "Never gathers dust"],
+  ["Chalk dragon", "Smells of fresh bread"],
+  ["Marble yo-yo", "Tastes of honey if licked"],
+  ["Silk umbrella", "Floats an inch above water"],
+  ["Brass bell", "Rings twice at midnight"],
+  ["Brass bell clapper", "Leaves a trail of chalk"],
+  ["Woolen mitten", "Stays dry in a storm"],
+  ["Crystal spoon", "Points toward the nearest door"],
+  ["Ivory dice cup", "Chills a drink in a minute"],
+  ["Lacquered fan", "Cannot be tied in a knot"],
+  ["Clay whistle", "Blinks when watched"],
+  ["Pewter spectacles", "Turns bright red when lied to"],
+  ["Amber button", "Hops once every hour"],
+  ["Reed basket", "Folds itself away at dawn"],
+  ["Cedar comb", "Feels heavier near sleepers"],
+  ["Linen kerchief", "Sparks when rubbed twice"],
+].map(([name, feature], index) => Object.freeze({
+  name,
+  feature,
+  img: `icons/invented/row-${index + 1}.webp`,
+})));
+const SOURCE_ROWS = INVENTED;
+_setDiabolicalTreasureRows(INVENTED.map((row) => ({
+  fp: textFingerprint(row.name),
+  featureFp: textFingerprint(row.feature),
+  img: row.img,
+})));
 
 const LOCAL_FOUNDRY_ICON_ROOT = "/home/patricks/FoundryV14/public/icons";
 const configuredIconRoot = String(process.env.SHADOWDARK_ENHANCER_FOUNDRY_ICON_ROOT ?? "").trim();
@@ -301,43 +345,27 @@ test("the N3 §5.2 map is exactly twenty sourced rows and passes the real path g
 test("A4 discovery registers the D6 map and keeps its identity source-qualified", () => {
   const registry = curatedIconRegistry();
   assert.ok(registry.maps.includes(DIABOLICAL_TREASURE_ICONS));
-  assert.equal(registry.sourced.get("cs1:carved bone"), SOURCE_ROWS[0].img);
-  assert.equal(registry.sourced.get("cs2:carved bone"), undefined);
+  // The key is the fingerprint of the Item cell, never its wording.
+  assert.equal(registry.sourced.get(`cs1:${SHIPPED_ROWS[0].fp}`), SHIPPED_ROWS[0].img);
+  assert.equal(registry.sourced.get(`cs2:${SHIPPED_ROWS[0].fp}`), undefined);
   assert.equal(generatedItemId("CS1", SOURCE_ROWS[0].name), generatedItemId("Cursed Scroll #1", SOURCE_ROWS[0].name));
   assert.notEqual(generatedItemId("CS1", SOURCE_ROWS[0].name), generatedItemId("CS3", SOURCE_ROWS[0].name));
 });
 
-test("the source census carries every reviewed feature in N3 order", () => {
+test("the shipped census is twenty Item and twenty Feature fingerprints and no text", () => {
+  assert.equal(SHIPPED_ROWS.length, 20);
+  for (const row of SHIPPED_ROWS) {
+    assert.deepEqual(Object.keys(row).sort(), ["fp", "img"]);
+    assert.match(row.fp, /^[0-9a-f]{14}$/);
+    assert.match(row.img, /^icons\/[^\s]+\.webp$/);
+  }
+  assert.equal(new Set(SHIPPED_ROWS.map((row) => row.fp)).size, 20);
+});
+
+test("the invented census carries every Item and Feature in order", () => {
   assert.equal(SOURCE_ROWS.length, 20);
-  assert.deepEqual(SOURCE_ROWS.map((row) => row.name), [
-    "Carved bone", "Eyeball", "Wolf idol", "Dried rose", "Pickled imp",
-    "Bundle of sage", "Cold iron spike", "Warped skull", "Cracked mirror",
-    "Severed finger", "Black candle", "Shrunken head", "Ring of daisies",
-    "Unholy symbol", "Rusty key", "Vial of blood", "Faded locket",
-    "Bag of teeth", "Pan pipe", "Brain in a jar",
-  ]);
-  assert.deepEqual(SOURCE_ROWS.map((row) => row.feature), [
-    "Ignites in flames once/day for 1d4 rounds",
-    "Repels insects and spiders to arm's length",
-    "Floats in the air wherever it's placed",
-    "Turns toward due north when untouched",
-    "Attracts demonic creatures to its location",
-    "A creature holding it can't knowingly lie",
-    "You can smell if something is poisonous",
-    "Drips blood in the presence of undead",
-    "Sings a haunting lullaby when rattled",
-    "Belongs to a witch who wants it back",
-    "Causes pain and disgust in fey creatures",
-    "Can open a one-way gate to hell once",
-    "Allows you to hold your breath for an hour",
-    "A demon owes the item's owner a favor",
-    "Once/day, fire immunity 1d4 rounds",
-    "Slowly rolls away on its own if released",
-    "Once/day, briefly read one creature's mind",
-    "Object cannot be crushed by anything",
-    "As heavy as an anvil when not carried",
-    "Causes doubt and hesitation in demons",
-  ]);
+  const definitions = buildDiabolicalTreasureDefinitions(SOURCE_ROWS.map((row, index) => sourceResult(row.name, row.feature, index)));
+  assert.deepEqual(definitions.resolved.map((entry) => [entry.name, entry.feature]), SOURCE_ROWS.map((row) => [row.name, row.feature]));
 });
 
 describe("Diabolical Treasure parsing and Item shape", () => {
@@ -385,31 +413,59 @@ describe("Diabolical Treasure parsing and Item shape", () => {
   });
 
   test("parsing never fuzzy-matches an interior word and rejects wrong source", () => {
-    assert.equal(parseDiabolicalTreasureResult("a carved bone replica"), null);
-    assert.equal(parseDiabolicalTreasureResult("Carved bone | revised feature").row.name, "Carved bone");
-    assert.equal(parseDiabolicalTreasureResult("1-20 Carved bone | revised feature").row.name, "Carved bone");
+    const first = SOURCE_ROWS[0];
+    assert.equal(parseDiabolicalTreasureResult(`a ${first.name.toLowerCase()} replica`), null);
+    assert.equal(parseDiabolicalTreasureResult(`${first.name} | revised feature`).name, first.name);
+    assert.equal(parseDiabolicalTreasureResult(`1-20 ${first.name} | revised feature`).name, first.name);
     assert.equal(parseDiabolicalTreasureResult({
       id: "unresolved",
       type: 0,
       range: [1, 1],
-      name: "Carved bone",
+      name: first.name,
     }), null, "a bare canonical TEXT row is not source evidence");
     assert.equal(parseDiabolicalTreasureResult({
       id: "linked",
       type: 1,
       range: [1, 1],
-      name: "Carved bone",
-      documentUuid: `Compendium.${MANAGED_ITEMS_PACK}.Item.generated-carved-bone`,
-    }).row.name, "Carved bone");
+      name: first.name,
+      documentUuid: `Compendium.${MANAGED_ITEMS_PACK}.Item.generated-first`,
+    }).name, first.name);
     assert.equal(parseDiabolicalTreasureResult({
       id: "foreign-link",
       type: 1,
       range: [1, 1],
-      name: "Carved bone",
-      documentUuid: "Compendium.shadowdark.gear.Item.system-carved-bone",
+      name: first.name,
+      documentUuid: "Compendium.shadowdark.gear.Item.system-first",
     }), null, "a foreign document link is not D6 source evidence");
-    assert.equal(buildDiabolicalTreasureItem("Carved bone | feature", { source: "CS3" }).reason, "wrong-source");
+    assert.equal(buildDiabolicalTreasureItem(`${first.name} | ${first.feature}`, { source: "CS3" }).reason, "wrong-source");
     assert.equal(buildDiabolicalTreasureItem("Unlisted relic | feature").reason, "unmapped-row");
+  });
+
+  test("an Item is named from the printed cell, however the case or quotes arrive", () => {
+    const first = SOURCE_ROWS[0];
+    const loud = buildDiabolicalTreasureItem(`${first.name.toUpperCase()}  |  ${first.feature}`);
+    assert.equal(loud.status, "resolved");
+    assert.equal(loud.name, first.name.toUpperCase(), "the printed case is kept");
+    const lower = buildDiabolicalTreasureItem(`${first.name.toLowerCase()} | ${first.feature}`);
+    assert.equal(lower.name, first.name, "an Item name always starts with a capital");
+    assert.equal(lower.itemData.system.identification.description, `<p>${first.feature}</p>`);
+  });
+
+  test("a feature that is not the Item's reviewed pair is never filled in", () => {
+    const [first, second] = SOURCE_ROWS;
+    assert.equal(buildDiabolicalTreasureItem(`${first.name} | revised feature`).reason, "missing-feature");
+    assert.equal(buildDiabolicalTreasureItem(first.name).reason, "missing-feature");
+    assert.equal(buildDiabolicalTreasureItem(`${first.name} | ${second.feature}`).reason, "missing-feature");
+  });
+
+  test("a reflowed row takes the longest reviewed Item as its name", () => {
+    const [short, long] = [SOURCE_ROWS[8], SOURCE_ROWS[9]];
+    const parsed = parseDiabolicalTreasureResult(`${long.name} ${long.feature}`);
+    assert.equal(parsed.name, long.name);
+    assert.equal(parsed.feature, long.feature);
+    const plain = parseDiabolicalTreasureResult(`${short.name} with feature of ${short.feature}`);
+    assert.equal(plain.name, short.name);
+    assert.equal(plain.feature, short.feature);
   });
 });
 
@@ -462,7 +518,7 @@ describe("Diabolical Treasure identity and materialization", () => {
   test("first materialization creates exactly twenty managed Items and linked name-only results", async () => {
     const table = makeTable();
     const pack = fakePack();
-    const systemItem = { id: "system-1", name: "Carved bone", img: "system-original.webp", flags: {} };
+    const systemItem = { id: "system-1", name: SOURCE_ROWS[0].name, img: "system-original.webp", flags: {} };
     const adapter = createAdapter(pack);
     const out = await materializeDiabolicalTreasure(table, materializeOptions(pack, adapter));
 
@@ -501,7 +557,7 @@ describe("Diabolical Treasure identity and materialization", () => {
     assert.equal(table.updated, 1, "the no-op rerun does not dirty TableResults");
 
     const edited = pack.docs[0];
-    edited.name = "Carved bone (hand edited)";
+    edited.name = `${SOURCE_ROWS[0].name} (hand edited)`;
     edited.img = "worlds/mine/hand-picked.webp";
     edited.system.description = "<p>GM notes</p>";
     const editedId = edited.id;
@@ -583,7 +639,7 @@ describe("Diabolical Treasure identity and materialization", () => {
     assert.equal(table.created, 0);
     assert.equal(table.deleted, 0);
     assert.equal(table.results.length, incompleteRows.length);
-    assert.equal(table.results.some((row) => row.name === "Brain in a jar"), false);
+    assert.equal(table.results.some((row) => row.name === SOURCE_ROWS.at(-1).name), false);
     assert.ok(table.results.some((row) => row.name === "Unlisted relic | Unknown feature"));
     assert.equal(pack.docs.length, 0);
   });
@@ -678,7 +734,7 @@ test("#146 generated treasure carries its book in system.source.title", async ()
 
   // The field the Shadowdark item sheet renders, in the slug form the gear and
   // char-content paths already write — not the module's own `cs1` flag spelling.
-  const cs1 = fabricateTreasureItem({ name: "Carved bone", value: { gp: 1 }, source: "cs1" });
+  const cs1 = fabricateTreasureItem({ name: "Glass acorn", value: { gp: 1 }, source: "cs1" });
   assert.deepEqual(cs1.system.source, { title: "cursed-scroll-1" });
 
   const wr = fabricateTreasureItem({ name: "Sai", value: { gp: 1 }, source: "Western Reaches" });
@@ -686,7 +742,7 @@ test("#146 generated treasure carries its book in system.source.title", async ()
 
   // No source declared means no invented attribution — the key stays absent
   // rather than being written blank.
-  const none = fabricateTreasureItem({ name: "Carved bone", value: { gp: 1 } });
+  const none = fabricateTreasureItem({ name: "Glass acorn", value: { gp: 1 } });
   assert.ok(!("source" in none.system), "an unknown book must not be stamped");
 
   // The fingerprint covers the whole system object, so adding this field makes
@@ -694,10 +750,20 @@ test("#146 generated treasure carries its book in system.source.title", async ()
   // definition and a stored document that both carry the field must match, or
   // every reconcile would rewrite all 45 generated Items forever.
   const before = generatedItemFingerprint(
-    fabricateTreasureItem({ name: "Carved bone", value: { gp: 1 } }));
+    fabricateTreasureItem({ name: "Glass acorn", value: { gp: 1 } }));
   const after = generatedItemFingerprint(cs1);
   assert.notEqual(before, after, "adding the field is a real change, seen once");
   assert.equal(after, generatedItemFingerprint(
-    fabricateTreasureItem({ name: "Carved bone", value: { gp: 1 }, source: "cs1" })),
+    fabricateTreasureItem({ name: "Glass acorn", value: { gp: 1 }, source: "cs1" })),
   "two identical definitions must fingerprint the same, so it converges");
+});
+
+test("restoring the shipped census forgets an invented row", () => {
+  const first = SOURCE_ROWS[0];
+  assert.equal(buildDiabolicalTreasureItem(`${first.name} | ${first.feature}`).status, "resolved");
+  _setDiabolicalTreasureRows();
+  assert.equal(buildDiabolicalTreasureItem(`${first.name} | ${first.feature}`).reason, "unmapped-row");
+  assert.equal(isCompleteDiabolicalTreasureCensus(
+    SOURCE_ROWS.map((row, index) => sourceResult(row.name, row.feature, index)),
+  ), false);
 });

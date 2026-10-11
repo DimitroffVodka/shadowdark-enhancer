@@ -210,7 +210,7 @@ function normalizeEffects(effects) {
  * The book passes through `sourceKey`, so every spelling the codebase and the
  * GM's Source box use lands on the same canonical id — the module's existing
  * vocabulary, not a new one. Source-qualified because two books may both print
- * a "Carved bone" and they are two different Items.
+ * the same plain name and they are two different Items.
  *
  * @returns {string} "" when either half is missing — an unkeyable definition
  */

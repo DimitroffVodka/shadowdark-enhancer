@@ -76,8 +76,8 @@ function updatePayloadFor(def, stored) {
 }
 
 describe("A7 adapter — undeclared third-party flags survive an authoritative update", () => {
-  const def = definition("Carved Bone");
-  const stored = storedDoc(stampGeneratedItem(definition("Carved Bone"), { source: "CS1" }));
+  const def = definition("Glass Acorn");
+  const stored = storedDoc(stampGeneratedItem(definition("Glass Acorn"), { source: "CS1" }));
   // A hand edit so the rerun is a real update, not an unchanged no-op.
   stored.img = "worlds/mine/hand-picked.webp";
 
@@ -121,21 +121,21 @@ describe("A7 adapter — undeclared third-party flags survive an authoritative u
   });
 
   test("a namespace the definition DOES declare stays authoritative", async () => {
-    const declaring = { ...definition("Carved Bone"), flags: { [SDX]: { alignment: "lawful" } } };
+    const declaring = { ...definition("Glass Acorn"), flags: { [SDX]: { alignment: "lawful" } } };
     const payload = updatePayloadFor(declaring, stored);
     assert.equal(payload.flags[SDX].alignment, "lawful", "declared wins over stored");
     assert.equal(payload.flags[SDX].carousingSession, undefined, "and replaces the block wholesale");
   });
 
   test("a stored document with no foreign flags produces an unchanged payload", () => {
-    const bare = { ...stampGeneratedItem(definition("Eyeball"), { source: "CS1" }), _id: "d2", img: "x.webp" };
-    const payload = updatePayloadFor(definition("Eyeball"), bare);
+    const bare = { ...stampGeneratedItem(definition("Velvet Kazoo"), { source: "CS1" }), _id: "d2", img: "x.webp" };
+    const payload = updatePayloadFor(definition("Velvet Kazoo"), bare);
     assert.deepEqual(Object.keys(payload.flags), [MODULE_ID]);
   });
 });
 
 describe("A7 adapter — failure shapes are reported, never swallowed", () => {
-  const defs = ["Carved Bone", "Eyeball", "Iron Nail"].map(definition);
+  const defs = ["Glass Acorn", "Velvet Kazoo", "Iron Nail"].map(definition);
   const pack = (docs = []) => ({
     collection: MANAGED_ITEMS_PACK,
     getDocuments: async () => docs,
@@ -151,7 +151,7 @@ describe("A7 adapter — failure shapes are reported, never swallowed", () => {
     assert.equal(out.created, 2);
     assert.equal(out.failures.length, 1);
     assert.equal(out.failures[0].reason, GENERATED_ITEM_FAILURES.CREATE_FAILED);
-    assert.equal(out.failures[0].name, "Eyeball");
+    assert.equal(out.failures[0].name, "Velvet Kazoo");
   });
 
   test("a partial run is retryable — the rerun creates only what is missing", async () => {
@@ -199,12 +199,12 @@ describe("A7 adapter — failure shapes are reported, never swallowed", () => {
     // a delete failure is the one case reconciliation cannot heal. The
     // reconciliation adapter reports the failed update, and the next pure plan
     // reports the duplicate for manual GM cleanup.
-    const stored = storedDoc(stampGeneratedItem(definition("Carved Bone"), { source: "CS1" }));
+    const stored = storedDoc(stampGeneratedItem(definition("Glass Acorn"), { source: "CS1" }));
     stored.img = "worlds/mine/edited.webp";
     const d = fakeDoc(stored, { failUpdate: true, failDelete: true });
     const out = await reconcileGeneratedItems(
       { collection: MANAGED_ITEMS_PACK, getDocuments: async () => [d] },
-      [definition("Carved Bone")],
+      [definition("Glass Acorn")],
       {
         source: "CS1",
         adapter: {
@@ -222,7 +222,7 @@ describe("A7 adapter — failure shapes are reported, never swallowed", () => {
 
     const survivors = [stored, { ...stored, _id: "doc-2" }];
     const next = planGeneratedItems({
-      desired: [definition("Carved Bone")], existing: survivors,
+      desired: [definition("Glass Acorn")], existing: survivors,
       packCollection: MANAGED_ITEMS_PACK, source: "CS1",
     });
     assert.equal(next.refused[0].reason, "duplicate-document");

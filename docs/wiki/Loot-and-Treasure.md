@@ -106,12 +106,12 @@ straight to that actor: items created, coins added, no card.
 
 ## How loot rows become Items — precise resolution
 
-A loot table row is usually prose with a price—such as `Unopened bottle of
-exceptionally potent Murgazi wine (25 gp)`—not a bare item name. The module
+A loot table row is usually prose with a price—such as `Sealed bottle of rare
+river-valley wine (25 gp)`—not a bare item name. The module
 resolves that row to a compendium Item in **two whole-name tiers** and refuses
 everything else.
 
-This strict matching is deliberate: a false positive (mapping `Murgazi wine` to
+This strict matching is deliberate: a false positive (mapping `river-valley wine` to
 the 1 gp system `Bottle`) silently hands the player the wrong object, while an
 unresolved row keeps its full text and can be fabricated or linked by hand.
 
@@ -128,7 +128,7 @@ Alias normalization operates strictly at the start, the end, or the final word
 of a phrase. It never shortens a phrase to an arbitrary interior word. Multiple
 rules can apply together:
 
-* `Unopened bottle of exceptionally potent Murgazi wine` folds to itself, never
+* `Sealed bottle of rare river-valley wine` folds to itself, never
   to `Bottle`.
 * `a flask of exceptionally fine oil` never matches `Flask`.
 * `2 daggers (steel)` resolves to `dagger` via count + parenthetical + plural
@@ -230,9 +230,10 @@ custom items in `sde-items`:
 * **Source recognition:** Requires manifest ID `cs2/in-a-dead-bandits-hand` or
   the exact table title with CS2 source tagging.
 * **Canonical item names and feature text:** Generated Items use their canonical
-  base name (`Cursed eye token`, `Burlap bag`), while the special feature or
-  hazard is placed directly into the Item description (`DISADV on next check or
-  attack roll`, `tied shut with an angry cobra inside`).
+  base name (the thing itself, without its trailing detail), while the special
+  feature or hazard is placed directly into the Item description. Both come from
+  the row your own PDF import produced; the module recognises the row by a
+  fingerprint and ships none of the book's wording.
 * **Raw TableResult display:** The RollTable's `TableResult` displays the
   complete source phrase while referencing the item's UUID.
 * **No artificial prices:** Since the published CS2 table has no gold values,

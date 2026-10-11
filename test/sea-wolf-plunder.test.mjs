@@ -1,7 +1,12 @@
 /**
- * D4/#57 — Sea Wolf Plunder's exact CS3 rows, curated art, and generated
- * materializer.  The live Foundry proof is separate; these fixtures exercise
- * the same table/result and A7 seams without mutating a world.
+ * D4/#57 — Sea Wolf Plunder's fingerprint-recognised CS3 rows, curated art,
+ * and generated materializer.  The live Foundry proof is separate; these
+ * fixtures exercise the same table/result and A7 seams without mutating a
+ * world.
+ *
+ * No book text lives in this repo: the rows below are INVENTED, registered as
+ * their own fingerprint-keyed map beside the shipped one and run through the
+ * same lookup.  The shipped map is checked for shape only.
  */
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
@@ -15,13 +20,14 @@ import {
   auditCuratedIconRegistry,
   buildCuratedIconRegistry,
   curatedIconRegistry,
-  curatedNameKey,
+  registerCuratedIconMap,
   resolveCuratedIcon,
 } from "../scripts/shared/curated-icons.mjs";
+import { textFingerprint } from "../scripts/shared/text-fingerprint.mjs";
 import { generatedItemId } from "../scripts/shared/generated-items.mjs";
 import {
   SEA_WOLF_PLUNDER_ICONS,
-  SEA_WOLF_PLUNDER_ROWS,
+  SEA_WOLF_PLUNDER_ROWS as SHIPPED_ROWS,
 } from "../scripts/shared/curated-icon-maps/sea-wolf-plunder-icons.mjs";
 import "../scripts/shared/curated-icon-maps/index.mjs";
 import {
@@ -61,8 +67,26 @@ const INVENTORY_SKIP_REASON = FOUNDRY_ICONS === null
   ? `Foundry icon directory unavailable: ${FOUNDRY_ICON_ROOT}`
   : false;
 
+// Twenty made-up phrases with made-up art, registered as an extra CS3 map.
+const SEA_WOLF_PLUNDER_ROWS = Object.freeze([
+  "A pewter teapot with a crooked spout", "Three velvet cushions stitched with moons",
+  "A clay jar of dried lavender petals", "A brass spyglass with a cracked lens",
+  "A tin whistle on a frayed ribbon", "A folding fan painted with herons",
+  "A lacquered box of mismatched buttons", "A wool cloak lined with rabbit fur",
+  "A glass bell that rings without a sound", "A copper kettle stamped with a fish",
+  "A bundle of candles scented with pine", "A cedar comb with five teeth missing",
+  "A silk scarf embroidered with owls", "A pocket sundial that runs slow",
+  "A wooden spoon carved like a swan", "A jar of pickled river pearls",
+  "An ivory chess piece shaped like a snail", "A sailor's knot of tarred rope",
+  "A leather satchel smelling of cloves", "A mirror the size of a coin",
+].map((name, index) => Object.freeze({ name, img: `icons/invented/plunder-${index + 1}.webp` })));
+registerCuratedIconMap(
+  "invented-sea-wolf",
+  { cs3: Object.fromEntries(SEA_WOLF_PLUNDER_ROWS.map((row) => [textFingerprint(row.name), row.img])) },
+  { space: CURATED_KEY_SPACES.SOURCED },
+);
+
 const SOURCE_ROWS = SEA_WOLF_PLUNDER_ROWS.map((row, index) => `${row.name} (${(index + 1) * 10} gp)`);
-const EXPECTED_KEYS = SEA_WOLF_PLUNDER_ROWS.map((row) => curatedNameKey(row.name));
 
 function rowObject(text, index) {
   return {
@@ -168,26 +192,28 @@ function createAdapter(pack, { failName = null } = {}) {
   };
 }
 
-test("Sea Wolf map is exactly the twenty sourced N3 §5.1 rows", () => {
+test("Sea Wolf map is exactly twenty sourced fingerprints, and no text", () => {
   assert.equal(SEA_WOLF_PLUNDER_ICONS.label, "sea-wolf-plunder");
   assert.equal(SEA_WOLF_PLUNDER_ICONS.space, CURATED_KEY_SPACES.SOURCED);
   assert.deepEqual([...SEA_WOLF_PLUNDER_ICONS.problems], []);
   assert.equal(SEA_WOLF_PLUNDER_ICONS.entries.size, 20);
-  assert.deepEqual([...SEA_WOLF_PLUNDER_ICONS.entries.keys()].sort(), EXPECTED_KEYS.map((key) => `cs3:${key}`).sort());
-  assert.deepEqual(
-    SEA_WOLF_PLUNDER_ROWS.map((row) => SEA_WOLF_PLUNDER_ICONS.entries.get(`cs3:${curatedNameKey(row.name)}`)),
-    SEA_WOLF_PLUNDER_ROWS.map((row) => row.img),
-  );
+  assert.equal(SHIPPED_ROWS.length, 20);
+  for (const row of SHIPPED_ROWS) {
+    assert.deepEqual(Object.keys(row).sort(), ["fp", "img"]);
+    assert.match(row.fp, /^[0-9a-f]{14}$/);
+    assert.equal(SEA_WOLF_PLUNDER_ICONS.entries.get(`cs3:${row.fp}`), row.img);
+  }
 });
 
 test("A4 discovery registers the Sea Wolf sourced map without changing bare maps", () => {
   const registry = curatedIconRegistry();
   assert.ok(registry.maps.includes(SEA_WOLF_PLUNDER_ICONS));
-  assert.equal(registry.sourced.size, 60, "D4-D6 sourced treasure maps share one qualified space");
+  assert.equal(registry.sourced.size, 60 + SEA_WOLF_PLUNDER_ROWS.length, "D4-D6 sourced treasure maps share one qualified space");
   assert.equal(registry.bare.size, 94);
-  assert.equal(resolveCuratedIcon({ name: SEA_WOLF_PLUNDER_ROWS[0].name, source: "Cursed Scroll #3" }), SEA_WOLF_PLUNDER_ROWS[0].img);
-  assert.equal(resolveCuratedIcon({ name: SEA_WOLF_PLUNDER_ROWS[0].name, source: "CS2" }), null);
-  assert.equal(resolveCuratedIcon({ name: SEA_WOLF_PLUNDER_ROWS[0].name }), null);
+  const key = textFingerprint(SEA_WOLF_PLUNDER_ROWS[0].name);
+  assert.equal(resolveCuratedIcon({ name: key, source: "Cursed Scroll #3" }), SEA_WOLF_PLUNDER_ROWS[0].img);
+  assert.equal(resolveCuratedIcon({ name: key, source: "CS2" }), null);
+  assert.equal(resolveCuratedIcon({ name: key }), null);
 });
 
 test("the Sea Wolf map passes the real Foundry icon path gate", { skip: INVENTORY_SKIP_REASON }, () => {
@@ -225,6 +251,23 @@ test("one Sea Wolf definition has A7 identity, CS3 source, cost, and curated pro
   assert.equal(definitions.resolved.length, 20);
   assert.equal(definitions.unresolved.length, 0);
   assert.deepEqual(definitions.desired.map((item) => item.name), SEA_WOLF_PLUNDER_ROWS.map((row) => row.name));
+});
+
+test("an uncovered phrase is refused, and a CS3 phrase never resolves for another book", () => {
+  const unknown = buildSeaWolfPlunderItem("A phrase no reviewed map holds (10 gp)");
+  assert.equal(unknown.status, "unresolved");
+  assert.equal(unknown.reason, "unmapped-row");
+  assert.equal(unknown.itemData, undefined);
+  assert.equal(buildSeaWolfPlunderItem(SOURCE_ROWS[0], { source: "CS2" }).reason, "wrong-source");
+  assert.equal(buildSeaWolfPlunderItem(SOURCE_ROWS[0], { source: "CS1" }).reason, "wrong-source");
+});
+
+test("the Item is named from the printed phrase: quotes folded, whitespace collapsed, first letter capital", () => {
+  const first = SEA_WOLF_PLUNDER_ROWS[0];
+  const messy = buildSeaWolfPlunderItem(`  ${first.name.toLowerCase()}   (10 gp)`);
+  assert.equal(messy.status, "resolved");
+  assert.equal(messy.name, first.name);
+  assert.equal(messy.img, first.img);
 });
 
 describe("Sea Wolf table identity and generated materialization", () => {
