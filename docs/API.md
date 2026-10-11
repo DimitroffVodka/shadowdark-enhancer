@@ -2228,8 +2228,8 @@ untouched unless marked.
 **Weather.**
 - `scene.weather` is Foundry's `rainStorm` while today's weather is stormy,
   or its `blizzard` when the region's climate is cold or freezing. On a fair
-  day it is the season's effect (#294): `snow` in winter, `leaves` in autumn,
-  nothing in spring and summer. Nothing on an excellent day or when no
+  day it is the season's effect (#294): `leaves` in autumn, nothing in
+  winter, spring and summer. Nothing on an excellent day or when no
   weather holds. The table is `FAIR_DAY_EFFECT` in `sky-core.mjs`.
 - Overland takes only an empty weather slot. It records the effect it put
   there as the scene flag `shadowdark-enhancer.skyWeather`, in the same
