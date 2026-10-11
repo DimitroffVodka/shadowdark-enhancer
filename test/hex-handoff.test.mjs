@@ -434,3 +434,51 @@ test("sending to the print is GM-only and needs Extras", async () => {
   globalThis.game = { user: { isGM: true } };
   assert.deepEqual(await handoffToPrint("print-1", printDataset), { via: "none", reason: "no-extras" });
 });
+
+// ── journal references: the pages a map note opens ───────────────────────────
+
+test("datasetFromEntries sends each keyed page's entry and page id", async () => {
+  const { datasetFromEntries } = await import("../scripts/importer/hex/hex-handoff.mjs");
+  const { HEX_FLAG } = await import("../scripts/importer/hex/hex-commit.mjs");
+  const { MODULE_ID } = await import("../scripts/shared/module-id.mjs");
+  const page = (id, num, key) => ({ id, name: `${num} Mill`, text: { content: "<p>x</p>" },
+    getFlag: (scope, flag) => (scope === MODULE_ID && flag === HEX_FLAG ? { num, key } : undefined) });
+  const entry = { id: "crawl1", name: "Crawl", pages: { contents: [page("pageA", "0101", "k1")] },
+    getFlag: () => ({ crawl: "Crawl", keyed: [] }) };
+  const ds = datasetFromEntries([entry]);
+  assert.deepEqual(ds.hexes.find((h) => h.num === 101).journal, { entryId: "crawl1", pageId: "pageA" });
+});
+
+test("handoff leaves the crawl alone when the world already holds every referenced page", async () => {
+  let built;
+  globalThis.game = {
+    user: { isGM: true },
+    journal: { get: (id) => (id === "crawl1" ? { pages: { has: (p) => p === "pageA" } } : undefined) },
+    shadowdarkExtras: { hex: { buildHexcrawl: async (ds) => { built = ds; return {}; } } },
+  };
+  const dataset = { name: "T", hexes: [{ num: 101, name: "Mill", journal: { entryId: "crawl1", pageId: "pageA" } }] };
+  const result = await handoffDataset(dataset);
+  assert.equal(result.via, "extras");
+  assert.deepEqual(built.hexes[0].journal, { entryId: "crawl1", pageId: "pageA" });
+});
+
+test("a crawl that cannot be deployed does not stop the build", async () => {
+  let built = false;
+  const warn = console.warn;
+  let warned = 0;
+  console.warn = () => { warned++; };
+  globalThis.game = {
+    user: { isGM: true },
+    journal: { get: () => undefined },
+    packs: { find: () => { throw new Error("no pack"); }, get: () => undefined, filter: () => [] },
+    shadowdarkExtras: { hex: { buildHexcrawl: async () => { built = true; return {}; } } },
+  };
+  try {
+    const result = await handoffDataset({ name: "T", hexes: [{ num: 101, journal: { entryId: "gone", pageId: "p" } }] });
+    assert.equal(result.via, "extras");
+    assert.equal(built, true);
+    assert.equal(warned, 1, "the failed deploy is logged, not thrown");
+  } finally {
+    console.warn = warn;
+  }
+});

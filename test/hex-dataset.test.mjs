@@ -310,3 +310,14 @@ test("mergeFeatures: a settlement goes only while it has not yet arrived", () =>
   assert.equal(mergeFeatures([], ours, { settlements: false }), null, "a GM who deleted it in Extras does not get it back");
   assert.equal(mergeFeatures(undefined, [], {}), null, "a hex with nothing on either side sends nothing");
 });
+
+test("a draft's journal reference goes out on its hex and is checked as two ids", () => {
+  const journal = { entryId: "crawl1", pageId: "page1" };
+  const ds = buildHexDataset({ drafts: [{ hexId: "0101", key: "a", name: "Mill", html: "<p>x</p>", journal }] });
+  assert.deepEqual(ds.hexes.find((h) => h.num === 101).journal, journal);
+  assert.equal(validateHexDataset(ds).ok, true);
+  const bad = structuredClone(ds);
+  bad.hexes[0].journal = { entryId: "crawl1" };
+  assert.match(validateHexDataset(bad).errors.join("\n"), /journal needs an entryId and a pageId/);
+  assert.equal("journal" in buildHexDataset({ drafts: [{ hexId: "0101", key: "a", name: "Mill", html: "<p>x</p>" }] }).hexes[0], false);
+});

@@ -35,7 +35,7 @@ import { regionSeeds, nameComponents } from "./hex-region.mjs";
 import { TERRAIN_TAGS, SETTLEMENTS, rowTag } from "../importer/hex/hex-summary.mjs";
 import { HEX_FLAG } from "../importer/hex/hex-commit.mjs";
 import { resolveTab } from "./hex-tagger-tabs.mjs";
-import { datasetFromEntries, handoffDataset, handoffToPrint, extrasHexApi } from "../importer/hex/hex-handoff.mjs";
+import { datasetFromEntries, handoffDataset, handoffToPrint, extrasHexApi, extrasHexRecords, importDatasetRecords, paintedScenesFor, terrainCorrections } from "../importer/hex/hex-handoff.mjs";
 import { buildHexDataset, validateHexDataset, hexNum, assignmentsFromManifest } from "../importer/hex/hex-dataset.mjs";
 import { A0_PRINT, A0_TOTAL, isA0, a0Origin, copyTags, copiedTerrain, copySource, regionSource, playablePlan } from "./a0-print.mjs";
 import { L as t } from "../shared/i18n.mjs";
@@ -302,6 +302,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       hxtSetBounds:    function (...a) { return this._onSetBounds(...a); },
       hxtBuildDataset: function (...a) { return this._onBuildDataset(...a); },
       hxtBuildPainted: function (...a) { return this._onBuildPainted(...a); },
+      hxtUpdatePainted: function (...a) { return this._onUpdatePainted(...a); },
       hxtClearTags:    function (...a) { return this._onClearTags(...a); },
       hxtClassify:     function (...a) { return this._onClassify(...a); },
       hxtImport:       function (...a) { return this._onImport(...a); },
@@ -1737,6 +1738,68 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const art = painted ? t("SDE.hexMap.notify.withArt", { n: painted }) : "";
     if (res.via === "extras") ui.notifications?.info(t("SDE.hexMap.notify.sent", { name: dataset.name, hexes: dataset.hexes.length, cells: n, art }));
     else if (res.via === "download") ui.notifications?.info(t("SDE.hexMap.notify.downloaded", { file: res.filename, hexes: dataset.hexes.length, cells: n, art }));
+  }
+
+  /**
+   * Update painted map (More): after retagging, repaint on a painted Extras
+   * scene just the hexes whose terrain now differs from what that scene holds.
+   * Words, tokens, pins, notes and fog on it are left alone, which a rebuild
+   * (Build painted map) would not do.
+   */
+  async _onUpdatePainted() {
+    const built = await this._handoffDataset();
+    if (!built) return;
+    const { dataset, sceneId } = built;
+    if (typeof extrasHexApi()?.repaintHexTiles !== "function") {
+      ui.notifications?.warn(t("SDE.importer.hexHandoff.notify.noExtras"));
+      return;
+    }
+    const scenes = paintedScenesFor(game.scenes, sceneId, dataset.grid);
+    if (!scenes.length) { ui.notifications?.warn(t("SDE.hexMap.notify.noPainted")); return; }
+    const target = scenes.length === 1 ? scenes[0] : await this._pickPainted(scenes);
+    if (!target) return;
+    const records = await extrasHexRecords(target.id, dataset.grid.origin ?? 1).catch(() => null);
+    // {} is refused with null: nothing recorded would read as "every hex differs".
+    if (!records || !Object.keys(records).length) {
+      ui.notifications?.warn(t("SDE.hexMap.notify.paintedUnreadable", { scene: target.name }));
+      return;
+    }
+    const changes = terrainCorrections(dataset, records);
+    if (!changes.length) { ui.notifications?.info(t("SDE.hexMap.notify.paintedCurrent", { scene: target.name })); return; }
+    const esc = foundry.utils.escapeHTML;
+    const SHOWN = 15;
+    const rows = changes.slice(0, SHOWN).map((c) => `<li>${esc(t("SDE.hexMap.updatePainted.row", {
+      num: String(c.num).padStart(4, "0"), was: c.was || t("SDE.hexMap.updatePainted.noneBefore"), terrain: c.terrain }))}</li>`).join("");
+    const more = changes.length > SHOWN ? `<p class="hint">${esc(t("SDE.hexMap.updatePainted.more", { n: changes.length - SHOWN }))}</p>` : "";
+    const ok = await foundry.applications.api.DialogV2.confirm({
+      classes: ["sde-ui", "sde-dialog"],
+      window: { title: t("SDE.hexMap.updatePainted.title") },
+      content: `<p>${esc(t("SDE.hexMap.updatePainted.confirm", { scene: target.name, n: changes.length }))}</p><ul>${rows}</ul>${more}
+        <p class="hint">${esc(t("SDE.hexMap.updatePainted.hint"))}</p>`,
+      yes: { label: t("SDE.hexMap.updatePainted.apply") },
+      rejectClose: false,
+    });
+    if (!ok) return;
+    // The dialog awaited the GM: as in _onBuildDataset, data from the old map must not land after a scene switch.
+    if (!this._requireCurrentScene() || this._stateSceneId !== sceneId) return;
+    await importDatasetRecords(target.id, { hexes: changes.map(({ num, terrain, art }) => ({ num, terrain, ...(art ? { art } : {}) })) });
+  }
+
+  /** Which painted scene a correction goes to, when more than one matches. Null when cancelled. */
+  async _pickPainted(scenes) {
+    const esc = foundry.utils.escapeHTML;
+    const options = scenes.map((s) => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join("");
+    const id = await foundry.applications.api.DialogV2.wait({
+      classes: ["sde-ui", "sde-dialog"],
+      window: { title: t("SDE.hexMap.updatePainted.title") },
+      content: `<p>${esc(t("SDE.hexMap.updatePainted.pick"))}</p><select name="painted-scene">${options}</select>`,
+      buttons: [
+        { action: "pick", label: t("SDE.hexMap.btn.updatePainted"), default: true, callback: (ev, button, dialog) => (dialog.element ?? dialog)?.querySelector?.("select[name='painted-scene']")?.value ?? null },
+        { action: "cancel", label: t("SDE.hexMap.btn.cancel") },
+      ],
+      rejectClose: false,
+    }).catch(() => null);
+    return scenes.find((s) => s.id === id) ?? null;
   }
 
   /** Side door in: a CSV (hex_id, tags or terrain_tags, source) or a JSON (the exported tag flag, or a dataset). */
