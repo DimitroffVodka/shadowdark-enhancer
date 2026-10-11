@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1933 tracked files · ~246,000 lines of code/markup across scripts+templates+styles+test.
+1933 tracked files · ~246,100 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -384,7 +384,7 @@
 | `monsters/creature-type-map-data.mjs` | 134 | N4 reviewed source/name-scoped creature taxonomy map for managed imported Actors. |
 | `monsters/creature-type-backfill.mjs` | 262 | E3 missing-only N4 creature-type flags over managed NPC/Mount Actors, with optional SDX runtime-map gap mirroring and outcome counts. |
 | `monsters/actor-migration.mjs` | 419 | World-side imported actors → the managed `sde-actors` pack. |
-| `monsters/monster-linker.mjs` | 150 | Table encounter text → clickable `@UUID` monster links. |
+| `monsters/monster-linker.mjs` | 156 | Table encounter text → clickable `@UUID` monster links. |
 | `monsters/monster-pack.mjs` | 48 | Shared pack-identity leaf so importer and linker agree. |
 | `items/item-parser.mjs` | 493 | Generic item recognizer (name/cost/slots). Pure. |
 | `items/gear-parser.mjs` | 576 | Real Weapon/Armor stat parser (WR letter codes, treasure flags). Pure. |
