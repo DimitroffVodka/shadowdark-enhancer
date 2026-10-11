@@ -36,5 +36,7 @@ hidden session journal. Party UUID and legacy history remain intact.
 
 With both modules active the native Carousing is the one that runs: Extras
 switches its own Carousing off while the Enhancer is present, and the Enhancer
-never toggles Extras settings. Map authoring/unrelated Extras features remain
-available. See [Hex Maps](Hex-Maps.md#standing-on-its-own-optional-extras-seams).
+never toggles Extras settings. Carousing here will not begin, and a night still
+being set up will not start, while a carouse is under way in Extras, so the same
+characters are never charged in both; finish or reset the Extras carouse first.
+Map authoring/unrelated Extras features remain available. See [Hex Maps](Hex-Maps.md#standing-on-its-own-optional-extras-seams).

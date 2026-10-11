@@ -5,6 +5,7 @@ import { Party, isNativeParty } from "../party/party.mjs";
 import { PartyXP } from "../party-xp/party-xp.mjs";
 import { Renown } from "../renown/renown.mjs";
 import { SessionRecap } from "../session-recap/session-recap.mjs";
+import { CarousingFeed } from "../session-recap/carousing-feed.mjs";
 import { advanceOffDuty } from "../time/off-duty.mjs";
 import { secondsPerDay } from "../time/time-core.mjs";
 import { holidaysToday } from "../holidays/holidays.mjs";
@@ -125,6 +126,7 @@ export function handleCarousing(data, user) {
       const state = carousingOf(party), manager = own(party, user), current = state.current;
       if (data.action === "begin") {
         if (!manager) invalid(); if (current && current.phase !== "complete") return { ok: true, state };
+        if (CarousingFeed.sdxUnderway()) invalid("SDE.carousing.sdxUnderway");
         if (carousingOpen() || (await context(state.config ?? {})).downtime) invalid("SDE.carousing.downtime");
         const config = state.config ?? { settlement: "none", place: "" }, tables = await tableData(config);
         state.current = { logId: foundry.utils.randomID(), phase: "setup", config, ...tables, results: {}, participants: Party.members(party, { charactersOnly: true }).map(uuid => ({ uuid, actorId: actorOf(uuid).id, name: actorOf(uuid).name, confirmed: false, participate: false })) };
@@ -152,6 +154,7 @@ export function handleCarousing(data, user) {
       } else if (["start", "resume"].includes(data.action)) {
         if (!manager || !current) invalid();
         if (current.phase === "setup") {
+          if (CarousingFeed.sdxUnderway()) invalid("SDE.carousing.sdxUnderway");
           const fresh = await tableData(current.config);
           if (JSON.stringify(fresh.tiers) !== JSON.stringify(current.tiers) || JSON.stringify(fresh.outcomes) !== JSON.stringify(current.outcomes)) invalid("SDE.carousing.tablesChanged");
           const ctx = await context(current.config), now = Date.now();
