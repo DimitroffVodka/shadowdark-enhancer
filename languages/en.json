@@ -145,6 +145,8 @@
   "SDE.hexExplorer.hint": "Edit this scene's cell. Terrain and line features use the existing tags. Other features and links appear only after the keyed location is disclosed; public notes appear when the hex is revealed.",
   "SDE.hexExplorer.terrain": "Terrain",
   "SDE.hexExplorer.locationTitle": "Keyed location title",
+  "SDE.hexExplorer.keyedPages": "Journal pages for this hex",
+  "SDE.hexExplorer.openPage": "Open this journal page",
   "SDE.hexExplorer.lines": "Line features (existing tags)",
   "SDE.hexExplorer.features": "Structured location features",
   "SDE.hexExplorer.type": "Feature type",

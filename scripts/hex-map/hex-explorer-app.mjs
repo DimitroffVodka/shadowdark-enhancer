@@ -25,6 +25,11 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
         return roller.rollActiveTable(this.encounterUuid);
       },
       openEncounterTable: async function () { (await fromUuid(this.encounterUuid))?.sheet?.render(true); },
+      openPage: async function (_event, el) {
+        const doc = await fromUuid(el.dataset.uuid);
+        if (doc?.documentName === "JournalEntryPage") doc.parent.sheet?.render(true, { pageId: doc.id });
+        else doc?.sheet?.render(true);
+      },
     },
   };
   static PARTS = { body: { template: `modules/${MODULE_ID}/templates/hex-map/hex-explorer.hbs`, scrollable: [".sde-hex-explorer-body"] } };
@@ -60,7 +65,8 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const enc = encounterReadout(res, res.uuid ? (await fromUuid(res.uuid).catch(() => null))?.name ?? "" : "", game.settings.get(MODULE_ID, "encounterTableUuid"),
       pickTable(game.settings.get(MODULE_ID, TERRAIN_TABLES), hex.terrain));
     this.encounterUuid = enc.uuid;
-    return { ...d, rootId: this.id, encounter: { ...enc, note: game.i18n.format(ENCOUNTER_NOTES[enc.state], enc) }, isGM: true, saving: this.saving, sceneName: this.scene.name,
+    // The book's page for a keyed hex comes from the map's pin on it, not from the stored cell, so it is shown but never saved.
+    return { ...d, keyed: record.keyed ?? [], rootId: this.id, encounter: { ...enc, note: game.i18n.format(ENCOUNTER_NOTES[enc.state], enc) }, isGM: true, saving: this.saving, sceneName: this.scene.name,
       number: record.num === null ? game.i18n.format("SDE.hexExplorer.offset", this.offset) : String(record.num).padStart(4, "0"),
       locationAuto: d.location === "auto", locationShow: d.location === "show", locationHide: d.location === "hide",
       terrainOptions: this._terrainOptions(d.terrain),

@@ -71,6 +71,9 @@ export function readPass(target) {
 }
 export const isHexAdopted = scene => sceneRef(scene)?.getFlag?.(MODULE_ID, RECORD_FLAG)?.adopted === true;
 
+/** A keyed page's name without the hex number the book prints before it ("3826 Haldrin's Tower" → "Haldrin's Tower"). */
+export const keyedTitle = keyed => String(keyed?.[0]?.title ?? "").replace(/^\d{3,4}\s*/, "").trim();
+
 /** Compose one cell without copying the tag store. Tag edits, even a removed line, win. */
 export function recordView({ sceneUuid: uuid, offset, num, cell = {}, tag = null, keyed = [], region = null }) {
   const structured = Array.isArray(cell.features) ? clone(cell.features) : [];
@@ -83,6 +86,8 @@ export function recordView({ sceneUuid: uuid, offset, num, cell = {}, tag = null
     provenance: tag ? { source: tag.source, margin: tag.margin, review: !!tag.review } : cell.provenance ?? null,
     keyed: clone(keyed), region: region ?? cell.zone ?? null,
     discovery: { revealed: false, visited: false, ...(cell.discovery ?? {}) },
+    // A title the GM typed wins; a keyed hex with none is named by its journal page, so the pin and the record agree.
+    ...(!cell.title && keyedTitle(keyed) ? { title: keyedTitle(keyed) } : {}),
   };
 }
 const pick = (value, keys) => Object.fromEntries(keys.filter(k => typeof value?.[k] === "string").map(k => [k, value[k]]));
@@ -157,7 +162,10 @@ export const HexRecords = {
       const data = bestProjection(mine.length ? mine.map(id => { const own = projection.parties[id]?.cells; return own && Object.hasOwn(own, key) ? own[key] : shared; }) : [shared]);
       if (!data) return null;
       const out = clone(data);
-      if (locationVisible(out.discovery)) out.keyed = keyedPages(scene, out.num, reuse);
+      if (locationVisible(out.discovery)) {
+        out.keyed = keyedPages(scene, out.num, reuse);
+        if (!out.title && keyedTitle(out.keyed)) out.title = keyedTitle(out.keyed);
+      }
       return out;
     }
     const store = reuse ? (reuse.record ??= recordJournal(scene)?.flags?.[MODULE_ID]?.[RECORD_FLAG]) : recordJournal(scene)?.flags?.[MODULE_ID]?.[RECORD_FLAG];

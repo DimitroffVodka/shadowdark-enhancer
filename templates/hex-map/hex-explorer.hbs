@@ -16,6 +16,14 @@
       <label class="ui-field"><span class="ui-label">{{localize "SDE.hexExplorer.locationTitle"}}</span><input name="title" value="{{title}}"></label>
     </section>
 
+    {{#if keyed.length}}<section class="ui-card">
+      <h3 class="ui-h">{{localize "SDE.hexExplorer.keyedPages"}}</h3>
+      {{#each keyed}}<div class="ui-row">
+        <div class="ui-row-main"><span>{{title}}</span></div>
+        <button type="button" class="ui-icon" data-action="openPage" data-uuid="{{uuid}}" title="{{localize 'SDE.hexExplorer.openPage'}}" aria-label="{{localize 'SDE.hexExplorer.openPage'}}"><i class="fa-solid fa-book-open"></i></button>
+      </div>{{/each}}
+    </section>{{/if}}
+
     <section class="ui-card">
       <h3 class="ui-h">{{localize "SDE.hexExplorer.encounters"}}</h3>
       <div class="ui-row hx-enc">

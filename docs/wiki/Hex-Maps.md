@@ -28,7 +28,9 @@ scene UUID plus offset. Hover for disclosed terrain/public notes (the GM's card 
 short click keeps the small card with permitted links. The GM gets no pinned
 card or Edit button: a double click opens Hex Data, which saves terrain,
 line features, rich locations, notes and discovery; travel prices update
-immediately. Pins, token drags and long-press pings retain their handlers.
+immediately. A hex with a keyed-location pin (see *Keyed locations on the map*)
+is named by its pinned page unless you type a title, and Hex Data lists that page
+with a button to open it. Pins, token drags and long-press pings retain their handlers.
 
 The GM's edit window also has a **Random encounters** card: the table a
 wandering check on this hex would roll now, the same one the check picks (its
