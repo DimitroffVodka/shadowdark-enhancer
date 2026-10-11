@@ -12,12 +12,12 @@ stays optional. Where a feature hands data to it, the entry says which Extras
 it needs.
 
 ### Highlights
-- **One Start button for hex travel, and a click walks the route.** Travel days open themselves, a normal pace forages by itself, and the route shows each hex's cost before you click.
-- **A clock bar and a calendar that knows the sky.** The date, time, season and sky sit at the top of every scene, and the calendar lists holidays, equinoxes and eclipses and keeps a journal of the party's travel.
+- **One Start button for hex travel, and a click walks the route.** Start opens the first travel day for you, a normal pace forages by itself, and the route shows each hex's cost before you click.
+- **A clock bar and a calendar that knows the sky.** The date, time, season and sky sit at the top of every hex map, and the calendar lists holidays, equinoxes and eclipses and keeps a journal of the party's travel.
 - **Camp remembers last night's choices.** A new camp starts with the fire source and each task already set, torches are spent without per-character consent, and task rolls say Success or Failure.
-- **The Party sheet runs travel, camping, carousing and downtime.** Carousing has its own tab with one shared tier and cost, Downtime, Warbands and Bastion tabs sit beside it, and players get their own view.
+- **The Party sheet runs camping, carousing and downtime.** Carousing has its own tab with one shared tier and cost, Downtime, Warbands and Bastion tabs sit beside it, and players get their own view.
 - **Hex fog is kept per party, and the GM can reset it.** Each party reveals its own hexes, the GM can see the fog as players do, and Hex Data ties quests to a hex.
-- **Temporary hit points.** A pool that damage spends before HP, shown on the Player sheet and the crawl strip; the Cook's meal now gives temp HP instead of raising HP over the maximum.
+- **Temporary hit points.** A pool that damage spends before HP, shown on the Player sheet and the crawl strip; the Cook's meal gives 2 temp HP for a day.
 - **Bastions, Warbands and mounts you can ride.** A Bastion actor with upgrades, a Plan and monthly disasters; Warband units with upkeep, healing and mass-combat morale; a Token HUD button to ride a mount.
 - **A step-by-step import wizard, and an update notice.** The wizard imports your books and builds the adventure maps, and the first load after an update tells every user what changed.
 
@@ -172,8 +172,7 @@ it needs.
   authoring/painter-feature merge remains available. GM-only permissions and
   filtered player views provide ordinary Foundry spoiler protection, not
   encryption or confidentiality against deliberate raw document API access.
-- **Native basic carousing and Party history.** Each PC owner confirms their own
-  participation and full tier cost; personal coins only, no subsidies. Imported
+- **Native basic carousing and Party history.** Each PC owner confirms their own participation; personal coins only, no subsidies. Imported
   Core or GM-selected tables gate all spending. Manual settlements, holiday
   admission/event bonuses, downtime exclusion and 14-real-day cooldowns work
   without a map or Extras. Saved rolls and actor-local progress protect Resume;
@@ -189,9 +188,7 @@ it needs.
   inventory before explicitly approved per-mount Party backup. Actor/day
   receipts prevent repeat food or damage across reloads and party changes.
   Mounts take no camp tasks; unrelated NPCs and warbands keep their models.
-- **Native PC camp nutrition and Overland nights.** Personal-first daily meals
-  use Party backup only with each PC's current-camp approval and only for the
-  current shortfall. Unfed PCs take one full-score CON damage per day and get
+- **Native PC camp nutrition and Overland nights.** Daily meals take a character's own rations first, then the Party's for the current shortfall. Unfed PCs take one full-score CON damage per day and get
   no rest recovery; fed PCs rest individually, with saved CON checks after an
   interruption. Actor/day bookkeeping survives reloads and party changes;
   item, HP and reward receipts prevent repeat spending or recovery. Overland
@@ -205,20 +202,16 @@ it needs.
   three-torch fuel, and saves personal Hunt/Craft rewards, repairs, luck and
   task results without rerolls. Fire provides near light for eight hours while
   a PC stays nearby; starting camp during movement uses the committed token
-  destination for both the fire's anchor and proximity. Cook's post-eligible-rest
-  benefit uses current HP above an unchanged maximum, with scoped damage/healing
-  and one-day expiry. Native PC food and eligible rest are now integrated with
+  destination for both the fire's anchor and proximity. Native PC food and eligible rest are now integrated with
   Overland, including mount nutrition and full-score CON damage.
 - **Party formation and linked member movement.** A fixed 3×3 header widget,
   remembered leader/follow/mount choices, and one Import/Export Members HUD
   entry share the compact Place/Recall service. Gather preserves linked Actors
   and token configuration; wall-safe release reuses tokens and stacks when
-  needed. Native marching pauses visibly on obstruction, combat, scene change
-  or reload. Deployed Party tokens remain selectable without aggregate travel;
+  needed. Deployed Party tokens remain selectable without aggregate travel;
   dungeon light is mirrored without duplicating fuel consumers. Owner actions
   and marching use the requested scene even when the GM views another map;
-  extinguished member lights stay off through gather/release. Scene navigation
-  pauses the user driving the Party, including a GM, not an unrelated relay GM.
+  extinguished member lights stay off through gather/release.
 - **Player-facing hex coordinates.** Each user can enable Show hex coordinates
   in Configure Settings. Labels use the tagged map's published numbers and native
   flat-top column geometry, preserve leading zeroes, and follow the current fog.
@@ -226,7 +219,7 @@ it needs.
   change the anchor or calibration.
 - **Native Party window.** Explicit persistent Characters/Hirelings/Mounts roster,
   visible missing references, party/member quests and real embedded party items.
-  Open it from the actor directory, Party token HUD or Forge & Loot menu, including
+  Open it from the actor directory, Party token HUD or the clock bar's Party sheet button, including
   without a canvas. Owners may manage characters they own. Legacy flagged NPCs
   adopt in place; SDX Party actor types and unrelated sheets remain untouched.
   Camp and Carouse now open the native gameplay workflows described above.
@@ -270,17 +263,6 @@ it needs.
   where each sits once. Skipped rooms and placed pins are kept on the scene, so you
   can stop and carry on later. This is the adventure half of the old Journal and
   Scenes tabs, brought back in a smaller form; it ships no book text and no maps.
-- **The party token walks a hex in step with the clock.** A hex takes about a second
-  on screen (a difficult hex about a second and a half), and while the token slides
-  the clock moves with it in small steps, so the time on the bar, the sky's
-  darkness and the torches' burning all keep pace instead of jumping when the walk
-  starts. A route across several hexes walks them one after another. An encounter
-  check still rolls at its hour and a hit still stops the clock there. **Make camp**
-  and **Continue** run as a time-lapse: a beat and a share of the span, never more
-  than about three seconds, so a night passes in about three seconds with dusk
-  falling and dawn lifting as it goes. Only a move of the travel token is slowed, and
-  only when its scene is on the GM's screen; the clock bar's own steps still move in
-  one step.
 - **The Cursed Scrolls' rumors, encounters and adventure tables import with the rest.**
   The importer always knew these tables existed, and never offered them: Importer
   Hub → Manage → **Roll Tables → Cursed Scroll N** now lists 48 (90 tables once each
@@ -476,18 +458,17 @@ it needs.
   (the dawn roll, the Weather button, a reroll) and the party token is on a hex
   map whose Hex Fog is on, the hexes around it are revealed at once for the
   day's conditions, without a move: an excellent day shows its extra ring. A
-  storm adds nothing and hides nothing already seen. Needs Shadowdark Extras
-  with the hex fog reveal (shadowdark-extras#185); without it nothing happens.
+  storm adds nothing and hides nothing already seen. The module's own hex fog does this on a map it has adopted; on any other hex map it needs Shadowdark Extras' hex fog reveal (shadowdark-extras#185), and without that nothing happens.
   (#307)
 - **The clock bar.** The date with its year, the time and the sky now sit at
-  the top of the screen for everyone, on every scene, in the look of the
+  the top of the screen for everyone, on a hex map, in the look of the
   Overland demo: black, the engraved frame, the book's blackletter. Under it,
   the season and a sky dial that turns with the day, with the weather, the
   next sunrise or sunset and the moon's phase. A GM steps the clock back or
   on (a day, 8 hours, an hour, 10 minutes, a round), jumps to the next dawn,
   noon, dusk or midnight, sets any date and year, and switches the real-time
   clock. The month view shows the moon's quarters, today and the City of
-  Masks holidays, and a GM clicks a day to go there. While travelling, a step
+  Masks holidays. While travelling, a step
   rolls the day's encounter checks it passes, and the bar carries the hexes
   left and the Travel panel. Settings → Overland → Clock bar: everyone, GM
   only, or off. It hides during a combat, and the Crawl Strip no longer shows
@@ -495,8 +476,7 @@ it needs.
 
 #### Overland travel
 
-- **Travel on a tagged hex map.** On a hex map tagged by the Hex Tagger, the
-  Crawl Bar offers **Travel**. The Shadowdark Extras party token travels, or
+- **Travel on a hex map.** On a hex map, the Crawl Bar's **Start** begins travel. The Shadowdark Extras party token travels, or
   the one token you select. The Crawl Strip steps aside and movement isn't
   tracked. A combat takes over and hands back. **End travel** keeps where the
   party is for next time. (#229)
@@ -529,7 +509,7 @@ it needs.
   (DC 12, or 18 when harsh); a success adds a ration. It happens once a day,
   never on a pushed day, and not in a harsh storm. **Make camp** puts carried
   lights out (they keep their time), runs the clock to dawn with the night's
-  encounter checks, and feeds everyone at dawn: one ration, two after a harsh
+  encounter checks, and feeds everyone when the camp is made: one ration, two after a harsh
   night, and 1 CON damage for anyone without. Then it rolls the new day's
   weather. A Shadowdark Extras party hands the rations to Extras' camping rest
   once Extras offers it. When a season turns with the party on a deep-tunnels
@@ -539,8 +519,7 @@ it needs.
   budget, and each member's rations and forage. Players get a Forage button on
   their own characters. The GM also sees the check hours and the day's
   buttons, which players never do. (#234, #253)
-- **Travel works before the rules data is imported.** Pressing **Travel**
-  opens **Start day** at once, and its **Hexes today** takes the day's hexes
+- **Travel works before the rules data is imported.** Pressing **Start** opens **Start day** at once, and its **Hexes today** takes the day's hexes
   when the Rules Data has no hexes per day yet (it lists the ones it has).
   Before, Start day refused, and every move of the token then bounced. (#231)
 - **The sky on outdoor scenes.** The hex map, and any scene set to **Follows
@@ -565,9 +544,7 @@ it needs.
 #### Time
 
 - **Seasons, sunrise and the moon.** The module reads Foundry's world clock
-  for the season, sunrise and sunset, and the moon's phase. There is no
-  calendar window: you keep advancing time with Foundry's controls or your
-  calendar module. A Myre Swamp hex on a new-moon night rolls the book's
+  for the season, sunrise and sunset, and the moon's phase. A Myre Swamp hex on a new-moon night rolls the book's
   *New Moon* column, and Session Recap entries record the in-game date and
   time. Macros and other modules read it through
   `game.shadowdarkEnhancer.time` and a `timeAdvanced` hook. See
@@ -751,7 +728,7 @@ page walks through it in order.
 
 #### Quests and training
 
-- **Rumors, never twice.** **Forge & Loot → Give Rumors…** gives rumors from
+- **Rumors, never twice.** **Tools → Between sessions → Rumors** gives rumors from
   the GM Guide's tables: troubles the party hasn't heard of first, then the
   region's table and Rumors in the Reaches in turn. A row given once is never
   given again, a hand-rolled one included; Reset on the table's sheet frees
@@ -777,8 +754,7 @@ page walks through it in order.
   through the ledger, items onto the sheets you pick. A quest can be personal
   to characters, assigned to a Shadowdark Extras party, and jump to its hex's
   map pin. Players get the log read-only. See *Quest Log*. (#189)
-- **Regional Training.** The Crawl Bar's **Forge & Loot** menu → **Regional
-  Training** opens the Western Reaches' 21 trainers, grouped by region. Pick a
+- **Regional Training.** The Crawl Bar's **Tools** menu → Between sessions → **Training** opens the Western Reaches' 21 trainers, grouped by region. Pick a
   character and a trainer, see the four benefits with those already taught
   struck through, and roll the trainer's d4. The benefit lands on the
   character as a Talent. Effects and one-time actions (permanent HP, renown
@@ -837,8 +813,7 @@ page walks through it in order.
   weight. (#187)
 - **You're told when an update gives you something new to import.** When the
   module version changes, the active GM is asked once whether they want to
-  see what's new. **Show me** opens the Importer Hub with the new rows
-  filtered. The Manage tree gains a **New (N)** filter and a **new** tag on
+  see what's new. The Manage tree gains a **New (N)** filter and a **new** tag on
   each row you haven't imported, so **Not now** leaves them there for later. A
   world importing for the first time is told nothing.
 
@@ -1043,12 +1018,11 @@ page walks through it in order.
 - **The Luck and Light marks on the Party sheet's member cards now work.** Click Luck to spend a luck token and Light to light or snuff the character's torch, the same as on the crawl strip. Only the character's owner or a GM can; anyone else gets a short refusal.
 - **Carousing window uses the new design.** One tier select for the party at the top, one shared-cost line (total, headcount, each person's share), a Joining switch and the result for each character.
 - **Camping window uses the new design.** Hairline rows on the shared UI kit, a ration count next to the ham hock icon, a Ready button, and no gold.
-- **Camping: everyone participates and meals use the party's rations automatically.** The per-character Participate checkbox is gone, and a character eats their own rations first and then the party's with no consent box; a character short overall is not fed and nothing is deducted. Torch contribution is still opt-in.
 - **Carousing: one spending tier for the party, and a shared cost.** The tier is picked once at the top of the window by whoever manages the party (changing it asks everyone to confirm again), and its cost is a group total split between the joining characters in whole gp, any remainder charged one gp at a time to the first in list order. The mask and paper-lantern holiday boxes are gone.
 - **The Party sheet is restyled on the shared UI kit.** The emblem takes any hex colour for its tile and its icon, the leader is chosen by clicking a formation slot, Torches join the status strip, member cards show Luck and Light under the portrait with the class on its own line and all six ability scores on one line, the active-effects icons are gone, and the tab row fills its width.
 - **Dialogs share one look.** Confirms, prompts and choice dialogs take the kit's title, body and button row (the default button is the filled one), and the dying menu lists its actions as rows with icons. Handlers and default buttons are unchanged.
 - **Chat cards use the new look.** The encounter check, encounter result, flavor and loot cards, plus the chaos initiative, session luck, rumors, troubles, rules notice, weather, downtime, merchant purchase, item pickup, forge, parry, dying, out-of-combat initiative, warband note and pit fight twist cards, now read as one family in dark and light. Same data and buttons; the loot card keeps Claim in view and puts Give and Forge behind one more-actions icon.
-- **Camping: everyone takes part, and meals use your own rations first.** The Participate box and the "use party rations" box are gone. A meal takes the character's own rations, then the party's.
+- **Camping: everyone takes part, and meals use your own rations first.** The Participate box and the "use party rations" box are gone. A meal takes the character's own rations, then the party's. A character short overall is not fed and nothing is deducted.
 - **The Character Builder's ability names and descriptions, the Hit Points formula's CON and the Gold step's dice formula now come from the language file** instead of being written into the code, and the Gold step's two inline styles are stylesheet classes. Nothing changes on screen.
 - **Token HUD buttons are real buttons.** The rollback-move, pick-up and Quick Adjust buttons, and the prayer icon beside a deity on the character sheet, can now be reached and used from the keyboard and have an accessible name; the prayer icon also appears on both sheet generations without doubling.
 - **The Party sheet's header is one compact band.** The boxed "Marching formation" block, with its
@@ -1060,8 +1034,7 @@ page walks through it in order.
   Members tab and a hint under the grid ("Drag characters here to add them") instead of looking dead.
 - **Party member cards are two to a row**, with the real portrait, an HP bar with numbers in place of
   the red wave over the portrait, AC / LV / SLOTS / XP chips and the six ability modifiers on one
-  small line. Hirelings and mounts omit the character-only chips, as before. Camp and Carouse are no
-  longer repeated on the Members tab; they stay under Travel.
+  small line. Hirelings and mounts omit the character-only chips, as before.
 - **A party has an emblem.** The tile at the left of the Party sheet's header is a game-icons.net icon on
   a colour. A GM clicks it to pick from 24 icons and 8 colours, applied live and saved on the Party actor
   (a new `partyEmblem` flag); a party that has chosen nothing wears the lantern in amber. The 24 icons
@@ -1080,7 +1053,7 @@ page walks through it in order.
   gem's quantity and value and the total. Gems no longer appear twice, as plain item rows. The
   Inventory tab is now called Items.
 - **The Party sheet has a GM view and a player view.** A player sees every member's stats and the
-  same tabs (Travel stays, so each PC's owner can still confirm their own camping and carousing), but
+  same tabs, but
   not Place / Recall, the remove (x) on a member, item and coin editing, or the emblem picker. A tab the
   viewer cannot see (Bastion with none linked) falls back to Members. The party's name is read-only for them.
 - **The Party sheet's "Include mounts" option is gone.** Mounts never take a slot in the marching
@@ -1094,7 +1067,7 @@ page walks through it in order.
   **Start day** or **Continue** while travelling, **Start** with nothing running), a few more,
   then **Tools** and **End** at the right. With no crawl running, Next Round and Combat are no
   longer drawn greyed out. **Tools** opens one labelled panel above the bar: *This travel day*
-  (Start day, Forage, Roll weather, Start a crawl; travel only), *At the table* (Encounter, Roll
+  (Start day, Roll weather, Start a crawl; travel only), *At the table* (Encounter, Roll
   tables, Loot, Magic items, Merchant), *Between sessions* (Party XP, Downtime, Training,
   Renown, Rumors, Recap, Pit fighting) and *Set up* (Importer, and Bastions once the world has
   one). It replaces the single **Forge & Loot** button, whose tooltip listed ten tools; every
@@ -1146,8 +1119,7 @@ page walks through it in order.
   whispered card per empty table per session where travel falls back: terrain
   costs and climate. The storm card that players see no longer tells them to
   import anything. (#299)
-- **Any scene with a hex grid is a hex map.** Overland travel, the Travel
-  button, the route preview, the travel clock, weather, camp and the sky no
+- **Any scene with a hex grid is a hex map.** Overland travel, the Start button, the route preview, the travel clock, weather, camp and the sky no
   longer need the Hex Tagger's tags: a map you drew yourself, or one built
   with Shadowdark Extras' hex creator, is recognised. A tag, or the terrain
   Extras records on its hex maps, still gives each hex its move cost and its
@@ -1305,7 +1277,7 @@ page walks through it in order.
 - **A Party made from Create Actor can place and recall its members.** The Shadowdark system turns off "Link actor data" on every new non-Player actor, so a new Party's tokens were unlinked and Import/Export Members said there was no party token. Parties are now created linked, and existing Parties are linked when a GM loads the world (tokens already on a scene stay unlinked: delete them and drag the Party onto the scene again). The message now says what to do.
 - `game.shadowdarkEnhancer.party.open()` on a native Party no longer throws `can't access property "style"`: it waits for the window to render before bringing it to front, and now returns a promise that resolves to the window.
 - Create Actor lists one Party, not two: with Shadowdark Extras also active, its separate "Party" entry is dropped and the Enhancer's stays (Extras on its own still shows its own). Existing Extras parties still open in the Enhancer's sheet.
-- Make Party Travel actionable in-sheet: camping/carousing choices and results no longer open separate activity windows. Embed Party-scoped quest management and payout confirmation, and edit descriptions inline. Disable Place/Recall without a linked Party token and show Resume only for a deployed group; keep camp rules collapsible and saved results above task setup. Label unavailable carousing tiers and disable commitment until usable tables are selected.
+- Make Party Travel actionable in-sheet: camping/carousing choices and results no longer open separate activity windows. Embed Party-scoped quest management and payout confirmation, and edit descriptions inline. Disable Place/Recall without a linked Party token; keep camp rules collapsible and saved results above task setup. Label unavailable carousing tiers and disable commitment until usable tables are selected.
 - Restore the existing ApplicationV2 Party-sheet layout, detailed portrait/stat/ability/effect cards and five tabs instead of the stripped-down replacement. Native flagged Party actors open their Party sheet normally; Create Actor offers Party while preserving the existing flagged-NPC representation. Remove the all-world actor dropdown; members are added explicitly by drag-and-drop.
 - Name the Party header's movement controls: a visible Marching formation heading, an explicit `Leader:` line, and a labelled `Status:` line, instead of one unlabelled leader-plus-status debug string. Restore visibly ticked native checkboxes across the sheet; Foundry 14's dark colour scheme was rendering them as unreadable solid squares.
 - Review follow-ups for the native Party and hex work: Gather checks combat before its first write and recalls tokens orphaned by a roster edit; a saved oversized formation is rebuilt by a drag instead of deadlocking the grid; the driving browser tab is remembered per tab, so a second tab of the same GM no longer pauses an active march, a deleted leader names the missing member, and the reload pause queues behind an in-flight movement. Raw hex record writes refuse archive/history fields, a legacy cell's own `legacy` field is archived whole and reported, first-entry arrival history saves once before its chat card, player tooltips re-check hidden markers on pre-filtered input, and the treasury coin labels are localized.
@@ -1347,18 +1319,6 @@ page walks through it in order.
   older copy and saved it back over the painting the next time it saved: paint a
   hex, press Apply, and the hex was gone. The tagger now takes in tags written
   from outside (its header counts follow the brush too) and keeps them.
-- **The party token the module makes opens Extras' Party sheet when Extras is on.**
-  Start travel with no party token made a plain NPC named Party, which got the NPC
-  sheet: it was not an Extras party (an NPC flagged `isParty`, Extras' own
-  definition), so Extras neither showed its Party sheet nor listed it, and the
-  light tracker and party travel never saw it. With Extras on and no party of its
-  own, the module's Party is now made an Extras party, starting with your player
-  characters as members; one made before is joined the next time you Start travel
-  with it. An Extras party you made yourself still wins and is never joined by the
-  module's. Extras' own party sheet keeps its members if it already has some; a
-  party whose saved members are not characters in your world (a compendium
-  actor, say) is left as it was rather than joined, so your player characters keep
-  travelling, and none is made when Extras' list of parties can't be read.
 - **Pressing Apply twice on Map size no longer drops the top row.** On a print
   like The Gloaming, whose first row is full hexes, the first Apply stored the
   "top row is frame" box as "nothing"; the next render guessed it back on from
