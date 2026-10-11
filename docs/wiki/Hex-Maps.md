@@ -687,8 +687,19 @@ are the ones below, without opening the Hex Tagger:
 - **Hide the fog to review the map**: the button beside it (a sun behind a cloud). It takes the veil off completely, so
   a freshly painted map can be read in full. It is for your screen only: players' fog and what each party has
   discovered are not touched, and it is kept in this browser. Press it again to bring the veil back.
-  On a painted scene Extras built, which has no tags of its own, the group shows only the two fog buttons and the
-  hover-card button.
+- **Reset the fog**: the button after those two (a cloud with a down arrow), on any scene where the module draws the
+  fog. It puts hexes back to unexplored, which the Hex Data window only does one hex and one party at a time. The window
+  asks whose map (one party, or **Everyone**: every party's map and anything you revealed to all of them), which hexes
+  (**The whole map**, or one region when the scene has them) and whether first-entry tables may roll again. A line under
+  the choices says how many hexes it will hide before you press Reset fog; hexes already hidden are not counted.
+  Terrain, notes, links, pins and roll-table settings are never touched, a location you set to **Hide location (even if
+  visited)** stays hidden, and first-entry history is kept unless you tick
+  **Let first-entry tables roll again**. That clears only the chosen party's own rolls; a table the world had rolled before
+  parties were tracked apart stays rolled until you reset Everyone. The last reset can be undone from the same window
+  (**Undo the last reset**); it puts back exactly the hexes it changed, so anything those hexes gained since is lost, and a
+  second reset replaces the one you could have undone.
+  On a painted scene Extras built, which has no tags of its own, the group shows only the two fog buttons, Reset the fog
+  and the hover-card button.
 - **Show terrain tags**, **Show regions** and **Show encounter zones**: the three pictures of the map. They switch
   between each other, and pressing the one that is up hides it. Regions and zones appear once the map's borders have
   been read.

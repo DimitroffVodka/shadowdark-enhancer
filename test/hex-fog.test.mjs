@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { disclosure, importFog, revealCells, revealRadius, arrivalDue, effectiveDiscovery, withPartyDiscovery, bestProjection } from "../scripts/hex-map/hex-fog-core.mjs";
-import { revealParty, refreshHexFog, registerHexFog } from "../scripts/hex-map/hex-fog.mjs";
+import { disclosure, importFog, revealCells, revealRadius, arrivalDue, effectiveDiscovery, withPartyDiscovery, bestProjection, resetCell, planFogReset } from "../scripts/hex-map/hex-fog-core.mjs";
+import { revealParty, refreshHexFog, registerHexFog, resetHexFog, undoFogReset, previewFogReset, fogUndoInfo } from "../scripts/hex-map/hex-fog.mjs";
 import { cacheHexJournal, recordJournal } from "../scripts/hex-map/hex-records.mjs";
 const grid = { getAdjacentOffsets: ({ i, j }) => [{ i: i - 1, j }, { i: i + 1, j }], getDirectPath: ([a, b]) => Array.from({ length: Math.abs(b.i - a.i) + 1 }, (_, n) => ({ i: a.i + Math.sign(b.i - a.i) * n, j: a.j })) };
 test("one disclosure rule separates terrain, keyed locations and valid exceptions", () => {
@@ -237,6 +237,140 @@ test("two parties on one map: each reveals its own hexes, and a player sees only
     const { HexRecords } = await import("../scripts/hex-map/hex-records.mjs");
     assert.equal(HexRecords.read({ i: 0, j: 0 }, scene)?.discovery.visited, true, "sees where their party has been");
     assert.equal(HexRecords.read({ i: 2, j: 2 }, scene), null, "does not see where the other party has been");
+  } finally {
+    for (const [key, value] of [["game", saved.game], ["canvas", saved.canvas], ["CONST", saved.CONST], ["_replace", saved.replace]]) {
+      if (value === undefined) delete globalThis[key]; else globalThis[key] = value;
+    }
+  }
+});
+
+const shared = { revealed: true, visited: true, locationRevealed: true };
+test("a party's reset hides the hex for that party only, even where the shared layer shows it", () => {
+  const cell = { title: "Camp", discovery: { ...shared, by: { a: { revealed: true, visited: true }, b: { revealed: true } } } };
+  const { cell: next, changed } = resetCell(cell, { partyId: "a" });
+  assert.equal(changed, true);
+  assert.equal(next.title, "Camp", "nothing outside discovery is read or written");
+  assert.deepEqual(effectiveDiscovery(next.discovery, ["a"]), { revealed: false, visited: false, locationRevealed: true });
+  assert.equal(disclosure(effectiveDiscovery(next.discovery, ["a"]), "terrain"), false);
+  assert.equal(disclosure(effectiveDiscovery(next.discovery, ["b"]), "terrain"), true, "another party keeps its map");
+  assert.deepEqual(cell.discovery.by.a, { revealed: true, visited: true }, "the input is not mutated");
+});
+test("a party's reset deletes its fields where the shared layer would not show the hex, so a later reveal to everyone still works", () => {
+  const cell = { discovery: { revealed: false, visited: false, by: { a: { revealed: true, visited: true, locationRevealed: true } } } };
+  const { cell: next } = resetCell(cell, { partyId: "a" });
+  assert.equal(next.discovery.by, undefined, "an emptied party entry and an emptied `by` are dropped");
+  const revealed = { ...next.discovery, revealed: true };
+  assert.equal(effectiveDiscovery(revealed, ["a"]).revealed, true);
+});
+test("after a party's reset a fresh visit shows the location again (its locationRevealed is deleted, not set false)", () => {
+  const { cell } = resetCell({ discovery: { revealed: false, visited: false, by: { a: { revealed: true, visited: true, locationRevealed: true } } } }, { partyId: "a" });
+  const visited = withPartyDiscovery(cell.discovery, "a", { revealed: true, visited: true });
+  assert.equal(disclosure(effectiveDiscovery(visited, ["a"]), "location"), true);
+});
+test("a reset for everyone returns the cell to pristine, shared layer and every party's entry", () => {
+  const cell = { title: "Keep", discovery: { ...shared, by: { a: { revealed: true }, b: { visited: true } } } };
+  const { cell: next } = resetCell(cell, {});
+  assert.deepEqual(next.discovery, { revealed: false, visited: false });
+  assert.equal(next.title, "Keep");
+});
+test("a reset for everyone keeps a location the GM hid, shared or for one party, and a later visit does not show it", () => {
+  const cell = { discovery: { revealed: true, visited: true, locationRevealed: false, by: { a: { revealed: true, visited: true, locationRevealed: false }, b: { revealed: true, visited: true, locationRevealed: true } } } };
+  const { cell: next } = resetCell(cell, {});
+  assert.equal(next.discovery.locationRevealed, false, "the shared hide stays");
+  assert.deepEqual(next.discovery.by, { a: { locationRevealed: false } }, "a party's hide stays; the rest of every party's entry goes");
+  for (const id of ["a", "b"]) {
+    const visited = withPartyDiscovery(next.discovery, id, { revealed: true, visited: true });
+    assert.equal(disclosure(effectiveDiscovery(visited, [id]), "location"), false, `${id} still does not see the location`);
+  }
+  const only = resetCell({ discovery: { revealed: true, visited: true, by: { a: { locationRevealed: false }, b: { locationRevealed: true } } } }, {}).cell;
+  const seen = id => disclosure(effectiveDiscovery(withPartyDiscovery(only.discovery, id, { revealed: true, visited: true }), [id]), "location");
+  assert.deepEqual([seen("a"), seen("b")], [false, true], "a hide for one party does not hide the location from another");
+});
+test("a party's reset keeps a location the GM hid for that party, so its next visit still does not show it", () => {
+  const cell = { discovery: { revealed: true, visited: true, by: { a: { revealed: true, visited: true, locationRevealed: false } } } };
+  const { cell: next } = resetCell(cell, { partyId: "a" });
+  assert.deepEqual(next.discovery.by, { a: { revealed: false, visited: false, locationRevealed: false } });
+  const visited = withPartyDiscovery(next.discovery, "a", { revealed: true, visited: true });
+  assert.equal(disclosure(effectiveDiscovery(visited, ["a"]), "terrain"), true);
+  assert.equal(disclosure(effectiveDiscovery(visited, ["a"]), "location"), false);
+  assert.equal(resetCell({ discovery: { revealed: false, visited: false, by: { a: { locationRevealed: false } } } }, { partyId: "a" }).changed, false, "nothing left to reset");
+});
+test("first-entry history is kept unless asked: a party's reset clears only its id, everyone's clears the legacy flag too", () => {
+  const cell = { discovery: { revealed: true }, arrivalRolled: true, arrivalRolledBy: ["a", "b"] };
+  assert.deepEqual(resetCell(cell, { partyId: "a" }).cell.arrivalRolledBy, ["a", "b"]);
+  const one = resetCell(cell, { partyId: "a", rearm: true }).cell;
+  assert.deepEqual(one.arrivalRolledBy, ["b"]);
+  assert.equal(one.arrivalRolled, true, "the legacy flag belongs to every party");
+  const all = resetCell(cell, { rearm: true }).cell;
+  assert.equal(all.arrivalRolledBy, undefined);
+  assert.equal(all.arrivalRolled, undefined);
+  assert.equal(resetCell({ arrivalRolledBy: ["a"] }, { partyId: "a", rearm: true }).cell.arrivalRolledBy, undefined, "an emptied list is dropped");
+});
+test("a plan counts only cells that exist and would change, and stashes only the reset fields", () => {
+  const cells = {
+    "0_0": { title: "x", discovery: { revealed: true, visited: false }, rollTable: "RollTable.t" },
+    "1_0": { discovery: { revealed: false, visited: false } },
+    "2_0": { title: "note only" },
+    "3_0": { discovery: { revealed: true }, arrivalRolled: true },
+  };
+  const plan = planFogReset(cells, { rearm: true });
+  assert.deepEqual(plan.changed.sort(), ["0_0", "3_0"]);
+  assert.deepEqual(plan.prev["0_0"], { discovery: { revealed: true, visited: false } }, "no title, no roll table in the stash");
+  assert.deepEqual(plan.prev["3_0"], { discovery: { revealed: true }, arrivalRolled: true });
+  assert.deepEqual(planFogReset(cells, { keys: ["0_0", "9_9", "1_0"] }).changed, ["0_0"], "a key with no cell is not counted");
+  assert.equal(cells["0_0"].discovery.revealed, true, "the store is not mutated by planning");
+});
+test("every cell a reset touched reads as unexplored for the parties it covered", () => {
+  const cells = { "0_0": { discovery: { ...shared, by: { a: { revealed: true }, b: { revealed: true, visited: true } } } } };
+  const everyone = planFogReset(cells, {}).next["0_0"].discovery;
+  for (const ids of [[], ["a"], ["b"], ["a", "b"]]) assert.deepEqual(effectiveDiscovery(everyone, ids), { revealed: false, visited: false });
+});
+
+test("resetHexFog writes once through the store, keeps other fields and flags, and undoFogReset puts back exactly what changed", async () => {
+  const MOD = "shadowdark-enhancer";
+  const writes = [];
+  const flags = { version: 1, sceneUuid: "Scene.r", fogImported: true, report: { keep: 1 }, legacyFog: { keep: 2 },
+    cells: {
+      "0_0": { title: "Camp", discovery: { revealed: true, visited: true, by: { a: { revealed: true } } }, arrivalRolledBy: ["a"] },
+      "1_0": { title: "Far", discovery: { revealed: true, visited: false } },
+      "2_0": { title: "Untouched", discovery: { revealed: false, visited: false } },
+    } };
+  const before = structuredClone(flags.cells);
+  const journal = { id: "jr", ownership: { default: 0 }, flags: { [MOD]: { hexRecords: flags } },
+    update: async data => { writes.push(data); for (const [key, value] of Object.entries(data)) { const [, mod, flag] = key.split("."); (journal.flags[mod] ??= {})[flag] = value; } } };
+  cacheHexJournal(journal);
+  const publicJournal = { id: "pubr", flags: { [MOD]: { hexRecordProjection: { sceneUuid: "Scene.r", cells: {} } } }, update: async () => {} };
+  const scene = { id: "r", uuid: "Scene.r", flags: { [MOD]: { hexFog: { enabled: true }, hexRecords: { adopted: true } } },
+    getFlag: (mod, key) => scene.flags[mod]?.[key],
+    grid: { isHexagonal: true, sizeX: 100, sizeY: 100, getOffset: point => ({ i: Math.floor(point.y / 100), j: Math.floor(point.x / 100) }), getCenterPoint: offset => ({ x: offset.j * 100 + 50, y: offset.i * 100 + 50 }) },
+    dimensions: { sceneRect: { x: 0, y: 0, width: 300, height: 300, contains: (x, y) => x >= 0 && y >= 0 && x < 300 && y < 300 } } };
+  const saved = { game: globalThis.game, canvas: globalThis.canvas, CONST: globalThis.CONST, replace: globalThis._replace };
+  globalThis._replace = value => value;
+  globalThis.CONST = { GRID_TYPES: { HEXODDQ: 4, HEXEVENQ: 5 } };
+  globalThis.canvas = {};
+  globalThis.game = { user: { id: "gm", isGM: true }, actors: { contents: [], get: () => null }, journal: { contents: [publicJournal] },
+    packs: { get: () => ({ ownership: { PLAYER: "NONE", TRUSTED: "NONE", ASSISTANT: "NONE" }, getDocuments: async () => [journal] }) },
+    modules: { get: () => undefined }, settings: { get: () => { throw new Error("not registered"); } }, time: { worldTime: 0 }, i18n: { localize: key => key, format: key => key } };
+  try {
+    assert.equal(previewFogReset({ rearm: true }, scene), 2, "the preview counts what the write will change");
+    assert.equal(fogUndoInfo(scene), null);
+    const { count } = await resetHexFog({ rearm: true, keys: ["0_0", "1_0", "2_0"] }, scene);
+    assert.equal(count, 2);
+    assert.equal(writes.length >= 1, true);
+    const after = journal.flags[MOD].hexRecords;
+    assert.deepEqual(after.cells["0_0"].discovery, { revealed: false, visited: false });
+    assert.equal(after.cells["0_0"].title, "Camp");
+    assert.equal(after.cells["0_0"].arrivalRolledBy, undefined);
+    assert.deepEqual(after.cells["2_0"], before["2_0"], "a hex that was already hidden is not rewritten");
+    assert.deepEqual(after.report, { keep: 1 });
+    assert.deepEqual(after.legacyFog, { keep: 2 }, "the archive and the other keys of the store survive");
+    assert.deepEqual(Object.keys(fogUndoInfo(scene)).sort(), ["at", "count", "partyId"]);
+    assert.equal(fogUndoInfo(scene).count, 2);
+    const undone = await undoFogReset(scene);
+    assert.equal(undone.count, 2);
+    assert.deepEqual(journal.flags[MOD].hexRecords.cells, before, "undo restores exactly what the reset changed");
+    assert.equal(journal.flags[MOD].hexRecords.fogUndo, undefined, "an undo is used once");
+    assert.equal((await undoFogReset(scene)).count, 0, "nothing left to undo");
   } finally {
     for (const [key, value] of [["game", saved.game], ["canvas", saved.canvas], ["CONST", saved.CONST], ["_replace", saved.replace]]) {
       if (value === undefined) delete globalThis[key]; else globalThis[key] = value;
