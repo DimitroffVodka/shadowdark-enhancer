@@ -148,7 +148,7 @@ const STYLESHEET_REV = "cbb9eae55a98";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "2cdf71af27e5";
+const BUILD_REV = "3c23d2a32193";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -1239,6 +1239,57 @@ Hooks.once("ready", () => {
       console.error(`${MODULE_ID} | encounter-source migration failed:`, err);
     }
   }
+  // Every user is told what the update changed, once per version (whats-new.mjs) — players too, so
+  // this sits outside the GM-only block below. Read before any timer fires: the backfill stamps
+  // `backfillVersion`, and a stamped world is what tells an update from a fresh install.
+  const ranBefore = !!game.settings.get(MODULE_ID, "backfillVersion");
+
+  // One timer, so an update shows one dialog at a time: the what's-new window
+  // for every user, then the importer prompts for the active GM only.
+  // A release grows the import library — a book, a bestiary, a hundred table
+  // rows — and a GM who already imported what they own would never find out.
+  // Once per module version (the census is not cheap), diff the library
+  // against what this world last saw and ASK whether they want the new
+  // material, opening the hub on it if they say yes. Gated to the single
+  // active GM because it stamps a world setting; every other GM reads the
+  // badges it leaves in the Manage tree.
+  setTimeout(async () => {
+    try {
+      const { checkWhatsNew, SEEN_SETTING } = await import("./shared/whats-new.mjs");
+      await checkWhatsNew({
+        version: String(game.modules.get(MODULE_ID)?.version ?? ""),
+        seen: game.settings.get(MODULE_ID, SEEN_SETTING),
+        history: ranBefore,
+        write: (value) => game.settings.set(MODULE_ID, SEEN_SETTING, value),
+      });
+    } catch (err) {
+      console.error(`${MODULE_ID} | what's new failed:`, err);
+    }
+    if (!isActiveGM()) return;
+    try {
+      const { checkImporterNews, promptImporterUpdate, checkFirstImport, CATALOG_SETTING, ASKED_SETTING } =
+        await import("./importer/importer-hub-news.mjs");
+      // A world that has imported nothing yet is not told "new content": all of it is new to them.
+      // It is told to run the quick wizard first instead (once per version, below).
+      const { wizardFirst } = await import("./importer/wizard/wizard-app.mjs");
+      const version = String(game.modules.get(MODULE_ID)?.version ?? "");
+      const first = wizardFirst();
+      await checkImporterNews({
+        version,
+        read: () => game.settings.get(MODULE_ID, CATALOG_SETTING),
+        write: (value) => game.settings.set(MODULE_ID, CATALOG_SETTING, value),
+        announce: first ? () => {} : promptImporterUpdate,
+      });
+      await checkFirstImport({
+        version, first,
+        read: () => game.settings.get(MODULE_ID, ASKED_SETTING),
+        write: (value) => game.settings.set(MODULE_ID, ASKED_SETTING, value),
+      });
+    } catch (err) {
+      console.error(`${MODULE_ID} | importer news check failed:`, err);
+    }
+  }, 2500);
+
   // Monster Spell upkeep: the legacy-pack consolidation (#54) every activation,
   // and the Core + managed Enhancer Actors refresh once per module version
   // (#75). Both write, so both are gated to the single active GM checked at fire
@@ -1279,56 +1330,6 @@ Hooks.once("ready", () => {
         console.error(`${MODULE_ID} | hex page reflow failed:`, err);
       }
     }, 2000);
-
-    // Every user is told what the update changed, once per version (whats-new.mjs). Read before any
-    // timer fires: the backfill below stamps `backfillVersion`, and a stamped world is what tells an
-    // update from a fresh install.
-    const ranBefore = !!game.settings.get(MODULE_ID, "backfillVersion");
-
-    // A release grows the import library — a book, a bestiary, a hundred table
-    // rows — and a GM who already imported what they own would never find out.
-    // Once per module version (the census is not cheap), diff the library
-    // against what this world last saw and ASK whether they want the new
-    // material, opening the hub on it if they say yes. Gated to the single
-    // active GM because it stamps a world setting; every other GM reads the
-    // badges it leaves in the Manage tree. It runs after the what's-new window
-    // closes, so an update shows one dialog at a time.
-    setTimeout(async () => {
-      try {
-        const { checkWhatsNew, SEEN_SETTING } = await import("./shared/whats-new.mjs");
-        await checkWhatsNew({
-          version: String(game.modules.get(MODULE_ID)?.version ?? ""),
-          seen: game.settings.get(MODULE_ID, SEEN_SETTING),
-          history: ranBefore,
-          write: (value) => game.settings.set(MODULE_ID, SEEN_SETTING, value),
-        });
-      } catch (err) {
-        console.error(`${MODULE_ID} | what's new failed:`, err);
-      }
-      if (!isActiveGM()) return;
-      try {
-        const { checkImporterNews, promptImporterUpdate, checkFirstImport, CATALOG_SETTING, ASKED_SETTING } =
-          await import("./importer/importer-hub-news.mjs");
-        // A world that has imported nothing yet is not told "new content": all of it is new to them.
-        // It is told to run the quick wizard first instead (once per version, below).
-        const { wizardFirst } = await import("./importer/wizard/wizard-app.mjs");
-        const version = String(game.modules.get(MODULE_ID)?.version ?? "");
-        const first = wizardFirst();
-        await checkImporterNews({
-          version,
-          read: () => game.settings.get(MODULE_ID, CATALOG_SETTING),
-          write: (value) => game.settings.set(MODULE_ID, CATALOG_SETTING, value),
-          announce: first ? () => {} : promptImporterUpdate,
-        });
-        await checkFirstImport({
-          version, first,
-          read: () => game.settings.get(MODULE_ID, ASKED_SETTING),
-          write: (value) => game.settings.set(MODULE_ID, ASKED_SETTING, value),
-        });
-      } catch (err) {
-        console.error(`${MODULE_ID} | importer news check failed:`, err);
-      }
-    }, 2500);
 
     // When the module version changes, quietly bring already-imported monsters
     // up to fresh-import fidelity. The version stamp advances only on success.
