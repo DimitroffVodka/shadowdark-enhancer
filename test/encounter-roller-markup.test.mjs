@@ -29,3 +29,17 @@ test("the Monster Creator opens one tab at a time", async () => {
   // No call site opens a tab by assigning its flag directly (that would leave two open).
   assert.doesNotMatch(src, /this\._sectionOpen\.\w+ = true/);
 });
+
+test("a creature result offers the Battle map and Choose map buttons, both routed to one handler", async () => {
+  const [app, tpl] = await Promise.all([
+    read("scripts/encounter/encounter-roller-app.mjs"),
+    read("templates/encounter-roller.hbs"),
+  ]);
+  // Only the creature card: the flavor card has no creature to put on a map.
+  const creature = tpl.slice(tpl.indexOf('class="ui-card sel"'));
+  assert.match(creature, /data-action="battleMap"/);
+  assert.match(creature, /data-action="chooseBattleMap"/);
+  assert.doesNotMatch(tpl.slice(0, tpl.indexOf('class="ui-card sel"')), /data-action="battleMap"/);
+  assert.match(app, /battleMap:\s+EncounterRollerApp\.prototype\._onBattleMap/);
+  assert.match(app, /chooseBattleMap:\s+EncounterRollerApp\.prototype\._onBattleMap/);
+});

@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1933 tracked files · ~246,000 lines of code/markup across scripts+templates+styles+test.
+1933 tracked files · ~246,100 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -229,7 +229,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `encounter-roller-app.mjs` | 1351 | The Encounter Roller shell + tabs (Roll Tables / Build / Browse / Creator). |
+| `encounter-roller-app.mjs` | 1362 | The Encounter Roller shell + tabs (Roll Tables / Build / Browse / Creator). |
 | `encounter-check.mjs` | 162 | The d6 random-encounter check + chat post. Options (#232): a threshold, the travel hex (its region as the zone), a card label and the recap clock label, for Overland's travel checks. |
 | `encounter-result.mjs` | 69 | Distance / Activity / Reaction RAW lookups. |
 | `encounter-build.mjs` | 287 | Build-a-table data layer (slots, die formats, save to RollTable). |

@@ -63,6 +63,8 @@
                   <div class="ui-card-actions">
                     <button type="button" class="ui-btn" data-action="postToChat" title="{{localize 'SDE.encounter.roller.postTip'}}"><i class="fas fa-clipboard-list"></i> {{localize "SDE.encounter.roller.post"}}</button>
                     <button type="button" class="ui-btn" data-action="placeTokens" title="{{localize 'SDE.encounter.roller.placeTip'}}"><i class="fas fa-bullseye"></i> {{localize "SDE.encounter.roller.place"}}</button>
+                    <button type="button" class="ui-btn" data-action="battleMap" title="{{localize 'SDE.encounterMaps.hud.battleMapHint'}}"><i class="fa-solid fa-map"></i> {{localize "SDE.encounterMaps.hud.battleMap"}}</button>
+                    <button type="button" class="ui-btn" data-action="chooseBattleMap" title="{{localize 'SDE.encounterMaps.hud.chooseMapHint'}}">{{localize "SDE.encounterMaps.hud.chooseMap"}}</button>
                   </div></div>
                 {{#if lastResult.via}}<p class="ui-card-sub">{{lastResult.via}}</p>{{/if}}
                 <div class="ui-row er-monster">

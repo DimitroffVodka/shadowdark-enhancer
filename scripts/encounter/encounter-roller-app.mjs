@@ -74,6 +74,8 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       renownToggle: EncounterRollerApp.prototype._onRenownToggle,
       postToChat:   EncounterRollerApp.prototype._onPostToChat,
       placeTokens:  EncounterRollerApp.prototype._onPlaceTokens,
+      battleMap:       EncounterRollerApp.prototype._onBattleMap,
+      chooseBattleMap: EncounterRollerApp.prototype._onBattleMap,
       previewPost:  EncounterRollerApp.prototype._onPreviewPost,
       previewPlace: EncounterRollerApp.prototype._onPreviewPlace,
       browseToggleSource:      EncounterRollerApp.prototype._onBrowseToggleSource,
@@ -923,6 +925,15 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
 
   async _onPostToChat() {
     await postEncounter(this._lastResult);
+  }
+
+  /** Set a battle map up for the shown creature, where the party stands (the chat card's and the HUD's flow). */
+  async _onBattleMap(_event, target) {
+    const { openBattleMap, partyContext } = await import("./battle-maps/battle-actions.mjs");
+    const { terrain, hexNum, originSceneId } = partyContext();
+    await openBattleMap({
+      enc: this._lastResult, terrain, hex: hexNum, originSceneId, choose: target?.dataset.action === "chooseBattleMap",
+    });
   }
 
   /**

@@ -11,14 +11,17 @@ already standing on it, and brings the table over when you are ready.
 
 ## The buttons
 
-A GM gets **Battle map** in two places:
+A GM gets **Battle map** in three places:
 
 - the **Encounter** panel that drops from the clock bar when a travel check hits
   (see [Clock and Calendar](Clock-and-Calendar.md#encounters-while-travelling-gm)).
   **Choose map…** sits beside it;
+- the **Random Encounter** window (Tools on the Crawl Bar, then Encounter), on any
+  creature it rolls or builds, beside Post and Place. **Choose map…** sits beside
+  it, and the battle is set up where the party stands, as from the panel;
 - the encounter card posted to chat. The button is the GM's; players do not see it.
   The card has **Battle map** only: to choose the map yourself, use the Encounter
-  panel.
+  panel or the Random Encounter window.
 
 **Battle map** opens the default map for the party's terrain (see
 [A default for each terrain](#a-default-for-each-terrain)). **Choose map…** opens
