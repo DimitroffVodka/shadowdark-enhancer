@@ -119,8 +119,10 @@ async function page(name, q) {
   const width = q.get("w") ?? w.width, h = q.get("h") ?? w.height ?? "auto";
   const px = (v) => (v === "auto" || !v ? "auto" : v + "px");
   return `<!doctype html><html><head><meta charset="utf-8"><base href="/"><title>${name}</title>
-<link rel="stylesheet" href="/css/foundry2.css"><link rel="stylesheet" href="/fonts/fontawesome/css/all.min.css">
-<style>${SYSTEM_STYLES.map((s) => `@import url("/systems/${SYSTEM_ID}/${s}") layer(system);`).join("\n")}
+<link rel="stylesheet" href="/css/foundry2.css">
+<style>/* Foundry imports FontAwesome into layer(variables), below system and modules; unlayered here it would beat their display rules */
+@import url("/fonts/fontawesome/css/all.min.css") layer(variables);
+${SYSTEM_STYLES.map((s) => `@import url("/systems/${SYSTEM_ID}/${s}") layer(system);`).join("\n")}
 ${moduleStyles().map((s) => `@import url("/modules/${MODULE_ID}/${s}") layer(modules);`).join("\n")}
 /* mirrors 747e67ad on branch fix/window-titles (not merged yet): titles inherit the header font. Delete once it is in master. */
 @layer modules{.application.shadowdark .window-header .window-title{font-size:inherit;font-family:inherit}}</style>

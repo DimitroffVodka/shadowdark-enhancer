@@ -2,7 +2,7 @@
 
 [← Wiki home](index.md) · [Party](Party.md)
 
-Open Carouse from a native Party, even without a token/map or Shadowdark Extras.
+Open the Carousing tab of the Party, even without a token/map or Shadowdark Extras.
 A Party owner starts/resumes. The Party owner picks one tier for the whole party. Each PC owner confirms only their own participation.
 The tier cost is a group total split between the joining characters in whole gp (the remainder goes one gp at a time to the first in list order). Each pays their share from personal coins: no Party purse subsidy and
 no covering another character's shortfall.

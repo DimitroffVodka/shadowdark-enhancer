@@ -247,6 +247,11 @@ Then:
 - **Post** sends the card to chat.
 - **Place** drops the tokens on the canvas. They are grid-snapped, so press `ESC`
   to cancel placement.
+- **Battle map** takes the encounter to the default battle map for the terrain the
+  party is in, with the party and these creatures already standing on it. See
+  [Encounter Battle Maps](Encounter-Battle-Maps.md).
+- **Choose map…** opens the picker, so you choose the map yourself, or any scene in
+  your world.
 
 A posted card carries the creature with its count, then the Distance, Activity
 and Reaction rows, each with its raw roll in the right-hand column:
