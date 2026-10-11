@@ -47,6 +47,19 @@ Everything here runs automatically for the active GM:
 Compendium packs are **not** created until you need them. Your first import
 creates them on demand. See [Compendium Packs](Compendium-Packs.md).
 
+## After an update
+
+The first time each user loads a world after the module updates, a **What's
+new** window lists the main additions in that release, how many changes and
+fixes came with it, and a link to the full release notes. It shows once per
+version for each user (a player sees it too), and a brand-new install gets
+nothing. It reads the module's own `CHANGELOG.md`, so it is the same text as
+the release notes.
+
+When an update also adds material you can import, the GM is offered it right
+after that window closes. It opens the import guide asking only for the books
+the new material comes from. See [Importer Hub](Importer-Hub.md).
+
 ## First-session checklist
 
 Follow these steps in order. Only the first is required to get started.

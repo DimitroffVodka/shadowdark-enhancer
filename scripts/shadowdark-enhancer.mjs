@@ -148,7 +148,7 @@ const STYLESHEET_REV = "cbb9eae55a98";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "84a49c194bd1";
+const BUILD_REV = "859680b364c3";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -1273,14 +1273,31 @@ Hooks.once("ready", () => {
       }
     }, 2000);
 
+    // Every user is told what the update changed, once per version (whats-new.mjs). Read before any
+    // timer fires: the backfill below stamps `backfillVersion`, and a stamped world is what tells an
+    // update from a fresh install.
+    const ranBefore = !!game.settings.get(MODULE_ID, "backfillVersion");
+
     // A release grows the import library — a book, a bestiary, a hundred table
     // rows — and a GM who already imported what they own would never find out.
     // Once per module version (the census is not cheap), diff the library
     // against what this world last saw and ASK whether they want the new
     // material, opening the hub on it if they say yes. Gated to the single
     // active GM because it stamps a world setting; every other GM reads the
-    // badges it leaves in the Manage tree.
+    // badges it leaves in the Manage tree. It runs after the what's-new window
+    // closes, so an update shows one dialog at a time.
     setTimeout(async () => {
+      try {
+        const { checkWhatsNew, SEEN_SETTING } = await import("./shared/whats-new.mjs");
+        await checkWhatsNew({
+          version: String(game.modules.get(MODULE_ID)?.version ?? ""),
+          seen: game.settings.get(MODULE_ID, SEEN_SETTING),
+          history: ranBefore,
+          write: (value) => game.settings.set(MODULE_ID, SEEN_SETTING, value),
+        });
+      } catch (err) {
+        console.error(`${MODULE_ID} | what's new failed:`, err);
+      }
       if (!isActiveGM()) return;
       try {
         const { checkImporterNews, promptImporterUpdate, CATALOG_SETTING } = await import("./importer/importer-hub-news.mjs");

@@ -610,6 +610,12 @@ export function registerSettings() {
     scope: "world", config: false, type: Boolean, default: false,
   });
 
+  // The last module version this user was shown the "What's new" window for. Per browser: every
+  // user is told once per update. See scripts/shared/whats-new.mjs.
+  game.settings.register(MODULE_ID, "whatsNewSeen", {
+    scope: "client", config: false, type: String, default: "",
+  });
+
   // Importer library snapshot — { version, keys, fresh }. `keys` is every row
   // the Manage tree knew about when this module version first loaded; `fresh`
   // is the subset that version ADDED, which the hub badges and its "New"
