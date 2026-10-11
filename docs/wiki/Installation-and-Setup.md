@@ -52,9 +52,12 @@ creates them on demand. See [Compendium Packs](Compendium-Packs.md).
 The first time each user loads a world after the module updates, a **What's
 new** window lists the main additions in that release, how many changes and
 fixes came with it, and a link to the full release notes. It shows once per
-version for each user (a player sees it too), and a brand-new install gets
-nothing. It reads the module's own `CHANGELOG.md`, so it is the same text as
-the release notes.
+version per browser (a player sees it too; two people sharing a browser see it
+once between them, and someone who changes browsers sees it again). A
+brand-new install gets no What's new window: its GM is asked to run the quick
+import wizard instead (see [Importer Hub](Importer-Hub.md)), and a player who
+joins later sees the current notes once. It reads the module's own
+`CHANGELOG.md`, so it is the same text as the release notes.
 
 When an update also adds material you can import, the GM is offered it right
 after that window closes. It opens the import guide asking only for the books

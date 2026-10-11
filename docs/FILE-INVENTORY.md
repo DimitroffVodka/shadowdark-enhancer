@@ -200,7 +200,7 @@
 | `scene-thumb.mjs` | 26 | Gives a scene a thumbnail when it has none: Foundry only makes one when a canvas is up at creation, so scenes built headless come out blank in the scene directory and Adventure compendium. Never throws. |
 | `setting-groups.mjs` | 198 | Feature groups for Configure Settings — which settings, nested editors, other packages' settings and notes each pop-out shows, in display order, incl. the Modes of Play boxes. Pure data; the docs-contract test imports it. |
 | `settings-group-menu.mjs` | 214 | The per-feature settings pop-out (ApplicationV2): builds a DataField per setting the way SettingsConfig does (other packages' settings too), renders nested editor buttons, notes and Modes of Play switches, saves on submit, and mints one registerMenu class per group. |
-| `whats-new.mjs` | 169 | The once-per-update "What's new" window every user sees: reads the shipped CHANGELOG.md for the versions since the user's client setting `whatsNewSeen` (Added headlines, Changed/Fixed counts; a `### Highlights` section wins), seeds a fresh install silently and stamps only after the changelog loaded. `checkWhatsNew` takes its dependencies by injection; `showWhatsNew` is the DialogV2. |
+| `whats-new.mjs` | 169 | The once-per-update "What's new" window every user sees: reads the shipped CHANGELOG.md for the versions since the browser's client setting `whatsNewSeen` (Added headlines, Changed/Fixed counts; a `### Highlights` section wins), seeds a fresh install silently and stamps only after the changelog loaded. `checkWhatsNew` takes its dependencies by injection; `showWhatsNew` is the DialogV2. |
 
 ### 3.3 `scripts/crawl-strip/` — the top strip + movement + combat sync
 

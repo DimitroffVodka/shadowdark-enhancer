@@ -6,7 +6,7 @@
  * update this shows each user a short window built from that same file, so
  * there is no second place to write release notes.
  *
- * The per-user record is the client setting `whatsNewSeen` (a version string).
+ * The record is the client setting `whatsNewSeen` (a version string), so it is kept per browser.
  * A user with no record, in a world the module has never run in, is a fresh
  * install: it is seeded silently, because "here is everything" is true and
  * useless on a first install.
