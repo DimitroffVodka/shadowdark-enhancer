@@ -16,8 +16,8 @@
  *   Nothing is written when the scene's darkness is locked. No other module
  *   is consulted: a scene set to not follow the sky is the way out.
  * - Weather: Foundry's rainStorm when stormy, its blizzard when stormy in a
- *   cold climate, on a fair day the season's effect (FAIR_DAY_EFFECT: snow in
- *   winter, leaves in autumn), else none. Overland records the effect it put on a scene
+ *   cold climate, on a fair day the season's effect (FAIR_DAY_EFFECT: leaves
+ *   in autumn), else none. Overland records the effect it put on a scene
  *   (the skyWeather flag) and only ever changes or clears that one; a weather
  *   effect the GM chose, a rain storm included, is left alone (weatherPlan).
  * - The Isles of Andrik keep their own skies, by the party's region.

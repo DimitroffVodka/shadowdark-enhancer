@@ -866,7 +866,7 @@ better tagged by hand (they are small).
   agree on something else takes their answer. It never turns land into water,
   so the coast survives, and it never overrules your own tags.
 - The terrain's stamp is then subtracted from the cell and whatever ink is left
-  decides the feature: one long stroke reaching two edges is a **river**, a
+  decides the feature: one long stroke reaching an edge of the hex is a **river**, a
   chain of short marks is a **path**. Coast is not read from the ink; it is
   worked out from the water around the hex afterwards.
 - The **Review queue** serves every cell it tagged, the least sure first: a
