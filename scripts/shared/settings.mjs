@@ -625,6 +625,12 @@ export function registerSettings() {
     scope: "world", config: false, type: Object, default: {},
   });
 
+  // Module version whose "run the quick import wizard first" prompt this world last saw, so a GM who
+  // answers Not now is asked again once per release, not on every load. See importer-hub-news.mjs.
+  game.settings.register(MODULE_ID, "importerWizardAsked", {
+    scope: "world", config: false, type: String, default: "",
+  });
+
   // The one-time rewrite of hex pages filed one <p> per printed line has run
   // (reflowLegacyHexPages). Once, because later imports share that shape.
   game.settings.register(MODULE_ID, "hexReflowDone", {
