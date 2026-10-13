@@ -245,3 +245,9 @@ test("the arrival fields a save writes are the ones a committed arrival reads", 
   assert.equal(arrivalDue({ ...cell, arrivalRolledBy: ["A"] }, { entered: true, partyId: "A" }), false, "first entry only draws once for that party");
   assert.equal(arrivalDue({ ...cell, arrivalRolledBy: ["A"] }, { entered: true, partyId: "B" }), true, "and still draws for another party");
 });
+test("a manual link to a document the keyed pages already name shows once", () => {
+  const links = [{ uuid: "JournalEntry.a.JournalEntryPage.b", label: "My label", visible: true }, { uuid: "JournalEntry.b", label: "Other", visible: true }];
+  const view = explorerView({ ...record, discovery: { revealed: true, visited: true }, links }, true);
+  assert.deepEqual(view.links, [{ uuid: "JournalEntry.b", label: "Other" }, { uuid: "JournalEntry.a.JournalEntryPage.b", label: "Keyed cave" }]);
+  assert.equal(JSON.stringify(view.links).includes("My label"), false);
+});

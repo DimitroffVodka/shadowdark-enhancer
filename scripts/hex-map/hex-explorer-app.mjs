@@ -1,5 +1,5 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
-import { HexRecords, sceneRef, offsetKey } from "./hex-records.mjs";
+import { HexRecords, sceneRef, offsetKey, bookKeyedPages, mergeKeyedPages } from "./hex-records.mjs";
 import { HexExplorer, explorerCell, encounterReadout, droppedLink, playerOpenable } from "./hex-explorer.mjs";
 import { viewedPartyIds } from "./hex-fog.mjs";
 import { effectiveDiscovery } from "./hex-fog-core.mjs";
@@ -8,8 +8,11 @@ import { terrainOptions, OTHER } from "./tag-overlay.mjs";
 import { tableForCheck, pickTable, TERRAIN_TABLES } from "../encounter/encounter-terrain.mjs";
 import { Quests } from "../quests/quests.mjs";
 import { questsAtHex, STATUS_LABELS } from "../quests/quest-core.mjs";
+import { hexArtSources } from "./keyed-art.mjs";
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const t = key => game.i18n.localize(key);
+/** Whether the file is really there: a missing one is a plain no, never a console error or a notice. */
+const fileLoads = async src => { try { return (await fetch(src, { method: "HEAD" })).ok; } catch { return false; } };
 const LABELS = { river: "SDE.hexMap.feature.river", path: "SDE.hexMap.feature.path", coast: "SDE.hexMap.feature.coast" };
 const ENCOUNTER_NOTES = { region: "SDE.hexExplorer.enc.region", ambiguous: "SDE.hexExplorer.enc.ambiguous", terrain: "SDE.hexExplorer.enc.terrain", active: "SDE.hexExplorer.enc.active", none: "SDE.hexExplorer.enc.none" };
 export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
@@ -36,10 +39,11 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
         if (doc?.documentName === "JournalEntryPage") doc.parent.sheet?.render(true, { pageId: doc.id });
         else doc?.sheet?.render(true);
       },
+      showArt: function () { return this._showArt(); },
     },
   };
   static PARTS = { body: { template: `modules/${MODULE_ID}/templates/hex-map/hex-explorer.hbs`, scrollable: [".sde-hex-explorer-body"] } };
-  constructor(offset, scene, options = {}) { super(options); this.offset = { ...offset }; this.scene = scene; this.draft = null; this.saving = false; }
+  constructor(offset, scene, options = {}) { super(options); this.offset = { ...offset }; this.scene = scene; this.draft = null; this.saving = false; this.artSrc = null; this.artTitle = ""; this.keyedBook = null; }
   static open(offset, target) {
     const scene = sceneRef(target);
     if (!game.user?.isGM || !explorerCell(scene, offset)) return null;
@@ -79,14 +83,44 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // A disclosed link whose document players cannot open is what the row's warning calls out; the tick raises it on save.
     const links = await Promise.all(d.links.map(async link => ({ ...link, warn: !!link.visible && !playerOpenable(await fromUuid(link.uuid).catch(() => null)) })));
     const arrivalName = d.rollTable ? (await fromUuid(d.rollTable).catch(() => null))?.name ?? "" : "";
-    return { ...d, links, arrivalName, keyed: record.keyed ?? [], questSection: numbered, quests: here.map(row),
+    // A keyed hex lists the book's own pages, pin or no pin. With none, an imported crawl means the hex is simply not keyed
+    // (no section, as before); only when no crawl was found does the section say why instead of vanishing.
+    const book = numbered ? await this._keyedBookPages(record.num) : null;
+    const keyed = mergeKeyedPages(record.keyed ?? [], book?.pages ?? []);
+    const explain = numbered && !keyed.length && !book?.imported;
+    // The header art is the picture this hex wears, when its file really loads; the pop-out is titled by the number alone.
+    const number = record.num === null ? game.i18n.format("SDE.hexExplorer.offset", this.offset) : String(record.num).padStart(4, "0");
+    this.artTitle = number;
+    this.artSrc = await this._artSrc(record);
+    return { ...d, links, arrivalName, keyed, keyedSection: keyed.length > 0 || explain, keyedNote: explain ? t(book?.book ? "SDE.hexExplorer.noKeyedPages" : "SDE.hexExplorer.noBook") : "",
+      questSection: numbered, quests: here.map(row),
       // A quest already tied to another hex says so, so moving it is a choice and not a surprise.
       questChoices: all.filter(q => !here.includes(q)).map(q => ({ ...row(q), where: q.hex === null ? "" : ` → ${pad(q.hex)}` })),
       rootId: this.id, encounter: { ...enc, note: game.i18n.format(ENCOUNTER_NOTES[enc.state], enc) }, isGM: true, saving: this.saving, sceneName: this.scene.name,
-      number: record.num === null ? game.i18n.format("SDE.hexExplorer.offset", this.offset) : String(record.num).padStart(4, "0"),
+      number, artSrc: this.artSrc,
       locationAuto: d.location === "auto", locationShow: d.location === "show", locationHide: d.location === "hide",
       terrainOptions: this._terrainOptions(d.terrain),
       lineRows: FEATURES.map(type => ({ type, label: t(LABELS[type]), checked: d.lines.includes(type) })) };
+  }
+  /** The header's picture: the first art source for this hex whose file is really there, or null for the stock hexagon. */
+  async _artSrc(record) {
+    const sources = hexArtSources(this.scene, this.offset, record.num), key = sources.join("\n");
+    // Kept per list of sources: a Disclosed re-render does not HEAD again, and a changed bake or number asks afresh.
+    if (this.artFor?.key !== key) this.artFor = { key, found: (async () => { for (const src of sources) if (await fileLoads(src)) return src; return null; })() };
+    return this.artFor.found;
+  }
+  /** Foundry's own image pop-out, whose share action sends the picture to the players. */
+  _showArt() {
+    if (!this.artSrc) return null;
+    return new foundry.applications.apps.ImagePopout({ src: this.artSrc, window: { title: this.artTitle } }).render(true);
+  }
+  /** The book's pages for this hex: one pack read per window, not one per render. */
+  _keyedBookPages(num) {
+    return this.keyedBook ??= bookKeyedPages(this.scene, num).catch(error => {
+      console.error(`${MODULE_ID} | Hex Data keyed pages`, error);
+      this.keyedBook = null; // a transient failure is not kept for the life of the window
+      return { book: true, imported: false, pages: [] };
+    });
   }
   async _setQuestHex(uuid, num) {
     if (!uuid || !game.user?.isGM) return;

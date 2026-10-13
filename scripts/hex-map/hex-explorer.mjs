@@ -17,12 +17,15 @@ export function explorerView(record, isGM = false, partyIds = []) {
   const r = isGM ? playerProjection({ ...record, discovery: effectiveDiscovery(record.discovery, partyIds) }) : record;
   if (!disclosure(r?.discovery)) return null;
   const location = disclosure(r.discovery, "location");
+  // A manual link to a document the keyed pages already name shows once, as the keyed row.
+  const keyed = (record.keyed ?? []).map(k => ({ uuid: k.uuid, label: k.title }));
+  const named = new Set(keyed.map(k => String(k.uuid ?? "").trim()));
   return { sceneUuid: r.sceneUuid, offset: { ...r.offset }, num: r.num, terrain: r.terrain,
     ...(location && typeof r.title === "string" ? { title: r.title } : {}),
     // River, path and coast are always disclosed; hiding markers on other features are re-checked, not merely trusted.
     features: (r.features ?? []).filter(f => FEATURES.includes(f?.type) || f?.discovered !== false && location).map(f => pick(f, ["type", "name"])),
     notes: (r.notes ?? []).filter(n => n?.visible !== false).map(n => pick(n, ["text"])),
-    links: location ? [...(r.links ?? []).filter(l => l?.visible !== false).map(l => pick(l, ["uuid", "label"])), ...(record.keyed ?? []).map(k => ({ uuid: k.uuid, label: k.title }))] : [],
+    links: location ? [...(r.links ?? []).filter(l => l?.visible !== false && !named.has(String(l?.uuid ?? "").trim())).map(l => pick(l, ["uuid", "label"])), ...keyed] : [],
   };
 }
 /** Row indexes preserve imported rich/unknown metadata; only editable fields are replaced. */

@@ -1,7 +1,7 @@
 <div class="ui-shell">
 {{#if isGM}}
   <header class="ui-head">
-    <div class="ui-art hx-art"><i class="fa-solid fa-hexagon"></i></div>
+    {{#if artSrc}}<button type="button" class="ui-art hx-art" data-action="showArt" title="{{localize 'SDE.hexExplorer.showArt'}}" aria-label="{{localize 'SDE.hexExplorer.showArt'}}"><img src="{{artSrc}}" alt=""></button>{{else}}<div class="ui-art hx-art"><i class="fa-solid fa-hexagon"></i></div>{{/if}}
     <div class="ui-head-text"><h2 class="ui-title">{{number}}</h2><p class="ui-sub">{{sceneName}}</p></div>
     <div class="ui-stats">
       <div class="ui-stat"><span class="ui-label">{{localize "SDE.hexExplorer.terrain"}}</span><span class="ui-value">{{terrain}}</span></div>
@@ -16,12 +16,12 @@
       <label class="ui-field"><span class="ui-label">{{localize "SDE.hexExplorer.locationTitle"}}</span><input name="title" value="{{title}}"></label>
     </section>
 
-    {{#if keyed.length}}<section class="ui-card">
+    {{#if keyedSection}}<section class="ui-card">
       <h3 class="ui-h">{{localize "SDE.hexExplorer.keyedPages"}}</h3>
       {{#each keyed}}<div class="ui-row">
         <div class="ui-row-main"><span>{{title}}</span></div>
         <button type="button" class="ui-icon" data-action="openPage" data-uuid="{{uuid}}" title="{{localize 'SDE.hexExplorer.openPage'}}" aria-label="{{localize 'SDE.hexExplorer.openPage'}}"><i class="fa-solid fa-book-open"></i></button>
-      </div>{{/each}}
+      </div>{{else}}<p class="ui-muted">{{keyedNote}}</p>{{/each}}
     </section>{{/if}}
 
     {{#if questSection}}<section class="ui-card">
