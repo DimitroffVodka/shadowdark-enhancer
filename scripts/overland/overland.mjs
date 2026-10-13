@@ -1379,7 +1379,8 @@ export function applyAction(data, user) {
         if (!user.isGM && !(isNativeParty(party) && party.testUserPermission(user, "OWNER"))) return { ok: false, error: t("SDE.overland.notify.dayGmOnly") };
         if (data.partyId && party?.id !== data.partyId) return { ok: false, error: t("SDE.camping.travelParty") };
         if (!CrawlState.isOverland) return { ok: false, error: t("SDE.overland.notify.notTravelling") };
-        if (_state.pending || _state.encounter) return { ok: false, error: t("SDE.overland.notify.pending") };
+        // A player cannot see the held encounter or press Continue: the GM's instruction would send them to a bar they do not have.
+        if (_state.pending || _state.encounter) return { ok: false, error: t(user.isGM ? "SDE.overland.notify.pending" : "SDE.overland.notify.campPending") };
         // The dawn closes the day: pressed again after it, Make camp makes no second camp (#282 review).
         // A press queued behind a camp that has since finished is a double click: the next day it finds open is not its own.
         if (_state.day === null || _camps !== campsAtCall) return { ok: false, error: t("SDE.overland.notify.campNoDay") };

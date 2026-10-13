@@ -4,7 +4,7 @@
 
 ### Fixed
 
-- **Players had no way to make camp from the Travel panel.** The Traveling and Resting steps drew Make camp for the GM only, so a player who owns the travelling party never saw it, though the camp itself already took their press. A player who owns the party now gets the button on both steps, and the camp window opens on their own screen. Another player still does not see it.
+- **Players had no way to make camp from the Travel panel.** The Traveling and Resting steps drew Make camp for the GM only, so a player who owns the travelling party never saw it, though the camp itself already took their press. A player who owns the party now gets the button on both steps, and the camp window opens on their own screen. Another player still does not see it. If the GM is holding an encounter, the player is told to wait for the GM, not sent to a crawl bar they do not have.
 - **Hexes the party reached were not shown to your players, and earlier reveals were lost.** The Enhancer kept the copy of a map's private hex records it loaded at startup. Foundry applies updates to a different copy and drops its copies after five idle minutes, so after the first pause (a camp, a long break) the kept copy was out of date. The players' view was then published from it with nothing revealed, and the next reveal was written back on top of the old data, erasing what had been revealed. Reads and writes now use the copy Foundry holds. Hexes already overwritten are not recovered.
 
 ## [0.18.3] — 2026-10-11
