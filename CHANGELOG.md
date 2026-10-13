@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **The battle map's status and fold control moved to the Crawl Bar.** While a battle was staged or live, a slim bar
+  reading "Battle map | Live" drew in the clock's top slot and held the Crawl Strip 48 px down under it, so the top of the
+  canvas read as two stacked strips on the battle's own scene and in its combat. The battle now has one item on the Crawl
+  Bar, right before Tools, in every mode and in the combat row: its name and stage (Staged or Live) and the control that
+  folds its panel, which opens upward from it like Tools and holds the same controls as before (who you are fighting, the
+  readout, Bring the table, Change map, Return to travel with Keep this battle). The clock bar no longer carries a
+  battle key, the top slot is the clock's alone, and the Crawl Strip sits at the top of the canvas on the battle's scene
+  and in its combat. Players see no change.
+
 ## [0.18.3] — 2026-10-11
 
 ### Fixed

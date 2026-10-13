@@ -12,8 +12,8 @@
  *
  * A creature's encounter also opens a battle map (docs/plans/encounter-battle-maps.md):
  * Battle map and Choose map... before one is set up; once it is, the section of its
- * state (battleSection), which the HUD's battle panel carries too, for the scenes
- * and the combat where the bar's clock is hidden.
+ * state (battleSection), which the battle's own panel carries too (battleItem: the
+ * Crawl Bar's item and panel, for the scenes and the combat where the clock is hidden).
  */
 
 import { esc } from "../shared/esc.mjs";
@@ -136,6 +136,21 @@ export function battlePanel({ battle, preload = null, keep = false }) {
     <div class="sde-hud-ph"><span class="sde-hud-ttl">${esc(t("SDE.encounterMaps.hud.panel"))}</span><span class="sde-hud-cap">${
       esc(t(BATTLE_STATUS_WORD[battle.status] ?? BATTLE_STATUS_WORD.live))}</span></div>
     <div class="sde-hud-pb">${battleWho(battle)}${battleSection({ battle, preload, keep })}</div>
+  </div>`;
+}
+
+/**
+ * The battle's item on the Crawl Bar (#485): its name and stage, which fold or open its panel, and the panel itself
+ * opening upward from it as the Tools panel does. It is the only place the battle's status and fold control are drawn.
+ * @param {{battle:object, preload?:object|null, keep?:boolean, open?:boolean}} v  as battlePanel, and whether the panel is open
+ */
+export function battleItem({ battle, preload = null, keep = false, open = false }) {
+  const tip = esc(t(open ? "SDE.encounterMaps.hud.panelFold" : "SDE.encounterMaps.hud.panelOpen"));
+  const stage = esc(t(BATTLE_STATUS_WORD[battle.status] ?? BATTLE_STATUS_WORD.live));
+  return `<div class="sde-bar-battle">
+    <button type="button" class="sde-bar-btn sde-bar-battle-btn" data-action="battle" aria-expanded="${open}" aria-controls="sde-bar-battle-panel" title="${tip}" aria-label="${tip}"><i class="fa-solid fa-swords"></i> ${
+      esc(t("SDE.encounterMaps.hud.panel"))} <span class="sde-bar-battle-stage">${stage}</span> <i class="fas ${open ? "fa-caret-down" : "fa-caret-up"}"></i></button>${
+    open ? `<div class="sde-bar-battle-menu" id="sde-bar-battle-panel">${battlePanel({ battle, preload, keep })}</div>` : ""}
   </div>`;
 }
 
