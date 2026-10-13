@@ -30,7 +30,9 @@ card or Edit button: a double click opens Hex Data, which saves terrain,
 line features, rich locations, notes and discovery; travel prices update
 immediately. A hex with a keyed-location pin (see *Keyed locations on the map*)
 is named by its pinned page unless you type a title, and Hex Data lists that page
-with a button to open it. Pins, token drags and long-press pings retain their handlers.
+with a button to open it. The pin can be the Enhancer's own or the note Shadowdark
+Extras places on a keyed hex of a map it painted, so a painted map names its keyed
+hexes with Extras on or off. Pins, token drags and long-press pings retain their handlers.
 
 The window also has a **Quests here** card on a numbered hex: the quests tied to
 this hex, each with a button to open it and one to unlink it, and a picker of

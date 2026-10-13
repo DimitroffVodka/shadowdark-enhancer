@@ -143,7 +143,8 @@ A quest's **Jump to pin** button appears when it has somewhere to go:
 - a map note placed for the quest itself: drag the quest's journal entry onto
   a scene; or
 - the pin the Hex Tagger placed for the quest's **Hex** (set it under
-  *Location*). This covers settlements and keyed hexes.
+  *Location*), or the note Shadowdark Extras placed for that keyed hex on a map it
+  painted. This covers settlements and keyed hexes.
   A **Hex** typed there matches that number on any map. To tie a quest to one
   map's hex, open that hex in Hex Data (double click) and link it under
   **Quests here**; typing a number in *Location* afterwards drops that scene.

@@ -10,9 +10,26 @@
  * throws for a module that is not active, and a map has to keep reading with Extras off.
  */
 
+import { MODULE_ID } from "../shared/module-id.mjs";
+
 /** Where Shadowdark Extras keeps every hex record: one flag on one journal entry. */
 export const EXTRAS_ID = "shadowdark-extras";
 export const EXTRAS_HEX_JOURNAL = "__sdx_hex_data__";
+
+/** The flag Extras' hexcrawl builder puts on the Note it places for a keyed hex: `{ num }`, as the Enhancer's `hexPin`. */
+export const EXTRAS_PIN_FLAG = "hexJournal";
+
+/**
+ * The published hex number a map Note pins, from the Enhancer's own pin flag or the one Extras' builder writes,
+ * or null. Both are read raw: `getFlag` throws for a module that is not active, and an Extras-painted map
+ * has to keep its keyed pages with Extras off.
+ * @param {{flags?: object}|null|undefined} note
+ * @returns {number|null}
+ */
+export function pinNumber(note) {
+  const num = note?.flags?.[MODULE_ID]?.hexPin?.num ?? note?.flags?.[EXTRAS_ID]?.[EXTRAS_PIN_FLAG]?.num;
+  return Number.isInteger(num) ? num : null;
+}
 
 /**
  * Every record Extras holds for a scene, keyed by Foundry offset ("i_j"), or
