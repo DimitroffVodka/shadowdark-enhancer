@@ -2128,6 +2128,17 @@ tokens, a combat, and moves while not travelling are left alone.
   - a storm makes normal terrain difficult;
   - a storm in a harsh climate makes every hex impassable;
   - from one path hex to another costs 1;
+  - a keyed location or settlement hex (tagged `keyed_location`, `village`,
+    `town`, `city`, `city_state`) is priced as the ground its book row names,
+    with the row's coast, river or path added, read on the GM's client from
+    the rows of the book the travel scene was made from (its print, by
+    `hexMapId` or a painted copy's tagged bounds), never another book's; with no
+    row, no ground in it or no print it is priced as its own tag. Only the GM's
+    client holds the ground (the journals pack is GM-only and the rows say what
+    lies under keyed locations not yet found): a player's route preview,
+    pathfinder and pre-move check price a keyed or settlement hex as one hex,
+    and the GM's charge is the truth, so a move the day cannot pay for at the
+    ground's price bounces with nothing spent;
   - a hex the rules data doesn't know costs 1.
 - A **displace** move (Foundry's movement action) is free. That is how a GM
   repositions the token without travelling.

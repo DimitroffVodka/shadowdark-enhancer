@@ -10,7 +10,7 @@ import { disclosure, effectiveDiscovery, withPartyDiscovery } from "./hex-fog-co
 import { viewedPartyIds, playerViewOn } from "./hex-fog.mjs";
 import { HexTagOverlay, isDoubleClick } from "./tag-overlay.mjs";
 import { ruleKey, terrainCost } from "../rules-data/rules-data-core.mjs";
-import { hexZonesFor, onHexZonesForgotten } from "../encounter/encounter-terrain.mjs";
+import { hexZonesFor, onHexZonesForgotten, withGround } from "../encounter/encounter-terrain.mjs";
 
 const pick = (v, keys) => Object.fromEntries(keys.filter(k => typeof v?.[k] === "string").map(k => [k, v[k]]));
 /** GM hover is player-safe too; GM-private content belongs only in the editor. */
@@ -144,21 +144,22 @@ export function encounterReadout({ uuid, zone, verdict } = {}, name = "", active
 }
 /**
  * The hex's "To enter" stat: the terrain table's own type and cost for the
- * hex's own terrain tag, under the hex scene's rules, so it shows only what
- * Overland's hexCost charges for that tag. A keyed or settlement hex is tagged
- * "keyed_location", "village" and so on, which the table has no row for: travel
- * prices it as one hex, so the stat is blank, never the book's ground under it.
- * The base table only, exactly what terrainCost prices with no options: no
- * weather, storm, climate, path or boat adjustment, and impassable has no cost.
- * Null when the rules have no row, or the row names no type, so the window
- * stays blank instead of guessing a cost of 1 the way travel counts an unknown
- * terrain.
+ * ground the hex stands on, under the hex scene's rules, so it shows what
+ * Overland charges to enter it. A keyed or settlement hex is tagged with what
+ * SITS on it ("keyed_location", "village"...), which the table has no row for,
+ * so `ground` (the book row's terrain from hexZonesFor, the map travel prices
+ * with) names the ground instead (withGround). The base table only, exactly
+ * what terrainCost prices with no options: no weather, storm, climate, path or
+ * boat adjustment, and impassable has no cost. Null when the rules have no row
+ * for the ground, or the row names no type, so the window stays blank instead
+ * of guessing a cost of 1 the way travel counts an unknown terrain.
  * @param {object} rules  from rulesFrom(storedRulesFor(scene))
  * @param {{terrain?:string|null}|null} hex  the hex's terrain word (or the record)
+ * @param {{terrain:string|null, features:string[]}} [ground]  the book row's ground for this hex, if it has one
  * @returns {{type:"normal"|"difficult"|"impassable", cost:number|null}|null}
  */
-export function enterStat(rules, hex) {
-  const terrain = hex?.terrain;
+export function enterStat(rules, hex, ground) {
+  const terrain = withGround(hex, ground)?.terrain;
   const row = rules?.terrain?.[ruleKey(terrain)];
   if (!row?.type) return null;
   const cost = terrainCost(rules, terrain);

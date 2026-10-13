@@ -42,7 +42,7 @@ import { hexNum } from "../importer/hex/hex-dataset.mjs";
 import { readTags } from "./tag-store.mjs";
 import { HEX_FLAG } from "../importer/hex/hex-commit.mjs";
 import { MODULE_ID } from "../shared/module-id.mjs";
-import { findSuitePack } from "../shared/compendium-suite.mjs";
+import { findSuitePack, sourceFolderName } from "../shared/compendium-suite.mjs";
 import { assignRegionColors, extrasPalette, REGION_COLORS } from "./tag-overlay.mjs";
 
 /** Cube of a published hex number under the map's column-shift rule, or null. */
@@ -299,13 +299,39 @@ export function hexZones({ components = new Map(), fixes = new Map(), seeds = []
 }
 
 /**
+ * The folder (sourceFolderName) of the book a scene's numbered hexes were made from, or null for a scene no book
+ * claims: its print by hexMapId, else by a painted copy's tagged bounds (scenePrint, the one resolver).
+ */
+export async function sceneBookFolder(scene) {
+  const { scenePrint } = await import("./hex-records.mjs");
+  return scenePrint(scene)?.folder ?? null;
+}
+
+/**
+ * The keyed ground read from the rows of one book only (the folder sceneBookFolder names), never merged across
+ * books; no book, no ground. The one reading both the check (sceneZones) and the Encounter zones picture use.
+ * @param {Array<JournalEntry|{flags:object}>} entries  crawl entries (hex-commit)
+ * @param {string|null} book  the book's source folder, or null for a scene no book claims
+ */
+export function bookGround(entries, book) {
+  const own = (entry) => sourceFolderName((entry?.getFlag?.(MODULE_ID, HEX_FLAG) ?? entry?.flags?.[MODULE_ID]?.[HEX_FLAG])?.source) === book;
+  return keyedGround(book === null ? [] : (entries ?? []).filter(own));
+}
+
+/**
  * hexZones for a scanned scene: its borders and fixes, the filed crawls for the
  * names, its own column shift, and Extras' palette when Extras offers one.
+ * Books number their hexes from the same range, so the ground is read only from
+ * the rows of the scene's own book, never merged across books; a scene no book
+ * claims has none.
  * @param {object|null} scene  the PRINT scene carrying the scan, not the Extras scene
+ * @param {{folder?: string|null}} [opts]  the book folder the ground comes from, when the scene priced is not the
+ *   scanned one (a homebrew map borrows the world's one scan); read from `scene` when absent
  */
-export async function sceneZones(scene) {
+export async function sceneZones(scene, { folder } = {}) {
   if (!scene) return { ...hexZones(), ground: new Map() };
   const entries = await crawlEntries();
+  const book = folder === undefined ? await sceneBookFolder(scene) : folder;
   return {
     ...hexZones({
       components: sceneRegions(scene),
@@ -314,7 +340,7 @@ export async function sceneZones(scene) {
       shifted: sceneShift(scene),
       palette: extrasPalette() ?? REGION_COLORS,
     }),
-    ground: keyedGround(entries),
+    ground: bookGround(entries, book),
   };
 }
 

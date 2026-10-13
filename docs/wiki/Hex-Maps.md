@@ -33,11 +33,17 @@ immediately. The header's **To enter** stat prices the hex from the terrain tabl
 of that scene's own Rules data ruleset — Normal, Difficult or Impassable with its
 cost, the number travel charges to enter that hex from the same base terrain
 table. It reads that table only, so weather, storms, paths and boats can change
-what travel actually charges. A keyed location or a settlement shows no cost,
-because it is tagged with what stands on it and travel prices it as one hex,
-unless a custom terrain table has a row for that tag, in which case the row is
-shown and charged alike; with no rules imported, or no row for the terrain, it
-is blank as well rather than guessing a cost.
+what travel actually charges. A keyed location or a settlement is tagged with
+what stands on it, so both travel and the stat take the ground its book row
+names ("Swamp", "Mountain"...): a tower on a swamp costs what a swamp does,
+read from the rows of the book the map was made from and no other book's. A
+keyed hex whose row names no ground, or a map that is not made from a known
+book's print, costs one hex and shows no cost; with no rules imported, or no row
+for the terrain, the stat is blank rather than guessing a cost. The ground is
+the GM's: a player's route preview shows one hex for a keyed location or a
+settlement, because the book's rows say what lies under places the party has
+not found, and a move that the ground makes too dear for the day is sent back
+with nothing spent.
 A hex with a keyed-location pin (see *Keyed locations on the map*)
 is named by its pinned page unless you type a title, and Hex Data lists that page
 with a button to open it. The pin can be the Enhancer's own or the note Shadowdark

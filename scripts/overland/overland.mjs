@@ -40,7 +40,7 @@ import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { CrawlState } from "../crawl-strip/crawl-state.mjs";
 import { authorizeActorFor, isActiveGM, queryActiveGM, refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
 import { makeQueue } from "../quests/quest-core.mjs";
-import { hasHexTerrain, hexReader, hexZonesFor, isHexMapScene, partyHex } from "../encounter/encounter-terrain.mjs";
+import { hasHexTerrain, hexReader, hexZonesFor, isHexMapScene, partyHex, withGround, onHexZonesForgotten } from "../encounter/encounter-terrain.mjs";
 import { BOAT_TYPE, MOUNT_TYPE } from "../actors/register-actors.mjs";
 import { dawnAfter, dateParts, hourOfDay, secondsPerDay, startOfDay } from "../time/time-core.mjs";
 import { advanceOffDuty } from "../time/off-duty.mjs";
@@ -122,6 +122,7 @@ let _state = defaultOverlandState();
 /** Re-read the setting (the only truth) and tell this client's listeners. */
 function reread() {
   _state = normalizeOverlandState(game.settings.get(MODULE_ID, OVERLAND_SETTING));
+  void warmTravelGround();   // the travel token or scene may have changed
   Hooks.callAll(OVERLAND_CHANGED, structuredClone(_state));
 }
 
@@ -130,6 +131,7 @@ async function commit(next) {
   _state = normalizeOverlandState(next);
   await game.settings.set(MODULE_ID, OVERLAND_SETTING, _state);
   game.socket.emit(SOCKET, { type: "overland" });
+  void warmTravelGround();   // a Start travel names the token
   Hooks.callAll(OVERLAND_CHANGED, structuredClone(_state));
 }
 
@@ -781,6 +783,83 @@ export const travelSettled = () => (isActiveGM()
   ? serialize(() => undefined)
   : queryActiveGM(OVERLAND_QUERY, { action: "settled" }, { label: t("SDE.overland.relayLabel") }));
 
+// ── The ground under keyed and settlement hexes (#501) ──────────────────────
+
+/**
+ * A keyed or settlement hex is tagged with what SITS on it, so the terrain table has no row for the tag; its
+ * book row names the ground. Pricing is synchronous and runs thousands of steps per route, but the rows come
+ * from the journals pack (hexZonesFor, async), so the travel scene's ground is held here once read: scene id
+ * to hexZonesFor's `ground` map. Only the GM's client reads and holds it: the pack is GM-only, and the map says
+ * what lies under keyed locations the players have not found. A player's client has none and prices as before;
+ * the GM's charge is the truth, and a move the day cannot pay for goes back through the usual bounce.
+ *
+ * A change to a crawl entry or a region fix marks the map out of date but keeps serving it (previews stay
+ * right); it is read again only when a price needs it: inside the GM's queue ahead of the next move, or at the
+ * ambient triggers (a canvas, a change of travel token).
+ */
+const _ground = new Map();
+/** Scene ids whose map predates the last forget. */
+const _groundStale = new Set();
+/** Reads in flight, by scene id: asks share one. */
+const _groundReads = new Map();
+/** Scenes whose read failed and has not succeeded since: said once, and not re-asked by the ambient warm. */
+const _groundFailed = new Set();
+let _groundEpoch = 0;
+
+/** The travel scene's loaded ground map, or null until it is read. Synchronous; an out-of-date map is still served. */
+export const loadedGround = (scene) => _ground.get(scene?.id) ?? null;
+
+/**
+ * Read a scene's ground when it has none or it is out of date; the GM's client only. Never rejects: a failed
+ * read keeps the map it has (null when none), so missing data never stops travel. A move asks again after a
+ * failure; the `ambient` warm (a canvas, a state change) does not, so an offline pack is not read on every commit.
+ * @returns {Promise<Map<number,{terrain:string|null, features:string[]}>|null>}
+ */
+export function warmGround(scene, { ambient = false } = {}) {
+  const id = scene?.id;
+  if (!id || !game.user?.isGM) return Promise.resolve(null);
+  if (_ground.has(id) && !_groundStale.has(id)) return Promise.resolve(_ground.get(id));
+  if (ambient && _groundFailed.has(id)) return Promise.resolve(_ground.get(id) ?? null);
+  if (_groundReads.has(id)) return _groundReads.get(id);
+  const read = (async () => {
+    try {
+      let epoch, ground;
+      // Forgotten while it was read: that answer may be stale, so ask again (a few times, not for ever).
+      for (let tries = 0; tries < 3; tries++) {
+        epoch = _groundEpoch;
+        ({ ground } = await hexZonesFor(scene));
+        if (epoch === _groundEpoch) break;
+      }
+      _ground.set(id, ground instanceof Map ? ground : new Map());
+      if (epoch === _groundEpoch) _groundStale.delete(id);
+      _groundFailed.delete(id);
+    } catch (err) {
+      if (!_groundFailed.has(id)) {
+        _groundFailed.add(id);
+        console.warn(`${MODULE_ID} | travel ground not read; keyed hexes cost what they did until it is`, err);
+      }
+    } finally { _groundReads.delete(id); }
+    return _ground.get(id) ?? null;
+  })();
+  _groundReads.set(id, read);
+  return read;
+}
+
+/** Read the travel token's scene ahead of the first price. Nothing is read while nobody travels. */
+const warmTravelGround = () => { const scene = travelScene(); return scene ? warmGround(scene, { ambient: true }) : Promise.resolve(null); };
+
+/**
+ * A crawl entry, scene or region fix changed: the maps held are out of date, and nothing is read until a price
+ * needs one (a burst of writes, a fog save's two journals and a scene flag, is one read at most).
+ */
+function groundForgotten() {
+  if (!game.user?.isGM) return;
+  _groundEpoch++;
+  for (const id of [..._ground.keys()]) {
+    if (game.scenes?.get?.(id)) _groundStale.add(id); else { _ground.delete(id); _groundStale.delete(id); }
+  }
+}
+
 function costToday() {
   const s = overlandState();
   const terrainCost = game.shadowdarkEnhancer?.rules?.terrainCost;
@@ -793,7 +872,11 @@ function costToday() {
     if (!memo.has(terrain)) memo.set(terrain, terrainCost(terrain, opts));
     return memo.get(terrain);
   };
-  return (hex, from) => hexCost(byTerrain, hex, { from, stormy: s.stormy, harsh: !!s.harsh, boat: s.method === "sailing" });
+  // A keyed or settlement hex, and the hex it was entered from, stand on their book row's ground: its terrain
+  // and its path, so a road through a keyed hex still costs 1 from path to path. Read once per pricer.
+  const ground = loadedGround(rulesScene());
+  const stands = (hex) => (ground ? withGround(hex, ground.get(hex?.num)) : hex);
+  return (hex, from) => hexCost(byTerrain, stands(hex), { from: stands(from), stormy: s.stormy, harsh: !!s.harsh, boat: s.method === "sailing" });
 }
 
 /** Price a move of the travel token, or null when its scene isn't a hex map. */
@@ -843,9 +926,18 @@ export function slowWalk(doc, move, options, priced) {
 function onMoveToken(doc, movement, operation) {
   if (!isActiveGM() || !isTravelMove(doc, operation)) return;
   const dest = movement.passed.waypoints.at(-1);
-  const priced = dest && priceTravelMove(doc, movement.origin, movement.passed.waypoints);
+  if (!dest) return;
+  const { origin } = movement, waypoints = movement.passed.waypoints;
+  const scene = rulesScene();
+  const warm = !scene?.id || (_ground.has(scene.id) && !_groundStale.has(scene.id));
+  const price = () => priceTravelMove(doc, origin, waypoints);
+  // Cold (the first move after a start), or out of date after a crawl entry changed: pricing is synchronous, so
+  // the ground is read first, as part of the move's own queue job. The slot is claimed now, so the read, the price
+  // and the record are one job and moves (and travelSettled) keep arrival order. warmGround never rejects; a
+  // failed read prices as before.
+  const priced = warm ? price() : async () => { await warmGround(scene); return price(); };
   // Even a move within one hex goes through: it may start from an unpaid spot.
-  if (priced) recordMove(doc, movement.origin, dest, priced, movement.passed.waypoints, performance.now());
+  if (priced) return recordMove(doc, origin, dest, priced, waypoints, performance.now()).catch((err) => console.error(`${MODULE_ID} | travel move`, err));
 }
 
 /**
@@ -880,6 +972,9 @@ const posKey = (p) => `${Math.round(p.x)}:${Math.round(p.y)}:${p.elevation ?? 0}
  */
 export function recordMove(doc, origin, dest, priced, waypoints = [dest], movedAt = performance.now()) {
   return serialize(async () => {
+    // A function prices the move here, in the queue: its slot was claimed when the move came in.
+    if (typeof priced === "function") priced = await priced();
+    if (!priced) return true;
     const back = _unpaid.get(posKey(origin));
     const why = back ? "dependent" : moveVerdict(_state, priced);
     if (why) {
@@ -1444,6 +1539,12 @@ export function registerOverland() {
   game.socket.on(SOCKET, (msg) => { if (msg?.type === "overland") reread(); });
   Hooks.on("preMoveToken", onPreMoveToken);
   Hooks.on("moveToken", onMoveToken);
+  // The ground under keyed hexes is read ahead of the first price: now, on each canvas, whenever the travel
+  // state is committed or re-read (reread, commit). Once the regions are forgotten it is only marked out of
+  // date and read later: in the next move's job, or on canvasReady / a change of travel token.
+  Hooks.on("canvasReady", warmTravelGround);
+  onHexZonesForgotten(groundForgotten);
+  void warmTravelGround();
   // The party sheet changed: the roster travel uses follows it.
   Hooks.on("updateActor", (actor, change) => {
     if (!isActiveGM() || !CrawlState.isOverland || !change.flags?.[MODULE_ID]?.partyData) return;
