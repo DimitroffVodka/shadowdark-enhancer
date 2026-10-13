@@ -166,7 +166,10 @@ its folder is deleted.
 
 To keep a bake from showing a hole where a hidden location stands, the API's `hexMaps.fillKeyedGround(scene)`
 puts one plain ground Tile in each keyed hex first, in the picture its nearest same-terrain neighbour wears, and
-`hexMaps.removeKeyedGround(scene)` takes exactly those Tiles away again.
+`hexMaps.removeKeyedGround(scene)` takes exactly those Tiles away again. The ground under a keyed hex is its row in
+the map's own book, never another book's row of the same number; a map no print claims takes the terrain most of its
+neighbours stand on. A fill never changes a Tile, so ground laid wrong by an earlier fill stays until you run
+`removeKeyedGround` and fill again.
 
 Legacy flagged NPC Parties adopt in place with UUIDs/items/ownership/foreign
 flags retained. SDX `type: Party` documents are not converted. Native hex adoption
