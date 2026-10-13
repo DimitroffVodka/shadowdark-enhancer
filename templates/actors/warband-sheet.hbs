@@ -8,9 +8,9 @@
     {{!-- Abilities: the NPC stat block (shared with the Mount sheet) --}}
     <section class="sde-veh-tab-content {{#if tab.stats}}active{{/if}}" data-tab-content="stats">
      <div class="sde-mount-abilities">
-      <div class="sde-mount-left">
+      <div class="sde-mount-left grid-2-columns">
       {{> "modules/shadowdark-enhancer/templates/actors/npc-stat/top.hbs"}}
-      <div class="SD-box">
+      <div class="SD-box grid-colspan-2">
         <div class="header"><label>{{localize "SHADOWDARK.sheet.abilities.modifiers"}}</label><span></span></div>
         <div class="content grid-2-columns">
           {{#each warbandAbilities}}

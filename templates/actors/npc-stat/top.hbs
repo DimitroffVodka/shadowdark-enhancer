@@ -1,5 +1,5 @@
-{{!-- Shared NPC stat block (Mount and Warband sheets): hit points, then armor class and level side by side. --}}
-      <div class="SD-box">
+{{!-- Shared NPC stat block (Mount and Warband sheets): hit points across the column, armor class and level side by side. The three boxes are direct children of the sheet's grid-2-columns, as on the system's NPC sheet. --}}
+      <div class="SD-box grid-colspan-2">
         <div class="header">
           <label>{{localize "SHADOWDARK.sheet.actor.hp"}}</label>
           <span>{{#if owner}}<a class="fas fa-dice" data-action="rollHp"></a>{{/if}}</span>
@@ -12,13 +12,11 @@
           </div>
         </div>
       </div>
-      <div class="sde-mount-pair">
-        <div class="SD-box">
-          <div class="header"><label>{{localize "SHADOWDARK.sheet.actor.ac"}}</label><span></span></div>
-          <div class="content centered larger"><input type="number" name="system.attributes.ac.value" value="{{system.attributes.ac.value}}" placeholder="0" /></div>
-        </div>
-        <div class="SD-box">
-          <div class="header"><label>{{localize "SHADOWDARK.sheet.actor.level"}}</label><span></span></div>
-          <div class="content centered larger"><input type="number" name="system.level.value" value="{{system.level.value}}" placeholder="0" /></div>
-        </div>
+      <div class="SD-box">
+        <div class="header"><label>{{localize "SHADOWDARK.sheet.actor.ac"}}</label><span></span></div>
+        <div class="content centered larger"><input type="number" name="system.attributes.ac.value" value="{{system.attributes.ac.value}}" placeholder="0" /></div>
+      </div>
+      <div class="SD-box">
+        <div class="header"><label>{{localize "SHADOWDARK.sheet.actor.level"}}</label><span></span></div>
+        <div class="content centered larger"><input type="number" name="system.level.value" value="{{system.level.value}}" placeholder="0" /></div>
       </div>

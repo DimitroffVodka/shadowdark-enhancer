@@ -8,9 +8,9 @@
     {{!-- Stats --}}
     <section class="sde-veh-tab-content {{#if tab.stats}}active{{/if}}" data-tab-content="stats">
      <div class="sde-mount-abilities">
-      <div class="sde-mount-left">
+      <div class="sde-mount-left grid-2-columns">
       {{> "modules/shadowdark-enhancer/templates/actors/npc-stat/top.hbs"}}
-      <div class="SD-box">
+      <div class="SD-box grid-colspan-2">
         <div class="header">
           <label>{{localize "SHADOWDARK.sheet.abilities.stats"}}</label>
           <span>
@@ -29,7 +29,7 @@
                 {{else}}
                   <span {{#if damage}}class="sde-mount-damaged" data-tooltip="{{localize 'SDE.mount.damagedScore' base=base damage=damage}}"{{/if}}>{{value}}</span>
                 {{/if}}
-                ({{numberFormat mod decimals=0 sign=true}})
+                <span class="sde-mod">({{numberFormat mod decimals=0 sign=true}})</span>
               </div>
             </div>
           {{/each}}

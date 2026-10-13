@@ -9,6 +9,7 @@
 
 ### Changed
 
+- **The Mount and Warband sheets take the Shadowdark NPC sheet's layout and, with Shadowdark Extras' NPC player theme on, its look.** Hit points run across the top, Armor class and Level sit side by side, and Stats, Movement and Alignment run across, as on the system's own NPC sheet; each ability is one cell with its label left and its value right, and a Mount's modifier sits small after its score. When Extras' NPC player theme setting is on, these sheets wear the same classes it puts on the system's NPC sheet, so its borders and colours reach them. An attack's d20 icon shows on hover only, as on the system's sheet, and the Dark adapted heading follows the sheet's text colour instead of a fixed dark one.
 - **The battle map's status and fold control moved to the Crawl Bar.** While a battle was staged or live, a slim bar
   reading "Battle map | Live" drew in the clock's top slot and held the Crawl Strip 48 px down under it, so the top of the
   canvas read as two stacked strips on the battle's own scene and in its combat. The battle now has one item on the Crawl
