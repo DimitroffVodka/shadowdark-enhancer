@@ -74,10 +74,12 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const numbered = Number.isInteger(record.num), all = numbered ? Quests.list() : [];
     const here = questsAtHex(all, { num: record.num, sceneUuid: this.scene.uuid });
     const pad = n => String(n).padStart(4, "0"), row = q => ({ uuid: q.uuid, name: q.name, status: t(STATUS_LABELS[q.status]) });
-    // A keyed hex lists the book's own pages, pin or no pin; when there are none the section says why instead of vanishing.
+    // A keyed hex lists the book's own pages, pin or no pin. With none, an imported crawl means the hex is simply not keyed
+    // (no section, as before); only when no crawl was found does the section say why instead of vanishing.
     const book = numbered ? await this._keyedBookPages(record.num) : null;
     const keyed = mergeKeyedPages(record.keyed ?? [], book?.pages ?? []);
-    return { ...d, keyed, keyedSection: numbered, keyedNote: keyed.length ? "" : t(book?.book ? "SDE.hexExplorer.noKeyedPages" : "SDE.hexExplorer.noBook"),
+    const explain = numbered && !keyed.length && !book?.imported;
+    return { ...d, keyed, keyedSection: keyed.length > 0 || explain, keyedNote: explain ? t(book?.book ? "SDE.hexExplorer.noKeyedPages" : "SDE.hexExplorer.noBook") : "",
       questSection: numbered, quests: here.map(row),
       // A quest already tied to another hex says so, so moving it is a choice and not a surprise.
       questChoices: all.filter(q => !here.includes(q)).map(q => ({ ...row(q), where: q.hex === null ? "" : ` → ${pad(q.hex)}` })),
@@ -91,7 +93,8 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _keyedBookPages(num) {
     return this.keyedBook ??= bookKeyedPages(this.scene, num).catch(error => {
       console.error(`${MODULE_ID} | Hex Data keyed pages`, error);
-      return { book: true, pages: [] };
+      this.keyedBook = null; // a transient failure is not kept for the life of the window
+      return { book: true, imported: false, pages: [] };
     });
   }
   async _setQuestHex(uuid, num) {

@@ -183,16 +183,17 @@ test("the book's crawl pages are found by number, scoped to that book, the deplo
   const csScene = { getFlag: (_m, key) => (key === "hexMapId" ? "hex-cs5" : undefined) };
   globalThis.game = { packs: [pack], journal: { get: (id) => (id === "wr" ? worldWr : null) } };
   try {
-    assert.deepEqual(await bookKeyedPages(wrScene, 1403), { book: true, pages: [{ uuid: "JournalEntry.wr.JournalEntryPage.a", title: "1403 Thornmere" }] },
+    assert.deepEqual(await bookKeyedPages(wrScene, 1403), { book: true, imported: true, pages: [{ uuid: "JournalEntry.wr.JournalEntryPage.a", title: "1403 Thornmere" }] },
       "the world copy answers where the pin step deployed it; the other book's 1403 page and a numberless page stay out");
-    assert.deepEqual(await bookKeyedPages(csScene, 1403), { book: true, pages: [{ uuid: "Compendium.world.sde-journal.JournalEntry.cs.JournalEntryPage.x", title: "1403 The Wrong Book" }] },
+    assert.deepEqual(await bookKeyedPages(csScene, 1403), { book: true, imported: true, pages: [{ uuid: "Compendium.world.sde-journal.JournalEntry.cs.JournalEntryPage.x", title: "1403 The Wrong Book" }] },
       "with no world copy the pack copy answers, and only this book's entry");
-    assert.deepEqual(await bookKeyedPages(wrScene, 1404), { book: true, pages: [] }, "the world copy stands in for the whole entry, pack-only pages included");
+    assert.deepEqual(await bookKeyedPages(wrScene, 1404), { book: true, imported: true, pages: [] }, "an imported crawl with no page for the hex is told apart from no crawl; the world copy stands in for the whole entry, pack-only pages included");
     globalThis.game.packs = [];
-    assert.deepEqual(await bookKeyedPages(wrScene, 1403), { book: true, pages: [] }, "no journals pack reads as nothing imported, not as an untied scene");
+    assert.deepEqual(await bookKeyedPages(wrScene, 1403), { book: true, imported: false, pages: [] }, "no journals pack reads as nothing imported, not as an untied scene");
     globalThis.game.packs = [pack];
-    assert.deepEqual(await bookKeyedPages({ getFlag: () => undefined }, 1403), { book: false, pages: [] }, "a scene no book claims says so");
-    assert.deepEqual(await bookKeyedPages(wrScene, null), { book: true, pages: [] });
+    assert.deepEqual(await bookKeyedPages({ getFlag: () => undefined }, 1403), { book: false, imported: false, pages: [] }, "a scene no book claims says so");
+    assert.deepEqual(await bookKeyedPages(wrScene, null), { book: true, imported: true, pages: [] });
+    assert.deepEqual(await bookKeyedPages(wrScene, 9999), { book: true, imported: true, pages: [] }, "a number outside the print is not a missing import");
   } finally {
     if (saved === undefined) delete globalThis.game; else globalThis.game = saved;
   }

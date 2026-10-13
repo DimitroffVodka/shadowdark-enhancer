@@ -36,9 +36,11 @@ hexes with Extras on or off. With no pin at all, Hex Data still lists the page: 
 goes from the scene to its book — the map id the flow wrote, or, for a painted copy,
 the bounds its tags carry — to that book's crawl entries (the copy deployed into the
 world where the pin step placed one, else the pack copy), and to the pages numbered
-for this hex. Another book's same-numbered page never appears, and when nothing is
-found the section says why (*This scene is not tied to a book* or *No key locations
-imported for this book*) instead of vanishing. Players are unchanged: they still
+for this hex. Another book's same-numbered page never appears. A hex of an imported
+book that is simply not keyed shows no section, as before; when no crawl of the
+book is imported (or the scene is tied to no book) the section says why (*No key
+locations imported for this book* or *This scene is not tied to a book*) instead of
+vanishing. Players are unchanged: they still
 reach a page only through a pin, and only with Observer access. Pins, token drags
 and long-press pings retain their handlers.
 

@@ -175,19 +175,22 @@ export function scenePrint(scene) {
  * pin step has placed one, else the pack copy), and the pages carrying this
  * number in their flag. Scoped to that book's entries, so another book's page
  * with the same number is never listed. GM path only; players keep the pins.
- * @returns {Promise<{book: boolean, pages: Array<{uuid:string, title:string}>}>} `book` = the scene is tied to a known print
+ * @returns {Promise<{book: boolean, imported: boolean, pages: Array<{uuid:string, title:string}>}>} `book` = the scene is
+ *   tied to a known print; `imported` = that book's crawl entry was found, so an empty `pages` means this hex is not keyed
  */
 export async function bookKeyedPages(scene, num) {
   const print = scenePrint(scene);
-  if (!print) return { book: false, pages: [] };
-  if (!Number.isInteger(num)) return { book: true, pages: [] };
+  if (!print) return { book: false, imported: false, pages: [] };
   const pack = findSuitePack("journal");
   let entries = [];
   if (pack) { try { entries = await pack.getDocuments(); } catch { entries = []; } }
   const out = [];
+  let imported = false;
   for (const entry of entries) {
     const flag = entry.getFlag?.(MODULE_ID, HEX_FLAG);
     if (!flag?.crawl || sourceFolderName(flag.source) !== print.folder) continue;
+    imported = true;
+    if (!Number.isInteger(num)) continue;
     // The deployment keeps the pack entry's id, so the world copy is the same document the GM sees and may have edited.
     const pages = (globalThis.game?.journal?.get?.(entry.id) ?? entry).pages?.contents ?? [];
     for (const page of pages) {
@@ -195,7 +198,7 @@ export async function bookKeyedPages(scene, num) {
       if (!out.some(k => k.uuid === page.uuid)) out.push({ uuid: page.uuid, title: page.name });
     }
   }
-  return { book: true, pages: out };
+  return { book: true, imported, pages: out };
 }
 /** The keyed rows for one hex: the pinned pages first, then the book's own; one row per document. */
 export function mergeKeyedPages(pins = [], book = []) {
