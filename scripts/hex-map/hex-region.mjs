@@ -117,6 +117,24 @@ export function keyedGround(entries) {
 }
 
 /**
+ * The name the book prints on each keyed row, by hex number: what a hex hover shows on a scene that has no pins
+ * for the pages. First row per number wins, as with the seeds.
+ * @param {Array<JournalEntry|{flags:object}>} entries  crawl entries (hex-commit)
+ * @returns {Map<number, string>}
+ */
+export function keyedNames(entries) {
+  const out = new Map();
+  for (const entry of entries ?? []) {
+    const flag = entry?.getFlag?.(MODULE_ID, HEX_FLAG) ?? entry?.flags?.[MODULE_ID]?.[HEX_FLAG] ?? {};
+    for (const row of flag.keyed ?? []) {
+      const num = hexNum(row?.num), name = String(row?.name ?? "").trim();
+      if (num !== null && name && !out.has(num)) out.set(num, name);
+    }
+  }
+  return out;
+}
+
+/**
  * The region of one hex: its own when it is keyed, else the nearest seed's.
  * Ties go to the lowest seed number, so the same seeds always answer the same.
  * @param {string|number} id  published hex number
