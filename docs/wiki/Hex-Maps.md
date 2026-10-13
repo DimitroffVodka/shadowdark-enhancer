@@ -43,6 +43,12 @@ locations imported for this book* or *This scene is not tied to a book*) instead
 vanishing. Players are unchanged: they still
 reach a page only through a pin, and only with Observer access. Pins, token drags
 and long-press pings retain their handlers.
+The header wears the hex's own art when there is one: a baked map's sprite for that
+hex, else the tile its number is painted with — the **Tile art** manifest you loaded,
+or the table shipped for the Western Reaches print. Pressing it opens Foundry's image
+pop-out, whose eye control shares the picture with your players. A hex with no art, or
+whose file is gone (Extras uninstalled), keeps the plain hexagon; no art is uploaded,
+and the players' hover never grows a picture.
 
 The window also has a **Quests here** card on a numbered hex: the quests tied to
 this hex, each with a button to open it and one to unlink it, and a picker of
