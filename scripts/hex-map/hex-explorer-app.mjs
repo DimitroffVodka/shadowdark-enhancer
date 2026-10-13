@@ -1,5 +1,5 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
-import { HexRecords, sceneRef, offsetKey } from "./hex-records.mjs";
+import { HexRecords, sceneRef, offsetKey, bookKeyedPages, mergeKeyedPages } from "./hex-records.mjs";
 import { HexExplorer, explorerCell, encounterReadout } from "./hex-explorer.mjs";
 import { viewedPartyIds } from "./hex-fog.mjs";
 import { effectiveDiscovery } from "./hex-fog-core.mjs";
@@ -39,7 +39,7 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     },
   };
   static PARTS = { body: { template: `modules/${MODULE_ID}/templates/hex-map/hex-explorer.hbs`, scrollable: [".sde-hex-explorer-body"] } };
-  constructor(offset, scene, options = {}) { super(options); this.offset = { ...offset }; this.scene = scene; this.draft = null; this.saving = false; }
+  constructor(offset, scene, options = {}) { super(options); this.offset = { ...offset }; this.scene = scene; this.draft = null; this.saving = false; this.keyedBook = null; }
   static open(offset, target) {
     const scene = sceneRef(target);
     if (!game.user?.isGM || !explorerCell(scene, offset)) return null;
@@ -74,8 +74,13 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const numbered = Number.isInteger(record.num), all = numbered ? Quests.list() : [];
     const here = questsAtHex(all, { num: record.num, sceneUuid: this.scene.uuid });
     const pad = n => String(n).padStart(4, "0"), row = q => ({ uuid: q.uuid, name: q.name, status: t(STATUS_LABELS[q.status]) });
-    // The book's page for a keyed hex comes from the map's pin on it, not from the stored cell, so it is shown but never saved.
-    return { ...d, keyed: record.keyed ?? [], questSection: numbered, quests: here.map(row),
+    // A keyed hex lists the book's own pages, pin or no pin. With none, an imported crawl means the hex is simply not keyed
+    // (no section, as before); only when no crawl was found does the section say why instead of vanishing.
+    const book = numbered ? await this._keyedBookPages(record.num) : null;
+    const keyed = mergeKeyedPages(record.keyed ?? [], book?.pages ?? []);
+    const explain = numbered && !keyed.length && !book?.imported;
+    return { ...d, keyed, keyedSection: keyed.length > 0 || explain, keyedNote: explain ? t(book?.book ? "SDE.hexExplorer.noKeyedPages" : "SDE.hexExplorer.noBook") : "",
+      questSection: numbered, quests: here.map(row),
       // A quest already tied to another hex says so, so moving it is a choice and not a surprise.
       questChoices: all.filter(q => !here.includes(q)).map(q => ({ ...row(q), where: q.hex === null ? "" : ` → ${pad(q.hex)}` })),
       rootId: this.id, encounter: { ...enc, note: game.i18n.format(ENCOUNTER_NOTES[enc.state], enc) }, isGM: true, saving: this.saving, sceneName: this.scene.name,
@@ -83,6 +88,14 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       locationAuto: d.location === "auto", locationShow: d.location === "show", locationHide: d.location === "hide",
       terrainOptions: this._terrainOptions(d.terrain),
       lineRows: FEATURES.map(type => ({ type, label: t(LABELS[type]), checked: d.lines.includes(type) })) };
+  }
+  /** The book's pages for this hex: one pack read per window, not one per render. */
+  _keyedBookPages(num) {
+    return this.keyedBook ??= bookKeyedPages(this.scene, num).catch(error => {
+      console.error(`${MODULE_ID} | Hex Data keyed pages`, error);
+      this.keyedBook = null; // a transient failure is not kept for the life of the window
+      return { book: true, imported: false, pages: [] };
+    });
   }
   async _setQuestHex(uuid, num) {
     if (!uuid || !game.user?.isGM) return;

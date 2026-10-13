@@ -32,7 +32,17 @@ immediately. A hex with a keyed-location pin (see *Keyed locations on the map*)
 is named by its pinned page unless you type a title, and Hex Data lists that page
 with a button to open it. The pin can be the Enhancer's own or the note Shadowdark
 Extras places on a keyed hex of a map it painted, so a painted map names its keyed
-hexes with Extras on or off. Pins, token drags and long-press pings retain their handlers.
+hexes with Extras on or off. With no pin at all, Hex Data still lists the page: it
+goes from the scene to its book — the map id the flow wrote, or, for a painted copy,
+the bounds its tags carry — to that book's crawl entries (the copy deployed into the
+world where the pin step placed one, else the pack copy), and to the pages numbered
+for this hex. Another book's same-numbered page never appears. A hex of an imported
+book that is simply not keyed shows no section, as before; when no crawl of the
+book is imported (or the scene is tied to no book) the section says why (*No key
+locations imported for this book* or *This scene is not tied to a book*) instead of
+vanishing. Players are unchanged: they still
+reach a page only through a pin, and only with Observer access. Pins, token drags
+and long-press pings retain their handlers.
 
 The window also has a **Quests here** card on a numbered hex: the quests tied to
 this hex, each with a button to open it and one to unlink it, and a picker of
