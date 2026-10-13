@@ -262,6 +262,8 @@ function regionAt(scene, num) {
   if (!regionsByScene.has(scene.id)) { loadRegions(scene); return null; }
   return regionLine(regionsByScene.get(scene.id), num);
 }
+/** The hover's region line. The GM's Player view previews the players' card, and a region is GM-only: print none and read none. */
+export const hoverRegion = (scene, num, asPlayer) => asPlayer ? null : regionAt(scene, num);
 function line(parent, text, tag = "div") {
   const el = document.createElement(tag); el.textContent = text; parent.append(el); return el;
 }
@@ -279,7 +281,7 @@ export function refreshHexExplorer() {
   tip ??= document.createElement("aside");
   tip.id = "sde-hex-explorer-tip"; tip.className = selected ? "selected" : "";
   tip.replaceChildren(); document.body.append(tip);
-  const num = hexNumberAt(cell.offset, cell.scene), region = regionAt(cell.scene, num);
+  const num = hexNumberAt(cell.offset, cell.scene), region = hoverRegion(cell.scene, num, playerViewOn());
   line(tip, num === null ? game.i18n.format("SDE.hexExplorer.offset", cell.offset) : String(num).padStart(4, "0"), "strong");
   const record = game.user.isGM ? HexRecords.read(cell.offset, cell.scene) : null;
   const head = hoverHead(view, record, !game.user.isGM || playerViewOn());

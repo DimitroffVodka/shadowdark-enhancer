@@ -299,6 +299,24 @@ test("the cached regions say how each hex was named, and a change announces itse
   assert.equal(heard, 1);
 });
 
+test("the hover's region line is GM-only: Player view prints and reads none, a player client none, the GM's own view has it", async () => {
+  globalThis.foundry = { applications: { api: { ApplicationV2: class {}, HandlebarsApplicationMixin: (C) => C } } };
+  const { hoverRegion } = await import("../scripts/hex-map/hex-explorer.mjs");
+  const w = world();
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 20));
+  globalThis.game.user = { isGM: true };
+  assert.equal(hoverRegion(w.scene, 1511, true), null, "Player view");
+  await settle();
+  assert.equal(w.reads, 0, "Player view starts no read of the regions");
+  assert.equal(hoverRegion(w.scene, 1511, false), null, "the first GM hover starts the read");
+  await settle();
+  assert.equal(hoverRegion(w.scene, 1511, false).zone, "Grey Moor", "the GM still sees the region");
+  assert.equal(hoverRegion(w.scene, 1511, true), null, "Player view hides it again");
+  globalThis.game.user = { isGM: false };
+  assert.equal(hoverRegion(w.scene, 1511, false), null, "a player client shows nothing");
+  assert.equal(w.reads, 1, "and computes nothing");
+});
+
 test("an open Hex Data window redraws when its own hex's region changes, and on no other journal or scene write", async () => {
   globalThis.foundry = { applications: { api: { ApplicationV2: class { _onFirstRender() {} _onClose() {} }, HandlebarsApplicationMixin: (C) => C } } };
   const { HexExplorerApp } = await import("../scripts/hex-map/hex-explorer-app.mjs");
