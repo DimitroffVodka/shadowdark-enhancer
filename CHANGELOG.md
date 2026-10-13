@@ -4,6 +4,7 @@
 
 ### Added
 
+- **Hex fog tells other modules when it redraws (API 1.30.0, #490).** Shadowdark Extras' baked map draws each keyed location as a sprite and, on a scene the Enhancer owns, had nothing to ask whether the party has been there, so it showed every sprite to players from the first turn while the location notes stayed hidden. `Hooks.callAll("shadowdark-enhancer.hexFogChanged", { sceneId })` now fires on every client once per redraw of the viewed scene, after the overlay is rebuilt, and also on a pass where the Enhancer stands down (fog switched off, or the GM's veil hidden). A consumer asks `api.hexMaps.fog.disclosed(scene, { i, j }, "location")`, the same test the keyed notes use. Nothing changes at the table until Extras listens for it. `docs/API.md` has the contract.
 - **The base system's mounts can be made into Mounts.** The Shadowdark bestiary's Horse, Camel, Elephant, Griffon, Hippogriff, Moose, Pegasus and Worg are plain NPCs, so none of them could be ridden on the map, seated on the Riders tab or fed at camp, and the Mounts list in the Importer Hub did not offer them. It now lists all eight; Import copies the system's own creature (stats, attacks, art, token) into your Mounts folder as a Mount, with no book or PDF needed. Import everything includes them.
 
 ### Changed

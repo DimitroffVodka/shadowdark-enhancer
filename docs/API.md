@@ -24,7 +24,7 @@ and Forge & Loot features.
 [`time`](#time--season-day-and-night-sun-moon-and-anchors) ·
 [`overland`](#overland--the-travel-state)
 
-**API version:** `1.29.0` (semver — additive changes bump the minor version,
+**API version:** `1.30.0` (semver — additive changes bump the minor version,
 breaking changes the major; check `apiVersion` before relying on newer keys).
 
 ## Discovery
@@ -78,6 +78,55 @@ Committed travel is invoked by Overland after payment. Keyed location notes
 may additionally be marked in the Hex Data editor; public terrain notes remain
 visible on revealed cells. Deliberate raw Foundry document access is outside
 this ordinary-play spoiler-protection boundary.
+
+### Drawing from disclosure: `disclosed` and `shadowdark-enhancer.hexFogChanged`
+
+A module that draws something per hex (a baked map's keyed art, map furniture)
+asks `api.hexMaps.fog.disclosed(scene, { i, j }, "location")` for each hex and
+redraws on `hexFogChanged`. **`"location"` is the kind for art and furniture**:
+it is true only once the party has been to the hex or the GM revealed the
+location, the test the keyed location notes use, so the art and the pin appear
+together. `"terrain"` is the veil's own kind: true for a hex the party has only
+seen. Three answers, for a hex whose terrain is revealed:
+
+| Hex | `"terrain"` | `"location"` |
+|---|---|---|
+| seen, never visited | `true` | `false` |
+| visited by the party | `true` | `true` |
+| GM revealed the location (`locationRevealed`) | `true` | `true` |
+
+`disclosed` is synchronous. It takes the scene document and an `{i, j}` offset
+and answers for the person asking: a player from the projection the GM's client
+publishes, the GM from the private records, for the party they are viewing (the
+one selected, else the one travelling; with neither, only what was revealed to
+everyone). It returns `false` for a hex with no record and before the GM's
+records have loaded, which happens when the canvas first draws. A scene that
+somehow holds two record stores throws `SDE.hexRecords.duplicateStore`; treat a
+throw as hidden.
+
+```js
+Hooks.on("shadowdark-enhancer.hexFogChanged", ({ sceneId }) => {
+  // sceneId is canvas.scene.id; disclosed(...) already answers the new state
+});
+```
+
+Fires on **every client**, GM and players, each time that client redraws the
+scene on the canvas, after the overlay is rebuilt. A redraw follows a travel
+reveal, `setDisclosure` and `reset` / `undoReset` (on the GM's client from the
+GM's records, on a player's from the projection the GM's client publishes), a
+party selection (on the client that makes it), a roster change (on players'
+clients only: the GM's own map is read from each party's own entry, which a
+roster change does not touch), `setEnabled`, a change to the scene's flags, and
+the first draw of a scene once the GM's records have loaded. Writes that land in
+one frame share one redraw and one hook. `setEnabled` is two redraws on a real
+client (its own, and the one its scene-flag write queues a frame later), so a
+consumer with an expensive redraw should coalesce signals to a frame.
+
+It also fires on a pass that draws no overlay: the scene is not owned
+(`owns("hex.fog", scene)` is false, for instance right after `setEnabled(false)`),
+or the GM hid the veil on that browser (disclosure itself is unchanged by that).
+A consumer that sees the Enhancer stand down can fall back to its own state.
+Nothing fires while the canvas is not ready. Added in `1.30.0`.
 
 ---
 
