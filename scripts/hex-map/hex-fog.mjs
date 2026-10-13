@@ -55,7 +55,13 @@ export function fogCells(scene) {
 export function refreshHexFog() {
   overlay?.destroy(); overlay = null;
   const scene = globalThis.canvas?.scene;
-  if (!canvas?.ready || !ownsHexFog(scene) || (game.user.isGM && fogHiddenOn())) return;
+  if (!canvas?.ready || !scene) return;
+  if (ownsHexFog(scene) && !(game.user.isGM && fogHiddenOn())) drawFogOverlay(scene);
+  // Once per pass, after the overlay is built, and also when the veil stood down (not owned, or the GM hid it), so a
+  // consumer that draws from `disclosed` (Extras' baked keyed art) redraws, or falls back when the Enhancer steps aside.
+  Hooks.callAll(`${MODULE_ID}.hexFogChanged`, { sceneId: scene.id });
+}
+function drawFogOverlay(scene) {
   overlay = new PIXI.Graphics(); overlay.name = "sde-hex-fog"; overlay.eventMode = "none";
   overlay.beginFill(0x000000, game.user.isGM && !playerViewOn() ? 0.6 : 1);
   // One pass for every cell: the store journal, decoded tags and pin index are read once.

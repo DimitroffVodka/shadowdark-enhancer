@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+### Added
+
+- **Hex fog tells other modules when it redraws (API 1.30.0, #490).** Shadowdark Extras' baked map draws each keyed location as a sprite and, on a scene the Enhancer owns, had nothing to ask whether the party has been there, so it showed every sprite to players from the first turn while the location notes stayed hidden. `Hooks.callAll("shadowdark-enhancer.hexFogChanged", { sceneId })` now fires on every client once per redraw of the viewed scene, after the overlay is rebuilt, and also on a pass where the Enhancer stands down (fog switched off, or the GM's veil hidden). A consumer asks `api.hexMaps.fog.disclosed(scene, { i, j }, "location")`, the same test the keyed notes use. Nothing changes at the table until Extras listens for it. `docs/API.md` has the contract.
+- **The base system's mounts can be made into Mounts.** The Shadowdark bestiary's Horse, Camel, Elephant, Griffon, Hippogriff, Moose, Pegasus and Worg are plain NPCs, so none of them could be ridden on the map, seated on the Riders tab or fed at camp, and the Mounts list in the Importer Hub did not offer them. It now lists all eight; Import copies the system's own creature (stats, attacks, art, token) into your Mounts folder as a Mount, with no book or PDF needed. Import everything includes them.
+
+### Changed
+
+- **The battle map's status and fold control moved to the Crawl Bar.** While a battle was staged or live, a slim bar
+  reading "Battle map | Live" drew in the clock's top slot and held the Crawl Strip 48 px down under it, so the top of the
+  canvas read as two stacked strips on the battle's own scene and in its combat. The battle now has one item on the Crawl
+  Bar, right before Tools, in every mode and in the combat row: its name and stage (Staged or Live) and the control that
+  folds its panel, which opens upward from it like Tools and holds the same controls as before (who you are fighting, the
+  readout, Bring the table, Change map, Return to travel with Keep this battle). The clock bar no longer carries a
+  battle key, the top slot is the clock's alone, and the Crawl Strip sits at the top of the canvas on the battle's scene
+  and in its combat. Players see no change.
+
 ### Fixed
 
 - **A map painted in Extras lost its roads and rivers when Extras was switched off.** Extras draws a built map's road and river network itself, from a saved overlay, on every client, so turning it off left the painted hexes and dropped the roads and rivers. With Extras off the Enhancer now draws the same saved paths as plain lines, under the tokens and the fog; with Extras on it draws nothing and Extras draws its own. They are not Extras' hand-drawn pieces: Extras' Tile Flatten can bake the road and river overlays into the map image once, and then neither module has to draw them. The reader of Extras' stored hex records also no longer fails when Extras is off (it threw `Flag scope "shadowdark-extras" is not valid`); it reads the stored records directly, so a scene that was never adopted still has its terrain for encounters.

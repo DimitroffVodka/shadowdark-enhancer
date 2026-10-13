@@ -21,6 +21,9 @@ import { cleanImportHtml } from "../../shared/compendium-suite.mjs";
 import { alreadyImported } from "./mount-parser.mjs";
 import { mountScores } from "../../actors/mount-scores-core.mjs";
 
+/** The system's own bestiary, where the core mounts live as plain NPCs. */
+const SYSTEM_MONSTER_PACK = "shadowdark.monsters";
+
 /** Stable top-level folder for every imported Mount Actor. */
 export const MOUNT_FOLDER_NAME = "Mounts";
 const MOUNT_FOLDER_TYPE = "Actor";
@@ -39,6 +42,9 @@ export const CREATURE_KINDS = {
 
 /** Per pack, the folder creates in flight, by folder name. */
 const _mountFolderInFlight = new WeakMap();
+
+/** Core-mount copies in flight, by `pack:name`. */
+const _systemCopyInFlight = new Map();
 
 function _isMountFolder(folder, name = MOUNT_FOLDER_NAME) {
   const parent = folder?.folder;
@@ -167,6 +173,67 @@ export const MountImporter = {
         // Keep the other selected mounts importable. The missing name remains
         // absent from the report and therefore retryable by the batch path.
         console.error(`${MODULE_ID} | mount import failed for "${d?.name ?? "(untitled)"}":`, err);
+      }
+    }
+    return report;
+  },
+
+  /**
+   * Copy core-bestiary NPCs into the managed pack as Mount actors. The system's
+   * own actor is the source (stats, attacks, art, token), so no book is read;
+   * only the type and folder change. A name the bestiary lacks lands in
+   * `missing` and stays retryable.
+   * @param {string[]} names
+   * @returns {Promise<{created:string[],skipped:string[],replaced:string[],missing:string[]}>}
+   */
+  async createFromSystem(names) {
+    const report = { created: [], skipped: [], replaced: [], missing: [] };
+    const k = CREATURE_KINDS.Mount;
+    if (!game.user?.isGM) { ui.notifications?.warn(tr(k.gm)); return report; }
+    if (!names?.length) return report;
+
+    const system = game.packs.find((p) => p.collection === SYSTEM_MONSTER_PACK);
+    const bestiary = system ? [...await system.getIndex({ fields: ["type"] })] : [];
+    const pack = await ensureMonsterPack();
+    const folder = await ensureMountFolder(pack, k.folder);
+    if (!folder) {
+      ui.notifications?.error(tr(k.folderFailed));
+      return report;
+    }
+    const have = [...await pack.getIndex({ fields: ["type"] })];
+
+    for (const name of names) {
+      try {
+        const entry = bestiary.find((e) => e.type === "NPC" && e.name === name);
+        if (!entry) { report.missing.push(name); continue; }
+        if (have.some((e) => alreadyImported(e, { name, type: k.type }))) { report.skipped.push(name); continue; }
+
+        // The index above was read before this copy; a second press while one is running would make a second Mount.
+        const key = `${pack.collection}:${name}`;
+        const running = _systemCopyInFlight.get(key);
+        if (running) { await running.catch(() => {}); report.skipped.push(name); continue; }
+
+        const copy = (async () => {
+          const data = (await system.getDocument(entry._id)).toCompendium(pack);
+          data.type = k.type;
+          data.folder = folder;
+          data.flags = {
+            ...data.flags,
+            [MODULE_ID]: {
+              ...data.flags?.[MODULE_ID],
+              mountScores: mountScores(data.system?.abilities),
+              source: "Core Rulebook", imported: true,
+            },
+          };
+          return Actor.create(data, { pack: pack.collection });
+        })();
+        _systemCopyInFlight.set(key, copy);
+        let actor;
+        try { actor = await copy; } finally { _systemCopyInFlight.delete(key); }
+        if (actor) report.created.push(name);
+      } catch (err) {
+        // Keep the other names importable; the missing one stays retryable.
+        console.error(`${MODULE_ID} | mount copy failed for "${name}":`, err);
       }
     }
     return report;

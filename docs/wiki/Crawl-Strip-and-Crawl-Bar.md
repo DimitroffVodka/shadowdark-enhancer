@@ -44,6 +44,18 @@ The bar is always one row: a badge saying what is running, the one action you
 are most likely to want next, a few more, then **Tools** and **End** at the
 right. Controls that would do nothing are not drawn.
 
+### The battle map item
+
+While a [battle map](Encounter-Battle-Maps.md) is set up or running, one more item
+sits on the Crawl Bar right before **Tools**, in every mode and in the combat
+row: **Battle map** and its stage, **Staged** or **Live**. Press it to open or
+fold the battle's panel, which opens upward from it like Tools. The panel opens
+by itself while the map is being set up and folds when the table is brought, and
+it holds the same controls as before: who you are fighting, the readout of who has
+the map, **Bring the table**, **Change map**, **Return to travel** and **Keep this
+battle**. Only the GM sees it, and the clock bar at the top of the screen no
+longer carries anything of the battle.
+
 ### In crawl mode
 
 ![Crawl Bar, crawl mode](images/crawl-bar-crawl.png)

@@ -32,6 +32,7 @@ import { CHAR_SOURCES, citesForTable } from "./char-content/char-content-manifes
 import { sourcePdfTarget } from "./source-pdf-registry.mjs";
 import { releaseLocalPdfs } from "./pdf-text-extract.mjs";
 import { firstLinkedCite } from "./manage-tree.mjs";
+import { isSystemMountEntry } from "./boats/mount-parser.mjs";
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { ROUTE, planBatch, summarizeBatch } from "./batch-import.mjs";
 
@@ -127,6 +128,7 @@ class HubBatchMethods {
    * this is mostly "is the PDF linked and does the row cite a page".
    */
   _batchCanRun(entry, route) {
+    if (isSystemMountEntry(entry)) return true;   // copied from the system, no book to link
     const src = entry?.src ?? "";
     const book = CHAR_SOURCES[src]?.label || src || t("SDE.importer.batchNote.itsBook");
     if (route === ROUTE.SPELLS && !entry?.listKey) {
@@ -326,6 +328,29 @@ class HubBatchMethods {
     const first = requested[0] ?? job.entry;
     if (!names.length || !first?.name) {
       return { status: "failed", created: 0, note: t("SDE.importer.batchNote.noMounts") };
+    }
+
+    // The core bestiary's mounts have no page to grab: copy them from the system.
+    if (isSystemMountEntry(first)) {
+      const report = await this._createSystemMounts(names);
+      const entries = names.map((name) => {
+        if (report.created.includes(name)) {
+          return { name, status: "created", created: 1, note: t("SDE.importer.batchNote.created") };
+        }
+        if (report.skipped.includes(name)) {
+          return { name, status: "nothing", created: 0, note: t("SDE.importer.batchNote.inLibrary") };
+        }
+        return {
+          name, status: "failed", created: 0,
+          note: report.missing.includes(name) ? t("SDE.importer.skipReason.notInSystem") : t("SDE.importer.batchNote.mountNoResult"),
+        };
+      });
+      const created = entries.filter((entry) => entry.status === "created").length;
+      return {
+        status: created ? "created" : entries.some((entry) => entry.status === "failed") ? "failed" : "nothing",
+        created, entries,
+        note: t(names.length === 1 ? "SDE.importer.batchNote.mountsCreatedOne" : "SDE.importer.batchNote.mountsCreatedMany", { created, n: names.length }),
+      };
     }
 
     this._onHubClear();
