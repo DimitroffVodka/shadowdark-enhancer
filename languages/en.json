@@ -139,6 +139,8 @@
   "SDE.party.sheet.extras.tab.members": "Members",
   "SDE.party.sheet.extras.remove_member": "Remove member",
   "SDE.hexFog.locationNote": "Keyed location note (also requires a visit or explicit location reveal)",
+  "SDE.hexFog.found": "The party found something: {name}",
+  "SDE.hexFog.foundSomething": "The party found something here.",
   "SDE.hexExplorer.title": "Hex Data",
   "SDE.hexExplorer.offset": "Cell ({i}, {j})",
   "SDE.hexExplorer.invalidFeature": "Use the line-feature checkboxes for river, path and coast. Structured location features keep their own type and fields.",

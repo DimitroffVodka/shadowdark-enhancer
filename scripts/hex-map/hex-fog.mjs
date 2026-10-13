@@ -193,7 +193,10 @@ export function registerHexFog() {
   if (Note) CONFIG.Note.objectClass = class HexFogNote extends Note {
     get isVisible() {
       const visible = super.isVisible, scene = this.document.parent;
-      if (!visible || game.user.isGM || this.isPreview || this.isAuthor || this.document.page?.isOwner || this.document.entry?.isOwner || !ownsHexFog(scene)) return visible;
+      // The GM's Player view shows the map as a player sees it, pins included, unless the veil is switched off to review
+      // the map (then nothing is hidden, as with the fog itself); otherwise the GM sees every pin.
+      const asPlayer = game.user.isGM && playerViewOn() && !fogHiddenOn();
+      if (!visible || this.isPreview || !ownsHexFog(scene) || (!asPlayer && (game.user.isGM || this.isAuthor || this.document.page?.isOwner || this.document.entry?.isOwner))) return visible;
       return positionDisclosed(scene, { x: this.document.x, y: this.document.y }, "location");
     }
   };
