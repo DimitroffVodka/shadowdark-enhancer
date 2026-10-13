@@ -6,6 +6,17 @@
 
 - **The base system's mounts can be made into Mounts.** The Shadowdark bestiary's Horse, Camel, Elephant, Griffon, Hippogriff, Moose, Pegasus and Worg are plain NPCs, so none of them could be ridden on the map, seated on the Riders tab or fed at camp, and the Mounts list in the Importer Hub did not offer them. It now lists all eight; Import copies the system's own creature (stats, attacks, art, token) into your Mounts folder as a Mount, with no book or PDF needed. Import everything includes them.
 
+### Changed
+
+- **The battle map's status and fold control moved to the Crawl Bar.** While a battle was staged or live, a slim bar
+  reading "Battle map | Live" drew in the clock's top slot and held the Crawl Strip 48 px down under it, so the top of the
+  canvas read as two stacked strips on the battle's own scene and in its combat. The battle now has one item on the Crawl
+  Bar, right before Tools, in every mode and in the combat row: its name and stage (Staged or Live) and the control that
+  folds its panel, which opens upward from it like Tools and holds the same controls as before (who you are fighting, the
+  readout, Bring the table, Change map, Return to travel with Keep this battle). The clock bar no longer carries a
+  battle key, the top slot is the clock's alone, and the Crawl Strip sits at the top of the canvas on the battle's scene
+  and in its combat. Players see no change.
+
 ### Fixed
 
 - **Players had no way to make camp from the Travel panel.** The Traveling and Resting steps drew Make camp for the GM only, so a player who owns the travelling party never saw it, though the camp itself already took their press. A player who owns the party now gets the button on both steps, and the camp window opens on their own screen. Another player still does not see it. If the GM is holding an encounter, the player is told to wait for the GM, not sent to a crawl bar they do not have.

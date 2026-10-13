@@ -5,7 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import {
-  barShown, clockShown, clockSteps, DIAL, dialMarkup, dialModel, pickPartyToken, placeLines, seasonHatch, monthGrid, dateToTime,
+  clockShown, clockSteps, DIAL, dialMarkup, dialModel, pickPartyToken, placeLines, seasonHatch, monthGrid, dateToTime,
   TRAVEL_STEPS, currentStep, sightParts,
 } from "../scripts/overland/hud-core.mjs";
 import { nextTimeOfDay, sun, dateParts } from "../scripts/time/time-core.mjs";
@@ -29,36 +29,11 @@ test("the bar never shows on a scene with no hex grid, whoever the setting is fo
   assert.equal(clockShown({ setting: "all", isGM: false, combat: false }), false, "no answer about the scene is no bar");
 });
 
-/** Every input the bar's rule reads, in every combination (a scene that says nothing of its grid included). */
-const everyInput = () => ["all", "gm", "off", undefined].flatMap((setting) => [true, false].flatMap((isGM) =>
-  [true, false].flatMap((combat) => [true, false, undefined].map((hex) => ({ setting, isGM, combat, hex })))));
-
-test("with no battle the bar is shown exactly when the clock is, for every input (#298 stays as it was)", () => {
-  for (const input of everyInput()) {
-    const label = JSON.stringify(input);
-    assert.equal(barShown(input), clockShown(input), label);
-    assert.equal(barShown({ ...input, battle: false }), clockShown(input), label);
-  }
-});
-
-test("a GM's running battle keeps the bar on a scene with no hex grid, in a combat, and with the clock bar off", () => {
-  const gm = { isGM: true, battle: true };
-  assert.equal(barShown({ ...gm, setting: "all", combat: false, hex: false }), true, "the battle's own scene");
-  assert.equal(barShown({ ...gm, setting: "all", combat: true, hex: true }), true, "the combat the table was brought into");
-  assert.equal(barShown({ ...gm, setting: "all", combat: true, hex: false }), true, "both at once, as a live battle is");
-  assert.equal(barShown({ ...gm, setting: "off", combat: false, hex: true }), true, "the clock bar turned off");
-  assert.equal(barShown({ ...gm, setting: "gm", combat: false, hex: false }), true);
-  for (const input of everyInput().filter((i) => i.isGM)) assert.equal(barShown({ ...input, battle: true }), true, JSON.stringify(input));
-  // What it keeps is the battle's: the clock itself is still shown by its own rule alone.
-  assert.equal(clockShown({ setting: "all", isGM: true, combat: true, hex: false }), false);
-});
-
-test("a battle never keeps a player's bar: they get the clock's rule and nothing more", () => {
-  for (const input of everyInput().filter((i) => !i.isGM)) {
-    assert.equal(barShown({ ...input, battle: true }), clockShown(input), JSON.stringify(input));
-  }
-  for (const [setting, combat, hex] of [["all", false, false], ["all", true, true], ["off", false, true]]) {
-    assert.equal(barShown({ setting, isGM: false, combat, hex, battle: true }), false, `${setting} combat ${combat} hex ${hex}`);
+test("a running battle is not an input to the bar's rule: its controls are the Crawl Bar's (#485)", () => {
+  // The bar used to stay up for a GM's battle on its own scene, in its combat and with the clock bar off.
+  for (const [setting, combat, hex] of [["all", false, false], ["all", true, true], ["all", true, false], ["off", false, true], ["gm", false, false]]) {
+    assert.equal(clockShown({ setting, isGM: true, combat, hex, battle: true }), clockShown({ setting, isGM: true, combat, hex }), `${setting} combat ${combat} hex ${hex}`);
+    assert.equal(clockShown({ setting, isGM: true, combat, hex, battle: true }), false);
   }
 });
 

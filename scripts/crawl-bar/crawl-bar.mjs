@@ -19,6 +19,9 @@ import {
   startOverland, endOverland, rollWeather, weatherNow, weatherName, startDayFromParty, resume, overlandState, OVERLAND_CHANGED,
   makeCamp,
 } from "../overland/overland.mjs";
+import { TravelBar }       from "../overland/overland-bar.mjs";
+import { battleItem }      from "../overland/encounter-panel.mjs";
+import { bindNpcPreview }  from "../encounter/npc-preview.mjs";
 import { L as loc } from "../shared/i18n.mjs";
 
 const BAR_ID = "shadowdark-enhancer-bar";
@@ -88,6 +91,8 @@ export const CrawlBar = {
     // so re-render only when what the badge shows would change.
     on(OVERLAND_CHANGED, queue);
     on("updateWorldTime", () => { if (this._badgeWeather() !== this._weatherShown) queue(); });
+    // The battle's item and panel (#485) are drawn here; the clock bar, which keeps its state, says when it changed.
+    on(`${MODULE_ID}.battleBarChanged`, queue);
   },
 
   /**
@@ -150,6 +155,8 @@ export const CrawlBar = {
     if (!this._el) return;
     const state = CrawlState;
     this._weatherShown = this._badgeWeather();
+    // A GM's running battle draws one item, in every mode: its name and stage, and its panel's fold control.
+    const battle = TravelBar.battleBar();
 
     // COMBAT state
     if (state.mode === "combat") {
@@ -167,8 +174,10 @@ export const CrawlBar = {
           <button class="sde-bar-btn sde-bar-danger-btn" data-action="deleteEncounter" title="${game.i18n.localize("SDE.crawlBar.deleteEncounterTip")}">
             ${ICONS.close} ${game.i18n.localize("SDE.crawlBar.deleteEncounter")}
           </button>
+          ${battle ? battleItem(battle) : ""}
         </div>`;
       this._bindEvents();
+      this._keepOnScreen(this._el.querySelector(".sde-bar-battle-menu"));
       return;
     }
 
@@ -181,7 +190,7 @@ export const CrawlBar = {
     const day = mode === "overland" ? overlandState() : null;
     // A running crawl turns into travel only on the active scene (followActiveScene's), not on one the GM is just viewing.
     const hexScene = mode !== "overland" && isHexMapScene() && (mode !== "crawl" || !!game.scenes?.active?.grid?.isHexagonal);
-    const items = barItems({ mode, hexScene, pending: !!day?.pending, dayOpen: Number.isFinite(day?.day) });
+    const items = barItems({ mode, hexScene, pending: !!day?.pending, dayOpen: Number.isFinite(day?.day), battle: !!battle });
     const hasBastion = game.actors.some((a) => a.type === BASTION_TYPE);
 
     const badge = () => {
@@ -204,12 +213,14 @@ export const CrawlBar = {
       if (id === "badge") return badge();
       if (id === "spacer") return `<span class="sde-bar-gap"></span>`;
       if (id === "tools") return this._toolsHtml(toolsSections({ mode, hasBastion }), loc);
+      if (id === "battle") return battleItem(battle);
       return button(id);
     };
 
     this._el.innerHTML = `<div class="sde-bar-inner sde-bar-active">${items.map(item).join("")}</div>`;
     this._bindEvents();
     if (this._toolsOpen) this._keepToolsOnScreen();
+    this._keepOnScreen(this._el.querySelector(".sde-bar-battle-menu"));
   },
 
   /**
@@ -271,7 +282,11 @@ export const CrawlBar = {
 
   /** The panel opens leftward from the Tools button; on a narrow window, slide it back in. */
   _keepToolsOnScreen() {
-    const menu = this._el?.querySelector(".sde-bar-menu");
+    this._keepOnScreen(this._el?.querySelector(".sde-bar-tools .sde-bar-menu"));
+  },
+
+  /** A panel that opens leftward from its item (the Tools panel, the battle's): slide it back in when it runs off the screen. */
+  _keepOnScreen(menu) {
     if (!menu) return;
     menu.style.right = "";
     const { left } = menu.getBoundingClientRect();
@@ -303,11 +318,16 @@ export const CrawlBar = {
   _bindEvents() {
     if (!this._el) return;
     this._el.querySelectorAll("[data-action]").forEach(el => {
+      // The battle panel's Keep tick: a checkbox takes its change, and a prevented click would not toggle it.
+      if (el.matches("input")) {
+        el.addEventListener("change", () => TravelBar.battle(el.dataset.action, { keep: el.checked }));
+        return;
+      }
       el.addEventListener("click", ev => {
         ev.preventDefault();
         ev.stopPropagation();
         // A pick from the Tools panel closes it. Detail 0 is the keyboard.
-        if (el.closest(".sde-bar-menu")) this._setTools(false, { refocus: ev.detail === 0 });
+        if (el.closest(".sde-bar-tools .sde-bar-menu")) this._setTools(false, { refocus: ev.detail === 0 });
         this._onAction(el.dataset.action, el, ev);
       });
 
@@ -354,6 +374,16 @@ export const CrawlBar = {
       }
     });
 
+    // The battle's panel (#485): a press on it holds the readout's redraws until the release, so the click is not lost;
+    // its foe shows its card on hover, and opens its sheet on a double click, as in the clock bar's panels.
+    this._el.querySelector(".sde-bar-battle")?.addEventListener("pointerdown", () => TravelBar.holdReadout());
+    bindNpcPreview(this._el, ".sde-bar-battle .sde-hud-what[data-uuid]", (el) => el.dataset.uuid);
+    const foe = this._el.querySelector(".sde-bar-battle .sde-hud-what[data-uuid]");
+    foe?.addEventListener("dblclick", async () => {
+      const actor = await fromUuid(foe.dataset.uuid).catch(() => null);
+      if (actor) actor.sheet?.render(true); else ui.notifications.error(loc("SDE.encounter.notify.npcUnresolved"));
+    });
+
     // Dragging anything over the Tools button opens the panel, so a roll table
     // from the sidebar can be dropped on Encounter; the panel closes when the drag ends.
     const wrap = this._el.querySelector(".sde-bar-tools");
@@ -382,6 +412,17 @@ export const CrawlBar = {
 
       case "encounter":
         game.shadowdarkEnhancer.encounter.openRoller("tables");
+        break;
+
+      // The battle's item and panel (#485): the clock bar holds the battle's state and runs its steps.
+      case "battle":
+      case "bringTable":
+      case "changeBattleMap":
+        TravelBar.battle(action);
+        break;
+
+      case "returnToTravel":
+        TravelBar.battle(action, { keep: this._el.querySelector('input[data-action="keepBattle"]')?.checked });
         break;
 
       case "encounterMenu":
