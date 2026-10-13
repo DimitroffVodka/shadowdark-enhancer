@@ -505,6 +505,14 @@ let hexZonesWatched = false;
 /** Drop the cache: the regions are read again on the next lookup. */
 export function forgetHexZones() {
   hexZonesCache.clear();
+  for (const fn of forgotten) fn();
+}
+
+const forgotten = new Set();
+/** Call `fn` whenever the cached regions are dropped (a crawl entry, a scene or a region fix changed); returns the way to stop. */
+export function onHexZonesForgotten(fn) {
+  forgotten.add(fn);
+  return () => forgotten.delete(fn);
 }
 
 /** A scanned print's hex zones and region row ranges, cached until a journal or scene changes. */
@@ -523,8 +531,8 @@ export async function hexZonesFor(scene) {
   const scan = scanSceneFor(scene);
   const key = scan?.id ?? "";
   if (!hexZonesCache.has(key)) {
-    const read = sceneZones(scan).then(({ byNum, ground }) => ({
-      byNum, ground, rowRanges: regionRowRanges(new Map([...byNum].map(([n, z]) => [n, z.zone]))),
+    const read = sceneZones(scan).then(({ byNum, viaByNum, ground }) => ({
+      byNum, viaByNum, ground, rowRanges: regionRowRanges(new Map([...byNum].map(([n, z]) => [n, z.zone]))),
     }));
     // A failed read is not remembered: the next check tries again.
     read.catch(() => hexZonesCache.delete(key));

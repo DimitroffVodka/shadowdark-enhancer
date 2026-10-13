@@ -1,14 +1,16 @@
 /** Hex Data: a read-only canvas observer and a GM edit path over existing authorities. */
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
-import { FEATURES, normalizeTerrainWord, decodeTags, encodeTags, applySheet } from "./tag-store.mjs";
-import { HexRecords, playerProjection, offsetKey, sceneRef, recordJournal, RECORD_FLAG, assertPrivateJournal, publishHexProjection, isHexAdopted } from "./hex-records.mjs";
+import { FEATURES, NOT_GROUND, normalizeTerrainWord, decodeTags, encodeTags, applySheet } from "./tag-store.mjs";
+import { HexRecords, loadCrawlNames, playerProjection, offsetKey, sceneRef, recordJournal, RECORD_FLAG, assertPrivateJournal, publishHexProjection, isHexAdopted, isHexRecordStore } from "./hex-records.mjs";
 import { hasHexNumbering, hexNumberAt } from "./hex-number-api.mjs";
 import { adoptHexScene, withHexLock } from "./hex-adoption.mjs";
 import { decodeFixes, encodeFixes, recordEdits, FIXES_FLAG } from "./tag-corrections.mjs";
 import { disclosure, effectiveDiscovery, withPartyDiscovery } from "./hex-fog-core.mjs";
-import { viewedPartyIds } from "./hex-fog.mjs";
+import { viewedPartyIds, playerViewOn } from "./hex-fog.mjs";
 import { HexTagOverlay, isDoubleClick } from "./tag-overlay.mjs";
+import { ruleKey, terrainCost } from "../rules-data/rules-data-core.mjs";
+import { hexZonesFor, onHexZonesForgotten } from "../encounter/encounter-terrain.mjs";
 
 const pick = (v, keys) => Object.fromEntries(keys.filter(k => typeof v?.[k] === "string").map(k => [k, v[k]]));
 /** GM hover is player-safe too; GM-private content belongs only in the editor. */
@@ -17,13 +19,33 @@ export function explorerView(record, isGM = false, partyIds = []) {
   const r = isGM ? playerProjection({ ...record, discovery: effectiveDiscovery(record.discovery, partyIds) }) : record;
   if (!disclosure(r?.discovery)) return null;
   const location = disclosure(r.discovery, "location");
+  // A manual link to a document the keyed pages already name shows once, as the keyed row.
+  const keyed = (record.keyed ?? []).map(k => ({ uuid: k.uuid, label: k.title }));
+  const named = new Set(keyed.map(k => String(k.uuid ?? "").trim()));
   return { sceneUuid: r.sceneUuid, offset: { ...r.offset }, num: r.num, terrain: r.terrain,
+    located: !!location,
     ...(location && typeof r.title === "string" ? { title: r.title } : {}),
     // River, path and coast are always disclosed; hiding markers on other features are re-checked, not merely trusted.
     features: (r.features ?? []).filter(f => FEATURES.includes(f?.type) || f?.discovered !== false && location).map(f => pick(f, ["type", "name"])),
     notes: (r.notes ?? []).filter(n => n?.visible !== false).map(n => pick(n, ["text"])),
-    links: location ? [...(r.links ?? []).filter(l => l?.visible !== false).map(l => pick(l, ["uuid", "label"])), ...(record.keyed ?? []).map(k => ({ uuid: k.uuid, label: k.title }))] : [],
+    links: location ? [...(r.links ?? []).filter(l => l?.visible !== false && !named.has(String(l?.uuid ?? "").trim())).map(l => pick(l, ["uuid", "label"])), ...keyed] : [],
   };
+}
+/**
+ * What line 2 of the hover says. A keyed hex is tagged with what sits on it (keyed_location, village...), which is
+ * not ground, so its line is the location's name. The GM always gets the name, marked when the viewed party has not
+ * found it; a player, or the GM's Player view, never gets the tag word of a location that is not found.
+ * @param {object|null} view  explorerView: has a title only once the location is disclosed
+ * @param {object|null} record  the GM's own record (null on a player's client)
+ * @returns {{name:string, found:boolean}|{terrain:string|null}|{hidden:true}} hidden: print nothing on this line
+ */
+export function hoverHead(view, record, asPlayer) {
+  const terrain = view?.terrain ?? record?.terrain ?? null;
+  if (!NOT_GROUND.has(terrain)) return { terrain };
+  if (view?.title) return { name: view.title, found: true };
+  if (!asPlayer && record?.title) return { name: record.title, found: false };
+  // Found but unnamed keeps its settlement word; an unfound location shows a player nothing at all.
+  return asPlayer && !view?.located ? { hidden: true } : { terrain };
 }
 /** Row indexes preserve imported rich/unknown metadata; only editable fields are replaced. */
 function rows(previous, submitted, fields) {
@@ -50,7 +72,63 @@ export function planExplorerEdit(record, input, flag, partyId = null) {
   const discovery = partyId ? withPartyDiscovery(record.discovery, partyId, seen) : { ...record.discovery, ...seen };
   if (!partyId && seen.locationRevealed === undefined) delete discovery.locationRevealed;
   return { tags, verdicts, patch: { ...(!numbered ? { terrain } : {}), title: String(input.title ?? ""), features,
-    notes: rows(record.notes, input.notes, ["text", "visible", "location"]), links: rows(record.links, input.links, ["uuid", "label", "visible"]), discovery } };
+    notes: rows(record.notes, input.notes, ["text", "visible", "location"]), links: rows(record.links, input.links, ["uuid", "label", "visible"]), discovery, ...arrivalFields(input) } };
+}
+/** Ownership levels as the window reads them: a document carries numbers, a compendium's policy may carry names. */
+const OWNERSHIP = { INHERIT: -1, NONE: 0, LIMITED: 1, OBSERVER: 2, OWNER: 3 };
+const levelOf = value => typeof value === "number" ? value : (OWNERSHIP[value] ?? OWNERSHIP.NONE);
+/**
+ * Would an ordinary player (the default role) be able to open this document? Compendium content answers by its
+ * pack's PLAYER policy; anything else walks INHERIT to its parent, as Document#getUserLevel does. This is what a
+ * disclosed link in the window warns about and what its share tick raises. A per-user entry is not counted: the
+ * question is what "players" as a class get.
+ */
+export function playerOpenable(doc) {
+  if (!doc) return false;
+  if (doc.pack) return levelOf(doc.compendium?.ownership?.PLAYER ?? "NONE") >= OWNERSHIP.OBSERVER;
+  for (let target = doc, hops = 0; target && hops < 4; target = target.parent, hops++) {
+    const level = levelOf(target.ownership?.default);
+    if (level !== OWNERSHIP.INHERIT) return level >= OWNERSHIP.OBSERVER;
+  }
+  return false;
+}
+/** Whether `user` may open a card's link: Observer on the document as Foundry resolves it (a page that inherits answers by its journal). */
+export function canOpenLink(doc, user) {
+  return !!doc && !!user && !!doc.testUserPermission?.(user, "OBSERVER");
+}
+/**
+ * A save's share tick: the default is raised to at least player observation and a per-user entry that only
+ * inherits follows it. Nothing is ever lowered, and a level the GM set on one user on purpose stays.
+ */
+export function raisedOwnership(ownership = {}) {
+  const raised = { ...ownership, default: Math.max(levelOf(ownership?.default ?? "NONE"), OWNERSHIP.OBSERVER) };
+  for (const [id, level] of Object.entries(raised)) if (id !== "default" && levelOf(level) === OWNERSHIP.INHERIT) raised[id] = OWNERSHIP.OBSERVER;
+  return raised;
+}
+/** A dropped journal entry, journal page or roll table as a new link row; anything else is not a link. */
+export function droppedLink(doc) {
+  if (!doc?.uuid || !["JournalEntry", "JournalEntryPage", "RollTable"].includes(doc.documentName)) return null;
+  return { index: null, uuid: doc.uuid, label: doc.name ?? "", visible: false };
+}
+/**
+ * The arrival block's stored fields, when the window carries the block. A table writes the trio; an empty box
+ * writes explicit `undefined`, which the save's merge (`mergedCell`) deletes, so clearing the block removes
+ * them. An input with no `rollTable` key at all leaves the stored fields alone, the preservation rule its
+ * sibling rows follow. The chance is a whole 0-100 %, and an absent or unreadable one is 100 — the same
+ * every-entry default an arrival check reads (`rollTableChance ?? 100`).
+ */
+export function arrivalFields(input = {}) {
+  if (!Object.hasOwn(input, "rollTable")) return {};
+  const rollTable = String(input.rollTable ?? "").trim();
+  if (!rollTable) return { rollTable: undefined, rollTableChance: undefined, rollTableFirstOnly: undefined };
+  const raw = String(input.rollTableChance ?? "").trim(), chance = raw === "" ? NaN : Number(raw);
+  return { rollTable, rollTableChance: Number.isFinite(chance) ? Math.max(0, Math.min(100, Math.round(chance))) : 100, rollTableFirstOnly: !!input.rollTableFirstOnly };
+}
+/** The stored cell after a save's patch: a field the patch sets to `undefined` is removed, not written. */
+export function mergedCell(previous, patch) {
+  const next = { ...(previous ?? {}), ...(patch ?? {}) };
+  for (const [field, value] of Object.entries(patch ?? {})) if (value === undefined) delete next[field];
+  return next;
 }
 /**
  * What a wandering check on a hex would roll, as the editor words it. `res` is
@@ -63,6 +141,28 @@ export function planExplorerEdit(record, input, flag, partyId = null) {
 export function encounterReadout({ uuid, zone, verdict } = {}, name = "", active = "", mapped = "") {
   const state = !uuid ? "none" : verdict?.status === "ambiguous" ? "ambiguous" : verdict?.column ? "region" : uuid === active && uuid !== mapped ? "active" : "terrain";
   return { state, uuid: uuid ?? "", name, zone: zone ?? "", column: verdict?.column?.column ?? "", options: (verdict?.columns ?? []).map(c => c.column).join(", ") };
+}
+/**
+ * The hex's "To enter" stat: the terrain table's own type and cost for the
+ * hex's own terrain tag, under the hex scene's rules, so it shows only what
+ * Overland's hexCost charges for that tag. A keyed or settlement hex is tagged
+ * "keyed_location", "village" and so on, which the table has no row for: travel
+ * prices it as one hex, so the stat is blank, never the book's ground under it.
+ * The base table only, exactly what terrainCost prices with no options: no
+ * weather, storm, climate, path or boat adjustment, and impassable has no cost.
+ * Null when the rules have no row, or the row names no type, so the window
+ * stays blank instead of guessing a cost of 1 the way travel counts an unknown
+ * terrain.
+ * @param {object} rules  from rulesFrom(storedRulesFor(scene))
+ * @param {{terrain?:string|null}|null} hex  the hex's terrain word (or the record)
+ * @returns {{type:"normal"|"difficult"|"impassable", cost:number|null}|null}
+ */
+export function enterStat(rules, hex) {
+  const terrain = hex?.terrain;
+  const row = rules?.terrain?.[ruleKey(terrain)];
+  if (!row?.type) return null;
+  const cost = terrainCost(rules, terrain);
+  return { type: row.type, cost: Number.isFinite(cost) ? cost : null };
 }
 export const HexExplorer = {
   read(offset, target) { return explorerView(HexRecords.read(offset, target), !!game.user?.isGM, viewedPartyIds()); },
@@ -77,13 +177,14 @@ export const HexExplorer = {
       assertPrivateJournal(journal);
       const plan = planExplorerEdit(HexRecords.read(offset, scene), input, scene.getFlag(MODULE_ID, "hexTags"), partyId);
       const saved = structuredClone(journal.flags[MODULE_ID][RECORD_FLAG]);
-      saved.cells[offsetKey(offset)] = { ...saved.cells[offsetKey(offset)], ...plan.patch };
+      saved.cells[offsetKey(offset)] = mergedCell(saved.cells[offsetKey(offset)], plan.patch);
       await replaceModuleFlag(journal, RECORD_FLAG, saved);
       const log = decodeFixes(scene.getFlag(MODULE_ID, FIXES_FLAG));
       const judged = recordEdits(log, plan.verdicts).judged;
       if (plan.tags) await replaceModuleFlag(scene, "hexTags", plan.tags);
       if (judged) await replaceModuleFlag(scene, FIXES_FLAG, encodeFixes(log));
       await publishHexProjection(scene);
+      await applyLinkShares(input.links);
       refreshHexExplorer();
       return HexRecords.read(offset, scene);
     });
@@ -93,6 +194,30 @@ export const HexExplorer = {
     return (await import("./hex-explorer-app.mjs")).HexExplorerApp.open(offset, target);
   },
 };
+/**
+ * A save's per-link share tick raises the linked document's own ownership to at least player observation, and
+ * only raises: an OWNER default or a higher per-user level stays, and a document players can already open is
+ * not written. A page raises itself, never its journal: pages inherit, so raising the journal would open every
+ * other page in it (the crawl journal holds 270 keyed hexes); a player opens a journal's sheet regardless and
+ * sees only the pages they can observe. The module's own record store is refused outright: players on it would
+ * break `assertPrivateJournal` for every later write. A link that no longer resolves, a compendium copy (its
+ * access follows the pack's role policy) or an update a hook vetoes (it resolves undefined) is read back and
+ * reported instead of failing the save or passing for a share.
+ */
+export async function applyLinkShares(links) {
+  for (const link of links ?? []) {
+    if (!link?.share || !link.uuid) continue;
+    const label = link.label || link.uuid, warn = key => ui.notifications?.warn(game.i18n.format(key, { label }));
+    const doc = await fromUuid(link.uuid).catch(() => null);
+    if (!doc) { warn("SDE.hexExplorer.shareFailed"); continue; }
+    if (isHexRecordStore(doc)) { warn("SDE.hexExplorer.sharePrivate"); continue; }
+    if (playerOpenable(doc)) continue;
+    try {
+      await doc.update({ ownership: raisedOwnership(doc.ownership) });
+      if (!playerOpenable(await fromUuid(link.uuid))) warn("SDE.hexExplorer.shareFailed");
+    } catch (error) { console.error(`${MODULE_ID} | Hex Data link share`, error); warn("SDE.hexExplorer.shareFailed"); }
+  }
+}
 
 /** No invented numbering; adopted unnumbered cells retain their native offset authority. */
 export function explorerCell(scene, offset) {
@@ -133,6 +258,35 @@ function atEvent(event) {
   if (!explorerCell(canvas.scene, offset)) return null;
   return { scene: canvas.scene, offset, x: event.client?.x ?? event.global.x, y: event.client?.y ?? event.global.y };
 }
+/**
+ * A hex's region as the Show regions overlay and the encounter roll read it (hexZonesFor), or null when they find
+ * none. `estimated` marks the nearest-keyed-hex answer, which the book never printed.
+ * @param {{byNum?:Map<number,{zone:string}>, viaByNum?:Map<number,string>}|null} found
+ */
+export function regionLine(found, num) {
+  const zone = Number.isInteger(num) ? found?.byNum?.get(num)?.zone : null;
+  return zone ? { zone, estimated: found.viaByNum?.get(num) === "nearest" } : null;
+}
+export const regionText = (region) => region.estimated ? game.i18n.format("SDE.hexExplorer.regionEstimated", { region: region.zone }) : region.zone;
+// The hover fires on every pointer move, so it reads this resolved copy and never the lookup itself.
+const regionsByScene = new Map(), regionLoads = new Set();
+let regionEpoch = 0;
+function loadRegions(scene) {
+  if (regionLoads.has(scene.id)) return;
+  regionLoads.add(scene.id);
+  const epoch = regionEpoch;
+  // A failed read is kept as "no regions" until the next change, so a broken pack is not retried on every move.
+  hexZonesFor(scene).catch(() => ({})).then((found) => { if (epoch === regionEpoch) regionsByScene.set(scene.id, found); })
+    .finally(() => { regionLoads.delete(scene.id); refreshHexExplorer(); });
+}
+/** GM only: a player client computes nothing here and shows no region. */
+function regionAt(scene, num) {
+  if (!game.user?.isGM || !Number.isInteger(num)) return null;
+  if (!regionsByScene.has(scene.id)) { loadRegions(scene); return null; }
+  return regionLine(regionsByScene.get(scene.id), num);
+}
+/** The hover's region line. The GM's Player view previews the players' card, and a region is GM-only: print none and read none. */
+export const hoverRegion = (scene, num, asPlayer) => asPlayer ? null : regionAt(scene, num);
 function line(parent, text, tag = "div") {
   const el = document.createElement(tag); el.textContent = text; parent.append(el); return el;
 }
@@ -150,11 +304,18 @@ export function refreshHexExplorer() {
   tip ??= document.createElement("aside");
   tip.id = "sde-hex-explorer-tip"; tip.className = selected ? "selected" : "";
   tip.replaceChildren(); document.body.append(tip);
-  const num = hexNumberAt(cell.offset, cell.scene);
+  const num = hexNumberAt(cell.offset, cell.scene), region = hoverRegion(cell.scene, num, playerViewOn());
   line(tip, num === null ? game.i18n.format("SDE.hexExplorer.offset", cell.offset) : String(num).padStart(4, "0"), "strong");
+  const record = game.user.isGM ? HexRecords.read(cell.offset, cell.scene) : null;
+  const head = hoverHead(view, record, !game.user.isGM || playerViewOn());
+  const named = () => line(tip, head.found ? head.name : game.i18n.format("SDE.hexExplorer.notFoundYet", { name: head.name }), "strong");
   if (view) {
-    if (view.title) line(tip, view.title, "strong");
-    line(tip, view.terrain ?? t("SDE.hexExplorer.unknown"));
+    if (head.name) named();
+    else {
+      if (view.title) line(tip, view.title, "strong");
+      if (!head.hidden) line(tip, head.terrain ?? t("SDE.hexExplorer.unknown"));
+    }
+    if (region) line(tip, regionText(region));
     for (const feature of view.features) line(tip, feature.name || feature.type);
     for (const note of view.notes) line(tip, note.text ?? "");
     for (const link of view.links) {
@@ -162,14 +323,17 @@ export function refreshHexExplorer() {
         const button = line(tip, link.label || link.uuid, "button"); button.type = "button";
         button.addEventListener("click", async () => {
           const doc = await fromUuid(link.uuid);
-          if (!doc?.testUserPermission?.(game.user, "OBSERVER") || doc.parent && !doc.parent.testUserPermission(game.user, "OBSERVER")) return;
+          if (!canOpenLink(doc, game.user)) { ui.notifications?.warn(game.i18n.localize("SDE.hexExplorer.linkDenied")); return; }
           if (doc.documentName === "JournalEntryPage") doc.parent.sheet?.render(true, { pageId: doc.id });
           else doc.sheet?.render(true);
         });
       } else line(tip, link.label || link.uuid);
     }
   // The GM is not a player: an undiscovered hex still shows its real terrain.
-  } else if (game.user.isGM) line(tip, HexRecords.read(cell.offset, cell.scene)?.terrain ?? t("SDE.hexExplorer.unknown"));
+  } else if (game.user.isGM) {
+    if (head.name) named(); else if (!head.hidden) line(tip, head.terrain ?? t("SDE.hexExplorer.unknown"));
+    if (region) line(tip, regionText(region));
+  }
   else line(tip, t("SDE.hexExplorer.concealed"));
   if (selected) {
     const close = line(tip, t("SDE.hexExplorer.close"), "button"); close.type = "button";
@@ -221,6 +385,13 @@ export function registerHexExplorer() {
     view = canvas.app.canvas ?? canvas.app.view; view?.addEventListener("pointerleave", leave);
   });
   Hooks.on("canvasTearDown", clear);
+  // A crawl entry, a scene or a region fix changed: the copies are stale, and the next draw reads them again.
+  onHexZonesForgotten(() => { regionEpoch++; regionsByScene.clear(); refreshHexExplorer(); });
+  // The crawl entries name the keyed hexes of a scene with no pins; read again when one is filed or edited.
+  // A pack that cannot be read leaves the names as they were (empty at first): the hover just has none.
+  const reloadNames = () => void loadCrawlNames().catch(() => {}).then(refreshHexExplorer);
+  Hooks.on("canvasReady", reloadNames);
+  for (const hook of ["createJournalEntry", "updateJournalEntry", "deleteJournalEntry"]) Hooks.on(hook, entry => { if (entry?.flags?.[MODULE_ID]?.hex?.crawl) reloadNames(); });
   Hooks.on("updateScene", refreshHexExplorer);
   Hooks.on("createJournalEntry", refreshHexExplorer);
   Hooks.on("updateJournalEntry", refreshHexExplorer);

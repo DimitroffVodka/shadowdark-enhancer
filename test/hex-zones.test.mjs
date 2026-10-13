@@ -23,6 +23,16 @@ test("every scanned hex gets a zone: the GM's fix, then the border, then the nea
   assert.equal(byNum.get(1403).zone, "Tallowmere");   // nearest: the islet next to Tallowmere
 });
 
+test("how each hex got its region is kept per hex, and the totals agree", () => {
+  const { viaByNum, via, byNum } = hexZones({ components, fixes, seeds });
+  assert.equal(viaByNum.size, byNum.size);
+  assert.equal(viaByNum.get(1200), "gm");
+  assert.equal(viaByNum.get(1003), "border");
+  assert.equal(viaByNum.get(1403), "nearest");
+  for (const how of ["gm", "border", "nearest"]) assert.equal([...viaByNum.values()].filter((v) => v === how).length, via[how]);
+  assert.equal(hexZones({ seeds }).viaByNum.size, 0);
+});
+
 test("zone colours are #rrggbb, one per region, and touching regions differ", () => {
   const { byNum } = hexZones({ components, fixes, seeds });
   for (const z of byNum.values()) assert.match(z.zoneColor, /^#[0-9a-f]{6}$/);
