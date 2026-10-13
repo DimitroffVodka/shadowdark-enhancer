@@ -31,10 +31,13 @@ card or Edit button: a double click opens Hex Data, which saves terrain,
 line features, rich locations, notes and discovery; travel prices update
 immediately. The header's **To enter** stat prices the hex from the terrain table
 of that scene's own Rules data ruleset — Normal, Difficult or Impassable with its
-cost, the number travel charges to enter that hex. A keyed location or a
-settlement shows no cost, because it is tagged with what stands on it and travel
-prices it as one hex; with no rules imported, or no row for the terrain, it is
-blank as well rather than guessing a cost.
+cost, the number travel charges to enter that hex from the same base terrain
+table. It reads that table only, so weather, storms, paths and boats can change
+what travel actually charges. A keyed location or a settlement shows no cost,
+because it is tagged with what stands on it and travel prices it as one hex,
+unless a custom terrain table has a row for that tag, in which case the row is
+shown and charged alike; with no rules imported, or no row for the terrain, it
+is blank as well rather than guessing a cost.
 A hex with a keyed-location pin (see *Keyed locations on the map*)
 is named by its pinned page unless you type a title, and Hex Data lists that page
 with a button to open it. The pin can be the Enhancer's own or the note Shadowdark
