@@ -39,14 +39,13 @@ import { datasetFromEntries, handoffDataset, handoffToPrint, extrasHexApi, extra
 import { buildHexDataset, validateHexDataset, hexNum, assignmentsFromManifest } from "../importer/hex/hex-dataset.mjs";
 import { A0_PRINT, A0_TOTAL, isA0, a0Origin, copyTags, copiedTerrain, copySource, regionSource, playablePlan } from "./a0-print.mjs";
 import { L as t } from "../shared/i18n.mjs";
-import { WR_KEYED_ART, WR_MAP_ID } from "./wr-keyed-art.mjs";
+import { artAssignments, ART_FLAG } from "./keyed-art.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 /** Scene flag key holding the tag store. */
 export const TAGS_FLAG = "hexTags";
-/** The GM's own tile-art manifest for this map. Read at hand-off; never shipped. */
-export const ART_FLAG = "hexArt";
+export { ART_FLAG };
 /** Hex-key picker value meaning "every filed crawl" — a book keyed per region. */
 export const ALL_CRAWLS = "*";
 
@@ -1900,15 +1899,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   /** The tile art for this scene: the one the GM loaded, else the table shipped for the Western Reaches print. */
   _artAssignments() {
-    const scene = this._scene();
-    const own = scene?.getFlag?.(MODULE_ID, ART_FLAG);
-    if (own && Object.keys(own).length) return own;
-    const tf = globalThis.canvas ? backgroundTransform(canvas) : null;
-    // A painted copy has no hexMapId and no A0 picture, but it carries the print's 64 x 75 bounds in its tags.
-    const b = this._state?.origin?.bounds;
-    const wr = String(scene?.getFlag?.(MODULE_ID, "hexMapId") ?? "").split(":")[0] === WR_MAP_ID || isA0(tf?.texW, tf?.texH)
-      || (b?.cols === A0_PRINT.bounds.cols && b?.rows === A0_PRINT.bounds.rows);
-    return wr ? assignmentsFromManifest(WR_KEYED_ART) : {};
+    return artAssignments(this._scene(), { bounds: this._state?.origin?.bounds });
   }
 
   /** Side door out: the raw tag flag as JSON (re-importable here; the dataset is Build dataset's job). */

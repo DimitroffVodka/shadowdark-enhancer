@@ -13,6 +13,8 @@
 export const BAKED_NAMESPACE = "shadowdark-extras";
 export const PYRAMID_FLAG = "bakedPyramid";
 export const KEYED_FLAG = "bakedKeyed";
+/** The keyed sprites a bake left, off `scene.flags` — never getFlag, which throws for a module that is not active. */
+export const keyedOf = scene => scene?.flags?.[BAKED_NAMESPACE]?.[KEYED_FLAG];
 
 /**
  * The level whose pixels match the screen best: level 0 at 1 screen px per

@@ -174,7 +174,9 @@ test("Party activity buttons stay in the sheet instead of opening applications",
   assert.equal(globalThis.foundry.applications.instances.has("sde-camping-undefined"), false);
   const template = await readFile(new URL("../templates/party/party.hbs", import.meta.url), "utf8");
   assert.ok(!/<button[^>]*data-action="(camp|carouse)"/.test(template), "the Camp/Carouse switch must work for a player: core disables buttons on a sheet they cannot edit");
-  assert.ok(template.includes("tab-carousing") && !template.includes('data-action="carouse"'));
+  assert.ok(template.includes("tab-party-carousing") && !template.includes('data-action="carouse"'));
+  // Shadowdark Extras ships an unscoped .tab-carousing (parchment fill plus a 92% black ::before) that dimmed this whole tab to unreadable.
+  assert.ok(!template.includes("tab-carousing"), "the Carousing pane must not carry Extras' global .tab-carousing class");
   assert.ok(template.includes("activityHTML"));
   assert.ok(template.includes("questHTML"));
   assert.ok(!template.includes("sde-party-task-grid"), "no inert task catalogue masquerading as the Travel workflow");

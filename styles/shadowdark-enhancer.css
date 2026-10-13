@@ -5500,6 +5500,10 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 }
 /* Hexplorer window (kit parts come from styles/sde-ui.css). */
 .sde-hex-explorer .hx-art { display: flex; align-items: center; justify-content: center; color: var(--ui-muted); font-size: 22px; }
+/* The header art is a button only when the hex has a picture: its own art, opened in Foundry's pop-out. */
+.sde-hex-explorer button.hx-art { padding: 0; cursor: pointer; }
+.sde-hex-explorer button.hx-art:hover { border-color: var(--ui-frame); filter: brightness(1.06); }
+.sde-hex-explorer .hx-art img { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
 .sde-hex-explorer .hx-flags { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
 .sde-hex-explorer .hx-line { display: contents; }
 .sde-hex-explorer .ui-head .ui-stats { flex: 0 1 auto; min-width: 0; }
