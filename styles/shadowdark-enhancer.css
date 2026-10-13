@@ -4786,7 +4786,7 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
    image in the line after the icon (npc-display-patches.mjs); core makes an img block-level, which would stack icon, image and text. */
 .sde-npc-sheet .rollable i { font-size: 14px; visibility: hidden; }
 .sde-npc-sheet .rollable:hover i { visibility: visible; }
-.sde-npc-sheet .attack .rollable img { display: inline; vertical-align: middle; margin-right: 3px; }
+.sde-npc-sheet .attack .rollable img { display: inline; }
 
 /* Abilities tab: the left column is the system NPC sheet's own grid-2-columns (HP across, AC and Level side by side, then
    Stats, Movement and Alignment across), the combat boxes beside it. Boxes sit on the grid's gap, not on a margin. */

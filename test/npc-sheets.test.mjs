@@ -94,11 +94,11 @@ test("a viewer who can't edit is left only anchors and images for what they may 
 test("the stat block wears Shadowdark Extras' NPC player theme only while that setting is registered and on", () => {
   const classes = new Set();
   const sheet = Object.create(NpcStatSheet.prototype);
-  sheet.element = { classList: { toggle: (name, on) => { if (on) classes.add(name); else classes.delete(name); } } };
+  sheet.element = { classList: { toggle: (name, on) => { if (on) classes.add(name); else classes.delete(name); } }, querySelector: () => null };
   const real = globalThis.game;
-  const wear = (settings) => {
+  const wear = (settings, render = false) => {
     globalThis.game = { settings: { settings: { has: (key) => key in settings }, get: (_ns, key) => settings[`shadowdark-extras.${key}`] } };
-    sheet._wearExtrasTheme();
+    if (render) sheet._onRender({}, {}); else sheet._wearExtrasTheme();
     return [...classes].sort();
   };
   try {
@@ -106,6 +106,7 @@ test("the stat block wears Shadowdark Extras' NPC player theme only while that s
     assert.deepEqual(wear({ "shadowdark-extras.enableNpcPlayerTheme": false }), []);
     assert.deepEqual(wear({ "shadowdark-extras.enableNpcPlayerTheme": true }), ["npc", "sdx-npc-player-theme"]);
     assert.deepEqual(wear({}), [], "switched off again on the next render");
+    assert.deepEqual(wear({ "shadowdark-extras.enableNpcPlayerTheme": true }, true), ["npc", "sdx-npc-player-theme"], "a render of the sheet is what calls it");
   } finally {
     globalThis.game = real;
   }
