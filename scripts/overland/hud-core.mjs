@@ -13,20 +13,11 @@ import { solarOn } from "../calendar/calendar-core.mjs";
 
 /**
  * Who sees the bar: the `clockBar` setting's choices, on a hex map only (#298).
- * Nobody while a combat runs, and nobody on a scene with no hex grid.
+ * Nobody while a combat runs, and nobody on a scene with no hex grid. A battle map's controls are not the clock's:
+ * they live in the Crawl Bar (#485), so a running battle never keeps this bar on the screen.
  */
 export const clockShown = ({ setting, isGM, combat, hex }) =>
   !!hex && !combat && (setting === "all" || (setting === "gm" && isGM));
-
-/**
- * Whether the bar is on the screen at all: the clock's rule, or a battle map's controls. A GM running an encounter
- * battle (docs/plans/encounter-battle-maps.md) keeps the bar wherever they look, because Bring the table and Return to
- * travel live in it: on the battle's own scene (no hex grid), in the combat the table was brought into, and with the
- * clock bar set off. A player's bar is never kept for a battle. Where the clock itself is not shown (clockShown),
- * what the bar draws is the battle's alone.
- * @param {{setting:string, isGM:boolean, combat:boolean, hex:boolean, battle?:boolean}} v  battle: this GM has one running
- */
-export const barShown = ({ battle = false, ...clock }) => clockShown(clock) || (!!battle && !!clock.isGM);
 
 /**
  * The GM's step buttons, largest first: a day, 8 hours, an hour, 10 minutes

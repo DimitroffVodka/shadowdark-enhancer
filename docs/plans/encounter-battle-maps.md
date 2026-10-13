@@ -213,7 +213,8 @@ Both D agents import A, B and C lazily or statically per the contracts above and
 - `battle-map-picker.mjs` + core: ApplicationV2 window modelled on the pit-fighting picker; resolves a promise with
   `{mapId, variant}` | `{sceneId}` | null. Order: this terrain's maps (default marked), other maps with terrain filter
   chips, world scenes (search). Day / night / camp toggles seeded from the arguments. Credits as hover text.
-- The HUD Encounter panel (`scripts/overland/encounter-panel.mjs` + `overland-bar.mjs` actions): **Battle map**,
+- The HUD Encounter panel (`scripts/overland/encounter-panel.mjs` + `overland-bar.mjs` actions; once a battle is set up
+  the same section is the Crawl Bar's battle panel, #485): **Battle map**,
   **Choose map…**, then, once staged, the readout, **Bring the table** (Ready n/N), **Change map**, **Return to
   travel** with **Keep this battle**. Chat card: a GM-only Battle map button on the posted encounter card.
 - `game.shadowdarkEnhancer.encounterMaps` API (`scripts/shadowdark-enhancer.mjs`, `docs/API.md`): `open(opts)`, `pick(opts)`,
@@ -281,9 +282,15 @@ replays buffered socket events just before `ready`. `onPreloadChange(fn)` calls 
 10 s while anyone is loading, and rows carry `failed` and states `stalled` (90 s without progress) and `left`.
 
 **Windows and wiring.** The clock HUD hides on a non-hex scene and during combat, which is exactly where Set up and Bring
-the table put the GM, so the bar stays up for a GM while a battle exists (`barShown` in `hud-core.mjs`): a slim battle bar
-and a battle panel. The panel opens while the battle is staged and folds when it goes live, so it does not cover the Crawl
-Strip's combat cards. Return to travel is also offered while staged, as the way to cancel. The picker is select then
+the table put the GM, so the battle's controls are on the Crawl Bar (#485), the one bar that is always there for a GM: an
+item before Tools, in every mode and in the combat's row, with the battle's name and stage and the control that folds its
+panel, which opens upward from it as the Tools panel does (`battleItem` in `encounter-panel.mjs`). The first design drew a
+slim battle bar in the clock's top slot (`barShown` in `hud-core.mjs`); it sat above the Crawl Strip and held it 48 px down
+to say only that a battle existed, so it went, with the clock bar's battle key. The clock bar still keeps the battle's state
+(`overland-bar.mjs`: its view, readout, Keep tick, `_battleOpen`) and runs its steps (`battle`), and tells the Crawl Bar to
+redraw (`battleBarChanged`) only when what the item and panel draw has changed. The panel's open flag is its own, so the
+clock's panels neither close it nor are closed by it. The panel opens while the battle is staged and folds when it goes
+live, so it does not sit over the table's combat. Return to travel is also offered while staged, as the way to cancel. The picker is select then
 confirm, and `pick()` answers `{mapId, variant, night}`, `{sceneId}` or null. The posted card has Battle map only; Choose
 map… is in the panel. `openBattleMap` refuses a second battle while one is open.
 

@@ -33,9 +33,9 @@ know the terrain of the party's hex, or when every map for it is switched off.
 
 One battle is set up at a time. While there is one, the panel shows its controls
 (below) in place of the two buttons, and an older chat card's **Battle map** only
-tells you a battle is already set up. A GM's controls stay on the bar on the
-battle's own scene and during its combat, where the clock bar would otherwise be
-hidden.
+tells you a battle is already set up. The battle's controls are on the
+[Crawl Bar](Crawl-Strip-and-Crawl-Bar.md#the-battle-map-item), so they are there on
+the battle's own scene and during its combat, where the clock bar is hidden.
 
 ## Set up, bring the table, return
 
@@ -62,7 +62,7 @@ next battle on that map. The tokens the battle placed do not stay (see
 While you look it over, the map's art starts loading on every player's computer
 (see [Preloading](#preloading)).
 
-The battle's panel (the swords icon on the bar, open by itself while the map is set
+The battle's panel (the **Battle map** item on the Crawl Bar, open by itself while the map is set
 up) starts with who you are fighting: the creature and how many, and the distance,
 activity and reaction that were rolled for them, worded as the Encounter panel
 worded them on the hex map. It is kept with the battle, so it is still there after

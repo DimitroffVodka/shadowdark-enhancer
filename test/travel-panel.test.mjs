@@ -129,3 +129,12 @@ test("the Night step names the hour a creature woke the camp to the GM only (#28
   assert.ok(!player.includes("SDE.travel.night.interrupted"), "the player's panel says nothing of it");
   assert.ok(gm.includes("SDE.travel.night.interrupted"));
 });
+
+test("Make camp shows for an owner of the travelling party, and not for a player who is not one", () => {
+  const camp = (over) => travelPanel(view({ see: 7, ...over })).includes('data-action="makeCamp"');
+  assert.equal(camp({ mayCamp: true }), true, "a player who owns the party is offered it");
+  assert.equal(camp({ mayCamp: false }), false, "any other player is not");
+  assert.equal(camp({ gm: true }), true, "the GM is, with no flag given");
+  assert.equal(camp({ mayCamp: true, model: { ...view().model, dayOpen: false } }), false, "no camp before the day starts");
+  assert.ok(travelPanel(view({ see: 5, mayCamp: true })).includes('data-action="makeCamp"'), "the Traveling step offers it too");
+});

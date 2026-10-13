@@ -61,6 +61,18 @@ test("overland: one primary, Continue while a day is pending, else Start day; no
   assert.deepEqual(barItems({ mode: "overland", dayOpen: true }), ["badge", "makeCamp", "spacer", "tools", "endTravel"], "days open themselves: no Start day while one is open");
 });
 
+test("a running battle adds its item right before Tools, in every mode (#485)", () => {
+  assert.deepEqual(barItems({ mode: "crawl", battle: true }), ["badge", "nextCrawlTurn", "addSelectedTokens", "startCombat", "spacer", "battle", "tools", "endCrawl"]);
+  assert.deepEqual(barItems({ mode: "off", battle: true }), ["badge", "addSelectedTokens", "spacer", "battle", "tools", "startCrawl"]);
+  assert.deepEqual(barItems({ mode: "off", hexScene: true, battle: true }), ["badge", "addSelectedTokens", "spacer", "battle", "tools", "startTravel"]);
+  assert.deepEqual(barItems({ mode: "overland", dayOpen: true, battle: true }), ["badge", "makeCamp", "spacer", "battle", "tools", "endTravel"]);
+  assert.deepEqual(barItems({ mode: "overland", pending: true, battle: true }), ["badge", "resumeTravel", "makeCamp", "spacer", "battle", "tools", "endTravel"]);
+  for (const mode of ["off", "crawl", "overland"]) {
+    assert.deepEqual(barItems({ mode, battle: false }), barItems({ mode }), `${mode}: no battle, no item`);
+    assert.ok(!barItems({ mode }).includes("battle"));
+  }
+});
+
 test("every control on the bar has a label and an icon", () => {
   const ids = ["off", "crawl", "overland"].flatMap((mode) => [barItems({ mode, hexScene: true }), barItems({ mode, pending: true })].flat());
   for (const id of new Set(ids)) {

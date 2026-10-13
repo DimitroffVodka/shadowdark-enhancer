@@ -6,8 +6,20 @@
 
 - **Hex fog tells other modules when it redraws (API 1.30.0, #490).** Shadowdark Extras' baked map draws each keyed location as a sprite and, on a scene the Enhancer owns, had nothing to ask whether the party has been there, so it showed every sprite to players from the first turn while the location notes stayed hidden. `Hooks.callAll("shadowdark-enhancer.hexFogChanged", { sceneId })` now fires on every client once per redraw of the viewed scene, after the overlay is rebuilt, and also on a pass where the Enhancer stands down (fog switched off, or the GM's veil hidden). A consumer asks `api.hexMaps.fog.disclosed(scene, { i, j }, "location")`, the same test the keyed notes use. Nothing changes at the table until Extras listens for it. `docs/API.md` has the contract.
 
+### Changed
+
+- **The battle map's status and fold control moved to the Crawl Bar.** While a battle was staged or live, a slim bar
+  reading "Battle map | Live" drew in the clock's top slot and held the Crawl Strip 48 px down under it, so the top of the
+  canvas read as two stacked strips on the battle's own scene and in its combat. The battle now has one item on the Crawl
+  Bar, right before Tools, in every mode and in the combat row: its name and stage (Staged or Live) and the control that
+  folds its panel, which opens upward from it like Tools and holds the same controls as before (who you are fighting, the
+  readout, Bring the table, Change map, Return to travel with Keep this battle). The clock bar no longer carries a
+  battle key, the top slot is the clock's alone, and the Crawl Strip sits at the top of the canvas on the battle's scene
+  and in its combat. Players see no change.
+
 ### Fixed
 
+- **Players had no way to make camp from the Travel panel.** The Traveling and Resting steps drew Make camp for the GM only, so a player who owns the travelling party never saw it, though the camp itself already took their press. A player who owns the party now gets the button on both steps, and the camp window opens on their own screen. Another player still does not see it. If the GM is holding an encounter, the player is told to wait for the GM, not sent to a crawl bar they do not have.
 - **Hexes the party reached were not shown to your players, and earlier reveals were lost.** The Enhancer kept the copy of a map's private hex records it loaded at startup. Foundry applies updates to a different copy and drops its copies after five idle minutes, so after the first pause (a camp, a long break) the kept copy was out of date. The players' view was then published from it with nothing revealed, and the next reveal was written back on top of the old data, erasing what had been revealed. Reads and writes now use the copy Foundry holds. Hexes already overwritten are not recovered.
 
 ## [0.18.3] — 2026-10-11
