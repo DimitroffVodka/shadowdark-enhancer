@@ -44,7 +44,7 @@ test("planKeyedGround: a ground Tile in the keyed Tile's place and order; the re
   ];
   const terrainOf = k => ({ 101: "forest", 102: "tundra", 103: null, 104: "forest" })[k.num];
   const plan = planKeyedGround({ keyed, donors, terrainOf, done: new Set([104]) });
-  assert.deepEqual(plan.tiles, [{ num: 101, terrain: "forest", src: "f1.webp", x: 10, y: 20, width: 572, height: 500, sort: 5, elevation: 0 }]);
+  assert.deepEqual(plan.tiles, [{ num: 101, terrain: "forest", src: "f1.webp", x: 10, y: 20, width: 572, height: 500, sort: 4, elevation: 0 }], "one sort below the art, so it draws under it");
   assert.deepEqual(plan.unfilled.map(u => [u.num, u.reason]), [[102, "no picture of that terrain on this map"], [103, "no ground known"]]);
   assert.equal(plan.skipped, 1);
 });

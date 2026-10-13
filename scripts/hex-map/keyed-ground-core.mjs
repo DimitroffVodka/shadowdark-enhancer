@@ -63,7 +63,8 @@ export function planKeyedGround({ keyed, donors, terrainOf, done = new Set() }) 
     if (!terrain) { unfilled.push({ num: k.num, reason: "no ground known", terrain }); continue; }
     const src = nearestDonor(donors, terrain, k.x + (k.width / 2), k.y + (k.height / 2));
     if (!src) { unfilled.push({ num: k.num, reason: "no picture of that terrain on this map", terrain }); continue; }
-    tiles.push({ num: k.num, terrain, src, x: k.x, y: k.y, width: k.width, height: k.height, sort: k.sort, elevation: k.elevation });
+    // One below the art's sort: a tie on elevation, layer and sort draws in creation order, which would put a Tile made now over it.
+    tiles.push({ num: k.num, terrain, src, x: k.x, y: k.y, width: k.width, height: k.height, sort: (k.sort ?? 0) - 1, elevation: k.elevation });
   }
   return { tiles, unfilled, skipped };
 }

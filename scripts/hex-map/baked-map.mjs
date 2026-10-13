@@ -273,8 +273,10 @@ export function registerBakedMaps() {
   Hooks.on("updateScene", (scene, changed) => {
     const touched = Object.keys(changed.flags?.[BAKED_NAMESPACE] ?? {});
     if (touched.some(k => k.includes(PYRAMID_FLAG))) {
+      // Read before claim() lets the slot go: a manager that was ours has to be torn down by a redraw as well.
+      const held = managedHere(scene);
       claim(scene);
-      if (scene.isView && managedHere(scene)) canvas.draw();
+      if (scene.isView && (held || managedHere(scene))) canvas.draw();
     }
     else if (scene === canvas?.scene && touched.some(k => k.includes(KEYED_FLAG))) draw();
   });

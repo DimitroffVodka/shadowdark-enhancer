@@ -42,6 +42,30 @@ test("real registered token/note getters, coordinate and tooltip consume one nat
     assert.equal(token.isVisible, true); assert.equal(note.isVisible, true);
   } finally { for (const key of ["game", "CONFIG", "Hooks"]) delete globalThis[key]; }
 });
+test("the GM's Player view hides an undisclosed pin, and switching the veil off to review the map lifts it", () => {
+  const cells = {}, settings = {};
+  const scene = { id: "s", uuid: "Scene.s", flags: { [M]: { hexRecords: { adopted: true } } }, grid: { isHexagonal: true, getOffset: () => ({ i: 1, j: 2 }) }, getFlag: (m, k) => scene.flags[m]?.[k] };
+  globalThis.game = {
+    user: { isGM: true }, modules: { get: () => null }, settings: { get: (_ns, key) => settings[key] },
+    journal: { contents: [{ flags: { [M]: { hexRecordProjection: { sceneUuid: scene.uuid, cells } } } }] },
+  };
+  class Note { get isVisible() { return true; } }
+  globalThis.CONFIG = { Token: { objectClass: class {} }, Note: { objectClass: Note } };
+  globalThis.Hooks = { on: () => {} };
+  try {
+    registerHexFog();
+    const note = new globalThis.CONFIG.Note.objectClass();
+    note.document = { parent: scene, x: 0, y: 0 };
+    cells["1_2"] = playerProjection({ sceneUuid: scene.uuid, offset: { i: 1, j: 2 }, num: 102, terrain: "mountain", title: "SECRET", notes: [], discovery: { revealed: true } });
+    assert.equal(note.isVisible, true, "the GM sees every pin by default");
+    settings.hexPlayerFogView = true;
+    assert.equal(note.isVisible, false, "Player view: the pin follows what the party has disclosed");
+    settings.hexFogHidden = true;
+    assert.equal(note.isVisible, true, "the veil off to review the map: nothing is hidden, the pin included");
+    settings.hexFogHidden = false;
+    assert.equal(note.isVisible, false, "and back to the player's view when the veil is switched on again");
+  } finally { for (const key of ["game", "CONFIG", "Hooks"]) delete globalThis[key]; }
+});
 test("the Enhancer owns an adopted scene even while Extras' fog is on; an unadopted or switched-off scene it never claims; settings never written", () => {
   const scene = { grid: { isHexagonal: true }, flags: {}, getFlag: (m, k) => scene.flags[m]?.[k] };
   let sets = 0;
