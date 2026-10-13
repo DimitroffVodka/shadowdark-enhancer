@@ -208,7 +208,7 @@ test("hexFogChanged fires once per pass after the overlay is in place, and also 
     assert.deepEqual(pass(hexScene("tearing-down"), false), [], "no ready canvas, no signal");
   } finally { restore(); }
 });
-test("a reveal's writes, canvasReady and setEnabled(false) each end in one hexFogChanged", async () => {
+test("a reveal's writes and canvasReady each end in one hexFogChanged; setEnabled(false) signals now and again a frame later", async () => {
   const hooks = {}, frames = [], fired = [], scene = hexScene("sig");
   cacheHexJournal({ id: "sig-records", ownership: { default: 0 }, flags: { [FOG_MOD]: { hexRecords: { version: 1, sceneUuid: "Scene.sig", cells: {} } } } });
   const restore = stubGlobals({ game: gameFor(true), CONFIG: {}, _replace: value => value, PIXI: { Graphics: FogGraphics },
@@ -227,9 +227,14 @@ test("a reveal's writes, canvasReady and setEnabled(false) each end in one hexFo
     await hooks.canvasReady();
     assert.deepEqual(fired, [[FOG_HOOK, { sceneId: "sig" }]], "the first draw, once the records have loaded");
     fired.length = 0;
+    // As in Foundry, the client that writes the flag sees updateScene for its own write.
+    const write = scene.update;
+    scene.update = async data => { await write(data); hooks.updateScene(scene, { flags: { [FOG_MOD]: { hexFog: { enabled: false } } } }); };
     await HexFog.setEnabled(false, scene);
     assert.equal(HexFog.owns(scene), false);
     assert.deepEqual(fired, [[FOG_HOOK, { sceneId: "sig" }]], "standing down is a pass too, so a consumer sees it");
+    frames.shift()();
+    assert.equal(fired.length, 2, "its own flag write queues a second redraw a frame later: two passes, as docs/API.md says");
   } finally { restore(); }
 });
 test("fog.disclosed(..., \"location\") answers never visited, visited and GM-revealed, for the viewed party, and false before the records load", () => {

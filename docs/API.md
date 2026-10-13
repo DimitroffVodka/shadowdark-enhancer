@@ -110,11 +110,17 @@ Hooks.on("shadowdark-enhancer.hexFogChanged", ({ sceneId }) => {
 });
 ```
 
-Fires on **every client**, GM and players, once per redraw of the scene on the
-canvas, after the overlay is rebuilt: after a travel reveal, `setDisclosure`,
-`reset` / `undoReset`, a party selection or roster change, `setEnabled`, a
-change to the scene's flags, and the first draw of a scene once the GM's records
-have loaded. Writes that land in one frame share one redraw and one hook.
+Fires on **every client**, GM and players, each time that client redraws the
+scene on the canvas, after the overlay is rebuilt. A redraw follows a travel
+reveal, `setDisclosure` and `reset` / `undoReset` (on the GM's client from the
+GM's records, on a player's from the projection the GM's client publishes), a
+party selection (on the client that makes it), a roster change (on players'
+clients only: the GM's own map is read from each party's own entry, which a
+roster change does not touch), `setEnabled`, a change to the scene's flags, and
+the first draw of a scene once the GM's records have loaded. Writes that land in
+one frame share one redraw and one hook. `setEnabled` is two redraws on a real
+client (its own, and the one its scene-flag write queues a frame later), so a
+consumer with an expensive redraw should coalesce signals to a frame.
 
 It also fires on a pass that draws no overlay: the scene is not owned
 (`owns("hex.fog", scene)` is false, for instance right after `setEnabled(false)`),
