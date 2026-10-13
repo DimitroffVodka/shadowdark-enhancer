@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1972 tracked files · ~253,300 lines of code/markup across scripts+templates+styles+test.
+1973 tracked files · ~253,500 lines of code/markup across scripts+templates+styles+test.
 `v0.18.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -102,7 +102,7 @@
 | `hex-map/ink.mjs` | 62 | Whole-image 0/1 ink bitmap at a working scale, one browser resize then strip reads; ink threshold from the paper's brightness. Browser-bound. |
 | `hex-map/keyed-art.mjs` | 72 | The art a keyed hex wears, one resolver for the tagger's Tile art default and the Hex Data header: a bake's own sprite for the hex's offset (the base tile, under its icons), else the numbered tile — the GM's loaded manifest or the Western Reaches table, its base art only. Reads only; a file that is gone is the caller's to skip. |
 | `hex-map/keyed-ground-core.mjs` | 70 | Plain ground under keyed hexes, pure: which Tiles are donors (plain ground alone in its hex), the picture the nearest donor of a terrain wears (ties to the alphabetically first), the terrain a keyed hex gets from the book or its neighbours, and the plan of Tiles to create. |
-| `hex-map/keyed-ground.mjs` | 88 | hexMaps.fillKeyedGround and removeKeyedGround (1.31.0), GM only: one plain terrain Tile in each keyed hex of a painted map, so a bake has no hole where a hidden location stands (create only, each flagged), and the removal of exactly the Tiles it made, found by that flag. |
+| `hex-map/keyed-ground.mjs` | 92 | hexMaps.fillKeyedGround and removeKeyedGround (1.31.0), GM only: one plain terrain Tile in each keyed hex of a painted map, so a bake has no hole where a hidden location stands (create only, each flagged), and the removal of exactly the Tiles it made, found by that flag. |
 | `hex-map/lattice.mjs` | 448 | Hex lattice detection from a map's ink: row and column pitch by autocorrelation, phase by folding long horizontal runs, the hex field by outline support with frame-cut half cells, edge-band pitch refinement, and a lattice hung on two hand-placed corner cells. Pure. |
 | `hex-map/legend.mjs` | 250 | The legend: cells grouped by glyph with k-means++ over masked cell features (restarts, lowest inertia kept), one card per group with sample members and a core that becomes the hand tags. Pure. |
 | `hex-map/map-network.mjs` | 92 | Draws a painted map's saved road and river paths as plain lines while Shadowdark Extras is off, so they do not vanish with it; draws nothing while Extras is active. |

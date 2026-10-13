@@ -9,7 +9,7 @@
  */
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { HexRecords, readPass, sceneRef } from "./hex-records.mjs";
-import { crawlEntries, keyedGround } from "./hex-region.mjs";
+import { bookGround, crawlEntries, sceneBookFolder } from "./hex-region.mjs";
 import { donorRows, groundTerrain, planKeyedGround } from "./keyed-ground-core.mjs";
 
 /** The flag every Tile made here carries: { num, terrain }. Removal finds them by it and nothing else. */
@@ -28,10 +28,11 @@ function hexSceneFor(target) {
 }
 
 /**
- * Add a plain terrain Tile under each keyed hex that has none. Creates only; never changes or deletes a Tile.
+ * Add a plain terrain Tile under each keyed hex that has none. Creates only; never changes or deletes a Tile. The ground
+ * under a keyed hex is its row in the scene's own book (`book`, the folder; null when no print claims the scene).
  * @param {Scene|string} target  the scene (or its id) a bake will read, normally the painted source
  * @param {{dryRun?:boolean}} [options]  dryRun reads and plans but writes nothing
- * @returns {Promise<{keyed:number, planned:number, skipped:number, created?:number,
+ * @returns {Promise<{keyed:number, planned:number, skipped:number, created?:number, book:string|null,
  *   byTerrain:Object<string,number>, unfilled:Array<{num:number, reason:string, terrain:string|null}>}>}
  */
 export async function fillKeyedGround(target, { dryRun = false } = {}) {
@@ -58,7 +59,10 @@ export async function fillKeyedGround(target, { dryRun = false } = {}) {
     });
   }
 
-  const book = keyedGround(await crawlEntries());
+  // Books number their hexes from the same range: the ground is the rows of this scene's own book, never merged across
+  // books. A scene no print claims has none, and terrainOf falls back to the neighbours.
+  const folder = await sceneBookFolder(scene);
+  const book = bookGround(await crawlEntries(), folder);
   const terrainOf = k => groundTerrain({
     bookTerrain: book.get(k.num)?.terrain ?? null,
     neighbours: scene.grid.getAdjacentOffsets(k.offset).map(o => read(o)?.terrain ?? null),
@@ -66,7 +70,7 @@ export async function fillKeyedGround(target, { dryRun = false } = {}) {
   const plan = planKeyedGround({ keyed, donors: donorRows(rows), terrainOf, done });
   const byTerrain = {};
   for (const p of plan.tiles) byTerrain[p.terrain] = (byTerrain[p.terrain] ?? 0) + 1;
-  const summary = { keyed: keyed.length, planned: plan.tiles.length, skipped: plan.skipped, byTerrain, unfilled: plan.unfilled };
+  const summary = { keyed: keyed.length, planned: plan.tiles.length, skipped: plan.skipped, byTerrain, unfilled: plan.unfilled, book: folder };
   if (dryRun || !plan.tiles.length) return summary;
 
   const data = plan.tiles.map(p => ({
