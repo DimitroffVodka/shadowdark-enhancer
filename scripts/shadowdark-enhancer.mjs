@@ -150,7 +150,7 @@ const STYLESHEET_REV = "591e899220c2";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "fac56e359914";
+const BUILD_REV = "3319d0ee087c";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -527,7 +527,8 @@ Hooks.once("init", () => {
     // 1.27.0 — additive: the bastion namespace, the Bastion actor type and its sheet.
     // 1.28.0 — additive: the traps namespace and the trap Region behavior.
     // 1.29.0 — additive: the tempHp namespace, a temporary-hit-point pool that damage spends before HP.
-    apiVersion: "1.29.0",
+    // 1.30.0 — additive: the hexFogChanged hook, one per redraw of the viewed hex scene's fog (#490).
+    apiVersion: "1.30.0",
     // The one travel state per world (scripts/overland/overland.mjs): a copy
     // with hexes left, climate, storm, harshness and night derived; whether
     // travel is on; today's weather roll, the travel day's start, Continue
