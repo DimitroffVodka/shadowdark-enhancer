@@ -91,6 +91,11 @@ numbered, Extras draws as before. Native
 Parties use native camping; pending Extras camps keep their original executor.
 Enhancer never toggles Extras' settings. Native play does not need Extras.
 
+One thing on a map painted in Extras is still Extras' to draw: its roads and rivers, which it keeps as a saved overlay and draws on
+every client. With Extras off the Enhancer draws the same paths as plain lines, under the tokens and the fog, so they stay on the
+map; with Extras on it draws nothing and Extras draws its own. For Extras' hand-drawn pieces without Extras running, bake the road
+and river overlays into the map image once with Extras' Tile Flatten.
+
 Legacy flagged NPC Parties adopt in place with UUIDs/items/ownership/foreign
 flags retained. SDX `type: Party` documents are not converted. Native hex adoption
 preserves unknown data/conflicts, keeps native edits authoritative and never

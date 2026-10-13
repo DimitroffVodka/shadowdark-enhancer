@@ -8,6 +8,7 @@ import { registerAdventurePackImport } from "./importer/adventure/adventure-pack
 import { registerA0Prompt } from "./hex-map/a0-prompt.mjs";
 import { hexNumberAt, hasHexNumbering } from "./hex-map/hex-number-api.mjs";
 import { registerHexCoordinates } from "./hex-map/coordinate-overlay.mjs";
+import { registerMapNetwork } from "./hex-map/map-network.mjs";
 import { registerHexMapControls } from "./hex-map/hex-map-controls.mjs";
 import { HexExplorer, registerHexExplorer, ownsHexData } from "./hex-map/hex-explorer.mjs";
 import { HexRecords, isHexAdopted } from "./hex-map/hex-records.mjs";
@@ -150,7 +151,7 @@ const STYLESHEET_REV = "27b9462f5136";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "882e6e6c0da2";
+const BUILD_REV = "cd97a4663d23";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -358,6 +359,7 @@ Hooks.once("init", () => {
   registerHexRules();
   registerHexFog();
   registerHexCoordinates();
+  registerMapNetwork();
   registerHexMapControls();
   registerHexExplorer();
   registerHexAdoption();

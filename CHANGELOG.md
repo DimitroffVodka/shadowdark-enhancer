@@ -4,6 +4,7 @@
 
 ### Fixed
 
+- **A map painted in Extras lost its roads and rivers when Extras was switched off.** Extras draws a built map's road and river network itself, from a saved overlay, on every client, so turning it off left the painted hexes and dropped the roads and rivers. With Extras off the Enhancer now draws the same saved paths as plain lines, under the tokens and the fog; with Extras on it draws nothing and Extras draws its own. They are not Extras' hand-drawn pieces: Extras' Tile Flatten can bake the road and river overlays into the map image once, and then neither module has to draw them. The reader of Extras' stored hex records also no longer fails when Extras is off (it threw `Flag scope "shadowdark-extras" is not valid`); it reads the stored records directly, so a scene that was never adopted still has its terrain for encounters.
 - **Hexes the party reached were not shown to your players, and earlier reveals were lost.** The Enhancer kept the copy of a map's private hex records it loaded at startup. Foundry applies updates to a different copy and drops its copies after five idle minutes, so after the first pause (a camp, a long break) the kept copy was out of date. The players' view was then published from it with nothing revealed, and the next reveal was written back on top of the old data, erasing what had been revealed. Reads and writes now use the copy Foundry holds. Hexes already overwritten are not recovered.
 
 ## [0.18.3] — 2026-10-11

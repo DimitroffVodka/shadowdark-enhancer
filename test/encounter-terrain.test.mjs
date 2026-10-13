@@ -66,7 +66,7 @@ function world({ hex = true, columns = true, flags = {}, records = null, rect = 
   };
   globalThis.game = {
     journal: { getName: (name) => (name === "__sdx_hex_data__" && records
-      ? { getFlag: (scope, key) => (scope === EXTRAS && key === "hexData" ? { [id]: records } : undefined) } : undefined) },
+      ? { flags: { [EXTRAS]: { hexData: { [id]: records } } } } : undefined) },
   };
   return { grid, scene, tokens: { controlled: [], placeables: [] } };
 }
@@ -128,9 +128,21 @@ test("hexReader: a tagged map keeps its tags when Extras holds records too", () 
   assert.equal(hexReader(w)({ i: 0, j: 0 }).terrain, "swamp");
 });
 
-test("hexReader: Extras not being active is no records, never a throw", () => {
+test("hexReader: Extras switched off still reads its stored records, and getFlag is never asked", () => {
   const w = world();
-  globalThis.game = { journal: { getName: () => ({ getFlag: () => { throw new Error('Flag scope "shadowdark-extras" is not valid or not currently active'); } }) } };
+  // v14 refuses getFlag for an inactive module's scope; the persisted flags are still on the document.
+  const journal = {
+    getFlag: () => { throw new Error('Flag scope "shadowdark-extras" is not valid or not currently active'); },
+    flags: { [EXTRAS]: { hexData: { [w.scene.id]: { "0_0": { terrain: "Forest" } } } } },
+  };
+  globalThis.game = { journal: { getName: () => journal } };
+  assert.equal(hexReader(w)({ i: 0, j: 0 }).terrain, "forest");
+  assert.equal(hasHexTerrain(w), true);
+});
+
+test("hexReader: a store that cannot be read at all is no records, never a throw", () => {
+  const w = world();
+  globalThis.game = { journal: { getName: () => ({ get flags() { throw new Error("unreadable"); } }) } };
   assert.deepEqual(hexReader(w)({ i: 0, j: 0 }), { num: null, terrain: null, features: [] });
   assert.equal(hasHexTerrain(w), false);
 });
