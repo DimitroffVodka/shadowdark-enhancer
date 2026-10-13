@@ -14,11 +14,14 @@ import { assignmentsFromManifest } from "../importer/hex/hex-dataset.mjs";
 import { backgroundTransform } from "./sampler.mjs";
 import { decodeTags } from "./tag-store.mjs";
 import { A0_PRINT, isA0 } from "./a0-print.mjs";
-import { BAKED_NAMESPACE, KEYED_FLAG } from "./baked-map-core.mjs";
+import { keyedOf } from "./baked-map-core.mjs";
 import { WR_KEYED_ART, WR_MAP_ID } from "./wr-keyed-art.mjs";
 
 /** Scene flag: the GM's own tile-art manifest for this map. Read at hand-off; never shipped. */
 export const ART_FLAG = "hexArt";
+
+/** The picture on screen is the viewed scene's: another scene's window must not borrow its size for the print check. */
+const viewedTransform = scene => globalThis.canvas?.scene && globalThis.canvas.scene === scene ? backgroundTransform() : null;
 
 /**
  * The tile art for a scene, by published hex number: the one the GM loaded,
@@ -30,7 +33,7 @@ export const ART_FLAG = "hexArt";
  *   sampler.mjs's background transform, for the A0 picture's size check.
  * @returns {Object<number, {art:string, icon?:string}>}
  */
-export function artAssignments(scene, { bounds = null, transform = globalThis.canvas ? backgroundTransform() : null } = {}) {
+export function artAssignments(scene, { bounds = null, transform = viewedTransform(scene) } = {}) {
   const own = scene?.getFlag?.(MODULE_ID, ART_FLAG);
   if (own && Object.keys(own).length) return own;
   // A painted copy has no hexMapId and no A0 picture, but it carries the print's 64 x 75 bounds in its tags.
@@ -48,7 +51,7 @@ export function artAssignments(scene, { bounds = null, transform = globalThis.ca
  */
 export function bakedSpriteSrc(scene, offset) {
   const key = Number.isSafeInteger(offset?.i) && Number.isSafeInteger(offset?.j) ? `${offset.i}-${offset.j}` : null;
-  const list = key ? scene?.getFlag?.(BAKED_NAMESPACE, KEYED_FLAG)?.[key] : null;
+  const list = key ? keyedOf(scene)?.[key] : null;
   const base = (list ?? []).reduce((low, e) => (low === null || (e?.sort ?? 0) < (low.sort ?? 0) ? e : low), null);
   return base?.src ?? null;
 }

@@ -94,8 +94,10 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
   /** The header's picture: the first art source for this hex whose file is really there, or null for the stock hexagon. */
   async _artSrc(record) {
-    for (const src of hexArtSources(this.scene, this.offset, record.num)) if (await fileLoads(src)) return src;
-    return null;
+    const sources = hexArtSources(this.scene, this.offset, record.num), key = sources.join("\n");
+    // Kept per list of sources: a Disclosed re-render does not HEAD again, and a changed bake or number asks afresh.
+    if (this.artFor?.key !== key) this.artFor = { key, found: (async () => { for (const src of sources) if (await fileLoads(src)) return src; return null; })() };
+    return this.artFor.found;
   }
   /** Foundry's own image pop-out, whose share action sends the picture to the players. */
   _showArt() {

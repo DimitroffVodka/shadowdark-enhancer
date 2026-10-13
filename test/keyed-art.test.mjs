@@ -9,8 +9,24 @@ const WR_TILE_527 = "modules/shadowdark-extras/assets/Hexes/Water/Hex - Water - 
 const WR_ICON_527 = "modules/shadowdark-extras/assets/symbols/Buildings/Buildings - Jetty (boat).webp";
 const BAKED = "shadowdark-extras.bakedKeyed";
 
-/** A scene-shaped stub: getFlag reads a flat `<module>.<key>` map, so no Foundry document is needed. */
-const sceneOf = (flags = {}) => ({ getFlag: (module, key) => flags[`${module}.${key}`] });
+/**
+ * A scene-shaped stub over a flat `<module>.<key>` map, so no Foundry document is needed. As in Foundry v14 with
+ * Extras not active, `flags` carries the data and getFlag throws for any other scope.
+ */
+const sceneOf = (flags = {}) => {
+  const nested = {};
+  for (const [path, value] of Object.entries(flags)) {
+    const dot = path.indexOf(".");
+    (nested[path.slice(0, dot)] ??= {})[path.slice(dot + 1)] = value;
+  }
+  return {
+    flags: nested,
+    getFlag(module, key) {
+      if (module !== MODULE_ID) throw new Error(`Flag scope "${module}" is not valid or not currently active`);
+      return nested[module]?.[key];
+    },
+  };
+};
 /** The tag flag's own shape, as the tagger stores it; only the origin bounds matter here. */
 const tagFlag = (bounds) => ({ version: 1, origin: { i: 0, j: 0, num: "0000", shifted: "odd", bounds }, cells: {} });
 
@@ -60,6 +76,24 @@ test("the header's art is the bake's sprite first, then the numbered tile, once 
   assert.deepEqual(hexArtSources(sceneOf(), { i: 1, j: 1 }, null), [], "nothing to offer keeps the hexagon");
 });
 
+test("with Extras not active (getFlag throws for its scope), the bake is read off the scene's flags", () => {
+  const scene = sceneOf({ [BAKED]: { "27-5": [{ src: WR_TILE_527, sort: 1 }] }, [`${MODULE_ID}.hexMapId`]: "hex-wr:0" });
+  assert.throws(() => scene.getFlag("shadowdark-extras", "bakedKeyed"), /not currently active/, "the stub models v14's scope check");
+  assert.equal(bakedSpriteSrc(scene, { i: 27, j: 5 }), WR_TILE_527);
+  assert.deepEqual(hexArtSources(scene, { i: 27, j: 5 }, 527), [WR_TILE_527]);
+  assert.equal(bakedSpriteSrc(sceneOf(), { i: 27, j: 5 }), null, "no bake at all, Extras gone");
+});
+
+test("a scene that is not the viewed canvas never borrows the viewed picture's size for the print check", () => {
+  const picture = { texture: { width: 9933, height: 14043 }, x: 0, y: 0, width: 9933, height: 14043 };
+  const viewed = sceneOf(), other = sceneOf();
+  globalThis.canvas = { scene: viewed, primary: { background: picture } };
+  try {
+    assert.equal(artAssignments(viewed)[167].art, WR_TILE_167, "the viewed scene is the print on screen");
+    assert.deepEqual(artAssignments(other), {}, "another scene is not");
+  } finally { delete globalThis.canvas; }
+});
+
 const template = readFileSync(new URL("../templates/hex-map/hex-explorer.hbs", import.meta.url), "utf8");
 /** The block conditions a control sits inside, read from the template's own nesting. */
 function conditionsAround(source, marker) {
@@ -86,6 +120,13 @@ test("one new string, from languages/en.json", () => {
   assert.deepEqual(used.length, 2, "title and aria-label");
   const en = JSON.parse(readFileSync(new URL("../languages/en.json", import.meta.url), "utf8"));
   assert.ok(en[used[0]], "the string is in en.json");
+});
+
+test("the header's HEAD checks are kept per list of sources, so a re-render does not ask again", () => {
+  const app = readFileSync(new URL("../scripts/hex-map/hex-explorer-app.mjs", import.meta.url), "utf8");
+  const art = app.slice(app.indexOf("async _artSrc(record)"), app.indexOf("_showArt() {"));
+  assert.match(art, /this\.artFor\?\.key !== key/, "a result is reused only for the same sources");
+  assert.match(art, /key = sources\.join/, "the key is the sources themselves, so another hex or scene never reads it");
 });
 
 test("pressing the art opens Foundry's pop-out, titled by the hex number and never the location's name", () => {
