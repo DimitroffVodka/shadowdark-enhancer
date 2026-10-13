@@ -9,6 +9,7 @@ import { decodeFixes, encodeFixes, recordEdits, FIXES_FLAG } from "./tag-correct
 import { disclosure, effectiveDiscovery, withPartyDiscovery } from "./hex-fog-core.mjs";
 import { viewedPartyIds, playerViewOn } from "./hex-fog.mjs";
 import { HexTagOverlay, isDoubleClick } from "./tag-overlay.mjs";
+import { ruleKey, terrainCost } from "../rules-data/rules-data-core.mjs";
 import { hexZonesFor, onHexZonesForgotten } from "../encounter/encounter-terrain.mjs";
 
 const pick = (v, keys) => Object.fromEntries(keys.filter(k => typeof v?.[k] === "string").map(k => [k, v[k]]));
@@ -140,6 +141,28 @@ export function mergedCell(previous, patch) {
 export function encounterReadout({ uuid, zone, verdict } = {}, name = "", active = "", mapped = "") {
   const state = !uuid ? "none" : verdict?.status === "ambiguous" ? "ambiguous" : verdict?.column ? "region" : uuid === active && uuid !== mapped ? "active" : "terrain";
   return { state, uuid: uuid ?? "", name, zone: zone ?? "", column: verdict?.column?.column ?? "", options: (verdict?.columns ?? []).map(c => c.column).join(", ") };
+}
+/**
+ * The hex's "To enter" stat: the terrain table's own type and cost for the
+ * hex's own terrain tag, under the hex scene's rules, so it shows only what
+ * Overland's hexCost charges for that tag. A keyed or settlement hex is tagged
+ * "keyed_location", "village" and so on, which the table has no row for: travel
+ * prices it as one hex, so the stat is blank, never the book's ground under it.
+ * The base table only, exactly what terrainCost prices with no options: no
+ * weather, storm, climate, path or boat adjustment, and impassable has no cost.
+ * Null when the rules have no row, or the row names no type, so the window
+ * stays blank instead of guessing a cost of 1 the way travel counts an unknown
+ * terrain.
+ * @param {object} rules  from rulesFrom(storedRulesFor(scene))
+ * @param {{terrain?:string|null}|null} hex  the hex's terrain word (or the record)
+ * @returns {{type:"normal"|"difficult"|"impassable", cost:number|null}|null}
+ */
+export function enterStat(rules, hex) {
+  const terrain = hex?.terrain;
+  const row = rules?.terrain?.[ruleKey(terrain)];
+  if (!row?.type) return null;
+  const cost = terrainCost(rules, terrain);
+  return { type: row.type, cost: Number.isFinite(cost) ? cost : null };
 }
 export const HexExplorer = {
   read(offset, target) { return explorerView(HexRecords.read(offset, target), !!game.user?.isGM, viewedPartyIds()); },

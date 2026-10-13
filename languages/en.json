@@ -149,6 +149,8 @@
   "SDE.hexExplorer.dropRefused": "Only a journal entry, journal page or roll table can be linked to a hex.",
   "SDE.hexExplorer.dropTableRefused": "Only a roll table rolls when the party arrives.",
   "SDE.hexExplorer.terrain": "Terrain",
+  "SDE.hexExplorer.enter": "To enter",
+  "SDE.hexExplorer.enterCost": "{type} ({cost})",
   "SDE.hexExplorer.region": "Region",
   "SDE.hexExplorer.regionEstimated": "{region} (estimated)",
   "SDE.hexExplorer.locationTitle": "Keyed location title",

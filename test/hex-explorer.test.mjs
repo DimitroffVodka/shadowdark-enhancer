@@ -1,6 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { explorerView, planExplorerEdit, explorerClick, encounterReadout, ownsHexData, hoverHead, playerOpenable, canOpenLink, raisedOwnership, applyLinkShares, droppedLink, arrivalFields, mergedCell, regionLine, regionText } from "../scripts/hex-map/hex-explorer.mjs";
+import { explorerView, planExplorerEdit, explorerClick, encounterReadout, ownsHexData, enterStat, hoverHead, playerOpenable, canOpenLink, raisedOwnership, applyLinkShares, droppedLink, arrivalFields, mergedCell, regionLine, regionText } from "../scripts/hex-map/hex-explorer.mjs";
+import { rulesFrom, terrainCost } from "../scripts/rules-data/rules-data-core.mjs";
+import { hexReader } from "../scripts/encounter/encounter-terrain.mjs";
+import { hexCost, priceMove } from "../scripts/overland/overland-state-core.mjs";
 import { arrivalDue } from "../scripts/hex-map/hex-fog-core.mjs";
 const record = { sceneUuid: "Scene.a", offset: { i: -2, j: 3 }, num: 101, terrain: "forest", title: "Cave", features: [{ type: "river", discovered: true, secret: "private" }, { type: "dungeon", name: "Secret cave", discovered: true, custom: { x: 1 } }], notes: [{ text: "Bridge", visible: true }, { text: "GM SECRET", visible: false }], links: [{ uuid: "JournalEntry.a", label: "Clue", visible: true }], keyed: [{ title: "Keyed cave", uuid: "JournalEntry.a.JournalEntryPage.b" }], discovery: { revealed: true, visited: false } };
 test("tooltip discloses only safe terrain/public notes until location disclosure", () => {
@@ -112,6 +115,76 @@ test("river, path and coast are always disclosed, whatever an old record stored"
   assert.deepEqual(view.features, [{ type: "river" }, { type: "path" }]);
   const plan = planExplorerEdit({ ...record, features: [] }, { ...input, lines: ["river", "coast"], features: [] }, structuredClone(flag));
   assert.deepEqual(plan.patch.features.map(f => [f.type, f.discovered]), [["river", true], ["coast", true]]);
+});
+test("the To enter stat prices the terrain table's own row, and stays blank when the rules know nothing", () => {
+  const rules = rulesFrom({
+    terrain: { swamp: { type: "difficult", cost: 2 }, grassland: { type: "normal", cost: 1 }, lava: { type: "impassable" }, marsh: { type: "difficult" } },
+    terrainTypes: { normal: 1, difficult: 2 },
+  });
+  assert.deepEqual(enterStat(rules, { terrain: "swamp" }), { type: "difficult", cost: 2 });
+  assert.deepEqual(enterStat(rules, { terrain: "grassland" }), { type: "normal", cost: 1 });
+  // A terrain with a type and no cost of its own costs what its type does (the Terrain types table).
+  assert.deepEqual(enterStat(rules, { terrain: "marsh" }), { type: "difficult", cost: 2 });
+  // Impassable has no cost, so the stat is the word alone — never 1 or a guessed number.
+  assert.deepEqual(enterStat(rules, { terrain: "lava" }), { type: "impassable", cost: null });
+  // Nothing imported: the printed rows exist but are empty, so blank — it does not say "costs 1".
+  assert.equal(enterStat(rulesFrom({}), { terrain: "forest" }), null);
+  // A terrain the table has no row for: blank too.
+  assert.equal(enterStat(rules, { terrain: "volcanic_ash" }), null);
+  assert.equal(enterStat(rules, {}), null);
+  assert.equal(enterStat({}, { terrain: "swamp" }), null);
+});
+test("a keyed or settlement hex shows no cost: travel prices it as one hex, so the stat never takes the book's ground", () => {
+  const rules = rulesFrom({ terrain: { swamp: { type: "difficult", cost: 2 }, mountain: { type: "difficult", cost: 3 } } });
+  // The third argument is the book's ground, which the stat once priced a keyed hex by. Travel never does, so it is ignored.
+  const swamp = { terrain: "swamp", features: ["coast"] };
+  for (const tag of ["keyed_location", "village", "town", "city", "city_state"]) {
+    assert.equal(enterStat(rules, { terrain: tag }, swamp), null, tag);
+    assert.equal(enterStat(rules, { terrain: tag }), null, tag);
+  }
+  // Any other hex is priced by its own tag.
+  assert.deepEqual(enterStat(rules, { terrain: "mountain" }, swamp), { type: "difficult", cost: 3 });
+});
+// The stat is only honest if it is what Overland charges. This drives the module's own reader and pricer:
+// hexReader over a tagged map, hexCost with the rules' terrainCost bound as Overland binds it, priceMove.
+test("parity: wherever the stat shows a cost it is what priceMove charges for that hex, and a keyed hex shows none", () => {
+  const cells = { 101: "forest|gm", 102: "swamp|gm", 103: "lava|gm", 104: "keyed_location|gm", 105: "village|gm", 106: "Salt Flat|gm", 107: "marsh|gm", 108: "volcanic_ash|gm", 109: "grassland|gm" };
+  const scene = { id: "s1", grid: {}, getFlag: (scope, key) => (scope === "shadowdark-enhancer" && key === "hexTags" ? { origin: { q: 0, r: 0, num: 101, shifted: "odd" }, cells } : undefined) };
+  const grid = { isHexagonal: true, columns: true, even: false, getCenterPoint: ({ i, j }) => ({ x: j * 100 + 50, y: i * 100 + 50 }) };
+  scene.grid = grid;
+  globalThis.game = { journal: { getName: () => undefined } };
+  const read = hexReader({ grid, scene });
+  const tables = [
+    // The printed rows, with a swamp that stands on a keyed hex's book ground and a keyed_location tag with no row.
+    { terrain: { forest: { type: "difficult", cost: 2 }, swamp: { type: "difficult", cost: 2 }, grassland: { type: "normal", cost: 1 }, lava: { type: "impassable" }, salt_flat: { type: "difficult", cost: 3 }, marsh: { type: "difficult" } }, terrainTypes: { normal: 1, difficult: 2 } },
+    // A homebrew table: other numbers for the same words, and a terrain the printed one lacks.
+    { terrain: { forest: { type: "normal", cost: 1 }, swamp: { type: "difficult", cost: 4 }, volcanic_ash: { type: "difficult", cost: 5 }, lava: { type: "difficult", cost: 6 } }, terrainTypes: { normal: 1, difficult: 2 } },
+  ];
+  const offsetOf = (num) => ({ i: (num % 100) - 1, j: Math.floor(num / 100) - 1 });
+  let shown = 0;
+  for (const raw of tables) {
+    const rules = rulesFrom(raw);
+    const costOf = (hex, from) => hexCost((terrain, opts) => terrainCost(rules, terrain, opts), hex, { from });
+    const from = { num: 100, terrain: "grassland", features: [] };
+    for (const num of Object.keys(cells).map(Number)) {
+      const hex = read(offsetOf(num));
+      assert.equal(hex.num, num, "the reader finds the hex it was asked for");
+      // Offered the book's swamp ground for every hex, as the window once did for a keyed one: only a keyed hex could take it.
+      const stat = enterStat(rules, hex, { terrain: "swamp", features: [] });
+      const priced = priceMove([{ hex, from }], costOf);
+      if (["keyed_location", "village"].includes(hex.terrain)) {
+        assert.equal(stat, null, `${hex.terrain} shows no cost`);
+        assert.deepEqual(priced, { cost: 1, blocked: null }, `${hex.terrain} costs 1 hex in travel`);
+      } else if (stat?.type === "impassable") {
+        assert.equal(priced.blocked, hex, `${hex.terrain} is impassable in travel too`);
+        shown += 1;
+      } else if (stat) {
+        assert.equal(stat.cost, priced.cost, `${hex.terrain} shows what travel charges`);
+        shown += 1;
+      }
+    }
+  }
+  assert.ok(shown >= 8, "the cases that show a cost were really compared");
 });
 test("a keyed hex's hover line is the location's name: the GM always, marked until found; a player only once found", () => {
   const keyed = { ...record, terrain: "keyed_location", title: "The Swamp Ape", discovery: { revealed: true, visited: false } };
