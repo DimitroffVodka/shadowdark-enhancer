@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1958 tracked files · ~249,500 lines of code/markup across scripts+templates+styles+test.
+1959 tracked files · ~249,700 lines of code/markup across scripts+templates+styles+test.
 `v0.18.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -76,7 +76,7 @@
 | `hex-map/bitmap.mjs` | 145 | 0/1 cell bitmaps: dilate, 8-connected components, majority stamps, hex masks, residual features, label zone. Pure. |
 | `hex-map/classify.mjs` | 892 | Nearest-exemplar terrain + stamp-subtraction river/path classifier with a review queue; truth-CSV comparison for the dev check. Pure. |
 | `hex-map/coordinate-overlay.mjs` | 99 | Opt-in per-user native published-number labels on flat-top hex maps; reads native geometry and current fog without changing numbering or calibration. |
-| `hex-map/extras-records.mjs` | 44 | Read-only SDX legacy/authoring record reader, retained for painter-feature merges and unadopted gameplay; native adopted scenes use hex-records instead. |
+| `hex-map/extras-records.mjs` | 48 | Raw readers for what Shadowdark Extras leaves in the world, never getFlag (it throws with Extras off): its stored hex records (legacy/authoring, retained for painter-feature merges and unadopted scenes) and the hex a map note pins, its flag or the Enhancer's (native: hover card, Hex Data, Jump to pin). |
 | `hex-map/geometry.mjs` | 221 | Hex numbering by cube difference from one anchor cell; printed offset ↔ cube under the map's column-shift rule. Pure. |
 | `hex-map/hex-adoption.mjs` | 183 | Read-once SDX record adoption with negative offset parsing, lossless original archives, existing-native conflict precedence, reports and automatic eligibility hooks. |
 | `hex-map/hex-brush-app.mjs` | 262 | The hex brush: a small window that sets one terrain (a picture tile per Legend terrain) plus features, so clicking or dragging across the tag overlay retags whole patches; a stroke is one scene write and Undo puts it back. |

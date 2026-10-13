@@ -1,13 +1,17 @@
 /**
- * Shadowdark Enhancer — legacy/authoring reader for Shadowdark Extras' hex records.
+ * Shadowdark Enhancer — what Shadowdark Extras leaves in the world, read raw.
  *
- * Extras keeps every hex record in one flag on one journal entry, keyed per
- * scene by Foundry offset ("i_j"). Its own read call (api.hex.getHexRecords,
- * shadowdark-extras#157) is async and GM-only. This reader remains for the
- * painter-feature merge in hex-handoff and unadopted scenes, NOT native gameplay.
- * hex-adoption reads raw persisted flags once (also with SDX off). Nothing here writes.
- * With nothing recorded for the scene it finds nothing. The flag is read raw: `getFlag`
- * throws for a module that is not active, and a map has to keep reading with Extras off.
+ * Neither reader uses `getFlag`, which throws for a module that is not active: a map built in Extras
+ * has to keep reading with Extras off.
+ *
+ * `extrasRecordsByOffset` — legacy/authoring. Extras keeps every hex record in one flag on one journal
+ * entry, keyed per scene by Foundry offset ("i_j"). Its own read call (api.hex.getHexRecords,
+ * shadowdark-extras#157) is async and GM-only. This reader remains for the painter-feature merge in
+ * hex-handoff and unadopted scenes, NOT native gameplay. hex-adoption reads raw persisted flags once
+ * (also with SDX off). With nothing recorded for the scene it finds nothing. Nothing here writes.
+ *
+ * `pinNumber` — native. Which hex a map Note pins, whether the Enhancer or Extras' builder placed it: the
+ * hover card, Hex Data and the Quest Log's Jump to pin read it.
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
