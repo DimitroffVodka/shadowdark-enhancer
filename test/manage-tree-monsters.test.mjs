@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { _testBuildMonsters } from "../scripts/importer/manage-tree.mjs";
-import { selectMountDrafts } from "../scripts/importer/boats/mount-parser.mjs";
+import { selectMountDrafts, SYSTEM_MOUNTS } from "../scripts/importer/boats/mount-parser.mjs";
 
 const actor = (name, source, type = "NPC") => ({ name, source, type });
 const mount = (name, source) => actor(name, source, "shadowdark-enhancer.mount");
@@ -33,9 +33,9 @@ test("Monsters tree keeps curated bestiaries and reconciles mounts across source
 
   const mounts = tree.children.at(-1);
   assert.equal(mounts.have, 6);
-  assert.equal(mounts.locked, 1);
+  assert.equal(mounts.locked, 1 + SYSTEM_MOUNTS.length);
   assert.deepEqual(
-    mounts.entries.filter((entry) => !entry.present).map((entry) => entry.name),
+    mounts.entries.filter((entry) => !entry.present && entry.src === "WR").map((entry) => entry.name),
     ["Horse, Prized"],
   );
 });
@@ -98,21 +98,47 @@ test("a mount imported under the book's own heading still reconciles", () => {
     mounts.entries.filter((entry) => entry.present).map((entry) => entry.name),
     ["Camel, Silver", "Horse, War"],
   );
-  assert.equal(mounts.locked, 5);
+  assert.equal(mounts.locked, 5 + SYSTEM_MOUNTS.length);
 });
 
 test("a bestiary NPC of a mount's name doesn't satisfy its row: only the Mount actor opens the Mount sheet", () => {
   const tree = _testBuildMonsters([actor("Donkey", "Cursed Scroll 2")]);
   const mounts = tree.children.at(-1);
   assert.equal(mounts.entries.find((entry) => entry.name === "Donkey").present, false);
-  assert.equal(mounts.locked, 7);
+  assert.equal(mounts.locked, 7 + SYSTEM_MOUNTS.length);
 });
 
 test("a same-stem mount doesn't satisfy another mount's row", () => {
   const tree = _testBuildMonsters([mount("Camel", "Core")]);
   const mounts = tree.children.at(-1);
   assert.equal(mounts.entries.find((entry) => entry.name === "Camel, Silver").present, false);
-  assert.equal(mounts.locked, 7);
+  assert.equal(mounts.entries.find((entry) => entry.name === "Camel").present, true, "it is the core Camel's own row");
+  assert.equal(mounts.locked, 7 + SYSTEM_MOUNTS.length - 1);
+});
+
+// The base system's Horse, Camel, Worg… are NPCs, and an NPC can't be ridden,
+// seated on the Riders tab or fed at camp. The Mounts leaf offers each as a
+// Mount copied from the system bestiary, which needs no book and cites no page.
+test("the core bestiary's mounts are rows of their own, taken from the system", () => {
+  const mounts = leafOf(_testBuildMonsters([]), "monsters/mounts");
+  const core = mounts.entries.filter((entry) => entry.src === "CORE");
+  assert.deepEqual(core.map((entry) => entry.name), SYSTEM_MOUNTS);
+  assert.ok(core.every((entry) => entry.type === "Mount" && entry.pages === "" && !entry.present));
+  assert.equal(mounts.entries.length, 7 + SYSTEM_MOUNTS.length);
+});
+
+test("a core mount row is satisfied by a Mount actor only, never by the bestiary NPC", () => {
+  const horse = (actors) => leafOf(_testBuildMonsters(actors), "monsters/mounts")
+    .entries.find((entry) => entry.name === "Horse");
+  assert.equal(horse([actor("Horse", "Custom")]).present, false);
+  assert.equal(horse([mount("Horse", "Core Rulebook")]).present, true);
+});
+
+test("a plain Horse mount doesn't satisfy the book's War or Prized horse", () => {
+  const mounts = leafOf(_testBuildMonsters([mount("Horse", "Core Rulebook")]), "monsters/mounts");
+  const present = (name) => mounts.entries.find((entry) => entry.name === name).present;
+  assert.equal(present("Horse, War"), false);
+  assert.equal(present("Horse, Prized"), false);
 });
 
 test("a mount unlock keeps only its selected draft from the full WR spread", () => {

@@ -18,6 +18,18 @@ the type dropdown. They register at world load alongside core types.
 > **Manifest changes require a world relaunch, not a browser reload.** If the
 > actor types do not appear after updating the module, relaunch the world.
 
+### The system's own mounts
+
+The Shadowdark system's bestiary already holds a Camel, Elephant, Griffon,
+Hippogriff, Horse, Moose, Pegasus and Worg, but as plain NPCs. An NPC cannot
+be ridden on the map, seated on the Riders tab or fed at camp.
+
+**Importer Hub → Manage → Monsters → Mounts** lists all eight beside the
+Western Reaches mounts. **Import** on one copies the system's own creature
+into your **sde-actors** pack as a Mount, in the **Mounts** folder, with its
+stats, attacks, art and token. No book or PDF is needed, and the NPC in the
+bestiary is left as it is. A Mount you already have under that name is skipped.
+
 ---
 
 ## Mount

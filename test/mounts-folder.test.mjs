@@ -296,3 +296,92 @@ test("Boat and ordinary monster imports retain their existing source-folder seam
   assert.doesNotMatch(boatSource, /Mounts/);
   assert.doesNotMatch(monsterSource, /Mounts/);
 });
+
+/** Add the system's own bestiary to a fake world: NPCs that hand over a compendium-clean copy. */
+function withSystemBestiary(world, npcs) {
+  const system = {
+    collection: "shadowdark.monsters",
+    documentName: "Actor",
+    metadata: { packageType: "system", label: "Monsters" },
+    async getIndex() { return npcs.map((npc) => ({ _id: npc.id, name: npc.name, type: npc.type ?? "NPC" })); },
+    async getDocument(id) {
+      const npc = npcs.find((entry) => entry.id === id);
+      return {
+        toCompendium(pack) {
+          assert.equal(pack, world.pack, "the copy is prepared for the managed pack");
+          return structuredClone({
+            name: npc.name, type: "NPC", img: `art/${npc.name}.webp`, folder: null,
+            system: { abilities: npc.abilities },
+            items: [{ name: "Hoof", type: "NPC Attack" }],
+            prototypeToken: { width: 1, height: 1 }, flags: {},
+          });
+        },
+      };
+    },
+  };
+  globalThis.game.packs.push(system);
+  return system;
+}
+
+const HORSE = { id: "sys-horse", name: "Horse", abilities: { str: { mod: 2 }, dex: { mod: 1 }, con: { mod: 1 }, int: { mod: -3 }, wis: { mod: 0 }, cha: { mod: -2 } } };
+
+test("a core bestiary NPC is copied into the managed pack as a Mount, items and art kept", async () => {
+  const world = fakeWorld();
+  withSystemBestiary(world, [HORSE, { id: "sys-worg", name: "Worg", abilities: {} }]);
+  try {
+    const report = await MountImporter.createFromSystem(["Horse"]);
+    assert.deepEqual(report, { created: ["Horse"], skipped: [], replaced: [], missing: [] });
+    const { data } = world.calls.actorCreates[0];
+    assert.equal(data.type, "shadowdark-enhancer.mount");
+    assert.equal(data.folder, "folder-1");
+    assert.equal(data.img, "art/Horse.webp");
+    assert.deepEqual(data.items.map((item) => item.name), ["Hoof"]);
+    assert.equal(data.flags["shadowdark-enhancer"].mountScores.base.str, 14, "full score = 10 + 2 x the NPC's modifier");
+    assert.equal(data.flags["shadowdark-enhancer"].source, "Core Rulebook");
+    assert.equal(world.actors.length, 1, "only the asked-for name is copied");
+  } finally {
+    world.restore();
+  }
+});
+
+test("copying a core mount twice makes one Mount; a bestiary-style NPC of the name doesn't block it", async () => {
+  const world = fakeWorld({ actors: [{ id: "npc-horse", name: "Horse", type: "NPC" }] });
+  withSystemBestiary(world, [HORSE]);
+  try {
+    const first = await MountImporter.createFromSystem(["Horse"]);
+    assert.deepEqual(first.created, ["Horse"]);
+    const again = await MountImporter.createFromSystem(["Horse"]);
+    assert.deepEqual(again, { created: [], skipped: ["Horse"], replaced: [], missing: [] });
+    assert.equal(world.actors.filter((actor) => actor.type === "shadowdark-enhancer.mount").length, 1);
+    assert.equal(world.calls.folderCreates.length, 1);
+  } finally {
+    world.restore();
+  }
+});
+
+test("a name the system bestiary lacks is reported missing, and the rest still copy", async () => {
+  const world = fakeWorld();
+  withSystemBestiary(world, [HORSE]);
+  try {
+    const report = await MountImporter.createFromSystem(["Unicorn", "Horse"]);
+    assert.deepEqual(report, { created: ["Horse"], skipped: [], replaced: [], missing: ["Unicorn"] });
+  } finally {
+    world.restore();
+  }
+});
+
+test("a player cannot copy core mounts", async () => {
+  const world = fakeWorld();
+  withSystemBestiary(world, [HORSE]);
+  const warned = [];
+  globalThis.ui.notifications.warn = (message) => warned.push(message);
+  globalThis.game.user.isGM = false;
+  try {
+    const report = await MountImporter.createFromSystem(["Horse"]);
+    assert.deepEqual(report.created, []);
+    assert.equal(world.actors.length, 0);
+    assert.equal(warned.length, 1);
+  } finally {
+    world.restore();
+  }
+});
