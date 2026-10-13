@@ -580,7 +580,7 @@ class HubManageMethods {
     const { MountImporter } = await import("./boats/mount-importer.mjs");
     const report = await MountImporter.createFromSystem(names);
     this._invalidateMonstersCache();
-    return report;
+    return { ...report, pack: MountImporter.PACK_LABEL };
   }
 
   async _onCharSeedPaste(event, target) {
@@ -592,9 +592,11 @@ class HubManageMethods {
     // A core-bestiary Mount comes straight from the system, not a book page.
     if (isSystemMountEntry({ type, src })) {
       const report = await this._createSystemMounts([name]);
+      // The tree was built before the copy and an action does not re-render: without this the row stays locked.
+      await this.render();
       if (report.created.length) ui.notifications.info(t("SDE.importer.done.mounts", {
         summary: t("SDE.importer.count.created", { n: report.created.length }),
-        pack: "sde-actors", source: ` / ${CHAR_SOURCES[src].label}`,
+        pack: report.pack, source: ` / ${CHAR_SOURCES[src].label}`,
       }));
       else if (report.missing.length) ui.notifications.warn(`${name}: ${t("SDE.importer.skipReason.notInSystem")}`);
       else if (!report.skipped.length) ui.notifications.warn(t("SDE.importer.batchNote.mountNoResult"));

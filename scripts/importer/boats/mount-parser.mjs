@@ -25,7 +25,12 @@ export const MOUNT_MANIFEST = [
   "Scrag, War",
 ].map((name) => ({ name, src: MOUNT_SOURCE.key, pages: MOUNT_SOURCE.pages }));
 
-/** The core-rulebook mounts, copied from the system bestiary rather than a book. */
+/**
+ * The core-rulebook mounts, copied from the system bestiary rather than a book.
+ * Spelled exactly as the `NPC` entries of the system's `shadowdark.monsters`
+ * pack (checked against system 4.0.6 and the declared floor, release-3.6.2); a
+ * name that drifts only shows at click time, as "not in the system's bestiary".
+ */
 export const SYSTEM_MOUNTS = ["Camel", "Elephant", "Griffon", "Hippogriff", "Horse", "Moose", "Pegasus", "Worg"];
 
 /** Manage-tree `src` of a row that unlocks from the system bestiary (CHAR_SOURCES key). */

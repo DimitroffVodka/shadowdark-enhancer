@@ -43,6 +43,9 @@ export const CREATURE_KINDS = {
 /** Per pack, the folder creates in flight, by folder name. */
 const _mountFolderInFlight = new WeakMap();
 
+/** Core-mount copies in flight, by `pack:name`. */
+const _systemCopyInFlight = new Map();
+
 function _isMountFolder(folder, name = MOUNT_FOLDER_NAME) {
   const parent = folder?.folder;
   return String(folder?.name ?? "").trim().toLowerCase() === name.toLowerCase()
@@ -205,18 +208,28 @@ export const MountImporter = {
         if (!entry) { report.missing.push(name); continue; }
         if (have.some((e) => alreadyImported(e, { name, type: k.type }))) { report.skipped.push(name); continue; }
 
-        const data = (await system.getDocument(entry._id)).toCompendium(pack);
-        data.type = k.type;
-        data.folder = folder;
-        data.flags = {
-          ...data.flags,
-          [MODULE_ID]: {
-            ...data.flags?.[MODULE_ID],
-            mountScores: mountScores(data.system?.abilities),
-            source: "Core Rulebook", imported: true,
-          },
-        };
-        const actor = await Actor.create(data, { pack: pack.collection });
+        // The index above was read before this copy; a second press while one is running would make a second Mount.
+        const key = `${pack.collection}:${name}`;
+        const running = _systemCopyInFlight.get(key);
+        if (running) { await running.catch(() => {}); report.skipped.push(name); continue; }
+
+        const copy = (async () => {
+          const data = (await system.getDocument(entry._id)).toCompendium(pack);
+          data.type = k.type;
+          data.folder = folder;
+          data.flags = {
+            ...data.flags,
+            [MODULE_ID]: {
+              ...data.flags?.[MODULE_ID],
+              mountScores: mountScores(data.system?.abilities),
+              source: "Core Rulebook", imported: true,
+            },
+          };
+          return Actor.create(data, { pack: pack.collection });
+        })();
+        _systemCopyInFlight.set(key, copy);
+        let actor;
+        try { actor = await copy; } finally { _systemCopyInFlight.delete(key); }
         if (actor) report.created.push(name);
       } catch (err) {
         // Keep the other names importable; the missing one stays retryable.

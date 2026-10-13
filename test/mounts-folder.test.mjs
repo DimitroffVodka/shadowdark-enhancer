@@ -385,3 +385,21 @@ test("a player cannot copy core mounts", async () => {
     world.restore();
   }
 });
+
+test("two presses on the same core mount while one copy is running make one Mount", async () => {
+  const world = fakeWorld();
+  withSystemBestiary(world, [HORSE]);
+  try {
+    // Both start before either create lands: the double-click on the row's Import.
+    const [a, b] = await Promise.all([
+      MountImporter.createFromSystem(["Horse"]),
+      MountImporter.createFromSystem(["Horse"]),
+    ]);
+    assert.equal(world.calls.actorCreates.length, 1, "a second Mount was created");
+    assert.equal(world.actors.length, 1);
+    assert.deepEqual([...a.created, ...b.created], ["Horse"]);
+    assert.deepEqual([...a.skipped, ...b.skipped], ["Horse"]);
+  } finally {
+    world.restore();
+  }
+});

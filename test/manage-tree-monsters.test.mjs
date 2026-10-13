@@ -122,7 +122,11 @@ test("a same-stem mount doesn't satisfy another mount's row", () => {
 test("the core bestiary's mounts are rows of their own, taken from the system", () => {
   const mounts = leafOf(_testBuildMonsters([]), "monsters/mounts");
   const core = mounts.entries.filter((entry) => entry.src === "CORE");
-  assert.deepEqual(core.map((entry) => entry.name), SYSTEM_MOUNTS);
+  // Literal on purpose: these are the NPC names in the system's shadowdark.monsters, and a list
+  // compared with itself stays green when a name is dropped or mistyped.
+  assert.deepEqual(core.map((entry) => entry.name),
+    ["Camel", "Elephant", "Griffon", "Hippogriff", "Horse", "Moose", "Pegasus", "Worg"]);
+  assert.deepEqual(SYSTEM_MOUNTS, core.map((entry) => entry.name));
   assert.ok(core.every((entry) => entry.type === "Mount" && entry.pages === "" && !entry.present));
   assert.equal(mounts.entries.length, 7 + SYSTEM_MOUNTS.length);
 });

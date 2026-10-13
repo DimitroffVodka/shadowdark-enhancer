@@ -28,7 +28,8 @@ be ridden on the map, seated on the Riders tab or fed at camp.
 Western Reaches mounts. **Import** on one copies the system's own creature
 into your **sde-actors** pack as a Mount, in the **Mounts** folder, with its
 stats, attacks, art and token. No book or PDF is needed, and the NPC in the
-bestiary is left as it is. A Mount you already have under that name is skipped.
+bestiary is left as it is. A Mount already in that pack under that name is
+skipped; one that sits only in your Actors sidebar does not count.
 
 ---
 
@@ -157,22 +158,25 @@ styled on high-contrast parchment for light and dark theme readability.
 
 Seven *Western Reaches* mounts are not in the core bestiary: Camel (silver),
 Donkey, Horse (prized), Horse (war), Pony, Scrag, and Scrag (war). The other
-eight on pp. 116–117 ship in `shadowdark.monsters`.
+eight on pp. 116–117 ship in `shadowdark.monsters`; those are copied from the
+system, not the book (see [The system's own mounts](#the-systems-own-mounts)).
 
 Open **Importer Hub → Manage → Monsters → Mounts** to see the full catalog.
-Unimported mounts show an **Import** button (cited to *WR pp. 116–117*).
+Unimported *Western Reaches* mounts show an **Import** button (cited to
+*WR pp. 116–117*).
 
-Clicking Import extracts those pages from your own uploaded WR PDF, parses the
-statblocks, and previews the requested mount. Committing saves it directly into
-the **`sde-actors` compendium** under the **`Mounts`** folder as a **Mount**
-actor with full statblock and custom tabs.
+Clicking Import on one of those extracts the pages from your own uploaded WR
+PDF, parses the statblocks, and previews the requested mount. Committing saves
+it directly into the **`sde-actors` compendium** under the **`Mounts`** folder
+as a **Mount** actor with full statblock and custom tabs.
 
 Mount names match both catalog style (*Horse, War*) and book style (*WAR HORSE*).
 Mounts already in your library are skipped automatically.
 
 **Bulk import:** Click **Import everything** (or **Import all N in Mounts**) to
-process the entire spread in one go. The batch reports each mount as created,
-already present, or skipped.
+process the entire spread in one go; the system's eight are copied in the same
+run, with no spread to read. The batch reports each mount as created, already
+present, or skipped.
 
 ---
 
