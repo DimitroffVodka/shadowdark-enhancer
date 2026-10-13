@@ -240,7 +240,7 @@ export function sceneShift(scene = globalThis.canvas?.scene) {
 export async function regionOf(id, { seeds, components, scene, shifted } = {}) {
   const num = hexNum(id);
   if (num === null) return null;
-  seeds ??= regionSeeds(await crawlEntries());
+  seeds ??= await sceneSeeds(scene ?? globalThis.canvas?.scene);
   components ??= sceneRegions(scene);
   // The GM's correction wins over anything read off the print or reasoned from it.
   const fixed = sceneRegionFixes(scene).get(num);
@@ -308,22 +308,41 @@ export async function sceneBookFolder(scene) {
 }
 
 /**
- * The keyed ground read from the rows of one book only (the folder sceneBookFolder names), never merged across
- * books; no book, no ground. The one reading both the check (sceneZones) and the Encounter zones picture use.
+ * The crawl entries filed under one book's source folder (the folder sceneBookFolder names); none for a scene no
+ * book claims. Every printed book numbers its hexes from 0001, so a row read by hex number is only meaningful from
+ * the scene's own book: the one filter the keyed ground and the region seeds both go through.
  * @param {Array<JournalEntry|{flags:object}>} entries  crawl entries (hex-commit)
  * @param {string|null} book  the book's source folder, or null for a scene no book claims
  */
-export function bookGround(entries, book) {
+export function bookEntries(entries, book) {
+  if (book === null) return [];
   const own = (entry) => sourceFolderName((entry?.getFlag?.(MODULE_ID, HEX_FLAG) ?? entry?.flags?.[MODULE_ID]?.[HEX_FLAG])?.source) === book;
-  return keyedGround(book === null ? [] : (entries ?? []).filter(own));
+  return (entries ?? []).filter(own);
+}
+
+/**
+ * The keyed ground read from the rows of one book only, never merged across books; no book, no ground. The one
+ * reading both the check (sceneZones) and the Encounter zones picture use.
+ */
+export function bookGround(entries, book) {
+  return keyedGround(bookEntries(entries, book));
+}
+
+/**
+ * The region seeds of the scene's own book: what every region answer on that scene is made from. A scene no
+ * book claims has none, as it has no ground.
+ * @param {object|null} scene  a Scene (default: the one being viewed)
+ */
+export async function sceneSeeds(scene = globalThis.canvas?.scene) {
+  return regionSeeds(bookEntries(await crawlEntries(), await sceneBookFolder(scene)));
 }
 
 /**
  * hexZones for a scanned scene: its borders and fixes, the filed crawls for the
  * names, its own column shift, and Extras' palette when Extras offers one.
- * Books number their hexes from the same range, so the ground is read only from
- * the rows of the scene's own book, never merged across books; a scene no book
- * claims has none.
+ * Books number their hexes from the same range, so the region names and the
+ * ground are read only from the rows of the scene's own book, never merged
+ * across books; a scene no book claims has neither (no names, no ground).
  * @param {object|null} scene  the PRINT scene carrying the scan, not the Extras scene
  * @param {{folder?: string|null}} [opts]  the book folder the ground comes from, when the scene priced is not the
  *   scanned one (a homebrew map borrows the world's one scan); read from `scene` when absent
@@ -336,7 +355,7 @@ export async function sceneZones(scene, { folder } = {}) {
     ...hexZones({
       components: sceneRegions(scene),
       fixes: sceneRegionFixes(scene),
-      seeds: regionSeeds(entries),
+      seeds: regionSeeds(bookEntries(entries, book)),
       shifted: sceneShift(scene),
       palette: extrasPalette() ?? REGION_COLORS,
     }),

@@ -153,7 +153,7 @@ const STYLESHEET_REV = "1c84f68ce13c";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "1dc7e710ffe2";
+const BUILD_REV = "49333fbd6c5f";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -998,17 +998,15 @@ Hooks.once("init", () => {
       // Every hex's region on the active scene, in one read.
       regions: async () => {
         const m = await import("./hex-map/hex-region.mjs");
-        return m.nameComponents(m.sceneRegions(), m.regionSeeds(await m.crawlEntries())).byNum;
+        return m.nameComponents(m.sceneRegions(), await m.sceneSeeds()).byNum;
       },
       // Which region is a hex in? The book's own word when the hex is keyed,
       // the nearest keyed hex's region otherwise (hex-region.mjs says how well
       // that holds). Pass { seeds } from regionSeeds() when asking about many.
       regionOf: async (num, opts) => (await import("./hex-map/hex-region.mjs")).regionOf(num, opts),
-      // The keyed hexes every region answer is made from, loaded once.
-      regionSeeds: async () => {
-        const m = await import("./hex-map/hex-region.mjs");
-        return m.regionSeeds(await m.crawlEntries());
-      },
+      // The keyed hexes every region answer is made from, loaded once: the rows of the scene's own book
+      // ({ scene } defaults to the viewed one; a scene no book claims has none).
+      regionSeeds: async ({ scene } = {}) => (await import("./hex-map/hex-region.mjs")).sceneSeeds(scene),
       // The master Key Locations journal of an already-imported book ("GMWR"), rebuilt from the regions
       // filed in the Journals pack. Reads no PDF and leaves the regions' pages alone (GM only).
       buildKeyIndex: async (src) => (await import("./importer/hex/key-location-index.mjs")).buildKeyLocationIndex(src),
