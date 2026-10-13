@@ -61,9 +61,15 @@ export const BUTTONS = {
  * @param {boolean} [p.hexScene]  the active scene is a hex map
  * @param {boolean} [p.pending]  overland: an encounter stopped the clock mid-move
  * @param {boolean} [p.dayOpen]  overland: a travel day is open
- * @returns {string[]}  `badge`, `spacer`, `tools`, or the data-action a button runs
+ * @param {boolean} [p.battle]  the GM has a battle running: its item (#485) sits right before Tools, in every mode
+ * @returns {string[]}  `badge`, `spacer`, `battle`, `tools`, or the data-action a button runs
  */
-export function barItems({ mode, hexScene = false, pending = false, dayOpen = false }) {
+export function barItems({ mode, hexScene = false, pending = false, dayOpen = false, battle = false }) {
+  const items = barRow({ mode, hexScene, pending, dayOpen });
+  return battle ? items.flatMap((id) => (id === "tools" ? ["battle", id] : [id])) : items;
+}
+
+function barRow({ mode, hexScene, pending, dayOpen }) {
   // A day opens itself at travel start; after a camp the GM presses Start day, which shows only while none is open.
   if (mode === "overland") return ["badge", ...(pending ? ["resumeTravel"] : dayOpen ? [] : ["startDay"]), "makeCamp", "spacer", "tools", "endTravel"];
   // A hex map is overland: its one Start begins travel, and turns a crawl that

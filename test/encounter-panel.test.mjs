@@ -236,3 +236,20 @@ test("folded, the strip carries a small Battle marker while a battle runs", () =
   assert.ok(html.includes('<span class="sde-hud-tag">SDE.encounterMaps.hud.marker</span>'));
   assert.ok(/class="sde-hud-key sde-hud-sm" data-action="resume"/.test(html), "Continue is still there");
 });
+
+const { battleItem } = await import("../scripts/overland/encounter-panel.mjs");
+
+test("the Crawl Bar's battle item: its name and stage on a button that folds or opens the panel, which draws only when open (#485)", () => {
+  const folded = battleItem({ battle: battle() });
+  assert.ok(folded.includes('data-action="battle"') && folded.includes('aria-expanded="false"'));
+  assert.ok(folded.includes("SDE.encounterMaps.hud.panel") && folded.includes("SDE.encounterMaps.hud.status.staged"), "its name and stage");
+  assert.ok(folded.includes("SDE.encounterMaps.hud.panelOpen") && !folded.includes("sde-hud-battle-panel"), "folded: the button alone");
+  assert.ok(battleItem({ battle: battle({ status: "live" }) }).includes("SDE.encounterMaps.hud.status.live"));
+  const open = battleItem({ battle: battle(), preload: snapshot(row("Ann", "loading", 0.25, 5, 20)), keep: true, open: true });
+  assert.ok(open.includes('aria-expanded="true"') && open.includes("SDE.encounterMaps.hud.panelFold"));
+  assert.ok(open.includes("sde-bar-battle-menu") && open.includes("sde-hud-battle-panel"), "the HUD's own panel, in the Crawl Bar's frame");
+  assert.deepEqual(actions(open), ["battle", "bringTable", "changeBattleMap", "keepBattle", "returnToTravel"]);
+  assert.ok(open.includes('data-action="keepBattle" checked>'), "the tick the clock bar kept");
+  assert.ok(open.includes("Ann"), "the readout");
+  assert.ok(!battleItem({ battle: battle({ label: "<i>x</i>" }), open: true }).includes("<i>x</i>"), "a map's name is text");
+});

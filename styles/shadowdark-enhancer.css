@@ -418,6 +418,43 @@ body.theme-light .sde-bar-start-btn:hover {
 .sde-bar-split { display: inline-flex; }
 .sde-bar-split .sde-bar-btn + .sde-bar-btn { margin-left: -1px; padding-inline: 8px; }
 
+/* The battle's item (#485): its name and stage, right before Tools. Its panel is the clock HUD's battle panel (the
+   HUD's own rules and the --sd-* tokens reach it through .sde-bar-battle-menu, below), opening upward from the item
+   as the Tools panel does, in the HUD's frame. */
+.sde-bar-battle { position: relative; display: inline-block; }
+.sde-bar-battle-stage {
+  padding: 0 6px;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  line-height: 1.6;
+  text-transform: uppercase;
+}
+.sde-bar-battle-btn[aria-expanded="true"] { border-color: var(--sde-bar-accent); }
+.sde-bar-battle-btn:focus-visible { outline: 2px solid var(--sde-bar-accent); outline-offset: 1px; }
+.sde-bar-battle-menu {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  z-index: 5;
+  max-width: calc(100vw - 24px);
+  font-size: 14px;
+  line-height: 1.45;
+  text-shadow: none;
+  user-select: text;
+  /* The HUD is black in every theme: its status colours are the dark theme's own (see #shadowdark-enhancer-travel). */
+  --sde-hud-ok: #60b050;
+  --sde-hud-bad: #e05050;
+  --sde-hud-warn: #d08030;
+}
+.sde-bar-battle-menu .sde-hud-panel {
+  margin: 0;
+  max-height: calc(100vh - 160px);
+  border: 2px solid var(--sd-frame);
+  border-radius: 6px;
+}
+
 /* ── Turn info ────────────────────────────────────────────────────────────── */
 
 .sde-bar-turn-info {
@@ -3239,6 +3276,7 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
    full-height shell. */
 .sde-char-builder,
 .sde-cb-gallery-dialog,
+.sde-bar-battle-menu,
 #shadowdark-enhancer-travel {
   /* Printed-rulebook book palette (black on white, engraved-silver frames).
      These --sd-* tokens + the .sd-band mixin below are shared by ALL tabs. */
@@ -3878,8 +3916,10 @@ body:has(.sdx-scene-nav-bar) #shadowdark-enhancer-travel { top: 72px; }
 .sde-hud-season,
 .sde-hud-strip,
 .sde-hud-panel { pointer-events: auto; }
-.sde-hud-col button { font-family: inherit; color: inherit; }
-.sde-hud-col :focus-visible { outline: 2px solid var(--sd-text); outline-offset: 2px; }
+.sde-hud-col button,
+.sde-bar-battle-menu button { font-family: inherit; color: inherit; }
+.sde-hud-col :focus-visible,
+.sde-bar-battle-menu :focus-visible { outline: 2px solid var(--sd-text); outline-offset: 2px; }
 
 /* The engraved frame: 2px frame, a black and a grey ring, a hairline inset. */
 .sde-hud-bar,
