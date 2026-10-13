@@ -1580,6 +1580,22 @@ test("native travel Party owner opens camp setup without any SDX provider", asyn
   }
 });
 
+test("a Party owner pressing Make camp under a held encounter is not sent to the crawl bar they cannot see", async () => {
+  travelling(["mine"]);
+  const lookup = globalThis.fromUuidSync, modules = globalThis.game.modules;
+  const party = { id: "native", uuid: "Actor.native", type: "NPC", flags: { "shadowdark-enhancer": { party: true } }, ...owner("player1") };
+  globalThis.game.modules = { get: () => null };
+  globalThis.fromUuidSync = uuid => uuid === "Scene.s.Token.native" ? { actor: party } : null;
+  stored.overlandState = { ...stored.overlandState, tokenUuid: "Scene.s.Token.native", pending: { until: 1, reason: "camp" } };
+  registerOverland();
+  try {
+    assert.deepEqual(await applyAction({ action: "camp", partyId: party.id }, { id: "player1", isGM: false }), { ok: false, error: "SDE.overland.notify.campPending" });
+    assert.deepEqual(await applyAction({ action: "camp" }, gm), { ok: false, error: "SDE.overland.notify.pending" }, "the GM keeps the instruction that names Continue");
+  } finally {
+    globalThis.fromUuidSync = lookup; globalThis.game.modules = modules;
+  }
+});
+
 test("the bar's Make camp only reopens the window when the tasks are done; Night in the window, which names the party, runs the night", async () => {
   travelling(["mine"]);
   const lookup = globalThis.fromUuidSync, modules = globalThis.game.modules;
