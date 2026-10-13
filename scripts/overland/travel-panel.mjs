@@ -55,7 +55,7 @@ function pointTime(seconds, cal) {
  * @param {{state:object, model:object, gm:boolean, see:number|null, cal:object,
  *   night:boolean, rules:object|null, season:string, weather:string|null, extras:boolean,
  *   party:{method:string, ride:Object<string,string>}, nextBase:number,
- *   frequency?:{chance:number, day:number, night:number}, adjust?:boolean, camping?:boolean,
+ *   frequency?:{chance:number, day:number, night:number}, adjust?:boolean, camping?:boolean, mayCamp?:boolean,
  *   weatherName:Function, methodName:Function}} v
  */
 export function travelPanel(v) {
@@ -93,6 +93,8 @@ export function travelPanel(v) {
 
 function stepBody(n, v, sight) {
   const { state, model: m, gm } = v;
+  // Make camp is the GM's, and an owner of the travelling party's (overland.mjs's own rule for the action).
+  const mayCamp = v.mayCamp ?? gm;
   const h3 = `<h3>${n} · ${esc(t(STEP_NAME[TRAVEL_STEPS[n - 1]]))}</h3>`;
   const fl = (key, data) => `<p class="sde-hud-fl">${esc(t(key, data))}</p>`;
   const res = (text) => `<p class="sde-hud-res">${esc(text)}</p>`;
@@ -160,7 +162,7 @@ function stepBody(n, v, sight) {
           <span class="sde-hud-meter"><span style="width:${Math.round(m.leftShare * 100)}%"></span></span>
           <span class="sde-hud-cap"><b>${esc(t("SDE.travel.left", { left: m.hexesLeft, budget: m.budget }))}</b></span></div>`
         + fl("SDE.travel.move") + fl(why) + rows
-        + (gm ? `<div class="sde-hud-trow">${key("makeCamp", t("SDE.overland.makeCamp"), { cls: "sde-hud-primary", hint: t("SDE.overland.makeCampHint") })}</div>` : "");
+        + (mayCamp ? `<div class="sde-hud-trow">${key("makeCamp", t("SDE.overland.makeCamp"), { cls: "sde-hud-primary", hint: t("SDE.overland.makeCampHint") })}</div>` : "");
     }
     case 6: {
       const f = v.frequency ?? BOOK_CHECKS;
@@ -178,7 +180,7 @@ function stepBody(n, v, sight) {
     }
     case 7:
       return h3 + fl("SDE.travel.resting.about")
-        + (gm && m.dayOpen ? `<div class="sde-hud-trow">${key("makeCamp", t("SDE.overland.makeCamp"), { cls: "sde-hud-primary", hint: t("SDE.overland.makeCampHint") })}</div>` : "");
+        + (mayCamp && m.dayOpen ? `<div class="sde-hud-trow">${key("makeCamp", t("SDE.overland.makeCamp"), { cls: "sde-hud-primary", hint: t("SDE.overland.makeCampHint") })}</div>` : "");
     case 8:
       return h3 + fl("SDE.travel.night.about")
         + (gm && state.pending?.reason === "camp" ? res(t("SDE.travel.night.stopped")) : "")

@@ -4120,6 +4120,7 @@
   "SDE.overland.notify.impassable": "Bounced: hex {num} ({terrain}) can't be entered in today's storm.",
   "SDE.overland.notify.bounce": "Bounced: that move costs {cost}, and {left} of today's {budget} are left.",
   "SDE.overland.notify.pending": "An encounter stopped the clock. Run it, then press Continue on the crawl bar before moving on.",
+  "SDE.overland.notify.campPending": "Camp can't be made yet. The GM has something to settle first.",
   "SDE.overland.notify.nothingPending": "Nothing is waiting to continue.",
   "SDE.overland.notify.checkGmOnly": "Only a GM rolls the encounter checks.",
   "SDE.overland.notify.checkHeld": "An encounter is waiting: Continue it before rolling another check.",
