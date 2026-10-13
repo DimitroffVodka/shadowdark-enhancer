@@ -10,7 +10,7 @@ import { advanceOffDuty } from "../time/off-duty.mjs";
 import { secondsPerDay } from "../time/time-core.mjs";
 import { holidaysToday } from "../holidays/holidays.mjs";
 import { toCopper, spendFromPurse } from "../shared/coins.mjs";
-import { eventTiers, outcomeRows, outcomeAt, outcomeEffects, preflight, recapNight } from "./carousing-core.mjs";
+import { eventTiers, outcomeRows, outcomeAt, outcomeEffects, preflight, recapNight, matrixRows, d100Rows, d100Formula, rollExpanded, expandedEffects, carousingFirst, BOOKS } from "./carousing-core.mjs";
 const QUERY = `${MODULE_ID}.carousing`;
 const own = (a, user) => !!a?.testUserPermission(user, "OWNER");
 const actorOf = uuid => game.actors.contents.find(a => a.uuid === uuid);
@@ -36,21 +36,27 @@ const save = (party, state) => { revision += 1; return replaceModuleFlag(party, 
 let tables = null;
 export async function carousingTables() {
   return tables ??= (async () => {
-    const rows = (game.tables?.contents ?? []).map(t => ({ uuid: t.uuid, name: t.name, manifestId: flag(t, "manifestId") }));
+    const rows = (game.tables?.contents ?? []).map(t => ({ uuid: t.uuid, name: t.name, bare: t.name, manifestId: flag(t, "manifestId") }));
     for (const pack of game.packs ?? []) {
       if (pack.documentName !== "RollTable") continue;
-      for (const e of await pack.getIndex({ fields: [`flags.${MODULE_ID}.manifestId`] })) rows.push({ uuid: e.uuid ?? `Compendium.${pack.collection}.${e._id}`, name: `${pack.metadata.label}: ${e.name}`, manifestId: flag(e, "manifestId") });
+      for (const e of await pack.getIndex({ fields: [`flags.${MODULE_ID}.manifestId`] })) rows.push({ uuid: e.uuid ?? `Compendium.${pack.collection}.${e._id}`, name: `${pack.metadata.label}: ${e.name}`, bare: e.name, manifestId: flag(e, "manifestId"), pack: true });
     }
-    return rows;
+    return carousingFirst(rows);
   })().catch(error => { tables = null; throw error; });
 }
 async function tableData(config) {
   const refs = await carousingTables();
-  const event = config.event || refs.find(t => t.manifestId === "core-carousing-event")?.uuid;
-  const outcome = config.outcome || refs.find(t => t.manifestId === "core-carousing-outcome")?.uuid;
+  const byManifest = id => id ? refs.find(t => t.manifestId === id)?.uuid : undefined;
+  const outcome = config.outcome || byManifest("core-carousing-outcome");
+  const book = BOOKS.find(b => b.outcome === refs.find(t => t.uuid === outcome)?.manifestId) ?? BOOKS[0];
+  const event = config.event || byManifest(book.event);
   const load = async uuid => uuid ? fromUuid(uuid).catch(() => null) : null;
   const [e, o] = await Promise.all([load(event), load(outcome)]);
-  return { event: event ?? "", outcome: outcome ?? "", tiers: eventTiers(e?.results?.contents ?? []), outcomes: outcomeRows(o?.results?.contents ?? []) };
+  const matrix = matrixRows(o?.results?.contents ?? []), expanded = matrix.length > 0;
+  const benefit = expanded ? config.benefit || byManifest(book.benefit) : undefined, mishap = expanded ? config.mishap || byManifest(book.mishap) : undefined;
+  const [b, m] = await Promise.all([load(benefit), load(mishap)]);
+  return { event: event ?? "", outcome: outcome ?? "", benefit: benefit ?? "", mishap: mishap ?? "", mode: expanded ? "expanded" : "basic", tiers: eventTiers(e?.results?.contents ?? []),
+    outcomes: expanded ? matrix : outcomeRows(o?.results?.contents ?? []), benefits: expanded ? d100Rows(b?.results?.contents ?? []) : [], mishaps: expanded ? d100Rows(m?.results?.contents ?? []) : [] };
 }
 async function context(config) {
   const kind = config.settlement || "none";
@@ -77,7 +83,11 @@ async function finish(party, state) {
     if (!night.results[p.actorId]) {
       const roll = await new Roll("1d8 + @bonus", { bonus: p.bonus }).evaluate();
       const row = outcomeAt(roll.total, night.outcomes); if (!row) invalid("SDE.carousing.tablesMissing");
-      night.results[p.actorId] = { total: roll.total, ...row, effects: outcomeEffects(row.description, row.benefit), applied: false };
+      if (night.mode === "expanded") {
+        const holiday = night.holiday?.carousing ?? {};
+        const found = await rollExpanded({ row, benefits: night.benefits, mishaps: night.mishaps, holiday, roll: async type => (await new Roll(d100Formula(type, holiday)).evaluate()).total });
+        night.results[p.actorId] = { mode: "expanded", total: roll.total, xp: row.xp, modifier: row.modifier, ...found, effects: expandedEffects(row.xp, [...found.benefits, ...found.mishaps]), applied: false };
+      } else night.results[p.actorId] = { total: roll.total, ...row, effects: outcomeEffects(row.description, row.benefit), applied: false };
       await save(party, state);
     }
   }
@@ -109,7 +119,7 @@ async function finish(party, state) {
     if (!moved.ok) invalid("SDE.carousing.timePending");
   }
   night.phase = "complete";
-  if (!state.history.some(h => h.logId === night.logId)) state.history.push(structuredClone(night));
+  if (!state.history.some(h => h.logId === night.logId)) state.history.push(Object.assign(structuredClone(night), { benefits: [], mishaps: [] }));
   await save(party, state); await report(party, state); return state;
 }
 async function report(party, state) {
@@ -135,7 +145,7 @@ export function handleCarousing(data, user) {
       } else if (data.action === "configure") {
         if (!user.isGM || (current && current.phase !== "setup" && current.phase !== "complete")) invalid();
         const config = { ...state.config };
-        for (const key of ["event", "outcome", "settlement", "place"]) if (typeof data.config?.[key] === "string") config[key] = data.config[key];
+        for (const key of ["event", "outcome", "benefit", "mishap", "settlement", "place"]) if (typeof data.config?.[key] === "string") config[key] = data.config[key];
         if (!["none", "village", "town", "city", "city_state"].includes(config.settlement)) invalid();
         state.config = config;
         if (current?.phase === "setup") { Object.assign(current, await tableData(config), { config }); current.tierId = current.tiers[0]?.id ?? ""; for (const p of current.participants) p.confirmed = false; }
@@ -156,10 +166,10 @@ export function handleCarousing(data, user) {
         if (current.phase === "setup") {
           if (CarousingFeed.sdxUnderway()) invalid("SDE.carousing.sdxUnderway");
           const fresh = await tableData(current.config);
-          if (JSON.stringify(fresh.tiers) !== JSON.stringify(current.tiers) || JSON.stringify(fresh.outcomes) !== JSON.stringify(current.outcomes)) invalid("SDE.carousing.tablesChanged");
+          if (["tiers", "outcomes", "benefits", "mishaps"].some(key => JSON.stringify(fresh[key]) !== JSON.stringify(current[key] ?? []))) invalid("SDE.carousing.tablesChanged");
           const ctx = await context(current.config), now = Date.now();
           const participants = current.participants.map(p => { const a = actorOf(p.uuid); if (!a) invalid(); return { ...p, coins: a.system.coins, renownBonus: Renown.bonusOf(a), lastAt: Math.max(-Infinity, ...Object.values(flag(a, "carousingProgress") ?? {}).filter(r => r.cost).map(r => r.at)) }; });
-          const check = preflight({ ...ctx, tierId: current.tierId ?? current.tiers[0]?.id ?? "", tiers: current.tiers, outcomes: current.outcomes, participants, now }); if (!check.ok) invalid(check.error);
+          const check = preflight({ ...ctx, tierId: current.tierId ?? current.tiers[0]?.id ?? "", tiers: current.tiers, outcomes: current.outcomes, expanded: current.mode === "expanded", benefits: current.benefits ?? [], mishaps: current.mishaps ?? [], participants, now }); if (!check.ok) invalid(check.error);
           Object.assign(current, { participants: check.participants, phase: "rolling", at: now, date: new Date(now).toISOString(), holiday: ctx.holiday });
           await save(party, state);
         }

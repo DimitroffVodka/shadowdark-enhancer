@@ -851,10 +851,16 @@ button. `state(partyUuid)` reads `{config, current, history}` from the Party's
 action, data)` uses the existing authenticated active-GM relay. A Party owner
 may begin/start/resume/cancel; only each PC's OWNER may select and confirm that
 PC's attendance. The Party owner picks the one party-wide tier with `tier` (`{ tierId }`, setup only; it resets every confirmation). Party ownership never authorizes spending
-another PC's coins. The GM selects event/outcome RollTable UUIDs and manual
-settlement kind/place with `configure`; empty UUIDs resolve the imported Core
-tables by manifest id, not name. Event rows are `Cost | Event | Bonus`; outcomes
-are `Outcome | Benefit` and real ranges. No default book outcomes are shipped.
+another PC's coins. The GM selects event, outcome, benefit and mishap RollTable UUIDs and manual
+settlement kind/place with `configure`; an empty outcome resolves the imported Core
+table by manifest id, not name, and an empty event, benefit or mishap follows the
+outcome table's book (Core, Western Reaches, Cursed Scroll #6). Event rows are
+`Cost | Event | Bonus`; basic outcomes are `Outcome | Benefit` and real ranges. An
+outcome table whose rows are `Mishaps | Benefits | % Modifier | XP` makes the night
+expanded: the d8 total picks the row, and each benefit and mishap it lists is a d100
+plus the row's % modifier on the Benefit or Mishap table, which must cover 1-100. An
+expanded result is `{ mode: "expanded", total, xp, modifier, benefits[], mishaps[] }`.
+No default book outcomes are shipped.
 
 The chosen tier cost is a group total split between the joining PCs in whole gp, the remainder charged one gp at a time to the first in list order (100 gp among 3 is 34, 33, 33); each pays their share from their own purse.
 Preflight checks all confirmations, table coverage, funds, settlement limits,
@@ -864,8 +870,9 @@ percentage loss are concrete automatic effects. XP/Luck extraction accepts
 `Gain/Earn/Receive N XP`, `Gain/Earn/Receive N luck tokens` (including `a`/`one`),
 or an explicit `+N` reward, with a shared gain across `and`. Bare quantities,
 losses, negative, negated, conditional or custom reward phrasing are not awards;
-the original result remains visible for GM adjudication. Narrative/custom, gear/debt and expanded holiday effects
-remain visibly marked GM actions. Basic rolls include tier, the holiday event bonus and
+the original result remains visible for GM adjudication. Narrative/custom, gear/debt and, in basic carousing, expanded
+holiday effects remain visibly marked GM actions; an expanded night applies a holiday's extra benefit, extra mishap and
+benefit bonus or advantage itself and leaves its chance events to the GM. Basic rolls include tier, the holiday event bonus and
 the existing renown bonus once. Time uses `advanceOffDuty`, with one saved target
 time and group duration equal to the highest chosen tier/base holiday bonus,
 minimum one calendar day. No rations or survival travel clock are run.

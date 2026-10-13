@@ -173,3 +173,54 @@ test("the tier cost is shared: two joiners split the group total, the first take
   assert.deepEqual(night.participants.map(p => p.cost), [5, 5]);
   assert.equal(f.recap.get(night.logId).tierCost, 10);
 });
+// Expanded carousing end to end. The tables are invented; their manifest ids are the real ones so the book auto-follows.
+function expandedWorld(f, { mishaps = true } = {}) {
+  const rows = (n, text) => Array.from({ length: n }, (_, i) => ({ id: `r${i + 1}`, range: [i + 1, i + 1], description: text(i + 1) }));
+  const table = (uuid, manifestId, contents) => ({ uuid, name: `Test ${manifestId}`, flags: { [M]: { manifestId } }, results: { contents } });
+  const tables = [
+    table("RollTable.xe", "pgwr-carousing-event", [{ id: "tier", description: "10 gp | Test outing | +0" }]),
+    table("RollTable.xo", "pgwr-carousing-outcome", [{ range: [1, 25], description: "1 | 1 | -10 | 3" }]),
+    table("RollTable.xb", "pgwr-carousing-benefit", rows(100, n => n === 40 ? "A friend pays your tab; gain a luck token" : `Benefit ${n}`)),
+    ...(mishaps ? [table("RollTable.xm", "pgwr-carousing-mishap", rows(100, n => n === 30 ? "You offended a clerk; -2 renown" : `Mishap ${n}`))] : [])];
+  globalThis.game.tables.contents = tables;
+  globalThis.fromUuid = async uuid => tables.find(t => t.uuid === uuid);
+  const hooks = new Map(); globalThis.Hooks = { on: (name, fn) => hooks.set(name, fn), callAll() {} }; globalThis.CONFIG = { queries: {} };
+  registerCarousing(); hooks.get("updateRollTable")();
+  const dice = [50, 40], formulas = [];
+  globalThis.Roll = class { constructor(formula) { this.formula = formula; } async evaluate() { formulas.push(this.formula); this.total = this.formula.startsWith("1d8") ? 5 : dice.shift(); return this; } };
+  return { dice, formulas };
+}
+async function expandedSetup(f) {
+  await f.call("configure", { config: { outcome: "RollTable.xo", settlement: "none" } }); await f.call("begin");
+  await f.call("select", { uuid: f.a.uuid, patch: { participate: true }, confirm: true }, { id: "a", name: "A" });
+  await f.call("select", { uuid: f.b.uuid, patch: { participate: false }, confirm: true }, { id: "b", name: "B" });
+}
+test("picking a Western Reaches outcome table brings its event, benefit and mishap tables, and the night is expanded", async () => {
+  const f = fixture(); expandedWorld(f); await expandedSetup(f);
+  const night = carousingOf(f.party).current;
+  assert.deepEqual([night.mode, night.event, night.benefit, night.mishap], ["expanded", "RollTable.xe", "RollTable.xb", "RollTable.xm"]);
+  assert.deepEqual([night.tiers.length, night.outcomes[0].benefitRolls, night.benefits.length, night.mishaps.length], [1, 1, 100, 100]);
+});
+test("an expanded night rolls the matrix, then a benefit and a mishap, and applies XP, Luck and renown once", async () => {
+  const f = fixture(), world = expandedWorld(f); await expandedSetup(f);
+  assert.equal((await f.call("start")).ok, true);
+  const result = carousingOf(f.party).history[0].results.a;
+  assert.equal(result.mode, "expanded"); assert.deepEqual([result.total, result.xp, result.modifier], [5, 3, -10]);
+  assert.deepEqual(result.benefits.map(e => [e.dice, e.roll, e.text]), [[50, 40, "A friend pays your tab; gain a luck token"]]);
+  assert.deepEqual(result.mishaps.map(e => [e.dice, e.roll, e.text]), [[40, 30, "You offended a clerk; -2 renown"]]);
+  assert.deepEqual(world.formulas, ["1d8 + @bonus", "1d100", "1d100"]);
+  assert.deepEqual([f.a.system.level.xp, f.a.system.luck.available, f.a.system.renown, f.a.system.coins.gp], [3, true, -2, 20]);
+  assert.deepEqual(carousingOf(f.party).history[0].benefits, [], "the history keeps the results, not two more 100-row tables");
+  const row = [...f.recap.values()][0].entries[0];
+  assert.deepEqual([row.mode, row.outcome, row.benefits.length, row.mishaps.length, row.renownDelta], ["expanded", "3 XP", 1, 1, -2]);
+  const before = structuredClone({ a: f.a.system, state: carousingOf(f.party) });
+  await f.call("resume");
+  assert.deepEqual({ a: f.a.system, state: carousingOf(f.party) }, before, "reopening rerolls and reapplies nothing");
+  assert.equal(world.formulas.length, 3);
+});
+test("a night whose mishap table is missing is refused before anyone is charged", async () => {
+  const f = fixture(), world = expandedWorld(f, { mishaps: false }); await expandedSetup(f);
+  assert.equal(carousingOf(f.party).current.mode, "expanded");
+  const r = await f.call("start");
+  assert.equal(r.ok, false); assert.equal(f.a.system.coins.gp, 30); assert.equal(world.formulas.length, 0);
+});

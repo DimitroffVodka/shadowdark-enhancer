@@ -1,7 +1,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { Party } from "../party/party.mjs";
 import { carousingOf, carousingTables, requestCarousing } from "./carousing.mjs";
-import { splitCost } from "./carousing-core.mjs";
+import { splitCost, resultLine } from "./carousing-core.mjs";
 import { holidaysToday } from "../holidays/holidays.mjs";
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const t = (key) => game.i18n.localize(key);
@@ -43,11 +43,12 @@ export class CarousingApp extends HandlebarsApplicationMixin(ApplicationV2) {
       tier: tier ? { bonus: tier.bonus } : null, count: joining, costText: tier ? gp(tier.cost) : "", shareText: shares.length ? gp(each) : each,
       eachLabel: joining ? game.i18n.format("SDE.carousing.eachPays", { n: joining }) : t("SDE.carousing.eachPaysNobody"), error: this.error, manager: Party.canManage(this.party), isGM: game.user.isGM,
       empty: !night, setup, complete: night?.phase === "complete", resume: night && !setup,
-      phase: night?.phase, holiday: holiday?.name, manualHoliday: !!holiday && (!!holiday.carousing?.extraBenefit || !!holiday.carousing?.extraMishap || !!holiday.carousing?.benefitBonus || !!holiday.carousing?.benefitAdvantage || !!holiday.carousing?.chances?.length),
-      canConfigure: !night || setup || night.phase === "complete", missingTables: setup && (!night.tiers.length || !night.outcomes.length),
-      config, events: tables.map(v => ({ ...v, selected: v.uuid === (night?.event ?? config.event) })), outcomes: tables.map(v => ({ ...v, selected: v.uuid === (night?.outcome ?? config.outcome) })),
+      phase: night?.phase, holiday: holiday?.name, expanded: night?.mode === "expanded",
+      manualHoliday: !!holiday && (!!holiday.carousing?.chances?.length || (night?.mode !== "expanded" && (!!holiday.carousing?.extraBenefit || !!holiday.carousing?.extraMishap || !!holiday.carousing?.benefitBonus || !!holiday.carousing?.benefitAdvantage))),
+      canConfigure: !night || setup || night.phase === "complete", missingTables: setup && (!night.tiers.length || !night.outcomes.length || (night.mode === "expanded" && !(night.benefits?.length && night.mishaps?.length))),
+      config, ...Object.fromEntries([["events", "event"], ["outcomes", "outcome"], ["benefitTables", "benefit"], ["mishapTables", "mishap"]].map(([list, key]) => [list, tables.map(v => ({ ...v, selected: v.uuid === config[key] }))])),
       settlements: [{ value: "none", label: t("SDE.carousing.noSettlement") }, ...["village", "town", "city", "city_state"].map(value => ({ value, label: t({ village: "SDE.rulesData.settlement.village", town: "SDE.rulesData.settlement.town", city: "SDE.rulesData.settlement.city", city_state: "SDE.rulesData.settlement.city_state" }[value]) }))].map(v => ({ ...v, selected: v.value === (config.settlement ?? "none") })),
-      history: [...state.history].reverse().map(h => ({ date: h.date, logId: h.logId, historyOnly: h.historyOnly, entries: h.historyOnly ? h.entries : h.participants.map(p => ({ actorName: p.name, cost: p.cost, outcome: h.results[p.actorId]?.description, benefit: h.results[p.actorId]?.benefit })) })) };
+      history: [...state.history].reverse().map(h => ({ date: h.date, logId: h.logId, historyOnly: h.historyOnly, entries: h.historyOnly ? h.entries : h.participants.map(p => ({ actorName: p.name, cost: p.cost, ...resultLine(h.results[p.actorId], n => game.i18n.format("SDE.carousing.xpLine", { n })) })) })) };
   }
   _onRender(context, options) {
     super._onRender(context, options);
