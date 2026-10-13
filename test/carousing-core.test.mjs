@@ -103,13 +103,13 @@ test("the row's % modifier shifts each d100, clamped to 1-100, and the row decid
 });
 test("a re-roll-as-the-other row rolls on the other table and lands in that table's list, at most four times", async () => {
   const benefits = hundred(100), mishaps = hundred(100);
-  benefits[0].text = "The tide turns on you at the harbour wall; re-roll this benefit as a mishap"; mishaps[99].text = "A stray cat adopts you and follows you through the market. Re-roll this mishap as a benefit";
+  benefits[0].text = "The tide turns on you at the harbour wall; re-roll this benefit as a mishap"; mishaps[99].text = "A leaking barrel soaks your cloak on the quay and the cooper only shrugs. Re-roll this mishap as a benefit";
   const once = await rollExpanded({ row: { mishapRolls: 0, benefitRolls: 1, modifier: 0 }, benefits, mishaps, roll: scripted([1, 40]).roll });
   assert.deepEqual([once.benefits.length, once.mishaps.map(e => e.text)], [0, ["row 40"]]);
   const dice = scripted([1, 100, 1, 100, 77]);
   const loop = await rollExpanded({ row: { mishapRolls: 0, benefitRolls: 1, modifier: 0 }, benefits, mishaps, roll: dice.roll });
   assert.deepEqual(dice.seen, ["benefit", "mishap", "benefit", "mishap"], "four rolls, then it stops");
-  assert.equal(loop.mishaps[0].text, "A stray cat adopts you and follows you through the market. Re-roll this mishap as a benefit");
+  assert.equal(loop.mishaps[0].text, "A leaking barrel soaks your cloak on the quay and the cooper only shrugs. Re-roll this mishap as a benefit");
 });
 test("a holiday adds one benefit and one mishap, and touches only benefit dice", async () => {
   const dice = scripted([5, 5, 5, 5]);
@@ -120,7 +120,7 @@ test("a holiday adds one benefit and one mishap, and touches only benefit dice",
   assert.equal(d100Formula("benefit"), "1d100");
 });
 test("expanded effects are the row's XP plus what each benefit and mishap states in the automated grammar", () => {
-  const entries = [{ text: "A ferryman blesses your boots and rows you across the harbour at dawn. Gain a luck token" }, { text: "You offended a clerk at the toll house and he struck your name from the ledger; -3 renown" }, { text: "The bar brawl bill is yours: pay 15% of your coin" }, { text: "A friend owes you a favour from the winter fair; +1 renown if anyone saw" }];
+  const entries = [{ text: "A ferryman blesses your boots and rows you across the harbour at dawn. Gain a luck token" }, { text: "You offended a clerk at the toll house and he struck your name from the ledger; -3 renown" }, { text: "The bar brawl bill is yours: pay 15% of your coin" }, { text: "A friend owes you a favour from the winter fair; +1 renown if the bell rings" }];
   assert.deepEqual(expandedEffects(3, entries), { xp: 3, luck: 1, renown: -3 });
   assert.equal(outcomeEffects("Gain 1 renown if you are seen", "").renown, 0, "a conditional renown stays prose");
 });
