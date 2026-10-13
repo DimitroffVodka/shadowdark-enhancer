@@ -15,6 +15,7 @@ import { CHAR_SOURCES, BACKGROUND_TABLES, tableNameMatches, nameVariants, citesF
 import { listSourcePdfs, sourcePdfHref, sourcePdfTarget } from "./source-pdf-registry.mjs";
 import { buildManageTree, firstLinkedCite } from "./manage-tree.mjs";
 import { planBatch } from "./batch-import.mjs";
+import { isSystemMountEntry } from "./boats/mount-parser.mjs";
 import { contentIdForName } from "./tables/table-shapes.mjs";
 import { findById, importNameFor, isMatrix } from "./tables/table-manifest.mjs";
 import { installMethods, t } from "./importer-hub-shared.mjs";
@@ -569,12 +570,38 @@ class HubManageMethods {
     if (!grabbed) app._onOpenPdf();
   }
 
+  /**
+   * Copy core-bestiary Mounts out of the system (no book, no paste box) and
+   * refresh the tree. Shared by the row's Import button and the batch run.
+   * @param {string[]} names
+   * @returns {Promise<{created:string[],skipped:string[],replaced:string[],missing:string[]}>}
+   */
+  async _createSystemMounts(names) {
+    const { MountImporter } = await import("./boats/mount-importer.mjs");
+    const report = await MountImporter.createFromSystem(names);
+    this._invalidateMonstersCache();
+    return { ...report, pack: MountImporter.PACK_LABEL };
+  }
+
   async _onCharSeedPaste(event, target) {
     const name = target.dataset.name ?? "";
     const type = target.dataset.type ?? "";
     const src = target.dataset.src ?? "";
     const manifestId = target.dataset.manifestId ?? "";
     if (!name) return;
+    // A core-bestiary Mount comes straight from the system, not a book page.
+    if (isSystemMountEntry({ type, src })) {
+      const report = await this._createSystemMounts([name]);
+      // The tree was built before the copy and an action does not re-render: without this the row stays locked.
+      await this.render();
+      if (report.created.length) ui.notifications.info(t("SDE.importer.done.mounts", {
+        summary: t("SDE.importer.count.created", { n: report.created.length }),
+        pack: report.pack, source: ` / ${CHAR_SOURCES[src].label}`,
+      }));
+      else if (report.missing.length) ui.notifications.warn(`${name}: ${t("SDE.importer.skipReason.notInSystem")}`);
+      else if (!report.skipped.length) ui.notifications.warn(t("SDE.importer.batchNote.mountNoResult"));
+      return;
+    }
     // Spells go to their own Class → Tier → Alignment workspace.
     if (type === "Spell") {
       const { SpellImporterApp } = await import("./spells/spell-importer-app.mjs");

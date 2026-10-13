@@ -257,6 +257,40 @@ test("a rerun reports every already-present Mount instead of a false batch succe
   ]);
 });
 
+// The core bestiary's mounts have no page and no book: the planner must not
+// block them for want of a cite, and the run must copy them from the system
+// rather than seed a paste box and grab a PDF page that does not exist.
+test("core bestiary mounts run unattended without a book or a page", () => {
+  const h = hub();
+  assert.equal(h._batchCanRun({ name: "Horse", type: "Mount", src: "CORE", pages: "" }, ROUTE.HUB), true);
+  assert.equal(
+    h._batchCanRun({ name: "Donkey", type: "Mount", src: "WR", pages: "" }, ROUTE.HUB),
+    "SDE.importer.batchNote.noCite", "a book mount still needs its page cite");
+});
+
+test("the Mount batch path copies core mounts from the system and reports each name", async () => {
+  const h = hub();
+  const row = (name) => ({ name, type: "Mount", src: "CORE", pages: "" });
+  const job = { entry: row("Horse"), covers: [row("Horse"), row("Camel"), row("Unicorn"), row("Worg")] };
+  let asked = null;
+  h._createSystemMounts = async (names) => {
+    asked = names;
+    return { created: ["Horse"], skipped: ["Camel"], replaced: [], missing: ["Unicorn"] };
+  };
+  h._seedGenericUnlock = async () => { throw new Error("a core mount has no page to seed or grab"); };
+
+  const result = await h._batchRunMounts(job);
+  assert.deepEqual(asked, ["Horse", "Camel", "Unicorn", "Worg"]);
+  assert.deepEqual(result.entries, [
+    { name: "Horse", status: "created", created: 1, note: "SDE.importer.batchNote.created" },
+    { name: "Camel", status: "nothing", created: 0, note: "SDE.importer.batchNote.inLibrary" },
+    { name: "Unicorn", status: "failed", created: 0, note: "SDE.importer.skipReason.notInSystem" },
+    { name: "Worg", status: "failed", created: 0, note: "SDE.importer.batchNote.mountNoResult" },
+  ]);
+  assert.equal(result.status, "created");
+  assert.equal(result.created, 1);
+});
+
 test("Mount bulk toasts use the explicit per-name denominator", async () => {
   const { messages, reports } = await runBatchForToast(
     {

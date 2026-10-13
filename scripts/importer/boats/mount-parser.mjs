@@ -1,10 +1,12 @@
 /**
- * Shadowdark Enhancer — Western Reaches mounts manifest.
+ * Shadowdark Enhancer — mounts manifest.
  *
- * The WR Player's Guide pp.116-117 lists 15 mounts as standard statblocks.
- * Seven are WR-exclusive (not in the core system bestiary); the rest
- * (Camel, Elephant, Griffon, Hippogriff, Horse, Moose, Pegasus, Worg)
- * already ship in shadowdark.monsters and are omitted from the importable list.
+ * The WR Player's Guide pp.116-117 lists 15 mounts. Seven are WR-exclusive
+ * (not in the core system bestiary) and import from the book. The other eight
+ * (Camel, Elephant, Griffon, Hippogriff, Horse, Moose, Pegasus, Worg) already
+ * ship in shadowdark.monsters, but as NPCs, and an NPC cannot be ridden on the
+ * map, seated on the Riders tab or fed at camp. They are copied from that
+ * bestiary as Mount actors (SYSTEM_MOUNTS), so no book is needed for them.
  *
  * This manifest holds NAMES + SOURCE only — no stats are bundled.
  * Presence is checked against the sde-actors pack (Mount-type actors).
@@ -22,6 +24,20 @@ export const MOUNT_MANIFEST = [
   "Scrag",
   "Scrag, War",
 ].map((name) => ({ name, src: MOUNT_SOURCE.key, pages: MOUNT_SOURCE.pages }));
+
+/**
+ * The core-rulebook mounts, copied from the system bestiary rather than a book.
+ * Spelled exactly as the `NPC` entries of the system's `shadowdark.monsters`
+ * pack (checked against system 4.0.6 and the declared floor, release-3.6.2); a
+ * name that drifts only shows at click time, as "not in the system's bestiary".
+ */
+export const SYSTEM_MOUNTS = ["Camel", "Elephant", "Griffon", "Hippogriff", "Horse", "Moose", "Pegasus", "Worg"];
+
+/** Manage-tree `src` of a row that unlocks from the system bestiary (CHAR_SOURCES key). */
+export const SYSTEM_MOUNT_SRC = "CORE";
+
+/** Whether a Manage-tree row is a Mount that comes from the system bestiary, not a book page. */
+export const isSystemMountEntry = (entry) => entry?.type === "Mount" && entry?.src === SYSTEM_MOUNT_SRC;
 
 const _norm = (value) => String(value ?? "").toLowerCase().replace(/\s+/g, " ").trim();
 

@@ -3376,6 +3376,7 @@
   "SDE.importer.batchNote.downtimeKept": "the existing unlock was kept (it has more outcomes)",
   "SDE.importer.batchNote.downtimeUnlocked": "{n} downtime outcomes unlocked",
   "SDE.importer.skipReason.notInStatblocks": "not among the statblocks on the extracted pages",
+  "SDE.importer.skipReason.notInSystem": "not in the system's bestiary",
   "SDE.importer.skipReason.noRows": "dice header present but no parseable rows",
   "SDE.importer.skipReason.unclaimed": "not claimed by any recognizer",
   "SDE.importer.skipReason.noStatblock": "no statblock (AC…LV) found in the extracted pages",
