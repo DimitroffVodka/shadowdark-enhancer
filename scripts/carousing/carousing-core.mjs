@@ -76,9 +76,9 @@ export function resultLine(result, xpLabel = n => `${n} XP`) {
   if (result?.mode !== "expanded") return { outcome: result?.description, benefit: result?.benefit };
   return { outcome: xpLabel(result.xp), benefit: [...result.benefits, ...result.mishaps].map(e => e.text).join(" · ") };
 }
-/** The dropdowns are a hundred RollTables long: the ones with "carousing" in their name come first, each group in name order. */
+/** The dropdowns are a hundred RollTables long: the ones with "carousing" in their name come first; in each group world tables (no `pack`) precede compendium ones, so a GM's copy always wins, each in name order. */
 const isCarousing = row => /carous/i.test(`${row.bare ?? row.name} ${row.manifestId ?? ""}`);
-export const carousingFirst = rows => [...rows].sort((a, b) => isCarousing(b) - isCarousing(a) || String(a.name).localeCompare(String(b.name)));
+export const carousingFirst = rows => [...rows].sort((a, b) => isCarousing(b) - isCarousing(a) || !!a.pack - !!b.pack || String(a.name).localeCompare(String(b.name)));
 export function outcomeEffects(description = "", benefit = "") {
   // Only a small, explicit reward grammar is automated. Custom, conditional and
   // negated prose stays in the saved result for GM adjudication, not a reward.
@@ -132,6 +132,7 @@ export function recapNight(night) {
   if (night.historyOnly) return null;
   return { logId: night.logId, date: night.date, mode: "native", tierCost: night.participants.reduce((s, p) => s + p.cost, 0), entries: night.participants.map(p => {
     const r = night.results[p.actorId], entry = e => ({ text: e.text, roll: e.roll, renownDelta: outcomeEffects(e.text).renown });
+    // `outcome` is stored recap data that mirrors the Extras feed's own `${xp} XP` headline, so it stays unlocalized on purpose.
     if (r.mode === "expanded") return { participantId: p.actorId, actorName: p.name, player: p.player, mode: "expanded", roll: r.total, outcome: `${r.xp} XP`, xp: r.effects.xp, cost: p.cost, benefits: r.benefits.map(entry), mishaps: r.mishaps.map(entry), renownDelta: r.effects.renown, appliedState: "applied", applied: "" };
     return { participantId: p.actorId, actorName: p.name, player: p.player, mode: "native", roll: r.total, outcome: r.description, xp: r.effects.xp, cost: p.cost, benefits: r.benefit ? [{ text: r.benefit, renownDelta: 0 }] : [], mishaps: [], renownDelta: r.effects.renown, appliedState: "applied", applied: "" };
   }) };

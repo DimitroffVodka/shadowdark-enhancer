@@ -150,6 +150,10 @@ test("tables with carousing in their name, or in their manifest id, come first; 
   assert.equal(rows[0].name, "Zebra Names", "the input is left alone");
   assert.ok(carousingFirst([{ name: "Pack: Carousing Tools", bare: "Hammers" }])[0].bare === "Hammers");
 });
+test("a world copy of a carousing table stays ahead of the compendium copy, whatever its name", () => {
+  const rows = [{ name: "Book: Carousing Outcome", bare: "Carousing Outcome", pack: true, manifestId: "core-carousing-outcome" }, { name: "Zed Carousing Outcome", bare: "Zed Carousing Outcome", manifestId: "core-carousing-outcome" }];
+  assert.equal(carousingFirst(rows).find(r => r.manifestId === "core-carousing-outcome").name, "Zed Carousing Outcome");
+});
 test("each book names the outcome, event, benefit and mishap tables that go together", () => {
   assert.deepEqual(BOOKS.map(b => b.outcome.split("-")[0]), ["core", "pgwr", "cs6"]);
   assert.ok(BOOKS.slice(1).every(b => b.event && b.benefit && b.mishap));

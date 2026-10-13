@@ -39,7 +39,7 @@ export async function carousingTables() {
     const rows = (game.tables?.contents ?? []).map(t => ({ uuid: t.uuid, name: t.name, bare: t.name, manifestId: flag(t, "manifestId") }));
     for (const pack of game.packs ?? []) {
       if (pack.documentName !== "RollTable") continue;
-      for (const e of await pack.getIndex({ fields: [`flags.${MODULE_ID}.manifestId`] })) rows.push({ uuid: e.uuid ?? `Compendium.${pack.collection}.${e._id}`, name: `${pack.metadata.label}: ${e.name}`, bare: e.name, manifestId: flag(e, "manifestId") });
+      for (const e of await pack.getIndex({ fields: [`flags.${MODULE_ID}.manifestId`] })) rows.push({ uuid: e.uuid ?? `Compendium.${pack.collection}.${e._id}`, name: `${pack.metadata.label}: ${e.name}`, bare: e.name, manifestId: flag(e, "manifestId"), pack: true });
     }
     return carousingFirst(rows);
   })().catch(error => { tables = null; throw error; });

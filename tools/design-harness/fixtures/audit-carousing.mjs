@@ -6,7 +6,7 @@ const ctxFor = (state, setup, complete) => {
   const rows = names.map((name, i) => ({ uuid: "Actor." + name, name, participate: i !== 3, editable: setup, confirmed: i < 2, status: i < 2 ? "Confirmed" : "Not confirmed",
     tiers: [["Wealthy", 50, 3], ["Comfortable", 20, 1], ["Poor", 5, 0]].map(([d, c, b], k) => ({ id: "t" + k, label: `${d} - ${c} gp per PC; roll bonus ${b}`, selected: k === i % 3 })),
     garbQuestions: [{ key: "mask", label: "Wearing a mask for the Festival of Lanterns", checked: i === 0, required: true }, { key: "lantern", label: "Carrying a paper lantern", checked: false }],
-    result: !complete ? null : expanded ? { mode: "expanded", total: 9 + i, xp: 3, benefits: [{ text: "A sea wolf raider offers you free passage on his ship" }, { text: "A soothsayer reads your palm; gain a luck token" }], mishaps: i % 2 ? [{ text: "You offended an important noble advisor; -5 renown" }] : [] }
+    result: !complete ? null : expanded ? { mode: "expanded", total: 9 + i, xp: 3, benefits: [{ text: "A river ferryman waives your fare for the season" }, { text: "A travelling puppeteer names you in his show; gain a luck token" }], mishaps: i % 2 ? [{ text: "You insulted the guildmaster's cook; -2 renown" }] : [] }
       : { total: 11 + i, description: "You wake in a barn beside a goat wearing your hat.", benefit: "A friendly rival offers you a favour; gain 1 renown." } }));
   return {
     embedded: true, title: "The Lantern Guild", rows, error: setup ? "The tier table could not be read." : null, manager: true, isGM: true, overlap: false, empty: false, setup, complete, resume: false, phase: state,
