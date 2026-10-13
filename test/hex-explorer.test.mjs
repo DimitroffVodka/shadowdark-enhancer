@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { explorerView, planExplorerEdit, explorerClick, encounterReadout, ownsHexData } from "../scripts/hex-map/hex-explorer.mjs";
+import { explorerView, planExplorerEdit, explorerClick, encounterReadout, ownsHexData, enterStat } from "../scripts/hex-map/hex-explorer.mjs";
+import { rulesFrom } from "../scripts/rules-data/rules-data-core.mjs";
 const record = { sceneUuid: "Scene.a", offset: { i: -2, j: 3 }, num: 101, terrain: "forest", title: "Cave", features: [{ type: "river", discovered: true, secret: "private" }, { type: "dungeon", name: "Secret cave", discovered: true, custom: { x: 1 } }], notes: [{ text: "Bridge", visible: true }, { text: "GM SECRET", visible: false }], links: [{ uuid: "JournalEntry.a", label: "Clue", visible: true }], keyed: [{ title: "Keyed cave", uuid: "JournalEntry.a.JournalEntryPage.b" }], discovery: { revealed: true, visited: false } };
 test("tooltip discloses only safe terrain/public notes until location disclosure", () => {
   const view = explorerView(record, true);
@@ -95,4 +96,34 @@ test("river, path and coast are always disclosed, whatever an old record stored"
   assert.deepEqual(view.features, [{ type: "river" }, { type: "path" }]);
   const plan = planExplorerEdit({ ...record, features: [] }, { ...input, lines: ["river", "coast"], features: [] }, structuredClone(flag));
   assert.deepEqual(plan.patch.features.map(f => [f.type, f.discovered]), [["river", true], ["coast", true]]);
+});
+test("the To enter stat prices the terrain table's own row, and stays blank when the rules know nothing", () => {
+  const rules = rulesFrom({
+    terrain: { swamp: { type: "difficult", cost: 2 }, grassland: { type: "normal", cost: 1 }, lava: { type: "impassable" }, marsh: { type: "difficult" } },
+    terrainTypes: { normal: 1, difficult: 2 },
+  });
+  assert.deepEqual(enterStat(rules, { terrain: "swamp" }), { type: "difficult", cost: 2 });
+  assert.deepEqual(enterStat(rules, { terrain: "grassland" }), { type: "normal", cost: 1 });
+  // A terrain with a type and no cost of its own costs what its type does (the Terrain types table).
+  assert.deepEqual(enterStat(rules, { terrain: "marsh" }), { type: "difficult", cost: 2 });
+  // Impassable has no cost, so the stat is the word alone — never 1 or a guessed number.
+  assert.deepEqual(enterStat(rules, { terrain: "lava" }), { type: "impassable", cost: null });
+  // Nothing imported: the printed rows exist but are empty, so blank — it does not say "costs 1".
+  assert.equal(enterStat(rulesFrom({}), { terrain: "forest" }), null);
+  // A terrain the table has no row for: blank too.
+  assert.equal(enterStat(rules, { terrain: "volcanic_ash" }), null);
+  assert.equal(enterStat(rules, {}), null);
+  assert.equal(enterStat({}, { terrain: "swamp" }), null);
+});
+test("a keyed or settlement hex is priced by the ground its book row names, not by what sits on it", () => {
+  const rules = rulesFrom({ terrain: { swamp: { type: "difficult", cost: 2 }, mountain: { type: "difficult", cost: 3 } } });
+  const ground = { terrain: "swamp", features: ["coast"] };
+  assert.deepEqual(enterStat(rules, { terrain: "keyed_location" }, ground), { type: "difficult", cost: 2 });
+  assert.deepEqual(enterStat(rules, { terrain: "village" }, ground), { type: "difficult", cost: 2 });
+  // Any other hex ignores the ground it was handed.
+  assert.deepEqual(enterStat(rules, { terrain: "mountain" }, ground), { type: "difficult", cost: 3 });
+  // No row for the hex: its own tag stands, and the table has no row for a keyed_location.
+  assert.equal(enterStat(rules, { terrain: "keyed_location" }), null);
+  // A row that names no ground keeps the tag, which is still no row.
+  assert.equal(enterStat(rules, { terrain: "keyed_location" }, { terrain: null, features: [] }), null);
 });

@@ -28,7 +28,12 @@ scene UUID plus offset. Hover for disclosed terrain/public notes (the GM's card 
 short click keeps the small card with permitted links. The GM gets no pinned
 card or Edit button: a double click opens Hex Data, which saves terrain,
 line features, rich locations, notes and discovery; travel prices update
-immediately. A hex with a keyed-location pin (see *Keyed locations on the map*)
+immediately. The header's **To enter** stat prices the hex from the terrain table
+of that scene's own Rules data ruleset — Normal, Difficult or Impassable with its
+cost — and a keyed or settlement hex is priced by the ground its book row names
+(the swamp a tower stands on), not by its "what sits here" tag; with no rules
+imported, or no row for the terrain, it stays blank rather than guessing a cost.
+A hex with a keyed-location pin (see *Keyed locations on the map*)
 is named by its pinned page unless you type a title, and Hex Data lists that page
 with a button to open it. The pin can be the Enhancer's own or the note Shadowdark
 Extras places on a keyed hex of a map it painted, so a painted map names its keyed
