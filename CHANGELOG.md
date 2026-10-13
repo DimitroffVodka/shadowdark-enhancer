@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- **Hex fog tells other modules when it redraws (API 1.30.0, #490).** Shadowdark Extras' baked map draws each keyed location as a sprite and, on a scene the Enhancer owns, had nothing to ask whether the party has been there, so it showed every sprite to players from the first turn while the location notes stayed hidden. `Hooks.callAll("shadowdark-enhancer.hexFogChanged", { sceneId })` now fires on every client once per redraw of the viewed scene, after the overlay is rebuilt, and also on a pass where the Enhancer stands down (fog switched off, or the GM's veil hidden). A consumer asks `api.hexMaps.fog.disclosed(scene, { i, j }, "location")`, the same test the keyed notes use. Nothing changes at the table until Extras listens for it. `docs/API.md` has the contract.
+
 ### Fixed
 
 - **Hexes the party reached were not shown to your players, and earlier reveals were lost.** The Enhancer kept the copy of a map's private hex records it loaded at startup. Foundry applies updates to a different copy and drops its copies after five idle minutes, so after the first pause (a camp, a long break) the kept copy was out of date. The players' view was then published from it with nothing revealed, and the next reveal was written back on top of the old data, erasing what had been revealed. Reads and writes now use the copy Foundry holds. Hexes already overwritten are not recovered.

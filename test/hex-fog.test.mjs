@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { disclosure, importFog, revealCells, revealRadius, arrivalDue, effectiveDiscovery, withPartyDiscovery, bestProjection, resetCell, planFogReset } from "../scripts/hex-map/hex-fog-core.mjs";
-import { revealParty, refreshHexFog, registerHexFog, resetHexFog, undoFogReset, previewFogReset, fogUndoInfo } from "../scripts/hex-map/hex-fog.mjs";
+import { revealParty, refreshHexFog, registerHexFog, resetHexFog, undoFogReset, previewFogReset, fogUndoInfo, HexFog } from "../scripts/hex-map/hex-fog.mjs";
 import { cacheHexJournal, recordJournal } from "../scripts/hex-map/hex-records.mjs";
 const grid = { getAdjacentOffsets: ({ i, j }) => [{ i: i - 1, j }, { i: i + 1, j }], getDirectPath: ([a, b]) => Array.from({ length: Math.abs(b.i - a.i) + 1 }, (_, n) => ({ i: a.i + Math.sign(b.i - a.i) * n, j: a.j })) };
 test("one disclosure rule separates terrain, keyed locations and valid exceptions", () => {
@@ -100,9 +100,10 @@ test("a fog refresh reads the store once per pass, not once per hex", () => {
     dimensions: { sceneRect: { x: 0, y: 0, width: 500, height: 500, contains: (x, y) => x >= 0 && y >= 0 && x < 500 && y < 500 } },
     notes: { contents: [] } };
   class GraphicsStub { beginFill() {} drawPolygon() { drawn += 1; return this; } endFill() {} destroy() {} }
-  const saved = { game: globalThis.game, canvas: globalThis.canvas, PIXI: globalThis.PIXI, replace: globalThis._replace };
+  const saved = { game: globalThis.game, canvas: globalThis.canvas, PIXI: globalThis.PIXI, replace: globalThis._replace, Hooks: globalThis.Hooks };
   globalThis._replace = value => value;
   globalThis.PIXI = { Graphics: GraphicsStub };
+  globalThis.Hooks = { callAll() {} };
   globalThis.game = { user: { id: "gm", isGM: true }, actors: { contents: [], get: () => null }, journal: { contents: [] }, packs: { get: () => null },
     modules: { get: () => undefined }, settings: { get: () => false }, i18n: { localize: k => k, format: k => k } };
   globalThis.canvas = { scene, ready: true, interface: { addChildAt() {} }, tokens: { placeables: [] }, notes: { placeables: [] } };
@@ -111,7 +112,7 @@ test("a fog refresh reads the store once per pass, not once per hex", () => {
     assert.ok(drawn > 1, "undisclosed cells draw fog");
     assert.ok(flagReads <= 3, `the store is read once per refresh, not once per cell (${flagReads} reads)`);
   } finally {
-    for (const [key, value] of [["game", saved.game], ["canvas", saved.canvas], ["PIXI", saved.PIXI], ["_replace", saved.replace]]) {
+    for (const [key, value] of [["game", saved.game], ["canvas", saved.canvas], ["PIXI", saved.PIXI], ["_replace", saved.replace], ["Hooks", saved.Hooks]]) {
       if (value === undefined) delete globalThis[key]; else globalThis[key] = value;
     }
   }
@@ -162,6 +163,104 @@ test("the first fog draw waits for the GM's records, so a reload does not veil w
       if (value === undefined) delete globalThis[key]; else globalThis[key] = value;
     }
   }
+});
+
+const FOG_MOD = "shadowdark-enhancer", FOG_HOOK = `${FOG_MOD}.hexFogChanged`;
+/** Set globals for one test; the returned function puts back what was there and deletes what was not. */
+function stubGlobals(values) {
+  const before = Object.fromEntries(Object.keys(values).map(key => [key, globalThis[key]]));
+  Object.assign(globalThis, values);
+  return () => { for (const [key, value] of Object.entries(before)) if (value === undefined) delete globalThis[key]; else globalThis[key] = value; };
+}
+const gameFor = (isGM, { journals = [], actors = [] } = {}) => ({ user: { id: "u", isGM }, actors: { contents: actors, get: id => actors.find(a => a.id === id) ?? null },
+  journal: { contents: journals }, packs: { get: () => null }, modules: { get: () => undefined }, settings: { get: () => false }, i18n: { localize: k => k, format: k => k } });
+/** A hexagonal, adopted 3x3 scene. `fog` is the scene's own switch. */
+function hexScene(id, { fog = true } = {}) {
+  const scene = { id, uuid: `Scene.${id}`, flags: { [FOG_MOD]: { hexFog: { enabled: fog }, hexRecords: { adopted: true } } },
+    getFlag: (mod, key) => scene.flags[mod]?.[key],
+    update: async data => { for (const [path, value] of Object.entries(data)) { const [, mod, key] = path.split("."); scene.flags[mod][key] = value; } },
+    grid: { isHexagonal: true, sizeX: 100, sizeY: 100, getOffset: point => ({ i: Math.floor(point.y / 100), j: Math.floor(point.x / 100) }),
+      getCenterPoint: offset => ({ x: offset.j * 100 + 50, y: offset.i * 100 + 50 }), getVertices: () => [{ x: 0, y: 0 }, { x: 100, y: 0 }, { x: 0, y: 100 }] },
+    dimensions: { sceneRect: { x: 0, y: 0, width: 300, height: 300, contains: (x, y) => x >= 0 && y >= 0 && x < 300 && y < 300 } },
+    notes: { contents: [] } };
+  return scene;
+}
+class FogGraphics { beginFill() {} drawPolygon() { return this; } endFill() {} destroy() {} }
+test("hexFogChanged fires once per pass after the overlay is in place, and also when the veil stands down", () => {
+  const events = [], game = gameFor(true);
+  let hidden = false;
+  game.settings.get = (mod, key) => key === "hexFogHidden" && hidden;
+  const restore = stubGlobals({ game, canvas: null, PIXI: { Graphics: FogGraphics }, Hooks: { callAll: (name, payload) => events.push([name, payload]) } });
+  const pass = (scene, ready = true) => {
+    events.length = 0;
+    globalThis.canvas = { scene, ready, interface: { addChildAt: () => events.push("overlay") }, tokens: { placeables: [] }, notes: { placeables: [] } };
+    refreshHexFog();
+    return [...events];
+  };
+  try {
+    assert.deepEqual(pass(hexScene("owned")), ["overlay", [FOG_HOOK, { sceneId: "owned" }]], "after the overlay is built, so disclosed already answers the new state");
+    assert.deepEqual(pass(hexScene("off", { fog: false })), [[FOG_HOOK, { sceneId: "off" }]], "switched off: no overlay, and the signal still goes out so a consumer can fall back");
+    hidden = true;
+    assert.deepEqual(pass(hexScene("hidden")), [[FOG_HOOK, { sceneId: "hidden" }]], "the GM's hidden veil is still a pass");
+    hidden = false;
+    game.user.isGM = false;
+    assert.deepEqual(pass(hexScene("player")), ["overlay", [FOG_HOOK, { sceneId: "player" }]], "players get it too");
+    assert.deepEqual(pass(hexScene("tearing-down"), false), [], "no ready canvas, no signal");
+  } finally { restore(); }
+});
+test("a reveal's writes, canvasReady and setEnabled(false) each end in one hexFogChanged", async () => {
+  const hooks = {}, frames = [], fired = [], scene = hexScene("sig");
+  cacheHexJournal({ id: "sig-records", ownership: { default: 0 }, flags: { [FOG_MOD]: { hexRecords: { version: 1, sceneUuid: "Scene.sig", cells: {} } } } });
+  const restore = stubGlobals({ game: gameFor(true), CONFIG: {}, _replace: value => value, PIXI: { Graphics: FogGraphics },
+    Hooks: { on: (name, fn) => { hooks[name] = fn; }, callAll: (name, payload) => fired.push([name, payload]) },
+    requestAnimationFrame: fn => frames.push(fn),
+    canvas: { scene, ready: true, interface: { addChildAt() {} }, tokens: { placeables: [] }, notes: { placeables: [] } } });
+  try {
+    registerHexFog();
+    // A travel reveal writes the GM's records, then the players' view: two journal updates, one redraw.
+    hooks.updateJournalEntry({ id: "sig-records" });
+    hooks.updateJournalEntry({ id: "sig-records" });
+    assert.deepEqual(fired, [], "nothing until the frame runs");
+    frames.shift()();
+    assert.deepEqual(fired, [[FOG_HOOK, { sceneId: "sig" }]]);
+    fired.length = 0;
+    await hooks.canvasReady();
+    assert.deepEqual(fired, [[FOG_HOOK, { sceneId: "sig" }]], "the first draw, once the records have loaded");
+    fired.length = 0;
+    await HexFog.setEnabled(false, scene);
+    assert.equal(HexFog.owns(scene), false);
+    assert.deepEqual(fired, [[FOG_HOOK, { sceneId: "sig" }]], "standing down is a pass too, so a consumer sees it");
+  } finally { restore(); }
+});
+test("fog.disclosed(..., \"location\") answers never visited, visited and GM-revealed, for the viewed party, and false before the records load", () => {
+  const scene = hexScene("art"), at = (j, i = 0) => HexFog.disclosed(scene, { i, j }, "location");
+  const party = { id: "A", uuid: "Actor.A", type: "NPC", flags: { [FOG_MOD]: { party: true } }, testUserPermission: () => true };
+  cacheHexJournal({ id: "art-records", ownership: { default: 0 }, flags: { [FOG_MOD]: { hexRecords: { version: 1, sceneUuid: "Scene.art", cells: {
+    "0_0": { discovery: { revealed: true, visited: false } },
+    "0_1": { discovery: { revealed: true, visited: true } },
+    "0_2": { discovery: { revealed: true, visited: false, locationRevealed: true } },
+    "1_0": { discovery: { revealed: false, visited: false, by: { A: { revealed: true, visited: true } } } },
+    "2_0": { discovery: { revealed: false, visited: false, by: { B: { revealed: true, visited: true } } } },
+  } } } } });
+  const projection = { sceneUuid: "Scene.art", cells: {
+    "0_0": { sceneUuid: "Scene.art", offset: { i: 0, j: 0 }, num: null, discovery: { revealed: true, visited: false, locationRevealed: false } },
+    "0_1": { sceneUuid: "Scene.art", offset: { i: 0, j: 1 }, num: null, discovery: { revealed: true, visited: true, locationRevealed: true } },
+  } };
+  const restore = stubGlobals({ game: gameFor(true, { actors: [party] }), canvas: null });
+  try {
+    assert.equal(at(0), false, "seen but never visited: the keyed art stays hidden");
+    assert.equal(at(1), true, "the party has been there");
+    assert.equal(at(2), true, "the GM revealed the location");
+    assert.equal(at(0, 1), true, "the GM answers for the party they are viewing");
+    assert.equal(at(0, 2), false, "another party's visit is not this party's");
+    assert.equal(at(3), false, "a hex with no record");
+    assert.equal(HexFog.disclosed(scene, { i: 0, j: 0 }, "terrain"), true, "terrain is the veil's kind; location is the art's");
+    assert.equal(HexFog.disclosed(hexScene("unloaded"), { i: 0, j: 1 }, "location"), false, "before the records load it is false, not a throw");
+    globalThis.game = gameFor(false, { journals: [{ id: "art-public", flags: { [FOG_MOD]: { hexRecordProjection: projection } } }] });
+    assert.equal(at(0), false, "a player: revealed terrain is not a visited location");
+    assert.equal(at(1), true, "a player: the same predicate, read from the projection");
+    assert.equal(at(2), false, "a player: nothing projected means hidden");
+  } finally { restore(); }
 });
 
 test("each party sees what it found plus what everyone knows, never another party's finds", () => {
