@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **Players had no way to make camp from the Travel panel.** The Traveling and Resting steps drew Make camp for the GM only, so a player who owns the travelling party never saw it, though the camp itself already took their press. A player who owns the party now gets the button on both steps, and the camp window opens on their own screen. Another player still does not see it.
+
 ## [0.18.3] — 2026-10-11
 
 ### Fixed

@@ -83,6 +83,10 @@ along the way as a walk would lift it. Move the clock
 yourself from the bar if the trip should take time. It is refused while an
 encounter is held, until you press Continue. Players' Shift-clicks do nothing.
 
+**Make camp** sits on the Travel panel's Traveling and Resting steps for the GM and
+for a player who owns the travelling party; the camp window opens on that player's
+own screen. **Continue** stays the GM's.
+
 **Make camp** and **Continue** run the rest of the night, or of a stopped move, as
 a time-lapse: a beat plus a share of the span, about eight seconds for a whole
 night and never more than ten. The camp window folds away while the night runs,
