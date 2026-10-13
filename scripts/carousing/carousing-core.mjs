@@ -76,7 +76,7 @@ export function resultLine(result, xpLabel = n => `${n} XP`) {
   if (result?.mode !== "expanded") return { outcome: result?.description, benefit: result?.benefit };
   return { outcome: xpLabel(result.xp), benefit: [...result.benefits, ...result.mishaps].map(e => e.text).join(" · ") };
 }
-/** The dropdowns are a hundred RollTables long: the ones with "carousing" in their name come first; in each group world tables (no `pack`) precede compendium ones, so a GM's copy always wins, each in name order. */
+/** The dropdowns are a hundred RollTables long: a table counts as carousing when "carous" is in its bare name or its manifest id, and those come first. Inside each group world tables (no `pack`) precede compendium ones, then name order, so a renamed world copy that matches neither test still sorts after a pack copy that does. */
 const isCarousing = row => /carous/i.test(`${row.bare ?? row.name} ${row.manifestId ?? ""}`);
 export const carousingFirst = rows => [...rows].sort((a, b) => isCarousing(b) - isCarousing(a) || !!a.pack - !!b.pack || String(a.name).localeCompare(String(b.name)));
 export function outcomeEffects(description = "", benefit = "") {
