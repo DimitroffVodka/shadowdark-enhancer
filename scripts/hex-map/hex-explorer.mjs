@@ -9,7 +9,6 @@ import { decodeFixes, encodeFixes, recordEdits, FIXES_FLAG } from "./tag-correct
 import { disclosure, effectiveDiscovery, withPartyDiscovery } from "./hex-fog-core.mjs";
 import { viewedPartyIds } from "./hex-fog.mjs";
 import { HexTagOverlay, isDoubleClick } from "./tag-overlay.mjs";
-import { withGround } from "../encounter/encounter-terrain.mjs";
 import { ruleKey, terrainCost } from "../rules-data/rules-data-core.mjs";
 
 const pick = (v, keys) => Object.fromEntries(keys.filter(k => typeof v?.[k] === "string").map(k => [k, v[k]]));
@@ -68,20 +67,21 @@ export function encounterReadout({ uuid, zone, verdict } = {}, name = "", active
 }
 /**
  * The hex's "To enter" stat: the terrain table's own type and cost for the
- * ground the hex stands on, under the hex scene's rules. A keyed or settlement
- * hex is tagged with what SITS on it, so `ground` (keyedGround's row for the
- * hex) names the ground instead. The base table only, exactly what terrainCost
- * prices with no options: no weather, storm, climate, path or boat adjustment,
- * and impassable has no cost. Null when the rules have no row for the ground,
- * or the row names no type, so the window stays blank instead of guessing a
- * cost of 1 the way travel counts an unknown terrain.
+ * hex's own terrain tag, under the hex scene's rules, so it shows only what
+ * Overland's hexCost charges for that tag. A keyed or settlement hex is tagged
+ * "keyed_location", "village" and so on, which the table has no row for: travel
+ * prices it as one hex, so the stat is blank, never the book's ground under it.
+ * The base table only, exactly what terrainCost prices with no options: no
+ * weather, storm, climate, path or boat adjustment, and impassable has no cost.
+ * Null when the rules have no row, or the row names no type, so the window
+ * stays blank instead of guessing a cost of 1 the way travel counts an unknown
+ * terrain.
  * @param {object} rules  from rulesFrom(storedRulesFor(scene))
  * @param {{terrain?:string|null}|null} hex  the hex's terrain word (or the record)
- * @param {{terrain:string|null, features:string[]}} [ground]  keyedGround's row, for a keyed hex
  * @returns {{type:"normal"|"difficult"|"impassable", cost:number|null}|null}
  */
-export function enterStat(rules, hex, ground) {
-  const terrain = withGround(hex, ground)?.terrain;
+export function enterStat(rules, hex) {
+  const terrain = hex?.terrain;
   const row = rules?.terrain?.[ruleKey(terrain)];
   if (!row?.type) return null;
   const cost = terrainCost(rules, terrain);
