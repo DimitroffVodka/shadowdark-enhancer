@@ -57,9 +57,6 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _prepareContext() {
     if (!game.user?.isGM) return {};
     const record = this.record = HexRecords.read(this.offset, this.scene);
-    // The "To enter" stat reads the hex scene's OWN ruleset, not the viewed scene's, and the hex's own tag as travel does:
-    // a keyed or settlement hex has no row, so it stays blank (travel prices it as one hex).
-    const enter = enterStat(rulesFrom(storedRulesFor(this.scene)), record);
     // The reveal boxes are the viewed party's: what they say is what that party's players see.
     const seen = effectiveDiscovery(record.discovery, viewedPartyIds());
     // The draft belongs to the party it was filled from; switching party while the window is open must not move its boxes to another.
@@ -76,7 +73,11 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const d = this.draft;
     // The saved cell, as a travel check reads it; tableForCheck never throws, so a bad lookup shows as no table.
     const hex = { num: record.num ?? undefined, terrain: record.terrain, features: (record.features ?? []).map(f => f?.type).filter(type => FEATURES.includes(type)) };
-    const region = this.shownRegion = regionLine(await hexZonesFor(this.scene).catch(() => null), record.num);
+    const zones = await hexZonesFor(this.scene).catch(() => null);
+    const region = this.shownRegion = regionLine(zones, record.num);
+    // The "To enter" stat reads the hex scene's OWN ruleset, not the viewed scene's. A keyed or settlement hex stands on
+    // the ground its book row names: the same read as the region, and the same map travel prices with.
+    const enter = enterStat(rulesFrom(storedRulesFor(this.scene)), record, zones?.ground?.get(record.num));
     const res = await tableForCheck(hex, { scene: this.scene });
     const enc = encounterReadout(res, res.uuid ? (await fromUuid(res.uuid).catch(() => null))?.name ?? "" : "", game.settings.get(MODULE_ID, "encounterTableUuid"),
       pickTable(game.settings.get(MODULE_ID, TERRAIN_TABLES), hex.terrain));
