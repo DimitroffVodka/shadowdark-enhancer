@@ -109,3 +109,55 @@ test("publishing the players' view decodes the map's tags once, not once a recor
     if (saved.game === undefined) delete globalThis.game; else globalThis.game = saved.game;
   }
 });
+test("a store the pack re-seated is read and published from the seated copy, not the one loaded first", async () => {
+  const { publishHexProjection } = await import("../scripts/hex-map/hex-records.mjs");
+  const MOD = "shadowdark-enhancer", saved = { game: globalThis.game, replace: globalThis._replace };
+  const store = revealed => ({ id: "jseat", ownership: { default: 0 }, update: async () => {},
+    flags: { [MOD]: { hexRecords: { version: 1, sceneUuid: "Scene.seat", cells: { "1_1": { discovery: { revealed, visited: false } } } } } } });
+  const loaded = store(false), seated = store(true), held = new Map();
+  let published = null;
+  const publicJournal = { flags: { [MOD]: { hexRecordProjection: { sceneUuid: "Scene.seat", cells: {} } } }, update: async data => { published = data; } };
+  // getDocuments() answers with copies; the pack applies updates to the one it holds, and drops it when idle.
+  const pack = { ownership: { PLAYER: "NONE", TRUSTED: "NONE", ASSISTANT: "NONE" }, getDocuments: async () => [loaded], get: id => held.get(id) };
+  globalThis._replace = value => value;
+  globalThis.game = { user: { isGM: true }, journal: { contents: [publicJournal], get: () => null }, packs: { get: () => pack } };
+  const scene = { id: "seat", uuid: "Scene.seat", getFlag: () => null };
+  const revealed = () => HexRecords.read({ i: 1, j: 1 }, scene).discovery.revealed;
+  try {
+    await loadHexRecords();
+    assert.equal(revealed(), false, "until the pack holds a copy, the loaded one answers");
+    held.set("jseat", seated);
+    assert.equal(revealed(), true, "an update landed on the pack's copy: reads follow it");
+    held.clear();
+    assert.equal(revealed(), true, "once the pack drops it, the last copy it held answers, not the first one loaded");
+    await publishHexProjection(scene);
+    assert.ok(published["flags.shadowdark-enhancer.hexRecordProjection"].cells["1_1"], "players are shown the revealed hex");
+  } finally {
+    globalThis._replace = saved.replace;
+    if (saved.game === undefined) delete globalThis.game; else globalThis.game = saved.game;
+  }
+});
+test("a write is based on the pack's held copy, so one reveal does not erase the others", async () => {
+  const MOD = "shadowdark-enhancer", saved = { game: globalThis.game, replace: globalThis._replace };
+  const landed = [];
+  const store = (name, keys) => ({ id: "jwrite", ownership: { default: 0 }, update: async data => { landed.push({ name, cells: Object.keys(data[`flags.${MOD}.hexRecords`].cells) }); },
+    flags: { [MOD]: { hexRecords: { version: 1, sceneUuid: "Scene.write", cells: Object.fromEntries(keys.map(k => [k, { discovery: { revealed: true, visited: false } }])) } } } });
+  const loaded = store("loaded", ["0_0"]), seated = store("seated", ["0_0", "0_1", "0_2"]), held = new Map();
+  const publicJournal = { flags: { [MOD]: { hexRecordProjection: { sceneUuid: "Scene.write", cells: {} } } }, update: async () => {} };
+  const pack = { ownership: { PLAYER: "NONE", TRUSTED: "NONE", ASSISTANT: "NONE" }, getDocuments: async () => [loaded], get: id => held.get(id) };
+  globalThis._replace = value => value;
+  globalThis.game = { user: { isGM: true }, journal: { contents: [publicJournal], get: () => null }, packs: { get: () => pack } };
+  const scene = { id: "write", uuid: "Scene.write", grid: { isHexagonal: false }, getFlag: () => null };
+  try {
+    await loadHexRecords();
+    held.set("jwrite", seated);
+    await HexRecords.write({ i: 5, j: 0 }, { title: "New" }, scene);
+    assert.deepEqual(landed.at(-1), { name: "seated", cells: ["0_0", "0_1", "0_2", "5_0"] }, "the update lands on the pack's copy and keeps every cell it holds");
+    held.clear();
+    await HexRecords.write({ i: 6, j: 0 }, { title: "Next" }, scene);
+    assert.deepEqual(landed.at(-1), { name: "seated", cells: ["0_0", "0_1", "0_2", "6_0"] }, "once the pack drops it, the last held copy is the baseline, not the one loaded first");
+  } finally {
+    globalThis._replace = saved.replace;
+    if (saved.game === undefined) delete globalThis.game; else globalThis.game = saved.game;
+  }
+});
