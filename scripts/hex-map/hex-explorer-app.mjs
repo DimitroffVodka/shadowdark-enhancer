@@ -66,7 +66,7 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const d = this.draft;
     // The saved cell, as a travel check reads it; tableForCheck never throws, so a bad lookup shows as no table.
     const hex = { num: record.num ?? undefined, terrain: record.terrain, features: (record.features ?? []).map(f => f?.type).filter(type => FEATURES.includes(type)) };
-    const region = regionLine(await hexZonesFor(this.scene).catch(() => null), record.num);
+    const region = this.shownRegion = regionLine(await hexZonesFor(this.scene).catch(() => null), record.num);
     const res = await tableForCheck(hex, { scene: this.scene });
     const enc = encounterReadout(res, res.uuid ? (await fromUuid(res.uuid).catch(() => null))?.name ?? "" : "", game.settings.get(MODULE_ID, "encounterTableUuid"),
       pickTable(game.settings.get(MODULE_ID, TERRAIN_TABLES), hex.terrain));
@@ -100,12 +100,19 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (current && !options.some(o => o.value === current)) options.push({ value: current, label: current.replace(/_/g, " ") });
     return options.map(o => ({ ...o, selected: o.value === current }));
   }
-  /** A region fix or a new crawl entry changes the header: draw it again, keeping what is typed. */
+  /**
+   * Any journal or scene write drops the cached regions, so the header is asked again, and the form is drawn again
+   * only when this hex's own answer moved: a redraw takes the cursor out of the field being typed in.
+   */
   _onFirstRender(context, options) {
     super._onFirstRender(context, options);
-    this.stopRegions = onHexZonesForgotten(() => { this._capture(); this.render(); });
+    this.stopRegions = onHexZonesForgotten(async () => {
+      const now = regionLine(await hexZonesFor(this.scene).catch(() => null), this.record?.num), was = this.shownRegion;
+      if (!this.stopRegions || (now?.zone === was?.zone && now?.estimated === was?.estimated)) return;
+      this._capture(); this.render();
+    });
   }
-  _onClose(options) { this.stopRegions?.(); super._onClose(options); }
+  _onClose(options) { this.stopRegions?.(); this.stopRegions = null; super._onClose(options); }
   _onRender(context, options) {
     super._onRender(context, options);
     const select = this.element.querySelector('select[name="terrain"]'), other = this.element.querySelector('[name="terrainOther"]');

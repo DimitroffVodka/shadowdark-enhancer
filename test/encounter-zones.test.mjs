@@ -299,6 +299,47 @@ test("the cached regions say how each hex was named, and a change announces itse
   assert.equal(heard, 1);
 });
 
+test("an open Hex Data window redraws when its own hex's region changes, and on no other journal or scene write", async () => {
+  globalThis.foundry = { applications: { api: { ApplicationV2: class { _onFirstRender() {} _onClose() {} }, HandlebarsApplicationMixin: (C) => C } } };
+  const { HexExplorerApp } = await import("../scripts/hex-map/hex-explorer-app.mjs");
+  const { regionLine } = await import("../scripts/hex-map/hex-explorer.mjs");
+  const w = world();
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 20));
+  const app = new HexExplorerApp({ i: 0, j: 0 }, w.scene);
+  let renders = 0, captures = 0;
+  app.render = () => { renders++; };
+  app._capture = () => { captures++; };
+  // What the window last drew for its hex (_prepareContext keeps it).
+  app.record = { num: 1511 };
+  app.shownRegion = regionLine(await hexZonesFor(w.scene), 1511);
+  assert.equal(app.shownRegion.zone, "Grey Moor");
+  app._onFirstRender({}, {});
+
+  // Fog reveals, quests, a new entry, an item pile: the cursor in a note must not be pulled out for any of these.
+  fire("updateJournalEntry"); fire("updateJournalEntry"); fire("createJournalEntry"); fire("deleteJournalEntry");
+  fire("updateScene", w.scene, { flags: { "shadowdark-enhancer": { "pile-abc": {} } } });
+  await settle();
+  assert.deepEqual([renders, captures], [0, 0], "nothing about this hex's region moved");
+
+  // A fix on another hex rewrites the scene's flag, and still leaves this hex where it was.
+  const flags = w.scene.getFlag;
+  let fix = { 1510: "Deep Sea" };
+  w.scene.getFlag = (scope, key) => (key === "hexRegions" ? { ...flags(scope, key), fix } : flags(scope, key));
+  fire("updateScene", w.scene, { flags: { "shadowdark-enhancer": { hexRegions: {} } } });
+  await settle();
+  assert.deepEqual([renders, captures], [0, 0], "another hex's fix does not touch this window");
+
+  fix = { 1511: "Deep Sea" };
+  fire("updateScene", w.scene, { flags: { "shadowdark-enhancer": { hexRegions: {} } } });
+  await settle();
+  assert.deepEqual([renders, captures], [1, 1], "a fix on this hex draws it again once, keeping what was typed");
+
+  app._onClose({});
+  fire("updateScene", w.scene, { flags: { "shadowdark-enhancer": { hexRegions: {} } } });
+  await settle();
+  assert.equal(renders, 1, "a closed window listens no more");
+});
+
 test("tableForHex resolves to the table document", async () => {
   const w = world();
   globalThis.fromUuid = async (uuid) => ({ uuid });
