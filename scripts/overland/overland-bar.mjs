@@ -41,7 +41,7 @@ import {
   overlandState, weatherNow, weatherName, methodName, rollWeather, startDayFromParty, setTravelPace, partyReading, makeCamp,
   endOverland, resume, forage, startOverland, advanceClock, checkNow, encounterSettings, ENCOUNTER_SETTINGS, OVERLAND_CHANGED,
 } from "./overland.mjs";
-import { Party } from "../party/party.mjs";
+import { Party, isNativeParty } from "../party/party.mjs";
 import { barModel, itemTouchesBar, redrawStamp, hhmm } from "./overland-bar-core.mjs";
 import { travelPanel } from "./travel-panel.mjs";
 import { campOf } from "../camping/camping.mjs";
@@ -813,8 +813,18 @@ export const TravelBar = {
       weather: weatherNow(), extras: !!game.modules.get("shadowdark-extras")?.active,
       frequency: encounterSettings(), adjust: this._adjust,
       camping: this._camping(),
+      mayCamp: this._mayCamp(),
       ...this._partyFor(),
     });
+  },
+
+  /** Who may make camp: a GM, or an owner of the travelling native party (the rule applyAction's "camp" holds to). */
+  _mayCamp() {
+    if (game.user.isGM) return true;
+    try {
+      const uuid = overlandState().tokenUuid, actor = uuid ? fromUuidSync(uuid)?.actor : null;
+      return isNativeParty(actor) && !!actor.testUserPermission(game.user, "OWNER");
+    } catch { return false; }
   },
 
   /** The travelling party has a camp being set up: its window is open, or its tasks are done and the night is next. */

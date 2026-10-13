@@ -212,8 +212,8 @@ the party token travels.
     on each character you own.
 
   The GM also sees the day's check hours and results, and the Start day,
-  Weather, Make camp, Continue and End travel buttons. Players never see the
-  check hours.
+  Weather, Continue and End travel buttons. Make camp is the GM's and a
+  Party owner's. Players never see the check hours.
 - **Terrain is optional.** A tag from the Hex Tagger, or the terrain Extras
   records on its hex maps, gives each hex its move cost and its encounter
   table. A hex map with neither still travels: every hex costs 1 point and

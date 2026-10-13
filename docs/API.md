@@ -2155,7 +2155,8 @@ error is also shown as a warning.
   `/^rations?$/i`, as Extras does), or a new stack from the system's gear
   pack. One chat line says what was found. Foraging takes no clock time.
 
-**`overland.makeCamp()`**, GM only, forwarded to the active GM. Refused when
+**`overland.makeCamp()`**, for a GM or an owner of the travelling native Party,
+forwarded to the active GM. Refused when
 nobody is travelling, an encounter is pending, or no travel day is open. A
 camp's dawn closes the day, so a second press after it makes no second camp.
 Resolves to `{ ok: true, stopped }` or `{ ok: false, error }`.
