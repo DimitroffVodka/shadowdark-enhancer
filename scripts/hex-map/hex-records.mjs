@@ -12,6 +12,12 @@ import { pinNumber } from "./extras-records.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { disclosure, effectiveDiscovery, bestProjection } from "./hex-fog-core.mjs";
 import { Party } from "../party/party.mjs";
+import { findSuitePack, sourceFolderName } from "../shared/compendium-suite.mjs";
+import { HEX_FLAG } from "../importer/hex/hex-commit.mjs";
+import { hexNum } from "../importer/hex/hex-dataset.mjs";
+import { hexPrint } from "./hex-prints.mjs";
+import { A0_PRINT } from "./a0-print.mjs";
+import { WR_MAP_ID } from "./wr-keyed-art.mjs";
 
 export const RECORD_FLAG = "hexRecords";
 export const PUBLIC_FLAG = "hexRecordProjection";
@@ -148,6 +154,53 @@ function keyedPages(scene, num, pass = null) {
     if (!page || !entry?.testUserPermission?.(game.user, "OBSERVER") || !page.testUserPermission?.(game.user, "OBSERVER")) continue;
     if (!out.some(k => k.uuid === page.uuid)) out.push({ uuid: page.uuid, title: page.name });
   }
+  return out;
+}
+/**
+ * The print a scene's numbered hexes were made from: the map flow's own flag
+ * (`hexMapId`; HEXMAP_FLAG in hex-map-flow.mjs, which this module never loads),
+ * else — a painted copy carries none — the tagged hex field's bounds, the same
+ * fallback the tagger reads for the Western Reaches print.
+ * @returns {object|null} the book's facts (hex-prints.mjs), or null for a scene no book claims
+ */
+export function scenePrint(scene) {
+  const byFlag = hexPrint(String(scene?.getFlag?.(MODULE_ID, "hexMapId") ?? "").split(":")[0]);
+  if (byFlag) return byFlag;
+  const b = scene?.getFlag?.(MODULE_ID, "hexTags")?.origin?.bounds;
+  return b?.cols === A0_PRINT.bounds.cols && b?.rows === A0_PRINT.bounds.rows ? hexPrint(WR_MAP_ID) : null;
+}
+/**
+ * The book's own journal pages for one hex number, found without any pin: the
+ * scene's print, that book's crawl entries (the deployed world copy when the
+ * pin step has placed one, else the pack copy), and the pages carrying this
+ * number in their flag. Scoped to that book's entries, so another book's page
+ * with the same number is never listed. GM path only; players keep the pins.
+ * @returns {Promise<{book: boolean, pages: Array<{uuid:string, title:string}>}>} `book` = the scene is tied to a known print
+ */
+export async function bookKeyedPages(scene, num) {
+  const print = scenePrint(scene);
+  if (!print) return { book: false, pages: [] };
+  if (!Number.isInteger(num)) return { book: true, pages: [] };
+  const pack = findSuitePack("journal");
+  let entries = [];
+  if (pack) { try { entries = await pack.getDocuments(); } catch { entries = []; } }
+  const out = [];
+  for (const entry of entries) {
+    const flag = entry.getFlag?.(MODULE_ID, HEX_FLAG);
+    if (!flag?.crawl || sourceFolderName(flag.source) !== print.folder) continue;
+    // The deployment keeps the pack entry's id, so the world copy is the same document the GM sees and may have edited.
+    const pages = (globalThis.game?.journal?.get?.(entry.id) ?? entry).pages?.contents ?? [];
+    for (const page of pages) {
+      if (hexNum(page.getFlag?.(MODULE_ID, HEX_FLAG)?.num) !== num) continue;
+      if (!out.some(k => k.uuid === page.uuid)) out.push({ uuid: page.uuid, title: page.name });
+    }
+  }
+  return { book: true, pages: out };
+}
+/** The keyed rows for one hex: the pinned pages first, then the book's own; one row per document. */
+export function mergeKeyedPages(pins = [], book = []) {
+  const out = [];
+  for (const k of [...pins, ...book]) if (k?.uuid && !out.some(o => o.uuid === k.uuid)) out.push({ uuid: k.uuid, title: k.title });
   return out;
 }
 /** Patch fields a raw cell write may touch; the archive and arrival history stay out of reach. */

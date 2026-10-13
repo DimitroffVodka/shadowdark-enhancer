@@ -148,6 +148,8 @@
   "SDE.hexExplorer.terrain": "Terrain",
   "SDE.hexExplorer.locationTitle": "Keyed location title",
   "SDE.hexExplorer.keyedPages": "Journal pages for this hex",
+  "SDE.hexExplorer.noBook": "This scene is not tied to a book.",
+  "SDE.hexExplorer.noKeyedPages": "No key locations imported for this book.",
   "SDE.hexExplorer.openPage": "Open this journal page",
   "SDE.hexExplorer.lines": "Line features (existing tags)",
   "SDE.hexExplorer.features": "Structured location features",
