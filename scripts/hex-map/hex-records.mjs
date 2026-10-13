@@ -57,10 +57,21 @@ export const sceneUuid = scene => scene?.uuid ?? (scene?.id ? `Scene.${scene.id}
 export const offsetKey = ({ i, j } = {}) => Number.isSafeInteger(i) && Number.isSafeInteger(j) ? `${i}_${j}` : null;
 const clone = value => structuredClone(value);
 const journals = () => globalThis.game?.journal?.contents ?? [];
+/**
+ * A pack applies every update to the one copy it holds and drops it after CACHE_LIFETIME_SECONDS idle; the next
+ * update holds a fresh copy, and getDocuments() only ever returns new ones. A copy kept from load therefore reads
+ * stale after the first idle gap: it publishes an empty view to players, and each write clones its old cells back
+ * over the pack's. So take the pack's copy on every read and keep it as the fallback for when it is dropped.
+ */
+function privateJournal(id) {
+  const held = globalThis.game?.packs?.get?.(PRIVATE_PACK)?.get?.(id);
+  if (typeof held?.update === "function") privateJournals.set(id, held);
+  return privateJournals.get(id);
+}
 export function recordJournal(scene, { publicOnly = false } = {}) {
   if (!publicOnly && !globalThis.game?.user?.isGM) return null;
   const flag = publicOnly ? PUBLIC_FLAG : RECORD_FLAG;
-  const source = publicOnly ? journals() : [...privateJournals.values()];
+  const source = publicOnly ? journals() : [...privateJournals.keys()].map(privateJournal);
   const hits = source.filter(j => j.flags?.[MODULE_ID]?.[flag]?.sceneUuid === sceneUuid(scene));
   if (hits.length > 1) throw new Error("SDE.hexRecords.duplicateStore");
   return hits[0] ?? null;
