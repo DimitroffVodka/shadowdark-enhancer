@@ -149,6 +149,7 @@
   "SDE.hexExplorer.locationTitle": "Keyed location title",
   "SDE.hexExplorer.keyedPages": "Journal pages for this hex",
   "SDE.hexExplorer.openPage": "Open this journal page",
+  "SDE.hexExplorer.showArt": "Open this hex's art",
   "SDE.hexExplorer.lines": "Line features (existing tags)",
   "SDE.hexExplorer.features": "Structured location features",
   "SDE.hexExplorer.type": "Feature type",

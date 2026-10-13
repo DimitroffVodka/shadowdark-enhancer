@@ -33,6 +33,12 @@ is named by its pinned page unless you type a title, and Hex Data lists that pag
 with a button to open it. The pin can be the Enhancer's own or the note Shadowdark
 Extras places on a keyed hex of a map it painted, so a painted map names its keyed
 hexes with Extras on or off. Pins, token drags and long-press pings retain their handlers.
+The header wears the hex's own art when there is one: a baked map's sprite for that
+hex, else the tile its number is painted with — the **Tile art** manifest you loaded,
+or the table shipped for the Western Reaches print. Pressing it opens Foundry's image
+pop-out, whose eye control shares the picture with your players. A hex with no art, or
+whose file is gone (Extras uninstalled), keeps the plain hexagon; no art is uploaded,
+and the players' hover never grows a picture.
 
 The window also has a **Quests here** card on a numbered hex: the quests tied to
 this hex, each with a button to open it and one to unlink it, and a picker of

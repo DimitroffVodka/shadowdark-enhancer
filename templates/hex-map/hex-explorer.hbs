@@ -1,7 +1,7 @@
 <div class="ui-shell">
 {{#if isGM}}
   <header class="ui-head">
-    <div class="ui-art hx-art"><i class="fa-solid fa-hexagon"></i></div>
+    {{#if artSrc}}<button type="button" class="ui-art hx-art" data-action="showArt" title="{{localize 'SDE.hexExplorer.showArt'}}" aria-label="{{localize 'SDE.hexExplorer.showArt'}}"><img src="{{artSrc}}" alt=""></button>{{else}}<div class="ui-art hx-art"><i class="fa-solid fa-hexagon"></i></div>{{/if}}
     <div class="ui-head-text"><h2 class="ui-title">{{number}}</h2><p class="ui-sub">{{sceneName}}</p></div>
     <div class="ui-stats">
       <div class="ui-stat"><span class="ui-label">{{localize "SDE.hexExplorer.terrain"}}</span><span class="ui-value">{{terrain}}</span></div>

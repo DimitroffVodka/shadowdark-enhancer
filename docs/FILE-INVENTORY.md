@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1968 tracked files · ~251,200 lines of code/markup across scripts+templates+styles+test.
+1970 tracked files · ~251,400 lines of code/markup across scripts+templates+styles+test.
 `v0.18.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -82,7 +82,7 @@
 | `hex-map/geometry.mjs` | 221 | Hex numbering by cube difference from one anchor cell; printed offset ↔ cube under the map's column-shift rule. Pure. |
 | `hex-map/hex-adoption.mjs` | 183 | Read-once SDX record adoption with negative offset parsing, lossless original archives, existing-native conflict precedence, reports and automatic eligibility hooks. |
 | `hex-map/hex-brush-app.mjs` | 262 | The hex brush: a small window that sets one terrain (a picture tile per Legend terrain) plus features, so clicking or dragging across the tag overlay retags whole patches; a stroke is one scene write and Undo puts it back. |
-| `hex-map/hex-explorer-app.mjs` | 129 | Small scene-offset GM Hexplorer editor for terrain, line/structured features, public/private notes, document links and discovery. |
+| `hex-map/hex-explorer-app.mjs` | 147 | Small scene-offset GM Hexplorer editor for terrain, line/structured features, public/private notes, document links and discovery; its header wears the hex's own art (the bake's sprite, else the numbered tile) and opens it in Foundry's image pop-out, whose share action sends it to the players. |
 | `hex-map/hex-explorer.mjs` | 229 | Player-safe Hexplorer canvas hover/select observer and GM writes over authoritative terrain tags and rich offset records; preserves discovery and imported metadata. |
 | `hex-map/hex-fog-core.mjs` | 144 | Pure shared terrain/location disclosure, lossless fog/history migration, native-grid sight, arrival/overlap decisions and the fog reset plan (resetCell, planFogReset). |
 | `hex-map/hex-fog-reset-dialog.mjs` | 76 | The GM's Reset fog window: whose map, which hexes (whole map or one region), first-entry tables roll again, a live count from the same plan the write uses, and undo of the last reset. |
@@ -97,9 +97,10 @@
 | `hex-map/hex-prints.mjs` | 86 | What is known of each book's hex map, pure: which book's key locations pin onto it, where its crawls are filed, the printed number of its first hex, and for the two black maps the grid finder cannot read (the Black River, joined from two halves, and Morzomotha) their measured grids. Numbers and names only, no part of the print. |
 | `hex-map/hex-records.mjs` | 257 | Scene-offset native rich-record facade over existing tags, keyed pins/pages and regions, private compendium records and allowlisted public disclosure projections. |
 | `hex-map/hex-region.mjs` | 317 | Which region is a hex in: the book's own word for a keyed hex, the nearest keyed hex's region for any other (84.8% on the Western Reaches, leave-one-out over the book's own keyed rows). Seeds come from the filed crawls; nothing is stored. |
-| `hex-map/hex-tagger-app.mjs` | 1990 | Hex Tagger AppV2: contact sheet over the active hex scene, anchor numbering, tags on the scene flag, dataset hand-off. |
+| `hex-map/hex-tagger-app.mjs` | 1981 | Hex Tagger AppV2: contact sheet over the active hex scene, anchor numbering, tags on the scene flag, dataset hand-off. |
 | `hex-map/hex-tagger-tabs.mjs` | 14 | Hex Tagger tab list and the pure rule that keeps the chosen tab when the scene still offers it, else Sheet. |
 | `hex-map/ink.mjs` | 62 | Whole-image 0/1 ink bitmap at a working scale, one browser resize then strip reads; ink threshold from the paper's brightness. Browser-bound. |
+| `hex-map/keyed-art.mjs` | 69 | The art a keyed hex wears, one resolver for the tagger's Tile art default and the Hex Data header: a bake's own sprite for the hex's offset (the base tile, under its icons), else the numbered tile — the GM's loaded manifest or the Western Reaches table, its base art only. Reads only; a file that is gone is the caller's to skip. |
 | `hex-map/keyed-ground-core.mjs` | 70 | Plain ground under keyed hexes, pure: which Tiles are donors (plain ground alone in its hex), the picture the nearest donor of a terrain wears (ties to the alphabetically first), the terrain a keyed hex gets from the book or its neighbours, and the plan of Tiles to create. |
 | `hex-map/keyed-ground.mjs` | 88 | hexMaps.fillKeyedGround and removeKeyedGround (1.31.0), GM only: one plain terrain Tile in each keyed hex of a painted map, so a bake has no hole where a hidden location stands (create only, each flagged), and the removal of exactly the Tiles it made, found by that flag. |
 | `hex-map/lattice.mjs` | 448 | Hex lattice detection from a map's ink: row and column pitch by autocorrelation, phase by folding long horizontal runs, the hex field by outline support with frame-cut half cells, edge-band pitch refinement, and a lattice hung on two hand-placed corner cells. Pure. |

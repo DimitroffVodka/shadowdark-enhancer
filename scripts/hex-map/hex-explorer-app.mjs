@@ -8,8 +8,11 @@ import { terrainOptions, OTHER } from "./tag-overlay.mjs";
 import { tableForCheck, pickTable, TERRAIN_TABLES } from "../encounter/encounter-terrain.mjs";
 import { Quests } from "../quests/quests.mjs";
 import { questsAtHex, STATUS_LABELS } from "../quests/quest-core.mjs";
+import { hexArtSources } from "./keyed-art.mjs";
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const t = key => game.i18n.localize(key);
+/** Whether the file is really there: a missing one is a plain no, never a console error or a notice. */
+const fileLoads = async src => { try { return (await fetch(src, { method: "HEAD" })).ok; } catch { return false; } };
 const LABELS = { river: "SDE.hexMap.feature.river", path: "SDE.hexMap.feature.path", coast: "SDE.hexMap.feature.coast" };
 const ENCOUNTER_NOTES = { region: "SDE.hexExplorer.enc.region", ambiguous: "SDE.hexExplorer.enc.ambiguous", terrain: "SDE.hexExplorer.enc.terrain", active: "SDE.hexExplorer.enc.active", none: "SDE.hexExplorer.enc.none" };
 export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
@@ -36,10 +39,11 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
         if (doc?.documentName === "JournalEntryPage") doc.parent.sheet?.render(true, { pageId: doc.id });
         else doc?.sheet?.render(true);
       },
+      showArt: function () { return this._showArt(); },
     },
   };
   static PARTS = { body: { template: `modules/${MODULE_ID}/templates/hex-map/hex-explorer.hbs`, scrollable: [".sde-hex-explorer-body"] } };
-  constructor(offset, scene, options = {}) { super(options); this.offset = { ...offset }; this.scene = scene; this.draft = null; this.saving = false; }
+  constructor(offset, scene, options = {}) { super(options); this.offset = { ...offset }; this.scene = scene; this.draft = null; this.saving = false; this.artSrc = null; this.artTitle = ""; }
   static open(offset, target) {
     const scene = sceneRef(target);
     if (!game.user?.isGM || !explorerCell(scene, offset)) return null;
@@ -75,14 +79,28 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const here = questsAtHex(all, { num: record.num, sceneUuid: this.scene.uuid });
     const pad = n => String(n).padStart(4, "0"), row = q => ({ uuid: q.uuid, name: q.name, status: t(STATUS_LABELS[q.status]) });
     // The book's page for a keyed hex comes from the map's pin on it, not from the stored cell, so it is shown but never saved.
+    // The header art is the picture this hex wears, when its file really loads; the pop-out is titled by the number alone.
+    const number = record.num === null ? game.i18n.format("SDE.hexExplorer.offset", this.offset) : String(record.num).padStart(4, "0");
+    this.artTitle = number;
+    this.artSrc = await this._artSrc(record);
     return { ...d, keyed: record.keyed ?? [], questSection: numbered, quests: here.map(row),
       // A quest already tied to another hex says so, so moving it is a choice and not a surprise.
       questChoices: all.filter(q => !here.includes(q)).map(q => ({ ...row(q), where: q.hex === null ? "" : ` → ${pad(q.hex)}` })),
       rootId: this.id, encounter: { ...enc, note: game.i18n.format(ENCOUNTER_NOTES[enc.state], enc) }, isGM: true, saving: this.saving, sceneName: this.scene.name,
-      number: record.num === null ? game.i18n.format("SDE.hexExplorer.offset", this.offset) : String(record.num).padStart(4, "0"),
+      number, artSrc: this.artSrc,
       locationAuto: d.location === "auto", locationShow: d.location === "show", locationHide: d.location === "hide",
       terrainOptions: this._terrainOptions(d.terrain),
       lineRows: FEATURES.map(type => ({ type, label: t(LABELS[type]), checked: d.lines.includes(type) })) };
+  }
+  /** The header's picture: the first art source for this hex whose file is really there, or null for the stock hexagon. */
+  async _artSrc(record) {
+    for (const src of hexArtSources(this.scene, this.offset, record.num)) if (await fileLoads(src)) return src;
+    return null;
+  }
+  /** Foundry's own image pop-out, whose share action sends the picture to the players. */
+  _showArt() {
+    if (!this.artSrc) return null;
+    return new foundry.applications.apps.ImagePopout({ src: this.artSrc, window: { title: this.artTitle } }).render(true);
   }
   async _setQuestHex(uuid, num) {
     if (!uuid || !game.user?.isGM) return;
