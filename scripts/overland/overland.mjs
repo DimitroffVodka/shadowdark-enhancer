@@ -1540,7 +1540,8 @@ export function registerOverland() {
   Hooks.on("preMoveToken", onPreMoveToken);
   Hooks.on("moveToken", onMoveToken);
   // The ground under keyed hexes is read ahead of the first price: now, on each canvas, whenever the travel
-  // state is committed or re-read (reread, commit), and again once the regions are forgotten.
+  // state is committed or re-read (reread, commit). Once the regions are forgotten it is only marked out of
+  // date and read later: in the next move's job, or on canvasReady / a change of travel token.
   Hooks.on("canvasReady", warmTravelGround);
   onHexZonesForgotten(groundForgotten);
   void warmTravelGround();

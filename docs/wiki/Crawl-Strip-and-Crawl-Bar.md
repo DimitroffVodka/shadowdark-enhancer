@@ -295,8 +295,10 @@ the party token travels.
   none or the map is not made from a known book's print; only that book's own
   rows count. The GM's charge is the one that counts: a player's route preview
   shows one hex for a keyed location or settlement, and a move the day can't
-  pay for at the ground's price is sent back with nothing spent. A move the day
-  can't pay for bounces, with a message saying why. To
+  pay for at the ground's price is sent back with nothing spent. The GM sees a
+  warning saying why; the player just sees the token return to where it was.
+  A move the player's own client already sees the day can't pay for is
+  refused there, with a message saying why. To
   reposition the token without spending anything, move it with the
   **Displace** movement action.
 - **End travel** stops travelling but keeps where the party is and the day's

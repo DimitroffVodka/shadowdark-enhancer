@@ -339,7 +339,7 @@ export class HexTagOverlay {
    */
   static async _regionContext(mode, scene) {
     if (mode === "terrain") return { regionByNum: new Map(), componentByNum: new Map(), zonesByRegion: new Map(), rowRanges: new Map() };
-    const { sceneRegions, sceneRegionFixes, sceneShift, regionSeeds, nameComponents, nearestRegion, crawlEntries, keyedGround } = await import("./hex-region.mjs");
+    const { sceneRegions, sceneRegionFixes, sceneShift, regionSeeds, nameComponents, nearestRegion, crawlEntries, bookGround, sceneBookFolder } = await import("./hex-region.mjs");
     const shifted = sceneShift(scene);
     // The enclosures are worth looking at BEFORE a hex key names them: that is
     // the scan's own output, and checking it is the reason to draw this at all.
@@ -371,7 +371,7 @@ export class HexTagOverlay {
       shifted,
       palette: extrasPalette() ?? REGION_COLORS,
     });
-    const ctx = { regionByNum: byNum, inferredByNum, componentByNum, fixByNum, keyByNum, colorByKey, groundByNum: keyedGround(entries) };
+    const ctx = { regionByNum: byNum, inferredByNum, componentByNum, fixByNum, keyByNum, colorByKey, groundByNum: bookGround(entries, await sceneBookFolder(scene)) };
     if (mode === "region") return { ...ctx, zonesByRegion: new Map(), rowRanges: new Map() };
     // North and south split each region's own rows, as far as the map puts hexes in it.
     const rowRanges = regionRowRanges(new Map([...inferredByNum, ...byNum]));

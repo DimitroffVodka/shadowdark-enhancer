@@ -114,6 +114,7 @@ const { enterStat } = await import("../scripts/hex-map/hex-explorer.mjs");
 const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
 const { HexExplorerApp } = await import("../scripts/hex-map/hex-explorer-app.mjs");
 const { HexRecords } = await import("../scripts/hex-map/hex-records.mjs");
+const { HexTagOverlay } = await import("../scripts/hex-map/tag-overlay.mjs");
 
 const PRINTED = {
   terrain: {
@@ -478,6 +479,18 @@ test("two books number their hexes alike: each scene is priced by its own book's
   assert.equal(previewCost(a, [101, 102]).cost, 3, "A's own row: a mountain");
   assert.equal((await hexZonesFor(a)).ground.get(102)?.terrain, "mountain", "encounter checks read the same map");
   assert.equal((await hexZonesFor(b)).ground.get(102)?.terrain, "swamp");
+  scenes.length = 0;
+});
+
+test("the Encounter zones picture reads the ground of the scene's own book, as the check does", async () => {
+  const b = makeScene("book-b", { print: "hex-cs2" }), homebrew = makeScene("homebrew", { scanned: false, print: null });
+  travelling(b);
+  entries = [crawl("CS1", [{ num: "0102", terrain: ["mountain"] }], "Book A"), crawl("CS2", [{ num: "0102", terrain: ["swamp"] }], "Book B")];
+  forgetHexZones();
+  const overlay = await HexTagOverlay._regionContext("region", b);
+  assert.equal(overlay.groundByNum.get(102)?.terrain, "swamp", "the second book's row, not the first book's");
+  assert.equal(overlay.groundByNum.get(102)?.terrain, (await hexZonesFor(b)).ground.get(102)?.terrain, "the check's answer");
+  assert.equal((await HexTagOverlay._regionContext("region", homebrew)).groundByNum.size, 0, "no print, no ground");
   scenes.length = 0;
 });
 

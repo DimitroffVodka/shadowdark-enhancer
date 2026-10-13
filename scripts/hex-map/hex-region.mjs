@@ -308,6 +308,17 @@ export async function sceneBookFolder(scene) {
 }
 
 /**
+ * The keyed ground read from the rows of one book only (the folder sceneBookFolder names), never merged across
+ * books; no book, no ground. The one reading both the check (sceneZones) and the Encounter zones picture use.
+ * @param {Array<JournalEntry|{flags:object}>} entries  crawl entries (hex-commit)
+ * @param {string|null} book  the book's source folder, or null for a scene no book claims
+ */
+export function bookGround(entries, book) {
+  const own = (entry) => sourceFolderName((entry?.getFlag?.(MODULE_ID, HEX_FLAG) ?? entry?.flags?.[MODULE_ID]?.[HEX_FLAG])?.source) === book;
+  return keyedGround(book === null ? [] : (entries ?? []).filter(own));
+}
+
+/**
  * hexZones for a scanned scene: its borders and fixes, the filed crawls for the
  * names, its own column shift, and Extras' palette when Extras offers one.
  * Books number their hexes from the same range, so the ground is read only from
@@ -321,7 +332,6 @@ export async function sceneZones(scene, { folder } = {}) {
   if (!scene) return { ...hexZones(), ground: new Map() };
   const entries = await crawlEntries();
   const book = folder === undefined ? await sceneBookFolder(scene) : folder;
-  const own = (entry) => sourceFolderName((entry?.getFlag?.(MODULE_ID, HEX_FLAG) ?? entry?.flags?.[MODULE_ID]?.[HEX_FLAG])?.source) === book;
   return {
     ...hexZones({
       components: sceneRegions(scene),
@@ -330,7 +340,7 @@ export async function sceneZones(scene, { folder } = {}) {
       shifted: sceneShift(scene),
       palette: extrasPalette() ?? REGION_COLORS,
     }),
-    ground: keyedGround(book === null ? [] : entries.filter(own)),
+    ground: bookGround(entries, book),
   };
 }
 
