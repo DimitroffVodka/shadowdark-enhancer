@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { eventTiers, outcomeRows, outcomeAt, outcomeEffects, splitCost, preflight, recapNight } from "../scripts/carousing/carousing-core.mjs";
+import { eventTiers, outcomeRows, outcomeAt, outcomeEffects, splitCost, preflight, recapNight, matrixRows, d100Rows, d100Formula, rollExpanded, expandedEffects, resultLine, carousingFirst, BOOKS } from "../scripts/carousing/carousing-core.mjs";
 const tiers = [{ id: "t1", cost: 10, bonus: 0, description: "Test outing" }, { id: "t2", cost: 20, bonus: 2, description: "Test feast" }];
 const outcomes = [{ range: [1, 10], description: "Synthetic night", benefit: "Gain 2 XP and a luck token" }];
 const people = [{ uuid: "Actor.a", actorId: "a", confirmed: true, participate: true, coins: { gp: 10 } }, { uuid: "Actor.b", actorId: "b", confirmed: true, participate: false, coins: { gp: 0 } }];
@@ -72,4 +72,86 @@ test("recap stable id and each person's share, totalling the tier cost, history-
   const night = { logId: "night", at: 1, participants: [{ actorId: "a", name: "Test PC", cost: 4 }, { actorId: "b", name: "Other PC", cost: 3 }], results: { a: { total: 7, description: "Test result", benefit: "Gain 2 XP", effects: { xp: 2, renown: 0 } }, b: { total: 5, description: "Quiet", benefit: "", effects: { xp: 0, renown: 0 } } } };
   const row = recapNight(night); assert.equal(row.logId, "night"); assert.equal(row.tierCost, 7); assert.deepEqual(row.entries.map(e => e.cost), [4, 3]); assert.equal(row.entries[0].xp, 2);
   assert.equal(recapNight({ ...night, historyOnly: true }), null);
+});
+
+// Expanded carousing. Every table below is invented; no book text is stored here.
+const matrix = [{ range: [1, 2], description: "2 | - | -20 | 2" }, { range: [3, 6], description: "1 | 1 | -10% | 3" }, { range: [7, 25], description: "- | 2 | +15 | 5" }];
+const hundred = n => Array.from({ length: n }, (_, i) => ({ range: [i + 1, i + 1], text: `row ${i + 1}` }));
+const scripted = totals => { const queue = [...totals], seen = []; return { seen, roll: async type => { seen.push(type); return queue.shift(); } }; };
+test("an outcome matrix row reads Mishaps | Benefits | % modifier | XP, a dash meaning none", () => {
+  assert.deepEqual(matrixRows(matrix), [
+    { range: [1, 2], mishapRolls: 2, benefitRolls: 0, modifier: -20, xp: 2 },
+    { range: [3, 6], mishapRolls: 1, benefitRolls: 1, modifier: -10, xp: 3 },
+    { range: [7, 25], mishapRolls: 0, benefitRolls: 2, modifier: 15, xp: 5 }]);
+  assert.equal(matrixRows([{ range: [1, 1], description: "\u2014 | 1 | \u221215 | 1" }])[0].modifier, -15);
+});
+test("a basic outcome row is never mistaken for a matrix row, and a ragged matrix row is dropped", () => {
+  assert.deepEqual(matrixRows([{ range: [1, 8], description: "Synthetic result | Gain 2 XP" }]), []);
+  assert.deepEqual(matrixRows([{ range: [1, 1], description: "1 | 1 | x | 2" }, { range: [2, 2], description: "1 | 1 | -5" }, { range: [3, 3], description: "-1 | 1 | -5 | 1" }, { range: [4, 4], description: "1.5 | 1 | -5 | 1" }]), []);
+});
+test("benefit and mishap rows keep their whole text, a stray pipe included", () => {
+  assert.deepEqual(d100Rows([{ range: [1, 1], description: "One | two" }, { range: [2, 2], name: "Plain" }]), [{ range: [1, 1], text: "One | two" }, { range: [2, 2], text: "Plain" }]);
+});
+test("the row's % modifier shifts each d100, clamped to 1-100, and the row decides how many are rolled", async () => {
+  const row = { mishapRolls: 1, benefitRolls: 2, modifier: -20 }, dice = scripted([50, 10, 90]);
+  const found = await rollExpanded({ row, benefits: hundred(100), mishaps: hundred(100), roll: dice.roll });
+  assert.deepEqual(dice.seen, ["benefit", "benefit", "mishap"]);
+  assert.deepEqual(found.benefits.map(e => [e.dice, e.roll, e.text]), [[50, 30, "row 30"], [10, 1, "row 1"]]);
+  assert.deepEqual(found.mishaps.map(e => [e.dice, e.roll]), [[90, 70]]);
+  const high = await rollExpanded({ row: { mishapRolls: 0, benefitRolls: 1, modifier: 30 }, benefits: hundred(100), mishaps: hundred(100), roll: scripted([95]).roll });
+  assert.equal(high.benefits[0].roll, 100);
+});
+test("a re-roll-as-the-other row rolls on the other table and lands in that table's list, at most four times", async () => {
+  const benefits = hundred(100), mishaps = hundred(100);
+  benefits[0].text = "Bad luck; re-roll this benefit as a mishap"; mishaps[99].text = "Good fortune. Re-roll this mishap as a benefit";
+  const once = await rollExpanded({ row: { mishapRolls: 0, benefitRolls: 1, modifier: 0 }, benefits, mishaps, roll: scripted([1, 40]).roll });
+  assert.deepEqual([once.benefits.length, once.mishaps.map(e => e.text)], [0, ["row 40"]]);
+  const dice = scripted([1, 100, 1, 100, 77]);
+  const loop = await rollExpanded({ row: { mishapRolls: 0, benefitRolls: 1, modifier: 0 }, benefits, mishaps, roll: dice.roll });
+  assert.deepEqual(dice.seen, ["benefit", "mishap", "benefit", "mishap"], "four rolls, then it stops");
+  assert.equal(loop.mishaps[0].text, "Good fortune. Re-roll this mishap as a benefit");
+});
+test("a holiday adds one benefit and one mishap, and touches only benefit dice", async () => {
+  const dice = scripted([5, 5, 5, 5]);
+  const found = await rollExpanded({ row: { mishapRolls: 0, benefitRolls: 0, modifier: 0 }, benefits: hundred(100), mishaps: hundred(100), roll: dice.roll, holiday: { extraBenefit: true, extraMishap: true } });
+  assert.deepEqual([found.benefits.length, found.mishaps.length], [1, 1]);
+  assert.equal(d100Formula("benefit", { benefitAdvantage: true, benefitBonus: 15 }), "2d100kh + 15");
+  assert.equal(d100Formula("mishap", { benefitAdvantage: true, benefitBonus: 15 }), "1d100");
+  assert.equal(d100Formula("benefit"), "1d100");
+});
+test("expanded effects are the row's XP plus what each benefit and mishap states in the automated grammar", () => {
+  const entries = [{ text: "A palm reader tells you more; gain a luck token" }, { text: "You offended a clerk; -3 renown" }, { text: "You wake robbed; lose 40% of your wealth" }, { text: "A friend owes you; +1 renown if anyone saw" }];
+  assert.deepEqual(expandedEffects(3, entries), { xp: 3, luck: 1, renown: -3 });
+  assert.equal(outcomeEffects("Gain 1 renown if you are seen", "").renown, 0, "a conditional renown stays prose");
+});
+test("an expanded night needs both d100 tables to cover 1-100 before anyone is charged", () => {
+  const rows = matrixRows(matrix), pcs = [{ uuid: "Actor.a", actorId: "a", confirmed: true, participate: true, coins: { gp: 50 } }];
+  const run = patch => preflight({ participants: pcs, tierId: "t1", tiers, outcomes: rows, expanded: true, benefits: hundred(100), mishaps: hundred(100), now: 2000000000, ...patch });
+  assert.equal(run().ok, true);
+  assert.equal(run({ mishaps: [] }).error, "SDE.carousing.tablesMissing");
+  assert.equal(run({ benefits: hundred(100).filter(r => r.range[0] !== 50) }).error, "SDE.carousing.tablesMissing");
+  assert.equal(run({ expanded: false, benefits: [], mishaps: [] }).ok, true, "a basic night does not look at them");
+});
+test("the recap row of an expanded night is mode expanded with benefits and mishaps listed", () => {
+  const night = { logId: "n", date: "d", participants: [{ actorId: "a", name: "A", cost: 10 }], results: { a: { mode: "expanded", total: 6, xp: 3, benefits: [{ text: "Free ale", roll: 12 }], mishaps: [{ text: "Lost purse; -2 renown", roll: 4 }], effects: { xp: 3, luck: 0, renown: -2 } } } };
+  const [entry] = recapNight(night).entries;
+  assert.deepEqual([entry.mode, entry.outcome, entry.roll, entry.xp, entry.renownDelta], ["expanded", "3 XP", 6, 3, -2]);
+  assert.deepEqual(entry.benefits, [{ text: "Free ale", roll: 12, renownDelta: 0 }]);
+  assert.deepEqual(entry.mishaps, [{ text: "Lost purse; -2 renown", roll: 4, renownDelta: -2 }]);
+});
+test("history lines read an expanded result as its XP and its texts, a basic one as before", () => {
+  const result = { mode: "expanded", xp: 2, benefits: [{ text: "Free ale" }], mishaps: [{ text: "Lost purse" }] };
+  assert.deepEqual(resultLine(result, n => `${n} XP`), { outcome: "2 XP", benefit: "Free ale · Lost purse" });
+  assert.deepEqual(resultLine({ description: "Night", benefit: "Gain 2 XP" }), { outcome: "Night", benefit: "Gain 2 XP" });
+});
+test("tables with carousing in their name, or in their manifest id, come first; each group is in name order", () => {
+  const rows = [{ name: "Zebra Names" }, { name: "Pack: Carousing Outcome", bare: "Carousing Outcome" }, { name: "Armor Benefit" }, { name: "Pack: Cursed Scroll #6 - Mishap", bare: "Cursed Scroll #6 - Mishap", manifestId: "cs6-carousing-mishap" }, { name: "Pack: Dwarf Names", bare: "Dwarf Names" }, { name: "A Carousing Event" }];
+  assert.deepEqual(carousingFirst(rows).map(r => r.name), ["A Carousing Event", "Pack: Carousing Outcome", "Pack: Cursed Scroll #6 - Mishap", "Armor Benefit", "Pack: Dwarf Names", "Zebra Names"]);
+  assert.equal(rows[0].name, "Zebra Names", "the input is left alone");
+  assert.ok(carousingFirst([{ name: "Pack: Carousing Tools", bare: "Hammers" }])[0].bare === "Hammers");
+});
+test("each book names the outcome, event, benefit and mishap tables that go together", () => {
+  assert.deepEqual(BOOKS.map(b => b.outcome.split("-")[0]), ["core", "pgwr", "cs6"]);
+  assert.ok(BOOKS.slice(1).every(b => b.event && b.benefit && b.mishap));
+  assert.equal(BOOKS[0].benefit, undefined);
 });

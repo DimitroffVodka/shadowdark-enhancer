@@ -48,3 +48,19 @@ test("every string the Carousing template localizes exists in en.json, and none 
 test("no old Carousing rules are left in the Party sheet stylesheet", async () => {
   assert.ok(!(await read("../styles/party-sheet.css")).includes(".sde-carousing-body"));
 });
+
+test("every table dropdown lists the RollTables with carousing in their name first", async () => {
+  const party = world([true, false, false], 7);
+  const { registerCarousing } = await import("../scripts/carousing/carousing.mjs");
+  const hooks = new Map(); globalThis.Hooks = { on: (name, fn) => hooks.set(name, fn), callAll() {} }; globalThis.CONFIG = { queries: {} };
+  registerCarousing(); hooks.get("updateRollTable")();
+  globalThis.game.tables.contents = ["Zebra Names", "Western Reaches - Carousing Outcome", "Armor Benefit"].map(name => ({ uuid: `RollTable.${name}`, name, flags: {} }));
+  const context = await new CarousingApp(party)._prepareContext();
+  for (const list of ["events", "outcomes", "benefitTables", "mishapTables"]) assert.deepEqual(context[list].map(row => row.name), ["Western Reaches - Carousing Outcome", "Armor Benefit", "Zebra Names"], list);
+  hooks.get("updateRollTable")();
+});
+
+test("the setup form has the benefit and mishap selects, and a result lists its benefits and mishaps", async () => {
+  const hbs = await read("../templates/carousing/carousing.hbs");
+  for (const hook of ['data-config="benefit"', 'data-config="mishap"', "result.benefits", "result.mishaps", 'class="cr-mishap"']) assert.ok(hbs.includes(hook), hook);
+});

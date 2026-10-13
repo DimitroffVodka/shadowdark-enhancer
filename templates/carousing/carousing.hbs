@@ -3,14 +3,16 @@
   <p class="ui-muted cr-hint">{{localize "SDE.carousing.sharedRule"}}</p>
   {{#if error}}<div class="ui-note bad" role="alert">{{error}}</div>{{/if}}
   {{#if missingTables}}<div class="ui-note bad" role="alert">{{localize "SDE.carousing.tablesMissing"}}</div>{{/if}}
-  {{#if manualHoliday}}<p class="ui-muted cr-hint">{{localize "SDE.carousing.manualHoliday"}}</p>{{/if}}
+  {{#if manualHoliday}}<p class="ui-muted cr-hint">{{#if expanded}}{{localize "SDE.carousing.manualHolidayChances"}}{{else}}{{localize "SDE.carousing.manualHoliday"}}{{/if}}</p>{{/if}}
 
   {{#if isGM}}{{#if canConfigure}}
   <details class="cr-more" {{#if empty}}open{{/if}}>
     <summary>{{localize "SDE.carousing.configure"}}</summary>
     <div class="cr-fields">
-      <div class="ui-field"><label class="ui-label">{{localize "SDE.carousing.eventTable"}}</label><select data-config="event"><option value="">{{localize "SDE.carousing.autoCore"}}</option>{{#each events}}<option value="{{uuid}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select></div>
+      <div class="ui-field"><label class="ui-label">{{localize "SDE.carousing.eventTable"}}</label><select data-config="event"><option value="">{{localize "SDE.carousing.autoBook"}}</option>{{#each events}}<option value="{{uuid}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select></div>
       <div class="ui-field"><label class="ui-label">{{localize "SDE.carousing.outcomeTable"}}</label><select data-config="outcome"><option value="">{{localize "SDE.carousing.autoCore"}}</option>{{#each outcomes}}<option value="{{uuid}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select></div>
+      <div class="ui-field"><label class="ui-label">{{localize "SDE.carousing.benefitTable"}}</label><select data-config="benefit"><option value="">{{localize "SDE.carousing.autoBook"}}</option>{{#each benefitTables}}<option value="{{uuid}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select></div>
+      <div class="ui-field"><label class="ui-label">{{localize "SDE.carousing.mishapTable"}}</label><select data-config="mishap"><option value="">{{localize "SDE.carousing.autoBook"}}</option>{{#each mishapTables}}<option value="{{uuid}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select></div>
       <div class="ui-field"><label class="ui-label">{{localize "SDE.carousing.settlement"}}</label><select data-config="settlement">{{#each settlements}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></div>
       <div class="ui-field"><label class="ui-label">{{localize "SDE.carousing.place"}}</label><input type="text" data-config="place" value="{{config.place}}"></div>
     </div>
@@ -45,8 +47,10 @@
         {{/if}}
       </div>
       {{#if result}}
-        <p class="cr-result"><span class="ui-label">{{localize "SDE.carousing.roll"}} {{result.total}}</span> {{result.description}}</p>
-        <p class="cr-benefit">{{result.benefit}}</p>
+        <p class="cr-result"><span class="ui-label">{{localize "SDE.carousing.roll"}} {{result.total}}</span> {{#if result.mode}}{{localize "SDE.carousing.xpGain" n=result.xp}}{{else}}{{result.description}}{{/if}}</p>
+        {{#if result.benefit}}<p class="cr-benefit">{{result.benefit}}</p>{{/if}}
+        {{#each result.benefits}}<p class="cr-benefit"><span class="ui-label">{{localize "SDE.carousing.benefitLabel"}}</span> {{text}}</p>{{/each}}
+        {{#each result.mishaps}}<p class="cr-mishap"><span class="ui-label">{{localize "SDE.carousing.mishapLabel"}}</span> {{text}}</p>{{/each}}
       {{/if}}
     </article>
     {{/each}}

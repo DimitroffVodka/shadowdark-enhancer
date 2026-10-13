@@ -5210,6 +5210,9 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-carousing-body .cr-result { margin: 0; color: var(--ui-text); font-weight: 600; }
 .sde-carousing-body .cr-result .ui-label { margin-right: 6px; }
 .sde-carousing-body .cr-benefit { margin: 0; color: var(--ui-body); }
+.sde-carousing-body .cr-mishap { margin: 0; color: var(--ui-body); }
+.sde-carousing-body .cr-mishap .ui-label { color: var(--ui-danger-text); }
+.sde-carousing-body .cr-benefit .ui-label, .sde-carousing-body .cr-mishap .ui-label { margin-right: 6px; }
 .sde-carousing-body .cr-line { margin: 0; }
 .sde-carousing-body .cr-more { font-size: 13px; color: var(--ui-muted); }
 .sde-carousing-body .cr-more > summary { cursor: pointer; padding: 2px 0; }

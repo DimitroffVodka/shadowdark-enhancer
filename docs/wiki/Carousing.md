@@ -20,6 +20,28 @@ and tables resolving. One shortfall refuses the outing before charging anyone.
 Declining or canceling during setup costs nothing. First commitment freezes
 inputs, charges once, and saves actual rolls/outcomes.
 
+## Basic and expanded rules
+
+The **Outcomes** table you pick decides the rules.
+
+A Core outcome table is basic carousing: one d8 roll plus the tier bonus reads one result line.
+
+A Western Reaches or Cursed Scroll #6 outcome table is expanded carousing. Its rows are a matrix of Mishaps, Benefits,
+% modifier and XP. Pick that outcome table and the Event, Benefit and Mishap tables of the same book follow it; each of
+the four dropdowns can still be set by hand. For each character the tab:
+
+1. rolls d8 plus the tier bonus, the holiday event bonus and the renown bonus, and reads the matrix row;
+2. rolls one d100 for every benefit and every mishap the row lists, adds the row's % modifier (the result stays between
+   1 and 100) and reads the Benefit or Mishap table;
+3. follows a row that says to re-roll it as a mishap (or as a benefit) by rolling on the other table, up to four times;
+4. awards the row's XP and any positive XP, Luck or signed renown the rolled texts state in the same plain wording
+   basic carousing automates. Losses, gear, debt and every other effect stay in the saved result for the GM.
+
+A holiday adds its extra benefit and extra mishap rolls, advantage on benefit rolls and its benefit bonus; its chance
+events stay with the GM. The Benefit and Mishap tables must cover 1 to 100, or the outing is refused before anyone pays.
+
+The table dropdowns list every RollTable whose name has "carousing" in it first.
+
 ## Results, Resume and history
 
 Concrete supported unconditional XP/Luck gains and renown deltas use the real
