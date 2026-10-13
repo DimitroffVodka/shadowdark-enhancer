@@ -141,6 +141,7 @@ export class NpcStatSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   _onRender(context, options) {
     super._onRender?.(context, options);
     injectActorHeaderButtons(this.element);
+    this._wearExtrasTheme();
     if (!this.isEditable) return;
     // Drop zones light up under a drag; the drop itself is routed in _onDropActor.
     for (const zone of this.element.querySelectorAll("[data-drop]")) {
@@ -148,6 +149,19 @@ export class NpcStatSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       zone.addEventListener("dragleave", () => zone.classList.remove("sde-drag-over"));
       zone.addEventListener("drop", () => zone.classList.remove("sde-drag-over"));
     }
+  }
+
+  /**
+   * Shadowdark Extras themes the system's NPC sheet with classes its stylesheet keys on (`.npc.sdx-npc-player-theme`,
+   * applyNpcPlayerTheme in its npc-sheet-inventory.mjs), put there from a hook on the system's own NPC sheet that this
+   * sheet never fires. Wear the same classes when that setting is on. Extras registers the setting only while it is
+   * active with sheet styling enabled, so without it this does nothing.
+   */
+  _wearExtrasTheme() {
+    const registered = game.settings.settings.has("shadowdark-extras.enableNpcPlayerTheme");
+    const on = registered && game.settings.get("shadowdark-extras", "enableNpcPlayerTheme") === true;
+    this.element.classList.toggle("npc", on);
+    this.element.classList.toggle("sdx-npc-player-theme", on);
   }
 
   // ── Form ───────────────────────────────────────────────────────────────────

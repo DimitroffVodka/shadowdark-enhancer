@@ -90,3 +90,24 @@ test("a viewer who can't edit is left only anchors and images for what they may 
     assert.doesNotMatch(html.match(new RegExp(`<[^>]*${open}[^>]*>`))?.[0] ?? "", /^<button/, `${open} must not be a button`);
   }
 });
+
+test("the stat block wears Shadowdark Extras' NPC player theme only while that setting is registered and on", () => {
+  const classes = new Set();
+  const sheet = Object.create(NpcStatSheet.prototype);
+  sheet.element = { classList: { toggle: (name, on) => { if (on) classes.add(name); else classes.delete(name); } } };
+  const real = globalThis.game;
+  const wear = (settings) => {
+    globalThis.game = { settings: { settings: { has: (key) => key in settings }, get: (_ns, key) => settings[`shadowdark-extras.${key}`] } };
+    sheet._wearExtrasTheme();
+    return [...classes].sort();
+  };
+  try {
+    assert.deepEqual(wear({}), [], "Extras absent or its sheet styling off: the setting is not registered");
+    assert.deepEqual(wear({ "shadowdark-extras.enableNpcPlayerTheme": false }), []);
+    assert.deepEqual(wear({ "shadowdark-extras.enableNpcPlayerTheme": true }), ["npc", "sdx-npc-player-theme"]);
+    assert.deepEqual(wear({}), [], "switched off again on the next render");
+  } finally {
+    globalThis.game = real;
+  }
+});
+

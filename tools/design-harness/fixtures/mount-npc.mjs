@@ -1,11 +1,19 @@
 // The real mount sheet template (ApplicationV2 at runtime; the harness runs no module JS, so only the actions listed
 // below respond). A warhorse with CON damage, two riders, gear, a spell and effects: the busiest state a GM can reach.
-//   state: <tab> = that tab open, "stats.edit" = the Stats box pencil toggled (inputs for the base scores).
+//   state: <tab> = that tab open, "stats.edit" = the Stats box pencil toggled (inputs for the base scores),
+//          "stats.sdx" = as Shadowdark Extras' NPC player theme dresses it (its stylesheet, plus the classes
+//          it puts on the system's NPC sheet; the border art variables are its defaults, set at runtime in the game).
 const abilities = [["str", "STR", 16, 16, 3, 0], ["int", "INT", 4, 4, -3, 0], ["dex", "DEX", 12, 12, 1, 0], ["wis", "WIS", 12, 12, 1, 0], ["con", "CON", 14, 12, 1, 2], ["cha", "CHA", 10, 10, 0, 0]]
   .map(([key, label, base, value, mod, damage]) => ({ key, label, base, value, mod, damage }));
 const TABS = [["stats", "Abilities"], ["riders", "Riders"], ["gear", "Inventory"], ["mount", "Mount"], ["spells", "Spells"], ["notes", "Description"], ["effects", "Effects"]];
-const attack = (id, text) => `<a class="rollable" data-action="item-attack" data-item-id="${id}"><i class="fas fa-dice-d20"></i> <b style="font-size:16px">${text}</b></a>`;
+// Extras patches the system's attack markup: an item image goes in after the d20 icon (npc-display-patches.mjs).
+const SDX_IMG = `<img src="/icons/svg/combat.svg" alt="" class="sdx-npc-item-img" style="width: 18px; height: 18px; vertical-align: text-bottom; margin-right: 2px; border: none; border-radius: 2px;" />`;
+const attack = (id, name, rest) => `<a class="rollable" data-action="item-attack" data-item-id="${id}">\n\t<i class="fas fa-dice-d20"></i>${SDX_IMG}\n\t<b style="font-size:16px">${name}</b>\n\t${rest}\n</a>`;
+const SDX = "/modules/shadowdark-extras/";
+const SDX_CSS = `@import url("${SDX}styles/shadowdark-extras.css") layer(modules);
+:root{--sdx-sheet-border:url('${SDX}art/PNG/Default/Border/panel-border-004.webp');--sdx-border-image-width:16px;--sdx-border-image-slice:12;--sdx-border-width:10px;--sdx-border-background-color:black;--sdx-box-border:url('${SDX}art/PNG/Default/Border/panel-border-001.webp');--sdx-box-border-image-width:16px;--sdx-box-border-image-slice:12;--sdx-box-border-width:10px}`;
 const rider = (name, sub, hp, ac, lvl, a) => ({ uuid: "Actor." + name, name, img: "/icons/svg/mystery-man.svg", subtitle: sub, hp: { value: hp, max: hp }, ac, level: lvl, abilities: a });
+const CLASSES = ["shadowdark", "sheet", "shadowdark-enhancer", "sde-vehicle-sheet", "sde-npc-sheet", "sde-mount-npc"];
 const build = (state) => {
   const [tab, mode] = (state ?? "stats").split(".");
   return {
@@ -18,8 +26,8 @@ const build = (state) => {
       alignments: [["lawful", "Lawful"], ["neutral", "Neutral"], ["chaotic", "Chaotic"]].map(([value, label]) => ({ value, label, selected: value === "neutral" })),
       castingAbilities: [["wis", "Wisdom"], ["int", "Intelligence"]].map(([value, label]) => ({ value, label, selected: value === "wis" })),
       mountAbilities: abilities,
-      attacks: [{ itemId: "a1", display: attack("a1", "2 Hooves (close) +2 (1d6)") }, { itemId: "a2", display: attack("a2", "1 Bite (close) (1d4)") }],
-      specials: [{ itemId: "s1", display: attack("s1", "1 Trample (close) +1 (1d8 + knockdown)") }],
+      attacks: [{ itemId: "a1", display: attack("a1", "2 Hooves", "(close) +2 (1d6)") }, { itemId: "a2", display: attack("a2", "1 Bite", "(close) (1d4)") }],
+      specials: [{ itemId: "s1", display: attack("s1", "1 Trample", "(close) +1 (1d8 + knockdown)") }],
       features: [{ itemId: "f1", name: "Sure-footed", description: "<p>Advantage on checks to keep its footing on rough ground.</p>" }],
       occupants: [rider("Brenna Ashdown", "Fighter", 14, 15, 3, { str: "+2", dex: "+1", con: "+2", int: "+0", wis: "+0", cha: "-1" }), rider("Tamsin", "Thief", 6, 12, 2, { str: "+0", dex: "+3", con: "+0", int: "+1", wis: "+1", cha: "+2" })], occupantCount: 2,
       inventory: [{ id: "i1", name: "Saddlebags", img: "/icons/svg/item-bag.svg", quantity: 1, slots: 1 }, { id: "i2", name: "Rations", img: "/icons/svg/item-bag.svg", quantity: 6, slots: 2 }],
@@ -36,11 +44,12 @@ const build = (state) => {
       activeEffects: [{ uuid: "ActiveEffect.1", name: "Haste", img: "/icons/svg/wing.svg", source: "Warhorse", duration: "3 rounds", unlimited: false, disabled: false, situational: false }, { uuid: "ActiveEffect.2", name: "Blessing of the road", img: "/icons/svg/sun.svg", source: "Warhorse", duration: "", unlimited: true, disabled: false, situational: false }, { uuid: "ActiveEffect.3", name: "Until the next rest", img: "/icons/svg/sleep.svg", source: "Warhorse", duration: "", unlimited: false, disabled: false, situational: true }],
       predefinedEffects: [{ key: "blessed", name: "Blessed" }], enrichedNotes: "<p>Bred in the Western Reaches.</p>",
     },
-    toolbar: `<span>State:</span>${TABS.map(([id]) => `<button data-action="changeTab" data-tab="${id}">${id}</button>`).join("")}<button data-action="toggleEditStats">pencil</button>`,
+    toolbar: `<span>State:</span>${TABS.map(([id]) => `<button data-action="changeTab" data-tab="${id}">${id}</button>`).join("")}<button data-action="toggleEditStats">pencil</button><button data-action="toggleSdx">Extras theme</button>`,
+    ...(mode === "sdx" ? { classes: [...CLASSES, "npc", "sdx-npc-player-theme"], css: SDX_CSS } : {}),
   };
 };
 export default {
-  previewHeight: 840, title: "Warhorse", icon: "fa-solid fa-horse", classes: ["shadowdark", "sheet", "shadowdark-enhancer", "sde-vehicle-sheet", "sde-npc-sheet", "sde-mount-npc"],
+  previewHeight: 840, title: "Warhorse", icon: "fa-solid fa-horse", classes: CLASSES,
   width: 620, height: 780, resizable: true, template: "templates/actors/mount-sheet.hbs", initial: "stats", build,
-  actions: { changeTab: { state: "{tab}" }, toggleEditStats: { toggle: ["stats", "stats.edit"] } },
+  actions: { changeTab: { state: "{tab}" }, toggleEditStats: { toggle: ["stats", "stats.edit"] }, toggleSdx: { toggle: ["stats", "stats.sdx"] } },
 };

@@ -4778,24 +4778,37 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-npc-sheet .sde-mount-body .SD-box { margin: 0 0 5px; }
 .sde-npc-sheet .value-grid { display: grid; grid-template-columns: 2fr 1fr 2fr; column-gap: 2px; align-items: center; text-align: center; }
 .sde-npc-sheet .SD-box .content.larger input { font-size: 20px; text-align: center; height: 32px; width: 100%; }
-.sde-npc-sheet .sde-mount-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 5px; }
-.sde-npc-sheet .sde-mount-pair .SD-box { margin: 0; }
 .sde-npc-sheet .sde-mount-dark { display: grid; grid-template-columns: 1fr auto; align-items: center; padding: 0 4px; }
-.sde-npc-sheet .sde-mount-dark h3 { margin: 0; font-size: 16px; color: #191813; }
+.sde-npc-sheet .sde-mount-dark h3 { margin: 0; font-size: 16px; color: inherit; }
 .sde-npc-sheet .attack { margin: 4px 0 4px 24px; }
 .sde-npc-sheet .attack .rollable { margin-left: -24px; }
+/* An attack's d20 icon shows on hover only, as on the system's NPC sheet (it scopes that to .npc). Extras puts the item's
+   image in the line after the icon (npc-display-patches.mjs); core makes an img block-level, which would stack icon, image and text. */
+.sde-npc-sheet .rollable i { font-size: 14px; visibility: hidden; }
+.sde-npc-sheet .rollable:hover i { visibility: visible; }
+.sde-npc-sheet .attack .rollable img { display: inline; vertical-align: middle; margin-right: 3px; }
 
-/* Abilities tab: Stats down a narrow left column, the combat boxes beside it, as on the Player sheet. */
-.sde-npc-sheet .sde-mount-abilities { display: grid; grid-template-columns: minmax(175px, 1fr) 2.6fr; gap: 8px; align-items: start; }
-.sde-npc-sheet .sde-mount-left .grid-2-columns { gap: 3px 8px; padding: 4px 6px 6px; }
-.sde-npc-sheet .ability-score { display: block; }
-.sde-npc-sheet .ability-score > div { display: grid; grid-template-columns: 1fr 1fr; align-items: center; min-width: 2em; text-align: center; }
-.sde-npc-sheet .ability-score a { font-size: 18px; font-family: "Old Newspaper Font", serif; text-transform: uppercase; font-weight: bold; }
+/* Abilities tab: the left column is the system NPC sheet's own grid-2-columns (HP across, AC and Level side by side, then
+   Stats, Movement and Alignment across), the combat boxes beside it. Boxes sit on the grid's gap, not on a margin. */
+.sde-npc-sheet .sde-mount-abilities { display: grid; grid-template-columns: minmax(190px, 1fr) 2.6fr; gap: 8px; align-items: start; }
+.sde-npc-sheet .sde-mount-left { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 8px; }
+.sde-npc-sheet .sde-mount-left > .SD-box { margin: 0; }
+.sde-npc-sheet .sde-mount-left .grid-2-columns { gap: 4px 10px; padding: 4px 6px 6px; }
+/* One ability per cell, label left and value right as in the system's Modifiers box. The Mount's cell also carries the
+   modifier, small, after the score; the Warband's is the modifier alone. */
+.sde-npc-sheet .ability-score { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: 6px; }
+.sde-npc-sheet .ability-score a { font-size: 16px; font-family: "Old Newspaper Font", serif; text-transform: uppercase; font-weight: bold; text-align: left; }
+.sde-npc-sheet .ability-score > div { display: flex; align-items: baseline; justify-content: flex-end; gap: 3px; min-width: 0; }
 .sde-npc-sheet .ability-score > div > input,
-.sde-npc-sheet .ability-score span { font-size: 18px; font-family: "Montserrat-SemiBold"; width: 2.5em; }
-/* An NPC's abilities are one modifier each (no score beside it, as the Mount has): the box takes the whole cell. */
-.sde-npc-sheet.sde-warband-npc .ability-score > div { grid-template-columns: 1fr; }
+.sde-npc-sheet .ability-score > div > span:not(.sde-mod) { font-size: 16px; font-family: "Montserrat-SemiBold"; }
+.sde-npc-sheet .ability-score > div > input { width: 2.6em !important; padding: 0 2px; text-align: center; }
+.sde-npc-sheet .ability-score .sde-mod { font-size: 12px; opacity: 0.8; }
+/* The score is being edited: the cell has room for the input alone. */
+.sde-npc-sheet .ability-score > div:has(> input) .sde-mod { display: none; }
 .sde-npc-sheet .ability-score .sde-mount-damaged { color: #b3261e; text-shadow: 0 0 6px rgba(179, 38, 30, 0.6); }
+/* On Extras' black NPC theme the dark red above is 3:1, and its `.npc.sdx-npc-player-theme .SD-box .content span` colour is !important: a
+   lighter red, written with the same classes and !important, so the damage still reads. */
+.shadowdark.sheet.npc.sdx-npc-player-theme.sde-npc-sheet .ability-score .sde-mount-damaged { color: #ff7b6e !important; text-shadow: 0 0 6px rgba(255, 123, 110, 0.5); }
 .sde-npc-sheet .sde-mount-traits { display: grid; gap: 6px; padding: 4px 6px 6px; }
 .sde-npc-sheet .SD-nav { flex-wrap: wrap; }
 .sde-npc-sheet .sde-tab-count { font-size: 12px; vertical-align: super; opacity: 0.75; }
