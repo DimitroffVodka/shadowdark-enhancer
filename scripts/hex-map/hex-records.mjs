@@ -57,6 +57,13 @@ export const sceneRef = scene => typeof scene === "string" ? game.scenes?.get(sc
 export const sceneUuid = scene => scene?.uuid ?? (scene?.id ? `Scene.${scene.id}` : null);
 export const offsetKey = ({ i, j } = {}) => Number.isSafeInteger(i) && Number.isSafeInteger(j) ? `${i}_${j}` : null;
 const clone = value => structuredClone(value);
+let crawlNames = new Map();
+/** GM only: the crawl entries' keyed row names, read ahead so the synchronous record read can fall back on them. */
+export async function loadCrawlNames() {
+  if (!globalThis.game?.user?.isGM) return;
+  const { crawlEntries, keyedNames } = await import("./hex-region.mjs");
+  crawlNames = keyedNames(await crawlEntries());
+}
 const journals = () => globalThis.game?.journal?.contents ?? [];
 /**
  * A pack applies every update to the one copy it holds and drops it after CACHE_LIFETIME_SECONDS idle; the next
@@ -87,7 +94,7 @@ export const isHexAdopted = scene => sceneRef(scene)?.getFlag?.(MODULE_ID, RECOR
 export const keyedTitle = keyed => String(keyed?.[0]?.title ?? "").replace(/^\d{3,4}\s*/, "").trim();
 
 /** Compose one cell without copying the tag store. Tag edits, even a removed line, win. */
-export function recordView({ sceneUuid: uuid, offset, num, cell = {}, tag = null, keyed = [], region = null }) {
+export function recordView({ sceneUuid: uuid, offset, num, cell = {}, tag = null, keyed = [], region = null, rowName = "" }) {
   const structured = Array.isArray(cell.features) ? clone(cell.features) : [];
   const features = tag ? [
     ...structured.filter(f => !FEATURES.includes(typeof f === "string" ? f : f?.type)),
@@ -98,8 +105,9 @@ export function recordView({ sceneUuid: uuid, offset, num, cell = {}, tag = null
     provenance: tag ? { source: tag.source, margin: tag.margin, review: !!tag.review } : cell.provenance ?? null,
     keyed: clone(keyed), region: region ?? cell.zone ?? null,
     discovery: { revealed: false, visited: false, ...(cell.discovery ?? {}) },
-    // A title the GM typed wins; a keyed hex with none is named by its journal page, so the pin and the record agree.
-    ...(!cell.title && keyedTitle(keyed) ? { title: keyedTitle(keyed) } : {}),
+    // A title the GM typed wins; a keyed hex with none is named by its journal page, so the pin and the record agree,
+    // and a scene with no pins by the crawl entry's keyed row.
+    ...(!cell.title && (keyedTitle(keyed) || rowName) ? { title: keyedTitle(keyed) || rowName } : {}),
   };
 }
 const pick = (value, keys) => Object.fromEntries(keys.filter(k => typeof value?.[k] === "string").map(k => [k, value[k]]));
@@ -189,7 +197,7 @@ export const HexRecords = {
     const tags = reuse ? (reuse.tags ??= decodeTags(scene.getFlag?.(MODULE_ID, "hexTags"))) : decodeTags(scene.getFlag?.(MODULE_ID, "hexTags"));
     const raw = num === null ? null : tags.cells.get(String(num));
     const tag = raw ? { ...raw, ...readCell(tags, num) } : null;
-    return recordView({ sceneUuid: sceneUuid(scene), offset, num, cell, tag, keyed: keyedPages(scene, num, reuse) });
+    return recordView({ sceneUuid: sceneUuid(scene), offset, num, cell, tag, keyed: keyedPages(scene, num, reuse), rowName: crawlNames.get(num) ?? "" });
   },
   async get(offset, target) {
     const scene = sceneRef(target), record = this.read(offset, scene);

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { explorerView, planExplorerEdit, explorerClick, encounterReadout, ownsHexData } from "../scripts/hex-map/hex-explorer.mjs";
+import { explorerView, planExplorerEdit, explorerClick, encounterReadout, ownsHexData, hoverHead } from "../scripts/hex-map/hex-explorer.mjs";
 const record = { sceneUuid: "Scene.a", offset: { i: -2, j: 3 }, num: 101, terrain: "forest", title: "Cave", features: [{ type: "river", discovered: true, secret: "private" }, { type: "dungeon", name: "Secret cave", discovered: true, custom: { x: 1 } }], notes: [{ text: "Bridge", visible: true }, { text: "GM SECRET", visible: false }], links: [{ uuid: "JournalEntry.a", label: "Clue", visible: true }], keyed: [{ title: "Keyed cave", uuid: "JournalEntry.a.JournalEntryPage.b" }], discovery: { revealed: true, visited: false } };
 test("tooltip discloses only safe terrain/public notes until location disclosure", () => {
   const view = explorerView(record, true);
@@ -95,4 +95,21 @@ test("river, path and coast are always disclosed, whatever an old record stored"
   assert.deepEqual(view.features, [{ type: "river" }, { type: "path" }]);
   const plan = planExplorerEdit({ ...record, features: [] }, { ...input, lines: ["river", "coast"], features: [] }, structuredClone(flag));
   assert.deepEqual(plan.patch.features.map(f => [f.type, f.discovered]), [["river", true], ["coast", true]]);
+});
+test("a keyed hex's hover line is the location's name: the GM always, marked until found; a player only once found", () => {
+  const keyed = { ...record, terrain: "keyed_location", title: "The Swamp Ape", discovery: { revealed: true, visited: false } };
+  const unfound = explorerView(keyed, true), found = explorerView({ ...keyed, discovery: { revealed: true, visited: true } }, true);
+  assert.deepEqual(hoverHead(unfound, keyed, false), { name: "The Swamp Ape", found: false });
+  assert.deepEqual(hoverHead(explorerView({ ...keyed, discovery: { revealed: false } }, true), keyed, false), { name: "The Swamp Ape", found: false });
+  assert.deepEqual(hoverHead(found, keyed, false), { name: "The Swamp Ape", found: true });
+  assert.deepEqual(hoverHead(found, keyed, true), { name: "The Swamp Ape", found: true }, "Player view and a found location: the name, no marker");
+  assert.deepEqual(hoverHead(unfound, keyed, true), { hidden: true }, "Player view on: the player-safe card, no name and no tag word");
+  for (const tag of ["keyed_location", "village", "town", "city", "city_state"]) {
+    const player = explorerView({ ...keyed, terrain: tag, discovery: { revealed: true, visited: false } }, false);
+    assert.deepEqual(hoverHead(player, null, true), { hidden: true }, `${tag}: a player never reads the tag word of an unfound location`);
+  }
+  assert.deepEqual(hoverHead(explorerView({ ...keyed, title: undefined, terrain: "village", discovery: { revealed: true, visited: true } }, false), null, true), { terrain: "village" },
+    "found but unnamed keeps today's word");
+  assert.deepEqual(hoverHead(explorerView(record, false), null, true), { terrain: "forest" }, "a hex that is not keyed is unchanged");
+  assert.deepEqual(hoverHead(null, { ...record, title: "Cave" }, false), { terrain: "forest" });
 });

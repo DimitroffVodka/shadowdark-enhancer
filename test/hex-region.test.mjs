@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { regionSeeds, nearestRegion, knownRegions, regionOf, sceneShift, keyedGround } from "../scripts/hex-map/hex-region.mjs";
+import { regionSeeds, nearestRegion, knownRegions, regionOf, sceneShift, keyedGround, keyedNames } from "../scripts/hex-map/hex-region.mjs";
 
 // All fixture content is invented (D1) — no book content, no real region names.
 
@@ -99,4 +99,9 @@ test("a keyed hex stands on the ground its book row names, with the row's coast 
   assert.deepEqual(ground.get(1126), { terrain: "swamp", features: ["coast"] });
   assert.deepEqual(ground.get(933), { terrain: null, features: ["coast"] });   // a row that names no ground still gives its coast
   assert.equal(ground.has(2000), false);                                         // a row with no terrain says nothing
+});
+
+test("a keyed row's printed name is read by hex number, first row winning, blank names skipped", () => {
+  const names = keyedNames([entry("Isles of Varn", [{ num: "5238", name: "The Swamp Ape" }, { num: "0933", name: " " }, { num: "2000" }]), entry("Other", [{ num: "5238", name: "Other" }])]);
+  assert.deepEqual([...names], [[5238, "The Swamp Ape"]]);
 });

@@ -1,13 +1,13 @@
 /** Hex Data: a read-only canvas observer and a GM edit path over existing authorities. */
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
-import { FEATURES, normalizeTerrainWord, decodeTags, encodeTags, applySheet } from "./tag-store.mjs";
-import { HexRecords, playerProjection, offsetKey, sceneRef, recordJournal, RECORD_FLAG, assertPrivateJournal, publishHexProjection, isHexAdopted } from "./hex-records.mjs";
+import { FEATURES, NOT_GROUND, normalizeTerrainWord, decodeTags, encodeTags, applySheet } from "./tag-store.mjs";
+import { HexRecords, loadCrawlNames, playerProjection, offsetKey, sceneRef, recordJournal, RECORD_FLAG, assertPrivateJournal, publishHexProjection, isHexAdopted } from "./hex-records.mjs";
 import { hasHexNumbering, hexNumberAt } from "./hex-number-api.mjs";
 import { adoptHexScene, withHexLock } from "./hex-adoption.mjs";
 import { decodeFixes, encodeFixes, recordEdits, FIXES_FLAG } from "./tag-corrections.mjs";
 import { disclosure, effectiveDiscovery, withPartyDiscovery } from "./hex-fog-core.mjs";
-import { viewedPartyIds } from "./hex-fog.mjs";
+import { viewedPartyIds, playerViewOn } from "./hex-fog.mjs";
 import { HexTagOverlay, isDoubleClick } from "./tag-overlay.mjs";
 
 const pick = (v, keys) => Object.fromEntries(keys.filter(k => typeof v?.[k] === "string").map(k => [k, v[k]]));
@@ -18,12 +18,29 @@ export function explorerView(record, isGM = false, partyIds = []) {
   if (!disclosure(r?.discovery)) return null;
   const location = disclosure(r.discovery, "location");
   return { sceneUuid: r.sceneUuid, offset: { ...r.offset }, num: r.num, terrain: r.terrain,
+    located: !!location,
     ...(location && typeof r.title === "string" ? { title: r.title } : {}),
     // River, path and coast are always disclosed; hiding markers on other features are re-checked, not merely trusted.
     features: (r.features ?? []).filter(f => FEATURES.includes(f?.type) || f?.discovered !== false && location).map(f => pick(f, ["type", "name"])),
     notes: (r.notes ?? []).filter(n => n?.visible !== false).map(n => pick(n, ["text"])),
     links: location ? [...(r.links ?? []).filter(l => l?.visible !== false).map(l => pick(l, ["uuid", "label"])), ...(record.keyed ?? []).map(k => ({ uuid: k.uuid, label: k.title }))] : [],
   };
+}
+/**
+ * What line 2 of the hover says. A keyed hex is tagged with what sits on it (keyed_location, village...), which is
+ * not ground, so its line is the location's name. The GM always gets the name, marked when the viewed party has not
+ * found it; a player, or the GM's Player view, never gets the tag word of a location that is not found.
+ * @param {object|null} view  explorerView: has a title only once the location is disclosed
+ * @param {object|null} record  the GM's own record (null on a player's client)
+ * @returns {{name:string, found:boolean}|{terrain:string|null}|{hidden:true}} hidden: print nothing on this line
+ */
+export function hoverHead(view, record, asPlayer) {
+  const terrain = view?.terrain ?? record?.terrain ?? null;
+  if (!NOT_GROUND.has(terrain)) return { terrain };
+  if (view?.title) return { name: view.title, found: true };
+  if (!asPlayer && record?.title) return { name: record.title, found: false };
+  // Found but unnamed keeps its settlement word; an unfound location shows a player nothing at all.
+  return asPlayer && !view?.located ? { hidden: true } : { terrain };
 }
 /** Row indexes preserve imported rich/unknown metadata; only editable fields are replaced. */
 function rows(previous, submitted, fields) {
@@ -152,9 +169,15 @@ export function refreshHexExplorer() {
   tip.replaceChildren(); document.body.append(tip);
   const num = hexNumberAt(cell.offset, cell.scene);
   line(tip, num === null ? game.i18n.format("SDE.hexExplorer.offset", cell.offset) : String(num).padStart(4, "0"), "strong");
+  const record = game.user.isGM ? HexRecords.read(cell.offset, cell.scene) : null;
+  const head = hoverHead(view, record, !game.user.isGM || playerViewOn());
+  const named = () => line(tip, head.found ? head.name : game.i18n.format("SDE.hexExplorer.notFoundYet", { name: head.name }), "strong");
   if (view) {
-    if (view.title) line(tip, view.title, "strong");
-    line(tip, view.terrain ?? t("SDE.hexExplorer.unknown"));
+    if (head.name) named();
+    else {
+      if (view.title) line(tip, view.title, "strong");
+      if (!head.hidden) line(tip, head.terrain ?? t("SDE.hexExplorer.unknown"));
+    }
     for (const feature of view.features) line(tip, feature.name || feature.type);
     for (const note of view.notes) line(tip, note.text ?? "");
     for (const link of view.links) {
@@ -169,7 +192,9 @@ export function refreshHexExplorer() {
       } else line(tip, link.label || link.uuid);
     }
   // The GM is not a player: an undiscovered hex still shows its real terrain.
-  } else if (game.user.isGM) line(tip, HexRecords.read(cell.offset, cell.scene)?.terrain ?? t("SDE.hexExplorer.unknown"));
+  } else if (game.user.isGM) {
+    if (head.name) named(); else if (!head.hidden) line(tip, head.terrain ?? t("SDE.hexExplorer.unknown"));
+  }
   else line(tip, t("SDE.hexExplorer.concealed"));
   if (selected) {
     const close = line(tip, t("SDE.hexExplorer.close"), "button"); close.type = "button";
@@ -221,6 +246,10 @@ export function registerHexExplorer() {
     view = canvas.app.canvas ?? canvas.app.view; view?.addEventListener("pointerleave", leave);
   });
   Hooks.on("canvasTearDown", clear);
+  // The crawl entries name the keyed hexes of a scene with no pins; read again when one is filed or edited.
+  const reloadNames = () => void loadCrawlNames().then(refreshHexExplorer);
+  Hooks.on("canvasReady", reloadNames);
+  for (const hook of ["createJournalEntry", "updateJournalEntry", "deleteJournalEntry"]) Hooks.on(hook, entry => { if (entry?.flags?.[MODULE_ID]?.hex?.crawl) reloadNames(); });
   Hooks.on("updateScene", refreshHexExplorer);
   Hooks.on("createJournalEntry", refreshHexExplorer);
   Hooks.on("updateJournalEntry", refreshHexExplorer);

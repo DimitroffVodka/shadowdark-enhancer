@@ -174,6 +174,7 @@
   "SDE.hexExplorer.close": "Close",
   "SDE.hexExplorer.unknown": "Unknown terrain",
   "SDE.hexExplorer.concealed": "Concealed from players",
+  "SDE.hexExplorer.notFoundYet": "{name} (not found yet)",
   "SDE.hexExplorer.invalidTerrain": "Enter a terrain word, not a tag list. River terrain means a water hex; river/path/coast lines use the checkboxes.",
   "SDE.hexExplorer.failed": "The hex edit could not be saved. Review the cell before retrying.",
   "SDE.hexExplorer.quests": "Quests here",

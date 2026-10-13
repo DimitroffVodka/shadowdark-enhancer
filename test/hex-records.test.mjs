@@ -161,3 +161,11 @@ test("a write is based on the pack's held copy, so one reveal does not erase the
     if (saved.game === undefined) delete globalThis.game; else globalThis.game = saved.game;
   }
 });
+
+test("a keyed hex on a scene with no pins is named by its crawl row; the GM's title and a pinned page both win", () => {
+  const base = { sceneUuid: "Scene.a", offset: { i: 0, j: 0 }, num: 5238 };
+  assert.equal(recordView({ ...base, rowName: "The Swamp Ape" }).title, "The Swamp Ape");
+  assert.equal(recordView({ ...base, rowName: "The Swamp Ape", keyed: [{ uuid: "x", title: "5238 Ape Lair" }] }).title, "Ape Lair");
+  assert.equal(recordView({ ...base, rowName: "The Swamp Ape", cell: { title: "Typed" } }).title, "Typed");
+  assert.equal(recordView(base).title, undefined);
+});
