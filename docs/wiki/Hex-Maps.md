@@ -30,7 +30,9 @@ card or Edit button: a double click opens Hex Data, which saves terrain,
 line features, rich locations, notes and discovery; travel prices update
 immediately. A hex with a keyed-location pin (see *Keyed locations on the map*)
 is named by its pinned page unless you type a title, and Hex Data lists that page
-with a button to open it. Pins, token drags and long-press pings retain their handlers.
+with a button to open it. The pin can be the Enhancer's own or the note Shadowdark
+Extras places on a keyed hex of a map it painted, so a painted map names its keyed
+hexes with Extras on or off. Pins, token drags and long-press pings retain their handlers.
 
 The window also has a **Quests here** card on a numbered hex: the quests tied to
 this hex, each with a button to open it and one to unlink it, and a picker of
@@ -90,6 +92,11 @@ scene the Enhancer has numbered; with it off, or on a scene the Enhancer has not
 numbered, Extras draws as before. Native
 Parties use native camping; pending Extras camps keep their original executor.
 Enhancer never toggles Extras' settings. Native play does not need Extras.
+
+One thing on a map painted in Extras is still Extras' to draw: its roads and rivers, which it keeps as a saved overlay and draws on
+every client. With Extras off the Enhancer draws the same paths as plain lines, under the tokens and the fog, so they stay on the
+map; with Extras on it draws nothing and Extras draws its own. For Extras' hand-drawn pieces without Extras running, bake the road
+and river overlays into the map image once with Extras' Tile Flatten.
 
 Legacy flagged NPC Parties adopt in place with UUIDs/items/ownership/foreign
 flags retained. SDX `type: Party` documents are not converted. Native hex adoption

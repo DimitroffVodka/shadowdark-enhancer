@@ -34,7 +34,7 @@ test("player facade applies effective location disclosure to readable pinned pag
   const oldGame = globalThis.game;
   const page = { uuid: "JournalEntry.public.JournalEntryPage.location", name: "Keyed location", testUserPermission: () => true };
   const entry = { pages: { get: id => id === "location" ? page : null }, testUserPermission: () => true };
-  const scene = { id: "a", uuid: base.sceneUuid, notes: { contents: [{ entryId: "public", pageId: "location", getFlag: () => ({ num: 101 }) }] } };
+  const scene = { id: "a", uuid: base.sceneUuid, notes: { contents: [{ entryId: "public", pageId: "location", flags: { "shadowdark-enhancer": { hexPin: { num: 101 } } } }] } };
   const cells = {};
   const projectionJournal = { flags: { "shadowdark-enhancer": { hexRecordProjection: { sceneUuid: base.sceneUuid, cells } } } };
   globalThis.game = { user: { isGM: false }, journal: { contents: [projectionJournal], get: id => id === "public" ? entry : null } };

@@ -8,6 +8,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { decodeTags, readCell, FEATURES, normalizeTerrainWord } from "./tag-store.mjs";
 import { hexNumberAt } from "./hex-number-api.mjs";
+import { pinNumber } from "./extras-records.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { disclosure, effectiveDiscovery, bestProjection } from "./hex-fog-core.mjs";
 import { Party } from "../party/party.mjs";
@@ -123,11 +124,14 @@ export function playerProjection(record) {
 function pinIndex(scene) {
   const out = new Map();
   for (const note of scene?.notes?.contents ?? []) {
-    const num = note.getFlag?.(MODULE_ID, "hexPin")?.num;
-    if (num === null || num === undefined) continue;
+    const num = pinNumber(note);
+    if (num === null) continue;
     const entry = game.journal?.get?.(note.entryId), page = entry?.pages?.get?.(note.pageId);
     if (!page || !entry?.testUserPermission?.(game.user, "OBSERVER") || !page.testUserPermission?.(game.user, "OBSERVER")) continue;
-    const list = out.get(num) ?? []; list.push({ uuid: page.uuid, title: page.name }); out.set(num, list);
+    // An Enhancer pin and an Extras note can name the same page on one scene: one link.
+    const list = out.get(num) ?? [];
+    if (!list.some(k => k.uuid === page.uuid)) list.push({ uuid: page.uuid, title: page.name });
+    out.set(num, list);
   }
   return out;
 }
@@ -139,10 +143,10 @@ function keyedPages(scene, num, pass = null) {
   }
   const out = [];
   for (const note of scene?.notes?.contents ?? []) {
-    if (note.getFlag?.(MODULE_ID, "hexPin")?.num !== num) continue;
+    if (pinNumber(note) !== num) continue;
     const entry = game.journal?.get?.(note.entryId), page = entry?.pages?.get?.(note.pageId);
     if (!page || !entry?.testUserPermission?.(game.user, "OBSERVER") || !page.testUserPermission?.(game.user, "OBSERVER")) continue;
-    out.push({ uuid: page.uuid, title: page.name });
+    if (!out.some(k => k.uuid === page.uuid)) out.push({ uuid: page.uuid, title: page.name });
   }
   return out;
 }

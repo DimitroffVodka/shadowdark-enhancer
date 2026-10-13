@@ -210,7 +210,7 @@ function printExtras({ adopted = true, adopt = true, scene = printScene(), base 
     repaintHexTiles: async () => { calls.repaint++; return { repainted: 0 }; },
   };
   if (adopt) hex.adoptHexcrawl = async (sceneId, opts) => { calls.adopt.push({ sceneId, opts }); return { sceneId, adopted }; };
-  const journal = { getFlag: (scope, key) => (scope === "shadowdark-extras" && key === "hexData" ? calls.hexData : undefined) };
+  const journal = { get flags() { return { "shadowdark-extras": { hexData: calls.hexData } }; } };
   globalThis.game = {
     user: { isGM: true }, shadowdarkExtras: { hex },
     scenes: { get: (id) => (id === scene.id ? scene : undefined) },
@@ -403,7 +403,7 @@ test("a tagged hex that names no ground clears the terrain an earlier send left 
 
 test("an unreadable Extras store sends no features at all rather than wiping them", async () => {
   const calls = printExtras();
-  globalThis.game.journal = { getName: () => ({ getFlag: () => { throw new Error("scope not active"); } }) };
+  globalThis.game.journal = { getName: () => ({ get flags() { throw new Error("unreadable"); } }) };
   const warn = console.warn; console.warn = () => {};
   let res;
   try { res = await handoffToPrint("print-1", printDataset); } finally { console.warn = warn; }

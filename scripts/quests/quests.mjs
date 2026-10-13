@@ -20,6 +20,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { esc } from "../shared/esc.mjs";
+import { pinNumber } from "../hex-map/extras-records.mjs";
 import { PartyXP } from "../party-xp/party-xp.mjs";
 import { Party } from "../party/party.mjs";
 import { Renown } from "../renown/renown.mjs";
@@ -348,7 +349,7 @@ async function pay(entry, quest) {
 
 // ── Pins ────────────────────────────────────────────────────────────────────
 
-/** A note placed for the quest itself, else the Hex Tagger's pin for its hex. */
+/** A note placed for the quest itself, else the pin for its hex: the Hex Tagger's, or the note Extras' builder placed. */
 function findPin(quest, skipSceneId = null) {
   const candidates = [];
   for (const scene of game.scenes?.contents ?? []) {
@@ -356,7 +357,7 @@ function findPin(quest, skipSceneId = null) {
     for (const note of scene.notes?.contents ?? []) {
       const own = !!quest.id && note.entryId === quest.id;
       const hexPin = quest.hex !== null && (!quest.hexScene || quest.hexScene === scene.uuid)
-        && note.flags?.[MODULE_ID]?.hexPin?.num === quest.hex;
+        && pinNumber(note) === quest.hex;
       if (own || hexPin) candidates.push({ sceneId: scene.id, noteId: note.id, own });
     }
   }
