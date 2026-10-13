@@ -24,7 +24,7 @@ and Forge & Loot features.
 [`time`](#time--season-day-and-night-sun-moon-and-anchors) ·
 [`overland`](#overland--the-travel-state)
 
-**API version:** `1.30.0` (semver — additive changes bump the minor version,
+**API version:** `1.31.0` (semver — additive changes bump the minor version,
 breaking changes the major; check `apiVersion` before relying on newer keys).
 
 ## Discovery
@@ -54,8 +54,13 @@ consumers use native disclosure on scenes the Enhancer owns.
 
 `api.owns("hex.tooltip", scene)` is true for a hexagonal scene that is numbered
 or adopted, where the Enhancer's Hex Data hover card and editor are in use;
-Extras reads it to leave its own hover card off. Any other feature name returns
-`false`.
+Extras reads it to leave its own hover card off.
+
+`api.owns("hex.baked", scene)` (since `1.31.0`) is true for a hexagonal scene that
+carries a bake of Shadowdark Extras (its `bakedPyramid` flag with the pyramid's
+`meta`), whether or not Extras is installed. The Enhancer draws such a scene
+itself, from the world's own pieces, unless an Extras that draws baked maps has
+already taken the scene's manager. Any other feature name returns `false`.
 
 `api.hexMaps.fog.disclosed(scene, offset, kind)` uses the same predicate as the
 native consumers (`kind` is `terrain` or `location`). GM-only
@@ -1413,6 +1418,8 @@ works on the GM's own scene image and book text.
 |---|---|---|
 | `hexMaps.numberAt({ i, j }, scene?)` | any | Since 1.26.0. The published hex number of the cell at Foundry offset `{ i, j }` on a scene the Hex Tagger has numbered: a plain integer, column then row (`1403` is column 14, row 03), never a column and row pair. `null` in the frame around the map, past its size, on a scene with no numbering, or on a grid that is not flat-top hex columns. `scene` is a Scene or its id; the viewed scene when left out. Synchronous and cheap, so an overlay can ask for every cell. Shadowdark Extras' Map Coordinates can read it once the Extras version with that integration is installed, so the overlay and the tagger agree; an Enhancer update alone does not change the overlay. |
 | `hexMaps.hasNumbering(scene?)` | any | Since 1.26.0. Whether the scene carries a numbering at all, which is what tells `numberAt`'s `null` for "off the map" from "never numbered". |
+| `hexMaps.fillKeyedGround(scene, { dryRun? })` | GM | Since 1.31.0. Puts one plain terrain Tile under each keyed hex of a painted map that has none, wearing the picture its nearest same-terrain neighbour wears, so a baked map has no hole where a hidden location stands. Creates only; each Tile carries a `keyedGround` flag. `dryRun` plans and writes nothing. Returns `{ keyed, planned, skipped, byTerrain, unfilled, created? }`. |
+| `hexMaps.removeKeyedGround(scene)` | GM | Since 1.31.0. Deletes exactly the Tiles `fillKeyedGround` made on the scene, found by that flag. Returns `{ removed }`. |
 | `hexMaps.openTagger({ legend, review })` | GM | Open the Hex Tagger on the active hex scene (see the wiki page *Hex Maps*). `legend: true` reads the map and opens the Legend at once; `review: true` reads it and shows the most-likely-wrong sheet. Both default to false. Lazy. |
 | `hexMaps.buildDataset({ name, source, drafts, summaryRows, tags, gridHint })` | any | Pure builder for the Shadowdark Extras hexcrawl dataset. `tags` is `{ [num]: { terrain, features } }`, where `features` lists `river`, `path` and `coast` (`overlays`, the old name, is still read). Each hex's river, path and coast come out as entries in its Extras `features` list. |
 | `hexMaps.buildKeyIndex(src)` | GM | Builds or refreshes the master Key Locations journal of an already-imported book (`"GMWR"`, `"CS1"`…) from the region entries filed in the Journals pack: a page per region, a row per keyed hex with a go-to link. Reads no PDF and changes no write-up page. Resolves `{ uuid, regions, rows }`, `uuid: null` when the book has no regions filed. |

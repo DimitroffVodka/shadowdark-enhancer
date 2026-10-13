@@ -14,6 +14,8 @@ import { HexExplorer, registerHexExplorer, ownsHexData } from "./hex-map/hex-exp
 import { HexRecords, isHexAdopted } from "./hex-map/hex-records.mjs";
 import { adoptHexScene, registerHexAdoption } from "./hex-map/hex-adoption.mjs";
 import { HexFog, ownsHexFog, registerHexFog } from "./hex-map/hex-fog.mjs";
+import { ownsBakedMap, registerBakedMaps } from "./hex-map/baked-map.mjs";
+import { fillKeyedGround, removeKeyedGround } from "./hex-map/keyed-ground.mjs";
 import { ICONS } from "./shared/icons.mjs";
 import { claimGmTab, isActiveGM } from "./shared/gm-relay.mjs";
 
@@ -151,7 +153,7 @@ const STYLESHEET_REV = "35ebcb48aa3c";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "ded6943aacb7";
+const BUILD_REV = "37d00cfe4502";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -358,6 +360,7 @@ Hooks.once("init", () => {
   // run in init, before the canvas is built from CONFIG.
   registerHexRules();
   registerHexFog();
+  registerBakedMaps();
   registerHexCoordinates();
   registerMapNetwork();
   registerHexMapControls();
@@ -530,7 +533,8 @@ Hooks.once("init", () => {
     // 1.28.0 — additive: the traps namespace and the trap Region behavior.
     // 1.29.0 — additive: the tempHp namespace, a temporary-hit-point pool that damage spends before HP.
     // 1.30.0 — additive: the hexFogChanged hook, one per redraw of the viewed hex scene's fog (#490).
-    apiVersion: "1.30.0",
+    // 1.31.0 — additive: owns("hex.baked", scene), a map baked with Extras that the Enhancer draws itself.
+    apiVersion: "1.31.0",
     // The one travel state per world (scripts/overland/overland.mjs): a copy
     // with hexes left, climate, storm, harshness and night derived; whether
     // travel is on; today's weather roll, the travel day's start, Continue
@@ -962,13 +966,17 @@ Hooks.once("init", () => {
     // background cell by cell and stores the GM's terrain tags on the scene;
     // datasets go to Shadowdark Extras' hexcrawl builder or download as JSON.
     // Nothing from a published map ships with the module (docs/plans/hex-map-dataset.md).
-    owns: (feature, target) => (feature === "hex.fog" && ownsHexFog(target)) || (feature === "hex.tooltip" && ownsHexData(target)),
+    owns: (feature, target) => (feature === "hex.fog" && ownsHexFog(target)) || (feature === "hex.tooltip" && ownsHexData(target))
+      || (feature === "hex.baked" && ownsBakedMap(target)),
     hexMaps: {
       fog: HexFog,
       explorer: HexExplorer,
       records: HexRecords,
       adopt: adoptHexScene,
       isAdopted: isHexAdopted,
+      // 1.31.0 — plain ground under keyed hexes, so a baked map has no hole where a hidden location stands.
+      fillKeyedGround,
+      removeKeyedGround,
       // The published hex number (1403 = column 14, row 03) of the cell at a Foundry
       // offset {i, j} on a scene the Hex Tagger has numbered, or null in the frame
       // around the map. Synchronous: Shadowdark Extras' Map Coordinates asks for

@@ -98,6 +98,19 @@ every client. With Extras off the Enhancer draws the same paths as plain lines, 
 map; with Extras on it draws nothing and Extras draws its own. For Extras' hand-drawn pieces without Extras running, bake the road
 and river overlays into the map image once with Extras' Tile Flatten.
 
+A map **baked** in Extras has no Tiles at all: its ground is a pyramid of image pieces in your world's folder and
+its keyed locations are sprites, both described by flags Extras leaves on the scene. The Enhancer draws these
+itself, so a baked map still shows with Extras off. It keeps the smallest picture under everything, loads the
+pieces on screen at the level your zoom needs, and shows each keyed sprite once the fog discloses its hex, with a
+pulse and a notice that the party found something. When an Extras that draws baked maps is running, it keeps the
+scene and the Enhancer draws nothing, so a map is never drawn twice. The pieces survive removing Extras; the
+sprites' pictures are Extras' own assets, so they draw while Extras is installed, even switched off, and not once
+its folder is deleted.
+
+To keep a bake from showing a hole where a hidden location stands, the API's `hexMaps.fillKeyedGround(scene)`
+puts one plain ground Tile in each keyed hex first, in the picture its nearest same-terrain neighbour wears, and
+`hexMaps.removeKeyedGround(scene)` takes exactly those Tiles away again.
+
 Legacy flagged NPC Parties adopt in place with UUIDs/items/ownership/foreign
 flags retained. SDX `type: Party` documents are not converted. Native hex adoption
 preserves unknown data/conflicts, keeps native edits authoritative and never
