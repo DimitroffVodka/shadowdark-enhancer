@@ -19,7 +19,8 @@
  *   resolveSourcePdf(src)       — the file path for a source, or null
  *   listSourcePdfs()            — async; one row per known source with origin
  *                                 (journal upload vs static fallback) + verified
- *                                 link status (fallback paths are HEAD-checked)
+ *                                 link status (checked against the server's
+ *                                 own folder listing, see _fileExists)
  *   uploadSourcePdf(src, file)  — upload a File and register it for a source
  *   registerSourcePdf(src, path)— link an already-uploaded path to a source
  *   ensureLibraryJournal()      — find/create the library JournalEntry
@@ -111,9 +112,9 @@ export function titlePageFor(className, src = "WR") {
 const SHARED_DIR = "assets";
 
 /**
- * Static fallback paths the HEAD check has answered: path → exists. A path not
- * yet checked is trusted, so callers that run before any check behave as they
- * always did; the Importer Hub checks before it builds its tree.
+ * Static fallback paths the existence check has answered: path → exists. A
+ * path not yet checked is trusted, so callers that run before any check behave
+ * as they always did; the Importer Hub checks before it builds its tree.
  */
 const _fallbackExists = new Map();
 
@@ -161,7 +162,7 @@ export function resolveSourcePdf(src) {
       if (p.type === "pdf" && p.src && p.getFlag(MODULE_ID, KEY_FLAG) === src) return p.src;
     }
   }
-  // A default the HEAD check found missing is no link. Every Grab / Import gate
+  // A default the existence check found missing is no link. Every Grab / Import gate
   // routes through here, and an import offered on a file that is not there only
   // fails later, at fetch time, with nothing the GM can do about it.
   const fallback = SOURCE_PDFS[src] ?? null;
@@ -214,35 +215,76 @@ export function sourcePdfTarget(src, pages) {
 }
 
 /**
- * Is this registered file really there? Same HEAD as a fallback path, with one
- * exemption: an absolute URL (The Forge, S3) is taken on trust, because a
- * cross-origin HEAD can fail for a file that exists and calling that book
+ * Is this registered file really there? Same check as a fallback path, with
+ * one exemption: an absolute URL (The Forge, S3) is taken on trust — it is not
+ * a path under a data source the file browser can list, and calling the book
  * missing is the worse lie.
+ * @param {string} file
+ * @param {Map<string, Promise<Set<string>>>} listings  this pass's directory listings
  */
-async function _linkOk(file) {
+async function _linkOk(file, listings) {
   if (!file) return false;
   if (/^https?:\/\//i.test(file)) return true;
-  return _fileExists(file);
+  return _fileExists(file, listings);
 }
 
-/** Does a served file actually exist? HEAD against its route; false on any error. */
-async function _fileExists(path) {
+/**
+ * Does a served file actually exist? Ask the file browser what the file's own
+ * directory holds and look for the name in that listing. Browse is a socket
+ * call the server answers with a directory's contents — not a request for the
+ * file — so one listing answers every file in a directory, and a file that is
+ * not there is not a failed request either. The HEAD probe this replaced
+ * printed a console error for every book on every load of a world that keeps
+ * its PDFs off the server (a Forge copy, a fresh install). The listings are
+ * per pass, so a later pass asks the server again and finds a file that has
+ * appeared or moved.
+ * @param {string} path
+ * @param {Map<string, Promise<Set<string>>>} listings  this pass's directory listings
+ */
+async function _fileExists(path, listings) {
+  const dir = _dirname(path);
+  if (!listings.has(dir)) listings.set(dir, _dirNames(dir));
+  const names = await listings.get(dir);
+  const ok = names.has(_decodedName(path));
+  _fallbackExists.set(path, ok);
+  return ok;
+}
+
+/** The directory part of a stored path; "" (the source root) when it has none. */
+function _dirname(path) {
+  const slash = String(path ?? "").lastIndexOf("/");
+  return slash > 0 ? String(path).slice(0, slash) : "";
+}
+
+/**
+ * The names one data directory holds, decoded — the file browser lists
+ * percent-encoded paths (and a CDN host may hand back full URLs), so every
+ * entry counts by its final path segment. A directory that cannot be listed is
+ * empty: a missing directory holds no file, which is the answer the failed
+ * fetch would have given.
+ */
+async function _dirNames(dir) {
   try {
-    const r = await fetch(fileRoute(path), { method: "HEAD" });
-    _fallbackExists.set(path, r.ok);
-    return r.ok;
+    const res = await filePicker()?.browse("data", dir);
+    return new Set((res?.files ?? []).map(_decodedName));
   } catch {
-    _fallbackExists.set(path, false);
-    return false;
+    return new Set();
   }
+}
+
+/** The final, decoded path segment of a listing entry or a stored path. */
+function _decodedName(part) {
+  const name = String(part ?? "").split("/").pop().replace(/[?#].*$/, "");
+  try { return decodeURIComponent(name); } catch { return name; }
 }
 
 /**
  * One row per known source, with its current link status — for the manager UI.
  * `origin` distinguishes a journal UPLOAD from the static FALLBACK path.
- * BOTH are HEAD-verified before being reported as linked. Fallbacks are
- * deployment-local (never bundled), so on a clean install they can point at
- * nothing (review 2026-07-12 #5); a journal row used to be trusted as
+ * BOTH are checked against the server's own folder listing before being
+ * reported as linked. Fallbacks are deployment-local (never bundled), so on a
+ * clean install they can point at nothing (review 2026-07-12 #5); a journal
+ * row used to be trusted as
  * "verified at upload time", which it never was — an upload the server refused
  * registered a path that was never written, and the book then read as linked
  * for good (Discord, 2026-09-20). Files also move.
@@ -252,6 +294,9 @@ async function _fileExists(path) {
 export async function listSourcePdfs() {
   const j = findLibraryJournal();
   const rows = [];
+  // One pass's directory listings, shared by every row: the file browser is
+  // asked once per directory, not once per book.
+  const listings = new Map();
   for (const [src, meta] of Object.entries(CHAR_SOURCES)) {
     if (hasSessionPdf(src)) {   // from this computer, this session only: nothing on the server to check
       rows.push({ src, label: meta.label, book: meta.book, file: sessionPdfName(src), origin: "session", linked: true, custom: false });
@@ -260,7 +305,7 @@ export async function listSourcePdfs() {
     const page = j?.pages.find((p) => p.type === "pdf" && p.src && p.getFlag(MODULE_ID, KEY_FLAG) === src);
     const file = page?.src ?? SOURCE_PDFS[src] ?? null;
     const origin = page ? "journal" : (SOURCE_PDFS[src] ? "fallback" : null);
-    const linked = origin ? await _linkOk(file) : false;
+    const linked = origin ? await _linkOk(file, listings) : false;
     rows.push({ src, label: meta.label, book: meta.book, file, origin, linked, custom: false });
   }
   // Books the GM added themselves: any registered page whose key isn't built in.
@@ -270,7 +315,7 @@ export async function listSourcePdfs() {
     const key = p.getFlag(MODULE_ID, KEY_FLAG);
     if (!key || p.type !== "pdf" || !p.src || !isCustomSource(key)) continue;
     rows.push({ src: key, label: p.name, book: null, file: p.src,
-      origin: "journal", linked: await _linkOk(p.src), custom: true });
+      origin: "journal", linked: await _linkOk(p.src, listings), custom: true });
   }
   return rows;
 }
