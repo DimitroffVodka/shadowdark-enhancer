@@ -317,6 +317,57 @@ test("the hover's region line is GM-only: Player view prints and reads none, a p
   assert.equal(w.reads, 1, "and computes nothing");
 });
 
+test("the GM's hover card on an undiscovered hex with no projection carries the terrain line and the region line; Player view drops the region", async () => {
+  globalThis.foundry = { applications: { api: { ApplicationV2: class {}, HandlebarsApplicationMixin: (C) => C } } };
+  const { registerHexExplorer, HexExplorer } = await import("../scripts/hex-map/hex-explorer.mjs");
+  const { HexRecords } = await import("../scripts/hex-map/hex-records.mjs");
+  globalThis.CONST = { GRID_TYPES: { HEXODDQ: 4, HEXEVENQ: 5 } };
+  const { hexNumberAt } = await import("../scripts/hex-map/hex-number-api.mjs");
+  const w = world();
+  const flags = w.scene.getFlag;
+  const origin = { i: 1, j: 0, q: 0, r: 1, num: "0001", shifted: "odd", bounds: { cols: 17, rows: 11, rowsLowered: 10, firstRow: 0, base: { col: 0, row: 1 } } };
+  w.scene.getFlag = (scope, key) => (key === "hexTags" ? { version: 1, origin, cells: {} } : flags(scope, key));
+  w.scene.grid = { type: 5, isHexagonal: true };
+  let offset = null;
+  for (let i = 0; i < 40 && !offset; i++) for (let j = 0; j < 40; j++) if (hexNumberAt({ i, j }, w.scene) === 1510) { offset = { i, j }; break; }
+  assert.ok(offset, "a hex numbered 1510 on this scene");
+
+  let playerView = false;
+  const settings = globalThis.game.settings.get;
+  globalThis.game.settings = { get: (mod, key) => (key === "hexPlayerFogView" ? playerView : key === "hexTooltipHidden" ? false : settings(mod, key)) };
+  globalThis.game.user = { isGM: true };
+  globalThis.game.i18n = { localize: (key) => key, format: (key) => key };
+  const element = (tag) => ({ tag, textContent: "", children: [], style: {}, append(...c) { this.children.push(...c); }, replaceChildren() { this.children = []; }, remove() {}, addEventListener() {} });
+  const body = element("body");
+  globalThis.document = { createElement: element, body };
+  globalThis.window = { innerWidth: 1000, innerHeight: 800 };
+  const handlers = {};
+  globalThis.canvas = { ready: true, scene: w.scene, stage: { on: (name, fn) => { handlers[name] = fn; }, off() {} }, grid: { getOffset: () => offset }, app: {} };
+  const readRecord = HexRecords.read, readView = HexExplorer.read;
+  HexRecords.read = () => ({ offset, num: 1510, terrain: "forest", features: [], notes: [], links: [], keyed: [] });
+  HexExplorer.read = () => null;   // undiscovered, and nothing projected to show
+  const hover = () => handlers.pointermove({ target: {}, buttons: 0, global: { x: 1, y: 1 }, client: { x: 1, y: 1 }, getLocalPosition: () => ({}) });
+  const card = () => body.children.at(-1).children.map((c) => c.textContent);
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 20));
+  try {
+    registerHexExplorer();
+    fire("canvasReady");
+    hover();
+    await settle();   // the first hover starts the read of the regions; its end redraws the card
+    assert.deepEqual(card(), ["1510", "forest", "Grey Moor"], "terrain line, then the region line");
+    playerView = true;
+    hover();
+    assert.deepEqual(card(), ["1510", "forest"], "Player view previews the players' card: no region");
+    playerView = false;
+    hover();
+    assert.deepEqual(card(), ["1510", "forest", "Grey Moor"]);
+  } finally {
+    fire("canvasTearDown");
+    HexRecords.read = readRecord; HexExplorer.read = readView;
+    delete globalThis.document; delete globalThis.window; delete globalThis.canvas; delete globalThis.CONST;
+  }
+});
+
 test("an open Hex Data window redraws when its own hex's region changes, and on no other journal or scene write", async () => {
   globalThis.foundry = { applications: { api: { ApplicationV2: class { _onFirstRender() {} _onClose() {} }, HandlebarsApplicationMixin: (C) => C } } };
   const { HexExplorerApp } = await import("../scripts/hex-map/hex-explorer-app.mjs");

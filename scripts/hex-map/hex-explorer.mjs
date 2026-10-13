@@ -309,6 +309,7 @@ export function refreshHexExplorer() {
   // The GM is not a player: an undiscovered hex still shows its real terrain.
   } else if (game.user.isGM) {
     if (head.name) named(); else if (!head.hidden) line(tip, head.terrain ?? t("SDE.hexExplorer.unknown"));
+    if (region) line(tip, regionText(region));
   }
   else line(tip, t("SDE.hexExplorer.concealed"));
   if (selected) {
