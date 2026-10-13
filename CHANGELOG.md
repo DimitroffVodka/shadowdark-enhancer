@@ -6,6 +6,10 @@
 
 - **The base system's mounts can be made into Mounts.** The Shadowdark bestiary's Horse, Camel, Elephant, Griffon, Hippogriff, Moose, Pegasus and Worg are plain NPCs, so none of them could be ridden on the map, seated on the Riders tab or fed at camp, and the Mounts list in the Importer Hub did not offer them. It now lists all eight; Import copies the system's own creature (stats, attacks, art, token) into your Mounts folder as a Mount, with no book or PDF needed. Import everything includes them.
 
+### Fixed
+
+- **Hexes the party reached were not shown to your players, and earlier reveals were lost.** The Enhancer kept the copy of a map's private hex records it loaded at startup. Foundry applies updates to a different copy and drops its copies after five idle minutes, so after the first pause (a camp, a long break) the kept copy was out of date. The players' view was then published from it with nothing revealed, and the next reveal was written back on top of the old data, erasing what had been revealed. Reads and writes now use the copy Foundry holds. Hexes already overwritten are not recovered.
+
 ## [0.18.3] — 2026-10-11
 
 ### Fixed
