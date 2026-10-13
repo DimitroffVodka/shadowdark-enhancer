@@ -33,9 +33,10 @@ immediately. A hex with a keyed-location pin (see *Keyed locations on the map*)
 is named by its pinned page unless you type a title, and Hex Data lists that page
 with a button to open it. The pin can be the Enhancer's own or the note Shadowdark
 Extras places on a keyed hex of a map it painted, so a painted map names its keyed
-hexes with Extras on or off. A keyed hex on a map made from a book's print, with no pin, is
-named by that book's own crawl row; a map no book claims has no such names, and another
-book's row is never used. With Player view on, and for a player, the name appears only
+hexes with Extras on or off. A keyed hex with no pin, on a scene the import wizard made from a book
+(it carries the book's map id), is named by that book's own crawl row; a painted or baked
+copy without that id names a keyed hex only from its pins or notes, and another book's
+row is never used. With Player view on, and for a player, the name appears only
 once the location is found, and an unfound location never prints a tag word such as
 keyed_location. Players read the name from the copy the GM publishes for them, so a
 name appears there the next time it is published: a reveal, a tag edit or a change of
