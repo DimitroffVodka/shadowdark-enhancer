@@ -2,7 +2,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { FEATURES, normalizeTerrainWord, decodeTags, encodeTags, applySheet } from "./tag-store.mjs";
-import { HexRecords, playerProjection, offsetKey, sceneRef, recordJournal, RECORD_FLAG, assertPrivateJournal, publishHexProjection, isHexAdopted } from "./hex-records.mjs";
+import { HexRecords, playerProjection, offsetKey, sceneRef, recordJournal, RECORD_FLAG, assertPrivateJournal, publishHexProjection, isHexAdopted, isHexRecordStore } from "./hex-records.mjs";
 import { hasHexNumbering, hexNumberAt } from "./hex-number-api.mjs";
 import { adoptHexScene, withHexLock } from "./hex-adoption.mjs";
 import { decodeFixes, encodeFixes, recordEdits, FIXES_FLAG } from "./tag-corrections.mjs";
@@ -53,7 +53,63 @@ export function planExplorerEdit(record, input, flag, partyId = null) {
   const discovery = partyId ? withPartyDiscovery(record.discovery, partyId, seen) : { ...record.discovery, ...seen };
   if (!partyId && seen.locationRevealed === undefined) delete discovery.locationRevealed;
   return { tags, verdicts, patch: { ...(!numbered ? { terrain } : {}), title: String(input.title ?? ""), features,
-    notes: rows(record.notes, input.notes, ["text", "visible", "location"]), links: rows(record.links, input.links, ["uuid", "label", "visible"]), discovery } };
+    notes: rows(record.notes, input.notes, ["text", "visible", "location"]), links: rows(record.links, input.links, ["uuid", "label", "visible"]), discovery, ...arrivalFields(input) } };
+}
+/** Ownership levels as the window reads them: a document carries numbers, a compendium's policy may carry names. */
+const OWNERSHIP = { INHERIT: -1, NONE: 0, LIMITED: 1, OBSERVER: 2, OWNER: 3 };
+const levelOf = value => typeof value === "number" ? value : (OWNERSHIP[value] ?? OWNERSHIP.NONE);
+/**
+ * Would an ordinary player (the default role) be able to open this document? Compendium content answers by its
+ * pack's PLAYER policy; anything else walks INHERIT to its parent, as Document#getUserLevel does. This is what a
+ * disclosed link in the window warns about and what its share tick raises. A per-user entry is not counted: the
+ * question is what "players" as a class get.
+ */
+export function playerOpenable(doc) {
+  if (!doc) return false;
+  if (doc.pack) return levelOf(doc.compendium?.ownership?.PLAYER ?? "NONE") >= OWNERSHIP.OBSERVER;
+  for (let target = doc, hops = 0; target && hops < 4; target = target.parent, hops++) {
+    const level = levelOf(target.ownership?.default);
+    if (level !== OWNERSHIP.INHERIT) return level >= OWNERSHIP.OBSERVER;
+  }
+  return false;
+}
+/** Whether `user` may open a card's link: Observer on the document as Foundry resolves it (a page that inherits answers by its journal). */
+export function canOpenLink(doc, user) {
+  return !!doc && !!user && !!doc.testUserPermission?.(user, "OBSERVER");
+}
+/**
+ * A save's share tick: the default is raised to at least player observation and a per-user entry that only
+ * inherits follows it. Nothing is ever lowered, and a level the GM set on one user on purpose stays.
+ */
+export function raisedOwnership(ownership = {}) {
+  const raised = { ...ownership, default: Math.max(levelOf(ownership?.default ?? "NONE"), OWNERSHIP.OBSERVER) };
+  for (const [id, level] of Object.entries(raised)) if (id !== "default" && levelOf(level) === OWNERSHIP.INHERIT) raised[id] = OWNERSHIP.OBSERVER;
+  return raised;
+}
+/** A dropped journal entry, journal page or roll table as a new link row; anything else is not a link. */
+export function droppedLink(doc) {
+  if (!doc?.uuid || !["JournalEntry", "JournalEntryPage", "RollTable"].includes(doc.documentName)) return null;
+  return { index: null, uuid: doc.uuid, label: doc.name ?? "", visible: false };
+}
+/**
+ * The arrival block's stored fields, when the window carries the block. A table writes the trio; an empty box
+ * writes explicit `undefined`, which the save's merge (`mergedCell`) deletes, so clearing the block removes
+ * them. An input with no `rollTable` key at all leaves the stored fields alone, the preservation rule its
+ * sibling rows follow. The chance is a whole 0-100 %, and an absent or unreadable one is 100 — the same
+ * every-entry default an arrival check reads (`rollTableChance ?? 100`).
+ */
+export function arrivalFields(input = {}) {
+  if (!Object.hasOwn(input, "rollTable")) return {};
+  const rollTable = String(input.rollTable ?? "").trim();
+  if (!rollTable) return { rollTable: undefined, rollTableChance: undefined, rollTableFirstOnly: undefined };
+  const raw = String(input.rollTableChance ?? "").trim(), chance = raw === "" ? NaN : Number(raw);
+  return { rollTable, rollTableChance: Number.isFinite(chance) ? Math.max(0, Math.min(100, Math.round(chance))) : 100, rollTableFirstOnly: !!input.rollTableFirstOnly };
+}
+/** The stored cell after a save's patch: a field the patch sets to `undefined` is removed, not written. */
+export function mergedCell(previous, patch) {
+  const next = { ...(previous ?? {}), ...(patch ?? {}) };
+  for (const [field, value] of Object.entries(patch ?? {})) if (value === undefined) delete next[field];
+  return next;
 }
 /**
  * What a wandering check on a hex would roll, as the editor words it. `res` is
@@ -80,13 +136,14 @@ export const HexExplorer = {
       assertPrivateJournal(journal);
       const plan = planExplorerEdit(HexRecords.read(offset, scene), input, scene.getFlag(MODULE_ID, "hexTags"), partyId);
       const saved = structuredClone(journal.flags[MODULE_ID][RECORD_FLAG]);
-      saved.cells[offsetKey(offset)] = { ...saved.cells[offsetKey(offset)], ...plan.patch };
+      saved.cells[offsetKey(offset)] = mergedCell(saved.cells[offsetKey(offset)], plan.patch);
       await replaceModuleFlag(journal, RECORD_FLAG, saved);
       const log = decodeFixes(scene.getFlag(MODULE_ID, FIXES_FLAG));
       const judged = recordEdits(log, plan.verdicts).judged;
       if (plan.tags) await replaceModuleFlag(scene, "hexTags", plan.tags);
       if (judged) await replaceModuleFlag(scene, FIXES_FLAG, encodeFixes(log));
       await publishHexProjection(scene);
+      await applyLinkShares(input.links);
       refreshHexExplorer();
       return HexRecords.read(offset, scene);
     });
@@ -96,6 +153,30 @@ export const HexExplorer = {
     return (await import("./hex-explorer-app.mjs")).HexExplorerApp.open(offset, target);
   },
 };
+/**
+ * A save's per-link share tick raises the linked document's own ownership to at least player observation, and
+ * only raises: an OWNER default or a higher per-user level stays, and a document players can already open is
+ * not written. A page raises itself, never its journal: pages inherit, so raising the journal would open every
+ * other page in it (the crawl journal holds 270 keyed hexes); a player opens a journal's sheet regardless and
+ * sees only the pages they can observe. The module's own record store is refused outright: players on it would
+ * break `assertPrivateJournal` for every later write. A link that no longer resolves, a compendium copy (its
+ * access follows the pack's role policy) or an update a hook vetoes (it resolves undefined) is read back and
+ * reported instead of failing the save or passing for a share.
+ */
+export async function applyLinkShares(links) {
+  for (const link of links ?? []) {
+    if (!link?.share || !link.uuid) continue;
+    const label = link.label || link.uuid, warn = key => ui.notifications?.warn(game.i18n.format(key, { label }));
+    const doc = await fromUuid(link.uuid).catch(() => null);
+    if (!doc) { warn("SDE.hexExplorer.shareFailed"); continue; }
+    if (isHexRecordStore(doc)) { warn("SDE.hexExplorer.sharePrivate"); continue; }
+    if (playerOpenable(doc)) continue;
+    try {
+      await doc.update({ ownership: raisedOwnership(doc.ownership) });
+      if (!playerOpenable(await fromUuid(link.uuid))) warn("SDE.hexExplorer.shareFailed");
+    } catch (error) { console.error(`${MODULE_ID} | Hex Data link share`, error); warn("SDE.hexExplorer.shareFailed"); }
+  }
+}
 
 /** No invented numbering; adopted unnumbered cells retain their native offset authority. */
 export function explorerCell(scene, offset) {
@@ -165,7 +246,7 @@ export function refreshHexExplorer() {
         const button = line(tip, link.label || link.uuid, "button"); button.type = "button";
         button.addEventListener("click", async () => {
           const doc = await fromUuid(link.uuid);
-          if (!doc?.testUserPermission?.(game.user, "OBSERVER") || doc.parent && !doc.parent.testUserPermission(game.user, "OBSERVER")) return;
+          if (!canOpenLink(doc, game.user)) { ui.notifications?.warn(game.i18n.localize("SDE.hexExplorer.linkDenied")); return; }
           if (doc.documentName === "JournalEntryPage") doc.parent.sheet?.render(true, { pageId: doc.id });
           else doc.sheet?.render(true);
         });

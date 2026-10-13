@@ -280,6 +280,11 @@ export function assertPrivateJournal(journal) {
   assertPrivatePack(game.packs?.get(PRIVATE_PACK));
   if (Number(journal.ownership?.default ?? 0) > 0 || Object.entries(journal.ownership ?? {}).some(([id, level]) => id !== "default" && Number(level) > 0 && !game.users?.get?.(id)?.isGM)) throw new Error("SDE.hexRecords.unsafeStore");
 }
+/** The module's private record store: the pack it lives in, or its own record flag on a journal (or one of its pages). */
+export function isHexRecordStore(document) {
+  const journal = document?.documentName === "JournalEntryPage" ? document.parent : document;
+  return !!journal && (journal.pack === PRIVATE_PACK || journal.flags?.[MODULE_ID]?.[RECORD_FLAG] !== undefined);
+}
 /** The actor ids on a party's roster, as the players' view names them. */
 export function partyMemberIds(actor) {
   try { return Party.members(actor).map(uuid => String(uuid).replace(/^Actor\./, "")); } catch { return []; } // an unadopted party has no roster
