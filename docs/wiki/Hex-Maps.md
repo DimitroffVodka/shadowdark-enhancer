@@ -74,9 +74,12 @@ reads, such as an Extras import's.
 or roll table dragged from the sidebar fills the row's name and UUID (the UUID
 box stays for pasting). Each row has an open button and **Also give players
 Observer access**, which Save applies by raising the linked document's
-ownership to at least Observer — it never lowers a level, a page's ticket is
-the page itself (its journal and the journal's other pages are left as they
-were), and the module's own private hex records are refused. A link that
+ownership to at least Observer — it raises only the document's own default
+and its inheriting entries, and never lowers a per-user restriction on it (a
+player who owns the journal through their own entry will see a page that
+inherits at Observer once it is shared), a page's ticket is the page itself
+(its journal and the journal's other pages are left as they were), and the
+module's own private hex records are refused. A link that
 is disclosed while players cannot open it is called out under the row; a
 player's click on one they cannot open is answered with a notice, not silence.
 
