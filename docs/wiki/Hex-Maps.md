@@ -24,7 +24,8 @@ These work without Extras. Each user's **Show hex coordinates** setting follows
 `hexMaps.numberAt`, preserving leading zeroes and calibration. Flat-top odd/even
 column grids are supported; unsupported grids and unnumbered cells get no invented
 labels. Eligible scenes adopt native records once; unnumbered adopted maps use
-scene UUID plus offset. Hover for disclosed terrain/public notes (the GM's card also names the terrain of hexes the players have not found); a player's
+scene UUID plus offset. Hover for disclosed terrain/public notes (the GM's card also shows the terrain of hexes the players have not found, and
+the name of a keyed location, marked "not found yet"); a player's
 short click keeps the small card with permitted links. The GM gets no pinned
 card or Edit button: a double click opens Hex Data, which saves terrain,
 line features, rich locations, notes and discovery; travel prices update
@@ -32,7 +33,13 @@ immediately. A hex with a keyed-location pin (see *Keyed locations on the map*)
 is named by its pinned page unless you type a title, and Hex Data lists that page
 with a button to open it. The pin can be the Enhancer's own or the note Shadowdark
 Extras places on a keyed hex of a map it painted, so a painted map names its keyed
-hexes with Extras on or off. Pins, token drags and long-press pings retain their handlers.
+hexes with Extras on or off. A keyed hex on a map made from a book's print, with no pin, is
+named by that book's own crawl row; a map no book claims has no such names, and another
+book's row is never used. With Player view on, and for a player, the name appears only
+once the location is found, and an unfound location never prints a tag word such as
+keyed_location. Players read the name from the copy the GM publishes for them, so a
+name appears there the next time it is published: a reveal, a tag edit or a change of
+roster. Pins, token drags and long-press pings retain their handlers.
 
 The window also has a **Quests here** card on a numbered hex: the quests tied to
 this hex, each with a button to open it and one to unlink it, and a picker of

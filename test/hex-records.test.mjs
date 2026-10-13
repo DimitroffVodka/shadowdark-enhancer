@@ -169,3 +169,37 @@ test("a keyed hex on a scene with no pins is named by its crawl row; the GM's ti
   assert.equal(recordView({ ...base, rowName: "The Swamp Ape", cell: { title: "Typed" } }).title, "Typed");
   assert.equal(recordView(base).title, undefined);
 });
+
+test("crawl row names belong to the scene's own book: not another book's, not a scene no book claims, not a hex that is not keyed", async () => {
+  const MOD = "shadowdark-enhancer", saved = { game: globalThis.game, CONST: globalThis.CONST };
+  const { hexNumberAt } = await import("../scripts/hex-map/hex-number-api.mjs");
+  const { loadCrawlNames } = await import("../scripts/hex-map/hex-records.mjs");
+  globalThis.CONST = { GRID_TYPES: { HEXODDQ: 4, HEXEVENQ: 5 } };
+  const origin = { q: 0, r: 0, num: "0000", shifted: "odd" };
+  const forest = { i: 3, j: 4 }, keyed = { i: 5, j: 6 };
+  const sceneOf = mapId => {
+    const probe = { grid: { type: 4 }, getFlag: () => ({ origin }) };
+    const cells = { [hexNumberAt(forest, probe)]: "forest|gm", [hexNumberAt(keyed, probe)]: "keyed_location|gm" };
+    return { id: "s", uuid: "Scene.s", grid: { type: 4 }, notes: { contents: [] },
+      getFlag: (m, k) => (k === "hexTags" ? { version: 1, origin, cells } : k === "hexMapId" ? mapId : null) };
+  };
+  const nums = [forest, keyed].map(o => hexNumberAt(o, sceneOf(null)));
+  const crawl = (source, names) => {
+    const flag = { crawl: "Invented crawl", source, keyed: nums.map((num, n) => ({ num: String(num).padStart(4, "0"), name: names[n] })) };
+    return { getFlag: (m, k) => (m === MOD && k === "hex" ? flag : undefined) };
+  };
+  // Both numbers are keyed in two books, as the books' numbering ranges overlap.
+  const entries = [crawl("GMWR", ["WR Place", "WR Keyed"]), crawl("CS1", ["CS1 Place", "CS1 Keyed"])];
+  const pack = { metadata: { packageType: "world" }, collection: "world.sde-journal", getDocuments: async () => entries };
+  globalThis.game = { user: { isGM: true }, journal: { contents: [] }, packs: Object.assign([pack], { get: () => null }) };
+  try {
+    await loadCrawlNames();
+    const titles = mapId => [forest, keyed].map(o => HexRecords.read(o, sceneOf(mapId)).title);
+    assert.deepEqual(titles("hex-cs1"), [undefined, "CS1 Keyed"], "its own book's row names the keyed hex; the forest hex stays unnamed");
+    assert.deepEqual(titles("hex-wr"), [undefined, "WR Keyed"], "each scene reads only its own book");
+    assert.deepEqual(titles("hex-cs2"), [undefined, undefined], "a book with no crawl filed names nothing");
+    assert.deepEqual(titles(null), [undefined, undefined], "a scene no book claims names nothing");
+  } finally {
+    for (const [key, value] of [["game", saved.game], ["CONST", saved.CONST]]) { if (value === undefined) delete globalThis[key]; else globalThis[key] = value; }
+  }
+});

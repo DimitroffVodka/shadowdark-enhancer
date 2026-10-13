@@ -247,7 +247,8 @@ export function registerHexExplorer() {
   });
   Hooks.on("canvasTearDown", clear);
   // The crawl entries name the keyed hexes of a scene with no pins; read again when one is filed or edited.
-  const reloadNames = () => void loadCrawlNames().then(refreshHexExplorer);
+  // A pack that cannot be read leaves the names as they were (empty at first): the hover just has none.
+  const reloadNames = () => void loadCrawlNames().catch(() => {}).then(refreshHexExplorer);
   Hooks.on("canvasReady", reloadNames);
   for (const hook of ["createJournalEntry", "updateJournalEntry", "deleteJournalEntry"]) Hooks.on(hook, entry => { if (entry?.flags?.[MODULE_ID]?.hex?.crawl) reloadNames(); });
   Hooks.on("updateScene", refreshHexExplorer);
