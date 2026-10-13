@@ -240,3 +240,15 @@ test("an unknown result status is counted as a failure, not dropped", () => {
   assert.equal(summary.failed, 1);
   assert.equal(summary.jobs, 1);
 });
+
+test("core bestiary mounts plan as their own job, apart from the book's spread", () => {
+  const rows = [
+    entry({ name: "Donkey", type: "Mount", src: "WR", pages: "116-117" }),
+    entry({ name: "Horse", type: "Mount", src: "CORE", pages: "" }),
+    entry({ name: "Worg", type: "Mount", src: "CORE", pages: "" }),
+  ];
+  const plan = planBatch([leaf("monsters/mounts", "Mounts", rows)]);
+  assert.equal(plan.jobs.length, 2, "one spread grab, one system copy");
+  assert.deepEqual(plan.jobs.find((job) => job.entry.src === "CORE").covers.map((row) => row.name), ["Horse", "Worg"]);
+  assert.deepEqual(plan.jobs.find((job) => job.entry.src === "WR").covers.map((row) => row.name), ["Donkey"]);
+});

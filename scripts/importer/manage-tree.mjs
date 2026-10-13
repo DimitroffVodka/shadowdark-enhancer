@@ -56,7 +56,7 @@ import {
 import { readStored } from "../downtime/downtime-core.mjs";
 import { BOAT_MANIFEST } from "./boats/boat-parser.mjs";
 import { SIEGE_MANIFEST } from "./boats/siege-parser.mjs";
-import { MOUNT_MANIFEST, mountNameKeys } from "./boats/mount-parser.mjs";
+import { MOUNT_MANIFEST, SYSTEM_MOUNTS, SYSTEM_MOUNT_SRC, mountNameKeys } from "./boats/mount-parser.mjs";
 import { STOCK_WARBANDS } from "../actors/warband-core.mjs";
 import { t as tr } from "./importer-hub-shared.mjs";
 
@@ -512,9 +512,13 @@ function buildMonsters(actorRecords) {
   // any imported source satisfies the row. A bestiary NPC of the same name does
   // not, since only the Mount actor opens the Mount sheet. Matched on every
   // spelling of the name (mountNameKeys), because the books print "WAR HORSE"
-  // where the manifest indexes "Horse, War".
+  // where the manifest indexes "Horse, War". The core bestiary's mounts follow
+  // the book's: their statblock is the system's own NPC, so no page is cited.
   const mountKeys = new Set(actorRecords.filter((r) => r.type === `${MODULE_ID}.mount`).flatMap((r) => [...mountNameKeys(r.name)]));
-  const mountRecords = MOUNT_MANIFEST.map((m) => ({
+  const mountRecords = [
+    ...MOUNT_MANIFEST,
+    ...SYSTEM_MOUNTS.map((name) => ({ name, src: SYSTEM_MOUNT_SRC })),
+  ].map((m) => ({
     name: m.name,
     present: [...mountNameKeys(m.name)].some((key) => mountKeys.has(key)),
     type: "Mount", src: m.src, pages: m.pages,

@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- **The base system's mounts can be made into Mounts.** The Shadowdark bestiary's Horse, Camel, Elephant, Griffon, Hippogriff, Moose, Pegasus and Worg are plain NPCs, so none of them could be ridden on the map, seated on the Riders tab or fed at camp, and the Mounts list in the Importer Hub did not offer them. It now lists all eight; Import copies the system's own creature (stats, attacks, art, token) into your Mounts folder as a Mount, with no book or PDF needed. Import everything includes them.
+
 ### Changed
 
 - **The battle map's status and fold control moved to the Crawl Bar.** While a battle was staged or live, a slim bar
