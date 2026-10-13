@@ -70,17 +70,18 @@ export function playerOpenable(doc) {
   }
   return false;
 }
-/** Whether `user` may open a card's link: Observer on the document itself and, for a page, on its parent journal. */
+/** Whether `user` may open a card's link: Observer on the document as Foundry resolves it (a page that inherits answers by its journal). */
 export function canOpenLink(doc, user) {
-  if (!doc || !user) return false;
-  if (!doc.testUserPermission?.(user, "OBSERVER")) return false;
-  return !doc.parent || !!doc.parent.testUserPermission?.(user, "OBSERVER");
+  return !!doc && !!user && !!doc.testUserPermission?.(user, "OBSERVER");
 }
-/** A save's share tick: ownership raised to at least player observation, and never lowered. */
+/**
+ * A save's share tick: the default is raised to at least player observation and a per-user entry that only
+ * inherits follows it. Nothing is ever lowered, and a level the GM set on one user on purpose stays.
+ */
 export function raisedOwnership(ownership = {}) {
-  const entries = Object.entries(ownership ?? {});
-  return Object.fromEntries((entries.length ? entries : [["default", OWNERSHIP.NONE]])
-    .map(([id, level]) => [id, Math.max(levelOf(level), OWNERSHIP.OBSERVER)]));
+  const raised = { ...ownership, default: Math.max(levelOf(ownership?.default ?? "NONE"), OWNERSHIP.OBSERVER) };
+  for (const [id, level] of Object.entries(raised)) if (id !== "default" && levelOf(level) === OWNERSHIP.INHERIT) raised[id] = OWNERSHIP.OBSERVER;
+  return raised;
 }
 /** A dropped journal entry, journal page or roll table as a new link row; anything else is not a link. */
 export function droppedLink(doc) {
@@ -150,21 +151,27 @@ export const HexExplorer = {
   },
 };
 /**
- * A save's per-link share tick raises the linked document to at least player observation — and only raises: an
- * OWNER default or a higher per-user level stays. A page's ticket is its journal. The module's own record store
- * is refused outright: players on it would break `assertPrivateJournal` for every later write. A link that no
- * longer resolves, or a locked compendium copy Foundry will not update, is reported instead of failing the save.
+ * A save's per-link share tick raises the linked document's own ownership to at least player observation, and
+ * only raises: an OWNER default or a higher per-user level stays, and a document players can already open is
+ * not written. A page raises itself, never its journal: pages inherit, so raising the journal would open every
+ * other page in it (the crawl journal holds 270 keyed hexes); a player opens a journal's sheet regardless and
+ * sees only the pages they can observe. The module's own record store is refused outright: players on it would
+ * break `assertPrivateJournal` for every later write. A link that no longer resolves, a compendium copy (its
+ * access follows the pack's role policy) or an update a hook vetoes (it resolves undefined) is read back and
+ * reported instead of failing the save or passing for a share.
  */
-async function applyLinkShares(links) {
+export async function applyLinkShares(links) {
   for (const link of links ?? []) {
     if (!link?.share || !link.uuid) continue;
     const label = link.label || link.uuid, warn = key => ui.notifications?.warn(game.i18n.format(key, { label }));
     const doc = await fromUuid(link.uuid).catch(() => null);
-    const target = doc?.documentName === "JournalEntryPage" ? doc.parent : doc;
-    if (!target) { warn("SDE.hexExplorer.shareFailed"); continue; }
-    if (isHexRecordStore(target)) { warn("SDE.hexExplorer.sharePrivate"); continue; }
-    try { await target.update({ ownership: raisedOwnership(target.ownership) }); }
-    catch (error) { console.error(`${MODULE_ID} | Hex Data link share`, error); warn("SDE.hexExplorer.shareFailed"); }
+    if (!doc) { warn("SDE.hexExplorer.shareFailed"); continue; }
+    if (isHexRecordStore(doc)) { warn("SDE.hexExplorer.sharePrivate"); continue; }
+    if (playerOpenable(doc)) continue;
+    try {
+      await doc.update({ ownership: raisedOwnership(doc.ownership) });
+      if (!playerOpenable(await fromUuid(link.uuid))) warn("SDE.hexExplorer.shareFailed");
+    } catch (error) { console.error(`${MODULE_ID} | Hex Data link share`, error); warn("SDE.hexExplorer.shareFailed"); }
   }
 }
 
