@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   parseZoneTableName, zoneColumnKeys, zoneCandidates, pickZoneTable,
   regionRowRanges, inNorthHalf, hexTableUuid, worldClock, isNight, DUSK, DAWN,
-  resolveHexTable, tableForHex, tableForCheck, forgetHexZones,
+  resolveHexTable, tableForHex, tableForCheck, forgetHexZones, hexZonesFor, onHexZonesForgotten,
 } from "../scripts/encounter/encounter-terrain.mjs";
 import { emptyState, readCell } from "../scripts/hex-map/tag-store.mjs";
 import { SYNODIC_DAYS } from "../scripts/time/time-core.mjs";
@@ -282,6 +282,131 @@ test("the regions are read once, and again after a crawl entry or the scene's ow
   fire("updateScene", w.scene, { flags: { "shadowdark-enhancer": { hexRegionFixes: {} } } });
   await resolveHexTable({ num: 1510, terrain: "forest" }, { scene: w.scene });
   assert.equal(w.reads, 3, "a change to the module's scene flags reads them again");
+});
+
+test("the cached regions say how each hex was named, and a change announces itself until stopped", async () => {
+  const w = world();
+  const found = await hexZonesFor(w.scene);
+  assert.equal(found.byNum.get(1510).zone, "Grey Moor");
+  assert.equal(found.viaByNum.get(1510), "border");
+  let heard = 0;
+  const stop = onHexZonesForgotten(() => heard++);
+  fire("updateJournalEntry");
+  fire("updateScene", w.scene, { environment: {} });
+  assert.equal(heard, 1, "fog and weather writes keep the regions and say nothing");
+  stop();
+  fire("updateJournalEntry");
+  assert.equal(heard, 1);
+});
+
+test("the hover's region line is GM-only: Player view prints and reads none, a player client none, the GM's own view has it", async () => {
+  globalThis.foundry = { applications: { api: { ApplicationV2: class {}, HandlebarsApplicationMixin: (C) => C } } };
+  const { hoverRegion } = await import("../scripts/hex-map/hex-explorer.mjs");
+  const w = world();
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 20));
+  globalThis.game.user = { isGM: true };
+  assert.equal(hoverRegion(w.scene, 1511, true), null, "Player view");
+  await settle();
+  assert.equal(w.reads, 0, "Player view starts no read of the regions");
+  assert.equal(hoverRegion(w.scene, 1511, false), null, "the first GM hover starts the read");
+  await settle();
+  assert.equal(hoverRegion(w.scene, 1511, false).zone, "Grey Moor", "the GM still sees the region");
+  assert.equal(hoverRegion(w.scene, 1511, true), null, "Player view hides it again");
+  globalThis.game.user = { isGM: false };
+  assert.equal(hoverRegion(w.scene, 1511, false), null, "a player client shows nothing");
+  assert.equal(w.reads, 1, "and computes nothing");
+});
+
+test("the GM's hover card on an undiscovered hex with no projection carries the terrain line and the region line; Player view drops the region", async () => {
+  globalThis.foundry = { applications: { api: { ApplicationV2: class {}, HandlebarsApplicationMixin: (C) => C } } };
+  const { registerHexExplorer, HexExplorer } = await import("../scripts/hex-map/hex-explorer.mjs");
+  const { HexRecords } = await import("../scripts/hex-map/hex-records.mjs");
+  globalThis.CONST = { GRID_TYPES: { HEXODDQ: 4, HEXEVENQ: 5 } };
+  const { hexNumberAt } = await import("../scripts/hex-map/hex-number-api.mjs");
+  const w = world();
+  const flags = w.scene.getFlag;
+  const origin = { i: 1, j: 0, q: 0, r: 1, num: "0001", shifted: "odd", bounds: { cols: 17, rows: 11, rowsLowered: 10, firstRow: 0, base: { col: 0, row: 1 } } };
+  w.scene.getFlag = (scope, key) => (key === "hexTags" ? { version: 1, origin, cells: {} } : flags(scope, key));
+  w.scene.grid = { type: 5, isHexagonal: true };
+  let offset = null;
+  for (let i = 0; i < 40 && !offset; i++) for (let j = 0; j < 40; j++) if (hexNumberAt({ i, j }, w.scene) === 1510) { offset = { i, j }; break; }
+  assert.ok(offset, "a hex numbered 1510 on this scene");
+
+  let playerView = false;
+  const settings = globalThis.game.settings.get;
+  globalThis.game.settings = { get: (mod, key) => (key === "hexPlayerFogView" ? playerView : key === "hexTooltipHidden" ? false : settings(mod, key)) };
+  globalThis.game.user = { isGM: true };
+  globalThis.game.i18n = { localize: (key) => key, format: (key) => key };
+  const element = (tag) => ({ tag, textContent: "", children: [], style: {}, append(...c) { this.children.push(...c); }, replaceChildren() { this.children = []; }, remove() {}, addEventListener() {} });
+  const body = element("body");
+  globalThis.document = { createElement: element, body };
+  globalThis.window = { innerWidth: 1000, innerHeight: 800 };
+  const handlers = {};
+  globalThis.canvas = { ready: true, scene: w.scene, stage: { on: (name, fn) => { handlers[name] = fn; }, off() {} }, grid: { getOffset: () => offset }, app: {} };
+  const readRecord = HexRecords.read, readView = HexExplorer.read;
+  HexRecords.read = () => ({ offset, num: 1510, terrain: "forest", features: [], notes: [], links: [], keyed: [] });
+  HexExplorer.read = () => null;   // undiscovered, and nothing projected to show
+  const hover = () => handlers.pointermove({ target: {}, buttons: 0, global: { x: 1, y: 1 }, client: { x: 1, y: 1 }, getLocalPosition: () => ({}) });
+  const card = () => body.children.at(-1).children.map((c) => c.textContent);
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 20));
+  try {
+    registerHexExplorer();
+    fire("canvasReady");
+    hover();
+    await settle();   // the first hover starts the read of the regions; its end redraws the card
+    assert.deepEqual(card(), ["1510", "forest", "Grey Moor"], "terrain line, then the region line");
+    playerView = true;
+    hover();
+    assert.deepEqual(card(), ["1510", "forest"], "Player view previews the players' card: no region");
+    playerView = false;
+    hover();
+    assert.deepEqual(card(), ["1510", "forest", "Grey Moor"]);
+  } finally {
+    fire("canvasTearDown");
+    HexRecords.read = readRecord; HexExplorer.read = readView;
+    delete globalThis.document; delete globalThis.window; delete globalThis.canvas; delete globalThis.CONST;
+  }
+});
+
+test("an open Hex Data window redraws when its own hex's region changes, and on no other journal or scene write", async () => {
+  globalThis.foundry = { applications: { api: { ApplicationV2: class { _onFirstRender() {} _onClose() {} }, HandlebarsApplicationMixin: (C) => C } } };
+  const { HexExplorerApp } = await import("../scripts/hex-map/hex-explorer-app.mjs");
+  const { regionLine } = await import("../scripts/hex-map/hex-explorer.mjs");
+  const w = world();
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 20));
+  const app = new HexExplorerApp({ i: 0, j: 0 }, w.scene);
+  let renders = 0, captures = 0;
+  app.render = () => { renders++; };
+  app._capture = () => { captures++; };
+  // What the window last drew for its hex (_prepareContext keeps it).
+  app.record = { num: 1511 };
+  app.shownRegion = regionLine(await hexZonesFor(w.scene), 1511);
+  assert.equal(app.shownRegion.zone, "Grey Moor");
+  app._onFirstRender({}, {});
+
+  // Fog reveals, quests, a new entry, an item pile: the cursor in a note must not be pulled out for any of these.
+  fire("updateJournalEntry"); fire("updateJournalEntry"); fire("createJournalEntry"); fire("deleteJournalEntry");
+  fire("updateScene", w.scene, { flags: { "shadowdark-enhancer": { "pile-abc": {} } } });
+  await settle();
+  assert.deepEqual([renders, captures], [0, 0], "nothing about this hex's region moved");
+
+  // A fix on another hex rewrites the scene's flag, and still leaves this hex where it was.
+  const flags = w.scene.getFlag;
+  let fix = { 1510: "Deep Sea" };
+  w.scene.getFlag = (scope, key) => (key === "hexRegions" ? { ...flags(scope, key), fix } : flags(scope, key));
+  fire("updateScene", w.scene, { flags: { "shadowdark-enhancer": { hexRegions: {} } } });
+  await settle();
+  assert.deepEqual([renders, captures], [0, 0], "another hex's fix does not touch this window");
+
+  fix = { 1511: "Deep Sea" };
+  fire("updateScene", w.scene, { flags: { "shadowdark-enhancer": { hexRegions: {} } } });
+  await settle();
+  assert.deepEqual([renders, captures], [1, 1], "a fix on this hex draws it again once, keeping what was typed");
+
+  app._onClose({});
+  fire("updateScene", w.scene, { flags: { "shadowdark-enhancer": { hexRegions: {} } } });
+  await settle();
+  assert.equal(renders, 1, "a closed window listens no more");
 });
 
 test("tableForHex resolves to the table document", async () => {

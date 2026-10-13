@@ -278,24 +278,24 @@ const cssHex = (n) => `#${n.toString(16).padStart(6, "0")}`;
  * @param {{components?:Map<number,number>, fixes?:Map<number,string>,
  *   seeds?:Array<{num:number,region:string}>, shifted?:"odd"|"even", palette?:number[]}} args
  * @returns {{byNum:Map<number,{zone:string, zoneColor:string}>,
- *   via:{gm:number, border:number, nearest:number}, conflicts:string[]}}
+ *   via:{gm:number, border:number, nearest:number}, viaByNum:Map<number,"gm"|"border"|"nearest">, conflicts:string[]}}
  */
 export function hexZones({ components = new Map(), fixes = new Map(), seeds = [], shifted = "odd", palette = REGION_COLORS } = {}) {
-  const via = { gm: 0, border: 0, nearest: 0 };
-  if (!components.size || !seeds.length) return { byNum: new Map(), via, conflicts: [] };
+  const via = { gm: 0, border: 0, nearest: 0 }, viaByNum = new Map();
+  if (!components.size || !seeds.length) return { byNum: new Map(), via, viaByNum, conflicts: [] };
   const { byNum: named, regions } = nameComponents(components, seeds);
   const regionByNum = new Map();
   for (const num of new Set([...components.keys(), ...fixes.keys()])) {
-    let region = fixes.get(num);
-    if (region) via.gm++;
-    else if ((region = named.get(num))) via.border++;
-    else if ((region = nearestRegion(num, seeds, { shifted })?.region)) via.nearest++;
-    if (region) regionByNum.set(num, region);
+    let region = fixes.get(num), how = "gm";
+    if (!region && (region = named.get(num))) how = "border";
+    if (!region && (region = nearestRegion(num, seeds, { shifted })?.region)) how = "nearest";
+    if (!region) continue;
+    via[how]++; viaByNum.set(num, how); regionByNum.set(num, region);
   }
   const colorOf = assignRegionColors(regionByNum, { shifted, palette });
   const byNum = new Map([...regionByNum].map(([num, zone]) => [num, { zone, zoneColor: cssHex(colorOf.get(zone)) }]));
   const conflicts = [...regions.values()].flatMap((r) => r.conflict.map((c) => `${r.region} / ${c}`));
-  return { byNum, via, conflicts };
+  return { byNum, via, viaByNum, conflicts };
 }
 
 /**

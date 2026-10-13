@@ -6,7 +6,7 @@ const base = {
   width: 480, height: 620, resizable: true, template: "templates/hex-map/hex-explorer.hbs",
   context: {
     isGM: true, saving: false, rootId: "sde-hex-explorer-x", sceneName: "The Western Reaches (A0 hex map)", number: "0417",
-    terrain: "salt flat", title: "The Drowned Observatory of the Lantern Sisters",
+    terrain: "salt flat", region: "Rimespire Mountains (estimated)", title: "The Drowned Observatory of the Lantern Sisters",
     encounter: { uuid, name: "Lowland Moor Encounter Zone: Salt Flat (Night)", note: "A wandering check here rolls the Lowland Moor column \"Salt Flat (Night)\", as the clock reads now." },
     terrainOptions: ["forest", "grassland", "mountain", "salt flat", "swamp"].map((v) => ({ value: v, label: v, selected: v === "salt flat" })),
     lineRows: [["river", "River", true, true], ["path", "Path", false, false], ["coast", "Coast", true, false]].map(([type, label, checked, discovered]) => ({ type, label, checked, discovered })),

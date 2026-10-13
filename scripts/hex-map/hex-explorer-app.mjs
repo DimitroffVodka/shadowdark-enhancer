@@ -1,11 +1,11 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { HexRecords, sceneRef, offsetKey, bookKeyedPages, mergeKeyedPages } from "./hex-records.mjs";
-import { HexExplorer, explorerCell, encounterReadout, droppedLink, playerOpenable } from "./hex-explorer.mjs";
+import { HexExplorer, explorerCell, encounterReadout, droppedLink, playerOpenable, regionLine, regionText } from "./hex-explorer.mjs";
 import { viewedPartyIds } from "./hex-fog.mjs";
 import { effectiveDiscovery } from "./hex-fog-core.mjs";
 import { FEATURES, decodeTags } from "./tag-store.mjs";
 import { terrainOptions, OTHER } from "./tag-overlay.mjs";
-import { tableForCheck, pickTable, TERRAIN_TABLES } from "../encounter/encounter-terrain.mjs";
+import { tableForCheck, pickTable, hexZonesFor, onHexZonesForgotten, TERRAIN_TABLES } from "../encounter/encounter-terrain.mjs";
 import { Quests } from "../quests/quests.mjs";
 import { questsAtHex, STATUS_LABELS } from "../quests/quest-core.mjs";
 import { hexArtSources } from "./keyed-art.mjs";
@@ -71,6 +71,7 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const d = this.draft;
     // The saved cell, as a travel check reads it; tableForCheck never throws, so a bad lookup shows as no table.
     const hex = { num: record.num ?? undefined, terrain: record.terrain, features: (record.features ?? []).map(f => f?.type).filter(type => FEATURES.includes(type)) };
+    const region = this.shownRegion = regionLine(await hexZonesFor(this.scene).catch(() => null), record.num);
     const res = await tableForCheck(hex, { scene: this.scene });
     const enc = encounterReadout(res, res.uuid ? (await fromUuid(res.uuid).catch(() => null))?.name ?? "" : "", game.settings.get(MODULE_ID, "encounterTableUuid"),
       pickTable(game.settings.get(MODULE_ID, TERRAIN_TABLES), hex.terrain));
@@ -97,6 +98,7 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       // A quest already tied to another hex says so, so moving it is a choice and not a surprise.
       questChoices: all.filter(q => !here.includes(q)).map(q => ({ ...row(q), where: q.hex === null ? "" : ` → ${pad(q.hex)}` })),
       rootId: this.id, encounter: { ...enc, note: game.i18n.format(ENCOUNTER_NOTES[enc.state], enc) }, isGM: true, saving: this.saving, sceneName: this.scene.name,
+      region: region && regionText(region),
       number, artSrc: this.artSrc,
       locationAuto: d.location === "auto", locationShow: d.location === "show", locationHide: d.location === "hide",
       terrainOptions: this._terrainOptions(d.terrain),
@@ -136,6 +138,19 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (current && !options.some(o => o.value === current)) options.push({ value: current, label: current.replace(/_/g, " ") });
     return options.map(o => ({ ...o, selected: o.value === current }));
   }
+  /**
+   * Any journal or scene write drops the cached regions, so the header is asked again, and the form is drawn again
+   * only when this hex's own answer moved: a redraw takes the cursor out of the field being typed in.
+   */
+  _onFirstRender(context, options) {
+    super._onFirstRender(context, options);
+    this.stopRegions = onHexZonesForgotten(async () => {
+      const now = regionLine(await hexZonesFor(this.scene).catch(() => null), this.record?.num), was = this.shownRegion;
+      if (!this.stopRegions || (now?.zone === was?.zone && now?.estimated === was?.estimated)) return;
+      this._capture(); this.render();
+    });
+  }
+  _onClose(options) { this.stopRegions?.(); this.stopRegions = null; super._onClose(options); }
   _onRender(context, options) {
     super._onRender(context, options);
     const select = this.element.querySelector('select[name="terrain"]'), other = this.element.querySelector('[name="terrainOther"]');

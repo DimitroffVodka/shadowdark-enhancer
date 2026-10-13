@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { explorerView, planExplorerEdit, explorerClick, encounterReadout, ownsHexData, hoverHead, playerOpenable, canOpenLink, raisedOwnership, applyLinkShares, droppedLink, arrivalFields, mergedCell } from "../scripts/hex-map/hex-explorer.mjs";
+import { explorerView, planExplorerEdit, explorerClick, encounterReadout, ownsHexData, hoverHead, playerOpenable, canOpenLink, raisedOwnership, applyLinkShares, droppedLink, arrivalFields, mergedCell, regionLine, regionText } from "../scripts/hex-map/hex-explorer.mjs";
 import { arrivalDue } from "../scripts/hex-map/hex-fog-core.mjs";
 const record = { sceneUuid: "Scene.a", offset: { i: -2, j: 3 }, num: 101, terrain: "forest", title: "Cave", features: [{ type: "river", discovered: true, secret: "private" }, { type: "dungeon", name: "Secret cave", discovered: true, custom: { x: 1 } }], notes: [{ text: "Bridge", visible: true }, { text: "GM SECRET", visible: false }], links: [{ uuid: "JournalEntry.a", label: "Clue", visible: true }], keyed: [{ title: "Keyed cave", uuid: "JournalEntry.a.JournalEntryPage.b" }], discovery: { revealed: true, visited: false } };
 test("tooltip discloses only safe terrain/public notes until location disclosure", () => {
@@ -79,6 +79,22 @@ test("the encounter readout says where the hex's table came from", () => {
     "the terrain's own table is named as such even when it is also the active one");
   assert.equal(encounterReadout({ uuid: "", zone: null, verdict: { status: "none" } }).state, "none");
   assert.equal(encounterReadout().state, "none");
+});
+test("a hex's region is the cached zone answer; the nearest-keyed-hex one is marked estimated; no answer is no line", () => {
+  const found = { byNum: new Map([[101, { zone: "Grey Reach" }], [102, { zone: "Tallowmere" }]]), viaByNum: new Map([[101, "border"], [102, "nearest"]]) };
+  assert.deepEqual(regionLine(found, 101), { zone: "Grey Reach", estimated: false });
+  assert.deepEqual(regionLine(found, 102), { zone: "Tallowmere", estimated: true });
+  assert.equal(regionLine(found, 103), null, "a hex the overlay and the roll leave blank stays blank");
+  assert.equal(regionLine(found, null), null, "an unnumbered hex");
+  assert.equal(regionLine({ byNum: new Map(), viaByNum: new Map() }, 101), null, "no scan, no seeds");
+  assert.equal(regionLine(null, 101), null);
+  assert.equal(regionLine({}, 101), null);
+  const before = globalThis.game;
+  globalThis.game = { i18n: { format: (key, data) => `${key}:${data.region}` } };
+  try {
+    assert.equal(regionText({ zone: "Tallowmere", estimated: true }), "SDE.hexExplorer.regionEstimated:Tallowmere");
+    assert.equal(regionText({ zone: "Grey Reach", estimated: false }), "Grey Reach");
+  } finally { globalThis.game = before; }
 });
 test("Hex Data owns an adopted hex scene even while Extras' Hex Tooltip is on, and a square or plain scene never", () => {
   const scene = (hexagonal, adopted) => ({ grid: { isHexagonal: hexagonal }, getFlag: (_m, key) => (adopted && key === "hexRecords" ? { adopted: true } : undefined) });
