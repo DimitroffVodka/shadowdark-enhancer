@@ -1,4 +1,4 @@
-import test from "node:test";
+import test, { afterEach } from "node:test";
 import assert from "node:assert/strict";
 
 // Travel charges a keyed or settlement hex by the GROUND its book row names (#501), and the Hex Data window's
@@ -20,6 +20,7 @@ const socketHandlers = [];
 const stored = {};
 const { gregorian, at } = await import("./gregorian-calendar.mjs");
 let journalMode = "ok";   // "ok" | "fails"
+let readDelay = 0;        // ms a pack read takes
 const reads = { n: 0 };
 // The managed journals pack holds one filed crawl whose keyed rows name the ground each keyed hex stands on.
 const BOOK = [
@@ -30,12 +31,16 @@ const BOOK = [
   { num: "0108", terrain: ["lava"] },              // impassable ground
   { num: "0110", terrain: ["mountain", "path"] },  // a road runs through it
 ];
+const crawl = (source, keyed, name = "Invented Book") => ({ getFlag: (scope, key) => (key === "hex" ? { crawl: name, source, keyed } : undefined) });
+// Filed under the Western Reaches' folder: the print every scene below is made from unless it says otherwise.
+let entries = [crawl("GMWR", BOOK)];
 const journals = {
   metadata: { packageType: "world", label: "Journals" }, collection: "world.sde-journal",
   getDocuments: async () => {
     reads.n++;
+    if (readDelay) await new Promise((resolve) => setTimeout(resolve, readDelay));
     if (journalMode === "fails") throw new Error("journals pack offline");
-    return [{ getFlag: (scope, key) => (key === "hex" ? { crawl: "Invented Book", keyed: BOOK } : undefined) }];
+    return entries;
   },
 };
 // Hex 101..112 down one column. 106 is keyed with no row at all.
@@ -44,7 +49,8 @@ const CELLS = {
   107: "keyed_location|gm", 108: "keyed_location|gm", 109: "grassland;path|gm", 110: "keyed_location|gm", 111: "grassland;path|gm", 112: "grassland|gm",
 };
 const scenes = [];
-function makeScene(id, { scanned = true } = {}) {
+/** `print`: the map flow's hexMapId (none for a homebrew map); `painted`: a copy with no flag that carries the print's 64 x 75 bounds. */
+function makeScene(id, { scanned = true, print = "hex-wr", painted = false } = {}) {
   const grid = {
     isHexagonal: true, columns: true, even: false,
     getCenterPoint: ({ i, j }) => ({ x: j * 100 + 50, y: i * 100 + 50 }),
@@ -55,7 +61,8 @@ function makeScene(id, { scanned = true } = {}) {
       return out;
     },
   };
-  const flags = { hexTags: { origin: { q: 0, r: 0, num: 101, shifted: "odd" }, cells: CELLS }, ...(scanned ? { hexRegions: { v: 1, comp: {} } } : {}) };
+  const origin = { q: 0, r: 0, num: 101, shifted: "odd", ...(painted ? { bounds: { cols: 64, rows: 75 } } : {}) };
+  const flags = { hexTags: { origin, cells: CELLS }, ...(print && !painted ? { hexMapId: print } : {}), ...(scanned ? { hexRegions: { v: 1, comp: {} } } : {}) };
   const scene = { id, uuid: `Scene.${id}`, name: id, grid, notes: { contents: [] }, flags: {}, getFlag: (scope, key) => (scope === MOD ? flags[key] : undefined) };
   const old = scenes.findIndex((s) => s.id === id);
   if (old >= 0) scenes.splice(old, 1);
@@ -96,7 +103,7 @@ const fire = (name, ...args) => { for (const fn of hooks.get(name) ?? []) fn(...
 const settle = () => new Promise((resolve) => setTimeout(resolve, 15));
 
 const overland = await import("../scripts/overland/overland.mjs");
-const { registerOverland, travelStepCost, overlandState, moveSteps, loadedGround, warmGround } = overland;
+const { registerOverland, travelStepCost, overlandState, moveSteps, loadedGround, warmGround, travelSettled } = overland;
 const { priceMove } = await import("../scripts/overland/overland-state-core.mjs");
 const { rulesApi, rulesFrom } = await import("../scripts/rules-data/rules-data-core.mjs");
 const { storedRulesFor } = await import("../scripts/rules-data/rules-data-scope.mjs");
@@ -119,11 +126,14 @@ const PRINTED = {
 const HOMEBREW = { terrain: { grassland: { type: "normal", cost: 1 }, swamp: { type: "difficult", cost: 4 }, mountain: { type: "difficult", cost: 5 } }, terrainTypes: { normal: 1, difficult: 2 } };
 
 let doc;
+afterEach(() => { scenes.length = 0; });   // a failed assertion must not leave its scenes for the next test
 
 /** A world with the travel token on `scene`, travelling, and today's pricing on `raw` rules. */
 function travelling(scene, raw = PRINTED, { state = {} } = {}) {
   journalMode = "ok";
   reads.n = 0;
+  readDelay = 0;
+  entries = [crawl("GMWR", BOOK)];
   forgetHexZones();
   stored.rulesData = raw;
   stored.rulesSets = {};
@@ -267,7 +277,7 @@ test("a ground that is not loaded yet, or never loads, is priced as today and ne
 });
 
 test("the first move after a cold start is priced with the ground: the GM's move waits for the load", async () => {
-  const scene = makeScene("s1");
+  const scene = makeScene("cold-start");
   travelling(scene);
   forgetHexZones();
   assert.equal(loadedGround?.(scene) ?? null, null, "cold");
@@ -321,15 +331,22 @@ test("when the settings write rejects, the move is priced once by the ground and
   assert.equal(await drag([102, 103]), 2, "the next move adds its own cost and nothing of the first");
 });
 
-test("the ground is read once per scene until forgotten, then read again; scenes do not share it", async () => {
+/** One move of the travel token through the hook, NOT awaited: the promise the hook hands back, as the caller would see it. */
+const dragNow = (nums) => {
+  const waypoints = nums.slice(1).map((num) => ({ ...pointOf(num), action: "walk" }));
+  return hooks.get("moveToken").at(-1)(doc, { origin: pointOf(nums[0]), passed: { waypoints }, pending: { waypoints: [] } }, {});
+};
+
+test("the ground is read once per scene and kept through a forget; the next move reads it again, once; scenes do not share it", async () => {
   const a = makeScene("a"), b = makeScene("b", { scanned: false });
   makeScene("c");   // a second print, so b cannot borrow a's
   travelling(a);
   await settle();
   reads.n = 0;
-  forgetHexZones();   // travel's own refresh reads a once; the asks below share that read
+  forgetHexZones();   // out of date, not dropped
   const first = await warm(a);
   assert.ok(first instanceof Map);
+  assert.equal(reads.n, 1, "the ask after a forget is the one read");
   for (let i = 0; i < 50; i++) previewCost(a, [101, 102, 103]);
   await warm(a);
   assert.equal(reads.n, 1, "one pack read for the scene, however many steps are priced");
@@ -338,61 +355,193 @@ test("the ground is read once per scene until forgotten, then read again; scenes
   const other = await warm(b);
   assert.equal(other.size, 0, "a homebrew scene's ground is empty");
   assert.equal(loadedGround(a), first, "a's ground is still a's");
-  assert.equal(loadedGround(b), other);
-  // A crawl entry changed: dropped at once, read again once.
+  // A crawl entry changed: the old map is still served, and nothing is read until someone needs a price.
+  reads.n = 0;
   fire("updateJournalEntry");
-  assert.equal(loadedGround(a) ?? null, null, "dropped on forget");
   await settle();
-  assert.ok(loadedGround(a) instanceof Map, "read again without anyone asking");
+  assert.equal(loadedGround(a), first, "a forget keeps serving the map it has");
+  assert.equal(reads.n, 0, "and reads nothing");
+  assert.equal(await drag([101, 102]), 2, "the next move prices by the ground");
+  assert.equal(reads.n, 1, "and took the one read");
+  assert.notEqual(loadedGround(a), first, "a fresh map");
   assert.equal(loadedGround(a).get(102)?.terrain, "swamp");
-  assert.equal(loadedGround(b) ?? null, null, "b is not travelled on: dropped and not read again until asked");
-  assert.equal(reads.n, 2, "a's read, then a's again (b has no print: nothing to read)");
   // Fog and weather writes leave it alone.
   fire("updateScene", a, { environment: { darknessLevel: 0.5 } });
   await settle();
-  assert.equal(reads.n, 2);
-  // A scene that is gone is not read again.
-  scenes.splice(scenes.indexOf(b), 1);
-  fire("deleteScene");
-  await settle();
-  assert.equal(loadedGround(b) ?? null, null);
+  assert.equal(reads.n, 1);
   scenes.length = 0;
 });
 
-test("a player's client reads the ground once for its preview and keeps it through every forget", async () => {
+test("forgets alone read nothing, and a burst of forgets costs the next move one read", async () => {
   const scene = makeScene("s1");
   travelling(scene);
   await settle();
-  const user = globalThis.game.user;
-  globalThis.game.user = { id: "player1", isGM: false };
-  try {
-    forgetHexZones();
-    await settle();
-    reads.n = 0;
-    const kept = loadedGround(scene);
-    assert.ok(kept instanceof Map, "not dropped: no pack read per move on a player's client");
-    fire("updateJournalEntry"); fire("updateJournalEntry");
-    await settle();
-    assert.equal(loadedGround(scene), kept);
-    assert.equal(reads.n, 0);
-    assert.equal(previewCost(scene, [101, 102]).cost, 2, "its preview prices the keyed hex by the ground");
-  } finally { globalThis.game.user = user; }
+  const kept = loadedGround(scene);
+  assert.ok(kept instanceof Map);
+  reads.n = 0;
+  for (let i = 0; i < 50; i++) { fire("updateJournalEntry"); await settle(); }
+  assert.equal(reads.n, 0, "fifty spaced forgets with nobody moving read nothing");
+  assert.equal(loadedGround(scene), kept, "and the map is still served");
+  assert.equal(previewCost(scene, [101, 102]).cost, 2, "the preview prices by it");
+  // Five moves, three forgets before each (a fog save writes two journals and a scene flag).
+  reads.n = 0;
+  const costs = [];
+  for (let i = 0; i < 5; i++) {
+    for (let k = 0; k < 3; k++) { fire("updateJournalEntry"); await settle(); }
+    costs.push(await drag(i % 2 ? [102, 101] : [101, 102]));
+  }
+  assert.deepEqual(costs, [2, 1, 2, 1, 2], "every move priced by the ground");
+  assert.ok(reads.n <= 5, `at most one read per move (${reads.n})`);
   scenes.length = 0;
 });
 
-test("the ground is warmed when travel is known: at ready, on a canvas, and when the travel state changes; not when nobody travels", async () => {
+test("a refresh that fails keeps the old map, prices by it, and says so once", async () => {
+  const scene = makeScene("s1");
+  travelling(scene);
+  await settle();
+  const warn = console.warn;
+  let warned = 0;
+  console.warn = () => { warned++; };
+  try {
+    journalMode = "fails";
+    fire("updateJournalEntry");
+    assert.equal(await drag([101, 102]), 2, "priced by the map it has");
+    fire("updateJournalEntry");
+    assert.equal(await drag([102, 103]), 2);
+    assert.equal(warned, 1, "said once");
+    assert.ok(loadedGround(scene) instanceof Map, "the old map is kept");
+  } finally { console.warn = warn; }
+  scenes.length = 0;
+});
+
+test("travelSettled resolves only after a cold move has been charged", async () => {
+  const scene = makeScene("s1");
+  travelling(scene);
+  await settle();
+  readDelay = 40;
+  forgetHexZones();   // the map is out of date: the move reads it first
+  const moved = dragNow([101, 102]);
+  const spentWhenSettled = await travelSettled().then(() => overlandState().spent);
+  await moved;
+  assert.equal(spentWhenSettled, 2, "the step was charged when settled resolved");
+  scenes.length = 0;
+});
+
+test("two moves with a forget between them are charged in arrival order, and the recorded hex is where the token stands", async () => {
+  const scene = makeScene("s1");
+  travelling(scene);
+  await settle();
+  readDelay = 40;
+  forgetHexZones();
+  const first = dragNow([101, 102]);
+  forgetHexZones();   // a fog save lands while the first move's read is out
+  const second = dragNow([102, 103, 104]);
+  await Promise.all([first, second]);
+  await settle();
+  assert.equal(overlandState().hex?.num, 104, "the party hex is the one the token stands on");
+  assert.deepEqual(globalThis.game.time.advanced, [2 * 29, 4 * 29], "the clock ran in the order the moves came");
+  assert.equal(overlandState().spent, 6);
+  scenes.length = 0;
+});
+
+test("with a day that only pays for the first move, the second is the one sent back", async () => {
+  const scene = makeScene("s1");
+  travelling(scene, PRINTED, { state: { budget: 4, base: 4 } });
+  await settle();
+  const updates = [];
+  doc.update = async (change) => { updates.push(change); };
+  readDelay = 40;
+  forgetHexZones();
+  const first = dragNow([101, 102]);
+  forgetHexZones();
+  const second = dragNow([102, 103, 104]);
+  await Promise.all([first, second]);
+  await settle();
+  assert.equal(overlandState().spent, 2, "the first move was charged");
+  assert.equal(overlandState().hex?.num, 102);
+  assert.equal(updates.length, 1, "one rollback");
+  assert.deepEqual({ x: updates[0].x, y: updates[0].y }, pointOf(102), "the second goes back to where the first left the token");
+  scenes.length = 0;
+});
+
+test("two books number their hexes alike: each scene is priced by its own book's row", async () => {
+  const a = makeScene("book-a", { print: "hex-cs1" }), b = makeScene("book-b", { print: "hex-cs2" });
+  travelling(b);
+  entries = [crawl("CS1", [{ num: "0102", terrain: ["mountain"] }], "Book A"), crawl("CS2", [{ num: "0102", terrain: ["swamp"] }], "Book B")];
+  forgetHexZones();
+  await warm(b);
+  assert.equal(previewCost(b, [101, 102]).cost, 2, "B's own row: a swamp");
+  travelling(a);
+  entries = [crawl("CS1", [{ num: "0102", terrain: ["mountain"] }], "Book A"), crawl("CS2", [{ num: "0102", terrain: ["swamp"] }], "Book B")];
+  forgetHexZones();
+  await warm(a);
+  assert.equal(previewCost(a, [101, 102]).cost, 3, "A's own row: a mountain");
+  assert.equal((await hexZonesFor(a)).ground.get(102)?.terrain, "mountain", "encounter checks read the same map");
+  assert.equal((await hexZonesFor(b)).ground.get(102)?.terrain, "swamp");
+  scenes.length = 0;
+});
+
+test("a map with no print stays priced as before, even when the world has exactly one print", async () => {
+  const homebrew = makeScene("homebrew", { scanned: false, print: null });
+  makeScene("only-print");
+  travelling(homebrew);
+  await warm(homebrew);
+  assert.equal(previewCost(homebrew, [101, 102]).cost, 1, "a keyed hex");
+  assert.equal(previewCost(homebrew, [101, 103]).cost, 1, "a village");
+  assert.equal(previewCost(homebrew, [101, 104]).cost, 2, "plain terrain still prices");
+  scenes.length = 0;
+});
+
+test("a painted copy is read as its print by the bounds it was tagged with", async () => {
+  const painted = makeScene("painted", { painted: true });
+  travelling(painted);
+  await warm(painted);
+  assert.equal(previewCost(painted, [101, 102]).cost, 2, "the Western Reaches rows apply");
+  entries = [crawl("CS1", [{ num: "0102", terrain: ["mountain"] }], "Another book")];
+  forgetHexZones();
+  await warm(painted);
+  assert.equal(previewCost(painted, [101, 102]).cost, 1, "another book's row never does");
+  scenes.length = 0;
+});
+
+test("a player's client never reads the pack for the ground and prices a keyed hex as one hex; the GM's charge decides and a disagreement bounces with no spend", async () => {
+  const scene = makeScene("s1");
+  const gm = globalThis.game.user;
+  globalThis.game.user = { id: "player1", isGM: false };
+  try {
+    travelling(scene, PRINTED, { state: { budget: 1, base: 1 } });
+    await settle();
+    forgetHexZones(); fire("canvasReady"); socketHandlers.at(-1)({ type: "overland" });
+    await settle();
+    assert.equal(reads.n, 0, "no pack read for the ground on a player's client");
+    assert.equal(loadedGround(scene), null, "and no ground map in memory");
+    assert.equal(previewCost(scene, [101, 102]).cost, 1, "its preview prices the keyed hex as at master");
+    const waypoints = [{ ...pointOf(102), action: "walk" }];
+    const verdict = hooks.get("preMoveToken").at(-1)(doc, { origin: pointOf(101), passed: { waypoints: [] }, pending: { waypoints } }, {});
+    assert.notEqual(verdict, false, "the mover's own check lets it go");
+  } finally { globalThis.game.user = gm; }
+  const updates = [];
+  doc.update = async (change) => { updates.push(change); };
+  assert.equal(await drag([101, 102]), 0, "the GM prices it by the ground, 2, which a day of 1 cannot pay");
+  assert.equal(overlandState().spent, 0, "no spend");
+  assert.equal(updates.length, 1, "the token is sent back");
+  assert.deepEqual({ x: updates[0].x, y: updates[0].y }, pointOf(101));
+  scenes.length = 0;
+});
+
+test("the ground is warmed when travel is known: on a canvas and when the travel state changes; not when nobody travels", async () => {
   const scene = makeScene("s1");
   travelling(scene);
   await settle();
   assert.ok(loadedGround?.(scene) instanceof Map, "registering the module with a travel token warms its scene");
   forgetHexZones();
-  await settle();
-  assert.ok(loadedGround(scene) instanceof Map, "and a forget reads it again");
-  forgetHexZones();
   reads.n = 0;
   fire("canvasReady");
   await settle();
-  assert.ok(loadedGround(scene) instanceof Map, "a canvas becoming ready warms it too");
+  assert.equal(reads.n, 1, "a canvas becoming ready refreshes what a forget left out of date");
+  fire("canvasReady");
+  await settle();
+  assert.equal(reads.n, 1, "and only once");
   // Nobody travelling: no pack read for pricing nobody does.
   travelling(scene, PRINTED, { state: { tokenUuid: null } });
   await settle();

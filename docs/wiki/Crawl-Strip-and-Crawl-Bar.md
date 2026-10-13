@@ -292,7 +292,11 @@ the party token travels.
   2 hours per point. Following a path from one path hex to the next costs 1.
   A keyed location or a settlement costs what the ground its book row names
   costs (a tower on a swamp, a swamp's cost), and one hex when the row names
-  none or the map has no scanned print. A move the day can't pay for bounces, with a message saying why. To
+  none or the map is not made from a known book's print; only that book's own
+  rows count. The GM's charge is the one that counts: a player's route preview
+  shows one hex for a keyed location or settlement, and a move the day can't
+  pay for at the ground's price is sent back with nothing spent. A move the day
+  can't pay for bounces, with a message saying why. To
   reposition the token without spending anything, move it with the
   **Displace** movement action.
 - **End travel** stops travelling but keeps where the party is and the day's

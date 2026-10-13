@@ -527,11 +527,13 @@ export async function hexZonesFor(scene) {
     // Extras' hex fog and the sky make on most moves, leave the regions alone (#260).
     globalThis.Hooks.on("updateScene", (scene, changed) => { if (changed?.flags?.[MODULE_ID]) forgetHexZones(); });
   }
-  const { sceneZones, scanSceneFor } = await import("../hex-map/hex-region.mjs");
+  const { sceneZones, scanSceneFor, sceneBookFolder } = await import("../hex-map/hex-region.mjs");
   const scan = scanSceneFor(scene);
-  const key = scan?.id ?? "";
+  // The regions are the scan's; the ground under keyed hexes is the book `scene` itself was made from.
+  const folder = await sceneBookFolder(scene);
+  const key = `${scan?.id ?? ""}|${folder ?? ""}`;
   if (!hexZonesCache.has(key)) {
-    const read = sceneZones(scan).then(({ byNum, viaByNum, ground }) => ({
+    const read = sceneZones(scan, { folder }).then(({ byNum, viaByNum, ground }) => ({
       byNum, viaByNum, ground, rowRanges: regionRowRanges(new Map([...byNum].map(([n, z]) => [n, z.zone]))),
     }));
     // A failed read is not remembered: the next check tries again.
