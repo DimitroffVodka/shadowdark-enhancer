@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { recordView, playerProjection, HexRecords, loadHexRecords } from "../scripts/hex-map/hex-records.mjs";
+import { recordView, playerProjection, HexRecords, loadHexRecords, scenePrint, bookKeyedPages, mergeKeyedPages } from "../scripts/hex-map/hex-records.mjs";
 const base = { sceneUuid: "Scene.a", offset: { i: -2, j: 3 }, num: 101 };
 test("facade reads terrain/features/provenance from existing tags, not archived legacy", () => {
   const r = recordView({ ...base, cell: { title: "Ford", terrain: "river", features: [{ type: "river", id: "old" }, { type: "dungeon", id: "cave" }], legacy: { terrain: "lake" } }, tag: { terrain: "forest", features: ["path"], source: "auto", margin: 1.42, review: true } });
@@ -160,4 +160,89 @@ test("a write is based on the pack's held copy, so one reveal does not erase the
     globalThis._replace = saved.replace;
     if (saved.game === undefined) delete globalThis.game; else globalThis.game = saved.game;
   }
+});
+
+test("a keyed hex on a scene with no pins is named by its crawl row; the GM's title and a pinned page both win", () => {
+  const base = { sceneUuid: "Scene.a", offset: { i: 0, j: 0 }, num: 5238 };
+  assert.equal(recordView({ ...base, rowName: "The Swamp Ape" }).title, "The Swamp Ape");
+  assert.equal(recordView({ ...base, rowName: "The Swamp Ape", keyed: [{ uuid: "x", title: "5238 Ape Lair" }] }).title, "Ape Lair");
+  assert.equal(recordView({ ...base, rowName: "The Swamp Ape", cell: { title: "Typed" } }).title, "Typed");
+  assert.equal(recordView(base).title, undefined);
+});
+
+test("crawl row names belong to the scene's own book: not another book's, not a scene no book claims, not a hex that is not keyed", async () => {
+  const MOD = "shadowdark-enhancer", saved = { game: globalThis.game, CONST: globalThis.CONST };
+  const { hexNumberAt } = await import("../scripts/hex-map/hex-number-api.mjs");
+  const { loadCrawlNames } = await import("../scripts/hex-map/hex-records.mjs");
+  globalThis.CONST = { GRID_TYPES: { HEXODDQ: 4, HEXEVENQ: 5 } };
+  const origin = { q: 0, r: 0, num: "0000", shifted: "odd" };
+  const forest = { i: 3, j: 4 }, keyed = { i: 5, j: 6 };
+  const sceneOf = mapId => {
+    const probe = { grid: { type: 4 }, getFlag: () => ({ origin }) };
+    const cells = { [hexNumberAt(forest, probe)]: "forest|gm", [hexNumberAt(keyed, probe)]: "keyed_location|gm" };
+    return { id: "s", uuid: "Scene.s", grid: { type: 4 }, notes: { contents: [] },
+      getFlag: (m, k) => (k === "hexTags" ? { version: 1, origin, cells } : k === "hexMapId" ? mapId : null) };
+  };
+  const nums = [forest, keyed].map(o => hexNumberAt(o, sceneOf(null)));
+  const crawl = (source, names) => {
+    const flag = { crawl: "Invented crawl", source, keyed: nums.map((num, n) => ({ num: String(num).padStart(4, "0"), name: names[n] })) };
+    return { getFlag: (m, k) => (m === MOD && k === "hex" ? flag : undefined) };
+  };
+  // Both numbers are keyed in two books, as the books' numbering ranges overlap.
+  const entries = [crawl("GMWR", ["WR Place", "WR Keyed"]), crawl("CS1", ["CS1 Place", "CS1 Keyed"])];
+  const pack = { metadata: { packageType: "world" }, collection: "world.sde-journal", getDocuments: async () => entries };
+  globalThis.game = { user: { isGM: true }, journal: { contents: [] }, packs: Object.assign([pack], { get: () => null }) };
+  try {
+    await loadCrawlNames();
+    const titles = mapId => [forest, keyed].map(o => HexRecords.read(o, sceneOf(mapId)).title);
+    assert.deepEqual(titles("hex-cs1"), [undefined, "CS1 Keyed"], "its own book's row names the keyed hex; the forest hex stays unnamed");
+    assert.deepEqual(titles("hex-wr"), [undefined, "WR Keyed"], "each scene reads only its own book");
+    assert.deepEqual(titles("hex-cs2"), [undefined, undefined], "a book with no crawl filed names nothing");
+    assert.deepEqual(titles(null), [undefined, undefined], "a scene no book claims names nothing");
+  } finally {
+    for (const [key, value] of [["game", saved.game], ["CONST", saved.CONST]]) { if (value === undefined) delete globalThis[key]; else globalThis[key] = value; }
+  }
+});
+test("a scene's book comes from its flag, else the tagged print bounds the tagger reads", () => {
+  const scene = (mapId, bounds) => ({ getFlag: (_m, key) => (key === "hexMapId" ? mapId : key === "hexTags" ? (bounds ? { origin: { bounds } } : null) : undefined) });
+  assert.equal(scenePrint(scene("hex-cs5", null))?.folder, "CS5");
+  assert.equal(scenePrint(scene("hex-wr:cell", null))?.folder, "Western Reaches", "the cell suffix is not part of the map id");
+  assert.equal(scenePrint(scene(null, { cols: 64, rows: 75, rowsLowered: 74 }))?.folder, "Western Reaches", "a painted copy carries no flag; its tags carry the print's bounds");
+  assert.equal(scenePrint(scene(null, { cols: 17, rows: 22 })), null, "another size of map is not the print");
+  assert.equal(scenePrint(scene("hex-nope", null)), null);
+  assert.equal(scenePrint(scene(null, null)), null);
+  assert.equal(scenePrint(undefined), null);
+});
+test("the book's crawl pages are found by number, scoped to that book, the deployed world copy first", async () => {
+  const MOD = "shadowdark-enhancer", saved = globalThis.game;
+  const page = (uuid, num, name) => ({ uuid, name, getFlag: (m, k) => (m === MOD && k === "hex" ? { num } : undefined) });
+  const entry = (id, source, pages) => ({ id, getFlag: (m, k) => (m === MOD && k === "hex" ? { crawl: id, source } : undefined), pages: { contents: pages } });
+  const packWr = entry("wr", "gmwr", [page("Compendium.world.sde-journal.JournalEntry.wr.JournalEntryPage.a", "1403", "1403 Thornmere (pack)"), page("Compendium.world.sde-journal.JournalEntry.wr.JournalEntryPage.b", "1404", "1404 Elsewhere")]);
+  const packCs = entry("cs", "cs5", [page("Compendium.world.sde-journal.JournalEntry.cs.JournalEntryPage.x", "1403", "1403 The Wrong Book"), page("Compendium.world.sde-journal.JournalEntry.cs.JournalEntryPage.y", "", "")]);
+  const worldWr = entry("wr", "gmwr", [page("JournalEntry.wr.JournalEntryPage.a", "1403", "1403 Thornmere")]);
+  const pack = { metadata: { packageType: "world", label: "Shadowdark Enhancer — Journals" }, collection: "world.sde-journal", getDocuments: async () => [packWr, packCs] };
+  const wrScene = { getFlag: (_m, key) => (key === "hexMapId" ? "hex-wr" : undefined) };
+  const csScene = { getFlag: (_m, key) => (key === "hexMapId" ? "hex-cs5" : undefined) };
+  globalThis.game = { packs: [pack], journal: { get: (id) => (id === "wr" ? worldWr : null) } };
+  try {
+    assert.deepEqual(await bookKeyedPages(wrScene, 1403), { book: true, imported: true, pages: [{ uuid: "JournalEntry.wr.JournalEntryPage.a", title: "1403 Thornmere" }] },
+      "the world copy answers where the pin step deployed it; the other book's 1403 page and a numberless page stay out");
+    assert.deepEqual(await bookKeyedPages(csScene, 1403), { book: true, imported: true, pages: [{ uuid: "Compendium.world.sde-journal.JournalEntry.cs.JournalEntryPage.x", title: "1403 The Wrong Book" }] },
+      "with no world copy the pack copy answers, and only this book's entry");
+    assert.deepEqual(await bookKeyedPages(wrScene, 1404), { book: true, imported: true, pages: [] }, "an imported crawl with no page for the hex is told apart from no crawl; the world copy stands in for the whole entry, pack-only pages included");
+    globalThis.game.packs = [];
+    assert.deepEqual(await bookKeyedPages(wrScene, 1403), { book: true, imported: false, pages: [] }, "no journals pack reads as nothing imported, not as an untied scene");
+    globalThis.game.packs = [pack];
+    assert.deepEqual(await bookKeyedPages({ getFlag: () => undefined }, 1403), { book: false, imported: false, pages: [] }, "a scene no book claims says so");
+    assert.deepEqual(await bookKeyedPages(wrScene, null), { book: true, imported: true, pages: [] });
+    assert.deepEqual(await bookKeyedPages(wrScene, 9999), { book: true, imported: true, pages: [] }, "a number outside the print is not a missing import");
+  } finally {
+    if (saved === undefined) delete globalThis.game; else globalThis.game = saved;
+  }
+});
+test("one keyed row per document: the pinned page first, then the book's own", () => {
+  assert.deepEqual(mergeKeyedPages([{ uuid: "a", title: "Pinned" }], [{ uuid: "a", title: "Book" }, { uuid: "b", title: "Second" }]),
+    [{ uuid: "a", title: "Pinned" }, { uuid: "b", title: "Second" }]);
+  assert.deepEqual(mergeKeyedPages([], []), []);
+  assert.deepEqual(mergeKeyedPages(undefined, undefined), []);
 });

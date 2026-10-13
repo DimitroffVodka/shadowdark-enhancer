@@ -18,3 +18,6 @@
 #sde-hex-explorer-tip strong { display: block; }
 #sde-hex-explorer-tip.selected { right: 16px; bottom: 90px; pointer-events: auto; }
 #sde-hex-explorer-tip button { display: block; width: 100%; height: auto; min-height: 28px; margin-top: 5px; color: inherit; white-space: normal; }
+
+/* Drop targets in the Hex Data window: a dragged journal, page or table lands in the Links or arrival card. */
+.sde-hex-explorer [data-drop].sde-drag-over { outline: 2px dashed var(--ui-gold); outline-offset: 2px; border-radius: var(--ui-r); }

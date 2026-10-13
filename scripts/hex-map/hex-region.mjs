@@ -117,6 +117,24 @@ export function keyedGround(entries) {
 }
 
 /**
+ * The name the book prints on each keyed row, by hex number: what a hex hover shows on a scene that has no pins
+ * for the pages. First row per number wins, as with the seeds.
+ * @param {Array<JournalEntry|{flags:object}>} entries  crawl entries (hex-commit)
+ * @returns {Map<number, string>}
+ */
+export function keyedNames(entries) {
+  const out = new Map();
+  for (const entry of entries ?? []) {
+    const flag = entry?.getFlag?.(MODULE_ID, HEX_FLAG) ?? entry?.flags?.[MODULE_ID]?.[HEX_FLAG] ?? {};
+    for (const row of flag.keyed ?? []) {
+      const num = hexNum(row?.num), name = String(row?.name ?? "").trim();
+      if (num !== null && name && !out.has(num)) out.set(num, name);
+    }
+  }
+  return out;
+}
+
+/**
  * The region of one hex: its own when it is keyed, else the nearest seed's.
  * Ties go to the lowest seed number, so the same seeds always answer the same.
  * @param {string|number} id  published hex number
@@ -260,24 +278,24 @@ const cssHex = (n) => `#${n.toString(16).padStart(6, "0")}`;
  * @param {{components?:Map<number,number>, fixes?:Map<number,string>,
  *   seeds?:Array<{num:number,region:string}>, shifted?:"odd"|"even", palette?:number[]}} args
  * @returns {{byNum:Map<number,{zone:string, zoneColor:string}>,
- *   via:{gm:number, border:number, nearest:number}, conflicts:string[]}}
+ *   via:{gm:number, border:number, nearest:number}, viaByNum:Map<number,"gm"|"border"|"nearest">, conflicts:string[]}}
  */
 export function hexZones({ components = new Map(), fixes = new Map(), seeds = [], shifted = "odd", palette = REGION_COLORS } = {}) {
-  const via = { gm: 0, border: 0, nearest: 0 };
-  if (!components.size || !seeds.length) return { byNum: new Map(), via, conflicts: [] };
+  const via = { gm: 0, border: 0, nearest: 0 }, viaByNum = new Map();
+  if (!components.size || !seeds.length) return { byNum: new Map(), via, viaByNum, conflicts: [] };
   const { byNum: named, regions } = nameComponents(components, seeds);
   const regionByNum = new Map();
   for (const num of new Set([...components.keys(), ...fixes.keys()])) {
-    let region = fixes.get(num);
-    if (region) via.gm++;
-    else if ((region = named.get(num))) via.border++;
-    else if ((region = nearestRegion(num, seeds, { shifted })?.region)) via.nearest++;
-    if (region) regionByNum.set(num, region);
+    let region = fixes.get(num), how = "gm";
+    if (!region && (region = named.get(num))) how = "border";
+    if (!region && (region = nearestRegion(num, seeds, { shifted })?.region)) how = "nearest";
+    if (!region) continue;
+    via[how]++; viaByNum.set(num, how); regionByNum.set(num, region);
   }
   const colorOf = assignRegionColors(regionByNum, { shifted, palette });
   const byNum = new Map([...regionByNum].map(([num, zone]) => [num, { zone, zoneColor: cssHex(colorOf.get(zone)) }]));
   const conflicts = [...regions.values()].flatMap((r) => r.conflict.map((c) => `${r.region} / ${c}`));
-  return { byNum, via, conflicts };
+  return { byNum, via, viaByNum, conflicts };
 }
 
 /**
