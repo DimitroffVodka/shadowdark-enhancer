@@ -5502,6 +5502,10 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-hex-explorer .hx-art { display: flex; align-items: center; justify-content: center; color: var(--ui-muted); font-size: 22px; }
 .sde-hex-explorer .hx-flags { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
 .sde-hex-explorer .hx-line { display: contents; }
+.sde-hex-explorer .ui-head .ui-stats { flex: 0 1 auto; min-width: 0; }
+.sde-hex-explorer .ui-head .ui-stat { min-width: 0; }
+.sde-hex-explorer .ui-head .ui-value { overflow-wrap: anywhere; }
+.sde-hex-explorer .ui-head-text { flex: 1 1 8rem; }
 .sde-hex-explorer .hx-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 8px; }
 .sde-hex-explorer .ui-card .ui-chip.ui-check { white-space: normal; min-height: 28px; }
 .sde-hex-explorer .sde-hex-explorer-body .ui-card > .ui-h { margin-bottom: 0; }

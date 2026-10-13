@@ -9,6 +9,7 @@ import { decodeFixes, encodeFixes, recordEdits, FIXES_FLAG } from "./tag-correct
 import { disclosure, effectiveDiscovery, withPartyDiscovery } from "./hex-fog-core.mjs";
 import { viewedPartyIds } from "./hex-fog.mjs";
 import { HexTagOverlay, isDoubleClick } from "./tag-overlay.mjs";
+import { hexZonesFor, onHexZonesForgotten } from "../encounter/encounter-terrain.mjs";
 
 const pick = (v, keys) => Object.fromEntries(keys.filter(k => typeof v?.[k] === "string").map(k => [k, v[k]]));
 /** GM hover is player-safe too; GM-private content belongs only in the editor. */
@@ -133,6 +134,33 @@ function atEvent(event) {
   if (!explorerCell(canvas.scene, offset)) return null;
   return { scene: canvas.scene, offset, x: event.client?.x ?? event.global.x, y: event.client?.y ?? event.global.y };
 }
+/**
+ * A hex's region as the Show regions overlay and the encounter roll read it (hexZonesFor), or null when they find
+ * none. `estimated` marks the nearest-keyed-hex answer, which the book never printed.
+ * @param {{byNum?:Map<number,{zone:string}>, viaByNum?:Map<number,string>}|null} found
+ */
+export function regionLine(found, num) {
+  const zone = Number.isInteger(num) ? found?.byNum?.get(num)?.zone : null;
+  return zone ? { zone, estimated: found.viaByNum?.get(num) === "nearest" } : null;
+}
+export const regionText = (region) => region.estimated ? game.i18n.format("SDE.hexExplorer.regionEstimated", { region: region.zone }) : region.zone;
+// The hover fires on every pointer move, so it reads this resolved copy and never the lookup itself.
+const regionsByScene = new Map(), regionLoads = new Set();
+let regionEpoch = 0;
+function loadRegions(scene) {
+  if (regionLoads.has(scene.id)) return;
+  regionLoads.add(scene.id);
+  const epoch = regionEpoch;
+  // A failed read is kept as "no regions" until the next change, so a broken pack is not retried on every move.
+  hexZonesFor(scene).catch(() => ({})).then((found) => { if (epoch === regionEpoch) regionsByScene.set(scene.id, found); })
+    .finally(() => { regionLoads.delete(scene.id); refreshHexExplorer(); });
+}
+/** GM only: a player client computes nothing here and shows no region. */
+function regionAt(scene, num) {
+  if (!game.user?.isGM || !Number.isInteger(num)) return null;
+  if (!regionsByScene.has(scene.id)) { loadRegions(scene); return null; }
+  return regionLine(regionsByScene.get(scene.id), num);
+}
 function line(parent, text, tag = "div") {
   const el = document.createElement(tag); el.textContent = text; parent.append(el); return el;
 }
@@ -150,11 +178,12 @@ export function refreshHexExplorer() {
   tip ??= document.createElement("aside");
   tip.id = "sde-hex-explorer-tip"; tip.className = selected ? "selected" : "";
   tip.replaceChildren(); document.body.append(tip);
-  const num = hexNumberAt(cell.offset, cell.scene);
+  const num = hexNumberAt(cell.offset, cell.scene), region = regionAt(cell.scene, num);
   line(tip, num === null ? game.i18n.format("SDE.hexExplorer.offset", cell.offset) : String(num).padStart(4, "0"), "strong");
   if (view) {
     if (view.title) line(tip, view.title, "strong");
     line(tip, view.terrain ?? t("SDE.hexExplorer.unknown"));
+    if (region) line(tip, regionText(region));
     for (const feature of view.features) line(tip, feature.name || feature.type);
     for (const note of view.notes) line(tip, note.text ?? "");
     for (const link of view.links) {
@@ -169,8 +198,10 @@ export function refreshHexExplorer() {
       } else line(tip, link.label || link.uuid);
     }
   // The GM is not a player: an undiscovered hex still shows its real terrain.
-  } else if (game.user.isGM) line(tip, HexRecords.read(cell.offset, cell.scene)?.terrain ?? t("SDE.hexExplorer.unknown"));
-  else line(tip, t("SDE.hexExplorer.concealed"));
+  } else if (game.user.isGM) {
+    line(tip, HexRecords.read(cell.offset, cell.scene)?.terrain ?? t("SDE.hexExplorer.unknown"));
+    if (region) line(tip, regionText(region));
+  } else line(tip, t("SDE.hexExplorer.concealed"));
   if (selected) {
     const close = line(tip, t("SDE.hexExplorer.close"), "button"); close.type = "button";
     close.addEventListener("click", () => { selected = null; hovered = null; refreshHexExplorer(); });
@@ -221,6 +252,8 @@ export function registerHexExplorer() {
     view = canvas.app.canvas ?? canvas.app.view; view?.addEventListener("pointerleave", leave);
   });
   Hooks.on("canvasTearDown", clear);
+  // A crawl entry, a scene or a region fix changed: the copies are stale, and the next draw reads them again.
+  onHexZonesForgotten(() => { regionEpoch++; regionsByScene.clear(); refreshHexExplorer(); });
   Hooks.on("updateScene", refreshHexExplorer);
   Hooks.on("createJournalEntry", refreshHexExplorer);
   Hooks.on("updateJournalEntry", refreshHexExplorer);

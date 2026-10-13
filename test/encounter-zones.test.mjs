@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   parseZoneTableName, zoneColumnKeys, zoneCandidates, pickZoneTable,
   regionRowRanges, inNorthHalf, hexTableUuid, worldClock, isNight, DUSK, DAWN,
-  resolveHexTable, tableForHex, tableForCheck, forgetHexZones,
+  resolveHexTable, tableForHex, tableForCheck, forgetHexZones, hexZonesFor, onHexZonesForgotten,
 } from "../scripts/encounter/encounter-terrain.mjs";
 import { emptyState, readCell } from "../scripts/hex-map/tag-store.mjs";
 import { SYNODIC_DAYS } from "../scripts/time/time-core.mjs";
@@ -282,6 +282,21 @@ test("the regions are read once, and again after a crawl entry or the scene's ow
   fire("updateScene", w.scene, { flags: { "shadowdark-enhancer": { hexRegionFixes: {} } } });
   await resolveHexTable({ num: 1510, terrain: "forest" }, { scene: w.scene });
   assert.equal(w.reads, 3, "a change to the module's scene flags reads them again");
+});
+
+test("the cached regions say how each hex was named, and a change announces itself until stopped", async () => {
+  const w = world();
+  const found = await hexZonesFor(w.scene);
+  assert.equal(found.byNum.get(1510).zone, "Grey Moor");
+  assert.equal(found.viaByNum.get(1510), "border");
+  let heard = 0;
+  const stop = onHexZonesForgotten(() => heard++);
+  fire("updateJournalEntry");
+  fire("updateScene", w.scene, { environment: {} });
+  assert.equal(heard, 1, "fog and weather writes keep the regions and say nothing");
+  stop();
+  fire("updateJournalEntry");
+  assert.equal(heard, 1);
 });
 
 test("tableForHex resolves to the table document", async () => {
