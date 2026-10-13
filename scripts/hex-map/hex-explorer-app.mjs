@@ -1,6 +1,6 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { HexRecords, sceneRef, offsetKey } from "./hex-records.mjs";
-import { HexExplorer, explorerCell, encounterReadout } from "./hex-explorer.mjs";
+import { HexExplorer, explorerCell, encounterReadout, droppedLink, playerOpenable } from "./hex-explorer.mjs";
 import { viewedPartyIds } from "./hex-fog.mjs";
 import { effectiveDiscovery } from "./hex-fog-core.mjs";
 import { FEATURES, decodeTags } from "./tag-store.mjs";
@@ -60,6 +60,7 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       lines: FEATURES.filter(type => record.features?.some(f => f.type === type)),
       features: (record.features ?? []).map((f, index) => ({ ...f, index })).filter(f => !FEATURES.includes(f.type)),
       notes: (record.notes ?? []).map((n, index) => ({ ...n, index })), links: (record.links ?? []).map((l, index) => ({ ...l, index })),
+      rollTable: record.rollTable ?? "", rollTableChance: record.rollTableChance ?? 100, rollTableFirstOnly: !!record.rollTableFirstOnly,
       revealed: !!seen.revealed, visited: !!seen.visited,
       location: seen.locationRevealed === undefined ? "auto" : seen.locationRevealed ? "show" : "hide",
     };
@@ -75,7 +76,10 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const here = questsAtHex(all, { num: record.num, sceneUuid: this.scene.uuid });
     const pad = n => String(n).padStart(4, "0"), row = q => ({ uuid: q.uuid, name: q.name, status: t(STATUS_LABELS[q.status]) });
     // The book's page for a keyed hex comes from the map's pin on it, not from the stored cell, so it is shown but never saved.
-    return { ...d, keyed: record.keyed ?? [], questSection: numbered, quests: here.map(row),
+    // A disclosed link whose document players cannot open is what the row's warning calls out; the tick raises it on save.
+    const links = await Promise.all(d.links.map(async link => ({ ...link, warn: !!link.visible && !playerOpenable(await fromUuid(link.uuid).catch(() => null)) })));
+    const arrivalName = d.rollTable ? (await fromUuid(d.rollTable).catch(() => null))?.name ?? "" : "";
+    return { ...d, links, arrivalName, keyed: record.keyed ?? [], questSection: numbered, quests: here.map(row),
       // A quest already tied to another hex says so, so moving it is a choice and not a surprise.
       questChoices: all.filter(q => !here.includes(q)).map(q => ({ ...row(q), where: q.hex === null ? "" : ` → ${pad(q.hex)}` })),
       rootId: this.id, encounter: { ...enc, note: game.i18n.format(ENCOUNTER_NOTES[enc.state], enc) }, isGM: true, saving: this.saving, sceneName: this.scene.name,
@@ -102,6 +106,32 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     super._onRender(context, options);
     const select = this.element.querySelector('select[name="terrain"]'), other = this.element.querySelector('[name="terrainOther"]');
     select?.addEventListener("change", () => { other.hidden = select.value !== OTHER; if (!other.hidden) other.focus(); });
+    const zone = (selector, onDrop) => {
+      const el = this.element.querySelector(selector);
+      if (!el) return;
+      el.addEventListener("dragover", event => { event.preventDefault(); el.classList.add("sde-drag-over"); });
+      el.addEventListener("dragleave", () => el.classList.remove("sde-drag-over"));
+      el.addEventListener("drop", event => { event.preventDefault(); el.classList.remove("sde-drag-over"); void onDrop(event); });
+    };
+    zone('[data-drop="links"]', event => this._dropLink(this._dropped(event)));
+    zone('[data-drop="arrival"]', event => this._dropTable(this._dropped(event)));
+    // Ticking Disclosed decides whether the "players cannot open it" warning applies: draw again, keeping the draft.
+    for (const box of this.element.querySelectorAll('[data-row="link"] input[data-field="visible"]')) box.addEventListener("change", () => { this._capture(); this.render(); });
+  }
+  /** The drag payload; a drag that is not a document (a file, a text selection) has none. */
+  _dropped(event) {
+    try { return foundry.applications.ux.TextEditor.implementation.getDragEventData(event); } catch { return null; }
+  }
+  async _dropLink(data) {
+    const doc = data?.uuid ? await fromUuid(data.uuid).catch(() => null) : null;
+    const row = droppedLink(doc);
+    if (!row) { ui.notifications?.warn(game.i18n.localize("SDE.hexExplorer.dropRefused")); return; }
+    this._capture(); this.draft.links.push(row); this.render();
+  }
+  async _dropTable(data) {
+    const doc = data?.uuid ? await fromUuid(data.uuid).catch(() => null) : null;
+    if (doc?.documentName !== "RollTable") { ui.notifications?.warn(game.i18n.localize("SDE.hexExplorer.dropTableRefused")); return; }
+    this._capture(); this.draft.rollTable = doc.uuid; this.render();
   }
   _capture() {
     if (!this.element || !this.draft) return;
@@ -115,7 +145,8 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       })) };
     });
     this.draft = { terrain: value("terrain") === OTHER ? value("terrainOther") : value("terrain"), title: value("title"), lines: FEATURES.filter(type => checked(type)),
-      features: collection("feature", ["type", "name", "uuid", "discovered"]), notes: collection("note", ["text", "visible", "location"]), links: collection("link", ["uuid", "label", "visible"]),
+      features: collection("feature", ["type", "name", "uuid", "discovered"]), notes: collection("note", ["text", "visible", "location"]), links: collection("link", ["uuid", "label", "visible", "share"]),
+      rollTable: value("rollTable").trim(), rollTableChance: value("rollTableChance"), rollTableFirstOnly: checked("rollTableFirstOnly"),
       revealed: checked("revealed"), visited: checked("visited"), location: value("location") };
   }
   async _save() {

@@ -46,6 +46,16 @@
       </div>
     </section>
 
+    <section class="ui-card" data-drop="arrival">
+      <h3 class="ui-h">{{localize "SDE.hexExplorer.arrival"}}</h3>
+      <label class="ui-field"><span class="ui-label">{{localize "SDE.hexExplorer.arrivalTable"}}</span><input name="rollTable" value="{{rollTable}}" placeholder="{{localize 'SDE.hexExplorer.arrivalDrop'}}"></label>
+      {{#if arrivalName}}<p class="ui-muted">{{arrivalName}}</p>{{/if}}
+      <div class="ui-inline">
+        <label class="ui-field"><span class="ui-label">{{localize "SDE.hexExplorer.arrivalChance"}}</span><input type="number" name="rollTableChance" min="0" max="100" step="5" value="{{rollTableChance}}"></label>
+        <label class="ui-chip ui-check"><input type="checkbox" name="rollTableFirstOnly" {{checked rollTableFirstOnly}}> {{localize "SDE.hexExplorer.arrivalFirstOnly"}}</label>
+      </div>
+    </section>
+
     <section class="ui-card">
       <h3 class="ui-h">{{localize "SDE.hexExplorer.lines"}}</h3>
       <div class="hx-flags">
@@ -84,16 +94,20 @@
       <div><button type="button" class="ui-btn" data-action="addNote"><i class="fa-solid fa-plus"></i> {{localize "SDE.hexExplorer.addNote"}}</button></div>
     </section>
 
-    <section class="ui-card">
+    <section class="ui-card" data-drop="links">
       <h3 class="ui-h">{{localize "SDE.hexExplorer.links"}}</h3>
       {{#each links}}<div class="ui-card raised" data-row="link" data-index="{{index}}">
         <label class="ui-field"><span class="ui-label">{{localize "SDE.hexExplorer.name"}}</span><input data-field="label" value="{{label}}"></label>
         <label class="ui-field"><span class="ui-label">{{localize "SDE.hexExplorer.uuid"}}</span><input data-field="uuid" value="{{uuid}}"></label>
         <div class="ui-inline">
           <label class="ui-chip ui-check"><input type="checkbox" data-field="visible" {{checked visible}}> {{localize "SDE.hexExplorer.disclosed"}}</label>
+          <label class="ui-chip ui-check"><input type="checkbox" data-field="share" {{checked share}}> {{localize "SDE.hexExplorer.linkShare"}}</label>
+          <button type="button" class="ui-icon" data-action="openPage" data-uuid="{{uuid}}" title="{{localize 'SDE.hexExplorer.openLink'}}" aria-label="{{localize 'SDE.hexExplorer.openLink'}}"><i class="fa-solid fa-book-open"></i></button>
           <button type="button" class="ui-icon danger ui-right" data-action="remove" title="{{localize 'SDE.hexExplorer.remove'}}" aria-label="{{localize 'SDE.hexExplorer.remove'}}"><i class="fa-solid fa-trash"></i></button>
         </div>
+        {{#if warn}}<div class="ui-note warn"><i class="fa-solid fa-triangle-exclamation"></i> {{localize "SDE.hexExplorer.linkWarn"}}</div>{{/if}}
       </div>{{/each}}
+      <p class="ui-muted">{{localize "SDE.hexExplorer.dropLink"}}</p>
       <div><button type="button" class="ui-btn" data-action="addLink"><i class="fa-solid fa-plus"></i> {{localize "SDE.hexExplorer.addLink"}}</button></div>
     </section>
 

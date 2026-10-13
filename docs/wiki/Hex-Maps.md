@@ -49,6 +49,20 @@ region's printed column for the terrain, else the table mapped to the terrain,
 else the active table), with **Roll** and an open-the-table button. It reads the
 saved cell, so save a terrain change first. Players never see it.
 
+Its **Rolls when the party arrives** card sets what a committed entry rolls in
+this hex: drag a roll table in (or paste its UUID), a chance per cent, and
+**First entry only**. It writes the per-hex fields the arrival check already
+reads, such as an Extras import's.
+
+**Journal and roll-table links** take a drop too: a journal entry, journal page
+or roll table dragged from the sidebar fills the row's name and UUID (the UUID
+box stays for pasting). Each row has an open button and **Also give players
+Observer access**, which Save applies by raising the linked document's
+ownership to at least Observer — it never lowers a level, a page's ticket is
+its journal, and the module's own private hex records are refused. A link that
+is disclosed while players cannot open it is called out under the row; a
+player's click on one they cannot open is answered with a notice, not silence.
+
 One native fog overlay separates revealed terrain from visited cells. A visible
 mountain does not disclose its dungeon. Committed selected-Party travel visits;
 dawn reveals terrain using native grid, time, weather and imported visibility/
