@@ -314,8 +314,8 @@ class HubManageMethods {
   async _prepareManageTree() {
     if (!this._manageTreeCache) {
       // Ask "which books are actually there?" before anything below asks —
-      // resolveSourcePdf drops a default the HEAD check found missing, and the
-      // tree's Grab gates and batch counts all read through it.
+      // resolveSourcePdf drops a default the existence check found missing,
+      // and the tree's Grab gates and batch counts all read through it.
       await listSourcePdfs().catch(() => {});
       this._manageTreeCache = await buildManageTree().catch((err) => {
         console.error("shadowdark-enhancer | buildManageTree failed:", err);
