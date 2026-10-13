@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { explorerView, planExplorerEdit, explorerClick, encounterReadout, ownsHexData, hoverHead } from "../scripts/hex-map/hex-explorer.mjs";
+import { explorerView, planExplorerEdit, explorerClick, encounterReadout, ownsHexData, hoverHead, playerOpenable, canOpenLink, raisedOwnership, applyLinkShares, droppedLink, arrivalFields, mergedCell } from "../scripts/hex-map/hex-explorer.mjs";
+import { arrivalDue } from "../scripts/hex-map/hex-fog-core.mjs";
 const record = { sceneUuid: "Scene.a", offset: { i: -2, j: 3 }, num: 101, terrain: "forest", title: "Cave", features: [{ type: "river", discovered: true, secret: "private" }, { type: "dungeon", name: "Secret cave", discovered: true, custom: { x: 1 } }], notes: [{ text: "Bridge", visible: true }, { text: "GM SECRET", visible: false }], links: [{ uuid: "JournalEntry.a", label: "Clue", visible: true }], keyed: [{ title: "Keyed cave", uuid: "JournalEntry.a.JournalEntryPage.b" }], discovery: { revealed: true, visited: false } };
 test("tooltip discloses only safe terrain/public notes until location disclosure", () => {
   const view = explorerView(record, true);
@@ -112,4 +113,158 @@ test("a keyed hex's hover line is the location's name: the GM always, marked unt
     "found but unnamed keeps today's word");
   assert.deepEqual(hoverHead(explorerView(record, false), null, true), { terrain: "forest" }, "a hex that is not keyed is unchanged");
   assert.deepEqual(hoverHead(null, { ...record, title: "Cave" }, false), { terrain: "forest" });
+});
+test("a link's player warning reads the default role, walks a page's INHERIT to its journal, and asks a compendium for its policy", () => {
+  const journal = level => ({ documentName: "JournalEntry", ownership: { default: level } });
+  assert.equal(playerOpenable(null), false);
+  assert.equal(playerOpenable(journal(0)), false);
+  assert.equal(playerOpenable(journal(2)), true);
+  assert.equal(playerOpenable(journal(3)), true);
+  assert.equal(playerOpenable({ documentName: "JournalEntry" }), false);
+  const page = (level, parent) => ({ documentName: "JournalEntryPage", ownership: { default: level }, parent });
+  assert.equal(playerOpenable(page(-1, journal(2))), true, "an inheriting page follows its journal");
+  assert.equal(playerOpenable(page(-1, journal(0))), false);
+  assert.equal(playerOpenable(page(0, journal(2))), false, "an explicitly locked page stays locked");
+  assert.equal(playerOpenable({ documentName: "JournalEntry", pack: "world.p", ownership: { default: 0 }, compendium: { ownership: { PLAYER: "OBSERVER" } } }), true);
+  assert.equal(playerOpenable({ documentName: "JournalEntry", pack: "world.p", ownership: { default: 3 }, compendium: { ownership: { PLAYER: "NONE" } } }), false);
+});
+// Foundry v14's Document#getUserLevel, copied from app/common/abstract/document.mjs: the walk the real game does.
+const coreLevel = (doc, userId) => {
+  const level = doc.ownership[userId] ?? doc.ownership.default ?? 0;
+  if (level !== -1) return level;
+  return doc.parent ? coreLevel(doc.parent, userId) : 0;
+};
+/** A world document as the real game holds it, updatable in place; `veto` makes update resolve undefined, unchanged. */
+const worldDoc = (documentName, ownership, parent = null, extra = {}) => {
+  const doc = { documentName, ownership, parent, uuid: `${documentName}.${Math.random()}`, updates: 0, name: documentName, ...extra };
+  doc.testUserPermission = (user, level) => coreLevel(doc, user.id) >= { OBSERVER: 2, OWNER: 3 }[level];
+  doc.update = async data => { doc.updates++; if (doc.veto) return undefined; doc.ownership = structuredClone(data.ownership); return doc; };
+  return doc;
+};
+const asPlayer = { id: "player" };
+test("a page's link is judged by the page's own effective level, as core walks it, not by demanding Observer on its journal", () => {
+  const journal = level => worldDoc("JournalEntry", { default: level });
+  for (const [name, doc] of [
+    ["an inheriting page in an Observer journal", worldDoc("JournalEntryPage", { default: -1 }, journal(2))],
+    ["an inheriting page in a locked journal", worldDoc("JournalEntryPage", { default: -1 }, journal(0))],
+    ["a locked page in an Observer journal", worldDoc("JournalEntryPage", { default: 0 }, journal(2))],
+    ["an explicit-Observer page in a locked journal", worldDoc("JournalEntryPage", { default: 2 }, journal(0))],
+    ["a whole journal at Limited", journal(1)],
+  ]) {
+    const real = coreLevel(doc, asPlayer.id) >= 2;
+    assert.equal(canOpenLink(doc, asPlayer), real, `canOpenLink: ${name}`);
+    assert.equal(playerOpenable(doc), real, `playerOpenable: ${name}`);
+  }
+  assert.equal(canOpenLink(null, asPlayer), false);
+  assert.equal(canOpenLink(worldDoc("RollTable", { default: 3 }), null), false);
+});
+test("a share tick raises the default and inheriting entries to observer, never lowers one, and leaves a deliberate per-user lock alone", () => {
+  assert.deepEqual(raisedOwnership({ default: 0 }), { default: 2 });
+  assert.deepEqual(raisedOwnership({ default: -1 }), { default: 2 });
+  assert.deepEqual(raisedOwnership({ default: 3, playerA: 1 }), { default: 3, playerA: 1 });
+  assert.deepEqual(raisedOwnership({ default: 0, excludedPlayer: 0 }), { default: 2, excludedPlayer: 0 });
+  assert.deepEqual(raisedOwnership({ default: 0, playerA: -1 }), { default: 2, playerA: 2 });
+  assert.deepEqual(raisedOwnership({}), { default: 2 });
+  assert.deepEqual(raisedOwnership(), { default: 2 });
+});
+/** Run applyLinkShares over one document and report what the GM would have been told. */
+async function share(doc) {
+  const notices = [], saved = { fromUuid: globalThis.fromUuid, game: globalThis.game, ui: globalThis.ui };
+  globalThis.fromUuid = async () => doc;
+  globalThis.game = { i18n: { format: key => key } };
+  globalThis.ui = { notifications: { warn: key => notices.push(key) } };
+  try { await applyLinkShares([{ uuid: doc.uuid, label: "L", share: true }]); }
+  finally { Object.assign(globalThis, saved); }
+  return notices;
+}
+test("sharing one page of a 270-page journal makes exactly that page observable and leaves the journal alone", async () => {
+  const journal = worldDoc("JournalEntry", { default: 0 });
+  const pages = Array.from({ length: 270 }, () => worldDoc("JournalEntryPage", { default: -1 }, journal));
+  const seen = () => pages.filter(page => coreLevel(page, asPlayer.id) >= 2).length;
+  assert.equal(seen(), 0);
+  assert.deepEqual(await share(pages[41]), []);
+  assert.equal(seen(), 1);
+  assert.equal(coreLevel(pages[41], asPlayer.id), 2);
+  assert.deepEqual(journal.ownership, { default: 0 });
+  assert.equal(journal.updates, 0);
+  assert.equal(pages.filter(page => page.updates).length, 1);
+});
+test("a page the GM locked at its own default becomes observable when its tick is saved, even in an Observer journal", async () => {
+  const journal = worldDoc("JournalEntry", { default: 2 });
+  const page = worldDoc("JournalEntryPage", { default: 0 }, journal);
+  assert.equal(coreLevel(page, asPlayer.id), 0);
+  assert.deepEqual(await share(page), []);
+  assert.equal(coreLevel(page, asPlayer.id), 2);
+  assert.deepEqual(journal.ownership, { default: 2 });
+});
+test("a tick never lowers: a page already open to players is not written, and a whole journal link raises the journal itself", async () => {
+  const owned = worldDoc("JournalEntry", { default: 3 });
+  const inheriting = worldDoc("JournalEntryPage", { default: -1 }, owned);
+  assert.deepEqual(await share(inheriting), []);
+  assert.equal(inheriting.updates, 0);
+  assert.equal(coreLevel(inheriting, asPlayer.id), 3);
+  const entry = worldDoc("JournalEntry", { default: 0, excludedPlayer: 0 });
+  assert.deepEqual(await share(entry), []);
+  assert.deepEqual(entry.ownership, { default: 2, excludedPlayer: 0 });
+});
+test("a share that changes nothing for players is reported: a vetoed update, a compendium copy, and the module's private store", async () => {
+  const vetoed = worldDoc("RollTable", { default: 0 }, null, { veto: true });
+  assert.deepEqual(await share(vetoed), ["SDE.hexExplorer.shareFailed"]);
+  const pack = worldDoc("JournalEntry", { default: 0 }, null, { pack: "world.book", compendium: { ownership: { PLAYER: "NONE" } } });
+  assert.deepEqual(await share(pack), ["SDE.hexExplorer.shareFailed"]);
+  const store = worldDoc("JournalEntry", { default: 0 }, null, { flags: { "shadowdark-enhancer": { hexRecords: {} } } });
+  const storePage = worldDoc("JournalEntryPage", { default: -1 }, store);
+  assert.deepEqual(await share(storePage), ["SDE.hexExplorer.sharePrivate"]);
+  assert.equal(storePage.updates + store.updates, 0);
+});
+test("a drop makes a link row for a journal entry, journal page or roll table, and nothing else", () => {
+  const doc = (documentName, name = "Doc") => ({ documentName, name, uuid: `${documentName}.x` });
+  assert.deepEqual(droppedLink(doc("JournalEntry")), { index: null, uuid: "JournalEntry.x", label: "Doc", visible: false });
+  assert.equal(droppedLink(doc("JournalEntryPage")).uuid, "JournalEntryPage.x");
+  assert.equal(droppedLink(doc("RollTable")).uuid, "RollTable.x");
+  assert.equal(droppedLink(doc("Actor")), null);
+  assert.equal(droppedLink(doc("Item")), null);
+  assert.equal(droppedLink({ documentName: "RollTable", name: "T" }), null, "no uuid, no row");
+  assert.equal(droppedLink(null), null);
+});
+test("the arrival block writes the trio, rounds the chance, and a cleared table clears all three", () => {
+  assert.deepEqual(arrivalFields({ rollTable: "RollTable.t", rollTableChance: "75", rollTableFirstOnly: true }),
+    { rollTable: "RollTable.t", rollTableChance: 75, rollTableFirstOnly: true });
+  assert.equal(arrivalFields({ rollTable: "RollTable.t", rollTableChance: "12.6" }).rollTableChance, 13);
+  assert.equal(arrivalFields({ rollTable: "RollTable.t", rollTableChance: "" }).rollTableChance, 100, "an empty box means every entry");
+  assert.equal(arrivalFields({ rollTable: "RollTable.t", rollTableChance: "abc" }).rollTableChance, 100);
+  assert.equal(arrivalFields({ rollTable: "RollTable.t", rollTableChance: "500" }).rollTableChance, 100);
+  assert.equal(arrivalFields({ rollTable: "RollTable.t", rollTableChance: "-5" }).rollTableChance, 0);
+  const cleared = arrivalFields({ rollTable: "  " });
+  assert.ok(["rollTable", "rollTableChance", "rollTableFirstOnly"].every(key => Object.hasOwn(cleared, key) && cleared[key] === undefined));
+  assert.deepEqual(arrivalFields({}), {}, "an input that never mentions the block leaves the stored fields alone");
+});
+test("imported arrival fields survive a save, a cleared table removes them, and the share tick is a save action, not stored state", () => {
+  const stored = { rollTable: "RollTable.t", rollTableChance: 40, rollTableFirstOnly: true, archive: { keep: true } };
+  const r = { ...record, ...stored };
+  // The window always carries the block, so a save writes back exactly what it shows — imported values included.
+  const shown = { ...input, rollTable: "RollTable.t", rollTableChance: "40", rollTableFirstOnly: true };
+  const kept = mergedCell(stored, planExplorerEdit(r, shown, structuredClone(flag)).patch);
+  assert.equal(kept.rollTable, "RollTable.t"); assert.equal(kept.rollTableChance, 40); assert.equal(kept.rollTableFirstOnly, true);
+  assert.deepEqual(kept.archive, { keep: true }, "fields outside the window's block are kept");
+  const cleared = mergedCell(stored, planExplorerEdit(r, { ...shown, rollTable: "", rollTableChance: "", rollTableFirstOnly: false }, structuredClone(flag)).patch);
+  assert.ok(!Object.hasOwn(cleared, "rollTable") && !Object.hasOwn(cleared, "rollTableChance") && !Object.hasOwn(cleared, "rollTableFirstOnly"));
+  assert.deepEqual(cleared.archive, { keep: true });
+  const shared = planExplorerEdit(r, { ...input, links: [{ index: 0, uuid: "JournalEntry.a", label: "Clue", visible: true, share: true }] }, structuredClone(flag));
+  assert.equal(shared.patch.links[0].visible, true);
+  assert.ok(!Object.hasOwn(shared.patch.links[0], "share"), "the tick is applied on save, never stored on the row");
+});
+test("the arrival fields a save writes are the ones a committed arrival reads", () => {
+  const cell = mergedCell({}, planExplorerEdit({ ...record, rollTable: "" }, { ...input, rollTable: "RollTable.t", rollTableChance: "100", rollTableFirstOnly: true }, structuredClone(flag)).patch);
+  assert.equal(cell.rollTable, "RollTable.t");
+  assert.equal(arrivalDue(cell, { entered: true }), true);
+  assert.equal(arrivalDue({ ...cell, arrivalRolled: true }, { entered: true }), false);
+  assert.equal(arrivalDue({ ...cell, arrivalRolledBy: ["A"] }, { entered: true, partyId: "A" }), false, "first entry only draws once for that party");
+  assert.equal(arrivalDue({ ...cell, arrivalRolledBy: ["A"] }, { entered: true, partyId: "B" }), true, "and still draws for another party");
+});
+test("a manual link to a document the keyed pages already name shows once", () => {
+  const links = [{ uuid: "JournalEntry.a.JournalEntryPage.b", label: "My label", visible: true }, { uuid: "JournalEntry.b", label: "Other", visible: true }];
+  const view = explorerView({ ...record, discovery: { revealed: true, visited: true }, links }, true);
+  assert.deepEqual(view.links, [{ uuid: "JournalEntry.b", label: "Other" }, { uuid: "JournalEntry.a.JournalEntryPage.b", label: "Keyed cave" }]);
+  assert.equal(JSON.stringify(view.links).includes("My label"), false);
 });

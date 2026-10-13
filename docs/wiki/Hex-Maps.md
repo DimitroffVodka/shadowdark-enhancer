@@ -39,7 +39,23 @@ book's row is never used. With Player view on, and for a player, the name appear
 once the location is found, and an unfound location never prints a tag word such as
 keyed_location. Players read the name from the copy the GM publishes for them, so a
 name appears there the next time it is published: a reveal, a tag edit or a change of
-roster. Pins, token drags and long-press pings retain their handlers.
+roster. With no pin at all, Hex Data still lists the page: it
+goes from the scene to its book — the map id the flow wrote, or, for a painted copy,
+the bounds its tags carry — to that book's crawl entries (the copy deployed into the
+world where the pin step placed one, else the pack copy), and to the pages numbered
+for this hex. Another book's same-numbered page never appears. A hex of an imported
+book that is simply not keyed shows no section, as before; when no crawl of the
+book is imported (or the scene is tied to no book) the section says why (*No key
+locations imported for this book* or *This scene is not tied to a book*) instead of
+vanishing. Players are unchanged: they still
+reach a page only through a pin, and only with Observer access. Pins, token drags
+and long-press pings retain their handlers.
+The header wears the hex's own art when there is one: a baked map's sprite for that
+hex, else the tile its number is painted with — the **Tile art** manifest you loaded,
+or the table shipped for the Western Reaches print. Pressing it opens Foundry's image
+pop-out, whose eye control shares the picture with your players. A hex with no art, or
+whose file is gone (Extras uninstalled), keeps the plain hexagon; no art is uploaded,
+and the players' hover never grows a picture.
 
 The window also has a **Quests here** card on a numbered hex: the quests tied to
 this hex, each with a button to open it and one to unlink it, and a picker of
@@ -55,6 +71,24 @@ wandering check on this hex would roll now, the same one the check picks (its
 region's printed column for the terrain, else the table mapped to the terrain,
 else the active table), with **Roll** and an open-the-table button. It reads the
 saved cell, so save a terrain change first. Players never see it.
+
+Its **Rolls when the party arrives** card sets what a committed entry rolls in
+this hex: drag a roll table in (or paste its UUID), a chance per cent, and
+**First entry only**. It writes the per-hex fields the arrival check already
+reads, such as an Extras import's.
+
+**Journal and roll-table links** take a drop too: a journal entry, journal page
+or roll table dragged from the sidebar fills the row's name and UUID (the UUID
+box stays for pasting). Each row has an open button and **Also give players
+Observer access**, which Save applies by raising the linked document's
+ownership to at least Observer — it raises only the document's own default
+and its inheriting entries, and never lowers a per-user restriction on it (a
+player who owns the journal through their own entry will see a page that
+inherits at Observer once it is shared), a page's ticket is the page itself
+(its journal and the journal's other pages are left as they were), and the
+module's own private hex records are refused. A link that
+is disclosed while players cannot open it is called out under the row; a
+player's click on one they cannot open is answered with a notice, not silence.
 
 One native fog overlay separates revealed terrain from visited cells. A visible
 mountain does not disclose its dungeon. Committed selected-Party travel visits;
