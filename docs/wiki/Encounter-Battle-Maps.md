@@ -5,13 +5,14 @@
 On the hex map the party is one token on a six-mile hex, so a travel encounter
 has nowhere to be fought. **Battle map** takes the encounter to a real battle map
 for the terrain the party is in, with the party and the monsters from the roll
-already standing on it, and brings the table over when you are ready.
+already standing on it, and brings the table over when you are ready. You can
+also open one with no encounter at all, from the Tools panel.
 
 ---
 
 ## The buttons
 
-A GM gets **Battle map** in three places:
+A GM gets **Battle map** in four places:
 
 - the **Encounter** panel that drops from the clock bar when a travel check hits
   (see [Clock and Calendar](Clock-and-Calendar.md#encounters-while-travelling-gm)).
@@ -23,9 +24,13 @@ A GM gets **Battle map** in three places:
   panel. A row with no creature in it (a line of text) has no map icon;
 - the encounter card posted to chat. The button is the GM's; players do not see it.
   The card has **Battle map** only: to choose the map yourself, use the Encounter
-  panel or the Random Encounter window.
+  panel or the Random Encounter window;
+- **Tools** on the Crawl Bar, under **At the table**, with no encounter needed. It
+  always opens the picker, then puts the party alone on the map you chose, where it
+  stands; you drag the foes on yourself. Keep this battle saves it under the map's
+  name.
 
-**Battle map** opens the default map for the party's terrain (see
+On an encounter, **Battle map** opens the default map for the party's terrain (see
 [A default for each terrain](#a-default-for-each-terrain)). **Choose map…** opens
 the picker (see [The picker](#the-picker)) so you choose the map yourself, or any
 scene in your world. **Battle map** opens the picker too when the module does not

@@ -630,6 +630,8 @@
   "SDE.crawlBar.toolsMenu.setUp": "Set up",
   "SDE.crawlBar.toolsMenu.startCrawl": "Start a crawl",
   "SDE.crawlBar.toolsMenu.rollTables": "Roll tables",
+  "SDE.crawlBar.toolsMenu.battleMap": "Battle map",
+  "SDE.crawlBar.toolsMenu.battleMapTip": "Choose a battle map and put the party on it, no encounter needed; add the foes yourself",
   "SDE.crawlBar.toolsMenu.loot": "Loot",
   "SDE.crawlBar.toolsMenu.magicItems": "Magic items",
   "SDE.crawlBar.toolsMenu.merchant": "Merchant",
