@@ -130,3 +130,17 @@ test("a finished and reported outing offers a new outing only, not a Resume that
   assert.equal(await resume("effects", undefined), true);
   assert.equal(await resume("setup", undefined), false);
 });
+
+test("each benefit and mishap of an expanded result carries the d100, the row's modifier and the number read", async () => {
+  const party = world([true, false, false], 7);
+  // The state read is memoized on the stored flag's identity (a real write replaces it), so a change swaps in a fresh copy.
+  const render = async change => { change(party.flags[M].carousing.current); party.flags[M].carousing = structuredClone(party.flags[M].carousing); return (await new CarousingApp(party)._prepareContext()).rows[0]; };
+  const row = await render(night => { night.results = { a: { mode: "expanded", total: 1, xp: 2, modifier: -20, benefits: [{ type: "benefit", dice: 70, roll: 50, text: "Rumor" }], mishaps: [{ type: "mishap", dice: 6, roll: 1, text: "Jail" }, { type: "mishap", roll: 3, text: "Old" }] } }; });
+  assert.deepEqual(row.result.mishaps.map(e => e.note), ['SDE.carousing.diceNote:{"dice":6,"mod":"- 20","roll":1}', ""], "an entry saved without its die has no note");
+  assert.equal(row.result.benefits[0].note, 'SDE.carousing.diceNote:{"dice":70,"mod":"- 20","roll":50}');
+  const flat = await render(night => { night.results.a.modifier = 0; night.results.a.mishaps = [{ type: "mishap", dice: 40, roll: 40, text: "Late" }]; });
+  assert.equal(flat.result.mishaps[0].note, 'SDE.carousing.diceNoteFlat:{"dice":40,"mod":"+ 0","roll":40}');
+  const basic = await render(night => { night.results.a = { total: 4, description: "Basic", benefit: "Gain 2 XP" }; });
+  assert.deepEqual(basic.result, { total: 4, description: "Basic", benefit: "Gain 2 XP" }, "a basic result is untouched");
+  assert.match(await read("../templates/carousing/carousing.hbs"), /\{\{#if note\}\} <small class="ui-muted">\(\{\{note\}\}\)<\/small>\{\{\/if\}\}<\/p>\{\{\/each\}\}/);
+});

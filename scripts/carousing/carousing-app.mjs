@@ -39,8 +39,11 @@ export class CarousingApp extends HandlebarsApplicationMixin(ApplicationV2) {
       return game.i18n.format(n === null ? "SDE.carousing.settlementUnset" : n === Infinity ? "SDE.carousing.settlementNoLimit" : "SDE.carousing.settlementUpTo", { name, n });
     };
     const world = game.time.worldTime, wait = cooldownSeconds();
+    // Each benefit and mishap shows the d100 it came from: the die, the row's modifier, and the number the table was read at.
+    const diceNote = (e, modifier) => e.dice === undefined ? "" : game.i18n.format(modifier ? "SDE.carousing.diceNote" : "SDE.carousing.diceNoteFlat", { dice: e.dice, mod: `${modifier < 0 ? "-" : "+"} ${Math.abs(modifier)}`, roll: e.roll });
+    const noted = r => r?.mode === "expanded" ? { ...r, benefits: r.benefits.map(e => ({ ...e, note: diceNote(e, r.modifier) })), mishaps: r.mishaps.map(e => ({ ...e, note: diceNote(e, r.modifier) })) } : r;
     const rows = night?.participants.map(p => {
-      const actor = Party.get(p.uuid), result = night.results[p.actorId], last = setup && p.participate ? lastCarousedAt(actor) : -Infinity;
+      const actor = Party.get(p.uuid), result = noted(night.results[p.actorId]), last = setup && p.participate ? lastCarousedAt(actor) : -Infinity;
       // Inside the 14 game days since this character's last outing: a warning the GM can switch off for this outing.
       return { ...p, editable: setup && !!actor?.testUserPermission(game.user, "OWNER"),
         recent: world - last < wait ? game.i18n.format("SDE.carousing.recent", { n: Math.max(0, Math.floor((world - last) / (wait / COOLDOWN_DAYS))), of: COOLDOWN_DAYS }) : "",

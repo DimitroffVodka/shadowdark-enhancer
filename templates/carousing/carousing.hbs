@@ -54,8 +54,8 @@
       {{#if result}}
         <p class="cr-result"><span class="ui-label">{{localize "SDE.carousing.roll"}} {{result.total}}</span> {{#if result.mode}}{{localize "SDE.carousing.xpGain" n=result.xp}}{{else}}{{result.description}}{{/if}}</p>
         {{#if result.benefit}}<p class="cr-benefit">{{result.benefit}}</p>{{/if}}
-        {{#each result.benefits}}<p class="cr-benefit"><span class="ui-label">{{localize "SDE.carousing.benefitLabel"}}</span> {{text}}</p>{{/each}}
-        {{#each result.mishaps}}<p class="cr-mishap"><span class="ui-label">{{localize "SDE.carousing.mishapLabel"}}</span> {{text}}</p>{{/each}}
+        {{#each result.benefits}}<p class="cr-benefit"><span class="ui-label">{{localize "SDE.carousing.benefitLabel"}}</span> {{text}}{{#if note}} <small class="ui-muted">({{note}})</small>{{/if}}</p>{{/each}}
+        {{#each result.mishaps}}<p class="cr-mishap"><span class="ui-label">{{localize "SDE.carousing.mishapLabel"}}</span> {{text}}{{#if note}} <small class="ui-muted">({{note}})</small>{{/if}}</p>{{/each}}
       {{/if}}
     </article>
     {{/each}}
