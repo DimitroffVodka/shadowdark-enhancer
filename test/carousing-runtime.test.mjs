@@ -243,3 +243,29 @@ test("choosing another outcome table lets its book's tables follow, unless the c
   await f.call("configure", { config: { outcome: "RollTable.xo", event: "RollTable.other" } });
   assert.equal(config().event, "RollTable.other");
 });
+
+test("an outing inside the 14 game days is refused until the GM allows it, and only the GM can", async () => {
+  const f = fixture(); await setup(f);
+  f.a.flags[M].carousingProgress = { earlier: { cost: true, at: 1, world: 0 } };
+  const refused = await f.call("start");
+  assert.deepEqual([refused.ok, refused.error, f.a.system.coins.gp], [false, "SDE.carousing.cooldown", 30]);
+  assert.equal((await f.call("cooldown", { value: true }, { id: "a", name: "A" })).ok, false, "a player cannot allow it");
+  assert.equal(carousingOf(f.party).current.ignoreCooldown, undefined);
+  assert.equal((await f.call("cooldown", { value: true })).ok, true);
+  assert.equal((await f.call("start")).ok, true); assert.equal(f.a.system.coins.gp, 20);
+  assert.equal(f.a.flags[M].carousingProgress.nativeNight.world, 0, "the outing records the game time it happened at");
+  assert.equal(carousingOf(f.party).history[0].ignoreCooldown, true);
+});
+test("moving the calendar ahead 14 days ends the wait without the GM's switch", async () => {
+  const f = fixture(); await setup(f);
+  f.a.flags[M].carousingProgress = { earlier: { cost: true, at: Date.now(), world: 0 } };
+  globalThis.game.time.worldTime = 13 * 86400;
+  assert.equal((await f.call("start")).ok, false);
+  globalThis.game.time.worldTime = 14 * 86400;
+  assert.equal((await f.call("start")).ok, true);
+});
+test("an outing saved before the wait counted game days has no game time and no wait", async () => {
+  const f = fixture(); await setup(f);
+  f.a.flags[M].carousingProgress = { old: { cost: true, at: Date.now() } };
+  assert.equal((await f.call("start")).ok, true);
+});

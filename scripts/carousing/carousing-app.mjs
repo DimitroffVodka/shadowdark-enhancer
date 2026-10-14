@@ -1,7 +1,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { Party } from "../party/party.mjs";
-import { carousingOf, carousingTables, requestCarousing } from "./carousing.mjs";
-import { splitCost, resultLine, bookChoices } from "./carousing-core.mjs";
+import { carousingOf, carousingTables, cooldownSeconds, lastCarousedAt, requestCarousing } from "./carousing.mjs";
+import { splitCost, resultLine, bookChoices, COOLDOWN_DAYS } from "./carousing-core.mjs";
 import { holidaysToday } from "../holidays/holidays.mjs";
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const t = (key) => game.i18n.localize(key);
@@ -38,9 +38,12 @@ export class CarousingApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const name = t(`SDE.rulesData.settlement.${kind}`), n = limitOf(kind);
       return game.i18n.format(n === null ? "SDE.carousing.settlementUnset" : n === Infinity ? "SDE.carousing.settlementNoLimit" : "SDE.carousing.settlementUpTo", { name, n });
     };
+    const world = game.time.worldTime, wait = cooldownSeconds();
     const rows = night?.participants.map(p => {
-      const actor = Party.get(p.uuid), result = night.results[p.actorId];
+      const actor = Party.get(p.uuid), result = night.results[p.actorId], last = setup && p.participate ? lastCarousedAt(actor) : -Infinity;
+      // Inside the 14 game days since this character's last outing: a warning the GM can switch off for this outing.
       return { ...p, editable: setup && !!actor?.testUserPermission(game.user, "OWNER"),
+        recent: world - last < wait ? game.i18n.format("SDE.carousing.recent", { n: Math.max(0, Math.floor((world - last) / (wait / COOLDOWN_DAYS))), of: COOLDOWN_DAYS }) : "",
         result, status: t(p.confirmed ? "SDE.carousing.confirmed" : "SDE.carousing.unconfirmed") };
     }) ?? [];
     const tier = night?.tiers.find(v => v.id === night.tierId), joining = night?.participants.filter(p => p.participate).length ?? 0, shares = tier ? splitCost(tier.cost, joining) : [];
@@ -50,7 +53,10 @@ export class CarousingApp extends HandlebarsApplicationMixin(ApplicationV2) {
       tierEditable: setup && Party.canManage(this.party),
       tier: tier ? { bonus: tier.bonus } : null, count: joining, costText: tier ? gp(tier.cost) : "", shareText: shares.length ? gp(each) : each,
       eachLabel: joining ? game.i18n.format("SDE.carousing.eachPays", { n: joining }) : t("SDE.carousing.eachPaysNobody"), error: this.error, manager: Party.canManage(this.party), isGM: game.user.isGM,
-      empty: !night, setup, complete: night?.phase === "complete", resume: night && !setup,
+      cooldownWarning: rows.some(r => r.recent), ignoreCooldown: night?.ignoreCooldown === true,
+      empty: !night, setup, complete: night?.phase === "complete",
+      // Resume / retry recap is for an outing that did not finish, or whose recap never went out; on a finished, reported one it re-sends the recap and shows nothing.
+      resume: !!night && !setup && !(night.phase === "complete" && night.reported),
       phase: night?.phase, holiday: holiday?.name, expanded: night?.mode === "expanded",
       manualHoliday: !!holiday && (!!holiday.carousing?.chances?.length || (night?.mode !== "expanded" && (!!holiday.carousing?.extraBenefit || !!holiday.carousing?.extraMishap || !!holiday.carousing?.benefitBonus || !!holiday.carousing?.benefitAdvantage))),
       canConfigure: !night || setup || night.phase === "complete", missingTables: setup && (!night.tiers.length || !night.outcomes.length || (night.mode === "expanded" && !(night.benefits?.length && night.mishaps?.length))),
@@ -64,6 +70,7 @@ export class CarousingApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
   bindControls(root) {
     root.querySelector("[data-tier]")?.addEventListener("change", event => { void this.change("tier", { tierId: event.target.value }); });
+    root.querySelector("[data-cooldown]")?.addEventListener("change", event => { void this.change("cooldown", { value: event.target.checked }); });
     for (const el of root.querySelectorAll("[data-choice]")) el.addEventListener("change", () => { void this.change("select", { uuid: el.closest("[data-uuid]").dataset.uuid, patch: { [el.dataset.choice]: el.type === "checkbox" ? el.checked : el.value } }); });
   }
   async _onFirstRender(context, options) {

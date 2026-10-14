@@ -32,6 +32,13 @@
     </div>
   </div>
 
+  {{#if cooldownWarning}}
+  <div class="ui-note warn cr-cooldown" role="status">
+    <p class="cr-hint">{{localize "SDE.carousing.cooldownWarning"}}</p>
+    {{#if isGM}}<label class="ui-switch"><input type="checkbox" data-cooldown {{#if ignoreCooldown}}checked{{/if}}><span>{{localize "SDE.carousing.cooldownSkip"}}</span></label>{{/if}}
+  </div>
+  {{/if}}
+
   <div class="cr-list">
     {{#each rows}}
     <article class="cr-pc" data-uuid="{{uuid}}">
@@ -43,6 +50,7 @@
           {{else}}<span class="cr-status">{{status}}</span>{{/if}}
         {{/if}}
       </div>
+      {{#if recent}}<p class="ui-muted cr-hint">{{recent}}</p>{{/if}}
       {{#if result}}
         <p class="cr-result"><span class="ui-label">{{localize "SDE.carousing.roll"}} {{result.total}}</span> {{#if result.mode}}{{localize "SDE.carousing.xpGain" n=result.xp}}{{else}}{{result.description}}{{/if}}</p>
         {{#if result.benefit}}<p class="cr-benefit">{{result.benefit}}</p>{{/if}}

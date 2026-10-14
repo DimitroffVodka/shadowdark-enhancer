@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { eventTiers, outcomeRows, outcomeAt, outcomeEffects, splitCost, preflight, recapNight, matrixRows, d100Rows, d100Formula, rollExpanded, expandedEffects, resultLine, carousingFirst, bookChoices, BOOKS } from "../scripts/carousing/carousing-core.mjs";
+import { eventTiers, outcomeRows, outcomeAt, outcomeEffects, splitCost, preflight, recapNight, matrixRows, d100Rows, d100Formula, rollExpanded, expandedEffects, resultLine, carousingFirst, bookChoices, COOLDOWN_DAYS, BOOKS } from "../scripts/carousing/carousing-core.mjs";
 const tiers = [{ id: "t1", cost: 10, bonus: 0, description: "Test outing" }, { id: "t2", cost: 20, bonus: 2, description: "Test feast" }];
 const outcomes = [{ range: [1, 10], description: "Synthetic night", benefit: "Gain 2 XP and a luck token" }];
 const people = [{ uuid: "Actor.a", actorId: "a", confirmed: true, participate: true, coins: { gp: 10 } }, { uuid: "Actor.b", actorId: "b", confirmed: true, participate: false, coins: { gp: 0 } }];
@@ -25,6 +25,15 @@ test("all-or-nothing funds, missing tables, holes and settlement checks", () => 
   assert.equal(check({ downtime: true }).error, "SDE.carousing.downtime");
   assert.equal(check({ participants: people.map(p => ({ ...p, lastAt: 1999999999 })) }).error, "SDE.carousing.cooldown");
   assert.equal(check({ participants: people.map(p => ({ ...p, lastAt: 0 })) }).ok, true);
+});
+test("the wait between outings is 14 game days, in seconds, and the GM's switch skips it", () => {
+  const day = 86400, now = 100 * day, at = days => people.map(p => ({ ...p, lastAt: now - days * day }));
+  const run = patch => preflight({ participants: people, tierId: "t1", tiers, outcomes, now, ...patch });
+  assert.equal(run({ participants: at(13) }).error, "SDE.carousing.cooldown");
+  assert.equal(run({ participants: at(14) }).ok, true);
+  assert.equal(run({ participants: at(5), ignoreCooldown: true }).ok, true);
+  assert.equal(run({ participants: at(13), cooldown: 10 * day }).ok, true, "the calendar's own day length is the caller's");
+  assert.equal(COOLDOWN_DAYS, 14);
 });
 test("the tier cost is a group total split in whole coins; the remainder goes to the first in list order", () => {
   assert.deepEqual(splitCost(100, 3), [34, 33, 33]);

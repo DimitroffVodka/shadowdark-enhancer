@@ -7,12 +7,12 @@ globalThis.foundry = { applications: { api: { ApplicationV2: class {}, Handlebar
 const { CarousingApp } = await import("../scripts/carousing/carousing-app.mjs");
 const read = path => readFile(new URL(path, import.meta.url), "utf8");
 
-const pc = id => ({ id, uuid: `Actor.${id}`, name: id, type: "Player", flags: {}, testUserPermission: () => false });
-function world(participants, tierCost, { config = {}, limits = {} } = {}) {
-  const actors = ["a", "b", "c"].map(pc), party = { id: "party", uuid: "Actor.party", name: "Crew", type: "NPC", flags: { [M]: { party: true, partyData: { version: 1, members: actors.map(a => a.uuid) }, carousing: { history: [], current: { phase: "setup", tierId: "t1", tiers: [{ id: "t0", description: "Poor", cost: 1, bonus: 0 }, { id: "t1", description: "Comfortable", cost: tierCost, bonus: 1 }], outcomes: [{}], config, results: {},
+const pc = (id, last) => ({ id, uuid: `Actor.${id}`, name: id, type: "Player", flags: last === undefined ? {} : { [M]: { carousingProgress: { earlier: { cost: true, at: 1, world: last } } } }, testUserPermission: () => false });
+function world(participants, tierCost, { config = {}, limits = {}, last = {}, now = 0 } = {}) {
+  const actors = ["a", "b", "c"].map(id => pc(id, last[id])), party = { id: "party", uuid: "Actor.party", name: "Crew", type: "NPC", flags: { [M]: { party: true, partyData: { version: 1, members: actors.map(a => a.uuid) }, carousing: { history: [], current: { phase: "setup", tierId: "t1", tiers: [{ id: "t0", description: "Poor", cost: 1, bonus: 0 }, { id: "t1", description: "Comfortable", cost: tierCost, bonus: 1 }], outcomes: [{}], config, results: {},
     participants: actors.map((a, i) => ({ uuid: a.uuid, actorId: a.id, participate: participants[i], confirmed: false })) } } } }, testUserPermission: () => true };
   globalThis.game = { user: { isGM: true, id: "gm", hasPermission: () => true }, actors: { contents: [...actors, party], get: id => [...actors, party].find(a => a.id === id) }, tables: { contents: [] }, packs: [], modules: new Map(), settings: { get: () => false },
-    shadowdarkEnhancer: { rules: { carousingLimit: kind => limits[kind] ?? null } },
+    time: { worldTime: now }, shadowdarkEnhancer: { rules: { carousingLimit: kind => limits[kind] ?? null } },
     i18n: { localize: k => k, format: (k, d) => `${k}:${JSON.stringify(d)}` } };
   globalThis.Hooks = { callAll() {} };
   return party;
@@ -105,4 +105,28 @@ test("saving the setup does not send a rulebook that was left on the option it w
   root.querySelectorAll = () => [select("outcome", "RollTable.pgwr", false), select("settlement", "none", true)];
   configure.call(app, null, { closest: () => root });
   assert.deepEqual(sent[1], ["configure", { config: { outcome: "RollTable.pgwr", settlement: "none" } }], "a book the GM picked is sent");
+});
+
+test("a joining character inside the 14 game days is flagged with the days gone, and only the GM gets the switch", async () => {
+  const day = 86400, ctx = party => new CarousingApp(party)._prepareContext();
+  const context = await ctx(world([true, true, false], 7, { now: 20 * day, last: { a: 10 * day, b: 0, c: 19 * day } }));
+  assert.deepEqual(context.rows.map(r => r.recent), ['SDE.carousing.recent:{"n":10,"of":14}', "", ""], "b is past 14 days and c is not joining");
+  assert.deepEqual([context.cooldownWarning, context.ignoreCooldown], [true, false]);
+  const rewound = await ctx(world([true, false, false], 7, { now: 100 * day, last: { a: 103 * day } }));
+  assert.deepEqual(rewound.rows.map(r => r.recent)[0], 'SDE.carousing.recent:{"n":0,"of":14}', "a calendar set back before the outing never shows a negative count");
+  const quiet = await ctx(world([false, true, false], 7, { now: 20 * day, last: { a: 10 * day } }));
+  assert.equal(quiet.cooldownWarning, false, "someone sitting out is not a warning");
+  const skipped = world([true, false, false], 7, { now: 20 * day, last: { a: 10 * day } });
+  skipped.flags[M].carousing.current.ignoreCooldown = true;
+  assert.equal((await ctx(skipped)).ignoreCooldown, true);
+  const hbs = await read("../templates/carousing/carousing.hbs");
+  assert.match(hbs, /\{\{#if isGM\}\}<label class="ui-switch"><input type="checkbox" data-cooldown/);
+});
+
+test("a finished and reported outing offers a new outing only, not a Resume that would do nothing", async () => {
+  const resume = async (phase, reported) => { const party = world([true, false, false], 7); Object.assign(party.flags[M].carousing.current, { phase, reported }); return (await new CarousingApp(party)._prepareContext()).resume; };
+  assert.equal(await resume("complete", true), false);
+  assert.equal(await resume("complete", false), true, "the recap never went out: the retry is real");
+  assert.equal(await resume("effects", undefined), true);
+  assert.equal(await resume("setup", undefined), false);
 });

@@ -121,7 +121,10 @@ export function splitCost(total, count) {
   const base = Math.floor(total / count), extra = total - base * count;
   return Array.from({ length: count }, (_, i) => base + (i < extra ? 1 : 0));
 }
-export function preflight({ participants, tierId, tiers, outcomes, expanded = false, benefits = [], mishaps = [], limit = Infinity, holiday = null, downtime = false, now = Date.now() }) {
+/** Game days between two outings of one character; the GM can allow an outing inside it (`ignoreCooldown`). */
+export const COOLDOWN_DAYS = 14;
+export function preflight({ participants, tierId, tiers, outcomes, expanded = false, benefits = [], mishaps = [], limit = Infinity, holiday = null, downtime = false, ignoreCooldown = false, cooldown = COOLDOWN_DAYS * 86400, now }) {
+  // `now`, each `lastAt` and `cooldown` are game seconds (worldTime), so skipping the calendar ahead ends the wait.
   const fail = error => ({ ok: false, error });
   if (downtime) return fail("SDE.carousing.downtime");
   if (!tiers.length || !outcomes.length) return fail("SDE.carousing.tablesMissing");
@@ -132,7 +135,7 @@ export function preflight({ participants, tierId, tiers, outcomes, expanded = fa
   if (tier.cost > limit) return fail("SDE.carousing.limit");
   const joining = participants.filter(p => p.participate), shares = splitCost(tier.cost, joining.length), chosen = [];
   for (const [i, p] of joining.entries()) {
-    if (p.lastAt != null && now - p.lastAt < 14 * 86400000) return fail("SDE.carousing.cooldown");
+    if (!ignoreCooldown && p.lastAt != null && now - p.lastAt < cooldown) return fail("SDE.carousing.cooldown");
     if (toCopper(p.coins) < shares[i] * 100) return fail("SDE.carousing.funds");
     const bonus = tier.bonus + (holiday?.carousing?.eventBonus ?? 0) + (p.renownBonus ?? 0);
     for (let die = 1; die <= 8; die++) if (!outcomeAt(die + bonus, outcomes)) return fail("SDE.carousing.tablesMissing");

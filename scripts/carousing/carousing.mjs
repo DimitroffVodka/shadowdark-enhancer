@@ -10,11 +10,15 @@ import { advanceOffDuty } from "../time/off-duty.mjs";
 import { secondsPerDay } from "../time/time-core.mjs";
 import { holidaysToday } from "../holidays/holidays.mjs";
 import { toCopper, spendFromPurse } from "../shared/coins.mjs";
-import { eventTiers, outcomeRows, outcomeAt, outcomeEffects, preflight, recapNight, matrixRows, d100Rows, d100Formula, rollExpanded, expandedEffects, carousingFirst, BOOKS } from "./carousing-core.mjs";
+import { eventTiers, outcomeRows, outcomeAt, outcomeEffects, preflight, recapNight, matrixRows, d100Rows, d100Formula, rollExpanded, expandedEffects, carousingFirst, COOLDOWN_DAYS, BOOKS } from "./carousing-core.mjs";
 const QUERY = `${MODULE_ID}.carousing`;
 const own = (a, user) => !!a?.testUserPermission(user, "OWNER");
 const actorOf = uuid => game.actors.contents.find(a => a.uuid === uuid);
 const flag = (a, key) => a?.flags?.[MODULE_ID]?.[key];
+/** The game time (worldTime) this character last paid for an outing, or -Infinity. Outings saved before the wait counted game days have none and no wait. */
+export const lastCarousedAt = actor => Math.max(-Infinity, ...Object.values(flag(actor, "carousingProgress") ?? {}).filter(r => r.cost && Number.isFinite(r.world)).map(r => r.world));
+/** The wait between two outings, in game seconds of the calendar's own day. */
+export const cooldownSeconds = () => COOLDOWN_DAYS * secondsPerDay(game.time.calendar);
 const invalid = (key = "SDE.carousing.invalid") => { throw new Error(key); };
 /**
  * Reads share one copy of the stored state until it changes: the clone is memoized on the
@@ -67,7 +71,7 @@ async function context(config) {
 }
 async function markActor(actor, night, key, extra = {}) {
   const progress = flag(actor, "carousingProgress") ?? {};
-  return replaceModuleFlag(actor, "carousingProgress", { ...progress, [night.logId]: { ...progress[night.logId], [key]: true, at: night.at } }, extra);
+  return replaceModuleFlag(actor, "carousingProgress", { ...progress, [night.logId]: { ...progress[night.logId], [key]: true, at: night.at, world: night.world } }, extra);
 }
 async function finish(party, state) {
   const night = state.current;
@@ -157,6 +161,10 @@ export function handleCarousing(data, user) {
         if (!manager || current?.phase !== "setup" || !current.tiers.some(t => t.id === data.tierId)) invalid();
         current.tierId = data.tierId; for (const p of current.participants) p.confirmed = false;
         await save(party, state);
+      } else if (data.action === "cooldown") {
+        // The GM's call, for this outing only: the 14-day wait between outings is a house default, not a law.
+        if (!user.isGM || current?.phase !== "setup") invalid();
+        current.ignoreCooldown = data.value === true; await save(party, state);
       } else if (data.action === "select") {
         const p = current?.participants.find(p => p.uuid === data.uuid);
         if (current?.phase !== "setup" || !p || !own(actorOf(p.uuid), user)) invalid();
@@ -171,9 +179,9 @@ export function handleCarousing(data, user) {
           const fresh = await tableData(current.config);
           if (["tiers", "outcomes", "benefits", "mishaps"].some(key => JSON.stringify(fresh[key]) !== JSON.stringify(current[key] ?? []))) invalid("SDE.carousing.tablesChanged");
           const ctx = await context(current.config), now = Date.now();
-          const participants = current.participants.map(p => { const a = actorOf(p.uuid); if (!a) invalid(); return { ...p, coins: a.system.coins, renownBonus: Renown.bonusOf(a), lastAt: Math.max(-Infinity, ...Object.values(flag(a, "carousingProgress") ?? {}).filter(r => r.cost).map(r => r.at)) }; });
-          const check = preflight({ ...ctx, tierId: current.tierId ?? current.tiers[0]?.id ?? "", tiers: current.tiers, outcomes: current.outcomes, expanded: current.mode === "expanded", benefits: current.benefits ?? [], mishaps: current.mishaps ?? [], participants, now }); if (!check.ok) invalid(check.error);
-          Object.assign(current, { participants: check.participants, phase: "rolling", at: now, date: new Date(now).toISOString(), holiday: ctx.holiday });
+          const participants = current.participants.map(p => { const a = actorOf(p.uuid); if (!a) invalid(); return { ...p, coins: a.system.coins, renownBonus: Renown.bonusOf(a), lastAt: lastCarousedAt(a) }; });
+          const check = preflight({ ...ctx, tierId: current.tierId ?? current.tiers[0]?.id ?? "", tiers: current.tiers, outcomes: current.outcomes, expanded: current.mode === "expanded", benefits: current.benefits ?? [], mishaps: current.mishaps ?? [], participants, ignoreCooldown: current.ignoreCooldown === true, cooldown: cooldownSeconds(), now: game.time.worldTime }); if (!check.ok) invalid(check.error);
+          Object.assign(current, { participants: check.participants, phase: "rolling", at: now, world: game.time.worldTime, date: new Date(now).toISOString(), holiday: ctx.holiday });
           await save(party, state);
         }
         await finish(party, state);
