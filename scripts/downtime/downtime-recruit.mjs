@@ -38,7 +38,7 @@ const WARBAND_TYPE = `${MODULE_ID}.warband`;
 const levelOf = (actor) => Number(actor?.system?.level?.value ?? 0);
 const KIND_KEYS = Object.fromEntries(SETTLEMENT_KINDS.map((k) => [k, `SDE.rulesData.settlement.${k}`]));
 
-/** The settlement of the hex the party stands in, or null (no map, no party token, no settlement keyed there). */
+/** The settlement of the hex the party stands in, or null (no map, no party token, no book for the scene, none keyed there). */
 async function settlementFromMap() {
   try {
     const { partyHex } = await import("../encounter/encounter-terrain.mjs");
@@ -47,7 +47,9 @@ async function settlementFromMap() {
     if (!pack) return null;
     // The keyed rows sit in the crawl entries' hex flag: the index carries it, so no entry or page is loaded.
     const index = await pack.getIndex({ fields: [`flags.${MODULE_ID}.hex`] });
-    return settlementKindAt([...index], hex.num, MODULE_ID);
+    // Every book numbers its hexes from 0001: only a row of the book the party's scene was made from names it.
+    const { bookEntries, sceneBookFolder } = await import("../hex-map/hex-region.mjs");
+    return settlementKindAt(bookEntries([...index], await sceneBookFolder(globalThis.canvas?.scene)), hex.num, MODULE_ID);
   } catch (err) {
     console.warn(`${MODULE_ID} | recruit: the party's settlement`, err);
     return null;
