@@ -384,12 +384,17 @@ It is a copy taken once. Retagging the print afterwards does not change the
 painted scene's copy, and **Update painted map** does not either; build the
 painted map again if you want the pictures to follow.
 
-A limit at this version: the print's stored first-row value (0 when its top row
-is full hexes, 1 when the top row is frame) is compared with the one in
-Extras' layout. A map numbered from 0000 whose top row is full hexes stores 0
-and the layout leaves it out, and a map numbered from 0101 with its top row as
-frame stores 1 and the layout leaves it out. In both cases they never match and
-nothing is copied.
+The print's first row has to agree with Extras' layout too. Both leave the
+value out when it is the map's origin row, so a layout that names no first row
+matches a print whose stored first row is that origin row: a full top row on a
+map numbered from 0000, a frame top row on one numbered from 0101. A print
+whose first row differs from the layout's is not a match.
+
+**Reading the map on a painted map.** A painted map is tiles with no picture
+under it, so **Read the map** has nothing to read there and says so. The
+terrain comes from the print: tag the print, then build the painted map again,
+or keep exactly one tagged print of that size in the world so this step can
+find it.
 
 **How to tell it worked.** The **Hex map** toolbar group gains the terrain
 picture (and the regions and zones pictures when the print has a region scan),
@@ -482,6 +487,7 @@ off. Problems that are not specific to this route are on
 | No **Use this map** card on the Data tab | No hex is tagged yet, or the map has no anchor | Tag some hexes; set the anchor on the Settings tab |
 | Hex dataset failed its contract check: "{n} hexes outside the {cols}×{rows} grid (origin 0): ..." | The map's numbers start from 0001 (columns from 0, rows from 1, as on the Cursed Scroll maps), which Extras' two conventions (0000 or 0101) cannot express; or a number in the dataset lies off the map, most often a tile-art row | For a 0001 map nothing in the window fixes it, and renumbering would make the numbers disagree with the book: tag and play on the print, which Extras cannot take. For an art row, take it out of the file and **Load** it again |
 | Hex dataset failed its contract check: "grid.firstRow must be origin or origin + 1" | A limit at this version: a map numbered from 0101 whose top row is full hexes stores its first row as 0, and the dataset passes that on as Extras' absolute first row | No fix in the window. A map numbered from 0000 does not hit this message |
+| **Read the map** on a painted map says "A painted map has no image to read." | A painted map is tiles; the picture is the print's | Read the map on the print. If the painted map shows no terrain or numbers, no tags were copied: see [step 8](#8-the-painted-scene-takes-the-prints-tags-and-numbering) for the conditions, keep exactly one tagged print of that size in the world, and build again |
 | "Shadowdark Extras numbers a map from the scene's top-left cell ..." | The print's first hex is not on the scene's top-left cell, or the print lowers the other columns | Make the scene again with **Hex map from image** and **Top-left hex is number**, or use **Build painted map**, which does not need the print on Extras' cell (step 8's copy then will not happen) |
 | "This version of Shadowdark Extras can't put hex details on a map you already have." | Extras has no `adoptHexcrawl` or `upsertHexRecords` | Update Extras |
 | "Shadowdark Extras wouldn't take this map: scene already has a different hexcrawl layout" | The print was adopted before with another map size, row setting or numbering, and Extras will not change a stored layout | Put the map size and anchor back as they were when you first sent, or use **Build painted map** |
@@ -548,7 +554,9 @@ tagger's bounds. `grid.origin` is 0 when any hex sits in column 0 or row 0,
 else 1. Extras refuses a grid key outside `GRID_FIELDS`, and a `firstRow` other
 than `origin` or `origin + 1`. The tagger stores its first-row value as 0 or 1
 counted from the map's first number, while Extras' is absolute. That is the
-cause of the two limits named in step 8 and in the troubleshooting table.
+cause of the limit in the troubleshooting table. Step 8's search for the print
+compares the two the way the dataset sends them: a first row equal to the origin
+is left out on both sides.
 
 ### Order of operations
 
