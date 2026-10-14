@@ -9,7 +9,8 @@ export class CarousingApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = { classes: ["shadowdark", "sde-carousing", "sde-ui"], position: { width: 760, height: 700 }, window: { title: "SDE.carousing.title", resizable: true }, actions: {
     begin: function () { return this.change("begin"); }, start: function () { return this.change("start"); }, resume: function () { return this.change("resume"); }, cancel: function () { return this.change("cancel"); },
     confirm: function (_event, el) { return this.change("select", { uuid: el.dataset.uuid, confirm: true }); },
-    configure: function (_event, el) { const root = el?.closest(".sde-carousing-body") ?? this.element; const config = Object.fromEntries([...root.querySelectorAll("[data-config]")].map(el => [el.dataset.config, el.value])); return this.change("configure", { config }); },
+    // A rulebook select still on the option it was drawn with sends nothing: it was only a default (blank saved, or the other copy of the same book), and a changed outcome clears the book's own tables.
+    configure: function (_event, el) { const root = el?.closest(".sde-carousing-body") ?? this.element; const config = Object.fromEntries([...root.querySelectorAll("[data-config]")].filter(el => !(el.dataset.config === "outcome" && el.selectedOptions[0]?.defaultSelected)).map(el => [el.dataset.config, el.value])); return this.change("configure", { config }); },
   } };
   static PARTS = { body: { template: `modules/${MODULE_ID}/templates/carousing/carousing.hbs`, scrollable: [".sde-carousing-body"] } };
   constructor(party, options = {}, host = null) { super(options); this.party = party; this.host = host; }

@@ -95,3 +95,14 @@ test("the setup form has the rulebook and settlement selects and no table picker
   for (const hook of ['data-config="outcome"', 'data-config="settlement"', 'data-config="place"', "result.benefits", "result.mishaps", 'class="cr-mishap"', "{{#if disabled}}disabled{{/if}}"]) assert.ok(hbs.includes(hook), hook);
   for (const gone of ['data-config="event"', 'data-config="benefit"', 'data-config="mishap"']) assert.ok(!hbs.includes(gone), gone);
 });
+
+test("saving the setup does not send a rulebook that was left on the option it was drawn with", () => {
+  const sent = [], select = (key, value, defaultSelected) => ({ dataset: { config: key }, value, selectedOptions: [{ defaultSelected }] });
+  const root = { querySelectorAll: () => [select("outcome", "RollTable.core", true), select("settlement", "town", true), { dataset: { config: "place" }, value: "Harwick" }] };
+  const configure = CarousingApp.DEFAULT_OPTIONS.actions.configure, app = { change: (action, data) => sent.push([action, data]) };
+  configure.call(app, null, { closest: () => root });
+  assert.deepEqual(sent[0], ["configure", { config: { settlement: "town", place: "Harwick" } }], "the outcome is left alone, the settlement is still sent");
+  root.querySelectorAll = () => [select("outcome", "RollTable.pgwr", false), select("settlement", "none", true)];
+  configure.call(app, null, { closest: () => root });
+  assert.deepEqual(sent[1], ["configure", { config: { outcome: "RollTable.pgwr", settlement: "none" } }], "a book the GM picked is sent");
+});
