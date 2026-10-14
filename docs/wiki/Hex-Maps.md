@@ -444,7 +444,11 @@ hub right after filing, or **Pin keyed hexes** in the tagger's header with
 the crawl chosen. A book imported per region files more than one crawl, so
 the tagger's hex-key picker also offers **(every crawl)** — one press pins
 every region of the book, and the same choice makes the keyed sheet, the
-terrain answers and the dataset hand-off read all of them together. Each note sits on its printed hex, is labelled with the
+terrain answers and the dataset hand-off read all of them together. The
+picker lists the crawls of **the map's own book** (its print, or a painted
+copy's size). Books all number their hexes from 0001, so on a map no print
+claims, in a world that has imported several books, **(every crawl)** is not
+offered and nothing is chosen for you: pick the one crawl you mean. Each note sits on its printed hex, is labelled with the
 page name, uses a house, city or castle icon for a village, town, city or
 city-state from the keyed table and a book for other locations, and opens
 the hex's page on click. Foundry notes can only point at journals in the
@@ -477,6 +481,11 @@ for the Western Reaches); a map no print claims, including a painted copy the
 module cannot place, has no region names and no nearest region, and its
 encounter checks use the terrain's table. A Cursed Scroll map shows no region
 names until that book's own key locations are imported.
+
+The API's `hexMaps.importDetails` follows the same rule when it names a scene's
+hexes from a scan it borrowed: if the target scene is made from a print of a
+different book than that scan, it writes no zones and says so in its result
+(`zonesSkipped`).
 
 So once a book's key locations are imported, **every hex knows its region**,
 not just the 270 keyed ones:

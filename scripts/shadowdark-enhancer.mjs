@@ -153,7 +153,7 @@ const STYLESHEET_REV = "1c84f68ce13c";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "73068d8a8017";
+const BUILD_REV = "b3da5f42aec4";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -1037,13 +1037,18 @@ Hooks.once("init", () => {
       // active scene. Given crawl entries (one, several, or [] for zones only),
       // every hex also gets its region as zone + zoneColor from the print's
       // border scan: { regionScene } names the print when the world has more
-      // than one scanned scene.
+      // than one scanned scene. A target scene that resolves a print of a different book than that scan gets no
+      // zones (the names would be another book's); the result then carries zonesSkipped: { target, scan }.
       importDetails: async (entriesOrDataset, sceneId, opts = {}) => {
         const h = await import("./importer/hex/hex-handoff.mjs");
         const target = sceneId ?? canvas?.scene?.id;
         const x = entriesOrDataset;
-        const ds = (Array.isArray(x) || x?.pages) ? await h.detailsDataset(x, opts.regionScene ?? target) : x;
-        return h.importDatasetRecords(target, ds, opts);
+        // The scan's names are its book's: a target of another book gets none, and `zonesSkipped` says so. A
+        // regionScene the GM names is their own choice of scan and is not second-guessed.
+        const ds = (Array.isArray(x) || x?.pages)
+          ? await h.detailsDataset(x, opts.regionScene ?? target, { target: opts.regionScene ? undefined : target }) : x;
+        const out = await h.importDatasetRecords(target, ds, opts);
+        return ds?.zonesSkipped ? { ...out, zonesSkipped: ds.zonesSkipped } : out;
       },
     },
     // 1.6.0 — additive: stat damage. One Active Effect per damaged ability,

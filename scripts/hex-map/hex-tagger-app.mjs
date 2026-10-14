@@ -21,7 +21,6 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { findSuitePack, sourceFolderName } from "../shared/compendium-suite.mjs";
-import { hexPrint } from "./hex-prints.mjs";
 import { sceneCells, sourceImage, CellSampler, backgroundTransform } from "./sampler.mjs";
 import { cellNumber, neighbours, framesTopRow, extrasNumbersAlike, withAnchorNumber, boundsFromRow, originFromFlag } from "./geometry.mjs";
 import { decodeTags, encodeTags, nextSheet, applySheet, strandedRiver, tagsForDataset, summarize, importTags, rowsFromJson, sheetRisk, deriveCoasts, paletteTags, normalizeTerrainWord, tagsWrittenElsewhere, WRITER_OPTION, FEATURES, OTHER } from "./tag-store.mjs";
@@ -31,7 +30,7 @@ import { createClassifier, compareTags, parseTruthCsv, featureVector, keepMask, 
 import { buildLegend } from "./legend.mjs";
 import { needsReview } from "./tag-overlay.mjs";
 import { scanRegions, encodeRegions, decodeRegions, decodeRegionFixes, REGIONS_FLAG } from "./region-scan.mjs";
-import { regionSeeds, nameComponents } from "./hex-region.mjs";
+import { regionSeeds, nameComponents, sceneBookFolder } from "./hex-region.mjs";
 import { TERRAIN_TAGS, SETTLEMENTS, rowTag } from "../importer/hex/hex-summary.mjs";
 import { HEX_FLAG } from "../importer/hex/hex-commit.mjs";
 import { resolveTab } from "./hex-tagger-tabs.mjs";
@@ -566,6 +565,8 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _mode = "random";
   _entryUuid = "";
   _entries = [];
+  /** The folder of the scene's own book, or null: set by _loadEntries (see _mixedBooks). */
+  _bookFolder = null;
   _error = "";
   /** @type {Map<number, {w:number,h:number,data:Uint8Array}>} published number → cell bitmap, filled on Classify */
   _bitmaps = new Map();
@@ -626,6 +627,8 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._loadState();
     this._geom = null; this._sampler = null; this._cells = [];
     this._numbered = new Map(); this._bitmaps.clear(); this._sheet = []; this._legend = null;
+    // The crawl list is the old scene's book (and a single pick was for that map): the next render or hand-off reloads it.
+    this._entries = []; this._entryUuid = ""; this._bookFolder = null;
     this._restoreSamples();
     return true;
   }
@@ -740,17 +743,28 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!pack) { this._entries = []; return; }
     const docs = await pack.getDocuments();
     this._entries = docs.filter((d) => d.getFlag(MODULE_ID, HEX_FLAG)?.crawl).map((d) => ({ uuid: d.uuid, name: d.name, doc: d }));
-    // A map the importer made knows its own book: another book's keyed hexes have numbers of their own, and "all
-    // crawls" would star a Western Reaches hex for a Cursed Scroll 5 location that happens to share its number.
-    // (HEXMAP_FLAG, hex-map-flow.mjs, which this file only loads on demand.)
-    const folder = hexPrint(this._scene()?.getFlag(MODULE_ID, "hexMapId"))?.folder;
-    if (folder) this._entries = this._entries.filter((e) => sourceFolderName(e.doc.getFlag(MODULE_ID, HEX_FLAG)?.source) === folder);
+    // A map made from a print (hexMapId, else a painted copy's tagged bounds: scenePrint) knows its own book: another
+    // book's keyed hexes have numbers of their own, and "all crawls" would star a Western Reaches hex for a Cursed
+    // Scroll 5 location that happens to share its number.
+    this._bookFolder = await sceneBookFolder(this._scene());
+    if (this._bookFolder) this._entries = this._entries.filter((e) => sourceFolderName(e.doc.getFlag(MODULE_ID, HEX_FLAG)?.source) === this._bookFolder);
     // One filed crawl is the obvious choice; several filed crawls are one BOOK
     // imported per region, and the obvious choice there is all of them. Left on
     // "(none)" a whole imported hex key looks like it did not arrive: the Pin
     // button has nothing to pin and says so about a map with 270 keyed hexes
-    // sitting in the pack. The GM can still pick (none).
-    if (!this._entryUuid) this._entryUuid = this._entries.length === 1 ? this._entries[0].uuid : (this._entries.length ? ALL_CRAWLS : "");
+    // sitting in the pack. The GM can still pick (none). Not across books: see _mixedBooks.
+    if (!this._entryUuid) this._entryUuid = this._entries.length === 1 ? this._entries[0].uuid : (this._entries.length && !this._mixedBooks() ? ALL_CRAWLS : "");
+  }
+
+  /**
+   * Do the listed crawls span several books on a scene no book claims? Then "every crawl" would merge rows of
+   * different books by hex number (each numbers its hexes from 0001), so it is neither offered nor read: the GM
+   * picks one crawl, which is their own instruction.
+   */
+  _mixedBooks() {
+    if (this._bookFolder) return false;
+    const books = new Set(this._entries.map((e) => sourceFolderName(e.doc.getFlag(MODULE_ID, HEX_FLAG)?.source)));
+    return books.size > 1;
   }
 
   /**
@@ -760,7 +774,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * @returns {JournalEntry[]}
    */
   _selectedEntries() {
-    if (this._entryUuid === ALL_CRAWLS) return this._entries.map((e) => e.doc);
+    if (this._entryUuid === ALL_CRAWLS) return this._mixedBooks() ? [] : this._entries.map((e) => e.doc);
     return [this._entries.find((e) => e.uuid === this._entryUuid)?.doc].filter(Boolean);
   }
 
@@ -1197,7 +1211,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       mode: this._mode, modes: [["random", "SDE.hexMap.mode.random"], ["keyed", "SDE.hexMap.mode.keyed"], ["review", "SDE.hexMap.mode.review"]]
         .map(([v, k]) => ({ value: v, label: t(k), selected: v === this._mode })),
       entries: this._entries.map((e) => ({ uuid: e.uuid, name: e.name, selected: e.uuid === this._entryUuid })),
-      allCrawls: this._entries.length > 1, allSelected: this._entryUuid === ALL_CRAWLS,
+      allCrawls: this._entries.length > 1 && !this._mixedBooks(), allSelected: this._entryUuid === ALL_CRAWLS,
       sheet, hasSheet: sheet.length > 0, needsOrigin: sampled && !origin, viaExtras: !!extrasHexApi(), error: this._error,
       features: FEATURES, overlayShown: !!this._overlayMode, overlayMode: this._overlayMode ?? "",
       canClassify: !!origin && summarize(state, this._numbered.size || state.cells.size).gm > 0, sensitivity: this._sensitivity, progress: this._progress,

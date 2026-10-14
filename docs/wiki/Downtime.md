@@ -330,7 +330,10 @@ character and the section lists the [warbands](Warbands.md) they can try:
   [Rules Data](Rules-Data.md): village, town, city and city-state. The section
   names where the party is, read from the keyed hex the party's
   token stands in (as carousing in Shadowdark Extras does), and the limit
-  there. The GM can pick a **Settlement** instead: any of the four, or **No
+  there. The hex is looked up in the rows of **the map's own book only**: the
+  printed books all number their hexes from 0001, so another book's hex of the
+  same number never counts. A map no print claims names no settlement, and
+  the GM picks one instead. The GM can pick a **Settlement** instead: any of the four, or **No
   settlement**, and back to **The party's hex**. Outside a settlement, and
   while the recruiting limits aren't filled in, only the character's level
   limits it.

@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1975 tracked files · ~253,800 lines of code/markup across scripts+templates+styles+test.
+1978 tracked files · ~254,100 lines of code/markup across scripts+templates+styles+test.
 `v0.18.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 1498 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 1503 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 172 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 271 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 | `scavenger/scavenger-core.mjs` | 171 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
@@ -97,7 +97,7 @@
 | `hex-map/hex-prints.mjs` | 86 | What is known of each book's hex map, pure: which book's key locations pin onto it, where its crawls are filed, the printed number of its first hex, and for the two black maps the grid finder cannot read (the Black River, joined from two halves, and Morzomotha) their measured grids. Numbers and names only, no part of the print. |
 | `hex-map/hex-records.mjs` | 336 | Scene-offset native rich-record facade over existing tags, keyed pins/pages and regions, private compendium records and allowlisted public disclosure projections. |
 | `hex-map/hex-region.mjs` | 383 | Which region is a hex in: the book's own word for a keyed hex, the nearest keyed hex's region for any other (84.8% on the Western Reaches, leave-one-out over the book's own keyed rows). Seeds come from the filed crawls; nothing is stored. |
-| `hex-map/hex-tagger-app.mjs` | 1981 | Hex Tagger AppV2: contact sheet over the active hex scene, anchor numbering, tags on the scene flag, dataset hand-off. |
+| `hex-map/hex-tagger-app.mjs` | 1995 | Hex Tagger AppV2: contact sheet over the active hex scene, anchor numbering, tags on the scene flag, dataset hand-off. |
 | `hex-map/hex-tagger-tabs.mjs` | 14 | Hex Tagger tab list and the pure rule that keeps the chosen tab when the scene still offers it, else Sheet. |
 | `hex-map/ink.mjs` | 62 | Whole-image 0/1 ink bitmap at a working scale, one browser resize then strip reads; ink threshold from the paper's brightness. Browser-bound. |
 | `hex-map/keyed-art.mjs` | 72 | The art a keyed hex wears, one resolver for the tagger's Tile art default and the Hex Data header: a bake's own sprite for the hex's offset (the base tile, under its icons), else the numbered tile — the GM's loaded manifest or the Western Reaches table, its base art only. Reads only; a file that is gone is the caller's to skip. |
@@ -438,7 +438,7 @@
 | `hex/hex-book-import.mjs` | 161 | A book's whole hex key in one pass: per region, the keyed-location table and the pages of write-ups after it → one crawl entry per region. Page map only; no book text. |
 | `hex/hex-commit.mjs` | 232 | Hex-key drafts → JournalEntry pages in sde-journal (one entry per crawl, one page per hex); pure planner + two-pass link rewrite. |
 | `hex/hex-dataset.mjs` | 357 | Drafts + summary rows + tags → the Shadowdark Extras hexcrawl dataset (numbers only at the boundary); river, path and coast as record features, merged by id with what Extras holds. Pure. |
-| `hex/hex-handoff.mjs` | 470 | Crawl entry → dataset; puts it on the tagged print through Extras (adoptHexcrawl), merging each hex's features into the record Extras holds, builds a painted Extras scene, or downloads JSON. |
+| `hex/hex-handoff.mjs` | 482 | Crawl entry → dataset; puts it on the tagged print through Extras (adoptHexcrawl), merging each hex's features into the record Extras holds, builds a painted Extras scene, or downloads JSON. |
 | `hex/hex-summary.mjs` | 174 | Keyed hex summary rows (number, region, terrain, name) → structured rows; zone/terrain split decided by the table. Pure. |
 | `hex/key-location-index.mjs` | 133 | The master Key Locations journal of a book: one entry, a page per region, a table row per keyed hex with a go-to link and a link to its write-up, built from the regions the import filed (pure planner plus the pack write; carries its own flag, never the crawl flag). |
 | `importer-hub-adventures.mjs` | 186 | Hub Tools → Adventures (file a Cursed Scroll's adventures as journals) and Adventure map (build the scene from the GM's image and open the placer); installed onto the hub class. |
@@ -551,7 +551,7 @@
 | `downtime-log.mjs` | 177 | `recordDowntime(entry)` — one call, two sinks: the Session Recap's Downtime section and a persistent flagged "Downtime Log" world JournalEntry appended under a heading per real-world day. Queued read-modify-write; never throws outward. GM-side only. |
 | `downtime-warnings.mjs` | 156 | Shared prose for the downtime parser's warning codes; splits info notes (a two-column paste always emits them) from real problems, so every unlock surface reports a parse identically. |
 | `downtime-recruit-core.mjs` | 115 | Pure rules of Recruit a warband (#205): the `recruit:<id>` slot key, DC 10 plus the warband's level, the party's settlement (the GM's choice, else the keyed hex's), what a settlement supplies from the recruiting limits, and which warbands a character is offered. |
-| `downtime-recruit.mjs` | 186 | Recruit a warband in the world (#205): reads the party's hex, the actors pack and the world's uncommanded warbands, checks the commander's allowance with the warband unit's own checks, and makes a copy under the character's command on the warband queue. GM-side; a player's window asks the session for the offers. |
+| `downtime-recruit.mjs` | 188 | Recruit a warband in the world (#205): reads the party's hex, the actors pack and the world's uncommanded warbands, checks the commander's allowance with the warband unit's own checks, and makes a copy under the character's command on the warband queue. GM-side; a player's window asks the session for the offers. |
 | `downtime-app.mjs` | 1536 | The `sde-downtime` ApplicationV2 in three modes: GM solo (pay-before-roll attempts, renown / XP apply buttons), the GM session control panel (picks overview, lock/release, roll-for), and the player view (own actors only, choose then roll). Locked books render as a title-only card; unlocking happens in the Importer Hub. |
 | `downtime-session.mjs` | 1196 | Table-wide downtime session: world-setting state model, the authenticated downtime query protocol (the raw socket carries only the payload-free re-read nudge), and the GM-authoritative handlers that recompute DC, cost and gating from the skeleton, derive the requester from the server-supplied sender, and spend a per-attempt roll token so a roll settles once. Players pick and roll; the GM settles. |
 

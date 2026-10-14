@@ -36,6 +36,6 @@ test("sending the tags to Extras still waits for a tag, since there is nothing t
 test("a map the importer made lists only its own book's keyed hexes (another book's number must not star a hex)", () => {
   const app = readFileSync(new URL("../scripts/hex-map/hex-tagger-app.mjs", import.meta.url), "utf8");
   const load = app.slice(app.indexOf("async _loadEntries()"), app.indexOf("_selectedEntries()"));
-  assert.match(load, /hexPrint\(this\._scene\(\)\?\.getFlag\(MODULE_ID, "hexMapId"\)\)\?\.folder/, "the folder comes from the scene's hexMapId");
-  assert.match(load, /sourceFolderName\(e\.doc\.getFlag\(MODULE_ID, HEX_FLAG\)\?\.source\) === folder/, "and only entries of that folder stay");
+  assert.match(load, /sceneBookFolder\(this\._scene\(\)\)/, "the folder is the scene's book (hexMapId, else a painted copy's bounds)");
+  assert.match(load, /sourceFolderName\(e\.doc\.getFlag\(MODULE_ID, HEX_FLAG\)\?\.source\) === this\._bookFolder/, "and only entries of that folder stay");
 });
