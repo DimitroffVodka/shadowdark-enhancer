@@ -164,6 +164,29 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     this.render();
   }
+  /** Hovering or focusing a tile in the picker enlarges it: one card, filled and placed beside that tile, kept inside the window. */
+  _wireTileZoom() {
+    const zoom = this.element.querySelector(".hx-tile-zoom");
+    if (!zoom) return;
+    const image = zoom.querySelector("image"), label = zoom.querySelector(".hx-tile-zoom-name"), shell = zoom.parentElement;
+    const show = (option) => {
+      image.setAttribute("href", option.dataset.src);
+      label.textContent = option.title;
+      zoom.hidden = false;
+      const at = option.getBoundingClientRect(), box = shell.getBoundingClientRect(), gap = 8;
+      const left = Math.max(gap, Math.min(at.left - box.left + (at.width - zoom.offsetWidth) / 2, box.width - zoom.offsetWidth - gap));
+      const above = at.top - box.top - zoom.offsetHeight - gap;
+      zoom.style.left = `${left}px`;
+      zoom.style.top = `${above >= gap ? above : at.bottom - box.top + gap}px`;
+    };
+    const hide = () => { zoom.hidden = true; };
+    for (const option of this.element.querySelectorAll(".hx-tile-opt")) {
+      option.addEventListener("mouseenter", () => show(option));
+      option.addEventListener("focus", () => show(option));
+      option.addEventListener("mouseleave", hide);
+      option.addEventListener("blur", hide);
+    }
+  }
   /** The header's picture: the first art source for this hex whose file is really there, or null for the stock hexagon. */
   async _artSrc(record) {
     const sources = hexArtSources(this.scene, this.offset, record.num, this._paintedCopies()), key = sources.join("\n");
@@ -227,6 +250,7 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const select = this.element.querySelector('select[name="terrain"]'), other = this.element.querySelector('[name="terrainOther"]');
     select?.addEventListener("change", () => { other.hidden = select.value !== OTHER; if (!other.hidden) other.focus(); });
     // The picker lists one terrain's tiles at a time; choosing another terrain here shows its tiles for this hex.
+    this._wireTileZoom();
     const tileTerrain = this.element.querySelector('select[name="tileTerrain"]');
     tileTerrain?.addEventListener("change", () => { this._capture(); this.tilePick = { terrain: tileTerrain.value }; this.render(); });
     const zone = (selector, onDrop) => {

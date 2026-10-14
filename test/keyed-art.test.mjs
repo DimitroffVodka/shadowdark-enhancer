@@ -111,7 +111,7 @@ test("the header wears the hex's art when there is one, and the stock hexagon wh
   const around = conditionsAround(template, 'data-action="showArt"');
   assert.ok(around.includes("if artSrc"), `the art control needs a picture: ${around.join(" > ")}`);
   assert.ok(around.includes("if isGM"), "the art is GM-only");
-  assert.match(template, /\{\{#if artSrc\}\}<button[^>]*data-action="showArt"[^>]*><img src="\{\{artSrc\}\}" alt=""><\/button>\{\{else\}\}<div class="ui-art hx-art"><i class="fa-solid fa-hexagon"><\/i><\/div>\{\{\/if\}\}/,
+  assert.match(template, /\{\{#if artSrc\}\}<button[^>]*data-action="showArt"[^>]*><svg class="hx-pic"[^>]*><image href="\{\{artSrc\}\}"[^>]*\/><\/svg><\/button>\{\{else\}\}<div class="ui-art hx-art"><i class="fa-solid fa-hexagon"><\/i><\/div>\{\{\/if\}\}/,
     "the picture and the stock hexagon are the two branches of one choice");
 });
 

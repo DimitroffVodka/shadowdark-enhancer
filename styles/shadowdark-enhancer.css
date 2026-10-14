@@ -5506,21 +5506,28 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 /* The header picture is the hex itself, as large as the header allows. Tile art is drawn on a canvas that is about half transparent
    margin, so it is zoomed until the hex runs edge to edge in the box; the box clips the rest. */
 .sde-hex-explorer .ui-head > .hx-art { width: 140px; height: 140px; font-size: 56px; }
-.sde-hex-explorer .ui-head > .hx-art img { object-view-box: inset(22% 24% 18% 24%); }
 /* With the picture this size the number and the book's name get the width beside it, and the stats drop below when they do not fit. */
 .sde-hex-explorer .ui-head { flex-wrap: wrap; }
 .sde-hex-explorer .ui-head .ui-head-text { flex: 1 1 150px; min-width: 120px; }
 /* The header art is a button only when the hex has a picture: its own art, opened in Foundry's pop-out. */
 .sde-hex-explorer button.hx-art { padding: 0; cursor: pointer; }
 .sde-hex-explorer button.hx-art:hover { border-color: var(--ui-frame); filter: brightness(1.06); }
-.sde-hex-explorer .hx-art img { display: block; width: 100%; height: 100%; object-fit: contain; border-radius: inherit; }
+.sde-hex-explorer .hx-art, .sde-hex-explorer .hx-tile-opt { overflow: hidden; }
+/* A tile is drawn on a 932 x 810 canvas that is about half transparent margin; the picture is that canvas seen through an SVG viewBox
+   on the hex, so the hex runs edge to edge. A viewBox crops the same in every browser; an image crop property did not take. */
+.sde-hex-explorer .hx-pic { display: block; width: 100%; height: 100%; border-radius: inherit; }
 /* The tile picker: one terrain's tiles as pictures, the hex's own marked. Each is cropped to the hex like the header's. */
 .sde-hex-explorer .hx-tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; margin-top: 8px; }
 .sde-hex-explorer .hx-tile-opt { display: block; width: 100%; aspect-ratio: 1; height: auto; min-height: 0; padding: 2px; margin: 0; border: 1px solid var(--ui-line); border-radius: var(--ui-r); background: var(--ui-panel); cursor: pointer; box-shadow: none; }
 .sde-hex-explorer .hx-tile-opt:hover { border-color: var(--ui-frame); background: var(--ui-raised); }
 .sde-hex-explorer .hx-tile-opt:focus-visible { outline: 2px solid var(--ui-info); outline-offset: 1px; }
 .sde-hex-explorer .hx-tile-opt.current { border-color: var(--ui-gold); box-shadow: inset 0 0 0 1px var(--ui-gold); }
-.sde-hex-explorer .hx-tile-opt img { display: block; width: 100%; height: 100%; object-fit: contain; object-view-box: inset(22% 24% 18% 24%); }
+.sde-hex-explorer .ui-shell { position: relative; }
+/* The enlarger: one card the window fills and places beside the tile under the pointer or focus, outside the scrolling body. */
+.sde-hex-explorer .hx-tile-zoom { position: absolute; z-index: 30; width: 250px; padding: 6px; border: 1px solid var(--ui-frame); border-radius: var(--ui-r2); background: var(--ui-panel); box-shadow: var(--ui-shadow); pointer-events: none; }
+.sde-hex-explorer .hx-tile-zoom[hidden] { display: none; }
+.sde-hex-explorer .hx-tile-zoom .hx-pic { width: 100%; height: auto; aspect-ratio: 500 / 505; }
+.sde-hex-explorer .hx-tile-zoom-name { display: block; margin-top: 4px; text-align: center; font: 600 12px/1.2 var(--ui-head); color: var(--ui-text); }
 .sde-hex-explorer .hx-flags { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
 .sde-hex-explorer .hx-line { display: contents; }
 .sde-hex-explorer .ui-head .ui-stats { flex: 0 1 auto; min-width: 0; }
