@@ -19,7 +19,9 @@ The GM's setup asks two things, both under "GM setup":
 
 Missing tables are reported before any charge; the module never invents missing results
 or ships sourcebook prose. Settlement limits, active downtime exclusion and each PC's
-14-real-day cooldown apply without a map.
+14-day wait between outings apply without a map. The wait is 14 days of the game calendar, so moving the calendar
+ahead ends it. Anyone joining who is inside it is named in the tab with a warning, and the GM has an "Allow it for this
+outing" switch beside the warning; without it Start refuses.
 
 The whole outing is preflighted: chosen participants, every share affordable,
 and tables resolving. One shortfall refuses the outing before charging anyone.

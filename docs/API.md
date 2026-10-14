@@ -869,7 +869,9 @@ No default book outcomes are shipped.
 
 The chosen tier cost is a group total split between the joining PCs in whole gp, the remainder charged one gp at a time to the first in list order (100 gp among 3 is 34, 33, 33); each pays their share from their own purse.
 Preflight checks all confirmations, table coverage, funds, settlement limits,
-downtime overlap and 14-real-day actor cooldown before charging.
+downtime overlap and the 14-game-day actor cooldown before charging. The cooldown is read from the world time
+recorded on each paid outing (`carousingProgress[logId].world`); the GM may allow one outing inside it with
+`request(partyUuid, "cooldown", { value: true })` (setup only, GM only, saved as `current.ignoreCooldown`).
 Explicit unconditional positive XP/Luck gains, signed renown and carried-coin
 percentage loss are concrete automatic effects. XP/Luck extraction accepts
 `Gain/Earn/Receive N XP`, `Gain/Earn/Receive N luck tokens` (including `a`/`one`),
