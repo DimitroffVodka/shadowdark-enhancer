@@ -5523,6 +5523,8 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-hex-explorer .hx-tile-opt:focus-visible { outline: 2px solid var(--ui-info); outline-offset: 1px; }
 .sde-hex-explorer .hx-tile-opt.current { border-color: var(--ui-gold); box-shadow: inset 0 0 0 1px var(--ui-gold); }
 .sde-hex-explorer .ui-shell { position: relative; }
+.sde-hex-explorer .hx-bake { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--ui-line); }
+.sde-hex-explorer .hx-bake p { margin: 0; flex: 1 1 200px; }
 /* The enlarger: one card the window fills and places beside the tile under the pointer or focus, outside the scrolling body. */
 .sde-hex-explorer .hx-tile-zoom { position: absolute; z-index: 30; width: 250px; padding: 6px; border: 1px solid var(--ui-frame); border-radius: var(--ui-r2); background: var(--ui-panel); box-shadow: var(--ui-shadow); pointer-events: none; }
 .sde-hex-explorer .hx-tile-zoom[hidden] { display: none; }

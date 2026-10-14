@@ -31,6 +31,10 @@
       <div class="hx-tile-grid">{{#each tileChoices}}<button type="button" class="hx-tile-opt{{#if current}} current{{/if}}" data-action="tileSet" data-src="{{src}}" title="{{name}}" aria-label="{{name}}" aria-pressed="{{#if current}}true{{else}}false{{/if}}"><svg class="hx-pic" viewBox="215 150 500 505" aria-hidden="true"><image href="{{src}}" width="932" height="810"/></svg></button>{{else}}<p class="ui-muted">{{localize "SDE.hexExplorer.tile.none"}}</p>{{/each}}</div>
       {{/if}}
       {{/unless}}
+      {{#if bakeAvailable}}<div class="hx-bake">
+        <p class="ui-muted">{{localize "SDE.hexExplorer.bake.hint"}}</p>
+        <button type="button" class="ui-btn" data-action="bakeMap"><i class="fa-solid fa-fire-burner"></i> {{localize "SDE.hexExplorer.bake.button"}}</button>
+      </div>{{/if}}
     </section>{{/if}}
 
     {{#if keyedSection}}<section class="ui-card">

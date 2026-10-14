@@ -15,6 +15,8 @@ import { paintedScenesFor, extrasHexApi } from "../importer/hex/hex-handoff.mjs"
 import { terrainWord } from "../importer/hex/hex-dataset.mjs";
 import { SETTLEMENTS } from "../importer/hex/hex-summary.mjs";
 import { tilesAvailable, paintTarget, tileChoices, terrainChoices, rerollTile, setTile } from "./hex-tile-chooser.mjs";
+import { bakeAvailable, bakedCopies, previousBake, playSigns, bakedName, bakePainted } from "./bake-map.mjs";
+import { recordJournal } from "./hex-records.mjs";
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const t = (key) => game.i18n.localize(key);
 /** Whether the file is really there: a missing one is a plain no, never a console error or a notice. */
@@ -50,6 +52,7 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       tileReroll: function () { return this._changeTile({ reroll: true }); },
       tileSet: function (_event, el) { return this._changeTile({ src: el.dataset.src }); },
       tileChoose: function () { this._capture(); this.tilePick = this.tilePick ? null : { terrain: null }; this.render(); },
+      bakeMap: function () { return this._bakeMap(); },
     },
   };
   static PARTS = { body: { template: `modules/${MODULE_ID}/templates/hex-map/hex-explorer.hbs`, scrollable: [".sde-hex-explorer-body"] } };
@@ -134,7 +137,8 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const target = paintTarget(this.scene, this._paintedCopies());
     const here = target ? paintedTileOf(target, this.offset) : null;
     if (!here) return { tileSection: false };
-    if (here.keyed) return { tileSection: true, tileKeyed: true, tileNote: t("SDE.hexExplorer.tile.keyed") };
+    const canBake = bakeAvailable(api);
+    if (here.keyed) return { tileSection: true, tileKeyed: true, tileNote: t("SDE.hexExplorer.tile.keyed"), bakeAvailable: canBake };
     // The painted map's own word for this hex is the terrain its pool is read for, and the one a repaint must keep.
     const held = (await Promise.resolve(api.getHexRecords?.(target.id, [record.num])).catch(() => null))?.[record.num]?.terrain || terrainWord(record.terrain);
     if (!held) return { tileSection: false };
@@ -143,12 +147,52 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const pool = this.tilePick ? await Promise.resolve(api.getTilePool(word)).catch(() => []) : [];
     const words = this._terrainOptions(this.draft?.terrain ?? record.terrain).map(o => terrainWord(o.value));
     return {
-      tileSection: true, tileKeyed: false,
+      tileSection: true, tileKeyed: false, bakeAvailable: canBake,
       tileNote: game.i18n.format(target.id === this.scene.id ? "SDE.hexExplorer.tile.onScene" : "SDE.hexExplorer.tile.onCopy", { scene: target.name }),
       tilePickerOpen: !!this.tilePick, tileChoices: tileChoices(pool, here.src),
       // What sits on a hex (a village, a keyed location) is tagged beside its terrain but has no tiles of its own.
       tileTerrains: terrainChoices(words, word, [...Object.values(SETTLEMENTS), "keyed_location"].map(terrainWord)),
     };
+  }
+  /**
+   * Bake the painted map into a new scene, here in this GM's own client (the GPU is this tab's). The sequence is bake-map.mjs;
+   * this is the asking: what it does, what a scene being played on would not carry over, and whether to switch to the result.
+   */
+  async _bakeMap() {
+    const api = extrasHexApi(), held = this.tileTarget, source = held ? game.scenes.get(held.id) : null;
+    if (!game.user?.isGM || !source || !bakeAvailable(api)) return;
+    if (!canvas?.app?.renderer) { ui.notifications.warn(t("SDE.hexExplorer.bake.noCanvas")); return; }
+    const esc = foundry.utils.escapeHTML;
+    const grid = this.scene.flags?.["shadowdark-extras"]?.hexcrawl?.grid;
+    const previous = grid ? previousBake(this.scene, bakedCopies(game.scenes, { cols: grid.cols, rows: grid.rows, origin: grid.origin ?? 1 }), game.scenes.active) : null;
+    const signs = playSigns(previous, scene => { try { return Object.keys(recordJournal(scene)?.flags?.[MODULE_ID]?.hexRecords?.cells ?? {}).length; } catch { return 0; } });
+    const warning = signs ? `<p class="ui-note warn">${esc(game.i18n.format("SDE.hexExplorer.bake.played", { scene: previous.name, recorded: signs.recorded, tokens: signs.tokens }))}</p>` : "";
+    const go = await foundry.applications.api.DialogV2.confirm({
+      classes: ["sde-ui", "sde-dialog"], window: { title: t("SDE.hexExplorer.bake.title") },
+      content: `<p>${esc(game.i18n.format("SDE.hexExplorer.bake.confirm", { source: source.name }))}</p>${warning}`,
+      yes: { label: t("SDE.hexExplorer.bake.go") }, rejectClose: false,
+    });
+    if (!go) return;
+    this._capture();
+    ui.notifications.info(game.i18n.format("SDE.hexExplorer.bake.progress", { source: source.name }));
+    let made = null;
+    try { made = await bakePainted(source, api, game.shadowdarkEnhancer.hexMaps); }
+    catch (error) {
+      console.error(`${MODULE_ID} | Hex Data bake`, error);
+      ui.notifications.error(game.i18n.format("SDE.hexExplorer.bake.failed", { error: error.message }));
+      return;
+    }
+    if (!made) return; // Extras said why
+    const scene = game.scenes.get(made.sceneId);
+    if (scene) await scene.update({ name: bakedName(source) });
+    ui.notifications.info(game.i18n.format("SDE.hexExplorer.bake.done", { name: scene?.name ?? made.name }));
+    const activate = scene && await foundry.applications.api.DialogV2.confirm({
+      classes: ["sde-ui", "sde-dialog"], window: { title: t("SDE.hexExplorer.bake.activateTitle") },
+      content: `<p>${esc(game.i18n.format("SDE.hexExplorer.bake.activate", { name: scene.name }))}</p>`,
+      yes: { label: t("SDE.hexExplorer.bake.makeActive") }, no: { label: t("SDE.hexExplorer.bake.notNow") }, rejectClose: false,
+    });
+    if (activate) await scene.activate();
+    this.render();
   }
   /** Another tile (a fresh draw) or this exact one, on the painted map; the window then draws again with what it now wears. */
   async _changeTile({ reroll = false, src = null }) {

@@ -11,7 +11,7 @@ const tile = "data:image/svg+xml;utf8," + encodeURIComponent(`<svg xmlns="http:/
 const swatch = (fill) => "data:image/svg+xml;utf8," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 932 810" width="932" height="810"><polygon points="235,405 345,200 590,200 700,405 590,610 345,610" fill="#2a2a2a"/><polygon points="235,395 345,198 590,198 700,395 590,598 345,598" fill="${fill}" stroke="#222" stroke-width="6"/></svg>`);
 const tints = ["#f1d9d6", "#ece7f0", "#f7efe6", "#e9d3d8", "#f3f1f4", "#f0dfdc", "#e8e4ee", "#f5e6e0", "#efe3ea", "#f6f3f1", "#e5d6dd", "#f2e9ee"];
 const tileChoices = tints.map((fill, n) => ({ src: swatch(fill), name: `Salt Flat ${n < 7 ? `gen${n + 1}` : `lora ${"FGHIJKL"[n - 7]}`}`, current: n === 2 }));
-const tilePart = { tileSection: true, tileKeyed: false, tileNote: "Painted on The Western Reaches (painted). A baked map shows the change once it is baked again.",
+const tilePart = { tileSection: true, tileKeyed: false, bakeAvailable: true, tileNote: "Painted on The Western Reaches (painted). A baked map shows the change once it is baked again.",
   tileTerrains: ["forest", "grassland", "mountain", "salt flat", "swamp"].map((v) => ({ value: v, label: v, selected: v === "salt flat" })) };
 const uuid = "Compendium.shadowdark-enhancer--journals.JournalEntry.Fn82kQ0aXz91LmPq.JournalEntryPage.aB3dE5fG7hJ9kLmN";
 const base = {
@@ -38,6 +38,6 @@ const base = {
 };
 // state "scroll" (default) is the real 620px window; "full" lifts the height so the whole body can be seen;
 // "empty" is a book known but not imported: the section says why instead of vanishing.
-export default { ...base, initial: "scroll", build: (state) => (state === "full" ? { height: "auto" } : state === "picker" ? { height: 1080, previewHeight: 1140, context: { ...base.context, tilePickerOpen: true, tileChoices } }
+export default { ...base, initial: "scroll", build: (state) => (state === "full" ? { height: "auto" } : state === "picker" ? { height: 1240, previewHeight: 1300, context: { ...base.context, tilePickerOpen: true, tileChoices } }
     : state === "keyed" ? { context: { ...base.context, tileKeyed: true, tilePickerOpen: false, tileNote: "This hex wears its keyed art. Change that with the Tagger's tile art." } }
     : state === "stock" ? { context: { ...base.context, artSrc: null } } : state === "empty" ? { context: { ...base.context, keyed: [], keyedNote: "No key locations imported for this book." } } : {}) };

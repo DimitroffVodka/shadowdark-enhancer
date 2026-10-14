@@ -91,6 +91,18 @@ Save cell, and it goes to the painted map: a baked scene draws no Tiles, so the 
 says the change shows in the bake once the painted map is baked again. A hex that
 wears keyed art shows no buttons; its art is set with the Tagger's **Tile art**.
 
+**Bake map** (the same card, with a current Extras): bakes the painted map into a new
+scene for play from inside Foundry, so putting your tile choices on the map you play
+on does not need the Scenes sidebar's *Bake map for play* (which only shows while Tile
+Flatten is on) or anyone's console. It puts a plain ground tile under every keyed hex,
+bakes (about a minute, using this computer's graphics, so press it in the browser tab you
+are playing from), takes the ground away again whatever happened, names the new scene
+for the painted map and the minute, and asks whether to make it the active scene. The
+painted map and every earlier baked scene stay as they are. A bake is a copy of the
+painted map, so it starts without the play on the scene it stands in for: if that scene
+has recorded hexes or tokens the dialog says how many first. Bake before you start
+playing, or keep playing on the scene you have.
+
 The window also has a **Quests here** card on a numbered hex: the quests tied to
 this hex, each with a button to open it and one to unlink it, and a picker of
 every other quest (one already tied to another hex shows that number, and
