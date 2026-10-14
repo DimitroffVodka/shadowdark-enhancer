@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { artAssignments, bakedSpriteSrc, hexArtSources, paintedTileSrc, dealtTileSrc, ART_FLAG } from "../scripts/hex-map/keyed-art.mjs";
+import { artAssignments, bakedSpriteSrc, hexArtSources, paintedTileSrc, paintedTileOf, dealtTileSrc, ART_FLAG } from "../scripts/hex-map/keyed-art.mjs";
 
 const MODULE_ID = "shadowdark-enhancer";
 const WR_TILE_167 = "modules/shadowdark-extras/assets/Hexes/Specials/167_Volcanic_Island.webp";
@@ -206,4 +206,15 @@ test("the header picture is the sprite, then the map's own tile, then its deal, 
   assert.deepEqual(hexArtSources(paintedScene([]), { i: 5, j: 6 }, 4664, [copy]), [TILE("copy tile"), TILE("copy deal")],
     "a bake with no sprite for the cell and no tiles of its own reads its painted copy");
   assert.deepEqual(hexArtSources(paintedScene([]), { i: 5, j: 6 }, null), [], "nothing at all keeps the stock hexagon");
+});
+
+test("a tile that carries the hex's number is keyed art, and says so", () => {
+  const scene = paintedScene([
+    { at: { i: 3, j: 3 }, src: TILE("keyed"), own: { painted: true, hexNum: 4664 } },
+    { at: { i: 3, j: 4 }, src: TILE("terrain") },
+  ]);
+  assert.equal(paintedTileOf(scene, { i: 3, j: 3 }).keyed, true);
+  assert.equal(paintedTileOf(scene, { i: 3, j: 4 }).keyed, false);
+  assert.equal(paintedTileOf(scene, { i: 3, j: 4 }).src, TILE("terrain"));
+  assert.equal(paintedTileOf(scene, { i: 7, j: 7 }), null);
 });

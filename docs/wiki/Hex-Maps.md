@@ -69,12 +69,27 @@ locations imported for this book* or *This scene is not tied to a book*) instead
 vanishing. Players are unchanged: they still
 reach a page only through a pin, and only with Observer access. Pins, token drags
 and long-press pings retain their handlers.
-The header wears the hex's own art when there is one: a baked map's sprite for that
-hex, else the tile its number is painted with — the **Tile art** manifest you loaded,
-or the table shipped for the Western Reaches print. Pressing it opens Foundry's image
-pop-out, whose eye control shares the picture with your players. A hex with no art, or
-whose file is gone (Extras uninstalled), keeps the plain hexagon; no art is uploaded,
-and the players' hover never grows a picture.
+The header wears the hex's own picture, large, with the number and the book's name
+beside it. Every hex has one when its map is painted: a baked map's sprite for that
+hex, else the tile the painted map actually draws there (the baked map reads it from
+the painted copy it was made from), else the tile Extras' saved deal names, else the
+tile its number is painted with — the **Tile art** manifest you loaded, or the table
+shipped for the Western Reaches print. Pressing it opens Foundry's image pop-out,
+whose eye control shares the picture with your players. A hex with none, or whose file
+is gone (Extras uninstalled), keeps the plain hexagon; no art is uploaded, and the
+players' hover never grows a picture.
+
+**Tile** (a numbered hex on a map Extras painted, with a current Extras): the card
+under Terrain changes which tile the hex is painted with, before you bake.
+**Another tile** draws a different one from the terrain's set, never the tile the hex
+has or one a neighbour wears. **Choose tile** lists the terrain's tiles as pictures,
+the hex's own marked; the **Tiles for** list shows any other terrain's tiles too, so a
+desert-hills tile can go on a grassland hex without changing the hex's terrain. A
+choice is saved in the map's deal, so it survives repainting the same terrain, and ends
+when the hex's terrain moves or you press **Another tile**. It writes at once, not with
+Save cell, and it goes to the painted map: a baked scene draws no Tiles, so the card
+says the change shows in the bake once the painted map is baked again. A hex that
+wears keyed art shows no buttons; its art is set with the Tagger's **Tile art**.
 
 The window also has a **Quests here** card on a numbered hex: the quests tied to
 this hex, each with a button to open it and one to unlink it, and a picker of

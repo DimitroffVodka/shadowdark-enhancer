@@ -18,6 +18,21 @@
       <label class="ui-field"><span class="ui-label">{{localize "SDE.hexExplorer.locationTitle"}}</span><input name="title" value="{{title}}"></label>
     </section>
 
+    {{#if tileSection}}<section class="ui-card hx-tile">
+      <h3 class="ui-h">{{localize "SDE.hexExplorer.tile.title"}}</h3>
+      <p class="ui-muted">{{tileNote}}</p>
+      {{#unless tileKeyed}}
+      <div class="ui-inline">
+        <button type="button" class="ui-btn" data-action="tileReroll"><i class="fa-solid fa-dice"></i> {{localize "SDE.hexExplorer.tile.another"}}</button>
+        <button type="button" class="ui-btn" data-action="tileChoose" aria-expanded="{{#if tilePickerOpen}}true{{else}}false{{/if}}"><i class="fa-solid fa-table-cells-large"></i> {{localize "SDE.hexExplorer.tile.choose"}}</button>
+      </div>
+      {{#if tilePickerOpen}}
+      <label class="ui-field"><span class="ui-label">{{localize "SDE.hexExplorer.tile.tilesOf"}}</span><select name="tileTerrain">{{#each tileTerrains}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></label>
+      <div class="hx-tile-grid">{{#each tileChoices}}<button type="button" class="hx-tile-opt{{#if current}} current{{/if}}" data-action="tileSet" data-src="{{src}}" title="{{name}}" aria-label="{{name}}" aria-pressed="{{#if current}}true{{else}}false{{/if}}"><img src="{{src}}" alt="" loading="lazy"></button>{{else}}<p class="ui-muted">{{localize "SDE.hexExplorer.tile.none"}}</p>{{/each}}</div>
+      {{/if}}
+      {{/unless}}
+    </section>{{/if}}
+
     {{#if keyedSection}}<section class="ui-card">
       <h3 class="ui-h">{{localize "SDE.hexExplorer.keyedPages"}}</h3>
       {{#each keyed}}<div class="ui-row">

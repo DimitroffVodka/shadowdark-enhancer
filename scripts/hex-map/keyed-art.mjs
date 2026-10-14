@@ -59,13 +59,13 @@ export function bakedSpriteSrc(scene, offset) {
 /**
  * The tile a painted map draws on one cell: the base painted tile whose centre
  * sits on it, a coast piece excluded. On a keyed hex that is the keyed art
- * itself, on any other the terrain's own tile. A baked scene has no Tiles, so
- * this is null there.
+ * itself (`keyed: true`, it carries the hex's number), on any other the
+ * terrain's own tile. A baked scene has no Tiles, so this is null there.
  * @param {object} scene   a scene-shaped object: `tiles` and a hex `grid`
  * @param {{i:number, j:number}} offset
- * @returns {string|null}
+ * @returns {{src: string, keyed: boolean, id: string|null}|null}
  */
-export function paintedTileSrc(scene, offset) {
+export function paintedTileOf(scene, offset) {
   const tiles = scene?.tiles?.contents ?? (scene?.tiles ? [...scene.tiles] : []);
   if (!tiles.length || !Number.isSafeInteger(offset?.i) || !Number.isSafeInteger(offset?.j)) return null;
   const at = scene.grid?.getCenterPoint?.(offset);
@@ -77,8 +77,12 @@ export function paintedTileSrc(scene, offset) {
       && Math.abs(tile.x + (tile.width / 2) - at.x) <= tolerance && Math.abs(tile.y + (tile.height / 2) - at.y) <= tolerance;
   });
   const base = here.reduce((low, tile) => (low === null || (tile.sort ?? 0) < (low.sort ?? 0) ? tile : low), null);
-  return base?.texture?.src ?? null;
+  const src = base?.texture?.src;
+  return src ? { src, keyed: base.flags[BAKED_NAMESPACE].hexNum != null, id: base.id ?? null } : null;
 }
+
+/** {@link paintedTileOf}'s picture alone. */
+export const paintedTileSrc = (scene, offset) => paintedTileOf(scene, offset)?.src ?? null;
 
 /**
  * The tile Extras' saved deal names for a numbered hex (its `paintLayout`

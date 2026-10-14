@@ -10,8 +10,10 @@ import { rulesFrom } from "../rules-data/rules-data-core.mjs";
 import { storedRulesFor } from "../rules-data/rules-data-scope.mjs";
 import { Quests } from "../quests/quests.mjs";
 import { questsAtHex, STATUS_LABELS } from "../quests/quest-core.mjs";
-import { hexArtSources } from "./keyed-art.mjs";
-import { paintedScenesFor } from "../importer/hex/hex-handoff.mjs";
+import { hexArtSources, paintedTileOf } from "./keyed-art.mjs";
+import { paintedScenesFor, extrasHexApi } from "../importer/hex/hex-handoff.mjs";
+import { terrainWord } from "../importer/hex/hex-dataset.mjs";
+import { tilesAvailable, paintTarget, tileChoices, terrainChoices, rerollTile, setTile } from "./hex-tile-chooser.mjs";
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const t = (key) => game.i18n.localize(key);
 /** Whether the file is really there: a missing one is a plain no, never a console error or a notice. */
@@ -43,10 +45,14 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
         else doc?.sheet?.render(true);
       },
       showArt: function () { return this._showArt(); },
+      // A tile change is written at once, to the painted map: it is not part of this window's Save.
+      tileReroll: function () { return this._changeTile({ reroll: true }); },
+      tileSet: function (_event, el) { return this._changeTile({ src: el.dataset.src }); },
+      tileChoose: function () { this._capture(); this.tilePick = this.tilePick ? null : { terrain: null }; this.render(); },
     },
   };
   static PARTS = { body: { template: `modules/${MODULE_ID}/templates/hex-map/hex-explorer.hbs`, scrollable: [".sde-hex-explorer-body"] } };
-  constructor(offset, scene, options = {}) { super(options); this.offset = { ...offset }; this.scene = scene; this.draft = null; this.saving = false; this.artSrc = null; this.artTitle = ""; this.keyedBook = null; }
+  constructor(offset, scene, options = {}) { super(options); this.offset = { ...offset }; this.scene = scene; this.draft = null; this.saving = false; this.artSrc = null; this.artTitle = ""; this.keyedBook = null; this.tilePick = null; this.tileTarget = null; }
   static open(offset, target) {
     const scene = sceneRef(target);
     if (!game.user?.isGM || !explorerCell(scene, offset)) return null;
@@ -100,7 +106,8 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const number = record.num === null ? game.i18n.format("SDE.hexExplorer.offset", this.offset) : String(record.num).padStart(4, "0");
     this.artTitle = number;
     this.artSrc = await this._artSrc(record);
-    return { ...d, links, arrivalName, keyed, keyedSection: keyed.length > 0 || explain, keyedNote: explain ? t(book?.book ? "SDE.hexExplorer.noKeyedPages" : "SDE.hexExplorer.noBook") : "",
+    const tile = await this._tileContext(record);
+    return { ...d, ...tile, links, arrivalName, keyed, keyedSection: keyed.length > 0 || explain, keyedNote: explain ? t(book?.book ? "SDE.hexExplorer.noKeyedPages" : "SDE.hexExplorer.noBook") : "",
       questSection: numbered, quests: here.map(row),
       // A quest already tied to another hex says so, so moving it is a choice and not a surprise.
       questChoices: all.filter(q => !here.includes(q)).map(q => ({ ...row(q), where: q.hex === null ? "" : ` → ${pad(q.hex)}` })),
@@ -113,6 +120,46 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       locationAuto: d.location === "auto", locationShow: d.location === "show", locationHide: d.location === "hide",
       terrainOptions: this._terrainOptions(d.terrain),
       lineRows: FEATURES.map(type => ({ type, label: t(LABELS[type]), checked: d.lines.includes(type) })) };
+  }
+  /**
+   * The tile section: shown for a numbered hex whose painted map is in this world and whose Extras can read a terrain's tiles.
+   * A keyed hex wears its art (set in the Tagger), so it only says so. A baked scene holds no Tiles, so the change goes to
+   * the painted copy it was made from; the note says the bake shows it once baked again.
+   */
+  async _tileContext(record) {
+    this.tileTarget = null;
+    const api = extrasHexApi();
+    if (!tilesAvailable(api) || !Number.isInteger(record.num)) return { tileSection: false };
+    const target = paintTarget(this.scene, this._paintedCopies());
+    const here = target ? paintedTileOf(target, this.offset) : null;
+    if (!here) return { tileSection: false };
+    if (here.keyed) return { tileSection: true, tileKeyed: true, tileNote: t("SDE.hexExplorer.tile.keyed") };
+    // The painted map's own word for this hex is the terrain its pool is read for, and the one a repaint must keep.
+    const held = (await Promise.resolve(api.getHexRecords?.(target.id, [record.num])).catch(() => null))?.[record.num]?.terrain || terrainWord(record.terrain);
+    if (!held) return { tileSection: false };
+    this.tileTarget = { id: target.id, num: record.num, terrain: held };
+    const word = this.tilePick?.terrain || held;
+    const pool = this.tilePick ? await Promise.resolve(api.getTilePool(word)).catch(() => []) : [];
+    const words = this._terrainOptions(this.draft?.terrain ?? record.terrain).map(o => terrainWord(o.value));
+    return {
+      tileSection: true, tileKeyed: false,
+      tileNote: game.i18n.format(target.id === this.scene.id ? "SDE.hexExplorer.tile.onScene" : "SDE.hexExplorer.tile.onCopy", { scene: target.name }),
+      tilePickerOpen: !!this.tilePick, tileTerrains: terrainChoices(words, word), tileChoices: tileChoices(pool, here.src),
+    };
+  }
+  /** Another tile (a fresh draw) or this exact one, on the painted map; the window then draws again with what it now wears. */
+  async _changeTile({ reroll = false, src = null }) {
+    const held = this.tileTarget;
+    if (!held || !game.user?.isGM) return;
+    this._capture();
+    try {
+      if (reroll) await rerollTile(held.id, held.num, held.terrain);
+      else if (src) await setTile(held.id, held.num, held.terrain, src);
+    } catch (error) {
+      console.error(`${MODULE_ID} | Hex Data tile`, error);
+      ui.notifications.warn(game.i18n.format("SDE.hexExplorer.tile.failed", { error: error.message }));
+    }
+    this.render();
   }
   /** The header's picture: the first art source for this hex whose file is really there, or null for the stock hexagon. */
   async _artSrc(record) {
@@ -176,6 +223,9 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     super._onRender(context, options);
     const select = this.element.querySelector('select[name="terrain"]'), other = this.element.querySelector('[name="terrainOther"]');
     select?.addEventListener("change", () => { other.hidden = select.value !== OTHER; if (!other.hidden) other.focus(); });
+    // The picker lists one terrain's tiles at a time; choosing another terrain here shows its tiles for this hex.
+    const tileTerrain = this.element.querySelector('select[name="tileTerrain"]');
+    tileTerrain?.addEventListener("change", () => { this._capture(); this.tilePick = { terrain: tileTerrain.value }; this.render(); });
     const zone = (selector, onDrop) => {
       const el = this.element.querySelector(selector);
       if (!el) return;
