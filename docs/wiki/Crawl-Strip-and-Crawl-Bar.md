@@ -294,7 +294,7 @@ the party token travels.
   costs (a tower on a swamp, a swamp's cost), and one hex when the row names
   none or the map is not made from a known book's print; only that book's own
   rows count. A location on lava is never worse than difficult: it costs the
-  Terrain types table's difficult cost, on foot or by boat, where an ordinary
+  Terrain types table's difficult cost or less, on foot or by boat, where an ordinary
   lava hex stays impassable; a storm in a harsh climate still blocks it. The GM's charge is the one that counts: a player's route preview
   shows one hex for a keyed location or settlement, and a move the day can't
   pay for at the ground's price is sent back with nothing spent. The GM sees a

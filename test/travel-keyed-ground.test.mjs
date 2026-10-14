@@ -601,7 +601,7 @@ test("the Hex Data window shows the ground's cost for a keyed or settlement hex,
   assert.equal((await windowFor(scene, 106, "keyed_location")).context.enter, "", "no row, no ground: blank");
   assert.equal((await windowFor(scene, 104, "forest")).context.enter, "difficult (2)", "plain terrain by its own tag");
   assert.equal((await windowFor(scene, 101, "grassland")).context.enter, "normal (1)");
-  // Seven renders: the regions' and the stat's ground are one pack read, and the book's pages are one more per window.
+  // Eight renders: the regions' and the stat's ground are one pack read, and the book's pages are one more per window.
   assert.ok(reads.n <= 9, `no pack read of its own per render (${reads.n})`);
   assert.equal((await windowFor(scene, 102, "keyed_location")).context.enter, "difficult (2)");
   assert.ok(reads.n <= 10, `an eighth render adds at most its own window's book read (${reads.n})`);
