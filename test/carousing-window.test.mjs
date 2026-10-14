@@ -122,3 +122,11 @@ test("a joining character inside the 14 game days is flagged with the days gone,
   const hbs = await read("../templates/carousing/carousing.hbs");
   assert.match(hbs, /\{\{#if isGM\}\}<label class="ui-switch"><input type="checkbox" data-cooldown/);
 });
+
+test("a finished and reported outing offers a new outing only, not a Resume that would do nothing", async () => {
+  const resume = async (phase, reported) => { const party = world([true, false, false], 7); Object.assign(party.flags[M].carousing.current, { phase, reported }); return (await new CarousingApp(party)._prepareContext()).resume; };
+  assert.equal(await resume("complete", true), false);
+  assert.equal(await resume("complete", false), true, "the recap never went out: the retry is real");
+  assert.equal(await resume("effects", undefined), true);
+  assert.equal(await resume("setup", undefined), false);
+});

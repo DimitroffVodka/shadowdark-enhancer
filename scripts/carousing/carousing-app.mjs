@@ -54,7 +54,9 @@ export class CarousingApp extends HandlebarsApplicationMixin(ApplicationV2) {
       tier: tier ? { bonus: tier.bonus } : null, count: joining, costText: tier ? gp(tier.cost) : "", shareText: shares.length ? gp(each) : each,
       eachLabel: joining ? game.i18n.format("SDE.carousing.eachPays", { n: joining }) : t("SDE.carousing.eachPaysNobody"), error: this.error, manager: Party.canManage(this.party), isGM: game.user.isGM,
       cooldownWarning: rows.some(r => r.recent), ignoreCooldown: night?.ignoreCooldown === true,
-      empty: !night, setup, complete: night?.phase === "complete", resume: night && !setup,
+      empty: !night, setup, complete: night?.phase === "complete",
+      // Resume / retry recap is for an outing that did not finish, or whose recap never went out; on a finished, reported one it re-sends the recap and shows nothing.
+      resume: !!night && !setup && !(night.phase === "complete" && night.reported),
       phase: night?.phase, holiday: holiday?.name, expanded: night?.mode === "expanded",
       manualHoliday: !!holiday && (!!holiday.carousing?.chances?.length || (night?.mode !== "expanded" && (!!holiday.carousing?.extraBenefit || !!holiday.carousing?.extraMishap || !!holiday.carousing?.benefitBonus || !!holiday.carousing?.benefitAdvantage))),
       canConfigure: !night || setup || night.phase === "complete", missingTables: setup && (!night.tiers.length || !night.outcomes.length || (night.mode === "expanded" && !(night.benefits?.length && night.mishaps?.length))),
