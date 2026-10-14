@@ -627,6 +627,9 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._loadState();
     this._geom = null; this._sampler = null; this._cells = [];
     this._numbered = new Map(); this._bitmaps.clear(); this._sheet = []; this._legend = null;
+    // The crawl list is the old scene's book (and a single pick was for that map): the next render or hand-off reloads it.
+    // The crawl list is the old scene's book (and a single pick was for that map): the next render or hand-off reloads it.
+    this._entries = []; this._entryUuid = ""; this._bookFolder = null;
     this._restoreSamples();
     return true;
   }

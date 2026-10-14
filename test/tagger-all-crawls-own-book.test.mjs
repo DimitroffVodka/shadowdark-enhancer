@@ -90,6 +90,39 @@ test("a scene no print claims in a one-book world behaves as before", async () =
   assert.equal(one._entryUuid, B.uuid, "one crawl is chosen for you");
 });
 
+// One window, scene changed under it: _syncScene drops the old scene's crawl list, and the reload the render and the
+// hand-off do when the list is empty (as _prepareContext does) reads the new scene's own book.
+test("a window kept open across a scene change reads the new scene's own book", async () => {
+  const { sourceFolderName } = await import("../scripts/shared/compendium-suite.mjs");
+  let id = 0;
+  const on = (s) => { s.id = `scene-${++id}`; return s; };
+  const sceneA = on(scene({ print: "hex-cs1" }));
+  const sceneB = on(scene({ print: "hex-cs2" }));
+  const bare = on(scene());
+  const app = await open(sceneA);
+  app._bitmaps = new Map();
+  app._loadState();
+  assert.deepEqual(titles(app), ["Book A"]);
+
+  globalThis.canvas = { scene: sceneB };
+  assert.equal(app._syncScene(), true);
+  assert.deepEqual(app._entries, [], "the old scene's list is dropped with the scene");
+  assert.deepEqual(app._selectedEntries(), []);
+  if (!app._entries.length) await app._loadEntries();   // the rule _prepareContext and _handoffDataset apply
+  assert.deepEqual(app._entries.map((e) => e.name), ["Book B"]);
+  assert.deepEqual(titles(app), ["Book B"]);
+  assert.equal(app._bookFolder, sourceFolderName("CS2"));
+
+  // A scene no print claims, in a world of several books: nothing is merged, and nothing of book B survives.
+  globalThis.canvas = { scene: bare };
+  assert.equal(app._syncScene(), true);
+  if (!app._entries.length) await app._loadEntries();
+  assert.equal(app._bookFolder, null);
+  assert.equal(app._entries.length, 4);
+  assert.equal(app._entryUuid, "");
+  assert.deepEqual(app._selectedEntries(), []);
+});
+
 test("the every-crawl option is offered only for one book", async () => {
   const src = await readFile(new URL("../scripts/hex-map/hex-tagger-app.mjs", import.meta.url), "utf8");
   assert.match(src, /allCrawls: this\._entries\.length > 1 && !this\._mixedBooks\(\)/);
