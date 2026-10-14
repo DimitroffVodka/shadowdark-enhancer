@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { explorerView, planExplorerEdit, explorerClick, encounterReadout, ownsHexData, enterStat, hoverHead, playerOpenable, canOpenLink, raisedOwnership, applyLinkShares, droppedLink, arrivalFields, mergedCell, regionLine, regionText } from "../scripts/hex-map/hex-explorer.mjs";
 import { rulesFrom, terrainCost } from "../scripts/rules-data/rules-data-core.mjs";
-import { hexReader, withGround } from "../scripts/encounter/encounter-terrain.mjs";
+import { hexReader, withGround, pricedGround } from "../scripts/encounter/encounter-terrain.mjs";
 import { hexCost, priceMove } from "../scripts/overland/overland-state-core.mjs";
 import { arrivalDue } from "../scripts/hex-map/hex-fog-core.mjs";
 const record = { sceneUuid: "Scene.a", offset: { i: -2, j: 3 }, num: 101, terrain: "forest", title: "Cave", features: [{ type: "river", discovered: true, secret: "private" }, { type: "dungeon", name: "Secret cave", discovered: true, custom: { x: 1 } }], notes: [{ text: "Bridge", visible: true }, { text: "GM SECRET", visible: false }], links: [{ uuid: "JournalEntry.a", label: "Clue", visible: true }], keyed: [{ title: "Keyed cave", uuid: "JournalEntry.a.JournalEntryPage.b" }], discovery: { revealed: true, visited: false } };
@@ -143,21 +143,35 @@ test("a keyed or settlement hex shows the cost of the ground its book row names,
     assert.equal(enterStat(rules, { terrain: tag }, { terrain: null, features: ["coast"] }), null, `${tag}: a row that names no ground`);
     assert.equal(enterStat(rules, { terrain: tag }, { terrain: "lava", features: [] }), null, `${tag}: ground the rules have no row for`);
   }
+  // Lava under a location is difficult at worst; lava on its own, or under no location, is not.
+  const lava = { terrain: "lava", features: [] };
+  const withLava = (row, types = { normal: 1, difficult: 2 }) => rulesFrom({ terrain: { lava: row }, terrainTypes: types });
+  for (const tag of ["keyed_location", "village", "town", "city", "city_state"]) {
+    assert.deepEqual(enterStat(withLava({ type: "impassable" }), { terrain: tag }, lava), { type: "difficult", cost: 2 }, `${tag} on lava`);
+  }
+  assert.deepEqual(enterStat(withLava({ type: "impassable" }, { normal: 1, difficult: 3 }), { terrain: "village" }, lava), { type: "difficult", cost: 3 }, "the world's difficult cost");
+  assert.deepEqual(enterStat(withLava({ type: "normal", cost: 1 }), { terrain: "village" }, lava), { type: "normal", cost: 1 }, "never made worse");
+  assert.deepEqual(enterStat(withLava({ type: "difficult", cost: 6 }), { terrain: "village" }, lava), { type: "difficult", cost: 2 }, "the lesser of its own cost and difficult's");
+  assert.deepEqual(enterStat(withLava({ type: "impassable" }), { terrain: "lava" }, lava), { type: "impassable", cost: null }, "an ordinary lava hex");
+  assert.deepEqual(enterStat(withLava({ type: "impassable" }, {}), { terrain: "village" }, lava), { type: "impassable", cost: null }, "no difficult cost known: nothing to cap to");
+  const sea = rulesFrom({ terrain: { arctic_sea: { type: "impassable" }, lake: { type: "impassable", boat: 1 } }, terrainTypes: { normal: 1, difficult: 2 } });
+  assert.deepEqual(enterStat(sea, { terrain: "village" }, { terrain: "arctic_sea", features: [] }), { type: "impassable", cost: null }, "a location on water is unchanged");
+  assert.deepEqual(enterStat(sea, { terrain: "village" }, { terrain: "lake", features: [] }), { type: "impassable", cost: null });
   // Any other hex is priced by its own tag, whatever ground it is offered.
   assert.deepEqual(enterStat(rules, { terrain: "mountain" }, swamp), { type: "difficult", cost: 3 });
 });
 // The stat is only honest if it is what Overland charges. This drives the module's own reader and pricer:
 // hexReader over a tagged map, hexCost with the rules' terrainCost bound as Overland binds it (a keyed or settlement hex
-// standing on its book row's ground, withGround), priceMove. travel-keyed-ground.test.mjs runs the same through Overland itself.
+// standing on its book row's ground, pricedGround), priceMove. travel-keyed-ground.test.mjs runs the same through Overland itself.
 test("parity: wherever the stat shows a cost it is what priceMove charges for that hex, a keyed hex's ground included", () => {
-  const cells = { 101: "forest|gm", 102: "swamp|gm", 103: "lava|gm", 104: "keyed_location|gm", 105: "village|gm", 106: "Salt Flat|gm", 107: "marsh|gm", 108: "volcanic_ash|gm", 109: "grassland|gm", 110: "keyed_location|gm" };
+  const cells = { 101: "forest|gm", 102: "swamp|gm", 103: "lava|gm", 104: "keyed_location|gm", 105: "village|gm", 106: "Salt Flat|gm", 107: "marsh|gm", 108: "volcanic_ash|gm", 109: "grassland|gm", 110: "keyed_location|gm", 111: "village|gm", 112: "lava|gm" };
   const scene = { id: "s1", grid: {}, getFlag: (scope, key) => (scope === "shadowdark-enhancer" && key === "hexTags" ? { origin: { q: 0, r: 0, num: 101, shifted: "odd" }, cells } : undefined) };
   const grid = { isHexagonal: true, columns: true, even: false, getCenterPoint: ({ i, j }) => ({ x: j * 100 + 50, y: i * 100 + 50 }) };
   scene.grid = grid;
   globalThis.game = { journal: { getName: () => undefined } };
   const read = hexReader({ grid, scene });
   // The book's rows for the keyed hexes: a tower on a swamp, a village on a mountain, and a keyed hex whose row names no ground.
-  const ground = new Map([[104, { terrain: "swamp", features: ["coast"] }], [105, { terrain: "mountain", features: [] }], [110, { terrain: null, features: ["river"] }]]);
+  const ground = new Map([[104, { terrain: "swamp", features: ["coast"] }], [105, { terrain: "mountain", features: [] }], [110, { terrain: null, features: ["river"] }], [111, { terrain: "lava", features: [] }]]);
   const tables = [
     // The printed rows, with a keyed_location tag that has no row of its own.
     { terrain: { forest: { type: "difficult", cost: 2 }, swamp: { type: "difficult", cost: 2 }, mountain: { type: "difficult", cost: 3 }, grassland: { type: "normal", cost: 1 }, lava: { type: "impassable" }, salt_flat: { type: "difficult", cost: 3 }, marsh: { type: "difficult" } }, terrainTypes: { normal: 1, difficult: 2 } },
@@ -168,7 +182,10 @@ test("parity: wherever the stat shows a cost it is what priceMove charges for th
   let shown = 0, keyedShown = 0;
   for (const raw of tables) {
     const rules = rulesFrom(raw);
-    const costOf = (hex, from) => hexCost((terrain, opts) => terrainCost(rules, terrain, opts), withGround(hex, ground.get(hex.num)), { from: from && withGround(from, ground.get(from.num)) });
+    const costOf = (hex, from) => {
+      const here = pricedGround(hex, ground.get(hex.num), rules.terrainTypes.difficult);
+      return hexCost((terrain, opts) => terrainCost(rules, terrain, opts), here.hex, { from: from && withGround(from, ground.get(from.num)), atMost: here.atMost });
+    };
     const from = { num: 100, terrain: "grassland", features: [] };
     for (const num of Object.keys(cells).map(Number)) {
       const hex = read(offsetOf(num));
@@ -187,7 +204,7 @@ test("parity: wherever the stat shows a cost it is what priceMove charges for th
     }
   }
   assert.ok(shown >= 8, "the cases that show a cost were really compared");
-  assert.equal(keyedShown, 4, "a tower on a swamp and a village on a mountain, under both tables");
+  assert.equal(keyedShown, 6, "a tower on a swamp, a village on a mountain and a village on lava, under both tables");
 });
 test("a keyed hex's hover line is the location's name: the GM always, marked until found; a player only once found", () => {
   const keyed = { ...record, terrain: "keyed_location", title: "The Swamp Ape", discovery: { revealed: true, visited: false } };

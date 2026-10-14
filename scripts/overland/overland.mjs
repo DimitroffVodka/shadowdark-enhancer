@@ -40,7 +40,7 @@ import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { CrawlState } from "../crawl-strip/crawl-state.mjs";
 import { authorizeActorFor, isActiveGM, queryActiveGM, refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
 import { makeQueue } from "../quests/quest-core.mjs";
-import { hasHexTerrain, hexReader, hexZonesFor, isHexMapScene, partyHex, withGround, onHexZonesForgotten } from "../encounter/encounter-terrain.mjs";
+import { hasHexTerrain, hexReader, hexZonesFor, isHexMapScene, partyHex, pricedGround, onHexZonesForgotten } from "../encounter/encounter-terrain.mjs";
 import { BOAT_TYPE, MOUNT_TYPE } from "../actors/register-actors.mjs";
 import { dawnAfter, dateParts, hourOfDay, secondsPerDay, startOfDay } from "../time/time-core.mjs";
 import { advanceOffDuty } from "../time/off-duty.mjs";
@@ -875,8 +875,13 @@ function costToday() {
   // A keyed or settlement hex, and the hex it was entered from, stand on their book row's ground: its terrain
   // and its path, so a road through a keyed hex still costs 1 from path to path. Read once per pricer.
   const ground = loadedGround(rulesScene());
-  const stands = (hex) => (ground ? withGround(hex, ground.get(hex?.num)) : hex);
-  return (hex, from) => hexCost(byTerrain, stands(hex), { from: stands(from), stormy: s.stormy, harsh: !!s.harsh, boat: s.method === "sailing" });
+  // A location on lava is priced as difficult at worst (pricedGround): the Terrain types table's difficult cost, read once.
+  const difficult = ground ? rulesFrom(storedRulesFor(rulesScene())).terrainTypes?.difficult : null;
+  const stands = (hex) => (ground ? pricedGround(hex, ground.get(hex?.num), difficult) : { hex, atMost: null });
+  return (hex, from) => {
+    const { hex: here, atMost } = stands(hex);
+    return hexCost(byTerrain, here, { from: stands(from).hex, stormy: s.stormy, harsh: !!s.harsh, boat: s.method === "sailing", atMost });
+  };
 }
 
 /** Price a move of the travel token, or null when its scene isn't a hex map. */

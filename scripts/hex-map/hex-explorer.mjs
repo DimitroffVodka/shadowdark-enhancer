@@ -10,7 +10,7 @@ import { disclosure, effectiveDiscovery, withPartyDiscovery } from "./hex-fog-co
 import { viewedPartyIds, playerViewOn } from "./hex-fog.mjs";
 import { HexTagOverlay, isDoubleClick } from "./tag-overlay.mjs";
 import { ruleKey, terrainCost } from "../rules-data/rules-data-core.mjs";
-import { hexZonesFor, onHexZonesForgotten, withGround } from "../encounter/encounter-terrain.mjs";
+import { hexZonesFor, onHexZonesForgotten, pricedGround } from "../encounter/encounter-terrain.mjs";
 
 const pick = (v, keys) => Object.fromEntries(keys.filter(k => typeof v?.[k] === "string").map(k => [k, v[k]]));
 /** GM hover is player-safe too; GM-private content belongs only in the editor. */
@@ -150,7 +150,8 @@ export function encounterReadout({ uuid, zone, verdict } = {}, name = "", active
  * so `ground` (the book row's terrain from hexZonesFor, the map travel prices
  * with) names the ground instead (withGround). The base table only, exactly
  * what terrainCost prices with no options: no weather, storm, climate, path or
- * boat adjustment, and impassable has no cost. Null when the rules have no row
+ * boat adjustment, and impassable has no cost, except that a location on lava
+ * is difficult at worst (pricedGround), as travel prices it. Null when the rules have no row
  * for the ground, or the row names no type, so the window stays blank instead
  * of guessing a cost of 1 the way travel counts an unknown terrain.
  * @param {object} rules  from rulesFrom(storedRulesFor(scene))
@@ -159,10 +160,12 @@ export function encounterReadout({ uuid, zone, verdict } = {}, name = "", active
  * @returns {{type:"normal"|"difficult"|"impassable", cost:number|null}|null}
  */
 export function enterStat(rules, hex, ground) {
-  const terrain = withGround(hex, ground)?.terrain;
+  const { hex: stands, atMost } = pricedGround(hex, ground, rules?.terrainTypes?.difficult);
+  const terrain = stands?.terrain;
   const row = rules?.terrain?.[ruleKey(terrain)];
   if (!row?.type) return null;
   const cost = terrainCost(rules, terrain);
+  if (atMost !== null && cost > atMost) return { type: "difficult", cost: atMost };
   return { type: row.type, cost: Number.isFinite(cost) ? cost : null };
 }
 export const HexExplorer = {

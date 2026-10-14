@@ -28,8 +28,12 @@ const BOOK = [
   { num: "0103", terrain: ["swamp"] },             // a village on a swamp
   { num: "0105", terrain: ["mountain"] },
   { num: "0107", terrain: ["coast"] },             // names a coast and no ground
-  { num: "0108", terrain: ["lava"] },              // impassable ground
+  { num: "0108", terrain: ["lava"] },              // lava: a location there is difficult at worst, not impassable
   { num: "0110", terrain: ["mountain", "path"] },  // a road runs through it
+  { num: "0113", terrain: ["arctic_sea"] },        // a location on water: impassable on foot
+  { num: "0114", terrain: ["ocean"] },
+  { num: "0115", terrain: ["lake"] },
+  { num: "0117", terrain: ["lava", "path"] },      // a location on lava that a road runs through
 ];
 const crawl = (source, keyed, name = "Invented Book") => ({ getFlag: (scope, key) => (key === "hex" ? { crawl: name, source, keyed } : undefined) });
 // Filed under the Western Reaches' folder: the print every scene below is made from unless it says otherwise.
@@ -47,6 +51,7 @@ const journals = {
 const CELLS = {
   101: "grassland|gm", 102: "keyed_location|gm", 103: "village|gm", 104: "forest|gm", 105: "keyed_location|gm", 106: "keyed_location|gm",
   107: "keyed_location|gm", 108: "keyed_location|gm", 109: "grassland;path|gm", 110: "keyed_location|gm", 111: "grassland;path|gm", 112: "grassland|gm",
+  113: "keyed_location|gm", 114: "village|gm", 115: "town|gm", 116: "lava|gm", 117: "city|gm",
 };
 const scenes = [];
 /** `print`: the map flow's hexMapId (none for a homebrew map); `painted`: a copy with no flag that carries the print's 64 x 75 bounds. */
@@ -183,9 +188,8 @@ test("travel charges a keyed or settlement hex by the ground its book row names,
   assert.deepEqual(cost(104), { cost: 2, blocked: null }, "forest as before");
   assert.deepEqual(cost(106), { cost: 1, blocked: null }, "a keyed hex with no row has no ground: one hex, as today");
   assert.deepEqual(cost(107), { cost: 1, blocked: null }, "a row that names only a coast has no ground either");
-  const lava = cost(108);
-  assert.equal(lava.cost, Infinity, "impassable ground is impassable under a keyed hex");
-  assert.equal(lava.blocked?.num, 108);
+  assert.deepEqual(cost(108), { cost: 2, blocked: null }, "a location on lava is difficult at worst, not impassable");
+  assert.equal(cost(116).blocked?.num, 116, "an ordinary lava hex is still impassable");
 });
 
 test("the To enter stat is the number travel charges, for every kind of hex", async () => {
@@ -592,13 +596,116 @@ test("the Hex Data window shows the ground's cost for a keyed or settlement hex,
   assert.equal((await windowFor(scene, 102, "keyed_location")).context.enter, "difficult (2)", "a tower on a swamp");
   assert.equal((await windowFor(scene, 103, "village")).context.enter, "difficult (2)", "a village on a swamp");
   assert.equal((await windowFor(scene, 105, "keyed_location")).context.enter, "difficult (3)");
-  assert.equal((await windowFor(scene, 108, "keyed_location")).context.enter, "impassable", "the word alone for impassable ground");
+  assert.equal((await windowFor(scene, 108, "keyed_location")).context.enter, "difficult (2)", "a location on lava shows difficult, not impassable");
+  assert.equal((await windowFor(scene, 116, "lava")).context.enter, "impassable", "the word alone for impassable ground");
   assert.equal((await windowFor(scene, 106, "keyed_location")).context.enter, "", "no row, no ground: blank");
   assert.equal((await windowFor(scene, 104, "forest")).context.enter, "difficult (2)", "plain terrain by its own tag");
   assert.equal((await windowFor(scene, 101, "grassland")).context.enter, "normal (1)");
-  // Six renders: the regions' and the stat's ground are one pack read, and the book's pages are one more per window.
-  assert.ok(reads.n <= 8, `no pack read of its own per render (${reads.n})`);
+  // Seven renders: the regions' and the stat's ground are one pack read, and the book's pages are one more per window.
+  assert.ok(reads.n <= 9, `no pack read of its own per render (${reads.n})`);
   assert.equal((await windowFor(scene, 102, "keyed_location")).context.enter, "difficult (2)");
-  assert.ok(reads.n <= 9, `an eighth render adds at most its own window's book read (${reads.n})`);
+  assert.ok(reads.n <= 10, `an eighth render adds at most its own window's book read (${reads.n})`);
   scenes.length = 0;
+});
+
+// ── A location on lava is never worse than difficult ──────────────────────────────
+
+/** The printed rows plus the water a location can stand on: arctic sea (no boat cost), ocean and lake (a boat crosses at 1). */
+const WATER = {
+  ...PRINTED,
+  terrain: { ...PRINTED.terrain, arctic_sea: { type: "impassable" }, ocean: { type: "impassable", boat: 1 }, lake: { type: "impassable", boat: 1 } },
+};
+const withLava = (lava, types = PRINTED.terrainTypes) => ({ ...WATER, terrain: { ...WATER.terrain, lava }, terrainTypes: types });
+/** What the Hex Data stat shows for `num` and what the real reader -> hexCost -> priceMove charges to walk onto it from 101. */
+async function statAndCharge(scene, raw, num) {
+  const zones = await hexZonesFor(scene);
+  const stat = enterStat(rulesFrom(raw), reader(scene)(offsetOf(num)), zones.ground.get(num));
+  return { stat, charged: previewCost(scene, [101, num]) };
+}
+
+test("a keyed or settlement hex on lava costs the difficult cost walking and sailing, and the stat is what travel charges", async () => {
+  for (const method of ["walking", "sailing"]) {
+    const scene = makeScene("s1");
+    travelling(scene, WATER, { state: { method } });
+    await warm(scene);
+    const { stat, charged } = await statAndCharge(scene, WATER, 108);
+    assert.deepEqual(charged, { cost: 2, blocked: null }, `${method}: difficult's 2`);
+    assert.deepEqual(stat, { type: "difficult", cost: 2 }, `${method}: the stat shows Difficult (2)`);
+    const city = await statAndCharge(scene, WATER, 117);
+    assert.equal(city.charged.cost, 2, "a city on lava too");
+    assert.equal(await drag([107, 108]), 2, `${method}: the move spends it`);
+  }
+});
+
+test("an ordinary lava hex stays impassable, and a location on water is as it was", async () => {
+  const scene = makeScene("s1");
+  travelling(scene, WATER);
+  await warm(scene);
+  assert.equal(previewCost(scene, [101, 116]).cost, Infinity, "a plain lava tile");
+  assert.equal(enterStat(rulesFrom(WATER), reader(scene)(offsetOf(116)))?.type, "impassable");
+  for (const num of [113, 114, 115]) {
+    const { stat, charged } = await statAndCharge(scene, WATER, num);
+    assert.equal(charged.cost, Infinity, `${num}: impassable on foot`);
+    assert.equal(stat?.type, "impassable", `${num}: and the stat says so`);
+  }
+  travelling(scene, WATER, { state: { method: "sailing" } });
+  await warm(scene);
+  assert.equal(previewCost(scene, [101, 113]).cost, Infinity, "arctic sea has no boat cost");
+  assert.equal(previewCost(scene, [101, 114]).cost, 1, "ocean by boat as today");
+  assert.equal(previewCost(scene, [101, 115]).cost, 1, "lake by boat as today");
+  assert.equal(previewCost(scene, [101, 116]).cost, Infinity, "a plain lava tile by boat");
+});
+
+test("the difficult cost is the world's own, and a lava row already cheaper than it is left alone", async () => {
+  const scene = makeScene("s1");
+  const cases = [
+    [withLava({ type: "impassable" }, { normal: 1, difficult: 3 }), 3, "a customised Terrain types table is followed"],
+    [withLava({ type: "normal", cost: 1 }), 1, "lava the rules call normal: not made worse"],
+    [withLava({ type: "difficult", cost: 1 }), 1, "a cost below difficult's stays"],
+    [withLava({ type: "difficult" }), 2, "lava the rules call difficult costs difficult's"],
+    [withLava({ type: "difficult", cost: 6 }), 2, "the lesser of the rules' own cost and difficult's"],
+    [withLava({ type: "impassable", boat: 1 }), 1, "a boat cost of its own that is lower"],
+  ];
+  for (const [raw, expected, why] of cases) {
+    const method = raw.terrain.lava.boat ? "sailing" : "walking";   // the boat row only matters by boat
+    travelling(scene, raw, { state: { method } });
+    await warm(scene);
+    const { stat, charged } = await statAndCharge(scene, raw, 108);
+    assert.equal(charged.cost, expected, why);
+    if (method === "walking") assert.equal(stat?.cost, expected, `${why}: the stat`);
+  }
+});
+
+test("a storm raises a location on lava to difficult, and a harsh storm still blocks it", async () => {
+  const scene = makeScene("s1");
+  travelling(scene, WATER, { state: { weather: { kind: "stormy", until: at(1301, 6, 22, 6) }, hex: { num: 101, region: "Moor" } } });
+  await warm(scene);
+  assert.equal(overlandState().stormy, true);
+  assert.equal(previewCost(scene, [101, 108]).cost, 2, "stormy, not harsh: difficult");
+  globalThis.game.shadowdarkEnhancer.time = { season: () => ({ key: "summer" }) };
+  globalThis.game.shadowdarkEnhancer.rules.climate = () => ({ harsh: "always", label: "Harsh" });
+  await warm(scene);
+  assert.equal(overlandState().harsh, true);
+  assert.equal(previewCost(scene, [101, 108]).cost, Infinity, "stormy and harsh: nothing can be entered");
+});
+
+test("path to path stays one hex and a displaced step stays free, on a location on lava too", async () => {
+  const scene = makeScene("s1");
+  travelling(scene, WATER);
+  await warm(scene);
+  assert.equal(previewCost(scene, [109, 117]).cost, 1, "from a path hex onto a lava location the road runs through");
+  assert.equal(previewCost(scene, [101, 117]).cost, 2, "from off the road: difficult");
+  const read = reader(scene);
+  const steps = [{ hex: read(offsetOf(108)), from: read(offsetOf(101)), displace: true }];
+  assert.equal(priceMove(steps, travelStepCost()).cost, 0, "displaced");
+});
+
+test("a location whose ground row is missing or names no terrain is priced as before, lava rules or not", async () => {
+  const scene = makeScene("s1");
+  travelling(scene, WATER);
+  await warm(scene);
+  assert.equal(previewCost(scene, [101, 106]).cost, 1, "no row: one hex");
+  assert.equal(previewCost(scene, [101, 107]).cost, 1, "a coast and no ground: one hex");
+  assert.equal(enterStat(rulesFrom(WATER), { terrain: "keyed_location" }, undefined), null);
+  assert.equal(enterStat(rulesFrom(WATER), { terrain: "keyed_location" }, { terrain: null, features: ["coast"] }), null);
 });

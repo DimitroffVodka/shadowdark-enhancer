@@ -394,16 +394,18 @@ export function harshToday(climate, stormy) {
  * What entering `hex` from `from` costs today (§5.2, §5.7): impassable
  * (Infinity) when stormy in a harsh climate, whatever the terrain; 1 from one
  * path hex to another; else the rules' terrain cost, which storms raise to
- * difficult. 1 for a hex with no terrain (a map with no tags), null when the
+ * difficult and `atMost` (a location on lava) caps. 1 for a hex with no terrain (a map with no tags), null when the
  * rules data doesn't know the terrain. A river feature never changes it.
  * @param {(terrain:string, opts:object) => number|null} terrainCost  rules.terrainCost
  */
-export function hexCost(terrainCost, hex, { from = null, stormy = false, harsh = false, boat = false } = {}) {
+export function hexCost(terrainCost, hex, { from = null, stormy = false, harsh = false, boat = false, atMost = null } = {}) {
   if (stormy && harsh) return Infinity;
   if (!hex?.terrain) return 1;
   const onPath = (h) => (h?.features ?? []).includes("path");
   if (onPath(hex) && onPath(from)) return 1;
-  return terrainCost(hex.terrain, { boat, weather: stormy ? "stormy" : "", harsh: !!harsh });
+  const cost = terrainCost(hex.terrain, { boat, weather: stormy ? "stormy" : "", harsh: !!harsh });
+  // `atMost`: a location on lava is never worse than difficult (pricedGround); a cost the rules don't know stays null.
+  return atMost !== null && cost > atMost ? atMost : cost;
 }
 
 // ── The day's budget and the clock (#231, design §5.1, §5.2) ───────────────

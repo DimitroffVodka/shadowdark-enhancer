@@ -37,7 +37,9 @@ what travel actually charges. A keyed location or a settlement is tagged with
 what stands on it, so both travel and the stat take the ground its book row
 names ("Swamp", "Mountain"...): a tower on a swamp costs what a swamp does,
 read from the rows of the book the map was made from and no other book's. A
-keyed hex whose row names no ground, or a map that is not made from a known
+location whose ground is lava is the one exception: it costs the Terrain types
+table's difficult cost and shows Difficult, never Impassable, while an ordinary
+lava hex stays impassable. A keyed hex whose row names no ground, or a map that is not made from a known
 book's print, costs one hex and shows no cost; with no rules imported, or no row
 for the terrain, the stat is blank rather than guessing a cost. The ground is
 the GM's: a player's route preview shows one hex for a keyed location or a
