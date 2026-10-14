@@ -339,14 +339,15 @@ export class HexTagOverlay {
    */
   static async _regionContext(mode, scene) {
     if (mode === "terrain") return { regionByNum: new Map(), componentByNum: new Map(), zonesByRegion: new Map(), rowRanges: new Map() };
-    const { sceneRegions, sceneRegionFixes, sceneShift, regionSeeds, nameComponents, nearestRegion, crawlEntries, bookGround, sceneBookFolder } = await import("./hex-region.mjs");
+    const { sceneRegions, sceneRegionFixes, sceneShift, regionSeeds, nameComponents, nearestRegion, crawlEntries, bookEntries, bookGround, sceneBookFolder } = await import("./hex-region.mjs");
     const shifted = sceneShift(scene);
     // The enclosures are worth looking at BEFORE a hex key names them: that is
     // the scan's own output, and checking it is the reason to draw this at all.
     const componentByNum = sceneRegions(scene);
     const fixByNum = sceneRegionFixes(scene);
     const entries = await crawlEntries();
-    const seeds = regionSeeds(entries);
+    const book = await sceneBookFolder(scene);
+    const seeds = regionSeeds(bookEntries(entries, book));
     const { byNum } = nameComponents(componentByNum, seeds);
     for (const [num, region] of fixByNum) byNum.set(num, region);   // the GM's word outranks the scan
     // An enclosure with no keyed hex in it is usually not a region at all: a
@@ -371,7 +372,7 @@ export class HexTagOverlay {
       shifted,
       palette: extrasPalette() ?? REGION_COLORS,
     });
-    const ctx = { regionByNum: byNum, inferredByNum, componentByNum, fixByNum, keyByNum, colorByKey, groundByNum: bookGround(entries, await sceneBookFolder(scene)) };
+    const ctx = { regionByNum: byNum, inferredByNum, componentByNum, fixByNum, keyByNum, colorByKey, groundByNum: bookGround(entries, book) };
     if (mode === "region") return { ...ctx, zonesByRegion: new Map(), rowRanges: new Map() };
     // North and south split each region's own rows, as far as the map puts hexes in it.
     const rowRanges = regionRowRanges(new Map([...inferredByNum, ...byNum]));

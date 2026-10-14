@@ -7,7 +7,7 @@ import { Party } from "../party/party.mjs";
 import { fogCells, previewFogReset, resetHexFog, undoFogReset, fogUndoInfo } from "./hex-fog.mjs";
 import { offsetKey } from "./hex-records.mjs";
 import { hexNumberAt } from "./hex-number-api.mjs";
-import { sceneZones, scanSceneFor } from "./hex-region.mjs";
+import { sceneZones, scanSceneFor, sceneBookFolder } from "./hex-region.mjs";
 
 const esc = (v) => foundry.utils.escapeHTML(String(v ?? ""));
 
@@ -15,7 +15,7 @@ const esc = (v) => foundry.utils.escapeHTML(String(v ?? ""));
 export async function regionKeys(scene) {
   const out = new Map(), scan = scanSceneFor(scene);
   if (!scan) return out;
-  const { byNum } = await sceneZones(scan);
+  const { byNum } = await sceneZones(scan, { folder: await sceneBookFolder(scene) });
   if (!byNum.size) return out;
   for (const offset of fogCells(scene)) {
     const zone = byNum.get(hexNumberAt(offset, scene))?.zone;

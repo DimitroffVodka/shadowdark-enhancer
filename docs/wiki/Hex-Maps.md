@@ -469,6 +469,15 @@ measuring the whole edge tells them apart. The enclosures those borders make
 are the regions, and your hex key names them — each enclosure takes the region
 of the keyed locations inside it.
 
+The names are read from **the map's own book only**. Books all number their hexes
+from 0001, so hex 0102 of one book is a different place from hex 0102 of
+another, and another book's row never names a hex of this map. A map is tied to
+its book by the print it was made from (or by the size of a painted copy's grid,
+for the Western Reaches); a map no print claims, including a painted copy the
+module cannot place, has no region names and no nearest region, and its
+encounter checks use the terrain's table. A Cursed Scroll map shows no region
+names until that book's own key locations are imported.
+
 So once a book's key locations are imported, **every hex knows its region**,
 not just the 270 keyed ones:
 

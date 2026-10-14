@@ -206,7 +206,8 @@ test("the world clock reads Foundry's hour and the time API's moon (#227)", () =
 
 // ── resolveHexTable / tableForHex / tableForCheck against a stand-in world ──
 // The tables pack holds the imported grids; the journals pack one filed crawl
-// whose keyed rows name the regions; the print carries the border scan. The
+// whose keyed rows name the regions (filed under the print's own book: a scene reads only its book's rows); the
+// print carries the border scan. The
 // world's Hooks registry is kept so the cache's invalidation can be fired.
 
 const hooks = new Map();
@@ -225,13 +226,13 @@ function world({ journalFails = false } = {}) {
     getDocuments: async () => {
       w.reads++;
       if (journalFails) throw new Error("journals pack offline");
-      return [{ getFlag: (scope, key) => (key === "hex" ? { crawl: "Invented Book", keyed: [{ num: "1510", zone: "Grey Moor" }, { num: "3015", zone: "Deep Sea" }] } : undefined) }];
+      return [{ getFlag: (scope, key) => (key === "hex" ? { crawl: "Invented Book", source: "GMWR", keyed: [{ num: "1510", zone: "Grey Moor" }, { num: "3015", zone: "Deep Sea" }] } : undefined) }];
     },
   };
   // Grey Moor is enclosure 1 (column 15); Deep Sea is enclosure 2, column 30, rows 10..20.
   const comp = { 1510: 1, 1511: 1 };
   for (let row = 10; row <= 20; row++) comp[3000 + row] = 2;
-  w.scene = { id: "print", getFlag: (scope, key) => ({ hexRegions: { v: 1, comp }, hexTags: { origin: { shifted: "odd" } } })[key] };
+  w.scene = { id: "print", getFlag: (scope, key) => ({ hexRegions: { v: 1, comp }, hexTags: { origin: { shifted: "odd" } }, hexMapId: "hex-wr" })[key] };
   const settings = { encounterTerrainTables: { forest: "uuid-terrain-forest" }, encounterTableUuid: "uuid-active" };
   globalThis.game = {
     packs: [{ metadata: { packageType: "world" }, collection: "world.sde-tables", index }, journals],
