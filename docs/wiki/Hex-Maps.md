@@ -89,7 +89,7 @@ choice is saved in the map's deal, so it survives repainting the same terrain, a
 when the hex's terrain moves or you press **Another tile**. It writes at once, not with
 Save cell, and it goes to the painted map: a baked scene draws no Tiles, so the card
 says the change shows in the bake once the painted map is baked again. A hex that
-wears keyed art shows no buttons; its art is set with the Tagger's **Tile art**.
+wears its own art (a keyed location or a settlement) shows no buttons; that art is set with the Tagger's **Tile art**.
 
 **Bake map** (the same card, with a current Extras): bakes the painted map into a new
 scene for play from inside Foundry, so putting your tile choices on the map you play

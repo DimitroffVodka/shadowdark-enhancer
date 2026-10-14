@@ -39,5 +39,5 @@ const base = {
 // state "scroll" (default) is the real 620px window; "full" lifts the height so the whole body can be seen;
 // "empty" is a book known but not imported: the section says why instead of vanishing.
 export default { ...base, initial: "scroll", build: (state) => (state === "full" ? { height: "auto" } : state === "picker" ? { height: 1240, previewHeight: 1300, context: { ...base.context, tilePickerOpen: true, tileChoices } }
-    : state === "keyed" ? { context: { ...base.context, tileKeyed: true, tilePickerOpen: false, tileNote: "This hex wears its keyed art. Change that with the Tagger's tile art." } }
+    : state === "keyed" ? { context: { ...base.context, tileKeyed: true, tilePickerOpen: false, tileNote: "This hex wears its own art, as a keyed location or a settlement. Change that with the Tagger's tile art." } }
     : state === "stock" ? { context: { ...base.context, artSrc: null } } : state === "empty" ? { context: { ...base.context, keyed: [], keyedNote: "No key locations imported for this book." } } : {}) };

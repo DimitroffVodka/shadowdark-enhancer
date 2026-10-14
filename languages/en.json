@@ -189,7 +189,7 @@
   "SDE.hexExplorer.tile.title": "Tile",
   "SDE.hexExplorer.tile.onScene": "Painted on {scene}.",
   "SDE.hexExplorer.tile.onCopy": "Painted on {scene}. A baked map shows the change once it is baked again.",
-  "SDE.hexExplorer.tile.keyed": "This hex wears its keyed art. Change that with the Tagger's tile art.",
+  "SDE.hexExplorer.tile.keyed": "This hex wears its own art, as a keyed location or a settlement. Change that with the Tagger's tile art.",
   "SDE.hexExplorer.tile.another": "Another tile",
   "SDE.hexExplorer.tile.choose": "Choose tile",
   "SDE.hexExplorer.tile.tilesOf": "Tiles for",

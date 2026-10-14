@@ -140,11 +140,15 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const canBake = bakeAvailable(api);
     if (here.keyed) return { tileSection: true, tileKeyed: true, tileNote: t("SDE.hexExplorer.tile.keyed"), bakeAvailable: canBake };
     // The painted map's own word for this hex is the terrain its pool is read for, and the one a repaint must keep.
-    const held = (await Promise.resolve(api.getHexRecords?.(target.id, [record.num])).catch(() => null))?.[record.num]?.terrain || terrainWord(record.terrain);
+    // Read through an async function so that a call that throws before it returns (a stale number, a scene that is
+    // gone) is a rejection like any other, and the cell's own word is the fallback the guard is there for.
+    const read = async () => api.getHexRecords?.(target.id, [record.num]);
+    const held = (await read().catch(() => null))?.[record.num]?.terrain || terrainWord(record.terrain);
     if (!held) return { tileSection: false };
     this.tileTarget = { id: target.id, num: record.num, terrain: held };
     const word = this.tilePick?.terrain || held;
-    const pool = this.tilePick ? await Promise.resolve(api.getTilePool(word)).catch(() => []) : [];
+    const poolOf = async () => api.getTilePool(word);
+    const pool = this.tilePick ? await poolOf().catch(() => []) : [];
     const words = this._terrainOptions(this.draft?.terrain ?? record.terrain).map(o => terrainWord(o.value));
     return {
       tileSection: true, tileKeyed: false, bakeAvailable: canBake,
