@@ -127,7 +127,7 @@ function reportAdoption(report) {
   try { globalThis.ui?.notifications?.info?.(game.i18n.format(key, { count: report.imported, conflicts: report.conflicts.length, skipped: report.skipped.length })); } catch { /* adoption is already saved */ }
   console.info(`${MODULE_ID} | hex adoption`, report);
 }
-const LAYOUT_KEYS = ["cols", "rows", "firstRow", "rowsLowered"];
+const LAYOUT_KEYS = ["cols", "rows", "rowsLowered"];
 /**
  * The tagged print an Extras-built scene was painted from. Extras keeps no link back, so it is found by what
  * the build takes from the print: its numbering bounds and grid type. null unless exactly one print fits.
@@ -139,9 +139,12 @@ const LAYOUT_KEYS = ["cols", "rows", "firstRow", "rowsLowered"];
 export function printFor(painted, scenes) {
   const extras = painted?.flags?.[EXTRAS_ID], layout = extras?.hexcrawl?.grid;
   if (extras?.hexScene !== true || !layout || layout.flipX || layout.flipY || layout.landscape) return null;
+  const origin = layout.origin ?? 1;
   const fits = scenes.filter(s => s !== painted && s.flags?.[EXTRAS_ID]?.hexScene !== true && s.grid?.type === painted.grid?.type
     && LAYOUT_KEYS.every(k => s.flags?.[MODULE_ID]?.hexTags?.origin?.bounds && (s.flags[MODULE_ID].hexTags.origin.bounds[k] ?? null) === (layout[k] ?? null))
-    && extrasNumbersAlike(originFromFlag(s.flags[MODULE_ID].hexTags.origin), layout.origin ?? 1));
+    // The dataset leaves firstRow out when it equals the origin, and so does Extras' layout: absent means the origin, not null.
+    && (s.flags[MODULE_ID].hexTags.origin.bounds.firstRow ?? origin) === (layout.firstRow ?? origin)
+    && extrasNumbersAlike(originFromFlag(s.flags[MODULE_ID].hexTags.origin), origin));
   return fits.length === 1 ? fits[0] : null;
 }
 /**
