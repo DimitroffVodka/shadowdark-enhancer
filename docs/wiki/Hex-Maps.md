@@ -98,8 +98,10 @@ Flatten is on) or anyone's console. It puts a plain ground tile under every keye
 bakes (about a minute, using this computer's graphics, so press it in the browser tab you
 are playing from), takes the ground away again whatever happened, names the new scene
 for the painted map and the minute, and asks whether to make it the active scene. The
-painted map and every earlier baked scene stay as they are. A bake is a copy of the
-painted map, so it starts without the play on the scene it stands in for: if that scene
+painted map and every earlier baked scene stay as they are. Change the tiles you want
+to change first, with **Another tile** or **Choose tile**, and bake once afterwards: a
+baked scene draws no Tiles, so every change made later waits for the next bake. A bake
+is a copy of the painted map, so it starts without the play on the scene it stands in for: if that scene
 has recorded hexes or tokens the dialog says how many first. Bake before you start
 playing, or keep playing on the scene you have.
 
