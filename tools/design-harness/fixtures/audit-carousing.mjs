@@ -1,4 +1,4 @@
-// Audit fixture: Carousing, embedded in the Party sheet's Carousing tab as PartyApp embeds it. state = setup | complete | expanded (add -full for a tall window)
+// Audit fixture: Carousing, embedded in the Party sheet's Carousing tab as PartyApp embeds it. state = empty | setup | complete | expanded (add -full for a tall window)
 import { renderTemplate, inParty, asActivity } from "./_audit-embed.mjs";
 const names = ["Creeg Greythorn", "Elbin Grizzlegut", "Iraga Draguul", "Jorbin Ironhelm", "Martin Rast"];
 const ctxFor = (state, setup, complete) => {
@@ -9,11 +9,11 @@ const ctxFor = (state, setup, complete) => {
     result: !complete ? null : expanded ? { mode: "expanded", total: 9 + i, xp: 3, benefits: [{ text: "A river ferryman waives your fare for the season" }, { text: "A travelling puppeteer names you in his show; gain a luck token" }], mishaps: i % 2 ? [{ text: "You insulted the guildmaster's cook; -2 renown" }] : [] }
       : { total: 11 + i, description: "You wake in a barn beside a goat wearing your hat.", benefit: "A friendly rival offers you a favour; gain 1 renown." } }));
   return {
-    embedded: true, title: "The Lantern Guild", rows, error: setup ? "The tier table could not be read." : null, manager: true, isGM: true, overlap: false, empty: false, setup, complete, resume: false, phase: state,
+    embedded: true, title: "The Lantern Guild", rows, error: setup && state !== "empty" ? "The tier table could not be read." : null, manager: true, isGM: true, overlap: false, empty: state === "empty", setup, complete, resume: false, phase: state,
     holiday: "Festival of Lanterns", manualHoliday: true, canConfigure: true, missingTables: false, config: { place: "Harwick Vale" },
-    expanded, events: [{ uuid: "e1", name: "Western Reaches - Carousing Event" }, { uuid: "e2", name: "Harwick Events" }], outcomes: [{ uuid: "o1", name: "Western Reaches - Carousing Outcome", selected: expanded }],
-    benefitTables: [{ uuid: "b1", name: "Western Reaches - Carousing Benefit" }, { uuid: "b2", name: "Armor Benefit" }], mishapTables: [{ uuid: "m1", name: "Western Reaches - Carousing Mishap" }, { uuid: "m2", name: "Diabolical Mishap 1-3" }],
-    settlements: ["No settlement", "Village", "Town", "City", "City-state"].map((label, k) => ({ value: label, label, selected: k === 2 })),
+    expanded, books: [{ value: "o1", label: "Core Rulebook", selected: !expanded }, { value: "o2", label: "Western Reaches", selected: expanded }, { value: "o3", label: "Cursed Scroll #6", selected: false }], showBooks: true, ownBook: null,
+    tiers: [["Wealthy", 50, 3], ["Comfortable", 20, 1], ["Poor", 5, 0]].map(([d, c, b], k) => ({ id: "t" + k, label: `${d} - ${c} gp for the party; roll bonus ${b}`, selected: k === 1, disabled: c > 30 })), tier: { bonus: 1 }, tierEditable: setup, costText: "20 gp", shareText: "7 gp", eachLabel: "Each of 3 pays",
+    settlements: [["No settlement limit"], ["Village, up to 30 gp"], ["Town, up to 300 gp"], ["City, no limit"], ["City-state, limit not set"]].map(([label], k) => ({ value: label, label, selected: k === 1 })),
     history: [1, 2, 3].map((n) => ({ date: "3 Brewmonth, year 12" + n, logId: "l" + n, historyOnly: n === 3, entries: names.slice(0, 3).map((a) => ({ actorName: a, cost: "20 gp", outcome: "A night best forgotten.", benefit: "+1 renown" })) })),
 };
 };

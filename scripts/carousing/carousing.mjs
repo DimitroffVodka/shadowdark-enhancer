@@ -47,7 +47,8 @@ export async function carousingTables() {
 async function tableData(config) {
   const refs = await carousingTables();
   const byManifest = id => id ? refs.find(t => t.manifestId === id)?.uuid : undefined;
-  const outcome = config.outcome || byManifest("core-carousing-outcome");
+  // No saved choice: the first imported book (Core, then Western Reaches, then Cursed Scroll #6).
+  const outcome = config.outcome || byManifest(BOOKS.find(b => byManifest(b.outcome))?.outcome);
   const book = BOOKS.find(b => b.outcome === refs.find(t => t.uuid === outcome)?.manifestId) ?? BOOKS[0];
   const event = config.event || byManifest(book.event);
   const load = async uuid => uuid ? fromUuid(uuid).catch(() => null) : null;
@@ -145,6 +146,8 @@ export function handleCarousing(data, user) {
       } else if (data.action === "configure") {
         if (!user.isGM || (current && current.phase !== "setup" && current.phase !== "complete")) invalid();
         const config = { ...state.config };
+        // A different outcome table is a different book: its event, benefit and mishap tables follow it, unless this call names them.
+        if (typeof data.config?.outcome === "string" && data.config.outcome !== (config.outcome ?? "")) Object.assign(config, { event: "", benefit: "", mishap: "" });
         for (const key of ["event", "outcome", "benefit", "mishap", "settlement", "place"]) if (typeof data.config?.[key] === "string") config[key] = data.config[key];
         if (!["none", "village", "town", "city", "city_state"].includes(config.settlement)) invalid();
         state.config = config;

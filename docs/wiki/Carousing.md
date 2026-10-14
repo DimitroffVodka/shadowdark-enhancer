@@ -9,10 +9,16 @@ no covering another character's shortfall.
 
 ## Configure before spending
 
-The GM selects imported Core or custom world event/outcome tables. Missing
-tables are reported before any charge; the module never invents missing results
-or ships sourcebook prose. A manual settlement is allowed; settlement limits,
-active downtime exclusion and each PC's
+The GM's setup asks two things, both under "GM setup":
+
+- **Carousing rules**: Core Rulebook, Western Reaches or Cursed Scroll #6, listing only the books whose carousing tables
+  you imported. With one book imported nothing is asked. Nothing picked means the first imported book.
+- **Settlement** (optional): the list reads "Village, up to 300 gp", "City-state, no limit" or "limit not set", from the
+  carousing limits in Rules Data. A tier above the chosen settlement's limit is greyed out in the tier list. A settlement
+  name or holiday place can be typed beside it.
+
+Missing tables are reported before any charge; the module never invents missing results
+or ships sourcebook prose. Settlement limits, active downtime exclusion and each PC's
 14-real-day cooldown apply without a map.
 
 The whole outing is preflighted: chosen participants, every share affordable,
@@ -22,13 +28,12 @@ inputs, charges once, and saves actual rolls/outcomes.
 
 ## Basic and expanded rules
 
-The **Outcomes** table you pick decides the rules.
+The **Carousing rules** you pick decide the rules.
 
-A Core outcome table is basic carousing: one d8 roll plus the tier bonus reads one result line.
+Core is basic carousing: one d8 roll plus the tier bonus reads one result line.
 
-A Western Reaches or Cursed Scroll #6 outcome table is expanded carousing. Its rows are a matrix of Mishaps, Benefits,
-% modifier and XP. Pick that outcome table and the Event, Benefit and Mishap tables of the same book follow it; each of
-the four dropdowns can still be set by hand. For each character the tab:
+Western Reaches and Cursed Scroll #6 are expanded carousing. Their rows are a matrix of Mishaps, Benefits,
+% modifier and XP, and the Event, Benefit and Mishap tables of the same book go with them. For each character the tab:
 
 1. rolls d8 plus the tier bonus, the holiday event bonus and the renown bonus, and reads the matrix row;
 2. rolls one d100 for every benefit and every mishap the row lists, adds the row's % modifier (the result stays between
@@ -40,7 +45,8 @@ the four dropdowns can still be set by hand. For each character the tab:
 A holiday adds its extra benefit and extra mishap rolls, advantage on benefit rolls and its benefit bonus; its chance
 events stay with the GM. The Benefit and Mishap tables must cover 1 to 100, or the outing is refused before anyone pays.
 
-The table dropdowns list every RollTable whose name has "carousing" in it first.
+A world that already saved tables of its own keeps them, shown as "Your own tables". The API's `configure` still takes
+RollTable UUIDs.
 
 ## Results, Resume and history
 

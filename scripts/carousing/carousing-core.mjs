@@ -34,10 +34,22 @@ export function matrixRows(rows) {
 export const d100Rows = rows => outcomeRows(rows).map(r => ({ range: r.range, text: [r.description, r.benefit].filter(Boolean).join(" | ") }));
 /** Which tables go together: pick one book's outcome table and its event, benefit and mishap tables follow it. Core is basic carousing. */
 export const BOOKS = [
-  { outcome: "core-carousing-outcome", event: "core-carousing-event" },
-  { outcome: "pgwr-carousing-outcome", event: "pgwr-carousing-event", benefit: "pgwr-carousing-benefit", mishap: "pgwr-carousing-mishap" },
-  { outcome: "cs6-carousing-outcome", event: "cs6-carousing-event", benefit: "cs6-benefit", mishap: "cs6-mishap" },
+  { outcome: "core-carousing-outcome", event: "core-carousing-event", label: "SDE.carousing.book.core" },
+  { outcome: "pgwr-carousing-outcome", event: "pgwr-carousing-event", benefit: "pgwr-carousing-benefit", mishap: "pgwr-carousing-mishap", label: "SDE.carousing.book.pgwr" },
+  { outcome: "cs6-carousing-outcome", event: "cs6-carousing-event", benefit: "cs6-benefit", mishap: "cs6-mishap", label: "SDE.carousing.book.cs6" },
 ];
+/**
+ * The setup's one rulebook question: the books whose outcome table is imported (a world or compendium copy, found by its
+ * manifest id), the saved outcome's book selected or the first one when none is saved. A saved table that is no book's
+ * keeps a row of its own, so a world that chose its own tables still shows and keeps them.
+ */
+export function bookChoices(tables, outcome) {
+  const saved = outcome ? tables.find(t => t.uuid === outcome) : null;
+  const books = BOOKS.flatMap(b => { const row = tables.find(t => t.manifestId === b.outcome); return row ? [{ value: row.uuid, label: b.label, book: b.outcome }] : []; });
+  const own = outcome && !books.some(b => b.book === saved?.manifestId);
+  const picked = own ? null : saved ? saved.manifestId : books[0]?.book;
+  return { books: books.map(b => ({ ...b, selected: b.book === picked })), own: own ? { value: outcome, name: saved?.name ?? outcome } : null };
+}
 /** The Benefit and Mishap tables hold their own "re-roll this as the other one" rows. */
 const REROLL_AS_MISHAP = /re-?roll\s+this\s+benefit\s+as\s+a\s+mishap/i, REROLL_AS_BENEFIT = /re-?roll\s+this\s+mishap\s+as\s+a\s+benefit/i;
 /** A holiday touches benefit rolls only: advantage (keep the higher of two) and a flat bonus. */

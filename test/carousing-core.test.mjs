@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { eventTiers, outcomeRows, outcomeAt, outcomeEffects, splitCost, preflight, recapNight, matrixRows, d100Rows, d100Formula, rollExpanded, expandedEffects, resultLine, carousingFirst, BOOKS } from "../scripts/carousing/carousing-core.mjs";
+import { eventTiers, outcomeRows, outcomeAt, outcomeEffects, splitCost, preflight, recapNight, matrixRows, d100Rows, d100Formula, rollExpanded, expandedEffects, resultLine, carousingFirst, bookChoices, BOOKS } from "../scripts/carousing/carousing-core.mjs";
 const tiers = [{ id: "t1", cost: 10, bonus: 0, description: "Test outing" }, { id: "t2", cost: 20, bonus: 2, description: "Test feast" }];
 const outcomes = [{ range: [1, 10], description: "Synthetic night", benefit: "Gain 2 XP and a luck token" }];
 const people = [{ uuid: "Actor.a", actorId: "a", confirmed: true, participate: true, coins: { gp: 10 } }, { uuid: "Actor.b", actorId: "b", confirmed: true, participate: false, coins: { gp: 0 } }];
@@ -158,4 +158,16 @@ test("each book names the outcome, event, benefit and mishap tables that go toge
   assert.deepEqual(BOOKS.map(b => b.outcome.split("-")[0]), ["core", "pgwr", "cs6"]);
   assert.ok(BOOKS.slice(1).every(b => b.event && b.benefit && b.mishap));
   assert.equal(BOOKS[0].benefit, undefined);
+});
+test("the rulebook question lists the imported books only, picks the saved one or the first, and keeps a table of the GM's own", () => {
+  const t = (uuid, manifestId, name = uuid) => ({ uuid, manifestId, name });
+  const both = [t("w.cs6", "cs6-carousing-outcome"), t("p.core", "core-carousing-outcome"), t("w.other", undefined, "Harwick Outcomes")];
+  const pick = (rows, outcome) => { const c = bookChoices(rows, outcome); return [c.books.map(b => `${b.label.split(".").at(-1)}${b.selected ? "*" : ""}`), c.own?.name]; };
+  assert.deepEqual(pick(both, ""), [["core*", "cs6"], undefined], "nothing saved: the first imported book, in book order");
+  assert.deepEqual(pick(both, "w.cs6"), [["core", "cs6*"], undefined]);
+  assert.deepEqual(pick(both, "w.other"), [["core", "cs6"], "Harwick Outcomes"], "a table that is no book's keeps its own row and no book is selected");
+  assert.deepEqual(pick(both, "gone"), [["core", "cs6"], "gone"], "a deleted table still shows, by its id");
+  assert.deepEqual(pick([t("w.o", "core-carousing-outcome"), t("w.x", "armor-benefit")], ""), [["core*"], undefined]);
+  assert.deepEqual(pick([], ""), [[], undefined], "nothing imported: no books to ask about");
+  assert.equal(bookChoices(both, "").books.find(b => b.book === "core-carousing-outcome").value, "p.core", "the value is the table's uuid, so the outcome follows the book");
 });

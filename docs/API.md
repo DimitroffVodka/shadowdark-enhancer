@@ -854,9 +854,12 @@ action, data)` uses the existing authenticated active-GM relay. A Party owner
 may begin/start/resume/cancel; only each PC's OWNER may select and confirm that
 PC's attendance. The Party owner picks the one party-wide tier with `tier` (`{ tierId }`, setup only; it resets every confirmation). Party ownership never authorizes spending
 another PC's coins. The GM selects event, outcome, benefit and mishap RollTable UUIDs and manual
-settlement kind/place with `configure`; an empty outcome resolves the imported Core
-table by manifest id, not name, and an empty event, benefit or mishap follows the
-outcome table's book (Core, Western Reaches, Cursed Scroll #6). Event rows are
+settlement kind/place with `configure`; an empty outcome resolves the first imported book's
+outcome table by manifest id, not name (Core, then Western Reaches, then Cursed Scroll #6), and an
+empty event, benefit or mishap follows the outcome table's book. A `configure` that changes the
+outcome table clears the saved event, benefit and mishap tables unless the same call names them.
+The window itself only asks which book (and the settlement); the UUIDs are for API callers and
+for worlds that saved tables of their own. Event rows are
 `Cost | Event | Bonus`; basic outcomes are `Outcome | Benefit` and real ranges. An
 outcome table whose rows are `Mishaps | Benefits | % Modifier | XP` makes the night
 expanded: the d8 total picks the row, and each benefit and mishap it lists is a d100

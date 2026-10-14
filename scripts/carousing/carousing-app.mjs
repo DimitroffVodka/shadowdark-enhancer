@@ -1,7 +1,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { Party } from "../party/party.mjs";
 import { carousingOf, carousingTables, requestCarousing } from "./carousing.mjs";
-import { splitCost, resultLine } from "./carousing-core.mjs";
+import { splitCost, resultLine, bookChoices } from "./carousing-core.mjs";
 import { holidaysToday } from "../holidays/holidays.mjs";
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const t = (key) => game.i18n.localize(key);
@@ -29,7 +29,14 @@ export class CarousingApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _prepareContext() {
     const state = carousingOf(this.party), night = state.current, config = night?.config ?? state.config ?? {}, setup = night?.phase === "setup";
     const holiday = setup && config.place ? (await holidaysToday({ place: config.place }))[0] : night?.holiday;
-    const tables = game.user.isGM ? await carousingTables() : [];
+    const choices = bookChoices(game.user.isGM ? await carousingTables() : [], config.outcome);
+    // What a settlement lets the party spend, from the Rules Data table; the same number the Start check reads. null is a table nobody filled in.
+    const limitOf = kind => game.shadowdarkEnhancer.rules.carousingLimit(kind);
+    const limit = limitOf(config.settlement || "none") ?? Infinity;
+    const settlementLabel = kind => {
+      const name = t(`SDE.rulesData.settlement.${kind}`), n = limitOf(kind);
+      return game.i18n.format(n === null ? "SDE.carousing.settlementUnset" : n === Infinity ? "SDE.carousing.settlementNoLimit" : "SDE.carousing.settlementUpTo", { name, n });
+    };
     const rows = night?.participants.map(p => {
       const actor = Party.get(p.uuid), result = night.results[p.actorId];
       return { ...p, editable: setup && !!actor?.testUserPermission(game.user, "OWNER"),
@@ -38,7 +45,7 @@ export class CarousingApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const tier = night?.tiers.find(v => v.id === night.tierId), joining = night?.participants.filter(p => p.participate).length ?? 0, shares = tier ? splitCost(tier.cost, joining) : [];
     const each = shares.length ? (shares[0] === shares.at(-1) ? `${shares[0]}` : `${shares.at(-1)}–${shares[0]}`) : "—", gp = n => game.i18n.format("SDE.carousing.gp", { n });
     return { title: this.party.name, embedded: !!this.host, rows,
-      tiers: night?.tiers.map(v => ({ id: v.id, label: game.i18n.format("SDE.carousing.tier", { name: v.description, cost: v.cost, bonus: v.bonus }), selected: night.tierId === v.id })) ?? [],
+      tiers: night?.tiers.map(v => ({ id: v.id, label: game.i18n.format("SDE.carousing.tier", { name: v.description, cost: v.cost, bonus: v.bonus }), selected: night.tierId === v.id, disabled: v.cost > limit })) ?? [],
       tierEditable: setup && Party.canManage(this.party),
       tier: tier ? { bonus: tier.bonus } : null, count: joining, costText: tier ? gp(tier.cost) : "", shareText: shares.length ? gp(each) : each,
       eachLabel: joining ? game.i18n.format("SDE.carousing.eachPays", { n: joining }) : t("SDE.carousing.eachPaysNobody"), error: this.error, manager: Party.canManage(this.party), isGM: game.user.isGM,
@@ -46,8 +53,8 @@ export class CarousingApp extends HandlebarsApplicationMixin(ApplicationV2) {
       phase: night?.phase, holiday: holiday?.name, expanded: night?.mode === "expanded",
       manualHoliday: !!holiday && (!!holiday.carousing?.chances?.length || (night?.mode !== "expanded" && (!!holiday.carousing?.extraBenefit || !!holiday.carousing?.extraMishap || !!holiday.carousing?.benefitBonus || !!holiday.carousing?.benefitAdvantage))),
       canConfigure: !night || setup || night.phase === "complete", missingTables: setup && (!night.tiers.length || !night.outcomes.length || (night.mode === "expanded" && !(night.benefits?.length && night.mishaps?.length))),
-      config, ...Object.fromEntries([["events", "event"], ["outcomes", "outcome"], ["benefitTables", "benefit"], ["mishapTables", "mishap"]].map(([list, key]) => [list, tables.map(v => ({ ...v, selected: v.uuid === config[key] }))])),
-      settlements: [{ value: "none", label: t("SDE.carousing.noSettlement") }, ...["village", "town", "city", "city_state"].map(value => ({ value, label: t({ village: "SDE.rulesData.settlement.village", town: "SDE.rulesData.settlement.town", city: "SDE.rulesData.settlement.city", city_state: "SDE.rulesData.settlement.city_state" }[value]) }))].map(v => ({ ...v, selected: v.value === (config.settlement ?? "none") })),
+      config, books: choices.books.map(b => ({ ...b, label: t(b.label) })), ownBook: choices.own && { value: choices.own.value, label: game.i18n.format("SDE.carousing.ownTables", { name: choices.own.name }) }, showBooks: choices.books.length > 1 || !!choices.own,
+      settlements: [{ value: "none", label: t("SDE.carousing.noSettlement") }, ...["village", "town", "city", "city_state"].map(value => ({ value, label: settlementLabel(value) }))].map(v => ({ ...v, selected: v.value === (config.settlement ?? "none") })),
       history: [...state.history].reverse().map(h => ({ date: h.date, logId: h.logId, historyOnly: h.historyOnly, entries: h.historyOnly ? h.entries : h.participants.map(p => ({ actorName: p.name, cost: p.cost, ...resultLine(h.results[p.actorId], n => game.i18n.format("SDE.carousing.xpLine", { n })) })) })) };
   }
   _onRender(context, options) {
