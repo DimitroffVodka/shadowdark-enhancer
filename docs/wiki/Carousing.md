@@ -39,7 +39,7 @@ Western Reaches and Cursed Scroll #6 are expanded carousing. Their rows are a ma
 
 1. rolls d8 plus the tier bonus, the holiday event bonus and the renown bonus, and reads the matrix row;
 2. rolls one d100 for every benefit and every mishap the row lists, adds the row's % modifier (the result stays between
-   1 and 100) and reads the Benefit or Mishap table;
+   1 and 100) and reads the Benefit or Mishap table; each line in the tab shows it, for example "d100: 6 - 20 = 1";
 3. follows a row that says to re-roll it as a mishap (or as a benefit) by rolling on the other table, up to four times;
 4. awards the row's XP and any positive XP, Luck or signed renown the rolled texts state in the same plain wording
    basic carousing automates. Losses, gear, debt and every other effect stay in the saved result for the GM.
