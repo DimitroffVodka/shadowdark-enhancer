@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1980 tracked files · ~254,800 lines of code/markup across scripts+templates+styles+test.
+1980 tracked files · ~254,900 lines of code/markup across scripts+templates+styles+test.
 `v0.18.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -237,8 +237,8 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `crawl-bar.mjs` | 819 | GM-only persistent bottom bar above the macro bar (mode toggles, tools, launchers, and a running battle map's item and panel, #485). |
-| `crawl-bar-core.mjs` | 137 | The crawl bar's Foundry-free half: which controls each mode shows, the overland badge text, and the Tools panel's sections. |
+| `crawl-bar.mjs` | 821 | GM-only persistent bottom bar above the macro bar (mode toggles, tools, launchers, and a running battle map's item and panel, #485). |
+| `crawl-bar-core.mjs` | 138 | The crawl bar's Foundry-free half: which controls each mode shows, the overland badge text, and the Tools panel's sections. |
 
 ### 3.5 `scripts/encounter/` — the Encounter Roller
 
@@ -263,7 +263,7 @@
 | `battle-maps/battle-map-picker-core.mjs` | 366 | The pure half of the battle map picker: orders the window's three groups (this terrain's maps with the default marked, every other map with terrain chips, and the scenes already in the world) and works out the next per-terrain prefs for pin, switch off and pick at random, so the default the GM sees is always the default that opens (it follows the library's rule exactly). No Foundry. |
 | `battle-maps/battle-map-picker.mjs` | 279 | The battle map picker window: previews of the shipped maps and the world's own scenes with Day, Night and Camp toggles, select then confirm, and GM-only controls to pin a terrain's default, switch a map off or pick at random. `BattleMapPicker.pick` answers with the choice, or null when it is closed. Saves of the prefs are queued so quick clicks are not lost. |
 | `battle-maps/battle-actions-core.mjs` | 207 | The pure half of the buttons that put the feature in the GM's hands: which battle buttons the Encounter panel and the battle bar show for each state of a battle, the panel's open and fold rule (it opens while the battle is staged and folds when it goes live), the readout's wording, whether a posted card can offer a battle, and the terrain, night and camping a click starts from. No Foundry. |
-| `battle-maps/battle-actions.mjs` | 287 | The one flow behind both Battle map buttons, the clock HUD's Encounter panel and the posted encounter card: pick the map when asked, set the battle up, one at a time. Also the GM-only wiring of the card's button and the actions behind Change map, Bring the table and Return to travel. |
+| `battle-maps/battle-actions.mjs` | 301 | The one flow behind every Battle map button (the clock HUD's Encounter panel, the posted encounter card, the Encounter Roller, and Tools > Battle map, which sets the party up alone with no encounter): pick the map when asked, set the battle up, one at a time. Also the GM-only wiring of the card's button and the actions behind Change map, Bring the table and Return to travel. |
 | `encounter-draw.mjs` | 211 | Drawing an encounter with no window, shared by the Encounter Roller and quiet travel checks (#257): the table's row, a zone table's category and the region's table for it (day or night, then Special), the travel draw's point of interest (#262, #273), the entry (the NPC, its art, number appearing with its formula, distance 1d6, activity 2d6, reaction 2d6), the chain of tables drawn for the panel, a second category kept out of chat when quiet, and postEncounter's chat card. |
 
 ### 3.6 `scripts/monster-creator/`
