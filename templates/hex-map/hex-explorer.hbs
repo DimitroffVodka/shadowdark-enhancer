@@ -1,7 +1,7 @@
 <div class="ui-shell">
 {{#if isGM}}
   <header class="ui-head">
-    {{#if artSrc}}<button type="button" class="ui-art hx-art" data-action="showArt" title="{{localize 'SDE.hexExplorer.showArt'}}" aria-label="{{localize 'SDE.hexExplorer.showArt'}}"><img src="{{artSrc}}" alt=""></button>{{else}}<div class="ui-art hx-art"><i class="fa-solid fa-hexagon"></i></div>{{/if}}
+    {{#if artSrc}}<button type="button" class="ui-art hx-art" data-action="showArt" title="{{localize 'SDE.hexExplorer.showArt'}}" aria-label="{{localize 'SDE.hexExplorer.showArt'}}"><svg class="hx-pic" viewBox="215 150 500 505" aria-hidden="true"><image href="{{artSrc}}" width="932" height="810"/></svg></button>{{else}}<div class="ui-art hx-art"><i class="fa-solid fa-hexagon"></i></div>{{/if}}
     <div class="ui-head-text"><h2 class="ui-title">{{number}}</h2><p class="ui-sub">{{sceneName}}</p></div>
     <div class="ui-stats">
       <div class="ui-stat"><span class="ui-label">{{localize "SDE.hexExplorer.terrain"}}</span><span class="ui-value">{{terrain}}</span></div>
@@ -17,6 +17,25 @@
       <input name="terrainOther" value="" placeholder="{{localize 'SDE.hexMap.label.otherTerrain'}}" aria-label="{{localize 'SDE.hexMap.label.otherTerrainAria'}}" hidden>
       <label class="ui-field"><span class="ui-label">{{localize "SDE.hexExplorer.locationTitle"}}</span><input name="title" value="{{title}}"></label>
     </section>
+
+    {{#if tileSection}}<section class="ui-card hx-tile">
+      <h3 class="ui-h">{{localize "SDE.hexExplorer.tile.title"}}</h3>
+      <p class="ui-muted">{{tileNote}}</p>
+      {{#unless tileKeyed}}
+      <div class="ui-inline">
+        <button type="button" class="ui-btn" data-action="tileReroll"><i class="fa-solid fa-dice"></i> {{localize "SDE.hexExplorer.tile.another"}}</button>
+        <button type="button" class="ui-btn" data-action="tileChoose" aria-expanded="{{#if tilePickerOpen}}true{{else}}false{{/if}}"><i class="fa-solid fa-table-cells-large"></i> {{localize "SDE.hexExplorer.tile.choose"}}</button>
+      </div>
+      {{#if tilePickerOpen}}
+      <label class="ui-field"><span class="ui-label">{{localize "SDE.hexExplorer.tile.tilesOf"}}</span><select name="tileTerrain">{{#each tileTerrains}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></label>
+      <div class="hx-tile-grid">{{#each tileChoices}}<button type="button" class="hx-tile-opt{{#if current}} current{{/if}}" data-action="tileSet" data-src="{{src}}" title="{{name}}" aria-label="{{name}}" aria-pressed="{{#if current}}true{{else}}false{{/if}}"><svg class="hx-pic" viewBox="215 150 500 505" aria-hidden="true"><image href="{{src}}" width="932" height="810"/></svg></button>{{else}}<p class="ui-muted">{{localize "SDE.hexExplorer.tile.none"}}</p>{{/each}}</div>
+      {{/if}}
+      {{/unless}}
+      {{#if bakeAvailable}}<div class="hx-bake">
+        <p class="ui-muted">{{localize "SDE.hexExplorer.bake.hint"}}</p>
+        <button type="button" class="ui-btn" data-action="bakeMap"><i class="fa-solid fa-fire-burner"></i> {{localize "SDE.hexExplorer.bake.button"}}</button>
+      </div>{{/if}}
+    </section>{{/if}}
 
     {{#if keyedSection}}<section class="ui-card">
       <h3 class="ui-h">{{localize "SDE.hexExplorer.keyedPages"}}</h3>
@@ -128,4 +147,5 @@
   </div>
   <footer class="ui-footer"><div class="ui-right"><button type="button" class="ui-btn primary" data-action="save" {{#if saving}}disabled{{/if}}><i class="fa-solid fa-floppy-disk"></i> {{localize "SDE.hexExplorer.save"}}</button></div></footer>
 {{/if}}
+  {{#if tilePickerOpen}}<div class="hx-tile-zoom" hidden aria-hidden="true"><svg class="hx-pic" viewBox="215 150 500 505"><image width="932" height="810"/></svg><span class="hx-tile-zoom-name"></span></div>{{/if}}
 </div>

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { artAssignments, bakedSpriteSrc, hexArtSources, ART_FLAG } from "../scripts/hex-map/keyed-art.mjs";
+import { artAssignments, bakedSpriteSrc, hexArtSources, paintedTileSrc, paintedTileOf, dealtTileSrc, ART_FLAG } from "../scripts/hex-map/keyed-art.mjs";
 
 const MODULE_ID = "shadowdark-enhancer";
 const WR_TILE_167 = "modules/shadowdark-extras/assets/Hexes/Specials/167_Volcanic_Island.webp";
@@ -111,7 +111,7 @@ test("the header wears the hex's art when there is one, and the stock hexagon wh
   const around = conditionsAround(template, 'data-action="showArt"');
   assert.ok(around.includes("if artSrc"), `the art control needs a picture: ${around.join(" > ")}`);
   assert.ok(around.includes("if isGM"), "the art is GM-only");
-  assert.match(template, /\{\{#if artSrc\}\}<button[^>]*data-action="showArt"[^>]*><img src="\{\{artSrc\}\}" alt=""><\/button>\{\{else\}\}<div class="ui-art hx-art"><i class="fa-solid fa-hexagon"><\/i><\/div>\{\{\/if\}\}/,
+  assert.match(template, /\{\{#if artSrc\}\}<button[^>]*data-action="showArt"[^>]*><svg class="hx-pic"[^>]*><image href="\{\{artSrc\}\}"[^>]*\/><\/svg><\/button>\{\{else\}\}<div class="ui-art hx-art"><i class="fa-solid fa-hexagon"><\/i><\/div>\{\{\/if\}\}/,
     "the picture and the stock hexagon are the two branches of one choice");
 });
 
@@ -136,4 +136,85 @@ test("pressing the art opens Foundry's pop-out, titled by the hex number and nev
   assert.ok(!show.includes("record.title"), "the location's name is not in the pop-out at all");
   assert.match(app.slice(app.indexOf("_prepareContext()"), app.indexOf("_artSrc(record)")), /this\.artTitle = number;/,
     "the title is the same number the header shows");
+});
+
+// ── the tile a painted map draws on a cell ──────────────────────────────────
+
+const EXTRAS = "shadowdark-extras";
+const TILE = (name) => `modules/shadowdark-extras/assets/Hexes/Desert/${name}.webp`;
+/** A painted scene stub: a 256 px grid whose cell centres are easy to say, and Tiles anchored by their centres. */
+const paintedScene = (tiles, flags = {}) => ({
+  ...sceneOf(flags),
+  grid: { size: 256, getCenterPoint: ({ i, j }) => ({ x: j * 222 + 148, y: i * 256 + (j % 2 ? 128 : 0) + 128 }) },
+  tiles: tiles.map(({ at, src, sort = 0, own = { painted: true }, hidden = false }) => {
+    const c = { x: at.j * 222 + 148, y: at.i * 256 + (at.j % 2 ? 128 : 0) + 128 };
+    return { x: c.x - 286, y: c.y - 250, width: 572, height: 500, sort, hidden, texture: { src }, flags: { [EXTRAS]: own } };
+  }),
+});
+
+test("a painted map's tile for a cell is the base painted tile on it", () => {
+  const scene = paintedScene([
+    { at: { i: 2, j: 3 }, src: TILE("plains 1") },
+    { at: { i: 2, j: 4 }, src: TILE("hills 1") },
+  ]);
+  assert.equal(paintedTileSrc(scene, { i: 2, j: 3 }), TILE("plains 1"));
+  assert.equal(paintedTileSrc(scene, { i: 2, j: 4 }), TILE("hills 1"));
+  assert.equal(paintedTileSrc(scene, { i: 9, j: 9 }), null, "a cell nothing is painted on");
+});
+
+test("a coast piece, a hidden tile and an unpainted tile are not the hex's tile", () => {
+  const scene = paintedScene([
+    { at: { i: 1, j: 1 }, src: TILE("coast N"), own: { painted: true, coast: "1_1" }, sort: -5 },
+    { at: { i: 1, j: 1 }, src: TILE("ghost"), hidden: true, sort: -4 },
+    { at: { i: 1, j: 1 }, src: TILE("reference"), own: {}, sort: -3 },
+    { at: { i: 1, j: 1 }, src: TILE("plains 2"), sort: 0 },
+  ]);
+  assert.equal(paintedTileSrc(scene, { i: 1, j: 1 }), TILE("plains 2"));
+});
+
+test("a baked scene has no Tiles and no tile to read", () => {
+  assert.equal(paintedTileSrc(paintedScene([]), { i: 0, j: 0 }), null);
+  assert.equal(paintedTileSrc({ tiles: [], grid: {} }, { i: 0, j: 0 }), null);
+  assert.equal(paintedTileSrc(null, { i: 0, j: 0 }), null);
+  assert.equal(paintedTileSrc(paintedScene([{ at: { i: 0, j: 0 }, src: TILE("x") }]), { i: "0", j: 0 }), null, "an offset that is not whole numbers");
+});
+
+test("a saved deal names a numbered hex's tile, read off the flags and never through getFlag", () => {
+  const layout = { version: 1, files: [TILE("plains 1"), TILE("hills 2")], picks: { 4464: 1, 4465: 0 } };
+  const scene = sceneOf({ [`${EXTRAS}.paintLayout`]: layout });
+  assert.equal(dealtTileSrc(scene, 4464), TILE("hills 2"));
+  assert.equal(dealtTileSrc(scene, 4465), TILE("plains 1"));
+  assert.equal(dealtTileSrc(scene, 9999), null, "a hex the deal does not hold");
+  assert.equal(dealtTileSrc(scene, null), null);
+  assert.equal(dealtTileSrc(sceneOf({ [`${EXTRAS}.paintLayout`]: { version: 2, files: [], picks: {} } }), 1), null, "a layout this reader does not know");
+  assert.equal(dealtTileSrc(sceneOf({ [`${EXTRAS}.paintLayout`]: { version: 1, files: [], picks: { 1: 5 } } }), 1), null, "an index outside the file list");
+});
+
+test("the header picture is the sprite, then the map's own tile, then its deal, then a painted copy, then the manifest art", () => {
+  const sprite = "modules/shadowdark-extras/assets/Hexes/Specials/4664_Saltstone_Tower.webp";
+  const manifest = { 4664: { art: TILE("manifest") } };
+  const own = paintedScene([{ at: { i: 5, j: 6 }, src: TILE("own tile") }], {
+    [`${MODULE_ID}.${ART_FLAG}`]: manifest,
+    [`${EXTRAS}.paintLayout`]: { version: 1, files: [TILE("own deal")], picks: { 4664: 0 } },
+    [BAKED]: { "5-6": [{ src: sprite, sort: 1 }] },
+  });
+  const copy = paintedScene([{ at: { i: 5, j: 6 }, src: TILE("copy tile") }], {
+    [`${EXTRAS}.paintLayout`]: { version: 1, files: [TILE("copy deal")], picks: { 4664: 0 } },
+  });
+  assert.deepEqual(hexArtSources(own, { i: 5, j: 6 }, 4664, [copy]),
+    [sprite, TILE("own tile"), TILE("own deal"), TILE("copy tile"), TILE("copy deal"), TILE("manifest")]);
+  assert.deepEqual(hexArtSources(paintedScene([]), { i: 5, j: 6 }, 4664, [copy]), [TILE("copy tile"), TILE("copy deal")],
+    "a bake with no sprite for the cell and no tiles of its own reads its painted copy");
+  assert.deepEqual(hexArtSources(paintedScene([]), { i: 5, j: 6 }, null), [], "nothing at all keeps the stock hexagon");
+});
+
+test("a tile that carries the hex's number is keyed art, and says so", () => {
+  const scene = paintedScene([
+    { at: { i: 3, j: 3 }, src: TILE("keyed"), own: { painted: true, hexNum: 4664 } },
+    { at: { i: 3, j: 4 }, src: TILE("terrain") },
+  ]);
+  assert.equal(paintedTileOf(scene, { i: 3, j: 3 }).keyed, true);
+  assert.equal(paintedTileOf(scene, { i: 3, j: 4 }).keyed, false);
+  assert.equal(paintedTileOf(scene, { i: 3, j: 4 }).src, TILE("terrain"));
+  assert.equal(paintedTileOf(scene, { i: 7, j: 7 }), null);
 });

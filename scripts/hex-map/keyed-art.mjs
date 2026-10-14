@@ -14,7 +14,7 @@ import { assignmentsFromManifest } from "../importer/hex/hex-dataset.mjs";
 import { backgroundTransform } from "./sampler.mjs";
 import { decodeTags } from "./tag-store.mjs";
 import { A0_PRINT, isA0 } from "./a0-print.mjs";
-import { keyedOf } from "./baked-map-core.mjs";
+import { keyedOf, BAKED_NAMESPACE } from "./baked-map-core.mjs";
 import { WR_KEYED_ART, WR_MAP_ID } from "./wr-keyed-art.mjs";
 
 /** Scene flag: the GM's own tile-art manifest for this map. Read at hand-off; never shipped. */
@@ -57,16 +57,64 @@ export function bakedSpriteSrc(scene, offset) {
 }
 
 /**
+ * The tile a painted map draws on one cell: the base painted tile whose centre
+ * sits on it, a coast piece excluded. On a keyed hex that is the keyed art
+ * itself (`keyed: true`, it carries the hex's number), on any other the
+ * terrain's own tile. A baked scene has no Tiles, so this is null there.
+ * @param {object} scene   a scene-shaped object: `tiles` and a hex `grid`
+ * @param {{i:number, j:number}} offset
+ * @returns {{src: string, keyed: boolean, id: string|null}|null}
+ */
+export function paintedTileOf(scene, offset) {
+  const tiles = scene?.tiles?.contents ?? (scene?.tiles ? [...scene.tiles] : []);
+  if (!tiles.length || !Number.isSafeInteger(offset?.i) || !Number.isSafeInteger(offset?.j)) return null;
+  const at = scene.grid?.getCenterPoint?.(offset);
+  if (!at) return null;
+  const tolerance = Math.max(4, (scene.grid.size ?? 100) * 0.25);
+  const here = tiles.filter((tile) => {
+    const own = tile.flags?.[BAKED_NAMESPACE];
+    return own?.painted && !own.coast && !tile.hidden
+      && Math.abs(tile.x + (tile.width / 2) - at.x) <= tolerance && Math.abs(tile.y + (tile.height / 2) - at.y) <= tolerance;
+  });
+  const base = here.reduce((low, tile) => (low === null || (tile.sort ?? 0) < (low.sort ?? 0) ? tile : low), null);
+  const src = base?.texture?.src;
+  return src ? { src, keyed: base.flags[BAKED_NAMESPACE].hexNum != null, id: base.id ?? null } : null;
+}
+
+/** {@link paintedTileOf}'s picture alone. */
+export const paintedTileSrc = (scene, offset) => paintedTileOf(scene, offset)?.src ?? null;
+
+/**
+ * The tile Extras' saved deal names for a numbered hex (its `paintLayout`
+ * flag), for a scene that holds the deal but not the tiles. Read off
+ * `scene.flags`, never getFlag, which throws for a module that is not active.
+ * @param {object} scene
+ * @param {number|null} num  the hex's published number
+ * @returns {string|null}
+ */
+export function dealtTileSrc(scene, num) {
+  const layout = scene?.flags?.[BAKED_NAMESPACE]?.paintLayout;
+  if (!Number.isInteger(num) || layout?.version !== 1 || !Array.isArray(layout.files)) return null;
+  const file = layout.files[layout.picks?.[num]];
+  return typeof file === "string" ? file : null;
+}
+
+/**
  * Every picture this hex could wear, best first: the bake's sprite for its
- * offset, then the numbered tile's base art (an overlay entry's icon is not
- * offered). Which of them really loads is the caller's to find out — a file
- * may be gone with Extras, and a hex with none keeps the stock hexagon.
+ * offset, then the tile its own map draws there (or the deal that map holds),
+ * then the same from a painted copy of this map (`others`, the print's or a
+ * bake's painted source), then the numbered tile's base art (an overlay
+ * entry's icon is not offered). Which of them really loads is the caller's
+ * to find out: a file may be gone with Extras, and a hex with none keeps the
+ * stock hexagon.
  * @param {object} scene
  * @param {{i:number, j:number}} offset
  * @param {number|null} num  the hex's published number, or null
+ * @param {object[]} [others]  painted scenes of the same map, best first
  * @returns {string[]}
  */
-export function hexArtSources(scene, offset, num = null) {
+export function hexArtSources(scene, offset, num = null, others = []) {
   const tile = Number.isInteger(num) ? artAssignments(scene)?.[num]?.art ?? null : null;
-  return [bakedSpriteSrc(scene, offset), tile].filter((src, index, all) => src && all.indexOf(src) === index);
+  const painted = [scene, ...others].flatMap((s) => [paintedTileSrc(s, offset), dealtTileSrc(s, num)]);
+  return [bakedSpriteSrc(scene, offset), ...painted, tile].filter((src, index, all) => src && all.indexOf(src) === index);
 }

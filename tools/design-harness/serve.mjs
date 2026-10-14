@@ -75,6 +75,8 @@ const CHECK = `window.runCheck = () => {
   const label = (e) => e.tagName.toLowerCase() + (e.className && typeof e.className === "string" ? "." + e.className.trim().split(/\\s+/)[0] : "");
   const wr = win.getBoundingClientRect();
   for (const e of c.querySelectorAll("*")) {
+    // Inline SVG clips what is drawn to its own viewport, so a picture seen through a viewBox is not "sticking out".
+    if (e.ownerSVGElement) continue;
     const r = e.getBoundingClientRect(); if (!r.width || !r.height) continue;
     if (r.right > wr.right + 1 || r.left < wr.left - 1) bad.push("sticks out sideways: " + label(e));
     else if (!e.matches("input[type=checkbox],input[type=radio]") && e.scrollWidth > e.clientWidth + 1 && getComputedStyle(e).textOverflow === "ellipsis") bad.push("text cut off with ...: " + label(e) + " [" + (e.textContent || "").trim().slice(0, 40) + "]");

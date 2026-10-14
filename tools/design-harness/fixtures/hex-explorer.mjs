@@ -1,11 +1,24 @@
 // HexExplorerApp (scripts/hex-map/hex-explorer-app.mjs): the GM's per-hex editor, in its busiest state (every
 // collection has rows, long names, a long UUID). 480 x 620 is the window's real size; the body scrolls.
+// Stands in for a painted hex tile: the real canvas is 932 x 810 with the hex (and its dark base) filling about half of it,
+// so the margin the header zooms past is the real one. A flat pink hex with cracks, no Extras art shipped here.
+const tile = "data:image/svg+xml;utf8," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 932 810" width="932" height="810">
+<polygon points="235,405 345,200 590,200 700,405 590,610 345,610" fill="#2a2a2a"/>
+<polygon points="235,395 345,198 590,198 700,395 590,598 345,598" fill="#f1d9d6" stroke="#222" stroke-width="6"/>
+<path d="M300 300 L420 360 L380 470 M520 250 L500 380 L620 420 M360 520 L470 470 L560 540" fill="none" stroke="#6b5a58" stroke-width="5"/>
+</svg>`);
+// The picker's options: stand-ins in different tints, one marked as the hex's own.
+const swatch = (fill) => "data:image/svg+xml;utf8," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 932 810" width="932" height="810"><polygon points="235,405 345,200 590,200 700,405 590,610 345,610" fill="#2a2a2a"/><polygon points="235,395 345,198 590,198 700,395 590,598 345,598" fill="${fill}" stroke="#222" stroke-width="6"/></svg>`);
+const tints = ["#f1d9d6", "#ece7f0", "#f7efe6", "#e9d3d8", "#f3f1f4", "#f0dfdc", "#e8e4ee", "#f5e6e0", "#efe3ea", "#f6f3f1", "#e5d6dd", "#f2e9ee"];
+const tileChoices = tints.map((fill, n) => ({ src: swatch(fill), name: `Salt Flat ${n < 7 ? `gen${n + 1}` : `lora ${"FGHIJKL"[n - 7]}`}`, current: n === 2 }));
+const tilePart = { tileSection: true, tileKeyed: false, bakeAvailable: true, tileNote: "Painted on The Western Reaches (painted). A baked map shows the change once it is baked again.",
+  tileTerrains: ["forest", "grassland", "mountain", "salt flat", "swamp"].map((v) => ({ value: v, label: v, selected: v === "salt flat" })) };
 const uuid = "Compendium.shadowdark-enhancer--journals.JournalEntry.Fn82kQ0aXz91LmPq.JournalEntryPage.aB3dE5fG7hJ9kLmN";
 const base = {
   previewHeight: 700, title: "SDE.hexExplorer.title", icon: "fa-solid fa-map", classes: ["shadowdark", "sde-hex-explorer", "sde-ui"],
   width: 480, height: 620, resizable: true, template: "templates/hex-map/hex-explorer.hbs",
   context: {
-    isGM: true, saving: false, rootId: "sde-hex-explorer-x", sceneName: "The Western Reaches (A0 hex map)", number: "0417",
+    isGM: true, saving: false, rootId: "sde-hex-explorer-x", sceneName: "The Western Reaches (A0 hex map)", number: "0417", artSrc: tile,
     terrain: "salt flat", enter: "Difficult (2)", region: "Rimespire Mountains (estimated)", title: "The Drowned Observatory of the Lantern Sisters",
     encounter: { uuid, name: "Lowland Moor Encounter Zone: Salt Flat (Night)", note: "A wandering check here rolls the Lowland Moor column \"Salt Flat (Night)\", as the clock reads now." },
     terrainOptions: ["forest", "grassland", "mountain", "salt flat", "swamp"].map((v) => ({ value: v, label: v, selected: v === "salt flat" })),
@@ -13,6 +26,7 @@ const base = {
     features: [{ index: 0, type: "ruin", name: "The Collapsed Watchtower of Saint Verrin", uuid, discovered: true }, { index: 1, type: "lair", name: "Gnoll den", uuid: "", discovered: false }],
     notes: [{ index: 0, text: "A caravan route crosses here. Merchants pay double for lamp oil and will sell a map of the Salt Road.", visible: true, location: false }, { index: 1, text: "Hidden cellar under the third tower.", visible: false, location: true }],
     links: [{ index: 0, label: "Handout: the old map", uuid, visible: true }, { index: 1, label: "GM notes", uuid, visible: false }],
+    ...tilePart, tilePickerOpen: false, tileChoices: [],
     keyedSection: true,
     keyed: [
       { uuid: "Compendium.world.sde-journal.JournalEntry.Fn82kQ0aXz91LmPq.JournalEntryPage.aB3dE5fG7hJ9kLmN", title: "1417 The Drowned Observatory of the Lantern Sisters" },
@@ -24,4 +38,6 @@ const base = {
 };
 // state "scroll" (default) is the real 620px window; "full" lifts the height so the whole body can be seen;
 // "empty" is a book known but not imported: the section says why instead of vanishing.
-export default { ...base, initial: "scroll", build: (state) => (state === "full" ? { height: "auto" } : state === "empty" ? { context: { ...base.context, keyed: [], keyedNote: "No key locations imported for this book." } } : {}) };
+export default { ...base, initial: "scroll", build: (state) => (state === "full" ? { height: "auto" } : state === "picker" ? { height: 1240, previewHeight: 1300, context: { ...base.context, tilePickerOpen: true, tileChoices } }
+    : state === "keyed" ? { context: { ...base.context, tileKeyed: true, tilePickerOpen: false, tileNote: "This hex wears its own art, as a keyed location or a settlement. Change that with the Tagger's tile art." } }
+    : state === "stock" ? { context: { ...base.context, artSrc: null } } : state === "empty" ? { context: { ...base.context, keyed: [], keyedNote: "No key locations imported for this book." } } : {}) };
