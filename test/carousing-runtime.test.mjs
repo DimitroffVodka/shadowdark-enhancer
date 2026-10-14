@@ -224,3 +224,22 @@ test("a night whose mishap table is missing is refused before anyone is charged"
   const r = await f.call("start");
   assert.equal(r.ok, false); assert.equal(f.a.system.coins.gp, 30); assert.equal(world.formulas.length, 0);
 });
+test("with no outcome table saved the first imported book is used, even when Core is not imported", async () => {
+  const f = fixture(); expandedWorld(f);
+  await f.call("configure", { config: { settlement: "none" } }); await f.call("begin");
+  const night = carousingOf(f.party).current;
+  assert.deepEqual([night.mode, night.outcome, night.event, night.benefit, night.mishap], ["expanded", "RollTable.xo", "RollTable.xe", "RollTable.xb", "RollTable.xm"]);
+});
+test("choosing another outcome table lets its book's tables follow, unless the call names them", async () => {
+  const f = fixture(); expandedWorld(f);
+  const config = () => carousingOf(f.party).config;
+  await f.call("configure", { config: { event: "RollTable.mine", benefit: "RollTable.mine2", settlement: "none" } });
+  assert.deepEqual([config().event, config().benefit], ["RollTable.mine", "RollTable.mine2"], "an API caller may still name the tables");
+  await f.call("configure", { config: { outcome: "RollTable.xo", settlement: "none" } });
+  assert.deepEqual([config().outcome, config().event, config().benefit, config().mishap], ["RollTable.xo", "", "", ""], "a new outcome table clears the old book's tables");
+  await f.call("configure", { config: { outcome: "RollTable.xo", event: "RollTable.mine" } });
+  await f.call("configure", { config: { outcome: "RollTable.xo", settlement: "town" } });
+  assert.deepEqual([config().event, config().settlement], ["RollTable.mine", "town"], "the same outcome table leaves the rest alone");
+  await f.call("configure", { config: { outcome: "RollTable.xo", event: "RollTable.other" } });
+  assert.equal(config().event, "RollTable.other");
+});

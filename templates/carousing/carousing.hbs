@@ -9,10 +9,7 @@
   <details class="cr-more" {{#if empty}}open{{/if}}>
     <summary>{{localize "SDE.carousing.configure"}}</summary>
     <div class="cr-fields">
-      <div class="ui-field"><label class="ui-label">{{localize "SDE.carousing.eventTable"}}</label><select data-config="event"><option value="">{{localize "SDE.carousing.autoBook"}}</option>{{#each events}}<option value="{{uuid}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select></div>
-      <div class="ui-field"><label class="ui-label">{{localize "SDE.carousing.outcomeTable"}}</label><select data-config="outcome"><option value="">{{localize "SDE.carousing.autoCore"}}</option>{{#each outcomes}}<option value="{{uuid}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select></div>
-      <div class="ui-field"><label class="ui-label">{{localize "SDE.carousing.benefitTable"}}</label><select data-config="benefit"><option value="">{{localize "SDE.carousing.autoBook"}}</option>{{#each benefitTables}}<option value="{{uuid}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select></div>
-      <div class="ui-field"><label class="ui-label">{{localize "SDE.carousing.mishapTable"}}</label><select data-config="mishap"><option value="">{{localize "SDE.carousing.autoBook"}}</option>{{#each mishapTables}}<option value="{{uuid}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select></div>
+      {{#if showBooks}}<div class="ui-field"><label class="ui-label">{{localize "SDE.carousing.rulebook"}}</label><select data-config="outcome">{{#each books}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}{{#if ownBook}}<option value="{{ownBook.value}}" selected>{{ownBook.label}}</option>{{/if}}</select></div>{{/if}}
       <div class="ui-field"><label class="ui-label">{{localize "SDE.carousing.settlement"}}</label><select data-config="settlement">{{#each settlements}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></div>
       <div class="ui-field"><label class="ui-label">{{localize "SDE.carousing.place"}}</label><input type="text" data-config="place" value="{{config.place}}"></div>
     </div>
@@ -27,7 +24,7 @@
   {{!-- The one shared decision --}}
   <div class="cr-tier">
     <div class="ui-field"><label class="ui-label" for="cr-tier">{{localize "SDE.carousing.partyTier"}}</label>
-      <select id="cr-tier" data-tier {{#unless tierEditable}}disabled{{/unless}} {{#if missingTables}}disabled{{/if}}>{{#each tiers}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{else}}<option value="">{{localize "SDE.carousing.tiersUnavailable"}}</option>{{/each}}</select></div>
+      <select id="cr-tier" data-tier {{#unless tierEditable}}disabled{{/unless}} {{#if missingTables}}disabled{{/if}}>{{#each tiers}}<option value="{{id}}" {{#if selected}}selected{{/if}} {{#if disabled}}disabled{{/if}}>{{label}}</option>{{else}}<option value="">{{localize "SDE.carousing.tiersUnavailable"}}</option>{{/each}}</select></div>
     <div class="cr-sum">
       {{#if tier}}<div class="ui-pair"><span class="ui-label">{{localize "SDE.carousing.rollBonus"}}</span><span class="ui-value">+{{tier.bonus}}</span></div>
       <div class="ui-pair"><span class="ui-label">{{localize "SDE.carousing.sharedCost"}}</span><span class="ui-value">{{costText}}</span></div>
