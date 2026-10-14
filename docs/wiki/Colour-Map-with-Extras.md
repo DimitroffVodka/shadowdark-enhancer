@@ -384,10 +384,11 @@ It is a copy taken once. Retagging the print afterwards does not change the
 painted scene's copy, and **Update painted map** does not either; build the
 painted map again if you want the pictures to follow.
 
-The print's first row has to agree with Extras' layout too. A layout that does
-not name a first row means the top row is numbered, so a print that skips its
-top row (frame) against such a layout, or a print with a full top row against a
-layout that skips one, is not a match.
+The print's first row has to agree with Extras' layout too. Both leave the
+value out when it is the map's origin row, so a layout that names no first row
+matches a print whose stored first row is that origin row: a full top row on a
+map numbered from 0000, a frame top row on one numbered from 0101. A print
+whose first row differs from the layout's is not a match.
 
 **Reading the map on a painted map.** A painted map is tiles with no picture
 under it, so **Read the map** has nothing to read there and says so. The

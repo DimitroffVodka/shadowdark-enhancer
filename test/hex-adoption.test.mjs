@@ -111,6 +111,10 @@ test("a print whose top row is full hexes finds its painted scene: the layout le
   const framed = print({}, { bounds: { cols: 64, rows: 75, firstRow: 1 } });
   assert.equal(printFor(painted({ cols: 64, rows: 75, origin: 0 }), [framed]), null, "Extras has the row, the print drops it");
   assert.equal(printFor(painted({ cols: 64, rows: 75, origin: 0, firstRow: 1 }), [framed]), framed, "both drop it");
+  const from1 = (firstRow) => print({}, { num: "0101", shifted: "even", bounds: { cols: 64, rows: 75, firstRow } });
+  const frame1 = from1(1), full1 = from1(0);
+  assert.equal(printFor(painted({ cols: 64, rows: 75, origin: 1 }), [frame1]), frame1, "0101: the stored 1 is the origin row, so the layout names none");
+  assert.equal(printFor(painted({ cols: 64, rows: 75, origin: 1 }), [full1]), null, "0101: a stored 0 is not the origin row");
 });
 test("a print anchored off the top-left cell is not the painted scene's print: Extras numbers its hexes from another cell", () => {
   const p = painted();
