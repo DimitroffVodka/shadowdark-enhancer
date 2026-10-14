@@ -49,6 +49,12 @@ test("the terrains offered are the map's own plus the hex's, each once, in Extra
   assert.deepEqual(terrainChoices(["", null], ""), []);
 });
 
+test("what sits on a hex is not a terrain to browse, unless it is the one the hex has", () => {
+  const out = terrainChoices(["forest", "village", "keyed location", "salt flat"], "salt flat", ["village", "keyed location"]);
+  assert.deepEqual(out.map((c) => c.value), ["forest", "salt flat"]);
+  assert.deepEqual(terrainChoices(["village"], "village", ["village"]).map((c) => c.value), ["village"], "its own word stays");
+});
+
 test("another tile is a reshuffle of that hex; choosing one names the exact tile; both keep the hex's terrain", async () => {
   const calls = [];
   const api = { repaintHexTiles: async (...args) => { calls.push(args); return { repainted: 1 }; } };

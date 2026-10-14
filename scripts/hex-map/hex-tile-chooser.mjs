@@ -55,12 +55,13 @@ export function tileChoices(pool, currentSrc) {
  * the hex's, as Extras spells them (spaces, not underscores), each once.
  * @param {string[]} words
  * @param {string} selected
+ * @param {string[]} [exclude]  words that are not terrains (a village, a keyed location): they have no tiles of their own
  */
-export function terrainChoices(words, selected) {
-  const seen = new Set(), out = [];
+export function terrainChoices(words, selected, exclude = []) {
+  const seen = new Set(), skip = new Set(exclude.map((word) => String(word).trim().toLowerCase())), out = [];
   for (const word of [...words, selected]) {
     const key = String(word ?? "").trim().toLowerCase();
-    if (!key || seen.has(key)) continue;
+    if (!key || seen.has(key) || (skip.has(key) && key !== String(selected ?? "").trim().toLowerCase())) continue;
     seen.add(key);
     out.push({ value: key, label: key, selected: key === String(selected ?? "").trim().toLowerCase() });
   }

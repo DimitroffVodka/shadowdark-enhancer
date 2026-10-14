@@ -13,6 +13,7 @@ import { questsAtHex, STATUS_LABELS } from "../quests/quest-core.mjs";
 import { hexArtSources, paintedTileOf } from "./keyed-art.mjs";
 import { paintedScenesFor, extrasHexApi } from "../importer/hex/hex-handoff.mjs";
 import { terrainWord } from "../importer/hex/hex-dataset.mjs";
+import { SETTLEMENTS } from "../importer/hex/hex-summary.mjs";
 import { tilesAvailable, paintTarget, tileChoices, terrainChoices, rerollTile, setTile } from "./hex-tile-chooser.mjs";
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const t = (key) => game.i18n.localize(key);
@@ -144,7 +145,9 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return {
       tileSection: true, tileKeyed: false,
       tileNote: game.i18n.format(target.id === this.scene.id ? "SDE.hexExplorer.tile.onScene" : "SDE.hexExplorer.tile.onCopy", { scene: target.name }),
-      tilePickerOpen: !!this.tilePick, tileTerrains: terrainChoices(words, word), tileChoices: tileChoices(pool, here.src),
+      tilePickerOpen: !!this.tilePick, tileChoices: tileChoices(pool, here.src),
+      // What sits on a hex (a village, a keyed location) is tagged beside its terrain but has no tiles of its own.
+      tileTerrains: terrainChoices(words, word, [...Object.values(SETTLEMENTS), "keyed_location"].map(terrainWord)),
     };
   }
   /** Another tile (a fresh draw) or this exact one, on the painted map; the window then draws again with what it now wears. */
