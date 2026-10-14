@@ -11,6 +11,7 @@ import { storedRulesFor } from "../rules-data/rules-data-scope.mjs";
 import { Quests } from "../quests/quests.mjs";
 import { questsAtHex, STATUS_LABELS } from "../quests/quest-core.mjs";
 import { hexArtSources } from "./keyed-art.mjs";
+import { paintedScenesFor } from "../importer/hex/hex-handoff.mjs";
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const t = (key) => game.i18n.localize(key);
 /** Whether the file is really there: a missing one is a plain no, never a console error or a notice. */
@@ -115,10 +116,21 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
   /** The header's picture: the first art source for this hex whose file is really there, or null for the stock hexagon. */
   async _artSrc(record) {
-    const sources = hexArtSources(this.scene, this.offset, record.num), key = sources.join("\n");
+    const sources = hexArtSources(this.scene, this.offset, record.num, this._paintedCopies()), key = sources.join("\n");
     // Kept per list of sources: a Disclosed re-render does not HEAD again, and a changed bake or number asks afresh.
     if (this.artFor?.key !== key) this.artFor = { key, found: (async () => { for (const src of sources) if (await fileLoads(src)) return src; return null; })() };
     return this.artFor.found;
+  }
+  /**
+   * The other painted scenes of this map (same published grid), the ones holding Tiles first: a bake and a print draw no
+   * terrain tile of their own, so the picture is read from the map they were made from.
+   */
+  _paintedCopies() {
+    const grid = this.scene.flags?.["shadowdark-extras"]?.hexcrawl?.grid;
+    if (!grid) return [];
+    const mine = (scene) => scene.tiles?.some?.((tile) => tile.flags?.["shadowdark-extras"]?.painted) ? 0 : 1;
+    return paintedScenesFor(game.scenes, this.scene.id, { cols: grid.cols, rows: grid.rows, origin: grid.origin ?? 1 })
+      .filter((scene) => scene.id !== this.scene.id).sort((a, b) => mine(a) - mine(b));
   }
   /** Foundry's own image pop-out, whose share action sends the picture to the players. */
   _showArt() {
