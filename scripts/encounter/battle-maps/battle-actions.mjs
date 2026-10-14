@@ -188,8 +188,10 @@ export async function bringTheTable({ battle, preload = null }, io = {}) {
   });
 }
 
-/** What a kept battle is called in Saved encounters: "3 Wolf (Forest Woods)". */
-const savedLabel = (battle) => t("SDE.encounterMaps.hud.savedLabel", { count: battle.encounter?.count ?? 1, name: battle.encounter?.name ?? "", map: battle.label ?? "" });
+/** What a kept battle is called in Saved encounters: "3 Wolf (Forest Woods)"; one with no creature, the map's name (none: the copy's own default). */
+const savedLabel = (battle) => (battle.encounter?.name
+  ? t("SDE.encounterMaps.hud.savedLabel", { count: battle.encounter.count ?? 1, name: battle.encounter.name, map: battle.label ?? "" })
+  : battle.label || undefined);
 
 /**
  * Return to travel, from a staged or a live battle: the origin scene again, this battle's tokens down, its combat

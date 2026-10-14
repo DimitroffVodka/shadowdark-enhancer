@@ -27,7 +27,7 @@ globalThis.canvas = { scene: { id: "viewed" } };
 globalThis.foundry = { applications: { handlebars: { renderTemplate: async (template, data) => JSON.stringify({ template, battleMap: !!data.battleMap }) } } };
 
 const actions = await import("../scripts/encounter/battle-maps/battle-actions.mjs");
-const { openBattleMap, changeBattleMap, bringTheTable, returnToTravel, continueTravel, describeBattle, loadBattleParts, partyContext, wireBattleCard, registerBattleChatButtons } = actions;
+const { openBattleMap, openPartyBattleMap, changeBattleMap, bringTheTable, returnToTravel, continueTravel, describeBattle, loadBattleParts, partyContext, wireBattleCard, registerBattleChatButtons } = actions;
 const { postEncounter } = await import("../scripts/encounter/encounter-draw.mjs");
 
 const wolves = { kind: "monster", uuid: "Actor.wolf", name: "Wolf", count: 3, distanceRoll: 4, activityRoll: 8, reactionRoll: 7, img: "wolf.webp", chain: [{ name: "x" }] };
@@ -339,6 +339,46 @@ test("only a GM, only a creature, and only one battle at a time", async () => {
   assert.deepEqual([names(busy.calls), warned], [[], ["SDE.encounterMaps.hud.running"]]);
 });
 
+test("Tools > Battle map: the picker always opens, on the party's terrain, and the party is set up alone where it stands", async () => {
+  const overland = game.shadowdarkEnhancer.overland;
+  game.shadowdarkEnhancer.overland = { isActive: () => true, state: () => ({ hex: { terrain: "forest", num: 1203 } }) };
+  try {
+    const { calls, io } = fakes({ night: true, pick: { mapId: "forest-road", variant: "day", night: false } });
+    await openPartyBattleMap(io);
+    assert.deepEqual(names(calls), ["default", "pick", "setUp"], "a default map does not skip the picker");
+    assert.deepEqual(calls[1][1], { terrain: "forest", night: true, camping: false });
+    const sent = calls[2][1];
+    assert.deepEqual([sent.encounter, sent.terrain, sent.hex, sent.originSceneId, sent.mapId, sent.night], [null, "forest", 1203, "viewed", "forest-road", false]);
+  } finally {
+    game.shadowdarkEnhancer.overland = overland;
+  }
+  const closed = fakes({ pick: null });
+  assert.equal(await openPartyBattleMap(closed.io), null);
+  assert.ok(!names(closed.calls).includes("setUp"), "a picker closed sets nothing up");
+  const busy = fakes({ current: { id: "b1", status: "staged" } });
+  warned.length = 0;
+  assert.equal(await openPartyBattleMap(busy.io), null);
+  assert.deepEqual([names(busy.calls), warned], [[], ["SDE.encounterMaps.hud.running"]]);
+  game.user.isGM = false;
+  const player = fakes();
+  assert.equal(await openPartyBattleMap(player.io), null);
+  game.user.isGM = true;
+  assert.deepEqual(player.calls, []);
+});
+
+test("Tools > Battle map and an encounter's Battle map share the one-at-a-time guard", async () => {
+  const { calls, io } = fakes({ pick: { mapId: "forest-road" } });
+  let release;
+  (await io.battle()).setUp = (args) => new Promise((resolve) => { calls.push(["setUp", args]); release = resolve; });
+  const fromTools = openPartyBattleMap(io);
+  const fromHud = openBattleMap({ enc: wolves, terrain: "forest" }, io);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(calls.filter((c) => c[0] === "setUp").length, 1);
+  release({ battle: { id: "b1" } });
+  const [first, second] = await Promise.all([fromTools, fromHud]);
+  assert.equal(second, first);
+});
+
 test("a Battle map pressed while another setup runs, from the HUD or the card, is that setup's answer and sets nothing up", async () => {
   const { calls, io } = fakes();
   let release;
@@ -427,6 +467,9 @@ test("Return to travel: from staged or live, with Keep it saves under a name, wi
   const kept = fakes();
   await returnToTravel({ battle, keep: true }, kept.io);
   assert.deepEqual(kept.calls[0][2], { keep: true, label: 'SDE.encounterMaps.hud.savedLabel{"count":3,"name":"Wolf","map":"Forest Woods"}' });
+  const alone = fakes();
+  await returnToTravel({ battle: { ...battle, encounter: { name: "", count: 0 } }, keep: true }, alone.io);
+  assert.deepEqual(alone.calls[0][2], { keep: true, label: "Forest Woods" }, "a battle with no creature (Tools > Battle map) is saved under its map");
   await returnToTravel({ battle: { ...battle, status: "staged" }, keep: false }, plain.io);
   assert.deepEqual(names(plain.calls), ["returnToTravel", "continueTravel", "returnToTravel"], "a battle only set up leaves the encounter held");
   assert.equal(await returnToTravel({ battle: null }, plain.io), null);
