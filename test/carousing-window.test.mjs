@@ -112,6 +112,8 @@ test("a joining character inside the 14 game days is flagged with the days gone,
   const context = await ctx(world([true, true, false], 7, { now: 20 * day, last: { a: 10 * day, b: 0, c: 19 * day } }));
   assert.deepEqual(context.rows.map(r => r.recent), ['SDE.carousing.recent:{"n":10,"of":14}', "", ""], "b is past 14 days and c is not joining");
   assert.deepEqual([context.cooldownWarning, context.ignoreCooldown], [true, false]);
+  const rewound = await ctx(world([true, false, false], 7, { now: 100 * day, last: { a: 103 * day } }));
+  assert.deepEqual(rewound.rows.map(r => r.recent)[0], 'SDE.carousing.recent:{"n":0,"of":14}', "a calendar set back before the outing never shows a negative count");
   const quiet = await ctx(world([false, true, false], 7, { now: 20 * day, last: { a: 10 * day } }));
   assert.equal(quiet.cooldownWarning, false, "someone sitting out is not a warning");
   const skipped = world([true, false, false], 7, { now: 20 * day, last: { a: 10 * day } });

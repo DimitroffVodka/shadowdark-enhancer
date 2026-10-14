@@ -43,7 +43,7 @@ export class CarousingApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const actor = Party.get(p.uuid), result = night.results[p.actorId], last = setup && p.participate ? lastCarousedAt(actor) : -Infinity;
       // Inside the 14 game days since this character's last outing: a warning the GM can switch off for this outing.
       return { ...p, editable: setup && !!actor?.testUserPermission(game.user, "OWNER"),
-        recent: world - last < wait ? game.i18n.format("SDE.carousing.recent", { n: Math.floor((world - last) / (wait / COOLDOWN_DAYS)), of: COOLDOWN_DAYS }) : "",
+        recent: world - last < wait ? game.i18n.format("SDE.carousing.recent", { n: Math.max(0, Math.floor((world - last) / (wait / COOLDOWN_DAYS))), of: COOLDOWN_DAYS }) : "",
         result, status: t(p.confirmed ? "SDE.carousing.confirmed" : "SDE.carousing.unconfirmed") };
     }) ?? [];
     const tier = night?.tiers.find(v => v.id === night.tierId), joining = night?.participants.filter(p => p.participate).length ?? 0, shares = tier ? splitCost(tier.cost, joining) : [];
