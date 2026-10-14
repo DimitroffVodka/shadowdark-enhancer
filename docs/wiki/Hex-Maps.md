@@ -482,6 +482,11 @@ module cannot place, has no region names and no nearest region, and its
 encounter checks use the terrain's table. A Cursed Scroll map shows no region
 names until that book's own key locations are imported.
 
+The API's `hexMaps.importDetails` follows the same rule when it names a scene's
+hexes from a scan it borrowed: if the target scene is made from a print of a
+different book than that scan, it writes no zones and says so in its result
+(`zonesSkipped`).
+
 So once a book's key locations are imported, **every hex knows its region**,
 not just the 270 keyed ones:
 

@@ -96,10 +96,22 @@ const UPSERT_FIELDS = ["name", "terrain", "desc", "zone", "zoneColor"];
  * and colour for every hex when a region scan can be found (scanSceneFor).
  * @param {JournalEntry[]|JournalEntry} entries  may be empty: zones alone
  * @param {string|object} scene  the scan scene, or the Extras scene being updated
+ * @param {{target?: string|object}} [opts]  the scene the details are for, when the scan was not named by the
+ *   caller. The scan's names are another book's for a target that resolves a print of a different book than the
+ *   scan (it borrowed the world's one scan), so then no zones are written and `zonesSkipped` says which books.
+ *   A target that resolves no print (the Extras scene built from the print) takes the scan's names, as does a
+ *   caller-named scan (no target given).
+ * @returns {Promise<object>} the dataset; `zonesSkipped: {target, scan}` (the two book folders) when zones were left out
  */
-export async function detailsDataset(entries, scene) {
-  const { sceneZones, scanSceneFor } = await import("../../hex-map/hex-region.mjs");
-  const { byNum } = await sceneZones(scanSceneFor(scene));
+export async function detailsDataset(entries, scene, { target } = {}) {
+  const { sceneZones, scanSceneFor, sceneBookFolder } = await import("../../hex-map/hex-region.mjs");
+  const scan = scanSceneFor(scene);
+  const own = typeof target === "string" ? globalThis.game?.scenes?.get?.(target) : target;
+  const [ownBook, scanBook] = scan && own ? [await sceneBookFolder(own), await sceneBookFolder(scan)] : [null, null];
+  if (ownBook && ownBook !== scanBook) {
+    return { ...datasetFromEntries(entries, { zones: new Map() }), zonesSkipped: { target: ownBook, scan: scanBook } };
+  }
+  const { byNum } = await sceneZones(scan);
   return datasetFromEntries(entries, { zones: byNum });
 }
 
