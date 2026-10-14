@@ -176,8 +176,9 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const at = option.getBoundingClientRect(), box = shell.getBoundingClientRect(), gap = 8;
       const left = Math.max(gap, Math.min(at.left - box.left + (at.width - zoom.offsetWidth) / 2, box.width - zoom.offsetWidth - gap));
       const above = at.top - box.top - zoom.offsetHeight - gap;
+      const top = above >= gap ? above : at.bottom - box.top + gap;
       zoom.style.left = `${left}px`;
-      zoom.style.top = `${above >= gap ? above : at.bottom - box.top + gap}px`;
+      zoom.style.top = `${Math.max(gap, Math.min(top, box.height - zoom.offsetHeight - gap))}px`;
     };
     const hide = () => { zoom.hidden = true; };
     for (const option of this.element.querySelectorAll(".hx-tile-opt")) {
