@@ -274,7 +274,8 @@ const cssHex = (n) => `#${n.toString(16).padStart(6, "0")}`;
  * seeds' canonical ones ("Rimespire Mountains", not the row's "Rimespire
  * Mtns"). Colours are the overlay's: no two touching regions share one.
  *
- * No scan, or no seeds, is an empty map: nothing to say beyond the keyed rows.
+ * No scan and no fixes is an empty map: nothing to say beyond the keyed rows. No seeds names nothing but the
+ * GM's fixes.
  * @param {{components?:Map<number,number>, fixes?:Map<number,string>,
  *   seeds?:Array<{num:number,region:string}>, shifted?:"odd"|"even", palette?:number[]}} args
  * @returns {{byNum:Map<number,{zone:string, zoneColor:string}>,
@@ -282,7 +283,8 @@ const cssHex = (n) => `#${n.toString(16).padStart(6, "0")}`;
  */
 export function hexZones({ components = new Map(), fixes = new Map(), seeds = [], shifted = "odd", palette = REGION_COLORS } = {}) {
   const via = { gm: 0, border: 0, nearest: 0 }, viaByNum = new Map();
-  if (!components.size || !seeds.length) return { byNum: new Map(), via, viaByNum, conflicts: [] };
+  // A GM's fix needs no seeds (a scene no book claims has none), so only nothing at all is empty.
+  if (!components.size && !fixes.size) return { byNum: new Map(), via, viaByNum, conflicts: [] };
   const { byNum: named, regions } = nameComponents(components, seeds);
   const regionByNum = new Map();
   for (const num of new Set([...components.keys(), ...fixes.keys()])) {
@@ -344,8 +346,9 @@ export async function sceneSeeds(scene = globalThis.canvas?.scene) {
  * ground are read only from the rows of the scene's own book, never merged
  * across books; a scene no book claims has neither (no names, no ground).
  * @param {object|null} scene  the PRINT scene carrying the scan, not the Extras scene
- * @param {{folder?: string|null}} [opts]  the book folder the ground comes from, when the scene priced is not the
- *   scanned one (a homebrew map borrows the world's one scan); read from `scene` when absent
+ * @param {{folder?: string|null}} [opts]  the book folder the region names and the ground come from, when the scene
+ *   priced is not the scanned one; read from `scene` when absent. A scene no book claims gets no names from a
+ *   borrowed scan, only the GM's own fixes on it.
  */
 export async function sceneZones(scene, { folder } = {}) {
   if (!scene) return { ...hexZones(), ground: new Map() };

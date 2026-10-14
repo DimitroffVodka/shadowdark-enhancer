@@ -37,6 +37,7 @@ Object.assign(globalThis, {
       { metadata: { packageType: "world" }, collection: "world.sde-tables", index: [
         { _id: "AlphaForest", name: "Book A - Alpha Moor Encounter Zone: Forest" },
         { _id: "BetaForest", name: "Book B - Beta Fen Encounter Zone: Forest" },
+        { _id: "GmForest", name: "Book X - Gm Choice Encounter Zone: Forest" },
       ] },
       { metadata: { packageType: "world", label: "Journals" }, collection: "world.sde-journal", getDocuments: async () => { reads.n++; return entries; } },
     ],
@@ -115,7 +116,7 @@ test("the API's regions and regionSeeds read the viewed scene's own book", async
   // The two API calls are one-line wrappers over it, and the fallback to every book's rows is gone.
   const api = await readFile(new URL("../scripts/shadowdark-enhancer.mjs", import.meta.url), "utf8");
   assert.match(api, /m\.nameComponents\(m\.sceneRegions\(\), await m\.sceneSeeds\(\)\)/);
-  assert.match(api, /regionSeeds: async \(\{ scene \} = \{\}\) => .*\.sceneSeeds\(scene\)/);
+  assert.match(api, /regionSeeds: async \(opts\) => .*\.sceneSeeds\(opts\?\.scene\)/);
   assert.doesNotMatch(api, /regionSeeds\(await m\.crawlEntries\(\)\)/);
 });
 
@@ -141,6 +142,39 @@ test("the GM's own region fix still wins, with or without a book", async () => {
   assert.equal((await R.regionOf(102, { scene: fixed })).via, "gm");
   const orphan = makeScene("orphan-fixed", { fix: { 102: "Gm Choice" } });
   assert.equal((await R.regionOf(102, { scene: orphan })).region, "Gm Choice", "a fix needs no seeds");
+});
+
+// A GM's fix is a correction made on the scene itself, so it needs no keyed row: it must reach every consumer of the
+// regions (the check, the Hex Data line, Overland, the Extras hand-off), not only regionOf and the overlay.
+test("a GM's fix reaches the check and every zone reader on a scene whose own book has no keyed rows or no print", async () => {
+  const hex = { num: 102, terrain: "forest" };
+  const cases = {
+    "a Cursed Scroll scan whose own book has no keyed rows": () => makeScene("cs-bare", { print: "hex-cs1", fix: { 102: "Gm Choice" } }),
+    "a scene no print claims": () => makeScene("orphan-fixed", { fix: { 102: "Gm Choice" } }),
+  };
+  for (const [label, build] of Object.entries(cases)) {
+    world([crawl("CS1", "Book A", []), BOOK_B]);
+    const scene = build();
+    const zones = await R.sceneZones(scene);
+    assert.equal(zones.byNum.get(102)?.zone, "Gm Choice", `${label}: sceneZones`);
+    assert.equal(zones.viaByNum.get(102), "gm", label);
+    assert.equal(zones.byNum.has(103), false, `${label}: an unfixed hex has no name without seeds`);
+    assert.equal((await hexZonesFor(scene)).byNum.get(102)?.zone, "Gm Choice", `${label}: hexZonesFor`);
+    const out = await resolveHexTable(hex, { scene, hour: 12 });
+    assert.equal(out.zone, "Gm Choice", `${label}: resolveHexTable`);
+    assert.equal(out.uuid, "Compendium.world.sde-tables.GmForest", label);
+    assert.equal((await R.regionOf(102, { scene })).region, "Gm Choice", `${label}: regionOf`);
+    scenes.length = 0;
+  }
+});
+
+test("a scene with no seeds, no scan and no fixes still answers empty", async () => {
+  world([]);
+  const zones = R.hexZones({ components: new Map(), fixes: new Map(), seeds: [] });
+  assert.equal(zones.byNum.size, 0);
+  assert.deepEqual(zones.via, { gm: 0, border: 0, nearest: 0 });
+  const bare = makeScene("bare", { print: "hex-cs1" });
+  assert.equal((await R.sceneZones(bare)).byNum.size, 0);
 });
 
 test("one crawl read answers sceneZones, and a many-hex ask with seeds reads none", async () => {

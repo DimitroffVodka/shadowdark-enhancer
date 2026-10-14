@@ -374,7 +374,9 @@ since 1.12.0 the phase comes from [`time.moonPhase()`](#time--season-day-and-nig
 so a Myre Swamp hex on a new-moon night rolls *New Moon*. `moon` (`"new"`,
 `"full"`, or `null` to leave it undecided) overrides the clock.
 `scene` names the scene whose region scan answers (default: the one being
-viewed, or the world's only scanned print).
+viewed, or the world's only scanned print). The region names, like the ground,
+come from the rows of the scene's own book: a scene no print claims gets no
+names from a borrowed scan, only the GM's own region fixes.
 
 ## `encounterMaps` — battle maps for encounters
 
