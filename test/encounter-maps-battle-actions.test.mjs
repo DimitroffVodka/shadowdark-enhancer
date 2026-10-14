@@ -83,6 +83,7 @@ test("setUp's arguments: the trimmed encounter, the terrain and the table's look
   assert.ok(!("originSceneId" in noScene) && noScene.hex === null && noScene.terrain === null);
   const picked = setUpArgs({ enc: wolves, terrain: "forest", pick: { mapId: "forest-woods", variant: "night", night: true } });
   assert.deepEqual([picked.mapId, picked.variant, picked.night, picked.camping], ["forest-woods", "night", true, false]);
+  assert.equal(setUpArgs({ enc: null, terrain: "forest" }).encounter, null, "Tools > Battle map: the party alone");
   assert.deepEqual(cardEncounter({ uuid: "Actor.rat", name: "Rat" }), { kind: "monster", uuid: "Actor.rat", name: "Rat", count: 1, distanceRoll: null, activityRoll: null, reactionRoll: null, img: null }, "one, when no count was rolled");
 });
 

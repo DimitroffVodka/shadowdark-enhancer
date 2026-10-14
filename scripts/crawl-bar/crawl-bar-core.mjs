@@ -106,6 +106,7 @@ export function toolsSections({ mode, hasBastion = false }) {
       id: "table", label: "SDE.crawlBar.toolsMenu.atTheTable",
       entries: [
         e("encounter", "encounter", "SDE.crawlBar.encounter", "SDE.crawlBar.encounterTip"),
+        e("battleMap", "combat", "SDE.crawlBar.toolsMenu.battleMap", "SDE.crawlBar.toolsMenu.battleMapTip"),
         e("rollTables", "dice", "SDE.crawlBar.toolsMenu.rollTables"),
         e("lootGen", "forge", "SDE.crawlBar.toolsMenu.loot"),
         e("magicForge", "hammer", "SDE.crawlBar.toolsMenu.magicItems"),

@@ -131,6 +131,18 @@ export async function openBattleMap(opts = {}, io = {}) {
   return opening;
 }
 
+/**
+ * Tools > Battle map: the picker, then a battle with the party alone where it stands, no encounter needed. The GM adds
+ * the foes by hand; the battle runs and returns like any other.
+ * @param {object} [io]  what to reach into instead of the real parts (tests)
+ */
+export async function openPartyBattleMap(io = {}) {
+  if (!game.user?.isGM) return null;
+  const { terrain, hexNum, originSceneId } = partyContext();
+  opening ??= setUpFrom({ enc: null, terrain, hex: hexNum, originSceneId, choose: true }, { ...live, ...io }).finally(() => { opening = null; });
+  return opening;
+}
+
 async function setUpFrom({ enc, terrain = null, hex = null, choose = false, originSceneId = globalThis.canvas?.scene?.id ?? null }, x) {
   return guarded(async () => {
     const BattleMaps = await x.battle();
