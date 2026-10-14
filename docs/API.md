@@ -2142,7 +2142,12 @@ tokens, a combat, and moves while not travelling are left alone.
     lies under keyed locations not yet found): a player's route preview,
     pathfinder and pre-move check price a keyed or settlement hex as one hex,
     and the GM's charge is the truth, so a move the day cannot pay for at the
-    ground's price bounces with nothing spent;
+    ground's price bounces with nothing spent. One exception: a location
+    whose ground is lava is priced as difficult at worst (the Terrain types
+    table's difficult cost, on foot or by boat, the lesser of that and the
+    rules' own cost), never impassable, because a location is a place the
+    party can reach. Lava on an ordinary hex, and a location on water, are
+    unchanged, and a storm in a harsh climate still blocks it;
   - a hex the rules data doesn't know costs 1.
 - A **displace** move (Foundry's movement action) is free. That is how a GM
   repositions the token without travelling.

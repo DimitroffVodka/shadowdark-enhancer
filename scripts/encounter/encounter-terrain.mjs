@@ -257,6 +257,22 @@ export function withGround(hex, ground) {
 }
 
 /**
+ * What a keyed or settlement hex is PRICED as (travel and the Hex Data "To enter" stat; the encounter check keeps
+ * withGround). A location is a place the party can reach, so one standing on lava is never worse than difficult:
+ * `atMost`, the Terrain types table's difficult cost, caps what it costs on any method. Lava anywhere else stays
+ * impassable, water under a location is untouched, and without a known difficult cost nothing is capped.
+ * @param {{terrain?:string, features?:Array<string|{type:string}>}} hex
+ * @param {{terrain:string|null, features:string[]}} [ground]  keyedGround's answer for the hex
+ * @param {number|null} [difficult]  rules.terrainTypes.difficult
+ * @returns {{hex:object, atMost:number|null}}  hex: withGround's; atMost: the dearest it may cost, null for no cap
+ */
+export function pricedGround(hex, ground, difficult = null) {
+  const stands = withGround(hex, ground);
+  const onLava = ground && NOT_GROUND.has(terrainKey(hex?.terrain)) && terrainKey(stands.terrain) === "lava";
+  return { hex: stands, atMost: onLava && Number.isFinite(difficult) ? difficult : null };
+}
+
+/**
  * The table for a hex: its region's column when the imported grid has one
  * that fits, else the table the GM mapped to its terrain, else the active one.
  * Pure: resolveHexTable reads the world for it.

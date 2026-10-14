@@ -293,7 +293,9 @@ the party token travels.
   A keyed location or a settlement costs what the ground its book row names
   costs (a tower on a swamp, a swamp's cost), and one hex when the row names
   none or the map is not made from a known book's print; only that book's own
-  rows count. The GM's charge is the one that counts: a player's route preview
+  rows count. A location on lava is never worse than difficult: it costs the
+  Terrain types table's difficult cost or less, on foot or by boat, where an ordinary
+  lava hex stays impassable; a storm in a harsh climate still blocks it. The GM's charge is the one that counts: a player's route preview
   shows one hex for a keyed location or settlement, and a move the day can't
   pay for at the ground's price is sent back with nothing spent. The GM sees a
   warning saying why; the player just sees the token return to where it was.
