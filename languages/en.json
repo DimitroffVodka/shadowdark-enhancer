@@ -2431,6 +2431,7 @@
   "SDE.hexMap.error.pointyTop": "Only flat-top column hex grids are supported in this version; this scene uses pointy-top rows.",
   "SDE.hexMap.error.noBackground": "The active scene has no background image, or it has not finished loading.",
   "SDE.hexMap.error.sceneNoImage": "The scene has no background image.",
+  "SDE.hexMap.error.paintedNoImage": "A painted map has no image to read. Read the map on the print it was painted from. A painted map copies that print's tags once, while it has none and exactly one tagged print of the same size is in the world.",
   "SDE.hexMap.error.loadFailed": "Could not load {path}",
   "SDE.hexMap.error.notThisCrawl": "World journal entry {id} is not this crawl",
   "SDE.hexMap.error.uploadFailed": "upload failed",

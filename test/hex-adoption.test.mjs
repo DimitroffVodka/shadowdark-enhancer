@@ -92,8 +92,8 @@ test("a cell's own legacy field is archived whole and reported, not silently ove
 const MOD = "shadowdark-enhancer", XTRA = "shadowdark-extras";
 const bounds = { cols: 64, rows: 75, rowsLowered: 74, firstRow: 1 };
 // `at` is the Foundry offset {i, j} of the print's first hex; {0, 0} is the top-left cell Extras numbers 0000 from.
-const print = (extra = {}, { at = { i: 0, j: 0 }, num = "0000", shifted = "odd" } = {}) => ({ grid: { type: 4 }, flags: { [MOD]: { hexTags: {
-  origin: { q: at.j, r: at.i - (at.j - (at.j & 1)) / 2, num, shifted, bounds } } }, [XTRA]: { hexcrawl: {} } }, ...extra });
+const print = (extra = {}, { at = { i: 0, j: 0 }, num = "0000", shifted = "odd", bounds: b = bounds } = {}) => ({ grid: { type: 4 }, flags: { [MOD]: { hexTags: {
+  origin: { q: at.j, r: at.i - (at.j - (at.j & 1)) / 2, num, shifted, bounds: b } } }, [XTRA]: { hexcrawl: {} } }, ...extra });
 const painted = (grid = { ...bounds, origin: 0 }, type = 4) => ({ grid: { type }, flags: { [XTRA]: { hexScene: true, hexcrawl: { grid } } } });
 test("a painted scene finds the one tagged print with its numbering bounds and grid type", () => {
   const a = print(), p = painted();
@@ -103,6 +103,18 @@ test("a painted scene finds the one tagged print with its numbering bounds and g
   assert.equal(printFor(painted({ ...bounds, cols: 40 }), [a]), null, "another map's size");
   assert.equal(printFor(painted({ ...bounds, flipX: true }), [a]), null, "mirrored numbering is not the print's");
   assert.equal(printFor(a, [a, print()]), null, "a print is not a painted scene");
+});
+test("a print whose top row is full hexes finds its painted scene: the layout leaves firstRow out when it is the origin", () => {
+  const full = print({}, { bounds: { cols: 64, rows: 75, firstRow: 0 } });
+  assert.equal(printFor(painted({ cols: 64, rows: 75, origin: 0 }), [full]), full, "0000, top row full");
+  assert.equal(printFor(painted({ cols: 64, rows: 75, origin: 0, firstRow: 1 }), [full]), null, "the print has the row, Extras drops it");
+  const framed = print({}, { bounds: { cols: 64, rows: 75, firstRow: 1 } });
+  assert.equal(printFor(painted({ cols: 64, rows: 75, origin: 0 }), [framed]), null, "Extras has the row, the print drops it");
+  assert.equal(printFor(painted({ cols: 64, rows: 75, origin: 0, firstRow: 1 }), [framed]), framed, "both drop it");
+  const from1 = (firstRow) => print({}, { num: "0101", shifted: "even", bounds: { cols: 64, rows: 75, firstRow } });
+  const frame1 = from1(1), full1 = from1(0);
+  assert.equal(printFor(painted({ cols: 64, rows: 75, origin: 1 }), [frame1]), frame1, "0101: the stored 1 is the origin row, so the layout names none");
+  assert.equal(printFor(painted({ cols: 64, rows: 75, origin: 1 }), [full1]), null, "0101: a stored 0 is not the origin row");
 });
 test("a print anchored off the top-left cell is not the painted scene's print: Extras numbers its hexes from another cell", () => {
   const p = painted();
