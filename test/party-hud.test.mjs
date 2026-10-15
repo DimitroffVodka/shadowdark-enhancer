@@ -330,3 +330,22 @@ test("the sheet's status names combat on a scene with no party token", () => {
   globalThis.game.combats.contents = [{ started: true, scene: f.scene }];
   assert.equal(movementStatus(f.party).reason, "combat");
 });
+
+test("Place / Recall uses the party token on the level being viewed, not the first one on the scene", () => {
+  const f = fixture();
+  f.pt._source.level = "floor2";
+  const here = { ...f.pt, id: "pt1", uuid: "Scene.s.Token.pt1", _source: { ...f.pt._source, level: "floor1" }, flags: {} };
+  f.scene.tokens.contents = [f.pt, here];
+  f.scene.initialLevel = { id: "floor1" };
+  globalThis.canvas = { scene: f.scene, level: { id: "floor1" } };
+  assert.equal(movementStatus(f.party).token.id, "pt1", "the one on the viewed floor wins over the first on the scene");
+  globalThis.canvas.level = { id: "floor2" };
+  assert.equal(movementStatus(f.party).token.id, "pt");
+  globalThis.canvas.level = { id: "floor3" };
+  assert.equal(movementStatus(f.party).token, null, "a token on another floor is not here");
+  globalThis.canvas.level = undefined;
+  assert.equal(movementStatus(f.party).token.id, "pt", "no level to look at: the first, as before");
+  here._source.level = undefined;
+  globalThis.canvas.level = { id: "floor1" };
+  assert.equal(movementStatus(f.party).token.id, "pt1", "a token with no level of its own is on the scene's initial level");
+});

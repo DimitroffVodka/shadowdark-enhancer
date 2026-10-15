@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **Place / Recall works on the floor you are looking at.** On a scene with several levels it used the first Party token on the scene, so with the party token on Floor 2 and you viewing Floor 1 every press placed and recalled the characters on Floor 2, where nothing visible happened, and dragging the party onto Floor 1 changed nothing. It now uses the Party token on the level you are viewing; with none there the button is greyed out and says so.
+
 ### Changed
 
 - **A marching party is a free crawl in the Crawl Strip, and the strip says so.** While a party's Marching order switch is on, its leader and at least one follower are on the scene and there is no combat, one person is moving everyone, so there is nothing to count: no movement pill, no initiative dice or turn arrows, no out-of-turn lock, and the followers' automatic steps are not charged to them. The label plate reads MARCHING in gold, and the leader's card has a gold outline and a flag. Next Round stays, and combat brings feet and initiative back. The "Free movement crawl" setting is unchanged and still turns this off-and-on for every crawl.

@@ -25,10 +25,15 @@ export const inPartyCombat = scene => (game.combats?.contents ?? []).some(c => c
 const roster = (actor, user = null) => Party.rows(actor).filter(r => r.actor && ["characters", "hirelings", "mounts"].includes(r.group)
   && (!user || r.actor.testUserPermission(user, "OBSERVER")));
 const linked = (scene, uuid, partyUuid) => scene.tokens.contents.filter(d => d.actorLink && d.actor?.uuid === uuid && (!state(d).partyUuid || state(d).partyUuid === partyUuid));
+const queueKey = (sceneId, partyId) => `Scene.${sceneId}.Party.${partyId}`;
 const serial = (key, work) => { const next = (queues.get(key) ?? Promise.resolve()).catch(() => {}).then(work); queues.set(key, next); return next; };
 function partyToken(ref, scene = globalThis.canvas?.scene) {
   const actor = Party.get(ref);
-  return scene?.tokens?.contents?.find(d => d.actorLink && d.actor?.uuid === actor?.uuid) ?? null;
+  const mine = scene?.tokens?.contents?.filter(d => d.actorLink && d.actor?.uuid === actor?.uuid) ?? [];
+  // A scene with several levels can hold one per floor: only the one on the level this client is viewing is
+  // "here". The first one on the scene would place and recall the party on a floor nobody is looking at.
+  const level = globalThis.canvas?.level?.id;
+  return (level ? mine.find(d => (d._source.level ?? scene.initialLevel?.id) === level) : mine[0]) ?? null;
 }
 /**
  * The march on `scene` right now: a party with Marching order on, its leader and at least one follower out on the
@@ -147,7 +152,7 @@ async function deploy({ actor, scene, token, user }) {
   return { ok: !failed.length, failed, error: failed.length ? t("blockedMembers", { names: failed.join(", ") }) : undefined };
 }
 export function executeMovement(payload, user) {
-  return serial(`Scene.${payload.sceneId}.Token.${payload.tokenId}`, async () => {
+  return serial(queueKey(payload.sceneId, payload.partyId), async () => {
     try {
       const ctx = context(payload, user);
       if (["gather", "deploy", "toggle"].includes(payload.action) && inPartyCombat(ctx.scene)) throw new Error("SDE.party.movement.combat");
@@ -205,10 +210,9 @@ export function registerPartyMovement() {
     // Any party this character leads marches. The characters' own tokens on the scene are all it needs: put there
     // by hand or by Place, with or without a party token.
     for (const actor of Party.list().filter(p => Party.data(p).leaderUuid === doc.actor.uuid)) {
-      // The key every movement action on a party token serialises on: a leader drag must queue behind an
+      // The key every movement action on this party serialises on: a leader drag must queue behind an
       // in-flight recall, never move followers mid-recall.
-      const anchor = partyToken(actor, doc.parent), key = anchor ? `Scene.${doc.parent.id}.Token.${anchor.id}` : `Scene.${doc.parent.id}.Party.${actor.id}`;
-      void serial(key, () => follow(actor, doc.parent, doc.id, movement, user)).catch(error => console.error(`${MODULE_ID} | Party follow`, error));
+      void serial(queueKey(doc.parent.id, actor.id), () => follow(actor, doc.parent, doc.id, movement, user)).catch(error => console.error(`${MODULE_ID} | Party follow`, error));
     }
   });
   Hooks.on("updateToken", () => Hooks.callAll(MOVEMENT_CHANGED));

@@ -122,8 +122,9 @@ Hex maps keep the grid north-up. When a wall is in the way they walk round it
 (the search covers the whole scene) to the nearest square they can reach, so
 nobody gets stranded behind a door the leader went through. Nothing follows
 during combat, and the status line says so. The pin button beside the grid is
-**Place / Recall**, which works from the party's token and is greyed out, with
-the reason as its tooltip, on a scene that has none. If two browser tabs are both the active GM (plain http over
+**Place / Recall**, which works from the party's token on the level you are
+viewing and is greyed out, with the reason as its tooltip, when there is none
+there (a token on another floor does not count). If two browser tabs are both the active GM (plain http over
 a LAN, where the browser has no tab locks), each runs the follower pass and
 every move is sent twice; the end positions are the same, only the animation
 and traffic double.
