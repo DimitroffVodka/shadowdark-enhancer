@@ -49,3 +49,37 @@ test("free movement crawl: no feet pill, no order controls, Next Round stays", (
   assert.match(free, /nextCrawlTurn/);
   assert.match(free, /sde-strip-pill/, "luck pill remains");
 });
+
+// A marching party: one person moves everyone, so the strip is a free crawl that says who leads.
+function marching({ followLeader = true, followersOut = true } = {}) {
+  const MOD = "shadowdark-enhancer";
+  const mate = { ...pc, id: "pc2", uuid: "Actor.pc2", name: "Bran", testUserPermission: () => true };
+  Object.assign(pc, { uuid: "Actor.pc1", testUserPermission: () => true });
+  const party = { id: "p", uuid: "Actor.p", type: "NPC", name: "Party", flags: { [MOD]: { party: true, partyData: { members: [pc.uuid, mate.uuid], leaderUuid: pc.uuid, followLeader } } }, testUserPermission: () => true };
+  globalThis.game.actors.contents = [party, pc, mate];
+  const tok = (actor) => ({ id: `t-${actor.id}`, actorLink: true, actor, flags: {} });
+  const tokens = [tok(pc), ...(followersOut ? [tok(mate)] : [])];
+  tokens.contents = tokens;
+  globalThis.canvas.scene = { id: "s", tokens };
+  globalThis.game.combats = { contents: [] };
+  return draw(false);
+}
+test("a marching party draws as a free crawl: no feet, no order, the leader marked and the label says MARCHING", () => {
+  const html = marching();
+  assert.doesNotMatch(html, /ft<\/div>/, "no movement pill");
+  assert.doesNotMatch(html, /nextOocTurn|prevOocTurn|rollAllOocInit|resetOocInit|rollOocInit|sde-strip-init-badge/);
+  assert.match(html, /nextCrawlTurn/, "the GM still ends the round");
+  assert.match(html, /sde-strip-leads\b/);
+  assert.match(html, /sde-strip-leads-badge/);
+  assert.match(html, /SDE\.crawlStrip\.marchLabel/);
+  assert.doesNotMatch(html, /SDE\.crawlStrip\.partyLabel/);
+});
+test("a party that is not marching keeps feet and turns: switch off, or nobody out to follow", () => {
+  for (const options of [{ followLeader: false }, { followersOut: false }]) {
+    const html = marching(options);
+    assert.match(html, /ft<\/div>/, JSON.stringify(options));
+    assert.match(html, /nextOocTurn/, JSON.stringify(options));
+    assert.doesNotMatch(html, /sde-strip-leads-badge/);
+    assert.match(html, /SDE\.crawlStrip\.partyLabel/);
+  }
+});

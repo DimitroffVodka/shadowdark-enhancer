@@ -31,7 +31,8 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { CrawlState } from "./crawl-state.mjs";
 import { OocControls, showOocRollAll, showOocAdvance } from "./crawl-strip.mjs";
-import { oocOrderComplete, freeCrawlActive } from "./crawl-state-core.mjs";
+import { oocOrderComplete } from "./crawl-state-core.mjs";
+import { crawlFree } from "./crawl-free.mjs";
 import {
   buildTrackerRows, showOocReset, rowRollable, trackerFooter, parseInitiativeInput,
 } from "./crawl-tracker-core.mjs";
@@ -111,7 +112,7 @@ export class CrawlTrackerTab extends HandlebarsApplicationMixin(
     });
     const rolledCount = rows.filter(r => r.initiative !== null).length;
     const holderId = state.oocTurn;
-    const free = freeCrawlActive(game.settings.get(MODULE_ID, "crawlFreeMovement"), state.mode);
+    const free = crawlFree(state.mode);
     const isGM = game.user.isGM;
     const orderActive = !free && oocOrderComplete(state) && !!holderId;
     const ownsHolder = !!holderId && !!game.actors.get(holderId)?.isOwner;

@@ -551,6 +551,15 @@ body.theme-light .sde-bar-start-btn:hover {
   color: var(--sde-bar-heroes-text);
   border-right-color: var(--sde-bar-heroes);
 }
+/* Marching: the label plate and the leader's card are the cue that one person is moving everyone. */
+.sde-strip-group-marching .sde-strip-label-heroes { color: #f0c24b; border-right-color: #f0c24b; }
+.sde-strip-leads { box-shadow: 0 0 0 2px #f0c24b inset; }
+.sde-strip-leads-badge {
+  position: absolute; top: 3px; right: 3px; z-index: 3;
+  display: flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: #f0c24b; color: #1a1306; font-size: 10px; pointer-events: none;
+}
 .sde-strip-label-npcs {
   color: var(--sde-bar-npcs-text);
   border-right-color: var(--sde-bar-combat);

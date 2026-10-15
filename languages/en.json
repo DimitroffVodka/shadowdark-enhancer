@@ -725,6 +725,8 @@
   "SDE.crawlStrip.rollAllOoc": "Roll initiative for everyone who hasn't rolled",
   "SDE.crawlStrip.openMerchant": "Open Merchant Shop",
   "SDE.crawlStrip.partyLabel": "PARTY",
+  "SDE.crawlStrip.marchLabel": "MARCHING",
+  "SDE.crawlStrip.marchLeads": "{name} leads the march: the party moves as one, so no feet and no turns are counted.",
   "SDE.crawlStrip.roundShort": "R{round}",
   "SDE.crawlStrip.lightLitMinsClick": "{name} is lit — {mins} min left · click to put out",
   "SDE.crawlStrip.lightLitMins": "{name} is lit — {mins} min left",

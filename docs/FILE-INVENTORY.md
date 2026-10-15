@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1983 tracked files · ~255,200 lines of code/markup across scripts+templates+styles+test.
+1984 tracked files · ~255,300 lines of code/markup across scripts+templates+styles+test.
 `v0.19.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -146,7 +146,7 @@
 | `party/party-item-picker.mjs` | 80 | The Party sheet's Add item > From compendium window: an ApplicationV2 that reads every Item compendium's index once, filters it by name as the GM types (searchItemIndex), and hands the picked entry to the sheet to copy onto the party actor. |
 | `party/party-light.mjs` | 49 | Runtime-only dungeon Party light mirror without duplicated fuel items; hex lights and stored vision unchanged. |
 | `party/party-movement-core.mjs` | 128 | Fixed formation fill, follow ordering, heading turns, and the wall tests: centre-line placement and a breadth-first route round walls. |
-| `party/party-movement.mjs` | 199 | Authenticated Party-owner gather/deploy relay, linked token configuration preservation and native marching: followers keep the formation, turned to the leader's heading, and never pause. |
+| `party/party-movement.mjs` | 215 | Authenticated Party-owner gather/deploy relay, linked token configuration preservation and native marching: followers keep the formation, turned to the leader's heading, and never pause. |
 | `party/party-roll.mjs` | 138 | Request roll from the Party sheet's GM bar: posts one chat card with a Roll link per character asked; the owner's click runs the system's ability check against the DC and posts pass or fail. |
 | `party/party-sheet-core.mjs` | 486 | Pure Party sheet decisions: the tab row and view flags (GM vs player), the Marching order status line, Gems, the linked Bastion and its last month, and the Today / Light / Rations status bar. |
 | `party/party-token.mjs` | 44 | Uploads the party emblem as a hex-shaped token picture and keeps the party actor, its prototype token and scene tokens wearing it. |
@@ -218,17 +218,18 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `crawl-strip.mjs` | 1737 | The core feature: the top strip. Plain DOM (`#shadowdark-enhancer-strip`), not ApplicationV2. |
+| `crawl-strip.mjs` | 1749 | The core feature: the top strip. Plain DOM (`#shadowdark-enhancer-strip`), not ApplicationV2. |
 | `crawl-state.mjs` | 515 | Foundry-coupled state singleton — persistence, sockets, hook emission. |
 | `crawl-state-core.mjs` | 428 | Pure reducer/normalizer behind crawl-state. Node-testable. |
 | `crawl-lights-core.mjs` | 93 | Pure light-source logic for the strip's flame badges. |
-| `crawl-tracker.mjs` | 346 | The out-of-combat tracker as a real sidebar tab (`AbstractSidebarTab`), registered into `Sidebar.TABS` + `CONFIG.ui` beside Combat. Hidden unless a crawl is running; carries the roll-all / advance / reset controls. |
+| `crawl-tracker.mjs` | 347 | The out-of-combat tracker as a real sidebar tab (`AbstractSidebarTab`), registered into `Sidebar.TABS` + `CONFIG.ui` beside Combat. Hidden unless a crawl is running; carries the roll-all / advance / reset controls. |
 | `crawl-tracker-core.mjs` | 138 | Pure view model for the tracker tab: `buildTrackerRows()` (rolled first, unrolled last, holder flagged), `showOocReset()`, and `parseInitiativeInput()` — which treats a blanked box as "no change" rather than the initiative of 0 that `Number("")` yields. Node-testable. |
 | `initiative-manager.mjs` | 137 | Combat/initiative state machine glue for the strip. |
 | `hidden-sync.mjs` | 69 | Bidirectional `token.hidden` ↔ `combatant.hidden` sync, GM-only. |
 | `turn-skip.mjs` | 163 | Auto-advances past combatants the strip renders no card for (dead enemies). Active-GM gated. Also drives Chaos Mode: queues each held Chaos round (updateCombat) and replays it under the same lock (#259). |
 | `turn-skip-core.mjs` | 164 | Pure strip-visibility test shared by the strip and the auto-skip, so the two can't drift. |
-| `movement-tracker.mjs` | 814 | Crawl-mode movement budget enforcement + turn-start rollback (`displace` waypoints); its token writes stay out of the undo history, and a Ctrl+Z undo refunds the move it reverts. |
+| `movement-tracker.mjs` | 815 | Crawl-mode movement budget enforcement + turn-start rollback (`displace` waypoints); its token writes stay out of the undo history, and a Ctrl+Z undo refunds the move it reverts. |
+| `crawl-free.mjs` | 9 | `crawlFree(mode)`: whether the crawl counts no feet, rolled order or turn lock, because the world setting says so or a party is marching (one mover). The strip, the tracker tab and the movement tracker all ask it. |
 | `movement-calc.mjs` | 88 | Pure per-segment feet-moved math. |
 | `npc-action-menu.mjs` | 633 | Per-combatant hover action HUD. |
 | `crawl-turn-core.mjs` | 121 | Pure turn-advance authorization for the crawl strip: `canAdvanceTurn()` (a GM always may; a player only when they own the current combatant and the advance would not roll the round) and `nextTurnWouldRollRound()`, mirroring `Combat#nextTurn`'s real wrap rules. |

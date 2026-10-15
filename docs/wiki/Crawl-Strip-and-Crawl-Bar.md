@@ -153,6 +153,23 @@ turn** (⏪) above the round number and **Next player's turn** (⏩) below it,
 like Previous Turn and Next Turn in combat. Stepping back past the top of the
 order steps the crawl round back too.
 
+### Marching order in the strip
+
+While a party's **Marching order** switch is on, its leader and at least one
+follower are on the scene and there is no combat, one person is moving everyone,
+so the strip stops counting feet and turns for them, as in a
+[free movement crawl](Movement-Budgets.md#free-movement-crawl):
+
+- The label plate reads **MARCHING** instead of PARTY, in gold.
+- The leader's card has a gold outline and a flag; hovering it names the leader.
+- The movement pill, initiative dice, turn arrows and Reset Initiative are
+  hidden, and nobody is locked out of turn.
+- **Next Round** stays: the GM ends each round, and it still advances torches,
+  light and the wandering-encounter check.
+
+Switch Marching order off on the Party sheet, or start combat, and feet and
+initiative come back as they were.
+
 ### The Crawl Order sidebar tab
 
 During a crawl, a **Crawl Order** tab appears in Foundry's sidebar directly

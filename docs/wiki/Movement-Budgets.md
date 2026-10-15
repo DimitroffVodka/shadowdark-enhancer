@@ -97,6 +97,15 @@ that still advances torches, light and the wandering-encounter check. When
 combat starts, feet, initiative and the lock apply as usual. Hex travel is not
 affected.
 
+A party in **Marching order** gets the same treatment without the setting: while
+its switch on the [Party sheet](Party.md#formation-deploy-and-follow) is on and
+its leader and at least one follower are on the scene, out of combat, one person
+is moving everyone, so there are no feet to spend and no turns to take. The
+strip says so (see
+[Marching order in the strip](Crawl-Strip-and-Crawl-Bar.md#marching-order-in-the-strip)),
+and the followers' automatic steps are never charged to them. Combat applies feet
+and initiative as usual.
+
 ### How out-of-turn locking works
 
 - **In combat:** Only the active combatant may move.

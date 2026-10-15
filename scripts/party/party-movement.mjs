@@ -30,6 +30,22 @@ function partyToken(ref, scene = globalThis.canvas?.scene) {
   const actor = Party.get(ref);
   return scene?.tokens?.contents?.find(d => d.actorLink && d.actor?.uuid === actor?.uuid) ?? null;
 }
+/**
+ * The march on `scene` right now: a party with Marching order on, its leader and at least one follower out on the
+ * scene, and no combat. One person moves everyone then, so the crawl strip asks this before it counts feet or turns.
+ * @returns {{ party: Actor, leader: Actor }|null}
+ */
+export function marchOf(scene = globalThis.canvas?.scene) {
+  if (!scene || inPartyCombat(scene)) return null;
+  for (const party of Party.list()) {
+    const data = Party.data(party);
+    if (!data.followLeader || !data.leaderUuid) continue;
+    const rows = roster(party), out = r => linked(scene, r.uuid, party.uuid).length > 0;
+    const leader = rows.find(r => r.uuid === data.leaderUuid);
+    if (leader?.actor && out(leader) && rows.some(r => r !== leader && r.group !== "mounts" && out(r))) return { party, leader: leader.actor };
+  }
+  return null;
+}
 // Marching order needs no party token, so a scene without one is not a reason: `token` is null there.
 export function movementStatus(ref) {
   const token = partyToken(ref), data = Party.data(Party.get(ref));
