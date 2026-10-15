@@ -370,7 +370,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
         torches: stock ? torchCount(stock) : null, rations: stock ? rationsCount(stock) : null }, I18N);
       const formation = fillFormation(data, rows), status = movementStatus(this.actor);
       const combat = inPartyCombat(globalThis.canvas?.scene), leaderActor = rows.find(r => r.uuid === data.leaderUuid)?.actor, hasLeader = !!data.leaderUuid && !!leaderActor;
-      const marchLine = marchText(marchState({ follow: data.followLeader, hasToken: !!status.token, reason: status.reason, manager: canEdit, hasLeader }),
+      const marchLine = marchText(marchState({ follow: data.followLeader, reason: status.reason, hasLeader }),
         { leaderName: leaderActor?.name, missing: t("SDE.party.missing") }, I18N);
       const march = { ...marchLine, warn: marchLine.mode === "notice" };
       const slots = [];

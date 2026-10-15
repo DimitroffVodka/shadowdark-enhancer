@@ -932,7 +932,11 @@ a missing or unknown value draws the amber lantern.
 owners automatically use the authenticated active-GM relay for scene-token writes.
 Actions refuse combat and a mismatched authority scene rather than testing the
 wrong walls. `party.movementStatus(ref)` returns deployment and visible pause
-information. Gather preserves linked Actors and canonical token configuration;
+information; `token` is null on a scene with no Party token, which no longer
+changes `reason` (`"free"`, `"combat"` or `""`), because following needs only the
+members' own tokens: a move of the token of the character a Party names as its
+leader moves the other members' tokens on that scene. `party.movement` still
+needs the Party token. Gather preserves linked Actors and canonical token configuration;
 release reuses a scene token or its saved id/configuration. Following uses native
 V14 committed movement, marks follower operations, and does not price aggregate
 travel. Pauses and fresh-path Resume are distinct from the remembered follow choice.

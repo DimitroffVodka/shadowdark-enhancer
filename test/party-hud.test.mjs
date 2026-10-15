@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { isParty, Party } from "../scripts/party/party.mjs";
 import { registerPartyHUD } from "../scripts/party/party-hud.mjs";
-import { executeMovement, registerPartyMovement } from "../scripts/party/party-movement.mjs";
+import { executeMovement, registerPartyMovement, movementStatus } from "../scripts/party/party-movement.mjs";
 import { registerPartyLight } from "../scripts/party/party-light.mjs";
 const MOD = "shadowdark-enhancer";
 test("shared Party identity excludes flagged NPC and SDX Party but not real monsters", () => {
@@ -296,4 +296,37 @@ test("a follower shut in a room with the door elsewhere walks round to its slot 
   assert.deepEqual(paths[0].at(-1), [300, 200], "reaches its slot");
   assert.ok(paths[0].some(([x, y]) => x === 300 && y === 400), "comes through the gap in the wall");
   assert.ok(paths[0].every((p, i) => i === 0 || Math.max(Math.abs(p[0] - paths[0][i - 1][0]), Math.abs(p[1] - paths[0][i - 1][1])) === 100), "one square at a time");
+});
+
+// Marching order needs the characters' tokens on the scene and nothing else: no party token, no Place.
+function byHand() {
+  const m = marchFixture({ x: 100, y: 500 });
+  m.f.scene.tokens.contents = m.f.scene.tokens.contents.filter(d => d.id !== "pt");
+  for (const id of ["pcToken", "pc2Token"]) m.f.scene.tokens.get(id).flags = {};
+  globalThis.CONFIG.Canvas.polygonBackends.move.testCollision = () => false;
+  return m;
+}
+test("marching order follows the leader with no party token on the scene and the tokens placed by hand", async () => {
+  const { paths, leaderMove } = byHand();
+  await leaderMove("north");
+  assert.deepEqual(paths, [[[300, 200]]], "behind a northbound leader, in its slot");
+});
+test("a character who leads no party moves nobody, and the switch off moves nobody", async () => {
+  const { f, paths, leaderMove } = byHand();
+  f.party.flags[MOD].partyData.leaderUuid = "Actor.pc2";
+  await leaderMove("north");
+  assert.deepEqual(paths, [], "pc leads nothing, so a pc drag is not a march");
+  f.party.flags[MOD].partyData.leaderUuid = f.member.uuid; f.party.flags[MOD].partyData.followLeader = false;
+  await leaderMove("north");
+  assert.deepEqual(paths, [], "marching order is off");
+});
+test("the sheet's status names combat on a scene with no party token", () => {
+  const f = fixture();
+  f.scene.tokens.contents = [];
+  f.party.flags[MOD].partyData.followLeader = true;
+  globalThis.canvas = { scene: f.scene };
+  assert.equal(movementStatus(f.party).token, null);
+  assert.equal(movementStatus(f.party).reason, "");
+  globalThis.game.combats.contents = [{ started: true, scene: f.scene }];
+  assert.equal(movementStatus(f.party).reason, "combat");
 });

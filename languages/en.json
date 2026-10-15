@@ -425,7 +425,7 @@
   "SDE.party.movement.placeRecall": "Place / Recall",
   "SDE.party.movement.importExport": "Import/Export Members",
   "SDE.party.movement.combat": "Members are not placed, recalled or followed during combat.",
-  "SDE.party.movement.noToken": "This scene has no party token. Drag the party from the Actors list onto the scene first.",
+  "SDE.party.movement.noToken": "Place / Recall works from the party's token, and this scene has none. Drag the party from the Actors list onto the scene to use it. Marching order does not need it.",
   "SDE.party.movement.blocked": "A member's path is blocked.",
   "SDE.party.movement.blockedMembers": "No wall-safe position for: {names}. Those members were left in place or packed.",
   "SDE.party.movement.review": "Saved formation needs review; the larger arrangement is preserved.",

@@ -30,11 +30,10 @@ function partyToken(ref, scene = globalThis.canvas?.scene) {
   const actor = Party.get(ref);
   return scene?.tokens?.contents?.find(d => d.actorLink && d.actor?.uuid === actor?.uuid) ?? null;
 }
+// Marching order needs no party token, so a scene without one is not a reason: `token` is null there.
 export function movementStatus(ref) {
-  const token = partyToken(ref), actor = Party.get(ref);
-  if (!token) return { reason: "noToken", deployed: false };
-  const data = Party.data(actor);
-  return { deployed: isPartyDeployed(token), reason: !data.followLeader ? "free" : inPartyCombat(token.parent) ? "combat" : "", token };
+  const token = partyToken(ref), data = Party.data(Party.get(ref));
+  return { deployed: isPartyDeployed(token), reason: !data.followLeader ? "free" : inPartyCombat(token?.parent ?? globalThis.canvas?.scene) ? "combat" : "", token };
 }
 async function saveState(token, value) {
   await replaceModuleFlag(token, FLAG, value);
@@ -150,12 +149,13 @@ export function executeMovement(payload, user) {
 // the way it walks round it (routeToward) to the nearest square it can reach, so nobody gets stranded off the
 // path. One that still cannot move (missing token, combat) stays where it is and the rest carry on; the next
 // leader move tries again.
-async function follow(token, leader, movement, user) {
-  const actor = token.actor, data = Party.data(actor);
-  if (!data.followLeader || !isPartyDeployed(token) || inPartyCombat(token.parent) || !actor.testUserPermission(user, "OWNER")) return;
+async function follow(actor, scene, leaderId, movement, user) {
+  const data = Party.data(actor);
+  // The leader's token must still be there: a recall that ran first took it away.
+  if (!data.followLeader || !scene.tokens.has(leaderId) || inPartyCombat(scene) || !actor.testUserPermission(user, "OWNER")) return;
   const waypoints = movement.passed.waypoints;
   if (waypoints.some(w => CONFIG.Token.movement.actions[w.action]?.teleport)) return;
-  const scene = token.parent, { grid } = scene, { sizeX, sizeY } = grid, bounds = scene.dimensions.sceneRect;
+  const { grid } = scene, { sizeX, sizeY } = grid, bounds = scene.dimensions.sceneRect;
   const slots = new Map(deploymentOrder(data, roster(actor, user)).map(s => [s.memberUuid, s]));
   const lead = slots.get(data.leaderUuid) ?? { col: 0, row: 0 }, end = waypoints.at(-1);
   // Facing is the leader's last step; the grid's top row is the front. Hex grids keep it north-up.
@@ -185,12 +185,14 @@ async function follow(token, leader, movement, user) {
 export function registerPartyMovement() {
   registerQuery(MOVEMENT_QUERY, (payload, { user }) => refuseQuery(user) ?? executeMovement(payload, user));
   Hooks.on("moveToken", (doc, movement, options, user) => {
-    if (!isActiveGM() || options?.[MODULE_ID]?.partyFollow) return;
-    for (const token of doc.parent.tokens.contents.filter(d => isPartyDeployed(d))) {
-      const data = Party.data(token.actor);
-      // The same key every movement action serialises this token on: a leader drag must
-      // queue behind an in-flight recall, never move followers mid-recall.
-      if (doc.actorLink && doc.actor?.uuid === data.leaderUuid) void serial(`Scene.${token.parent.id}.Token.${token.id}`, () => follow(token, doc, movement, user)).catch(error => console.error(`${MODULE_ID} | Party follow`, error));
+    if (!isActiveGM() || options?.[MODULE_ID]?.partyFollow || !doc.actorLink || !doc.actor) return;
+    // Any party this character leads marches. The characters' own tokens on the scene are all it needs: put there
+    // by hand or by Place, with or without a party token.
+    for (const actor of Party.list().filter(p => Party.data(p).leaderUuid === doc.actor.uuid)) {
+      // The key every movement action on a party token serialises on: a leader drag must queue behind an
+      // in-flight recall, never move followers mid-recall.
+      const anchor = partyToken(actor, doc.parent), key = anchor ? `Scene.${doc.parent.id}.Token.${anchor.id}` : `Scene.${doc.parent.id}.Party.${actor.id}`;
+      void serial(key, () => follow(actor, doc.parent, doc.id, movement, user)).catch(error => console.error(`${MODULE_ID} | Party follow`, error));
     }
   });
   Hooks.on("updateToken", () => Hooks.callAll(MOVEMENT_CHANGED));

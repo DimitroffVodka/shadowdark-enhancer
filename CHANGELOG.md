@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **Marching order works with just the characters' tokens on the scene.** It used to follow the leader only after Place / Recall had put the party out round a party token, and the Party sheet warned "This scene has no party token. Drag the party from the Actors list onto the scene first" until you did. Put the characters on the scene by hand, drag the leader, and the others take their places; no party token is needed or made, and the warning is gone. Place / Recall still works from the party's token and says so on its tooltip when the scene has none. Marching order is on by default and the switch on the Party sheet turns it off; a party that already had it switched off keeps that.
+
 ## [0.19.0] — 2026-10-14
 
 ### Added
