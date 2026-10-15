@@ -349,3 +349,63 @@ test("Place / Recall uses the party token on the level being viewed, not the fir
   globalThis.canvas.level = { id: "floor1" };
   assert.equal(movementStatus(f.party).token.id, "pt1", "a token with no level of its own is on the scene's initial level");
 });
+
+// Place by hand: each member goes exactly where it was clicked.
+function placeFixture() {
+  const f = fixture();
+  f.scene.dimensions = { sceneRect: { x: 0, y: 0, width: 1000, height: 1000 } };
+  f.member.getTokenDocument = async () => ({ toObject: () => ({ _id: "memberTok", actorId: "pc", width: 1, height: 1, flags: {}, texture: {} }) });
+  globalThis.game.packs = [];
+  f.party.flags[MOD].partyData.leaderUuid = f.member.uuid;
+  return { ...f, owner: { id: "owner", isGM: false } };
+}
+test("deploy with picked spots puts each member exactly there, keeps the others, and clamps a forged spot", async () => {
+  const f = placeFixture();
+  f.scene.tokens.contents = [f.pt];
+  const owner = f.owner;
+  const result = await executeMovement({ partyId: "p", sceneId: "s", tokenId: "pt", action: "deploy", positions: { [f.member.uuid]: { x: 700, y: 400 } } }, owner);
+  assert.equal(result.ok, true);
+  const placed = f.scene.tokens.contents.find(d => d.actorId === "pc");
+  assert.deepEqual([placed.x, placed.y], [700, 400], "exactly the clicked square, not a formation slot");
+  assert.equal(placed.flags[MOD].partyMovement.partyUuid, f.party.uuid);
+  // A spot outside the scene is pulled back inside; a member with no usable spot is left alone.
+  f.scene.tokens.contents = [f.pt];
+  await executeMovement({ partyId: "p", sceneId: "s", tokenId: "pt", action: "deploy", positions: { [f.member.uuid]: { x: 99999, y: -50 } } }, owner);
+  const far = f.scene.tokens.contents.find(d => d.actorId === "pc");
+  assert.deepEqual([far.x, far.y], [900, 0], "inside the 1000 x 1000 scene, one square in from the edge");
+  f.scene.tokens.contents = [f.pt];
+  await executeMovement({ partyId: "p", sceneId: "s", tokenId: "pt", action: "deploy", positions: { [f.member.uuid]: { x: "left", y: 4 } } }, owner);
+  assert.equal(f.scene.tokens.contents.some(d => d.actorId === "pc"), false, "a spot that is not a number places nobody");
+});
+test("deploy with picked spots takes a member already out into the march without moving it", async () => {
+  const f = placeFixture();
+  f.scene.tokens.contents = [f.pt, f.pc];   // already on the scene at (0, 0)
+  const result = await executeMovement({ partyId: "p", sceneId: "s", tokenId: "pt", action: "deploy", positions: { [f.member.uuid]: { x: f.pc.x, y: f.pc.y } } }, f.owner);
+  assert.equal(result.ok, true);
+  assert.deepEqual([f.pc.x, f.pc.y], [0, 0]);
+  assert.equal(f.pc.flags[MOD].partyMovement.partyUuid, f.party.uuid, "marked, so Recall will pack it");
+  assert.equal(f.pt.flags[MOD].partyMovement.deployed, true);
+});
+test("pickPoints asks for one click per name, in order, snaps each, and Escape keeps what was picked", async () => {
+  const { pickPoints } = await import("../scripts/shared/token-placement.mjs");
+  const listeners = {}, notes = [];
+  globalThis.document = { addEventListener: (type, fn) => { listeners[type] = fn; }, removeEventListener: (type) => { delete listeners[type]; } };
+  globalThis.CONST = { GRID_SNAPPING_MODES: { TOP_LEFT_VERTEX: 1 } };
+  globalThis.ui = { notifications: { info: m => notes.push(m), warn() {} } };
+  globalThis.game = { ...globalThis.game, i18n: { format: (k, d) => `${k}|${d.label}|${d.n}/${d.total}`, localize: k => k } };
+  let at = { x: 130, y: 260 };
+  globalThis.canvas = { ready: true, scene: {}, get mousePosition() { return at; }, grid: { getSnappedPoint: p => ({ x: Math.floor(p.x / 100) * 100, y: Math.floor(p.y / 100) * 100 }) } };
+  const click = target => listeners.pointerdown({ button: 0, target, preventDefault() {}, stopPropagation() {}, stopImmediatePropagation() {} });
+  const board = { closest: () => ({}) }, sidebar = { closest: () => null, tagName: "DIV" };
+  let picked = pickPoints(["Ayla", "Bran", "Cato"]);
+  click(sidebar);                                  // not the board: ignored
+  click(board); at = { x: 480, y: 90 }; click(board);
+  assert.match(notes.at(-1), /Cato\|3\/3/, "the next click is announced by name");
+  listeners.keydown({ key: "Escape" });
+  const result = await picked;
+  assert.equal(result.cancelled, true);
+  assert.deepEqual(result.points, [{ x: 100, y: 200 }, { x: 400, y: 0 }]);
+  assert.deepEqual(Object.keys(listeners), [], "its listeners are gone");
+  picked = pickPoints(["Ayla"]); click(board);
+  assert.equal((await picked).cancelled, false);
+});

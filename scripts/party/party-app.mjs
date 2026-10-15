@@ -11,7 +11,7 @@ import { EMBLEM_FLAG, emblemOf, emblemIconPath, emblemChoices, pickEmblem } from
 import { BASTION_TYPE } from "../bastion/bastion-art.mjs";
 import { stateOf as bastionState, stats as bastionStats, upgradeOf, GRANARY_SAVING_GP } from "../bastion/bastion-core.mjs";
 import { logText as bastionLogText } from "../bastion/bastion-text.mjs";
-import { configureMovement, requestMovement, movementStatus, inPartyCombat, MOVEMENT_CHANGED } from "./party-movement.mjs";
+import { configureMovement, requestMovement, placeByClick, movementStatus, inPartyCombat, MOVEMENT_CHANGED } from "./party-movement.mjs";
 import { Quests, QUESTS_CHANGED } from "../quests/quests.mjs";
 import { QuestLogApp } from "../quests/quest-log-app.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
@@ -62,7 +62,15 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
       create: async function () { this.actor = await Party.create(); Party.select(this.actor); this.render(); },
       adopt: function () { return this._change(() => Party.adopt(this.actor)); },
       leader: function (_event, el) { return this._change(() => configureMovement(this.actor, { leaderUuid: el.dataset.uuid })); },
-      placeRecall: function () { return this._change(() => requestMovement(this.actor, "toggle")); },
+      // Out: Recall. Not out: pick where each member goes on the canvas (Shift places them round the party token).
+      placeRecall: function (event) {
+        const direct = movementStatus(this.actor).deployed || event?.shiftKey;
+        return this._change(async () => {
+          if (direct) return requestMovement(this.actor, "toggle");
+          await this.minimize?.();
+          try { return await placeByClick(this.actor); } finally { await this.maximize?.(); }
+        });
+      },
       openBastion: function () { this._bastion()?.sheet?.render(true); },
       addCoins: function () { return this._change(() => this._addCoins(this._coinInputs("[data-add-coin]", "addCoin"))); },
       giveCoins: function () { return this._change(() => this._giveCoins(this._coinInputs("[data-give-coin]", "giveCoin"), this.element.querySelector("[data-give-to]")?.value)); },
@@ -397,7 +405,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
         emblem: { ...emblem, path: emblemIconPath(emblem.icon), maskUrl: routeOf(emblemIconPath(emblem.icon)) }, emblemEdit: view.emblemEdit, emblemOpen: view.emblemEdit && !!this.emblemOpen, emblemIcons: picker.icons, emblemColors: picker.colors, emblemIconColors: picker.iconColors, emblemCustomBox: picker.customBox, emblemCustomIcon: picker.customIcon,
         leaderName: leaderActor?.name ?? t("SDE.party.missing"),
         movementDisabled: !canEdit || !status.token || combat,
-        movementReason: !status.token ? t("SDE.party.movement.noToken") : combat ? t("SDE.party.movement.combat") : t("SDE.party.movement.importExport"),
+        movementReason: !status.token ? t("SDE.party.movement.noToken") : combat ? t("SDE.party.movement.combat") : t(status.deployed ? "SDE.party.movement.recallTip" : "SDE.party.movement.placeTip"),
         groups: ["characters", "hirelings", "mounts", "missing"].map((key) => ({ label: t(LABELS[key]), rows: members.filter(r => r.group === key) })),
 
         quests: this._quests(), items: this.actor.items.contents.filter((i) => i.type !== "Gem").map((i) => ({ id: i.id, name: i.name, img: i.img, quantity: i.system?.quantity ?? 1, slots: inventorySlots([i]), giveOpen: this.openKeys.has(`give:${i.id}`) })) };

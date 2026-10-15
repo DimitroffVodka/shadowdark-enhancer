@@ -4,6 +4,7 @@
 
 ### Fixed
 
+- **Place lets you put each member where you want them.** It used to drop the whole party in formation round the party token with no say in the matter. Pressing Place now names each member who is not out yet and you click the map for each; the token lands on that square and Escape keeps whoever you have placed. Members already on the scene stay where they are and join the march. Shift-click Place for the old automatic placement round the party token, which the token's HUD entry still does. With the party out the button is Recall, as before.
 - **Place / Recall works on the floor you are looking at.** On a scene with several levels it used the first Party token on the scene, so with the party token on Floor 2 and you viewing Floor 1 every press placed and recalled the characters on Floor 2, where nothing visible happened, and dragging the party onto Floor 1 changed nothing. It now uses the Party token on the level you are viewing; with none there the button is greyed out and says so.
 
 ### Changed

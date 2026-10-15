@@ -142,7 +142,16 @@ gathers eligible linked copies on that scene regardless of distance. Other
 scenes/unlinked tokens stay untouched. The Party token remains selectable.
 Existing token IDs/configurations are reused; repeat Export makes no duplicates.
 
-Placement puts each member in the grid slot around the party token, using
+**Place** lets you choose where each member goes. Press it with the party out of
+the way (not already placed) and the running message names each member in turn:
+click the map where that member should stand and the token lands on that square.
+Escape stops, and the members you already picked stay where you put them. A
+member who is already on the scene is left where they are and joins the march,
+so Place never drags a hand-placed token away. **Shift-click** Place for the old
+automatic placement round the party token. With the party out, the same button
+is **Recall**.
+
+Automatic placement (Shift-click, and the party token's HUD entry) puts each member in the grid slot around the party token, using
 Foundry's own wall test (a clear line from the party token to the slot, inside
 the scene), then the nearest such square, then stacking if cramped. A member
 with no square at all is named and left packed. Native leader

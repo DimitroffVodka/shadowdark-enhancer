@@ -1,7 +1,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { queryActiveGM, registerQuery, refuseQuery, isActiveGM } from "../shared/gm-relay.mjs";
-import { tokenSourceFor } from "../shared/token-placement.mjs";
+import { tokenSourceFor, pickPoints } from "../shared/token-placement.mjs";
 import { mountOf } from "../mounted/mounted-tokens.mjs";
 import { Party, isParty } from "./party.mjs";
 import { normalizeParty } from "./party-core.mjs";
@@ -75,6 +75,24 @@ export async function requestMovement(ref, action, extra = {}) {
   if (!token) { const reply = { ok: false, error: t("noToken") }; ui.notifications?.warn(reply.error); return reply; }
   return requestTokenMovement(actor, token, action, extra);
 }
+/**
+ * Place, by hand: the user clicks the canvas for each member who is not on the scene yet, and each goes exactly
+ * there. Members already out stay where they are and are taken into the party's march. Escape keeps what was picked.
+ */
+export async function placeByClick(ref) {
+  const actor = Party.get(ref), token = partyToken(actor);
+  if (!token || inPartyCombat(token.parent)) return requestMovement(actor, "deploy");   // says why
+  const scene = token.parent, rows = roster(actor, game.user), positions = {}, who = [];
+  for (const slot of deploymentOrder(Party.data(actor), rows)) {
+    const row = rows.find(r => r.uuid === slot.memberUuid), out = linked(scene, slot.memberUuid, actor.uuid)[0];
+    if (!row?.actor) continue;
+    if (out) positions[row.uuid] = { x: out.x, y: out.y }; else who.push(row);
+  }
+  const { points } = await pickPoints(who.map(r => r.actor.name));
+  if (who.length && !points.length) return { ok: false };
+  points.forEach((p, i) => { positions[who[i].uuid] = { x: p.x, y: p.y }; });
+  return requestMovement(actor, "deploy", { positions });
+}
 async function requestTokenMovement(actor, token, action, extra = {}) {
   // The requester's client id rides to whoever executes: a relayed deploy is driven by the tab that clicked.
   const payload = { ...extra, partyId: actor.id, sceneId: token.parent.id, tokenId: token.id, action };
@@ -85,7 +103,7 @@ async function requestTokenMovement(actor, token, action, extra = {}) {
 function context(payload, user) {
   const actor = game.actors.get(payload.partyId), scene = game.scenes.get(payload.sceneId), token = scene?.tokens.get(payload.tokenId);
   if (!isParty(actor) || !user || !actor.testUserPermission(user, "OWNER") || !token?.actorLink || token.actor?.uuid !== actor.uuid) throw new Error("SDE.party.noPermission");
-  return { actor, scene, token, user };
+  return { actor, scene, token, user, positions: payload.positions };
 }
 // V14 polygons derive their scene from the level; never use the relay GM's canvas.
 const collisionFor = (scene, token) => (a, b) => CONFIG.Canvas.polygonBackends.move.testCollision(
@@ -111,12 +129,20 @@ async function gather({ actor, scene, token, user }) {
   if (orphans.length) await scene.deleteEmbeddedDocuments("Token", orphans.map(d => d.id));
   return { ok: true, gathered: [...tokens, ...orphans].map(d => d.id) };
 }
-async function deploy({ actor, scene, token, user }) {
+// Where the requester said each member goes, kept inside the scene. A member with no usable spot is not placed.
+function pickedSpot(scene, positions, uuid) {
+  const at = positions?.[uuid], rect = scene.dimensions.sceneRect, { sizeX, sizeY } = scene.grid;
+  if (!Number.isFinite(at?.x) || !Number.isFinite(at?.y)) return null;
+  return { x: Math.min(Math.max(at.x, rect.x), rect.x + Math.max(0, rect.width - sizeX)), y: Math.min(Math.max(at.y, rect.y), rect.y + Math.max(0, rect.height - sizeY)) };
+}
+async function deploy({ actor, scene, token, user, positions = null }) {
   const data = Party.data(actor), rows = roster(actor, user), sources = new Map((state(token).packed ?? []).map(s => [s.actorId, s]));
   const entries = [];
   for (const slot of deploymentOrder(data, rows)) {
     const member = rows.find(r => r.uuid === slot.memberUuid)?.actor;
     if (!member) continue;
+    // Placed by hand: only the members that were given a spot, each exactly there.
+    if (positions && !pickedSpot(scene, positions, slot.memberUuid)) continue;
     const existing = linked(scene, member.uuid, actor.uuid)[0];
     // A repeated Export leaves already deployed members where play put them.
     if (isPartyDeployed(token) && existing) {
@@ -128,8 +154,9 @@ async function deploy({ actor, scene, token, user }) {
     entries.push({ ...slot, width: source.width, height: source.height, source, existing, member });
   }
   const moving = new Set(entries.map(e => e.existing?.id));
-  const plan = planPlacement({ ...dimensions(scene, token), anchor: { x: token.x, y: token.y }, entries,
-    occupied: scene.tokens.contents.filter(d => d.id !== token.id && !moving.has(d.id)).map(d => ({ x: d.x, y: d.y, width: d.width * scene.grid.sizeX, height: d.height * scene.grid.sizeY })) });
+  const plan = positions ? entries.map(e => ({ ...e, ...pickedSpot(scene, positions, e.memberUuid) }))
+    : planPlacement({ ...dimensions(scene, token), anchor: { x: token.x, y: token.y }, entries,
+      occupied: scene.tokens.contents.filter(d => d.id !== token.id && !moving.has(d.id)).map(d => ({ x: d.x, y: d.y, width: d.width * scene.grid.sizeX, height: d.height * scene.grid.sizeY })) });
   const failed = [];
   for (const p of plan) {
     if (inPartyCombat(scene)) throw new Error("SDE.party.movement.combat");

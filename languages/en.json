@@ -424,6 +424,8 @@
   "SDE.party.movement.follow": "Follow leader",
   "SDE.party.movement.placeRecall": "Place / Recall",
   "SDE.party.movement.importExport": "Import/Export Members",
+  "SDE.party.movement.placeTip": "Place: click the map for each member who is not out yet. Shift-click puts them round the party token. Escape stops.",
+  "SDE.party.movement.recallTip": "Recall: gather the members back into the party token.",
   "SDE.party.movement.combat": "Members are not placed, recalled or followed during combat.",
   "SDE.party.movement.noToken": "Place / Recall works from the party's token, and none is on the level you are viewing. Drag the party from the Actors list onto it to use it. Marching order does not need it.",
   "SDE.party.movement.blocked": "A member's path is blocked.",
