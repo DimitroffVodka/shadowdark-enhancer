@@ -51,6 +51,19 @@ export function marchOf(scene = globalThis.canvas?.scene) {
   }
   return null;
 }
+/** The 3x3 marching order of `party`, row by row from the front: who stands in each cell and who leads. */
+export function marchGrid(party) {
+  const data = Party.data(party), rows = Party.rows(party), formation = fillFormation(data, rows), cells = [];
+  for (let row = -1; row <= 1; row++) for (let col = -1; col <= 1; col++) {
+    const uuid = formation.slots.find(s => s.row === row && s.col === col)?.memberUuid, member = rows.find(r => r.uuid === uuid)?.actor;
+    cells.push({ row, col, uuid, name: member?.name, img: member?.img, leader: uuid === data.leaderUuid });
+  }
+  return cells;
+}
+/** The party the Crawl Strip speaks for: the one marching, else the first whose roster holds a crawl member. */
+export function stripParty(actorIds, scene = globalThis.canvas?.scene) {
+  return marchOf(scene)?.party ?? Party.list().find(p => roster(p).some(r => actorIds?.includes(r.actor?.id))) ?? null;
+}
 // Marching order needs no party token, so a scene without one is not a reason: `token` is null there.
 export function movementStatus(ref) {
   const token = partyToken(ref), data = Party.data(Party.get(ref));

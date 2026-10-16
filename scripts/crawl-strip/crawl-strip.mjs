@@ -21,8 +21,9 @@ import { computeLightState, isLightItem } from "./crawl-lights-core.mjs";
 import { canAdvanceTurn, canAdvanceOocTurn, nextTurnWouldRollRound } from "./crawl-turn-core.mjs";
 import { oocOrderComplete, stripShown, stripOptions } from "./crawl-state-core.mjs";
 import { crawlFree } from "./crawl-free.mjs";
-import { marchOf } from "../party/party-movement.mjs";
-import { isParty } from "../party/party.mjs";
+import { marchOf, stripParty } from "../party/party-movement.mjs";
+import { Party, isParty } from "../party/party.mjs";
+import { marchGridHTML, marchButtonHTML, bindMarchControls } from "./march-controls.mjs";
 import { combatantEntry, isHiddenFromStrip, isTurnless, commanderCombatant } from "./turn-skip-core.mjs";
 import { showOocReset } from "./crawl-tracker-core.mjs";
 import { dyingState, badgeHTML as dyingBadgeHTML, openMenu as openDyingMenu } from "../dying/dying.mjs";
@@ -684,6 +685,10 @@ export const CrawlStrip = {
     // one person moves everyone, so the strip says who leads instead.
     const freeCrawl = crawlFree(state.mode);
     const march = !inCombat ? marchOf() : null;
+    // The grid is the marker, and the switch beside the PARTY plate turns marching on and off without the Party sheet.
+    const marchParty = inCombat ? null : (march?.party ?? stripParty(state.members));
+    const marchSwitch = marchParty && Party.canManage(marchParty) ? marchButtonHTML(marchParty, { active: !!march }) : "";
+    const marchGrid = march ? marchGridHTML(march.party, { canEdit: Party.canManage(march.party) }) : "";
     const oocOrderActive = !inCombat && !freeCrawl && oocOrderComplete(state) && !!state.oocTurn;
 
     // Slim strip (the GM's setting for everyone, or the user's own): the same
@@ -979,9 +984,11 @@ export const CrawlStrip = {
              </div>`
           : `<div class="sde-strip-group sde-strip-group-heroes ${march ? "sde-strip-group-marching" : ""}">
                <div class="sde-strip-label-col sde-strip-label-heroes">
-                 <div class="sde-strip-group-label"${march ? ` title="${esc(game.i18n.format("SDE.crawlStrip.marchLeads", { name: march.leader.name }))}"` : ""}>${esc(game.i18n.localize(march ? "SDE.crawlStrip.marchLabel" : "SDE.crawlStrip.partyLabel"))}</div>
+                 <div class="sde-strip-group-label">${esc(game.i18n.localize("SDE.crawlStrip.partyLabel"))}</div>
+                 ${marchSwitch}
                  ${shopButton}
                </div>
+               ${marchGrid}
                <div class="sde-strip-members">${heroCards}</div>
              </div>`)
       : "";
@@ -1001,6 +1008,7 @@ export const CrawlStrip = {
       </div>`;
 
     this._bindEvents();
+    bindMarchControls(this._el);
     this._sizeCards();
     bindActionMenuEvents(this._el);
     requestAnimationFrame(() => {

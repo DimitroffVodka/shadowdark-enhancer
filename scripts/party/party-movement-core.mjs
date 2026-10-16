@@ -19,6 +19,18 @@ export function fillFormation(data, rows) {
   }
   return { slots };
 }
+/**
+ * The formation after dragging `uuid` onto cell (row, col): it takes the cell and whoever held it takes the cell it left.
+ * Null when `uuid` holds no slot. A retained oversized formation is unusable, so a drop rebuilds it from its valid slots.
+ */
+export function moveToSlot(data, rows, uuid, row, col) {
+  const saved = fillFormation(data, rows);
+  const formation = saved.needsReview ? fillFormation({ formation: { slots: saved.slots.filter(s => [-1, 0, 1].includes(s.col) && [-1, 0, 1].includes(s.row)) } }, rows) : saved;
+  const source = formation.slots.find(s => s.memberUuid === uuid);
+  if (!source) return null;
+  const target = formation.slots.find(s => s.row === row && s.col === col);
+  return formation.slots.map(s => s === source ? { ...s, col, row } : s === target ? { ...s, col: source.col, row: source.row } : s);
+}
 export function deploymentOrder(data, rows) {
   const formation = fillFormation(data, rows);
   // An older larger formation is retained but not used without review.

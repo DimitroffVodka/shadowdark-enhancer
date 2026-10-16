@@ -64,22 +64,39 @@ function marching({ followLeader = true, followersOut = true } = {}) {
   globalThis.game.combats = { contents: [] };
   return draw(false);
 }
-test("a marching party draws as a free crawl: no feet, no order, the leader marked and the label says MARCHING", () => {
+test("a marching party draws as a free crawl: no feet, no order, the leader marked, the 3x3 grid and the switch shown", () => {
   const html = marching();
   assert.doesNotMatch(html, /ft<\/div>/, "no movement pill");
   assert.doesNotMatch(html, /nextOocTurn|prevOocTurn|rollAllOocInit|resetOocInit|rollOocInit|sde-strip-init-badge/);
   assert.match(html, /nextCrawlTurn/, "the GM still ends the round");
   assert.match(html, /sde-strip-leads\b/);
   assert.match(html, /sde-strip-leads-badge/);
-  assert.match(html, /SDE\.crawlStrip\.marchLabel/);
-  assert.doesNotMatch(html, /SDE\.crawlStrip\.partyLabel/);
+  assert.match(html, /data-march-grid/, "the 3x3 marching order is the marker");
+  assert.equal(html.match(/data-march-slot/g).length, 9);
+  assert.match(html, /sde-strip-march-cell leader/);
+  assert.match(html, /data-action="toggleMarch"[^>]*aria-pressed="true"/);
+  assert.match(html, /sde-strip-march-btn on active/);
 });
 test("a party that is not marching keeps feet and turns: switch off, or nobody out to follow", () => {
   for (const options of [{ followLeader: false }, { followersOut: false }]) {
     const html = marching(options);
     assert.match(html, /ft<\/div>/, JSON.stringify(options));
     assert.match(html, /nextOocTurn/, JSON.stringify(options));
-    assert.doesNotMatch(html, /sde-strip-leads-badge/);
+    assert.doesNotMatch(html, /sde-strip-leads-badge|data-march-grid/, "no grid until it marches");
     assert.match(html, /SDE\.crawlStrip\.partyLabel/);
+    assert.match(html, /data-action="toggleMarch"/, "but the switch is there to turn it on or off");
   }
+  assert.match(marching({ followLeader: false }), /aria-pressed="false"/);
+  assert.doesNotMatch(marching({ followersOut: false }), /sde-strip-march-btn on active/, "on, but waiting for members on the map, is not active");
+  assert.match(marching({ followersOut: false }), /class="sde-strip-march-btn on "/);
+});
+test("no party for the crawl, or a viewer who cannot manage it, gets no switch", () => {
+  marching();
+  globalThis.game.actors.contents = [pc];
+  assert.doesNotMatch(draw(false), /toggleMarch|data-march-grid/, "no party holds a crawl member");
+  marching();
+  globalThis.game.user.isGM = false;
+  globalThis.game.actors.contents[0].testUserPermission = (_user, level) => level !== "OWNER";   // may see it, owns nothing
+  try { assert.doesNotMatch(draw(false), /toggleMarch/, "a player who owns nothing cannot flip it"); assert.match(draw(false), /data-march-grid/, "but still sees the grid"); }
+  finally { globalThis.game.user.isGM = true; }
 });

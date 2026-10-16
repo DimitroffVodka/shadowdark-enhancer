@@ -4,14 +4,14 @@ import { CarousingApp } from "../carousing/carousing-app.mjs";
 import { Party, isParty, isNativeParty, isLegacyParty, registerPartyRosterGuard } from "./party.mjs";
 import { offerParty } from "./party-create-option.mjs";
 import { scopedQuests } from "./party-core.mjs";
-import { fillFormation } from "./party-movement-core.mjs";
+import { fillFormation, moveToSlot } from "./party-movement-core.mjs";
 import { marchState, marchText, partyTabs, tabRow, resolveTab, sheetView, gemSummary, linkedBastion, lastMonthEntry, roomIcon, lightReadout, rationsCount, torchCount, carriesLight, luckCount, statusBar, COIN_REFUSALS, coinsOf, coinText, poolAfterAdd, planGive, planDivide, purseAfter, spellTiers, whoSelection, whoAfter, ROLL_STATS, ROLL_STAT_LABELS, DEFAULT_DC, defaultSource, downtimeSummary, warbandGroups } from "./party-sheet-core.mjs";
 import { registerPartyTokenArt } from "./party-token.mjs";
 import { EMBLEM_FLAG, emblemOf, emblemIconPath, emblemChoices, pickEmblem } from "./party-emblem-core.mjs";
 import { BASTION_TYPE } from "../bastion/bastion-art.mjs";
 import { stateOf as bastionState, stats as bastionStats, upgradeOf, GRANARY_SAVING_GP } from "../bastion/bastion-core.mjs";
 import { logText as bastionLogText } from "../bastion/bastion-text.mjs";
-import { configureMovement, requestMovement, placeByClick, movementStatus, inPartyCombat, MOVEMENT_CHANGED } from "./party-movement.mjs";
+import { configureMovement, requestMovement, placeByClick, marchGrid, movementStatus, inPartyCombat, MOVEMENT_CHANGED } from "./party-movement.mjs";
 import { Quests, QUESTS_CHANGED } from "../quests/quests.mjs";
 import { QuestLogApp } from "../quests/quest-log-app.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
@@ -381,12 +381,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const marchLine = marchText(marchState({ follow: data.followLeader, reason: status.reason, hasLeader }),
         { leaderName: leaderActor?.name, missing: t("SDE.party.missing") }, I18N);
       const march = { ...marchLine, warn: marchLine.mode === "notice" };
-      const slots = [];
-      for (let row = -1; row <= 1; row++) for (let col = -1; col <= 1; col++) {
-        const uuid = formation.slots.find(s => s.row === row && s.col === col)?.memberUuid;
-        const member = rows.find(r => r.uuid === uuid)?.actor;
-        slots.push({ row, col, uuid, name: member?.name, img: member?.img, leader: uuid === data.leaderUuid, disabled: !canEdit || !member });
-      }
+      const slots = marchGrid(this.actor).map(cell => ({ ...cell, disabled: !canEdit || !cell.name }));
       const form = this._form(), pcs = players.filter(m => !m.missing), who = whoSelection(pcs.map(m => m.uuid), form.who);
       const gmBar = view.isGM && pcs.length ? {
         stats: ROLL_STATS.map(key => ({ key, label: t(ROLL_STAT_LABELS[key]), selected: key === form.stat })), dc: form.dc, xp: form.xp,
@@ -476,14 +471,8 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
         event.preventDefault();
         const uuid = event.dataTransfer.getData("text/plain");
         if (!Party.canManage(this.actor)) return;
-        const saved = fillFormation(Party.data(this.actor), Party.rows(this.actor));
-        // A retained oversized formation is unusable; a drop rebuilds it from its valid slots.
-        const formation = saved.needsReview ? fillFormation({ formation: { slots: saved.slots.filter(s => [-1, 0, 1].includes(s.col) && [-1, 0, 1].includes(s.row)) } }, Party.rows(this.actor)) : saved;
-        const source = formation.slots.find(s => s.memberUuid === uuid);
-        if (!source) return;
-        const target = formation.slots.find(s => s.row === Number(slot.dataset.row) && s.col === Number(slot.dataset.col));
-        const slots = formation.slots.map(s => s === source ? { ...s, col: Number(slot.dataset.col), row: Number(slot.dataset.row) } : s === target ? { ...s, col: source.col, row: source.row } : s);
-        void this._change(() => configureMovement(this.actor, { formation: { slots } }));
+        const slots = moveToSlot(Party.data(this.actor), Party.rows(this.actor), uuid, Number(slot.dataset.row), Number(slot.dataset.col));
+        if (slots) void this._change(() => configureMovement(this.actor, { formation: { slots } }));
       });
     }
   }

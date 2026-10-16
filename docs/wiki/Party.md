@@ -110,7 +110,9 @@ it is a visible switch rather than a setting. Off, the party is "Moving freely"
 and the grid dims; on, the status names who leads. Click a portrait to make that
 member the leader; drag one onto another cell to arrange. Overflow members
 follow behind the grid. Marching order needs only the characters' tokens on the
-scene: put them there by hand, or with Place. No party token is required and
+scene: put them there by hand, or with Place. The Crawl Strip shows the same 3x3
+order while the party marches, where it can be rearranged and switched on and
+off too. No party token is required and
 none is made. Following has no paused state: while the switch is on and the
 members are out, they follow every move the leader makes. A member who
 cannot take a step (a wall, a missing token) stays where they are and the rest
