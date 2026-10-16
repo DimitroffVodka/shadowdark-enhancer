@@ -1,0 +1,97 @@
+/* Town landing page and Town shop proposals. Tokens only (kit: proposed/sde-ui.css); no hard-coded colour, no theme selector.
+   The art is the module's own bastion illustrations, so a town looks finished before the GM uploads anything. */
+.sde-ui [hidden] { display: none !important; }
+
+/* ── the street: the town's banner when the GM has not chosen a picture ─────────────────────────────── */
+.sde-ui .tl-banner { flex: 0 0 auto; background: var(--ui-panel); border-bottom: 1px solid var(--ui-line); overflow: hidden; }
+.sde-ui .tl-photo { display: block; width: 100%; height: 190px; object-fit: cover; }
+.sde-ui .tl-street { display: flex; align-items: flex-end; justify-content: space-between; gap: 4px; height: 190px; padding: 0 16px; border-bottom: 4px double var(--ui-frame); background: repeating-linear-gradient(0deg, transparent 0 7px, var(--ui-hover) 7px 8px); }
+.sde-ui .tl-street img { display: block; width: auto; min-width: 0; flex: 0 1 auto; object-fit: contain; object-position: bottom; margin-bottom: -1px; }
+.sde-ui .tl-street .b1 { height: 150px; } .sde-ui .tl-street .b2 { height: 250px; } .sde-ui .tl-street .b3 { height: 190px; }
+.sde-ui .tl-street .b4 { height: 240px; } .sde-ui .tl-street .b5 { height: 180px; } .sde-ui .tl-street .b6 { height: 138px; }
+@container (max-width: 560px) { .sde-ui .tl-street .b5, .sde-ui .tl-street .b6 { display: none; } .sde-ui .tl-street { justify-content: space-around; } }
+
+/* ── the title row ──────────────────────────────────────────────────────────────────────────────────── */
+.sde-ui .tl-crest { display: grid; place-items: center; font-size: 22px; color: var(--ui-frame); background: var(--ui-raised); box-shadow: inset 0 0 0 3px var(--ui-raised), inset 0 0 0 4px var(--ui-line); }
+.sde-ui .tl-town .ui-title { font-size: 34px; }
+.sde-ui .tl-gm { display: flex; gap: 4px; flex: 0 0 auto; }
+.sde-ui .tl-blurb { margin: 2px auto 0; max-width: 62ch; text-align: center; font-style: italic; color: var(--ui-body); font-size: 14px; line-height: 1.5; }
+.sde-ui .tl-orn { display: flex; align-items: center; gap: 12px; margin: 0 auto; width: min(360px, 80%); }
+.sde-ui .tl-orn::before, .sde-ui .tl-orn::after { content: ""; flex: 1 1 auto; height: 1px; background: var(--ui-line); }
+.sde-ui .tl-orn i { flex: 0 0 auto; width: 7px; height: 7px; transform: rotate(45deg); background: var(--ui-frame); }
+
+/* ── the market: one stall per merchant ─────────────────────────────────────────────────────────────── */
+.sde-ui .tl-stalls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@container (max-width: 600px) { .sde-ui .tl-stalls { grid-template-columns: minmax(0, 1fr); } }
+.sde-ui .tl-stall { display: grid; grid-template-columns: 108px minmax(0, 1fr); gap: 4px 14px; padding: 12px; transition: border-color .12s; }
+.sde-ui .tl-stall:hover { border-color: var(--ui-frame); }
+.sde-ui .tl-plaque { flex: 0 0 auto; width: 108px; height: 108px; display: grid; place-items: center; overflow: hidden; border: 1px solid var(--ui-frame); border-radius: var(--ui-r); background: var(--ui-raised); box-shadow: inset 0 0 0 3px var(--ui-raised), inset 0 0 0 4px var(--ui-line); }
+.sde-ui .tl-plaque img { width: 100%; height: 100%; object-fit: contain; padding: 2px; transform: scale(1.3); transform-origin: 50% 62%; }
+.sde-ui .tl-stall-body { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; min-width: 0; }
+.sde-ui .tl-stall-name { margin: 0; font: 400 22px/1.1 var(--ui-title); color: var(--ui-text); overflow-wrap: anywhere; }
+.sde-ui .tl-pitch { margin: 0; font-style: italic; color: var(--ui-muted); font-size: 12.5px; line-height: 1.4; }
+.sde-ui .tl-stall-foot { grid-column: 1 / -1; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 6px; padding-top: 10px; border-top: 1px dashed var(--ui-line); }
+.sde-ui .tl-stall-foot .tl-visit { margin-left: auto; }
+.sde-ui .tl-stall.closed { border-style: dashed; }
+.sde-ui .tl-stall.closed .tl-plaque img { filter: grayscale(1); opacity: .4; }
+.sde-ui .tl-stall.closed .tl-stall-name { color: var(--ui-muted); }
+
+/* ── around town: the other windows, one tile each ──────────────────────────────────────────────────── */
+.sde-ui .tl-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+@container (max-width: 600px) { .sde-ui .tl-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.sde-ui .tl-tile { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-height: 92px; padding: 12px; margin: 0; border: 1px solid var(--ui-line); border-radius: var(--ui-r2); background: var(--ui-panel); color: var(--ui-text); text-align: left; font: inherit; cursor: pointer; }
+.sde-ui .tl-tile:hover:not(:disabled) { border-color: var(--ui-frame); background: var(--ui-raised); }
+.sde-ui .tl-tile > i { font-size: 20px; color: var(--ui-frame); margin-bottom: 2px; }
+.sde-ui .tl-tile > b { font: 400 18px/1.1 var(--ui-title); color: var(--ui-text); }
+.sde-ui .tl-tile > small { color: var(--ui-muted); font-size: 11.5px; line-height: 1.35; }
+.sde-ui .tl-tile .ui-tag { margin-left: auto; }
+.sde-ui .tl-tile-head { display: flex; align-items: center; gap: 8px; width: 100%; }
+.sde-ui .tl-tile:disabled { border-style: dashed; opacity: .6; cursor: not-allowed; }
+
+/* ── the shopfront ──────────────────────────────────────────────────────────────────────────────────── */
+.sde-ui .tl-shop .ui-head > .tl-plaque { width: 84px; height: 84px; }
+.sde-ui .tl-shop .ui-title { font-size: 30px; }
+.sde-ui .tl-shop-sub { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 4px; }
+.sde-ui .tl-purse { color: var(--ui-gold); white-space: nowrap; }
+.sde-ui .tl-cats { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.sde-ui .tl-cats button.ui-chip { cursor: pointer; font: inherit; font-size: 12px; }
+.sde-ui .tl-cats button.ui-chip:hover:not(.on) { border-color: var(--ui-frame); color: var(--ui-text); }
+.sde-ui .tl-cats .ui-search { margin-left: auto; flex: 1 1 160px; max-width: 240px; }
+
+.sde-ui .tl-wares { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-items: start; }
+@container (max-width: 600px) { .sde-ui .tl-wares { grid-template-columns: minmax(0, 1fr); } }
+.sde-ui .tl-ware { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; grid-template-areas: "art main price" "art foot foot"; gap: 6px 12px; padding: 10px; background: var(--ui-panel); border: 1px solid var(--ui-line); border-radius: var(--ui-r2); }
+.sde-ui .tl-ware:hover { border-color: var(--ui-frame); }
+.sde-ui .tl-ware-art { grid-area: art; width: 52px; height: 52px; display: grid; place-items: center; border: 1px solid var(--ui-line); border-radius: var(--ui-r); background: var(--ui-raised); }
+.sde-ui .tl-ware-art img { width: 40px; height: 40px; object-fit: contain; }
+.sde-ui .tl-ware-main { grid-area: main; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-width: 0; }
+.sde-ui .tl-ware-name { margin: 0; font: 700 14px/1.25 var(--ui-font); color: var(--ui-text); overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.sde-ui .tl-price { grid-area: price; align-self: start; display: flex; gap: 6px; justify-content: flex-end; white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--ui-text); }
+.sde-ui .tl-coin { display: inline-flex; align-items: baseline; gap: 3px; }
+.sde-ui .tl-coin b { font: 700 15px/1.2 var(--ui-font); }
+.sde-ui .tl-coin i { font: 600 10.5px/1 var(--ui-head); font-style: normal; text-transform: uppercase; letter-spacing: .06em; color: var(--ui-muted); }
+.sde-ui .tl-ware-foot { grid-area: foot; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.sde-ui .tl-ware-foot .tl-buy { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; }
+.sde-ui .tl-step { display: inline-flex; align-items: center; border: 1px solid var(--ui-line); border-radius: var(--ui-r); overflow: hidden; background: var(--ui-page); }
+.sde-ui .tl-step .ui-icon { width: 26px; height: 26px; border: 0; border-radius: 0; }
+.sde-ui .tl-step input { width: 36px !important; height: 26px; padding: 0; border: 0; border-left: 1px solid var(--ui-line); border-right: 1px solid var(--ui-line); border-radius: 0; background: transparent; text-align: center; font-variant-numeric: tabular-nums; }
+.sde-ui .tl-ware-desc { grid-column: 2 / -1; margin: 0; padding-top: 8px; border-top: 1px dashed var(--ui-line); color: var(--ui-body); font-size: 12.5px; line-height: 1.5; }
+.sde-ui .tl-ware.poor .tl-price { color: var(--ui-danger-text); }
+.sde-ui .tl-ware.out .tl-ware-art, .sde-ui .tl-ware.out .tl-ware-main, .sde-ui .tl-ware.out .tl-price { opacity: .5; }
+
+.sde-ui .tl-shut { padding: 44px 20px; }
+.sde-ui .tl-shut > i { font-size: 44px; }
+.sde-ui .tl-shut b { font: 400 22px/1.2 var(--ui-title); color: var(--ui-text); }
+.sde-ui .tl-shop.closed .ui-head > .tl-plaque img { filter: grayscale(1); opacity: .4; }
+
+.sde-ui .tl-foot { align-items: center; gap: 10px 16px; }
+.sde-ui .tl-foot select { width: auto; min-width: 150px; height: 24px; }
+.sde-ui .tl-foot .ui-right { margin-left: auto; }
+
+/* the shop header keeps the picture beside the name when narrow; only the purse drops to its own row */
+.sde-ui .tl-shop .ui-head { flex-wrap: wrap; }
+.sde-ui .tl-shop .ui-head-text { flex: 1 1 0; min-width: 160px; }
+@container (max-width: 520px) {
+  .sde-ui .tl-shop .ui-title { font-size: 26px; }
+  .sde-ui .tl-cats .ui-search { max-width: none; flex-basis: 100%; margin-left: 0; }
+}
