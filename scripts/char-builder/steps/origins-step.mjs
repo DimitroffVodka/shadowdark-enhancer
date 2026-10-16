@@ -44,6 +44,8 @@ export class OriginsStep extends BaseStep {
 
   async prepareContext() {
     return {
+      // An existing character is edited, never re-rolled (same rule as the footer Random).
+      canRoll: !this.state.existing,
       background: await this.sub.background.prepareContext(),
       alignment: await this.sub.alignment.prepareContext(),
       deity: await this.sub.deity.prepareContext(),
@@ -59,5 +61,12 @@ export class OriginsStep extends BaseStep {
       const section = root.querySelector(`[data-cb-origin="${key}"]`);
       if (section) sub.onRender(section);
     }
+    // Per-section dice: re-roll just that one origin, leave the other two alone.
+    root.querySelectorAll("[data-cb-roll-origin]").forEach((el) => {
+      el.addEventListener("click", async () => {
+        await this.sub[el.dataset.cbRollOrigin]?.randomize();
+        await this.app.render();
+      });
+    });
   }
 }
