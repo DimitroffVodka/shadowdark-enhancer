@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1986 tracked files · ~255,700 lines of code/markup across scripts+templates+styles+test.
+1987 tracked files · ~255,800 lines of code/markup across scripts+templates+styles+test.
 `v0.19.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -515,7 +515,7 @@
 | `steps/hp-gold-step.mjs` | 52 | Step — Hit Points & Gold on one tab (both are single dice rolls). |
 | `steps/hp-step.mjs` | 173 | Step — Hit Points. Level-1 HP = class hit die + CON modifier (minimum 1). |
 | `steps/languages-step.mjs` | 147 | Step — Languages (runs after Class, so ancestry and class both contribute). |
-| `steps/origins-step.mjs` | 63 | Step — Origins: Background + Alignment + Deity on one tab. |
+| `steps/origins-step.mjs` | 72 | Step — Origins: Background + Alignment + Deity on one tab. |
 | `steps/preview-step.mjs` | 332 | Step — Preview. Final character-sheet preview before creation. |
 | `steps/stats-step.mjs` | 400 | Step — Abilities. Roll or assign the six ability scores. |
 

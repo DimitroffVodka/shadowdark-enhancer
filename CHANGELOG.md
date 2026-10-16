@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- **Origins has a dice button on Alignment, Background and Deity.** Each section header in the Character Builder's Origins tab rolls just that one pick, so you can re-roll a background without losing the alignment or deity you chose. The footer **Random** still rolls all three. The buttons are hidden when you edit an existing character, and the Deity roller is greyed out when your class fixes the deity.
+
 ### Fixed
 
 - **Place lets you put each member where you want them.** It used to drop the whole party in formation round the party token with no say in the matter. Pressing Place now names each member who is not out yet and you click the map for each; the token lands on that square and Escape keeps whoever you have placed. Members already on the scene stay where they are and join the march. Shift-click Place for the old automatic placement round the party token, which the token's HUD entry still does. With the party out the button is Recall, as before.
