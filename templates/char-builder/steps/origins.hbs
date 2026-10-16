@@ -2,7 +2,7 @@
   <h2 class="ui-h">{{localize "SDE.charBuilder.step.origins"}}</h2>
 
   <section class="ui-group" data-cb-origin="alignment">
-    <h3 class="ui-h">{{localize "SDE.charBuilder.step.alignment"}} {{#if step.alignment.currentTitle}}<small><i class="fa-solid fa-crown"></i> {{localize "SDE.charBuilder.alignment.title"}}: {{step.alignment.currentTitle}} ({{step.alignment.className}}, {{localize "SDE.charBuilder.alignment.level1"}})</small>{{/if}}</h3>
+    <h3 class="ui-h">{{localize "SDE.charBuilder.step.alignment"}} <span class="ui-inline">{{#if step.alignment.currentTitle}}<small><i class="fa-solid fa-crown"></i> {{localize "SDE.charBuilder.alignment.title"}}: {{step.alignment.currentTitle}} ({{step.alignment.className}}, {{localize "SDE.charBuilder.alignment.level1"}})</small>{{/if}}{{#if step.canRoll}}<button type="button" class="ui-icon" data-cb-roll-origin="alignment" title="{{localize 'SDE.charBuilder.origins.rollAlignment'}}"><i class="fa-solid fa-dice"></i></button>{{/if}}</span></h3>
     <div class="ui-cols-3 cbu-align-cards">
       {{#each step.alignment.options}}
       <div class="ui-card cbu-align-card{{#if selected}} sel{{/if}}{{#if suggested}} suggested{{/if}}" data-cb-align="{{key}}">
@@ -16,7 +16,7 @@
 
   <div class="ui-cols-2">
     <section class="ui-group" data-cb-origin="background">
-      <h3 class="ui-h">{{localize "SDE.charBuilder.step.background"}}</h3>
+      <h3 class="ui-h">{{localize "SDE.charBuilder.step.background"}}{{#if step.canRoll}}<button type="button" class="ui-icon" data-cb-roll-origin="background" title="{{localize 'SDE.charBuilder.origins.rollBackground'}}"><i class="fa-solid fa-dice"></i></button>{{/if}}</h3>
       {{> sde-cb-list step.background.list}}
       <div class="ui-card cbu-origin-detail">
         {{#if step.background.hasSelection}}
@@ -27,7 +27,7 @@
     </section>
 
     <section class="ui-group" data-cb-origin="deity">
-      <h3 class="ui-h">{{localize "SDE.charBuilder.step.deity"}}</h3>
+      <h3 class="ui-h">{{localize "SDE.charBuilder.step.deity"}}{{#if step.canRoll}}<button type="button" class="ui-icon" data-cb-roll-origin="deity" {{#if step.deity.fixedDeity}}disabled{{/if}} title="{{localize 'SDE.charBuilder.origins.rollDeity'}}"><i class="fa-solid fa-dice"></i></button>{{/if}}</h3>
       {{> sde-cb-list step.deity.list}}
       <div class="ui-card cbu-origin-detail">
         {{#if step.deity.hasSelection}}

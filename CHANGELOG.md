@@ -5,6 +5,7 @@
 ### Added
 
 - **A town landing page: the players arrive, shop and read their quests with you not connected.** Right-click a scene in the Scenes directory and choose Landing page: name the town, pick the NPCs that are its merchants, and set each one's role, pitch, prices and buy-back. A player arriving in the scene gets a Town window with a stall for each merchant and tiles for the Quest Log, the Journals, the Party and Downtime; Alt+T brings it back. A merchant's shop is its NPC's own items, so a player buys and sells as their character with no GM connected: a buy only changes the buyer, and what is left on the shelf is the NPC's quantity less what every character has bought. A GM can make a ware never run out and restock one merchant or every shop; a restock writes nothing to any player. See [Town Landing Page](docs/wiki/Town-Landing-Page.md).
+- **Origins has a dice button on Alignment, Background and Deity.** Each section header in the Character Builder's Origins tab rolls just that one pick, so you can re-roll a background without losing the alignment or deity you chose. The footer **Random** still rolls all three. The buttons are hidden when you edit an existing character, and the Deity roller is greyed out when your class fixes the deity.
 
 ## [0.19.0] — 2026-10-14
 
