@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1983 tracked files · ~255,200 lines of code/markup across scripts+templates+styles+test.
+1993 tracked files · ~255,700 lines of code/markup across scripts+templates+styles+test.
 `v0.19.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -326,9 +326,11 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `merchant-shop.mjs` | 2793 | Two-mode shop system (compendium global or actor NPC inventory); GM opens for all players. |
+| `merchant-shop.mjs` | 2777 | Two-mode shop system (compendium global or actor NPC inventory); GM opens for all players. |
 | `merchant-defaults.mjs` | 209 | The two shipped merchant configs (Base, Western Reaches). |
 | `catalog-stock.mjs` | 37 | What the Catalog tab may sell: gear types with a list price, not loot-table props. |
+| `shop-core.mjs` | 108 | Shop price rules shared by both shops, and the town shop's per-character stock ledger (pure). |
+| `town-shop.mjs` | 115 | A town merchant's buy and sell on the player's own client, no GM needed. |
 
 ### 3.10 `scripts/party-xp/`
 

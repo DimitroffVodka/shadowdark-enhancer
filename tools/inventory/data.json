@@ -268,7 +268,9 @@
     "3.9": [
       "scripts/merchant/merchant-shop.mjs",
       "scripts/merchant/merchant-defaults.mjs",
-      "scripts/merchant/catalog-stock.mjs"
+      "scripts/merchant/catalog-stock.mjs",
+      "scripts/merchant/shop-core.mjs",
+      "scripts/merchant/town-shop.mjs"
     ],
     "3.10": [
       "scripts/party-xp/party-xp.mjs",
@@ -596,6 +598,8 @@
     "scripts/merchant/merchant-shop.mjs": "Two-mode shop system (compendium global or actor NPC inventory); GM opens for all players.",
     "scripts/merchant/merchant-defaults.mjs": "The two shipped merchant configs (Base, Western Reaches).",
     "scripts/merchant/catalog-stock.mjs": "What the Catalog tab may sell: gear types with a list price, not loot-table props.",
+    "scripts/merchant/shop-core.mjs": "Shop price rules shared by both shops, and the town shop's per-character stock ledger (pure).",
+    "scripts/merchant/town-shop.mjs": "A town merchant's buy and sell on the player's own client, no GM needed.",
     "scripts/party-xp/party-xp.mjs": "Award XP to the whole party in one click (ApplicationV2 GM tool).",
     "scripts/party-xp/party-xp-core.mjs": "Pure XP math + item-XP resolution.",
     "scripts/session-recap/session-recap.mjs": "Session event tracker singleton (loot, sales, XP, combats, per-PC stats).",
