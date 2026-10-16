@@ -24,6 +24,10 @@ export const inPartyCombat = scene => (game.combats?.contents ?? []).some(c => c
 // the GM's client every actor reads as visible, so a forged entry would deploy a hidden boss or move another PC.
 const roster = (actor, user = null) => Party.rows(actor).filter(r => r.actor && ["characters", "hirelings", "mounts"].includes(r.group)
   && (!user || r.actor.testUserPermission(user, "OBSERVER")));
+// A march only moves tokens already out, so it follows the party sheet's rule (Party.rows): a player character is shared
+// with the whole party, anything else stays behind Observer. Roster(actor, user) alone left a player who leads moving
+// only what they can observe, so the other characters never followed.
+const marchers = (actor, user) => roster(actor).filter(r => r.actor.type === "Player" || r.actor.testUserPermission(user, "OBSERVER"));
 const linked = (scene, uuid, partyUuid) => scene.tokens.contents.filter(d => d.actorLink && d.actor?.uuid === uuid && (!state(d).partyUuid || state(d).partyUuid === partyUuid));
 const queueKey = (sceneId, partyId) => `Scene.${sceneId}.Party.${partyId}`;
 const serial = (key, work) => { const next = (queues.get(key) ?? Promise.resolve()).catch(() => {}).then(work); queues.set(key, next); return next; };
@@ -219,7 +223,7 @@ async function follow(actor, scene, leaderId, movement, user) {
   const waypoints = movement.passed.waypoints;
   if (waypoints.some(w => CONFIG.Token.movement.actions[w.action]?.teleport)) return;
   const { grid } = scene, { sizeX, sizeY } = grid, bounds = scene.dimensions.sceneRect;
-  const slots = new Map(deploymentOrder(data, roster(actor, user)).map(s => [s.memberUuid, s]));
+  const slots = new Map(deploymentOrder(data, marchers(actor, user)).map(s => [s.memberUuid, s]));
   const lead = slots.get(data.leaderUuid) ?? { col: 0, row: 0 }, end = waypoints.at(-1);
   // Facing is the leader's last step; the grid's top row is the front. Hex grids keep it north-up.
   const points = [movement.origin, ...waypoints];
@@ -230,7 +234,7 @@ async function follow(actor, scene, leaderId, movement, user) {
   const cellOf = p => grid.getOffset({ x: p.x + sizeX / 2, y: p.y + sizeY / 2 }), key = o => `${o.i},${o.j}`;
   const leaderCell = cellOf(end), taken = new Set([key(leaderCell)]);
   const step = p => ({ x: p.x, y: p.y, elevation: end.elevation, action: "walk", checkpoint: true });
-  for (const uuid of followOrder(data, roster(actor, user)).filter(u => u !== data.leaderUuid)) {
+  for (const uuid of followOrder(data, marchers(actor, user)).filter(u => u !== data.leaderUuid)) {
     if (inPartyCombat(scene)) return;
     const doc = linked(scene, uuid, actor.uuid)[0];
     if (!doc || mountOf(doc)) continue;   // a rider goes where its mount goes (#326)

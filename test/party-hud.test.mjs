@@ -271,6 +271,17 @@ test("a follower riding a mount stays with its mount; once off it, it follows ag
   await leaderMove("north");
   assert.equal(paths.length, 1);
 });
+test("a player who leads the march drags the characters they cannot observe, but not a hidden hireling", async () => {
+  const { f, paths, leaderMove } = marchFixture({ x: 100, y: 500 });
+  const gm = u => !!u.isGM;   // the leader's player owns the party and their own character, nothing else
+  f.scene.tokens.get("pc2Token").actor.testUserPermission = gm;
+  await leaderMove("north");
+  assert.deepEqual(paths, [[[300, 200]]], "a player character is shared with the whole party");
+  paths.length = 0;
+  f.scene.tokens.get("pc2Token").actor.type = "NPC";
+  await leaderMove("north");
+  assert.deepEqual(paths, [], "an NPC the player cannot observe stays behind");
+});
 test("turning the leader around reverses the order", async () => {
   const north = marchFixture({ x: 100, y: 500 }), south = marchFixture({ x: 100, y: 500 });
   await north.leaderMove("north"); await south.leaderMove("south");
