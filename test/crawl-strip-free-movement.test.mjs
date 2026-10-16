@@ -100,3 +100,11 @@ test("no party for the crawl, or a viewer who cannot manage it, gets no switch",
   try { assert.doesNotMatch(draw(false), /toggleMarch/, "a player who owns nothing cannot flip it"); assert.match(draw(false), /data-march-grid/, "but still sees the grid"); }
   finally { globalThis.game.user.isGM = true; }
 });
+
+test("a type Party actor in the world does not stop the strip drawing", () => {
+  marching();
+  globalThis.game.actors.contents.unshift({ id: "odd", uuid: "Actor.odd", type: "Party", name: "Extras party", flags: {}, testUserPermission: () => true });
+  let html;
+  assert.doesNotThrow(() => { html = draw(false); });
+  assert.match(html, /data-march-grid/, "the real party's march still draws");
+});

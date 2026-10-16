@@ -409,3 +409,17 @@ test("pickPoints asks for one click per name, in order, snaps each, and Escape k
   picked = pickPoints(["Ayla"]); click(board);
   assert.equal((await picked).cancelled, false);
 });
+
+// A `type: "Party"` actor (Shadowdark Extras makes them) is listed by Party.list() but has no roster of ours: Party.data() throws for it.
+test("a type Party actor in the world breaks neither marchOf, stripParty nor the leader hook", async () => {
+  const { marchOf, stripParty } = await import("../scripts/party/party-movement.mjs");
+  const { f, paths, leaderMove } = byHand();
+  const odd = { id: "odd", uuid: "Actor.odd", type: "Party", name: "Extras party", flags: {}, testUserPermission: () => true };
+  globalThis.game.actors.contents.unshift(odd);   // listed before the real party
+  globalThis.canvas = { scene: f.scene };
+  assert.doesNotThrow(() => marchOf(f.scene));
+  assert.equal(marchOf(f.scene).party, f.party, "the real party still marches");
+  assert.equal(stripParty(["pc"], f.scene), f.party);
+  await leaderMove("north");
+  assert.deepEqual(paths, [[[300, 200]]], "and the hook still moves the follower instead of throwing");
+});

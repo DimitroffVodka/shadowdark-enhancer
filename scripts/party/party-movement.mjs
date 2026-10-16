@@ -3,7 +3,7 @@ import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { queryActiveGM, registerQuery, refuseQuery, isActiveGM } from "../shared/gm-relay.mjs";
 import { tokenSourceFor, pickPoints } from "../shared/token-placement.mjs";
 import { mountOf } from "../mounted/mounted-tokens.mjs";
-import { Party, isParty } from "./party.mjs";
+import { Party, isParty, isNativeParty, isLegacyParty } from "./party.mjs";
 import { normalizeParty } from "./party-core.mjs";
 import { fillFormation, deploymentOrder, followOrder, planPlacement, headingTurns, routeToward, safeTrail, turnSlot } from "./party-movement-core.mjs";
 
@@ -35,6 +35,8 @@ function partyToken(ref, scene = globalThis.canvas?.scene) {
   const level = globalThis.canvas?.level?.id;
   return (level ? mine.find(d => (d._source.level ?? scene.initialLevel?.id) === level) : mine[0]) ?? null;
 }
+// Party.list() also holds `type: "Party"` actors, and Party.data() throws for those: only a party with a roster of our own can march.
+const rosterParties = () => Party.list().filter(p => isNativeParty(p) || isLegacyParty(p));
 /**
  * The march on `scene` right now: a party with Marching order on, its leader and at least one follower out on the
  * scene, and no combat. One person moves everyone then, so the crawl strip asks this before it counts feet or turns.
@@ -42,7 +44,7 @@ function partyToken(ref, scene = globalThis.canvas?.scene) {
  */
 export function marchOf(scene = globalThis.canvas?.scene) {
   if (!scene || inPartyCombat(scene)) return null;
-  for (const party of Party.list()) {
+  for (const party of rosterParties()) {
     const data = Party.data(party);
     if (!data.followLeader || !data.leaderUuid) continue;
     const rows = roster(party), out = r => linked(scene, r.uuid, party.uuid).length > 0;
@@ -62,7 +64,7 @@ export function marchGrid(party) {
 }
 /** The party the Crawl Strip speaks for: the one marching, else the first whose roster holds a crawl member. */
 export function stripParty(actorIds, scene = globalThis.canvas?.scene) {
-  return marchOf(scene)?.party ?? Party.list().find(p => roster(p).some(r => actorIds?.includes(r.actor?.id))) ?? null;
+  return marchOf(scene)?.party ?? rosterParties().find(p => roster(p).some(r => actorIds?.includes(r.actor?.id))) ?? null;
 }
 // Marching order needs no party token, so a scene without one is not a reason: `token` is null there.
 export function movementStatus(ref) {
@@ -249,7 +251,7 @@ export function registerPartyMovement() {
     if (!isActiveGM() || options?.[MODULE_ID]?.partyFollow || !doc.actorLink || !doc.actor) return;
     // Any party this character leads marches. The characters' own tokens on the scene are all it needs: put there
     // by hand or by Place, with or without a party token.
-    for (const actor of Party.list().filter(p => Party.data(p).leaderUuid === doc.actor.uuid)) {
+    for (const actor of rosterParties().filter(p => Party.data(p).leaderUuid === doc.actor.uuid)) {
       // The key every movement action on this party serialises on: a leader drag must queue behind an
       // in-flight recall, never move followers mid-recall.
       void serial(queueKey(doc.parent.id, actor.id), () => follow(actor, doc.parent, doc.id, movement, user)).catch(error => console.error(`${MODULE_ID} | Party follow`, error));
