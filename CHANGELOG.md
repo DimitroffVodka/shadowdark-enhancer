@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- **Origins has a dice button on Alignment, Background and Deity.** Each section header in the Character Builder's Origins tab rolls just that one pick, so you can re-roll a background without losing the alignment or deity you chose. The footer **Random** still rolls all three. The buttons are hidden when you edit an existing character, and the Deity roller is greyed out when your class fixes the deity.
+
 ## [0.19.0] — 2026-10-14
 
 ### Added
