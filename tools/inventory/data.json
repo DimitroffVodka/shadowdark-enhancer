@@ -493,6 +493,10 @@
     ],
     "3.24": [
       "scripts/town/town-core.mjs",
+      "scripts/town/town-view.mjs",
+      "scripts/town/town-live.mjs",
+      "scripts/town/town-app.mjs",
+      "scripts/town/town-shop-app.mjs",
       "scripts/town/town-editor-app.mjs",
       "scripts/town/town-entry-points.mjs"
     ]
@@ -612,6 +616,10 @@
     "scripts/merchant/shop-core.mjs": "Shop price rules shared by both shops, and the town shop's per-character stock ledger (pure).",
     "scripts/merchant/town-shop.mjs": "A town merchant's buy and sell on the player's own client, no GM needed.",
     "scripts/town/town-core.mjs": "A town's landing page flag: merchants as NPC references, restock revision, the editor's form folded in (pure).",
+    "scripts/town/town-view.mjs": "What the Town window and the shopfront show: ware cards, sell rows, tiles, the buyer (pure).",
+    "scripts/town/town-live.mjs": "What the two town windows share on the Foundry side: the buyer, redrawing on change, the tiles' windows.",
+    "scripts/town/town-app.mjs": "The Town window players see on a landing scene: stalls, tiles, the GM's pencil and restock.",
+    "scripts/town/town-shop-app.mjs": "One merchant's shopfront: buy and sell as a chosen character with no GM, categories, search.",
     "scripts/town/town-editor-app.mjs": "The GM's landing page editor window: town text, banner, tiles, merchants.",
     "scripts/town/town-entry-points.mjs": "The Landing page entry in the Scenes directory's right-click menu (GM).",
     "scripts/party-xp/party-xp.mjs": "Award XP to the whole party in one click (ApplicationV2 GM tool).",

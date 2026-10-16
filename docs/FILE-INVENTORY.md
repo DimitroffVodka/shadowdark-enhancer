@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1999 tracked files · ~256,200 lines of code/markup across scripts+templates+styles+test.
+2007 tracked files · ~257,100 lines of code/markup across scripts+templates+styles+test.
 `v0.19.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -644,8 +644,12 @@ A place the party owns: the four types and twenty upgrades, built a week at a ti
 | File | Lines | Description |
 |---|---:|---|
 | `town-core.mjs` | 112 | A town's landing page flag: merchants as NPC references, restock revision, the editor's form folded in (pure). |
+| `town-view.mjs` | 94 | What the Town window and the shopfront show: ware cards, sell rows, tiles, the buyer (pure). |
+| `town-live.mjs` | 35 | What the two town windows share on the Foundry side: the buyer, redrawing on change, the tiles' windows. |
+| `town-app.mjs` | 111 | The Town window players see on a landing scene: stalls, tiles, the GM's pencil and restock. |
+| `town-shop-app.mjs` | 168 | One merchant's shopfront: buy and sell as a chosen character with no GM, categories, search. |
 | `town-editor-app.mjs` | 141 | The GM's landing page editor window: town text, banner, tiles, merchants. |
-| `town-entry-points.mjs` | 22 | The Landing page entry in the Scenes directory's right-click menu (GM). |
+| `town-entry-points.mjs` | 55 | The Landing page entry in the Scenes directory's right-click menu (GM). |
 <!-- inventory:scripts:end -->
 ---
 

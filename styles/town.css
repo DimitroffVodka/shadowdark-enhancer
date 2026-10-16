@@ -1,4 +1,4 @@
-/* Town landing page and Town shop proposals. Tokens only (kit: proposed/sde-ui.css); no hard-coded colour, no theme selector.
+/* Town landing page and Town shop. Tokens only (the UI kit, sde-ui.css); no hard-coded colour, no theme selector.
    The art is the module's own bastion illustrations, so a town looks finished before the GM uploads anything. */
 .sde-ui [hidden] { display: none !important; }
 
@@ -95,3 +95,7 @@
   .sde-ui .tl-shop .ui-title { font-size: 26px; }
   .sde-ui .tl-cats .ui-search { max-width: none; flex-basis: 100%; margin-left: 0; }
 }
+.sde-ui .tl-ware-name[data-action] { cursor: pointer; }
+.sde-ui .tl-ware-name[data-action]:hover { text-decoration: underline; text-underline-offset: 3px; }
+.sde-ui .tl-ware-main .ui-icon { width: 22px; height: 22px; }
+.sde-ui .tl-ware-main .ui-icon.on { color: var(--ui-text); border-color: var(--ui-frame); background: var(--ui-raised); }

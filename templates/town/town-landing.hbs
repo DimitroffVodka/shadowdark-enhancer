@@ -78,7 +78,11 @@
   </div>
 
   <footer class="ui-status tl-foot">
+    {{#if actorName}}
     <span><i class="fa-solid fa-user"></i> {{localize "SDE.town.playingAs" name=actorName}}</span>
     <span class="tl-purse"><i class="fa-solid fa-coins"></i> {{purse}}</span>
+    {{else}}
+    <span class="ui-muted">{{localize "SDE.town.noCharacter"}}</span>
+    {{/if}}
   </footer>
 </div>
