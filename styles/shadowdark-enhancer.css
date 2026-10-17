@@ -3833,6 +3833,8 @@ body.theme-light .sde-parry-note { color: #2e6b2e; }
 .sde-quest-log-root .ql-filters { flex-wrap: wrap; padding: 10px 16px; gap: 8px; }
 .sde-quest-log-root .ql-filters select { flex: 1 1 130px; width: auto; min-width: 0; }
 .sde-quest-log-root .ql-new { flex: 0 0 auto; margin-left: auto; }
+.sde-quest-log-root .ql-rumors { flex: 0 0 auto; margin-left: auto; }
+.sde-quest-log-root .ql-rumors + .ql-new { margin-left: 0; }
 .sde-quest-log-root .ql-body { padding: 12px 16px; overflow: hidden; }
 .sde-quest-log-root .ql-split { display: grid; grid-template-columns: minmax(150px, 220px) minmax(0, 1fr); gap: 14px; min-height: 0; flex: 1 1 auto; }
 .sde-quest-log-root .ql-list, .sde-quest-log-root .ql-detail { overflow-y: auto; min-height: 0; align-content: start; }
@@ -3850,10 +3852,23 @@ body.theme-light .sde-parry-note { color: #2e6b2e; }
 .sde-quest-log-root .ql-flat .ui-row { padding-left: 0; padding-right: 0; }
 .sde-quest-log-root .ql-done input[type=text], .sde-quest-log-root .ql-done .ui-row-main { text-decoration: line-through; color: var(--ui-muted); }
 .sde-quest-log-root .ql-add input { flex: 1 1 0; width: auto; }
+.sde-quest-log-root .ql-flat .ql-sub { padding-left: 26px; }
+.sde-quest-log-root .ql-secret input[type=text], .sde-quest-log-root .ql-secret .ui-row-main { opacity: .6; font-style: italic; }
+.sde-quest-log-root .ql-secret-mark { flex: 0 0 auto; padding: 1px 6px; font-size: 10px; }
+.sde-quest-log-root .ql-new-secret { display: inline-flex; align-items: center; gap: 4px; flex: 0 0 auto; cursor: pointer; color: var(--ui-muted); }
+.sde-quest-log-root .ql-new-secret:has(input:checked) { color: var(--ui-text); }
 .sde-quest-log-root .ql-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
 .sde-quest-log-root .ql-drop { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 40px; padding: 8px; border: 1px dashed var(--ui-line); border-radius: var(--ui-r2); }
 .sde-quest-log-root .ql-drop.sde-drag-over { border-color: var(--ui-frame); background: var(--ui-raised); }
 .sde-quest-log-root .ql-desc p { margin: 0 0 8px; }
+.sde-quest-log-root .ql-date-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.sde-quest-log-root .ql-date-row input[type=number] { flex: 0 0 64px; width: 64px; min-width: 0; }
+.sde-quest-log-root .ql-date-row input[data-part=year] { flex-basis: 80px; width: 80px; }
+.sde-quest-log-root .ql-date-row select { flex: 1 1 0; min-width: 0; }
+.sde-quest-log-root .ql-check { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.sde-quest-log-root .ql-due { margin: 4px 0 0; color: var(--ui-text); }
+.sde-quest-log-root .ql-notes-h { margin: 10px 0 2px; }
+.sde-quest-log-root .sde-ql-giver { min-height: 34px; }
 .sde-quest-log-root a.ui-icon { color: var(--ui-muted); cursor: pointer; }
 .sde-quest-log-root a.ui-icon:hover { color: var(--ui-text); }
 @container (max-width: 560px) { .sde-quest-log-root .ql-split { grid-template-columns: minmax(0, 1fr); overflow-y: auto; } .sde-quest-log-root .ql-list { max-height: 220px; flex: 0 0 auto; } .sde-quest-log-root .ql-detail { overflow: visible; } .sde-quest-log-root .ql-body { overflow-y: auto; } }

@@ -224,6 +224,7 @@ async function runGive({ count = 1, region, heardBy } = {}) {
   for (const tr of troubles) await Troubles.discover(tr.id);
 
   const safely = (what, fn) => Promise.resolve().then(fn).catch((err) => console.error(`${MODULE_ID} | rumors: ${what}`, err));
+  await safely("quests", () => draftGiven(rumors));
   await safely("recap", () => SessionRecap.logRumors(rumors.map(core.heardView)));
   await safely("chat", () => ChatMessage.create({
     content: rumorsCard({ title: t("SDE.rumors.chat.title"), rumors: rumors.map((r) => r.text) }),
@@ -269,27 +270,64 @@ export async function askAndGive() {
 
 // ── Promote to quest ────────────────────────────────────────────────────────
 
-/** The rumor's quest (GM): a trouble's through the Trouble tracker, so completing it resolves the trouble. */
+/**
+ * The rumor's quest, made when it has none (GM): a trouble's through the
+ * Trouble tracker, so completing it resolves the trouble. The caller holds the
+ * rumors queue; Quests and Troubles have queues of their own.
+ */
+async function questFor(page, rumorId, status) {
+  const flag = pageFlag(page);
+  const rumor = flag?.rumors?.find((r) => r.id === rumorId);
+  if (!rumor) return null;
+  const existing = rumor.questUuid ? Quests.get(rumor.questUuid) : null;
+  if (existing) return existing;
+  const quest = rumor.source?.trouble
+    ? await Troubles.promote(rumor.source.trouble, { status })
+    : await Quests.create({
+      name: core.questName(rumor.text, t),
+      status,
+      source: { kind: "rumor", uuid: page.uuid },
+      description: rumor.text,
+    });
+  if (!quest) return null;
+  const rumors = flag.rumors.map((r) => (r.id === rumorId ? { ...r, questUuid: quest.uuid } : r));
+  await page.update({ [`flags.${MODULE_ID}.${PAGE_FLAG}`]: _replace({ ...flag, rumors }) });
+  return quest;
+}
+
+/** The Promote to quest button: an Available quest, or the Quest Log when the rumor has one. */
 function promote(pageId, rumorId) {
   return enqueue(async () => {
     const page = ledger()?.pages.get(pageId);
-    const flag = page ? pageFlag(page) : null;
-    const rumor = flag?.rumors?.find((r) => r.id === rumorId);
+    const rumor = (page ? pageFlag(page) : null)?.rumors?.find((r) => r.id === rumorId);
     if (!rumor) return null;
-    if (rumor.questUuid && Quests.get(rumor.questUuid)) { await openQuestLog(); return Quests.get(rumor.questUuid); }
-    const quest = rumor.source?.trouble
-      ? await Troubles.promote(rumor.source.trouble)
-      : await Quests.create({
-        name: core.questName(rumor.text, t),
-        status: "available",
-        source: { kind: "rumor", uuid: page.uuid },
-        description: rumor.text,
-      });
-    if (!quest) return null;
-    const rumors = flag.rumors.map((r) => (r.id === rumorId ? { ...r, questUuid: quest.uuid } : r));
-    await page.update({ [`flags.${MODULE_ID}.${PAGE_FLAG}`]: _replace({ ...flag, rumors }) });
-    return quest;
+    if (rumor.questUuid && Quests.get(rumor.questUuid)) { await openQuestLog(rumor.questUuid); return Quests.get(rumor.questUuid); }
+    return questFor(page, rumorId, "available");
   });
+}
+
+/**
+ * Hidden quests, the GM's to reveal, for the `[page, rumor id]` pairs given.
+ * One that fails is logged and the rest go on: the rumors are already on the ledger.
+ */
+async function draftQuests(pairs) {
+  const made = [];
+  for (const [page, rumorId] of pairs) {
+    try {
+      const quest = await questFor(page, rumorId, "hidden");
+      if (quest) made.push(quest);
+    } catch (err) {
+      console.error(`${MODULE_ID} | rumors: drafting a quest`, err);
+    }
+  }
+  return made;
+}
+
+/** After a give: a Hidden quest per new rumor, when the setting is on. */
+export async function draftGiven(rumors) {
+  if (!game.settings.get(MODULE_ID, "draftRumorQuests")) return [];
+  const log = ledger();
+  return draftQuests(rumors.map((r) => [pageFor(log, r.region), r.id]).filter(([page]) => page));
 }
 
 /** Each rumor on a ledger page gets the GM's Promote to quest (or Quest Log) button. */
@@ -356,6 +394,18 @@ export const Rumors = {
   },
 
   /**
+   * A Hidden quest for every rumor on the ledger that has none (GM), for rumors
+   * given before the setting was on. A rumor whose quest the GM deleted is left
+   * alone. Returns the quests made.
+   */
+  draftQuests() {
+    if (!game.user.isGM) { ui.notifications.warn(t("SDE.rumors.notify.gmOnly")); return Promise.resolve(null); }
+    return enqueue(() => draftQuests((ledger()?.pages.contents ?? []).flatMap((page) => (
+      (pageFlag(page)?.rumors ?? []).filter((r) => !r.questUuid).map((r) => [page, r.id])
+    ))));
+  },
+
+  /**
    * The rumors heard, newest first; `region` filters to one region's (null:
    * the general page's). Anyone may ask; never throws, and [] without a ledger.
    */
@@ -375,6 +425,14 @@ export const Rumors = {
 
 /** Hooks and the draw wrap. Must run in `init`, after installCompoundRollTable. */
 export function registerRumors() {
+  game.settings.register(MODULE_ID, "draftRumorQuests", {
+    name: "SDE.settings.draftRumorQuests.name",
+    hint: "SDE.settings.draftRumorQuests.hint",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true,
+  });
   installRumorDraws();
   Hooks.on("renderJournalEntryPageSheet", decoratePage);
 

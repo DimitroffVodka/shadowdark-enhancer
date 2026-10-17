@@ -357,8 +357,8 @@ export const Troubles = {
     });
   },
 
-  /** An Available quest for the trouble (GM), linked back to its page; its quest when it has one. */
-  promote(idOrUuid) {
+  /** A quest for the trouble (GM), Available unless `status` says otherwise, linked back to its page; its quest when it has one. */
+  promote(idOrUuid, { status = "available" } = {}) {
     if (!game.user.isGM) return Promise.resolve(null);
     return enqueue(async () => {
       const page = await pageOf(idOrUuid);
@@ -368,7 +368,7 @@ export const Troubles = {
       if (existing) return existing;
       const quest = await Quests.create({
         name: page.name,
-        status: "available",
+        status,
         source: { kind: "trouble", uuid: page.uuid },
         description: t("SDE.troubles.questText", { settlement: tr.settlement.name, region: tr.region, type: tr.type }),
         hex: tr.settlement.num,
@@ -398,7 +398,7 @@ function decoratePage(sheet, html) {
   if (!tr.resolved) {
     button(t(tr.discovered ? "SDE.troubles.button.unheard" : "SDE.troubles.button.heard"), () => Troubles.discover(page.id, !tr.discovered));
     button(t(tr.questUuid ? "SDE.troubles.button.openQuest" : "SDE.troubles.button.promote"),
-      async () => { if (tr.questUuid) await openQuestLog(); else await Troubles.promote(page.id); });
+      async () => { if (tr.questUuid) await openQuestLog(tr.questUuid); else await Troubles.promote(page.id); });
   }
   button(t("SDE.troubles.button.pin"), () => jumpToHex(tr.settlement.num));
   html.prepend(bar);

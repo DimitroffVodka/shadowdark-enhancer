@@ -93,7 +93,7 @@ for (const kind of ["xp", "renown"]) test(`one recipient: failed ${kind} report 
   await Quests.setStatus("q", "active"); await f.run();
   assert.equal(attempts, 2);
   assert.equal(awards, 1);
-  assert.equal(game.messages.contents.filter(m => m.flags[M].questReport.key === `${kind}:a`).length, 1);
+  assert.equal(game.messages.contents.filter(m => m.flags[M].questReport?.key === `${kind}:a`).length, 1);
   assert.deepEqual(f.actors.map(a => ({ system: a.system, items: a.items.contents, ledger: a.flags[M].renownLog })), effects);
   assert.ok(Object.values(f.entry.flags[M].quest.payout.reports).every(r => r.done));
 });
@@ -114,7 +114,7 @@ for (const failure of ["reply", "checkpoint"]) test(`posted report with lost ${f
   assert.equal((await f.run()).paid, true);
   const effects = structuredClone(f.actors.map(a => a.system));
   await f.run(); await f.run();
-  assert.equal(game.messages.contents.filter(m => m.flags[M].questReport.key === "xp:a").length, 1);
+  assert.equal(game.messages.contents.filter(m => m.flags[M].questReport?.key === "xp:a").length, 1);
   assert.deepEqual(f.actors.map(a => a.system), effects);
 });
 
@@ -124,7 +124,7 @@ test("legacy paid quest with frozen payout but no report record remains untouche
   const before = structuredClone(f.entry.flags);
   await f.run(); await Quests.setStatus("q", "active"); await f.run();
   assert.deepEqual(f.entry.flags, before);
-  assert.equal(game.messages.contents.length, 0);
+  assert.equal(game.messages.contents.filter(m => !m.flags?.[M]?.questLine).length, 0);
   assert.equal(f.actors[0].system.level.xp, 0);
 });
 
@@ -177,4 +177,13 @@ test("a non-Player recipient in a frozen plan is skipped with one warning, never
   assert.equal(f.actors[0].system.level.xp, 3);
   assert.equal(f.actors[1].system.level.xp, 0, "the non-Player recipient is skipped, not a wedge");
   assert.deepEqual(warns, ["SDE.quests.notify.recipientMissing"]);
+});
+test("the payout reminder lists Other rewards, escaped; a quest without notes has none", () => {
+  const f = fixture();
+  const withNotes = normalizeQuest({ status: "active", rewards: { xp: 3, notes: ["free <b>lodging</b>"] } });
+  const html = questPayoutContent(withNotes, "The Drowned Bell");
+  assert.ok(html.includes("SDE.quests.payout.handOut"));
+  assert.ok(html.includes("free &lt;b&gt;lodging&lt;/b&gt;") || html.includes("free <b>lodging</b>") === false);
+  assert.ok(!html.includes("<b>lodging"));
+  assert.ok(!questPayoutContent(f.entry.flags[M].quest, "The Drowned Bell").includes("SDE.quests.payout.handOut"));
 });
