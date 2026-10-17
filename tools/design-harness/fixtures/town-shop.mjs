@@ -2,6 +2,7 @@
 // own view functions from fake items. buy shows every ware state at once: affordable, too dear, one left, unlimited,
 // sold out, a bundle and a description open. Real window: 720 x 760, ApplicationV2.
 import { fromCopper, canAfford } from "../../../scripts/shared/coins.mjs";
+import { TIER_KEYS } from "../../../scripts/merchant/haggle-core.mjs";
 import { shelf } from "../../../scripts/merchant/shop-core.mjs";
 import { CATEGORIES, plainText, priceCart, priceNote, priceParts, purseText, sellRows, wareCards, wareFacts } from "../../../scripts/town/town-view.mjs";
 import { MERCHANTS, COINS, ico, t } from "./_town.mjs";
@@ -34,30 +35,32 @@ const bag = [
   it("s4", "Backpack", "Basic", "containers/bags/case-simple-leather-brown", { gp: 5 }, 2),
   it("s5", "Torch", "Basic", "sundries/lights/candle-lit-yellow", { cp: 1 }, 6),
 ];
-const toolbar = `<span>State:</span>${["buy", "cart", "cart-full", "sell", "closed", "broke", "gm"].map((s) => `<button data-action="s" data-state="${s}">${s}</button>`).join("")}`;
+const toolbar = `<span>State:</span>${["buy", "cart", "haggled", "shaky", "banned", "banned-gm", "cart-full", "sell", "closed", "broke", "gm"].map((s) => `<button data-action="s" data-state="${s}">${s}</button>`).join("")}`;
 const build = (state) => {
   const full = state.endsWith("-full"), s = state.replace("-full", "");
-  const closed = s === "closed", m = closed ? MERCHANTS[3] : MERCHANTS[0];
+  const closed = s === "closed" || s.startsWith("banned"), m = closed ? MERCHANTS[3] : MERCHANTS[0];
   const merchant = { id: m.id, rev: 0, buyMultiplier: closed ? 100 : 110, sellRatio: 50, open: !closed };
   const coins = s === "broke" ? { gp: 0, sp: 4, cp: 2 } : COINS;
   const rows = closed ? [] : shelf(stock, merchant, []);
   const selling = closed ? [] : sellRows(bag, merchant, { t, blurb: (i) => plainText(i.system.description, 110), facts: (i) => wareFacts(i, { t }) });
-  const withCart = s === "cart" || s === "broke";
-  const priced = priceCart(withCart ? [{ wareId: "w2", qty: 2 }, { wareId: "w4", qty: 1 }, { wareId: "w9", qty: 3 }, { wareId: "w3", qty: 1 }] : [], rows, { merchant, swing: (c) => ({ copper: Math.round(c * 0.85), applied: true, pct: 15 }) });
+  const withCart = ["cart", "broke", "haggled", "shaky"].includes(s);
+  const haggledPct = s === "haggled" ? -10 : s === "shaky" ? 10 : 0, tier = s === "haggled" ? "good" : "shaky", banned = s.startsWith("banned");
+  const priced = priceCart(withCart ? [{ wareId: "w2", qty: 2 }, { wareId: "w4", qty: 1 }, { wareId: "w9", qty: 3 }, { wareId: "w3", qty: 1 }] : [], rows, { merchant, pct: haggledPct, swing: (c) => ({ copper: Math.round(c * 0.85), applied: true, pct: 15 }) });
   const cart = {
     lines: priced.lines.map((l) => ({ wareId: l.wareId, name: l.entry.name, img: l.entry.img, qty: l.qty, price: priceParts(fromCopper(l.copper)), swung: l.swung, adjusted: l.adjusted })),
-    total: priceParts(fromCopper(priced.total)), totalCopper: priced.total, adjusted: priced.adjusted, busy: false, tooDear: !canAfford(coins, fromCopper(priced.total)),
+    total: priceParts(fromCopper(priced.total)), totalCopper: priced.total, adjusted: priced.adjusted, busy: false, showHaggle: true, canHaggle: !haggledPct && !banned, tooDear: !canAfford(coins, fromCopper(priced.total)),
   };
   return {
     toolbar, ...(full ? { height: 1000 } : {}),
     context: {
       cart, merchant: { id: m.id, name: m.name, role: m.role, pitch: m.pitch, img: m.img, open: !closed },
-      priceNote: closed ? "" : priceNote(merchant, t), sellRatio: 50, purse: purseText(coins), isGM: s === "gm",
+      priceNote: closed ? "" : priceNote(merchant, t), sellRatio: 50, purse: purseText(coins), isGM: s === "gm" || s === "banned-gm", banned, buyerName: "Creeg Greythorn", canPardon: s === "banned-gm",
+      haggleChip: haggledPct ? t("SDE.town.haggle.chip", { tier: t(TIER_KEYS[tier]), pct: `${haggledPct > 0 ? "+" : ""}${haggledPct}` }) : "",
       tab: s === "sell" ? "sell" : "buy",
       tabs: [{ id: "buy", label: t("SDE.town.buy"), icon: "fa-cart-shopping", count: rows.length, active: s !== "sell" }, { id: "sell", label: t("SDE.town.sell"), icon: "fa-coins", count: selling.length, active: s === "sell" }],
       categories: CATEGORIES.map((c) => ({ id: c.id, label: t(c.key), active: c.id === "all" })),
       wares: wareCards(rows, {
-        merchant, coins, expandedId: "w2", describe: (e) => plainText(e.item.system.description), blurb: (e) => plainText(e.item.system.description, 110),
+        merchant, coins, pct: haggledPct, expandedId: "w2", describe: (e) => plainText(e.item.system.description), blurb: (e) => plainText(e.item.system.description, 110),
         facts: (e) => wareFacts(e.item, { t, propName: (l) => PROPS[l]?.name ?? "" }),
         rules: (e) => e.item.system.properties.map((l) => PROPS[l]).filter(Boolean), t,
       }),

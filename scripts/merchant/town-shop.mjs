@@ -15,11 +15,12 @@
  */
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { canAfford, fromCopper, formatPrice, spendFromPurse } from "../shared/coins.mjs";
-import { purchaseCard } from "../shared/chat-cards.mjs";
+import { compactCard, purchaseCard } from "../shared/chat-cards.mjs";
 import { esc } from "../shared/esc.mjs";
 import { logFlag, LOG_FLAG } from "../town/town-log-core.mjs";
 import { boughtBy, cleanItemData, ledgerPath, quoteLine, sanitizeQty, sellQuote, shelf } from "./shop-core.mjs";
 import { priceCart } from "../town/town-view.mjs";
+import { TIER_KEYS, haggleFlagPaths, haggleResult, haggleState } from "./haggle-core.mjs";
 
 const fail = (error) => ({ ok: false, error });
 const KEY = "SDE.merchant.notify.";
@@ -42,8 +43,10 @@ export async function checkoutCart({ buyer, merchantActor, merchant, lines, expe
   io ??= await liveIo();
   if (!buyer?.isOwner) return fail(io.t(`${KEY}actorNotFound`));
   if (!merchantActor || merchant?.open === false) return fail(io.t(`${KEY}unavailable`));
+  const stand = haggleState(buyer, merchant);
+  if (stand.banned) return fail(io.t("SDE.town.haggle.errBanned"));
   const flag = io.extortion.read(buyer);
-  const cart = priceCart(lines, waresOf(merchantActor, merchant, io), { merchant, swing: (copper) => io.extortion.apply(copper, flag, "buy") });
+  const cart = priceCart(lines, waresOf(merchantActor, merchant, io), { merchant, pct: stand.pct, swing: (copper) => io.extortion.apply(copper, flag, "buy") });
   if (!cart.lines.length) return fail(io.t(`${KEY}itemNotInShop`));
   if (expectedTotal !== null && cart.total !== expectedTotal) return fail(io.t("SDE.town.cart.changed"));
   if (!canAfford(buyer.system.coins, fromCopper(cart.total))) return fail(io.t(`${KEY}insufficientFunds`));
@@ -71,7 +74,7 @@ export async function checkoutCart({ buyer, merchantActor, merchant, lines, expe
     bought.push({ id: entry.id, name: entry.name, img: entry.img, qty: line.qty, units: line.units, copper: line.copper, price: fromCopper(line.copper), ledger, swingPct: line.swingPct, swung: line.swung });
   }
   const notRefunded = failure?.error === io.t("SDE.merchant.notify.notRefunded");
-  if (bought.length || notRefunded) await postCheckoutCard({ buyer, merchantActor, merchant, bought, failure, notRefunded, sceneId }, io);
+  if (bought.length || notRefunded) await postCheckoutCard({ buyer, merchantActor, merchant, bought, failure, notRefunded, sceneId, stand }, io);
   const total = bought.reduce((n, b) => n + b.copper, 0);
   if (failure) return { ok: false, error: failure.error, bought };
   return { ok: true, bought, total };
@@ -79,13 +82,14 @@ export async function checkoutCart({ buyer, merchantActor, merchant, lines, expe
 
 const lineName = (b) => `${b.name}${b.qty > 1 ? ` \u00d7${b.qty}` : ""}`;
 
-async function postCheckoutCard({ buyer, merchantActor, merchant, bought, failure, notRefunded, sceneId }, io) {
+async function postCheckoutCard({ buyer, merchantActor, merchant, bought, failure, notRefunded, sceneId, stand }, io) {
   const total = bought.reduce((n, b) => n + b.copper, 0), one = bought.length === 1 ? bought[0] : null;
   const swingNote = (b) => (b.swung ? ` <em>${io.t("SDE.merchant.card.swingBuy", { pct: b.swingPct })}</em>` : "");
   let html;
   if (one) html = `${io.t("SDE.merchant.card.boughtLine", { buyer: `<strong>${esc(buyer.name)}</strong>`, item: `<strong>${esc(lineName(one))}</strong>`, price: formatPrice(one.price) })}${swingNote(one)}`;
   else if (bought.length) html = `${io.t("SDE.town.cart.boughtLines", { buyer: `<strong>${esc(buyer.name)}</strong>`, price: formatPrice(fromCopper(total)) })}<br>${bought.map((b) => `${esc(lineName(b))} \u2014 ${formatPrice(b.price)}${swingNote(b)}`).join("<br>")}`;
   else html = "";
+  if (stand?.tier && bought.length) html += `<br><em>${io.t("SDE.town.haggle.cardNote", { tier: io.t(TIER_KEYS[stand.tier]), pct: stand.pct })}</em>`;
   if (failure) html += `${html ? "<br>" : ""}<strong>${io.t("SDE.town.cart.failedLine", { name: esc(failure.name) })}</strong>${notRefunded ? ` ${esc(failure.error)}` : ""}`;
   // A line whose coins left and did not come back is a sale the town's books must show.
   const logged = notRefunded ? [...bought, failure] : bought, loggedOne = logged.length === 1 ? logged[0] : null;
@@ -120,12 +124,66 @@ export async function buyWare({ buyer, merchantActor, merchant, wareId, quantity
 }
 
 /**
+ * Haggle with a merchant: one d20 + CHA modifier on the ladder in haggle-core.mjs, once per restock. The roll is made
+ * silently, the result written to the buyer's own character and read back, and ONLY THEN is the roll shown in chat, so a
+ * roll anyone sees always counted and a write that did not land costs the player nothing.
+ * @returns {Promise<{ok:true,tier:string,pct:number,banned:boolean,total:number}|{ok:false,error:string}>}
+ */
+export async function haggle({ buyer, merchantActor, merchant }, io = null) {
+  io ??= await liveIo();
+  if (!buyer?.isOwner) return fail(io.t(`${KEY}actorNotFound`));
+  if (!merchantActor || merchant?.open === false) return fail(io.t(`${KEY}unavailable`));
+  if (merchant?.haggle === false) return fail(io.t("SDE.town.haggle.errOff"));
+  const before = haggleState(buyer, merchant);
+  if (before.banned) return fail(io.t("SDE.town.haggle.errBanned"));
+  if (before.haggled) return fail(io.t("SDE.town.haggle.errDone"));
+
+  const mod = Number(buyer.system?.abilities?.cha?.mod) || 0;
+  const rolled = await io.d20(mod);
+  const result = haggleResult(rolled.d20, mod);
+  const paths = haggleFlagPaths(merchant);
+  const data = { [paths.haggle]: { rev: before.rev, pct: result.pct, tier: result.tier } };
+  if (result.banned) data[paths.ban] = true;
+  try { await io.recordFlags(buyer, data); } catch (err) { console.warn(`${MODULE_ID} | town shop: the haggle did not save`, err); }
+  const now = haggleState(buyer, merchant);
+  if (!now.haggled || now.pct !== result.pct || now.banned !== result.banned) return fail(io.t("SDE.town.haggle.notSaved"));
+
+  try {
+    await io.rollToChat(rolled.roll, { speaker: { alias: buyer.name }, flavor: io.t("SDE.town.haggle.flavor", { buyer: buyer.name, merchant: merchantActor.name, mod }) });
+    const tier = io.t(TIER_KEYS[result.tier]);
+    const outcome = result.banned ? io.t("SDE.town.haggle.bannedLine", { merchant: `<strong>${esc(merchantActor.name)}</strong>`, buyer: `<strong>${esc(buyer.name)}</strong>` })
+      : io.t("SDE.town.haggle.line", { buyer: `<strong>${esc(buyer.name)}</strong>`, merchant: `<strong>${esc(merchantActor.name)}</strong>`, tier, pct: result.pct });
+    await io.chat({ speaker: { alias: merchantActor.name }, content: compactCard({ img: merchantActor.img || "icons/svg/mystery-man.svg", html: outcome, tone: result.banned ? "bad" : result.pct < 0 ? "good" : "" }) });
+  } catch (err) { console.warn(`${MODULE_ID} | town shop: the haggle card did not post`, err); }
+  return { ok: true, ...result };
+}
+
+/**
+ * GM: let a banned character back into a merchant's shop. Their attempt for this restock stays used, but reads "no
+ * change" instead of "thrown out". The entry is rewritten first: if removing the ban then fails, the character is still
+ * banned and the GM can press Pardon again.
+ */
+export async function pardon({ actor, merchant }, io = null) {
+  io ??= await liveIo();
+  if (!io.isGM()) return fail(io.t(`${KEY}actorNotFound`));
+  const paths = haggleFlagPaths(merchant), before = haggleState(actor, merchant);
+  try {
+    if (before.tier === "banned") await io.recordFlags(actor, { [paths.haggle]: { rev: before.rev, pct: 0, tier: "flat" } });
+    await io.unsetFlag(actor, paths.banKey);
+  } catch (err) { console.warn(`${MODULE_ID} | town shop: the pardon did not save`, err); }
+  const now = haggleState(actor, merchant);
+  if (now.banned || (before.tier === "banned" && now.tier === "banned")) return fail(io.t("SDE.town.haggle.notSaved"));
+  return { ok: true };
+}
+
+/**
  * Sell `quantity` of one of the seller's items to the merchant at its sell ratio. The merchant does not restock
  * what it buys: a player cannot write the NPC, and a returned item would need matching by name.
  */
 export async function sellItem({ seller, merchantActor, merchant, itemId, quantity, sceneId = "" }, io = null) {
   io ??= await liveIo();
   if (!seller?.isOwner) return fail(io.t(`${KEY}actorNotFound`));
+  if (haggleState(seller, merchant).banned) return fail(io.t("SDE.town.haggle.errBanned"));
   const item = seller.items.get(itemId);
   if (!item) return fail(io.t(`${KEY}itemNotInInventory`));
   const { qty, copper } = sellQuote(item, quantity, merchant);
@@ -159,6 +217,14 @@ export async function liveIo() {
     chargeAndGive: (buyer, purse, itemData) => MerchantShop._chargeAndGive(buyer, purse, itemData),
     pay: (actor, coins) => MerchantShop._pay(actor, coins),
     record: (actor, path, value) => actor.update({ [path]: value }),
+    recordFlags: (actor, data) => actor.update(data),
+    unsetFlag: (actor, key) => actor.unsetFlag(MODULE_ID, key),
+    isGM: () => game.user.isGM,
+    async d20(mod) {
+      const roll = await new Roll(mod ? `1d20 ${mod > 0 ? "+" : "-"} ${Math.abs(mod)}` : "1d20").evaluate({ allowInteractive: false });
+      return { d20: roll.dice[0].results[0].result, roll };
+    },
+    rollToChat: (roll, data) => roll.toMessage(data),
     extortion: { read: fx.readExtortion, apply: fx.applyExtortion, spend: fx.spendExtortion },
     chat: (data) => ChatMessage.create(data),
   };

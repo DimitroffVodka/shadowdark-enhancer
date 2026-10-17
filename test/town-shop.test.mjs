@@ -4,9 +4,10 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buyWare, checkoutCart, sellItem } from "../scripts/merchant/town-shop.mjs";
+import { buyWare, checkoutCart, haggle, pardon, sellItem } from "../scripts/merchant/town-shop.mjs";
 import { addToPurse } from "../scripts/shared/coins.mjs";
 import { applyExtortion, hasExtortion } from "../scripts/downtime/downtime-effects-core.mjs";
+import { haggleState } from "../scripts/merchant/haggle-core.mjs";
 import { entriesFrom } from "../scripts/town/town-log-core.mjs";
 
 const MOD = "shadowdark-enhancer";
@@ -38,8 +39,8 @@ function actor({ id, name, gp = 0, sp = 0, cp = 0, owner = true, items = [], fla
 const merchantActor = (items) => actor({ id: "npc", name: "Hargrave", items });
 
 /** `swing` is the character's armed flag, `{ pct, uses }`; the swing itself is the real rule (a buy pays less, a sale more). */
-function makeIo({ characters = [], unsaved = null, swing = null } = {}) {
-  const log = { charged: [], paid: [], chat: [], spent: [] };
+function makeIo({ characters = [], unsaved = null, swing = null, dice = [], gm = false } = {}) {
+  const log = { charged: [], paid: [], chat: [], spent: [], order: [] };
   return {
     log,
     t: (k, d) => (d ? `${k} ${JSON.stringify(d)}` : k),
@@ -57,7 +58,13 @@ function makeIo({ characters = [], unsaved = null, swing = null } = {}) {
       apply: applyExtortion,
       spend: async (a) => { log.spent.push(a.id); },
     },
-    chat: async (m) => { log.chat.push(m); },
+    chat: async (m) => { log.chat.push(m); log.order.push("chat"); },
+    d20: async () => ({ d20: dice.shift() ?? 10, roll: {} }),
+    rollToChat: async () => { log.order.push("roll"); },
+    recordFlags: async (a, d) => { log.order.push("write"); if (a.failUpdate) throw new Error("rejected"); await a.update(d); },
+    // what Document#unsetFlag does: it takes a key under this module's flags, and only that key is removed
+    unsetFlag: async (a, key) => { const keys = key.split("."); const last = keys.pop(); delete keys.reduce((o, k) => o?.[k], a.flags?.[MOD])?.[last]; },
+    isGM: () => gm,
   };
 }
 
@@ -353,4 +360,102 @@ test("a closed shop sells nothing", async () => {
   const res = await checkoutCart(cartArgs(hero, cartShelf(), [{ wareId: "w1", qty: 1 }], { merchant: { ...merchant, open: false } }), io);
   assert.deepEqual(res, { ok: false, error: "SDE.merchant.notify.unavailable" });
   assert.equal(io.log.charged.length, 0);
+});
+
+// ── haggling ─────────────────────────────────────────────────────────────────────────────────────────────────────
+
+const chaActor = (extra = {}) => { const a = actor({ id: "a", name: "Creeg", gp: 20, ...extra }); a.system.abilities = { cha: { mod: 0 } }; return a; };
+const hag = (hero, io, m = merchant) => haggle({ buyer: hero, merchantActor: cartShelf(), merchant: m }, io);
+
+test("a haggle writes the flag and reads it back BEFORE the roll reaches chat", async () => {
+  const hero = chaActor();
+  const io = makeIo({ dice: [14] });
+  const res = await hag(hero, io);
+  assert.deepEqual([res.ok, res.pct, res.tier], [true, -10, "good"]);
+  assert.deepEqual(io.log.order.slice(0, 2), ["write", "roll"]);
+  assert.deepEqual(hero.flags[MOD].shopHaggle.m1, { rev: 0, pct: -10, tier: "good" });
+});
+
+test("a haggle whose write does not land posts nothing and says so", async () => {
+  const hero = chaActor();
+  hero.failUpdate = true;
+  const io = makeIo({ dice: [17] });
+  const warn = console.warn; console.warn = () => {};
+  try {
+    assert.deepEqual(await hag(hero, io), { ok: false, error: "SDE.town.haggle.notSaved" });
+  } finally { console.warn = warn; }
+  assert.deepEqual(io.log.order.filter((x) => x !== "write"), []);
+});
+
+test("a natural 1 bans for good and one attempt per restock is enforced; a restock opens another try", async () => {
+  const hero = chaActor();
+  assert.equal((await hag(hero, makeIo({ dice: [1] }))).banned, true);
+  assert.equal(hero.flags[MOD].shopBan.m1, true);
+  assert.deepEqual(await hag(hero, makeIo({ dice: [15] })), { ok: false, error: "SDE.town.haggle.errBanned" });
+  const other = chaActor();
+  await hag(other, makeIo({ dice: [12] }));
+  assert.deepEqual(await hag(other, makeIo({ dice: [20] })), { ok: false, error: "SDE.town.haggle.errDone" });
+  assert.equal((await hag(other, makeIo({ dice: [20] }), { ...merchant, rev: 1 })).pct, -25);
+  assert.deepEqual(await hag(chaActor(), makeIo(), { ...merchant, haggle: false }), { ok: false, error: "SDE.town.haggle.errOff" });
+});
+
+test("the charisma modifier is added to the die", async () => {
+  const hero = chaActor();
+  hero.system.abilities.cha.mod = 4;
+  assert.equal((await hag(hero, makeIo({ dice: [1] }))).banned, true);
+  const hero2 = chaActor();
+  hero2.system.abilities.cha.mod = 3;
+  assert.equal((await hag(hero2, makeIo({ dice: [14] }))).pct, -15);
+});
+
+test("a haggle percent prices every cart line, is part of the expected total, and is noted on the card", async () => {
+  const hero = chaActor({ flags: { [MOD]: { shopHaggle: { m1: { rev: 0, pct: -10, tier: "good" } } } } });
+  const io = makeIo({ characters: [hero] });
+  const stale = await checkoutCart(cartArgs(hero, cartShelf(), [{ wareId: "w1", qty: 2 }], { expectedTotal: 200 }), io);
+  assert.equal(stale.ok, false, "the total drawn without the haggle is refused");
+  const res = await checkoutCart(cartArgs(hero, cartShelf(), [{ wareId: "w1", qty: 2 }, { wareId: "w5", qty: 1 }], { expectedTotal: 360 }), io);
+  assert.deepEqual(res.bought.map((b) => b.copper), [180, 180]);
+  assert.match(io.log.chat[0].content, /haggle\.cardNote/);
+});
+
+test("a banned character cannot check out, sell or haggle, and a restock does not lift the ban", async () => {
+  const sword = item({ id: "s1", name: "Longsword", type: "Weapon", cost: { gp: 9 } });
+  const hero = chaActor({ items: [sword], flags: { [MOD]: { shopBan: { m1: true } } } });
+  const io = makeIo({ characters: [hero] });
+  const rev9 = { ...merchant, rev: 9 };
+  assert.deepEqual(await checkoutCart(cartArgs(hero, cartShelf(), [{ wareId: "w1", qty: 1 }], { merchant: rev9 }), io), { ok: false, error: "SDE.town.haggle.errBanned" });
+  assert.deepEqual(await sellItem({ seller: hero, merchant: rev9, itemId: "s1", quantity: 1 }, io), { ok: false, error: "SDE.town.haggle.errBanned" });
+  assert.deepEqual(await hag(hero, io, rev9), { ok: false, error: "SDE.town.haggle.errBanned" });
+  assert.equal(sword.deleted, false);
+  assert.equal(io.log.charged.length, 0);
+});
+
+test("a haggle does not change what the merchant pays for a sale", async () => {
+  const sword = item({ id: "s1", name: "Longsword", type: "Weapon", cost: { gp: 9 } });
+  const hero = chaActor({ items: [sword], flags: { [MOD]: { shopHaggle: { m1: { rev: 0, pct: -25, tier: "masterful" } } } } });
+  const res = await sellItem({ seller: hero, merchant, itemId: "s1", quantity: 1 }, makeIo());
+  assert.deepEqual(res.price, { gp: 4, sp: 5, cp: 0 });
+});
+
+test("only a GM can pardon: the ban is removed through unsetFlag's key, and nothing reads thrown out afterwards", async () => {
+  const hero = chaActor({ flags: { [MOD]: { shopBan: { m1: true }, shopHaggle: { m1: { rev: 0, pct: 0, tier: "banned" } } } } });
+  assert.equal((await pardon({ actor: hero, merchant }, makeIo({ gm: false }))).ok, false);
+  assert.equal(hero.flags[MOD].shopBan.m1, true);
+  assert.equal((await pardon({ actor: hero, merchant }, makeIo({ gm: true }))).ok, true);
+  assert.equal(hero.flags[MOD].shopBan.m1, undefined);
+  assert.deepEqual(hero.flags[MOD].shopHaggle.m1, { rev: 0, pct: 0, tier: "flat" });
+  const state = haggleState(hero, merchant);
+  assert.deepEqual([state.banned, state.haggled, state.canHaggle, state.tier], [false, true, false, "flat"]);
+  const io = makeIo({ characters: [hero] });
+  await checkoutCart(cartArgs(hero, cartShelf(), [{ wareId: "w1", qty: 1 }]), io);
+  assert.doesNotMatch(io.log.chat[0].content, /tier\.banned/);
+});
+
+test("a pardon that cannot remove the ban says so and the character stays banned", async () => {
+  const hero = chaActor({ flags: { [MOD]: { shopBan: { m1: true }, shopHaggle: { m1: { rev: 0, pct: 0, tier: "banned" } } } } });
+  const io = makeIo({ gm: true });
+  io.unsetFlag = async () => { throw new Error("rejected"); };
+  const warn = console.warn; console.warn = () => {};
+  try { assert.deepEqual(await pardon({ actor: hero, merchant }, io), { ok: false, error: "SDE.town.haggle.notSaved" }); } finally { console.warn = warn; }
+  assert.equal(haggleState(hero, merchant).banned, true);
 });

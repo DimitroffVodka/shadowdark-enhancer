@@ -65,15 +65,15 @@ export function wareFacts(item, { t, propName = () => "" }) {
 }
 
 /**
- * The ware cards for a shelf (shop-core's `shelf`). `swing` maps copper to copper (the buyer's armed extortion, or
- * identity). `describe(entry)` gives a ware's whole description (shown for the one that is open); `blurb(entry)` its
+ * The ware cards for a shelf (shop-core's `shelf`). `pct` is the buyer's haggle percent for this merchant (the extortion
+ * bargain never shows on a card: it falls on one cart line only). `describe(entry)` gives a ware's whole description (shown for the one that is open); `blurb(entry)` its
  * short form, shown on every card; `facts(entry)` its facts (wareFacts); `rules(entry)` the `{ name, text }` of each
  * property, shown with the description. A card has a Details button (`more`) only when there is more to read.
  */
-export function wareCards(shelf, { merchant, coins, category = "all", expandedId = null, swing = (c) => c, describe = () => "", blurb = () => "", facts = () => [], rules = () => [], t }) {
+export function wareCards(shelf, { merchant, coins, category = "all", expandedId = null, pct = 0, describe = () => "", blurb = () => "", facts = () => [], rules = () => [], t }) {
   const types = CATEGORIES.find((c) => c.id === category)?.types ?? null;
   return shelf.filter((e) => !types || types.includes(e.type)).map((e) => {
-    const price = fromCopper(swing(quoteLine(e, 1, merchant)?.copper ?? quoteLine({ ...e, stock: -1 }, 1, merchant).copper));
+    const price = fromCopper((quoteLine(e, 1, merchant, { pct }) ?? quoteLine({ ...e, stock: -1 }, 1, merchant, { pct })).copper);
     const out = e.stock === 0, unlimited = e.stock === -1, open = expandedId === e.id;
     const full = describe(e), short = blurb(e), props = rules(e);
     return {

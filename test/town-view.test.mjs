@@ -60,7 +60,7 @@ test("ware cards: a bundle is priced as the bundle, a swing changes the price, a
   assert.equal(all.find((c) => c.name === "Arrows").perBundle, 20);
   assert.deepEqual(all.find((c) => c.name === "Arrows").price, [{ n: 1, u: "gp" }]);   // 20 arrows, 1 gp
   assert.equal(all.find((c) => c.name === "Longsword").perBundle, 0);
-  const cheap = wareCards(rows, { merchant, coins: rich, t, swing: (c) => Math.round(c * 0.75) });
+  const cheap = wareCards(rows, { merchant, coins: rich, t, pct: -25 });
   assert.deepEqual(cheap.find((c) => c.name === "Longsword").price, [{ n: 6, u: "gp" }, { n: 7, u: "sp" }, { n: 5, u: "cp" }]);
   assert.deepEqual(wareCards(rows, { merchant, coins: rich, t, category: "weapon" }).map((c) => c.name), ["Longsword"]);
   assert.deepEqual(wareCards(rows, { merchant, coins: rich, t, category: "gear" }).map((c) => c.name), ["Arrows"]);

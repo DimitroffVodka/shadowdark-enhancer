@@ -58,7 +58,7 @@ export const sellCopper = (cost, quantity, ratio, bundle) => Math.floor(toCopper
 export const revOf = (merchant) => Math.max(0, Math.floor(Number(merchant?.rev) || 0));
 const revKey = (merchant) => `r${revOf(merchant)}`;
 /** Ids become flag keys, and a dot or a space would split or break the path. */
-const keyOk = (id) => typeof id === "string" && id !== "" && !/[.\s]/.test(id);
+export const keyOk = (id) => typeof id === "string" && id !== "" && !/[.\s]/.test(id);
 
 /** The dotted update path of one ware's purchases on a character. Throws on an id that cannot be a key. */
 export function ledgerPath(merchant, wareId) {

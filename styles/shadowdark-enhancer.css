@@ -5805,6 +5805,8 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-ui .tl-shop .ui-head > .tl-plaque { width: 84px; height: 84px; }
 .sde-ui .tl-shop .ui-title { font-size: 30px; }
 .sde-ui .tl-shop-sub { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 4px; }
+.sde-ui .tl-haggle-chip { border-color: var(--ui-frame); color: var(--ui-text); }
+.sde-ui .tl-pardon { height: 22px; padding: 0 8px; font-size: 11px; }
 .sde-ui .tl-purse { color: var(--ui-gold); white-space: nowrap; }
 .sde-ui .tl-cats { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .sde-ui .tl-cats button.ui-chip { cursor: pointer; font: inherit; font-size: 12px; }
@@ -5835,6 +5837,7 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-ui .tl-step-n { min-width: 28px; text-align: center; font-variant-numeric: tabular-nums; color: var(--ui-text); }
 .sde-ui .tl-cart-foot { display: flex; align-items: center; gap: 10px; }
 .sde-ui .tl-cart-foot .ui-btn { margin-left: auto; }
+.sde-ui .tl-cart-foot .ui-btn + .ui-btn { margin-left: 0; }
 .sde-ui .tl-step { display: inline-flex; align-items: center; border: 1px solid var(--ui-line); border-radius: var(--ui-r); overflow: hidden; background: var(--ui-page); }
 .sde-ui .tl-step .ui-icon { width: 26px; height: 26px; border: 0; border-radius: 0; }
 .sde-ui .tl-step input { width: 36px !important; height: 26px; padding: 0; border: 0; border-left: 1px solid var(--ui-line); border-right: 1px solid var(--ui-line); border-radius: 0; background: transparent; text-align: center; font-variant-numeric: tabular-nums; }

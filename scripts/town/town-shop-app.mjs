@@ -8,7 +8,8 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { canAfford, fromCopper } from "../shared/coins.mjs";
 import { L as t } from "../shared/i18n.mjs";
-import { checkoutCart, sellItem, liveIo, waresOf } from "../merchant/town-shop.mjs";
+import { checkoutCart, haggle, pardon, sellItem, liveIo, waresOf } from "../merchant/town-shop.mjs";
+import { TIER_KEYS, haggleState } from "../merchant/haggle-core.mjs";
 import { STOCK_TYPES } from "../merchant/shop-core.mjs";
 import { landingOf } from "./town-core.mjs";
 import { buyerChoices, buyerFor, redrawOnChange } from "./town-live.mjs";
@@ -34,6 +35,8 @@ export class TownShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
       cartMore: TownShopApp.prototype._onCartMore,
       cartRemove: TownShopApp.prototype._onCartRemove,
       checkout: TownShopApp.prototype._onCheckout,
+      haggle: TownShopApp.prototype._onHaggle,
+      pardon: TownShopApp.prototype._onPardon,
       sell: TownShopApp.prototype._onSell,
       sellAll: TownShopApp.prototype._onSellAll,
       toggleUnlimited: TownShopApp.prototype._onToggleUnlimited,
@@ -91,9 +94,12 @@ export class TownShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _prepareContext(options) {
     const context = await super._prepareContext(options);
     this._io ??= await liveIo();
-    const io = this._io, merchant = this.merchant, actor = this.merchantActor, open = !!merchant?.open && !!actor;
+    const io = this._io, merchant = this.merchant, actor = this.merchantActor;
     const buyer = buyerFor(this.buyerId);
     this.buyerId = buyer?.id ?? null;
+    const stand = haggleState(buyer, merchant ?? {});
+    // A banned character sees the shop as closed to them (the GM too, so the Pardon in the header is the way back in).
+    const open = !!merchant?.open && !!actor && !stand.banned;
     const flag = io.extortion.read(buyer);
     const buyFull = (copper) => io.extortion.apply(copper, flag, "buy");
     const sellSwing = (copper) => io.extortion.apply(copper, flag, "sell").copper;
@@ -104,7 +110,7 @@ export class TownShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
       swing: sellSwing, t, blurb: (item) => plainText(item.system?.description, 110),
       facts: (item) => wareFacts(item, { t, propName: (link) => known(link)?.name ?? "" }),
     }) : [];
-    const cart = priceCart(this.cart, rows, { merchant, swing: buyFull });
+    const cart = priceCart(this.cart, rows, { merchant, pct: stand.pct, swing: buyFull });
     // A closed shop prices nothing, so only an open one may tidy the cart (a moment closed must not empty it).
     if (open) {
       this.cart = cart.lines.map((l) => ({ wareId: l.wareId, qty: l.qty }));
@@ -115,9 +121,12 @@ export class TownShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
       cart: {
         lines: cart.lines.map((l) => ({ wareId: l.wareId, name: l.entry.name, img: l.entry.img, qty: l.qty, price: priceParts(fromCopper(l.copper)), swung: l.swung, adjusted: l.adjusted })),
         total: priceParts(fromCopper(cart.total)), totalCopper: cart.total, adjusted: this._cartAdjusted,
+        canHaggle: stand.canHaggle, showHaggle: merchant?.haggle !== false,
         busy: this._busy, tooDear: !canAfford(purse, fromCopper(cart.total)),
       },
       merchant: { id: merchant?.id, name: actor?.name ?? t("SDE.town.editor.missingName"), role: merchant?.role ?? "", pitch: merchant?.pitch ?? "", img: actor?.img || "icons/svg/mystery-man.svg", open },
+      banned: stand.banned, buyerName: buyer?.name ?? "", canPardon: stand.banned && game.user.isGM,
+      haggleChip: stand.haggled && !stand.banned ? (stand.pct ? t("SDE.town.haggle.chip", { tier: t(TIER_KEYS[stand.tier]), pct: `${stand.pct > 0 ? "+" : ""}${stand.pct}` }) : t("SDE.town.haggle.chipFlat", { tier: t(TIER_KEYS[stand.tier]) })) : "",
       priceNote: open ? priceNote(merchant, t) : "", sellRatio: merchant?.sellRatio ?? 50,
       purse: buyer ? purseText(buyer.system.coins) : "", isGM: game.user.isGM,
       tab: this.tab,
@@ -127,7 +136,7 @@ export class TownShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
       ],
       categories: CATEGORIES.map((c) => ({ id: c.id, label: t(c.key), active: c.id === this.category })),
       wares: wareCards(rows, {
-        merchant, coins: buyer?.system.coins ?? {}, category: this.category, expandedId: this.expandedId, t,
+        merchant, coins: buyer?.system.coins ?? {}, category: this.category, expandedId: this.expandedId, pct: stand.pct, t,
         describe: (entry) => plainText(entry.item.system?.description),
         blurb: (entry) => plainText(entry.item.system?.description, 110),
         facts: (entry) => wareFacts(entry.item, { t, propName: (link) => known(link)?.name ?? "" }),
@@ -208,6 +217,14 @@ export class TownShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this._cartAdjusted = false;
       return res;
     });
+  }
+
+  _onHaggle() {
+    return this.#run((buyer) => haggle({ buyer, merchantActor: this.merchantActor, merchant: this.merchant, sceneId: this.scene?.id }, this._io));
+  }
+
+  _onPardon() {
+    return this.#run((buyer) => pardon({ actor: buyer, merchant: this.merchant }, this._io));
   }
 
   _onSell(_event, target) {

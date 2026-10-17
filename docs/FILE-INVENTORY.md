@@ -334,8 +334,9 @@
 | `catalog-stock.mjs` | 37 | What the Catalog tab may sell: gear types with a list price, not loot-table props. |
 | `shop-core.mjs` | 130 | Shop price rules shared by both shops, and the town shop's per-character stock ledger (pure). |
 | `property-names.mjs` | 30 | The names of weapon properties (Finesse, Thrown...) read from their compendium links and cached, and a ware's fact chips and short description for the shop windows. |
-| `town-shop.mjs` | 165 | A town merchant's buy and sell on the player's own client, no GM needed. |
+| `town-shop.mjs` | 231 | A town merchant's buy and sell on the player's own client, no GM needed. |
 | `stock-generator.mjs` | 50 | A generated merchant's stock (pure): which ordinary gear a kind of shop carries and how much, by town size. |
+| `haggle-core.mjs` | 64 | The haggle ladder (d20 + CHA against a scale from a quarter off to a ban) and what a character has already tried (pure). |
 
 ### 3.10 `scripts/party-xp/`
 
