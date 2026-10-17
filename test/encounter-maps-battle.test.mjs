@@ -1372,6 +1372,26 @@ test("bringTable: activates the scene, makes the combat with noAutoEnroll and en
   assert.deepEqual(scene.updates.map((u) => u.keys), [[`flags.${MOD}.battle`], [`flags.${MOD}.battle`]], "setUp's write and this one, both through the one flag");
 });
 
+test("bringTable: hides the Backdrop before the scene is activated, and when the scene is already active", async () => {
+  const { battle, scene } = await staged();
+  const log = [];
+  _deps.stage = async () => ({ hideStage: async () => { log.push(["hide", world.activated.length]); } });
+  await BattleMaps.bringTable(battle.id);
+  assert.deepEqual(log, [["hide", 0]], "hidden before scene.activate ran");
+  assert.deepEqual(world.activated, [scene.id]);
+  await BattleMaps.bringTable(battle.id);   // the scene is active now: nothing activates, the Backdrop is still cleared
+  assert.deepEqual(log, [["hide", 0], ["hide", 1]]);
+  assert.deepEqual(world.activated, [scene.id], "not activated twice");
+});
+
+test("bringTable: a Backdrop that cannot be hidden never blocks the battle", async () => {
+  const { battle, scene } = await staged();
+  _deps.stage = async () => { throw new Error("stage.mjs is broken"); };
+  const answer = await BattleMaps.bringTable(battle.id);
+  assert.equal(answer.scene, scene);
+  assert.equal(scene.active, true);
+});
+
 test("bringTable: pressed twice it makes one combat and enrols nobody twice; a token added since is enrolled", async () => {
   const { battle, scene } = await staged();
   const first = await BattleMaps.bringTable(battle.id);

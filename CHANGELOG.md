@@ -4,6 +4,7 @@
 
 ### Added
 
+- **Backdrop: a full-screen camp picture for the whole table.** Every player sees one picture behind Foundry's windows and toolbar, the same on every scene, kept in a world setting so a reload or a late joiner still sees it. It shows the camp for the party's terrain, which is the module's existing Battle Maps camp art. It comes up by itself once when a camp begins, only when there is no party token (the party actor's own token on the GM's map; the characters' tokens do not count), so a camp in a dungeon or town is covered and the GM hides it from the tool, and drops when that camp ends or is cancelled. A GM hides or brings it back with the **Backdrop** tool in the Tokens group of the left toolbar; once hidden it stays down for that camp. **Show camp picture** in the Camping window raises it by hand, which is how you get it with the party token on the hex map. Bring the table on a battle map hides it first. Selected tokens are released while it is up.
 - **Origins has a dice button on Alignment, Background and Deity.** Each section header in the Character Builder's Origins tab rolls just that one pick, so you can re-roll a background without losing the alignment or deity you chose. The footer **Random** still rolls all three. The buttons are hidden when you edit an existing character, and the Deity roller is greyed out when your class fixes the deity.
 
 ### Fixed

@@ -6,6 +6,10 @@ Open Camp from the native Party or Overland. A Party owner starts/resumes;
 every PC takes part, and each PC owner chooses at most one optional task.
 Hirelings and mounts have no PC task slots; listed mounts still need food.
 
+The GM also gets **Show camp picture**, which covers the map for everyone with the
+camp's [Backdrop](Backdrop.md). A camp that begins with no party token (the party actor's own
+token) on the viewed map raises it by itself, and it drops when the camp ends.
+
 ## Setup and fire
 
 Tasks are Bed Down, Cook, Craft, Entertain, Firewood, Hunt, Keep Watch and

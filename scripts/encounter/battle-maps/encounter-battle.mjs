@@ -102,6 +102,7 @@ export const _deps = {
   maps: () => import("./encounter-maps.mjs"),
   scenes: () => import("./encounter-scene.mjs"),
   preload: () => import("./encounter-preload.mjs"),
+  stage: () => import("../../stage/stage.mjs"),
   foe: loadFoe,
   party: loadParty,
 };
@@ -657,6 +658,13 @@ async function bringBattleTable(battleId) {
 
     // The party's torches as they are now, before the scene is shown: the players' canvases draw lit (or dark) the first time.
     await syncPartyLight(scene, battle);
+
+    // A Backdrop would cover the battle map; scene.activate() fires no hook for it, and an already-active scene is not activated at all.
+    try {
+      await (await _deps.stage()).hideStage();
+    } catch (err) {
+      console.warn(`${MODULE_ID} | the Backdrop could not be hidden`, err);
+    }
 
     // Everyone follows the active scene. A scene that is already active (a world scene the table is on) needs nothing.
     if (!scene.active) {
