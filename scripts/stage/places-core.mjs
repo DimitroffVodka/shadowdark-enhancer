@@ -20,7 +20,7 @@ export function normalizePlaces(raw) {
     const id = str(p?.id), image = str(p?.image).trim();
     if (!PLACE_ID.test(id) || id === "camp" || !image || seen.has(id)) continue;
     seen.add(id);
-    places.push({ id, kind: PLACE_KINDS.includes(p.kind) ? p.kind : "custom", name: [...str(p.name)].slice(0, NAME_MAX).join("").trim(), image });
+    places.push({ id, kind: PLACE_KINDS.includes(p.kind) ? p.kind : "custom", name: [...str(p.name).trim()].slice(0, NAME_MAX).join("").trim(), image });
   }
   return { places };
 }

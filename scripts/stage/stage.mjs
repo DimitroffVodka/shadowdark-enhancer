@@ -8,7 +8,7 @@ import { isNativeParty } from "../party/party.mjs";
 import { campOf } from "../camping/camping.mjs";
 import { fileRoute } from "../shared/file-route.mjs";
 import { isActiveGM } from "../shared/gm-relay.mjs";
-import { registerPlaces, readPlaces, showPlace } from "./places.mjs";
+import { registerPlaces, readPlaces, refreshPlacesWindow, showPlace } from "./places.mjs";
 import { reshowTarget } from "./places-core.mjs";
 import { campArtFor, campTransition, normalizeStage, showCamp } from "./stage-core.mjs";
 
@@ -84,6 +84,15 @@ export async function onPartyCamp(actor, changed, options) {
   if (next) await write(next).catch((e) => console.warn(`${MODULE_ID} | stage write failed`, e));
 }
 
+async function openPlaces() {
+  try {
+    (await import("./places-app.mjs")).StagePlacesApp.open();
+  } catch (err) {
+    console.error(`${MODULE_ID} | stage: the places window failed to open`, err);
+    ui.notifications?.warn(game.i18n.localize("SDE.stage.places.openFailed"));
+  }
+}
+
 export function registerStage() {
   registerPlaces();
   game.settings.register(MODULE_ID, "stage", {
@@ -93,6 +102,7 @@ export function registerStage() {
     default: normalizeStage(null),
     onChange: () => {
       drawStage();
+      refreshPlacesWindow();
       if (game.user?.isGM) ui.controls?.render({ reset: true });
     },
   });
@@ -102,6 +112,10 @@ export function registerStage() {
   Hooks.on("canvasReady", () => { if (document.querySelector("#sde-stage")) canvas.tokens?.releaseAll?.(); });
   Hooks.on("getSceneControlButtons", (controls) => {
     if (!game.user?.isGM || !controls.tokens?.tools) return;
+    controls.tokens.tools.sdeStagePlaces = {
+      name: "sdeStagePlaces", title: "SDE.stage.places.tool", icon: "fa-solid fa-images", order: 92, button: true,
+      onChange: openPlaces,
+    };
     controls.tokens.tools.sdeStage = {
       name: "sdeStage", title: "SDE.stage.tool", icon: "fa-solid fa-image", order: 91, toggle: true,
       active: read().shown,

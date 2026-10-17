@@ -9,12 +9,18 @@ import { normalizeStage } from "./stage-core.mjs";
 
 const MAX_EDGE = 2560;
 
+let placesWindow = null;
+/** The Places window registers itself here so a setting change on this client redraws it. */
+export const setPlacesWindow = (app) => { placesWindow = app; };
+export const refreshPlacesWindow = () => { placesWindow?.render({ parts: ["list"] }); };
+
 export function registerPlaces() {
   game.settings.register(MODULE_ID, "stagePlaces", {
     scope: "world",
     config: false,
     type: Object,
     default: normalizePlaces(null),
+    onChange: refreshPlacesWindow,
   });
 }
 

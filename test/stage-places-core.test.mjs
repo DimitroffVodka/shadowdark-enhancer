@@ -73,6 +73,9 @@ test("normalizePlaces cuts the name at 60 code points, then trims", () => {
   assert.equal(normalizePlaces({ places: [P("a", { name: `${"n".repeat(59)} tail` })] }).places[0].name, "n".repeat(59));
   assert.equal(normalizePlaces({ places: [P("a", { name: "\u{1F417}".repeat(70) })] }).places[0].name, "\u{1F417}".repeat(60));
 });
+test("normalizePlaces trims leading spaces before cutting, so they do not eat into the 60", () => {
+  assert.equal(normalizePlaces({ places: [P("a", { name: `   ${"n".repeat(60)}` })] }).places[0].name, "n".repeat(60));
+});
 test("fitWithin gives 1 by 1 for non-finite or non-positive input", () => {
   for (const a of [[NaN, 5, 10], [5, 0, 10], [-3, 5, 10], [Infinity, 5, 10], [5, 5, 0]]) assert.deepEqual(fitWithin(...a), { width: 1, height: 1 });
 });
