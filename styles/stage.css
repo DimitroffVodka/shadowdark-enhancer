@@ -1,0 +1,19 @@
+/* Backdrop layer: z 0 (--z-index-canvas) appended after #board, so it paints over the canvas and under #pause and the UI. */
+#sde-stage {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-index-canvas, 0);
+  pointer-events: auto;
+  background: center / cover no-repeat;
+  background-color: var(--color-cool-5); /* after the shorthand, which would reset it; shows while the picture loads */
+  animation: sde-stage-in 0.3s ease-out;
+}
+
+@keyframes sde-stage-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #sde-stage { animation: none; }
+}

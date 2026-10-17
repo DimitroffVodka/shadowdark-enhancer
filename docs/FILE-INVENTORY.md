@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1986 tracked files · ~255,400 lines of code/markup across scripts+templates+styles+test.
+1989 tracked files · ~255,700 lines of code/markup across scripts+templates+styles+test.
 `v0.19.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 1503 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 1505 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 172 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 271 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 | `scavenger/scavenger-core.mjs` | 171 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
@@ -642,6 +642,7 @@ A place the party owns: the four types and twenty upgrades, built a week at a ti
 | File | Lines | Description |
 |---|---:|---|
 | `stage-core.mjs` | 67 | Stage's Foundry-free half: `normalizeStage` (the only reader of the stage setting), `campArtFor` (a terrain's camp picture, null on water) and `campTransition` (the raise/drop table for the Camp place; one camp id raises once). |
+| `stage.mjs` | 91 | Stage's layer and switch: registers the world setting `stage` (every client redraws from its onChange and on ready), keeps one `div#sde-stage` behind Foundry's UI, adds the GM's Backdrop tool to the Tokens toolbar, and exports `raiseByHand`, `pickParty`, `partyTerrain` and `hideStage`. |
 
 A full-screen picture every client shows behind Foundry's UI, kept in one world setting. Phase 1a raises a Camp place when a camp starts.
 <!-- inventory:scripts:end -->
