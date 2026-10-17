@@ -1,17 +1,22 @@
 /**
  * Shadowdark Enhancer — a town's games table (ApplicationV2), opened from the landing page when the GM has turned it on.
  *
- * The player picks a character, sets a wager (in silver, up to the town's limit) and plays one of seven games; the
- * game is rolled and settled on this client by town-games.mjs, with no GM connected. The last result stays on the
+ * The player picks a character, sets a wager (in silver, up to the town's limit) and plays one of eight games; the
+ * game is rolled and settled on this client by town-games.mjs, with no GM connected (Bluff, Brag, the death roll and the roulette open a table of their own). The last result stays on the
  * window. The wager is never taken until a game is played, and a game that cannot be saved is not played.
  */
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { L as t } from "../shared/i18n.mjs";
 import { formatPrice, fromCopper } from "../shared/coins.mjs";
-import { BET_KEYS, GAME_ICONS, GAME_IDS, GAME_KEYS, ROULETTE_BETS, ROULETTE_SIZE, SIDES, SIDE_KEYS, wagerFromSp } from "./games-core.mjs";
+import { GAME_ICONS, GAME_IDS, GAME_KEYS, HAND_GAMES, SIDES, SIDE_KEYS, SIT_GAMES, wagerFromSp } from "./games-core.mjs";
 import { landingOf } from "./town-core.mjs";
 import { buyerChoices, buyerFor, redrawOnChange } from "./town-live.mjs";
 import { playGame, liveIo } from "./town-games.mjs";
+import { TownDeathApp } from "./town-death-app.mjs";
+import { startDeath } from "./town-death.mjs";
+import { TownHandApp } from "./town-hand-app.mjs";
+import { startHand } from "./town-hand.mjs";
+import { TownRouletteApp } from "./town-roulette-app.mjs";
 import { purseText } from "./town-view.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -35,8 +40,6 @@ export class TownGamesApp extends HandlebarsApplicationMixin(ApplicationV2) {
   scene = null;
   buyerId = null;
   wagerSp = 10;
-  /** The roulette number in the box, kept across redraws like the wager. */
-  number = 7;
   last = null;
   _stop = null;
   _io = null;
@@ -67,13 +70,10 @@ export class TownGamesApp extends HandlebarsApplicationMixin(ApplicationV2) {
       maxBet: formatPrice(fromCopper(town.maxBet * 100)), edge: town.edge, maxSp, wagerSp: this.wagerSp,
       wagerText: formatPrice(fromCopper(wagerFromSp(this.wagerSp))),
       chips: [...CHIPS.filter((c) => c.sp < maxSp), { sp: maxSp, label: t("SDE.town.games.max") }],
-      games: GAME_IDS.map((id) => ({
+      games: [...GAME_IDS, ...SIT_GAMES].map((id) => ({
         id, icon: GAME_ICONS[id], name: t(GAME_KEYS[id].name), rules: t(GAME_KEYS[id].rules), odds: t(GAME_KEYS[id].odds),
-        picks: id === "coin" ? SIDES.map((s) => ({ id: s, label: t(SIDE_KEYS[s]) }))
-          : id === "roulette" ? ROULETTE_BETS.map((b) => ({ id: b, label: t(BET_KEYS[b]) })) : null,
-        numberBet: id === "roulette",
+        picks: id === "coin" ? SIDES.map((s) => ({ id: s, label: t(SIDE_KEYS[s]) })) : null,
       })),
-      number: this.number, numberMax: ROULETTE_SIZE,
       last: this.last, actors: buyerChoices().map((a) => ({ id: a.id, name: a.name, selected: a.id === player?.id })), hasPlayer: !!player,
     });
   }
@@ -87,8 +87,6 @@ export class TownGamesApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const text = root.querySelector(".tg-wager-text");
       if (text) text.textContent = formatPrice(fromCopper(wagerFromSp(this.wagerSp)));
     });
-    const pick = root.querySelector("input[name=number]");
-    pick?.addEventListener("input", () => { this.number = pick.value; });
   }
 
   _onFirstRender(context, options) {
@@ -115,13 +113,35 @@ export class TownGamesApp extends HandlebarsApplicationMixin(ApplicationV2) {
       // What is typed is the wager, even 0 (the game refuses it); only a box with nothing usable keeps the last one.
       const typed = input?.value === "" ? NaN : Number(input?.value);
       if (Number.isFinite(typed)) this.wagerSp = typed;
-      // The Number button bets on what is in the box; a box with nothing usable is no bet (the game says so).
-      const pick = target.dataset.pick === "number" ? String(Math.trunc(Number(this.number)) || "") : target.dataset.pick ?? "";
-      const result = await playGame({ player, game: target.dataset.game, wager: wagerFromSp(this.wagerSp), pick, town: this.town }, this._io);
+      if (SIT_GAMES.includes(target.dataset.game)) {
+        await this._sit(player, target.dataset.game);
+        return this.render();
+      }
+      const result = await playGame({ player, game: target.dataset.game, wager: wagerFromSp(this.wagerSp), pick: target.dataset.pick ?? "", town: this.town }, this._io);
       if (!result.ok) ui.notifications.warn(result.error);
       this.last = result.ok ? { lines: result.lines, tone: result.result === "win" ? "good" : result.result === "lose" ? "bad" : "info", game: t(GAME_KEYS[result.game].name) } : null;
     } finally { this._busy = false; }
     return this.render();
+  }
+
+  /**
+   * Sit down at a game with a table of its own. A hand or a round of the death roll takes its wager now and opens on the
+   * dealt game; the roulette takes nothing until it spins, and opens on an empty board with the wager as the chip.
+   */
+  async _sit(player, game) {
+    const wager = wagerFromSp(this.wagerSp), town = this.town;
+    if (game === "roulette") {
+      this.last = null;
+      return TownRouletteApp.open({ scene: this.scene, player, table: { game, bets: {}, chip: Math.max(wager, 10), last: null, settled: true } });
+    }
+    const app = HAND_GAMES.includes(game) ? TownHandApp : TownDeathApp;
+    if (app.inProgress()) return ui.notifications.warn(t("SDE.town.hand.inProgress"));
+    // The house plays from the dice's own random source, like the games' dice.
+    const io = { random: () => CONFIG.Dice.randomUniform(), ...this._io };
+    const r = HAND_GAMES.includes(game) ? await startHand({ player, game, wager, town }, io) : await startDeath({ player, wager, town }, io);
+    if (!r.ok) return ui.notifications.warn(r.error);
+    this.last = null;
+    app.open({ scene: this.scene, player, table: r.table });
   }
 
   async _onBack() {

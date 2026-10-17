@@ -62,7 +62,7 @@ list (see [Generating a merchant](#generating-a-merchant)).
 | **Name, Tagline, Welcome text** | The heading, the italic line and the paragraph under it. Name defaults to the scene's name |
 | **Around town** | Which entries players see: Quest Log, Journals, Party, Downtime, Carouse, Rumors (the last two are off on a new page; see A tavern page) |
 | **Open a games table** | Adds **Games of chance** to the menu (see Games of chance). Off until you turn it on |
-| **Largest bet (gp)** | The most one game may stake, 1 to 1000 gp (10 by default) |
+| **Largest bet (gp)** | The most one wager may stake, 1 to 1000 gp (10 by default) |
 | **House keeps (% of winnings)** | The share of every win the town keeps, 0 to 50 (5 by default) |
 | **Role, One-line pitch** | The line under the merchant's name and the hover text |
 | **Prices %** | 100 charges list price; 110 is 10% dearer, 80 is 20% cheaper (10 to 500) |
@@ -195,9 +195,12 @@ call it "(bought back)".
 
 Turn on **Open a games table** in the settings and **Games of chance** joins the
 menu. A player picks their character, sets a **wager** in silver (quick buttons
-for 1 sp, 1 gp, 5 gp, 10 gp... and the table's limit) and plays one of seven games.
-The wager comes out of the purse only when the game is played, and a result
-card is posted to the chat for everyone to see.
+for 1 sp, 1 gp, 5 gp, 10 gp... and the table's limit) and plays one of eight
+games. Four settle on one roll. The other four open a table of their own,
+because there is something to decide. A result card is posted to the chat for
+everyone to see.
+
+**One roll.** The wager comes out of the purse only when the game is played.
 
 | Game | How it plays | Pays |
 |---|---|---|
@@ -205,18 +208,71 @@ card is posted to the chat for everyone to see.
 | **Dice duel** | You and the house roll 2d6 each; higher wins, a tie gives the wager back | 1 to 1 |
 | **Fortune wheel** | A d100: 1-45 nothing back, 46-68 half back, 69-90 double, 91-98 triple, 99-100 the jackpot | Up to 10 to 1 |
 | **Card draw** | You and the dealer draw a card each, ace high; higher wins, the same rank gives the wager back | 1 to 1 |
-| **Death roll** | You open on a d100; then the house and you take turns, each rolling a die as big as the last roll. Whoever rolls a 1 loses | 1 to 1 |
-| **Dice roulette** | The wheel is a d20. Bet **Even**, **Odd**, **Low** (1-10) or **High** (11-20), or call one number from 1 to 20 | 1 to 1, a number 19 to 1 |
-| **Three-dice brag** | You and the dealer roll 3d6. The better hand wins: a prial (all alike), a straight, a flush (all odd or all even), a pair, then the high dice. A pair of one parity is a flush. Equal hands give the wager back | 1 to 1 |
+
+**A table of its own.** There is no GM and no house purse, so these are played
+against the house, whose moves are made for it from only what a player at the
+table could see. Closing the window, or going back, in the middle of a game
+walks away from it and loses what is in the pot.
+
+### Beholder's Bluff
+
+![A hand of Beholder's Bluff](images/town-hand.png)
+
+Both sides roll four d10 in secret and ante one wager. Each round you **show
+one of your dice** (the house shows one too) and then bet; after three rounds
+the last die shows and the higher total takes the pot. Betting is fixed-limit:
+**Check**, **Bet** one wager, **Raise** one more (once a round), **Call** or
+**Fold**. You open the first and third round, the house the second. Equal
+totals give every wager back. The house reads the odds from your shown dice and
+what is in the pot, so showing a high die first can bluff it off a hand, and
+hiding one can build a pot.
+
+### Three-dice Brag
+
+Both sides roll three d6 in secret and ante one wager. In round 1 you may
+**reroll up to two dice** (the house may too, and the log says how many it
+rerolled) and then bet; in round 2 you may reroll **one**, then bet again.
+The better hand wins: a prial (all alike), a straight, a flush (all odd or all
+even), a pair, then the high dice. A pair of one parity is a flush. Equal hands
+give every wager back.
+
+### Death roll
+
+![The death roll](images/town-death.png)
+
+You open on a d100; then the house and you take turns, each on a die as big as
+the last roll. Whoever rolls the **1** loses the stake. The one about to roll is
+always the underdog (never worse than 1 in 3, never better than even), and the
+window shows the odds of the die coming. Before a roll either side can **offer
+to double the stake**: the other **takes** it (both stakes double, and the taker
+holds the right to double next) or **passes** and loses the stake as it stood.
+Nobody doubles past 8 times the wager. The house takes a double it wins a third
+of the time or more, so it passes at a d2 and doubles when you are about to roll
+a small die.
+
+### Dice roulette
+
+![Dice roulette](images/town-roulette.png)
+
+The wheel is a d20. Pick a chip size, click spots to lay chips (a click lays one,
+the stack under the spot takes one off), then **Spin**: one d20 settles every
+spot at once. **Even**, **Odd**, **Low** (1-10) and **High** (11-20) pay 1 to 1,
+a number pays 19 to 1. Nothing is taken until the spin, so closing the window
+costs nothing, and the layout stays so you can bet it again. The whole board
+may not stake more than the table's limit.
+
+### What the house keeps
 
 The **house keeps** a share of every *win*: at 5%, a 100 cp wager that wins pays
-95 cp. A loss, a tie and the wheel's half-back are not touched by it, and the
-winnings round down. With no cut the coin, the duel, the cards, roulette and brag
-are exactly fair, the death roll is within a hundredth of a percent of it (you
-open, so you lose 50.01% of them) and the wheel returns 99.5% of what is
-staked, so the cut is what makes the house win over a night. Roulette has no
-house number: every bet is fair before the cut. The **largest bet** is the table's limit: the house has
-no purse to run dry, so the limit is what bounds a lucky streak.
+95 cp. In a hand or a round it takes that share of what the *house* put in the
+pot, never of your own coins. A loss, a tie and the wheel's half-back are not
+touched by it, and the winnings round down. With no cut the coin, the duel, the
+cards and roulette are exactly fair, and the wheel returns 99.5% of what is
+staked, so the cut is what makes the house win over a night. The **largest
+bet** is the table's limit on one wager (a hand puts in up to 7 wagers in Bluff
+and 5 in Brag, a round of the death roll up to 8, a roulette board up to the
+limit in all), and the house has no purse to run dry, so the limit is what
+bounds a lucky streak.
 
 Like a purchase, a game only changes the player's own character, so it works
 with no GM connected. Dice are rolled with Foundry's own dice and show in Dice So

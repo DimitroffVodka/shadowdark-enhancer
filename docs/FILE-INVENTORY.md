@@ -677,6 +677,21 @@ A full-screen picture every client shows behind Foundry's UI, kept in one world 
 | `town-games.mjs` | 94 | A game at a town table on the player's own client, no GM needed: roll, settle, coins, chat card. |
 | `town-games-app.mjs` | 123 | The games table window: wager, four games, the last result, as a chosen character. |
 | `town-log-core.mjs` | 76 | The town's sales log read from flagged chat cards: entries, filters, totals (pure). |
+| `hand-core.mjs` | 193 | The hand games' engine, pure: Beholder's Bluff and three-dice Brag as one game of betting over hidden dice (ante, a step with the dice, fixed-limit betting, showdown), the legal moves, the costs and what a hand pays. |
+| `hand-bot.mjs` | 133 | How the house plays a hand, pure: the odds of winning from only what it can see (its own dice, the shown ones, the bets), pot odds, a little bluffing and the Brag rerolls; the dials are at the top. |
+| `hand-view.mjs` | 101 | What a hand looks like, pure: the chat card's lines and the window's rows of dice, pot, prompt and controls; the house's hidden dice stay hidden until shown or the hand is over. |
+| `town-hand.mjs` | 101 | A hand at a town table on the player's own client, no GM needed: the ante, each move checked against the rules and the purse before a coin moves, the house's answers, settling and the card. |
+| `town-hand-app.mjs` | 90 | The hand table window: both rows of dice, pick a die to show or dice to reroll, bet, raise, call or fold; closing it in the middle of a hand walks away. |
+| `death-core.mjs` | 115 | The death roll, pure: the exact odds of the roller, the order of a round, the backgammon-style doubling stake with its cube and cap, and the house's take, pass and double. |
+| `death-view.mjs` | 61 | What a round of the death roll looks like, pure: the chat card's run of rolls and the window's die, odds, stake, cube and controls. |
+| `town-death.mjs` | 101 | A round of the death roll at a town table on the player's own client: the wager, a double taken puts the player's other half on the table, the house's turns, settling and the card. |
+| `town-death-app.mjs` | 76 | The death roll window: roll the die on your turn, double before a roll, take or pass the house's double; closing it in the middle of a round walks away. |
+| `roulette-core.mjs` | 40 | The roulette board, pure: twenty numbers and four outside bets, chips laid in any mix, and one d20 spin that settles every spot (fair before the town's cut). |
+| `roulette-view.mjs` | 45 | What the roulette board looks like, pure: the chat card's lines and the window's spots, chip stacks, chip sizes within the table limit and the last spin. |
+| `town-roulette.mjs` | 38 | A spin of the roulette on the player's own client: the board checked against the limit and the purse, one d20, one change to the purse and one card. |
+| `town-roulette-app.mjs` | 78 | The roulette window: pick a chip size, click spots to lay chips and the stack to take one off, then spin; nothing is taken until the spin. |
+| `town-table.mjs` | 30 | What every sit-down game does when it ends: pay the player what came back and post the one card the chat and the sales log read. |
+| `town-table-app.mjs` | 71 | What the sit-down games' windows share: one window of a kind, the chosen character, the town's table settings, redraw on change and leaving the table on close. |
 | `town-log-app.mjs` | 86 | The GM's sales log window: what was bought, sold and played, filtered and totalled. |
 <!-- inventory:scripts:end -->
 ---

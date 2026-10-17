@@ -6,8 +6,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  DEATH_START, GAME_IDS, MIN_WAGER, ROULETTE_BETS, ROULETTE_SIZE, WHEEL,
-  brag, bragHand, cardName, cardOf, cards, checkWager, coin, deathStep, duel, isRouletteBet, roulette, settle, wagerFromSp, wheel,
+  GAME_IDS, MIN_WAGER, ROULETTE_BETS, ROULETTE_SIZE, WHEEL,
+  bragHand, cardName, cardOf, cards, checkWager, coin, duel, isRouletteBet, roulette, settle, wagerFromSp, wheel,
 } from "../scripts/town/games-core.mjs";
 
 test("settle: a win pays the wager times the odds less the house's share of the winnings, rounded down", () => {
@@ -78,14 +78,6 @@ test("cards: a deck position is a rank (ace high) and a suit, and the higher ran
   assert.equal(cards({ you: 0, house: 13 }).mult, 1);    // the same rank in another suit
 });
 
-test("death roll: a 1 loses for whoever rolled it, anything else is the next die and the next roller", () => {
-  assert.equal(DEATH_START, 100);
-  assert.deepEqual(deathStep({ by: "you", n: 1 }), { over: true, loser: "you", mult: 0 });
-  assert.deepEqual(deathStep({ by: "house", n: 1 }), { over: true, loser: "house", mult: 2 });
-  assert.deepEqual(deathStep({ by: "you", n: 37 }), { over: false, max: 37, by: "house" });
-  assert.deepEqual(deathStep({ by: "house", n: 2 }), { over: false, max: 2, by: "you" });
-});
-
 test("roulette: even, odd, low and high win at even money, a number at 19 to 1, and every bet covers its share of the d20", () => {
   assert.deepEqual([roulette({ pick: "even", d20: 8 }).mult, roulette({ pick: "even", d20: 9 }).mult], [2, 0]);
   assert.deepEqual([roulette({ pick: "odd", d20: 1 }).mult, roulette({ pick: "odd", d20: 20 }).mult], [2, 0]);
@@ -111,18 +103,7 @@ test("brag: the hands rank prial, straight, flush, pair, high, and a pair of one
   assert.equal(bragHand([2, 4, 4]).hand, "flush");
   assert.equal(bragHand([1, 2, 3]).hand, "straight");                       // 1-2-3 is a run, not a mixed high hand
   const order = [[1, 4, 6], [2, 2, 5], [1, 5, 3], [3, 4, 5], [1, 1, 1]];  // high, pair, flush, straight, prial
-  for (let i = 1; i < order.length; i++) assert.equal(brag({ you: order[i], house: order[i - 1] }).mult, 2);
-});
-
-test("brag: within a hand the higher prial, run, flush, pair and high dice win, and equal hands give the wager back", () => {
-  assert.equal(brag({ you: [6, 6, 6], house: [1, 1, 1] }).mult, 2);
-  assert.equal(brag({ you: [2, 3, 4], house: [4, 5, 6] }).mult, 0);
-  assert.equal(brag({ you: [6, 4, 2], house: [6, 4, 4] }).mult, 0);        // both flushes: the third die breaks it
-  assert.equal(brag({ you: [5, 5, 6], house: [5, 5, 2] }).mult, 2);        // same pair, higher kicker
-  assert.equal(brag({ you: [6, 6, 1], house: [5, 5, 4] }).mult, 2);        // the pair's rank comes before the kicker
-  assert.equal(brag({ you: [6, 3, 2], house: [6, 3, 1] }).mult, 2);        // high dice, compared left to right
-  assert.equal(brag({ you: [1, 3, 6], house: [6, 3, 1] }).mult, 1);        // the same dice in another order
-  assert.deepEqual(brag({ you: [3, 3, 3], house: [4, 5, 6] }), { you: "prial", house: "straight", mult: 2 });
+  for (let i = 1; i < order.length; i++) assert.ok(bragHand(order[i]).score[0] > bragHand(order[i - 1]).score[0]);
 });
 
 test("brag: out of 216 rolls the hands are 6 prials, 24 straights, 48 flushes, 54 pairs and 84 high hands", () => {
@@ -148,20 +129,6 @@ test("with no house cut the coin, the duel and the cards return exactly what is 
   assert.ok(Math.abs(expectedReturn(cardOutcomes) - 1) < 1e-12);
 });
 
-test("with no house cut brag returns exactly what is staked, and the death roll is within a hundredth of a percent of it", () => {
-  const rolls = [];
-  for (let a = 1; a <= 6; a++) for (let b = 1; b <= 6; b++) for (let c = 1; c <= 6; c++) rolls.push([a, b, c]);
-  const outcomes = [];
-  for (const you of rolls) for (const house of rolls) outcomes.push([1 / (216 * 216), brag({ you, house }).mult]);
-  assert.ok(Math.abs(expectedReturn(outcomes) - 1) < 1e-12);
-
-  // The chance that whoever is about to roll on a d(n) is the one who loses: f(n) = (2 + sum of 1 - f(k) for k below n) / (n + 1).
-  const loses = [0, 1];
-  for (let n = 2; n <= DEATH_START; n++) loses[n] = (2 + loses.slice(2, n).reduce((sum, f) => sum + 1 - f, 0)) / (n + 1);
-  assert.ok(Math.abs(loses[DEATH_START] - 0.5) < 0.0002);                  // the player opens: 50.01% to lose
-  assert.ok(loses[DEATH_START] > 0.5);
-});
-
 test("the wheel returns 99.5% of what is staked, so even a table with no cut is a hair against the player", () => {
   const outcomes = Array.from({ length: 100 }, (_, i) => [0.01, wheel({ d100: i + 1 }).mult]);
   assert.ok(Math.abs(expectedReturn(outcomes) - 0.995) < 1e-12);
@@ -173,5 +140,5 @@ test("the house's cut makes every game return less than was staked", () => {
     assert.ok(wheelNet < 0, `wheel at ${edge}%`);
     assert.ok(settle(1000, 2, edge).net < 1000);                              // an even-money win pays less than even
   }
-  assert.equal(GAME_IDS.length, 7);
+  assert.equal(GAME_IDS.length, 4);
 });

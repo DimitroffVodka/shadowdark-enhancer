@@ -1,6 +1,6 @@
 // A town's games table. state = idle | win | lose | closed (add -full for the whole window). Built with the window's own rules and strings from sample data.
 // Real window: 640 x 720, ApplicationV2.
-import { BET_KEYS, GAME_ICONS, GAME_IDS, GAME_KEYS, ROULETTE_BETS, SIDES, SIDE_KEYS, wagerFromSp } from "../../../scripts/town/games-core.mjs";
+import { GAME_ICONS, GAME_IDS, GAME_KEYS, SIDES, SIDE_KEYS, SIT_GAMES, wagerFromSp } from "../../../scripts/town/games-core.mjs";
 import { formatPrice, fromCopper } from "../../../scripts/shared/coins.mjs";
 import { purseText } from "../../../scripts/town/town-view.mjs";
 import { COINS, t } from "./_town.mjs";
@@ -20,13 +20,10 @@ const build = (state) => {
       townName: "Hollowmere", open: s !== "closed", purse: purseText(COINS), maxBet: formatPrice(fromCopper(MAX_BET * 100)), edge: EDGE, maxSp, wagerSp: WAGER_SP,
       wagerText: formatPrice(fromCopper(wagerFromSp(WAGER_SP))),
       chips: [{ sp: 1, label: "1 sp" }, { sp: 10, label: "1 gp" }, { sp: 50, label: "5 gp" }, { sp: maxSp, label: t("SDE.town.games.max") }],
-      games: GAME_IDS.map((id) => ({
+      games: [...GAME_IDS, ...SIT_GAMES].map((id) => ({
         id, icon: GAME_ICONS[id], name: t(GAME_KEYS[id].name), rules: t(GAME_KEYS[id].rules), odds: t(GAME_KEYS[id].odds),
-        picks: id === "coin" ? SIDES.map((s) => ({ id: s, label: t(SIDE_KEYS[s]) }))
-          : id === "roulette" ? ROULETTE_BETS.map((b) => ({ id: b, label: t(BET_KEYS[b]) })) : null,
-        numberBet: id === "roulette",
+        picks: id === "coin" ? SIDES.map((s) => ({ id: s, label: t(SIDE_KEYS[s]) })) : null,
       })),
-      number: 7, numberMax: 20,
       last: LAST[s] ?? null, hasPlayer: true,
       actors: [{ id: "a", name: "Creeg Greythorn", selected: true }, { id: "b", name: "Elbin Grizzlegut", selected: false }],
     },

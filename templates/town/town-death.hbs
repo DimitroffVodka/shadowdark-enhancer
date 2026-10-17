@@ -1,0 +1,55 @@
+<div class="ui-shell hd-hand hd-death">
+  <header class="ui-head">
+    <div class="ui-art tg-crest"><i class="fa-solid {{icon}}"></i></div>
+    <div class="ui-head-text">
+      <h2 class="ui-title">{{name}}</h2>
+      <p class="ui-sub">{{townName}}</p>
+    </div>
+    <div class="ui-stats">
+      <div class="ui-stat"><span class="ui-label">{{localize "SDE.town.death.stake"}}</span><span class="ui-value">{{stake}} <small>×{{mult}}</small></span></div>
+      <div class="ui-stat"><span class="ui-label">{{localize "SDE.town.death.cubeLabel"}}</span><span class="ui-value">{{cube}}</span></div>
+      <div class="ui-stat"><span class="ui-label">{{localize "SDE.town.purse"}}</span><span class="ui-value tl-purse"><i class="fa-solid fa-coins"></i> {{purse}}</span></div>
+    </div>
+  </header>
+
+  <div class="ui-body">
+    <section class="hd-felt">
+      {{#unless over}}
+      <div class="hd-seat">
+        <span class="ui-label hd-who">{{localize "SDE.town.death.next"}}</span>
+        <div class="hd-bigdie"><b>d{{die}}</b><span>{{rollerName}} · {{localize "SDE.town.death.chance" chance=chance}}</span></div>
+      </div>
+      {{/unless}}
+      <div class="hd-seat">
+        <span class="ui-label hd-who">{{localize "SDE.town.death.rolls"}}</span>
+        <div class="hd-chain">
+          {{#each rolls}}<span class="hd-roll{{#if mine}} mine{{/if}}{{#if one}} one{{/if}}"><small>{{who}}</small><b>{{n}}</b><i>d{{max}}</i></span>{{else}}<span class="ui-muted">{{localize "SDE.town.death.none"}}</span>{{/each}}
+        </div>
+      </div>
+    </section>
+
+    {{#if result}}
+    <div class="ui-note {{result.tone}} hd-result" role="status">
+      {{#each result.lines}}<span>{{this}}</span>{{/each}}
+    </div>
+    {{/if}}
+
+    <section class="hd-panel">
+      <p class="hd-prompt">{{prompt}}</p>
+      <div class="hd-actions">
+        {{#if controls.roll}}<button type="button" class="ui-btn" data-action="roll"><i class="fa-solid fa-dice"></i> {{controls.roll.label}}</button>{{/if}}
+        {{#if controls.skip}}<button type="button" class="ui-btn" data-action="skip"><i class="fa-solid fa-dice"></i> {{controls.skip.label}}</button>{{/if}}
+        {{#if controls.double}}<button type="button" class="ui-btn ghost" data-action="double" {{#if controls.double.disabled}}disabled{{/if}}>{{controls.double.label}}</button>{{/if}}
+        {{#if controls.take}}<button type="button" class="ui-btn" data-action="take" {{#if controls.take.disabled}}disabled{{/if}}>{{controls.take.label}}</button>{{/if}}
+        {{#if controls.pass}}<button type="button" class="ui-btn ghost" data-action="pass">{{controls.pass.label}}</button>{{/if}}
+        {{#if controls.collect}}<button type="button" class="ui-btn" data-action="collect"><i class="fa-solid fa-coins"></i> {{localize "SDE.town.hand.btn.collect"}}</button>{{/if}}
+        {{#if controls.over}}<button type="button" class="ui-btn" data-action="again"><i class="fa-solid fa-dice"></i> {{localize "SDE.town.death.btn.again"}}</button>{{/if}}
+      </div>
+    </section>
+  </div>
+
+  <footer class="ui-status tl-foot">
+    <span class="ui-muted">{{playerName}}</span>
+    <div class="ui-right"><button type="button" class="ui-btn ghost" data-action="back"><i class="fa-solid fa-arrow-left"></i> {{localize "SDE.town.hand.btn.back"}}</button></div>
+  </footer>
+</div>
