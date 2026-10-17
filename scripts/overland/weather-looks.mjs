@@ -17,7 +17,7 @@
 export const WEATHER_LOOKS = [
   {
     id: "sdeDrizzle", label: "SDE.weather.drizzle",
-    parts: [{ from: "rain", effect: "rainShader", config: { opacity: 0.12, intensity: 0.45, strength: 0.6 } }],
+    parts: [{ from: "rain", effect: "rainShader", config: { opacity: 0.25, intensity: 1, strength: 0.8 } }],
   },
   {
     id: "sdeMist", label: "SDE.weather.mist",
@@ -25,7 +25,7 @@ export const WEATHER_LOOKS = [
   },
   {
     id: "sdeHeavyFog", label: "SDE.weather.heavyFog",
-    parts: [{ from: "fog", effect: "fogShader", config: { intensity: 0.9, slope: 0.8, speed: 0.25 } }],
+    parts: [{ from: "fog", effect: "fogShader", config: { tint: [0.82, 0.86, 0.9], intensity: 0.8, slope: 0.6, speed: 0.25 } }],
   },
   {
     id: "sdeSleet", label: "SDE.weather.sleet",
@@ -36,7 +36,7 @@ export const WEATHER_LOOKS = [
   },
   {
     id: "sdeDustStorm", label: "SDE.weather.dustStorm",
-    parts: [{ from: "fog", effect: "fogShader", config: { tint: [0.85, 0.68, 0.42], intensity: 0.6, slope: 0.9, speed: 6 } }],
+    parts: [{ from: "fog", effect: "fogShader", config: { tint: [0.85, 0.68, 0.42], intensity: 0.8, slope: 0.5, speed: 6 } }],
   },
 ];
 
