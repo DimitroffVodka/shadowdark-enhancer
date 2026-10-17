@@ -374,9 +374,14 @@ the party token travels.
   - A hex map (any hex grid) counts as outdoors and only darkens to a readable
     tint. Any other scene joins in when you set **Follows the sky** to Yes in
     its Scene Configuration, on the Environment tab; dungeons are left alone.
+  - The weather has its own choice there, **Shows the party's weather**. Set
+    to Yes, a town or a dungeon shows the weather without being darkened; set
+    to No, a hex map keeps its sun and moon but shows no weather. Default does
+    what Follows the sky does, so a scene that never chose is unchanged.
   - The sky is written to the active scene and to the scene the travel token
     is on, so the map darkens and shows the weather even while a dungeon is the
-    world's active scene. Each of the two must follow the sky.
+    world's active scene. Each of the two must follow the sky or show the
+    weather.
   - Weather changes redraw the whole scene on every screen that shows it,
     which is slow on a very large map or a weak device. Each device has a
     **Show weather effects** setting (see [Settings Reference](Settings-Reference.md));
