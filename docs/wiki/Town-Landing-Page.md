@@ -2,16 +2,41 @@
 
 [← Wiki home](index.md)
 
-A front door for a town. When your players arrive in a scene you have set up,
-a Town window opens: the town's name and welcome text, a stall for each
-merchant, and tiles for the Quest Log, the Journals, the Party and Downtime.
-Players shop with their own characters, and they can do it between sessions
-with you not connected.
+A front door for a town. The scene's own picture fills the screen and a menu
+runs down the right: the town's name, a line for each merchant, and the Quest
+Log, the Journals, the Party and Downtime. Players shop with their own
+characters, and they can do it between sessions with you not connected.
 
-![The Town window](images/town-window.png)
+![The landing page: a scene's picture with the menu down the right](images/town-landing.jpg)
 
-You set it up once per scene. Everything is read from the NPCs and the scene as
+*The picture here is a sample. On your table it is the scene's own picture.*
+
+Any scene can have one. Everything on it is read from your NPCs and the scene as
 they are, so changing an NPC's items or a price changes the shop.
+
+---
+
+## Putting it up
+
+Press the **Landing page** button (a landmark icon, in the Token Controls on the
+left of the screen) or **Alt+T**. The first time on a scene it makes an empty
+page: the scene's name, the four entries and no merchants. Then:
+
+- **It is up for everyone on the scene, you included.** The button is lit while
+  it is up.
+- **Press it again** and it goes away for everyone. The page is kept, merchants
+  and all; press again to bring it back. The eye icon on the page does the same.
+- **Moving between scenes** follows the page. Arriving in a scene whose page is
+  up opens it; arriving in one without a page, or with its page taken away,
+  closes it.
+
+The picture is the scene's own. Choose it, and where the camera starts, in the
+scene's settings (the editor has a **Scene settings** button for it). The menu
+fades dark on the right, so keep that side of the picture quiet. Players can
+still pan and zoom the scene as usual.
+
+When Foundry's sidebar is open the menu moves left of it, and if the Crawl Strip
+is up and would cover the town's name, the menu sits just below it.
 
 ---
 
@@ -21,21 +46,21 @@ they are, so changing an NPC's items or a price changes the shop.
    **Weapon** or **Armor**. Those items are the stock: an item's quantity is how
    many the merchant has, and its price is what it charges. Other item types
    are not sold.
-2. **Right-click the scene** in the Scenes directory and choose **Landing
-   page** (GM only).
+2. **Press the pencil** on the page (the GM sees three icons at the top: the
+   pencil for the settings, a button that restocks every shop, and the eye that
+   takes the page away).
 3. **Fill in the town**, then pick an NPC under **Merchants** and press **Add
    merchant**. Set each merchant's fields (below).
-4. **Save.** Players arriving in the scene get the Town window.
+4. **Save.** Every open page updates at once.
 
 | Field | What it does |
 |---|---|
-| **Name, Tagline, Welcome text** | The heading and the italic line under the banner. Name defaults to the scene's name |
-| **Banner picture** | An image you choose from your files. Empty shows a street of shops drawn from the module's own art |
-| **Around town** | Which tiles players see: Quest Log, Journals, Party, Downtime |
-| **Role, One-line pitch** | The tag and the quoted line on the merchant's stall |
+| **Name, Tagline, Welcome text** | The heading, the italic line and the paragraph under it. Name defaults to the scene's name |
+| **Around town** | Which entries players see: Quest Log, Journals, Party, Downtime |
+| **Role, One-line pitch** | The line under the merchant's name and the hover text |
 | **Prices %** | 100 charges list price; 110 is 10% dearer, 80 is 20% cheaper (10 to 500) |
 | **Buys back %** | What the merchant pays for what a player sells, as a share of the item's price (0 to 100) |
-| **Open** | A closed merchant shows on its stall as closed and cannot be visited |
+| **Open** | A closed merchant shows as closed and cannot be visited |
 | **Restock** | Puts the merchant's whole shelf back when you press Save (see Restocking) |
 | **Edit stock** | Opens the NPC, so you edit its items there |
 
@@ -46,22 +71,19 @@ stock in each. Removing a merchant and adding the NPC again starts it fresh.
 
 ## What players see
 
-- **Arriving** in a scene with a landing page opens the Town window by itself.
-  Moving to a scene without one closes it. The GM is not opened on; the GM
-  opens it from the Scenes directory (**Town window**).
-- **Alt+T** opens it again on the scene being viewed. Change the key under
-  *Configure Controls*.
-- **The stalls** show each merchant's art, role, pitch and how many wares it
-  has. **Visit** opens its shop.
-- **The tiles** open the [Quest Log](Quest-Log.md), the Journal sidebar, the
-  [Party](Party.md) and [Downtime](Downtime.md). A tile that cannot open is
+- **The merchants** are listed by name with their role. Pressing one opens its
+  shop. A merchant you closed shows as closed.
+- **The other entries** open the [Quest Log](Quest-Log.md), the Journal sidebar,
+  the [Party](Party.md) and [Downtime](Downtime.md). An entry that cannot open is
   greyed and says why: Party until the player can see a party (the
   [Party](Party.md) needs at least Observer), Downtime until you start a
   downtime session.
-- **The footer** says which character the player is, and their purse.
+- **The foot** says which character the player is, and their purse.
+- **Their own copy.** While you have the page up, a player can close it for
+  themselves and bring it back with the same button or Alt+T. When you take it
+  away they have neither.
 
-The GM also gets a pencil, which opens the editor, and a button that restocks
-every shop.
+Change the key under *Configure Controls*.
 
 ---
 
@@ -97,8 +119,9 @@ and every open shop updates as others buy.
 - **Never runs out.** As the GM, press the infinity button beside a ware's
   type in the shopfront. A ware that never runs out shows **Plenty**.
 - **Restock.** Press **Restock** on a merchant in the editor (it takes effect
-  when you Save), or **Restock every shop** in the Town window. The shelf is
-  back to the NPC's quantities. Nothing is written to any player's character.
+  when you Save), or the restock button on the page for every shop. The shelf
+  is back to the NPC's quantities. Nothing is written to any player's
+  character.
 - **Changing an NPC's quantity** changes the shelf at once: raise it to add
   stock without a restock.
 
@@ -125,6 +148,7 @@ log or the [Session Recap](Session-Recap.md). The chat cards are the record.
 - A merchant whose NPC was deleted is hidden from players and shown to you as
   an Unknown NPC, ready to remove.
 - Items with no price sell for nothing.
+- The page does not lock the camera: players can pan and zoom the picture.
 
 ---
 
