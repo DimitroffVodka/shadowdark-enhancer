@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-2021 tracked files · ~258,200 lines of code/markup across scripts+templates+styles+test.
+2021 tracked files · ~258,300 lines of code/markup across scripts+templates+styles+test.
 `v0.19.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -644,10 +644,10 @@ A place the party owns: the four types and twenty upgrades, built a week at a ti
 | File | Lines | Description |
 |---|---:|---|
 | `town-core.mjs` | 139 | A town's landing page flag: merchants as NPC references, restock revision, the games table, the table switch, the editor's form folded in (pure). |
-| `town-view.mjs` | 88 | What the Town window and the shopfront show: ware cards, sell rows, tiles, the buyer (pure). |
+| `town-view.mjs` | 121 | What the Town window and the shopfront show: ware cards, sell rows, tiles, the buyer (pure). |
 | `town-live.mjs` | 47 | What the town windows share on the Foundry side: the buyer, redrawing on change, the table switch, the tiles' windows. |
 | `town-app.mjs` | 143 | The landing page menu over the scene's picture: merchants, tiles, the GM's pencil, sales log, restock and switch; clear of the sidebar and the Crawl Strip. |
-| `town-shop-app.mjs` | 168 | One merchant's shopfront: buy and sell as a chosen character with no GM, categories, search. |
+| `town-shop-app.mjs` | 184 | One merchant's shopfront: buy and sell as a chosen character with no GM, categories, search. |
 | `town-editor-app.mjs` | 132 | The GM's landing page editor window: town text, tiles, games table, merchants. |
 | `town-entry-points.mjs` | 88 | The Landing page toolbar button and Alt+T: one switch for the table, the page made on any scene, followed by every client. |
 | `games-core.mjs` | 96 | The town's four games of chance, the house's cut and the wager limits (pure). |

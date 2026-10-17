@@ -5,7 +5,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { shelf } from "../scripts/merchant/shop-core.mjs";
 import {
-  priceParts, purseText, plainText, wareCards, sellRows, placeTiles, priceNote, pickBuyer, CATEGORIES,
+  priceParts, purseText, plainText, wareCards, wareFacts, sellRows, placeTiles, priceNote, pickBuyer, CATEGORIES,
 } from "../scripts/town/town-view.mjs";
 
 const t = (key, data) => (data ? `${key} ${JSON.stringify(data)}` : key);
@@ -113,4 +113,61 @@ test("the buyer: what was chosen, then the selected token, then the assigned cha
   assert.equal(pickBuyer(mine, {}).id, "a");
   assert.equal(pickBuyer(mine, { chosenId: "gone", assignedId: "b" }).id, "b");   // a character that is no longer theirs is skipped
   assert.equal(pickBuyer([], { chosenId: "a" }), null);
+});
+
+const FINESSE = "Compendium.shadowdark.properties.Item.finesse", THROWN = "Compendium.shadowdark.properties.Item.thrown";
+const NAMES = { [FINESSE]: "Finesse", [THROWN]: "Thrown" };
+const propName = (link) => NAMES[link] ?? "";
+
+test("facts: a weapon says its kind, range, damage and properties, from its own stats", () => {
+  const dagger = { type: "Weapon", system: { type: "melee", range: "near", damage: { oneHanded: "d4", twoHanded: "" }, properties: [FINESSE, THROWN], slots: { per_slot: 1, slots_used: 1 } } };
+  assert.deepEqual(wareFacts(dagger, { t, propName }), [
+    "SDE.town.fact.melee", "SDE.town.fact.near", 'SDE.town.fact.damage {"dice":"d4"}', "Finesse", "Thrown",
+  ]);
+  const bow = { type: "Weapon", system: { type: "ranged", range: "far", damage: { oneHanded: "", twoHanded: "d4" }, properties: [], slots: { per_slot: 1, slots_used: 1 } } };
+  assert.deepEqual(wareFacts(bow, { t, propName }), ["SDE.town.fact.ranged", "SDE.town.fact.far", 'SDE.town.fact.damageTwo {"dice":"d4"}']);
+  const bastard = { type: "Weapon", system: { type: "melee", range: "close", damage: { oneHanded: "d8", twoHanded: "d10" }, properties: [], slots: { per_slot: 1, slots_used: 1 } } };
+  assert.equal(wareFacts(bastard, { t, propName })[2], 'SDE.town.fact.damageVersatile {"one":"d8","two":"d10"}');
+});
+
+test("facts: armor says its AC (with the stat it adds, or a shield's bonus) and the slots it takes", () => {
+  const armor = (ac, slots_used = 1) => ({ type: "Armor", system: { ac, properties: [], slots: { per_slot: 1, slots_used } } });
+  assert.deepEqual(wareFacts(armor({ base: 11, attribute: "dex", modifier: 0 }), { t }), ['SDE.town.fact.acStat {"n":11,"stat":"DEX"}']);
+  assert.deepEqual(wareFacts(armor({ base: 15, attribute: "", modifier: 0 }, 3), { t }), ['SDE.town.fact.ac {"n":15}', 'SDE.town.fact.slots {"n":3}']);
+  assert.deepEqual(wareFacts(armor({ base: 0, attribute: "", modifier: 2 }), { t }), ['SDE.town.fact.acBonus {"n":2}']);
+  assert.deepEqual(wareFacts(armor({ base: null, attribute: "", modifier: 2 }), { t }), ['SDE.town.fact.acBonus {"n":2}']);
+});
+
+test("facts: gear says how many fit in a slot, and an item with no stats says nothing rather than something wrong", () => {
+  const rations = { type: "Basic", system: { slots: { per_slot: 3, slots_used: 1 }, properties: [] } };
+  assert.deepEqual(wareFacts(rations, { t }), ['SDE.town.fact.perSlot {"n":3}']);
+  assert.deepEqual(wareFacts({ type: "Basic", system: { slots: { per_slot: 1, slots_used: 1 } } }, { t }), []);
+  assert.deepEqual(wareFacts({ type: "Basic" }, { t }), []);
+  assert.deepEqual(wareFacts(null, { t }), []);
+  // a property the system cannot name is left out, not shown as a link
+  assert.deepEqual(wareFacts({ type: "Basic", system: { properties: ["Compendium.x.Item.unknown"], slots: {} } }, { t, propName }), []);
+});
+
+test("ware cards: every card carries its facts and a short description; Details appears only when there is more to read", () => {
+  const sword = item("w1", "Longsword", "Weapon", { gp: 9 }, 1, { system: { description: "<p>Balanced steel.</p>" } });
+  const dagger = item("w2", "Dagger", "Weapon", { gp: 1 }, 1);
+  const rope = item("w3", "Rope", "Basic", { gp: 1 }, 3, { system: { description: "<p>" + "Sixty feet of good hemp. ".repeat(12) + "</p>" } });
+  const rows = shelf([sword, dagger, rope], merchant, []);
+  const text = (e) => plainText(e.item.system?.description);
+  const opts = { merchant, coins: rich, t, describe: text, blurb: (e) => plainText(e.item.system?.description, 110), facts: () => ["a fact"], rules: (e) => (e.name === "Dagger" ? [{ name: "Finesse", text: "Use STR or DEX." }] : []) };
+  const closed = Object.fromEntries(wareCards(rows, opts).map((c) => [c.name, c]));
+  assert.deepEqual(closed.Longsword.facts, ["a fact"]);
+  assert.equal(closed.Longsword.blurb, "Balanced steel.");
+  assert.equal(closed.Longsword.more, false);                  // the short text is the whole text: nothing more to open
+  assert.equal(closed.Dagger.blurb, "");
+  assert.equal(closed.Dagger.more, true);                      // no description, but a property to explain
+  assert.equal(closed.Rope.more, true);                        // the blurb is cut, the full text is longer
+  assert.ok(closed.Rope.blurb.endsWith("…"));
+  assert.deepEqual([closed.Rope.desc, closed.Dagger.rules, closed.Rope.open], ["", [], false]);
+  const open = Object.fromEntries(wareCards(rows, { ...opts, expandedId: "w2" }).map((c) => [c.name, c]));
+  assert.deepEqual([open.Dagger.open, open.Dagger.rules, open.Dagger.desc], [true, [{ name: "Finesse", text: "Use STR or DEX." }], ""]);
+  assert.equal(open.Rope.open, false);
+  // a card built with none of the new options is as it was
+  const plain = wareCards(rows, { merchant, coins: rich, t })[0];
+  assert.deepEqual([plain.facts, plain.blurb, plain.more, plain.rules], [[], "", false, []]);
 });

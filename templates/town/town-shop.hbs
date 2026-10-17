@@ -35,7 +35,10 @@
           <div class="ui-inline">
             <span class="ui-tag">{{type}}{{#if perBundle}} · {{localize "SDE.town.perBundle" n=perBundle}}{{/if}}</span>
             {{#if @root.isGM}}<button type="button" class="ui-icon {{#if unlimited}}on{{/if}}" data-action="toggleUnlimited" data-tooltip="{{localize 'SDE.town.unlimitedTip'}}" aria-label="{{localize 'SDE.town.unlimitedTip'}}" aria-pressed="{{#if unlimited}}true{{else}}false{{/if}}"><i class="fa-solid fa-infinity"></i></button>{{/if}}
+            {{#if more}}<button type="button" class="ui-icon {{#if open}}on{{/if}}" data-action="toggleDesc" data-tooltip="{{localize 'SDE.town.details'}}" aria-label="{{localize 'SDE.town.details'}}" aria-expanded="{{#if open}}true{{else}}false{{/if}}"><i class="fa-solid fa-circle-info"></i></button>{{/if}}
           </div>
+          {{#if facts.length}}<div class="tl-facts">{{#each facts}}<span class="ui-chip">{{this}}</span>{{/each}}</div>{{/if}}
+          {{#unless open}}{{#if blurb}}<p class="tl-blurb">{{blurb}}</p>{{/if}}{{/unless}}
         </div>
         <div class="tl-price">{{#each price}}<span class="tl-coin"><b>{{n}}</b><i>{{u}}</i></span>{{/each}}</div>
         <div class="tl-ware-foot">
@@ -53,7 +56,10 @@
           </div>
           {{/if}}
         </div>
-        {{#if desc}}<p class="tl-ware-desc">{{desc}}</p>{{/if}}
+        {{#if open}}{{#if desc}}<div class="tl-ware-more">
+          <p class="tl-ware-desc">{{desc}}</p>
+          {{#if rules.length}}<ul class="tl-rules">{{#each rules}}<li><b>{{name}}</b> {{text}}</li>{{/each}}</ul>{{/if}}
+        </div>{{else}}{{#if rules.length}}<div class="tl-ware-more"><ul class="tl-rules">{{#each rules}}<li><b>{{name}}</b> {{text}}</li>{{/each}}</ul></div>{{/if}}{{/if}}{{/if}}
       </article>
       {{/each}}
     </div>

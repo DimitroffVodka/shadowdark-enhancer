@@ -5812,3 +5812,12 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-ui .tg-play { grid-area: play; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
 .sde-ui .tg-result { display: flex; flex-direction: column; gap: 2px; font-size: 13.5px; }
 .sde-ui .tg-result b { font: 400 19px/1.2 var(--ui-title); color: var(--ui-text); }
+
+/* ── what a ware is: its facts and a short description on the card, the rest under Details ─────────── */
+.sde-ui .tl-facts { display: flex; flex-wrap: wrap; gap: 4px; }
+.sde-ui .tl-facts .ui-chip { font-size: 11px; padding: 0 6px; }
+.sde-ui .tl-blurb { margin: 0; font-size: 12px; line-height: 1.4; color: var(--ui-muted); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.sde-ui .tl-ware-more { grid-column: 2 / -1; display: flex; flex-direction: column; gap: 6px; padding-top: 8px; border-top: 1px dashed var(--ui-line); }
+.sde-ui .tl-ware-more .tl-ware-desc { padding: 0; border: 0; }
+.sde-ui .tl-rules { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; font-size: 12px; line-height: 1.45; color: var(--ui-body); }
+.sde-ui .tl-rules b { color: var(--ui-text); }

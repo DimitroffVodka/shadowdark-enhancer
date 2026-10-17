@@ -99,7 +99,13 @@ Change the key under *Configure Controls*.
   starts as the selected token's character, else the one assigned to the
   account.
 - **Filter and search.** The chips filter by Weapons, Armor and Gear; the
-  search box narrows by name. Click a ware's name to read its description.
+  search box narrows by name.
+- **What a ware is.** Every card shows facts read from the item's own stats, so
+  a ware with no written description still says what it is: a weapon's kind,
+  range, damage and properties (Melee, Near, Damage d4, Finesse, Thrown), an
+  armor's AC (AC 13 + DEX, +2 AC for a shield), and how many slots it takes. The
+  start of the item's description sits under the name. The **info** button (or a
+  click on the name) opens the whole description and what each property does.
 - **Buy.** Set the quantity with the stepper and press **Buy**. Coins come off
   the character's purse and the item lands on its sheet. A ware that costs more
   than the purse shows its price in red and cannot be bought. Gear sold in

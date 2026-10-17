@@ -35,20 +35,53 @@ export function plainText(html, max = 400) {
   return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
 }
 
+const RANGE_KEYS = { close: "SDE.town.fact.close", near: "SDE.town.fact.near", far: "SDE.town.fact.far" };
+
+/**
+ * What a buyer wants to know about a ware at a glance, from the item's own stats, so a ware with no description still
+ * says what it is: a weapon's kind, range and damage, an armor's AC, the slots it takes, and the names of its
+ * properties. `propName(uuid)` names a property (the system keeps them as compendium links) and gives "" when it cannot.
+ */
+export function wareFacts(item, { t, propName = () => "" }) {
+  const s = item?.system ?? {}, out = [];
+  if (item?.type === "Weapon") {
+    out.push(t(s.type === "ranged" ? "SDE.town.fact.ranged" : "SDE.town.fact.melee"));
+    if (RANGE_KEYS[s.range]) out.push(t(RANGE_KEYS[s.range]));
+    const one = s.damage?.oneHanded, two = s.damage?.twoHanded;
+    if (one && two) out.push(t("SDE.town.fact.damageVersatile", { one, two }));
+    else if (one) out.push(t("SDE.town.fact.damage", { dice: one }));
+    else if (two) out.push(t("SDE.town.fact.damageTwo", { dice: two }));
+  }
+  if (item?.type === "Armor") {
+    const ac = s.ac ?? {};
+    if (ac.base) out.push(ac.attribute ? t("SDE.town.fact.acStat", { n: ac.base, stat: String(ac.attribute).toUpperCase() }) : t("SDE.town.fact.ac", { n: ac.base }));
+    if (ac.modifier) out.push(t("SDE.town.fact.acBonus", { n: ac.modifier }));
+  }
+  const per = Number(s.slots?.per_slot) || 1, used = Number(s.slots?.slots_used) || 1;
+  if (per > 1) out.push(t("SDE.town.fact.perSlot", { n: per }));
+  else if (used > 1) out.push(t("SDE.town.fact.slots", { n: used }));
+  for (const link of s.properties ?? []) { const name = propName(link); if (name) out.push(name); }
+  return out;
+}
+
 /**
  * The ware cards for a shelf (shop-core's `shelf`). `swing` maps copper to copper (the buyer's armed extortion, or
- * identity); `describe(entry)` gives the description of the one ware that is open.
+ * identity). `describe(entry)` gives a ware's whole description (shown for the one that is open); `blurb(entry)` its
+ * short form, shown on every card; `facts(entry)` its facts (wareFacts); `rules(entry)` the `{ name, text }` of each
+ * property, shown with the description. A card has a Details button (`more`) only when there is more to read.
  */
-export function wareCards(shelf, { merchant, coins, category = "all", expandedId = null, swing = (c) => c, describe = () => "", t }) {
+export function wareCards(shelf, { merchant, coins, category = "all", expandedId = null, swing = (c) => c, describe = () => "", blurb = () => "", facts = () => [], rules = () => [], t }) {
   const types = CATEGORIES.find((c) => c.id === category)?.types ?? null;
   return shelf.filter((e) => !types || types.includes(e.type)).map((e) => {
     const price = fromCopper(swing(buyCopper(e.cost, (merchant?.buyMultiplier ?? 100) / 100, e.bundle, e.bundle)));
-    const out = e.stock === 0, unlimited = e.stock === -1;
+    const out = e.stock === 0, unlimited = e.stock === -1, open = expandedId === e.id;
+    const full = describe(e), short = blurb(e), props = rules(e);
     return {
       id: e.id, name: e.name, img: e.img, type: t(TYPE_LABEL_KEYS[e.type] ?? TYPE_LABEL_KEYS.Basic),
       price: priceParts(price), free: !priceParts(price).length, perBundle: e.bundle > 1 ? e.bundle : 0,
       stock: unlimited ? t("SDE.town.plenty") : t("SDE.town.left", { n: e.stock }), low: !unlimited && e.stock === 1, out, unlimited,
-      poor: !out && !canAfford(coins, price), desc: expandedId === e.id ? describe(e) : "",
+      poor: !out && !canAfford(coins, price), open, facts: facts(e), blurb: short, more: full.length > short.length || props.length > 0,
+      desc: open ? full : "", rules: open ? props : [],
     };
   });
 }

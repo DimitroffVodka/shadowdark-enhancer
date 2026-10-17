@@ -10,7 +10,7 @@ import { L as t } from "../shared/i18n.mjs";
 import { buyWare, sellItem, liveIo, waresOf } from "../merchant/town-shop.mjs";
 import { landingOf } from "./town-core.mjs";
 import { buyerChoices, buyerFor, redrawOnChange } from "./town-live.mjs";
-import { CATEGORIES, plainText, priceNote, purseText, sellRows, wareCards } from "./town-view.mjs";
+import { CATEGORIES, plainText, priceNote, purseText, sellRows, wareCards, wareFacts } from "./town-view.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -48,6 +48,8 @@ export class TownShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _stop = null;
   _io = null;
   _busy = false;
+  /** Property links (the system's compendium items) already read: link to `{ name, text }`. */
+  _props = new Map();
 
   /** Open (or bring forward) the shopfront of one merchant on a scene's landing page. */
   static open(scene, merchantId) {
@@ -67,6 +69,15 @@ export class TownShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (input) input.value = Math.min(99, Math.max(1, (Number(input.value) || 1) + by));
   }
 
+  /** Read the properties the wares carry that are not read yet (Finesse, Thrown...): their names and rules text. */
+  async #readProperties(rows) {
+    const todo = [...new Set(rows.flatMap((r) => r.item.system?.properties ?? []))].filter((link) => !this._props.has(link));
+    await Promise.all(todo.map(async (link) => {
+      const doc = await fromUuid(link).catch(() => null);
+      this._props.set(link, { name: doc?.name ?? "", text: plainText(doc?.system?.description, 240) });
+    }));
+  }
+
   async _prepareContext(options) {
     const context = await super._prepareContext(options);
     this._io ??= await liveIo();
@@ -77,6 +88,8 @@ export class TownShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const buySwing = (copper) => io.extortion.apply(copper, flag, "buy").copper;
     const sellSwing = (copper) => io.extortion.apply(copper, flag, "sell").copper;
     const rows = open ? waresOf(actor, merchant, io) : [];
+    await this.#readProperties(rows);
+    const known = (link) => this._props.get(link);
     const selling = open && buyer ? sellRows(buyer.items.contents, merchant, { swing: sellSwing, t }) : [];
     return Object.assign(context, {
       merchant: { id: merchant?.id, name: actor?.name ?? t("SDE.town.editor.missingName"), role: merchant?.role ?? "", pitch: merchant?.pitch ?? "", img: actor?.img || "icons/svg/mystery-man.svg", open },
@@ -91,6 +104,9 @@ export class TownShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
       wares: wareCards(rows, {
         merchant, coins: buyer?.system.coins ?? {}, category: this.category, expandedId: this.expandedId, swing: buySwing, t,
         describe: (entry) => plainText(entry.item.system?.description),
+        blurb: (entry) => plainText(entry.item.system?.description, 110),
+        facts: (entry) => wareFacts(entry.item, { t, propName: (link) => known(link)?.name ?? "" }),
+        rules: (entry) => (entry.item.system?.properties ?? []).map(known).filter((p) => p?.name && p.text),
       }),
       sellItems: selling,
       actors: buyerChoices().map((a) => ({ id: a.id, name: a.name, selected: a.id === buyer?.id })),
