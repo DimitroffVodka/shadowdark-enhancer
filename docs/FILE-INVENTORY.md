@@ -654,7 +654,7 @@ A place the party owns: the four types and twenty upgrades, built a week at a ti
 | `town-games.mjs` | 94 | A game at a town table on the player's own client, no GM needed: roll, settle, coins, chat card. |
 | `town-games-app.mjs` | 123 | The games table window: wager, four games, the last result, as a chosen character. |
 | `town-log-core.mjs` | 76 | The town's sales log read from flagged chat cards: entries, filters, totals (pure). |
-| `town-log-app.mjs` | 84 | The GM's sales log window: what was bought, sold and played, filtered and totalled. |
+| `town-log-app.mjs` | 86 | The GM's sales log window: what was bought, sold and played, filtered and totalled. |
 <!-- inventory:scripts:end -->
 ---
 

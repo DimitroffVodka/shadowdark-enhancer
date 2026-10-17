@@ -1,7 +1,8 @@
 // The GM's sales log. state = town | game | empty (add -loss for a night the town lost money). Built with the window's own
 // row and total functions from sample cards. Real window: 660 x 720, ApplicationV2.
-import { formatPrice, fromCopper } from "../../../scripts/shared/coins.mjs";
+import { fromCopper } from "../../../scripts/shared/coins.mjs";
 import { entriesFrom, filterEntries, logFlag, logRows, placesIn, totals } from "../../../scripts/town/town-log-core.mjs";
+import { purseText } from "../../../scripts/town/town-view.mjs";
 import { t } from "./_town.mjs";
 
 const MOD = "shadowdark-enhancer";
@@ -18,7 +19,7 @@ const CARDS = [
   card(8, 130, { kind: "game", placeId: "wheel", place: "Hollowmere", charId: "a", charName: "Creeg Greythorn", what: "Fortune wheel", net: 855, wager: 100, result: "win" }),
 ];
 const toolbar = `<span>State:</span>${["town", "game", "empty", "town-loss"].map((s) => `<button data-action="s" data-state="${s}">${s}</button>`).join("")}`;
-const price = (c) => formatPrice(fromCopper(Math.abs(c)));
+const price = (c) => purseText(fromCopper(Math.abs(c)));
 const when = new Intl.DateTimeFormat("en", { dateStyle: "short", timeStyle: "short", timeZone: "UTC" });
 const build = (state) => {
   const loss = state.endsWith("-loss"), s = state.replace("-loss", "");

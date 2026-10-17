@@ -7,12 +7,14 @@
  */
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { L as t } from "../shared/i18n.mjs";
-import { formatPrice, fromCopper } from "../shared/coins.mjs";
+import { fromCopper } from "../shared/coins.mjs";
 import { entriesFrom, filterEntries, logRows, placesIn, totals } from "./town-log-core.mjs";
+import { purseText } from "./town-view.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
-const money = (copper) => formatPrice(fromCopper(Math.abs(copper)));
+// purseText, not formatPrice: nothing moved reads "0 gp", never "Free"
+const money = (copper) => purseText(fromCopper(Math.abs(copper)));
 
 export class TownLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
