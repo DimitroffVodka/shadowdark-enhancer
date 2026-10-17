@@ -284,6 +284,7 @@
       "scripts/merchant/merchant-defaults.mjs",
       "scripts/merchant/catalog-stock.mjs",
       "scripts/merchant/shop-core.mjs",
+      "scripts/merchant/property-names.mjs",
       "scripts/merchant/town-shop.mjs",
       "scripts/merchant/stock-generator.mjs"
     ],
@@ -639,6 +640,7 @@
     "scripts/merchant/merchant-defaults.mjs": "The two shipped merchant configs (Base, Western Reaches).",
     "scripts/merchant/catalog-stock.mjs": "What the Catalog tab may sell: gear types with a list price, not loot-table props.",
     "scripts/merchant/shop-core.mjs": "Shop price rules shared by both shops, and the town shop's per-character stock ledger (pure).",
+    "scripts/merchant/property-names.mjs": "The names of weapon properties (Finesse, Thrown...) read from their compendium links and cached, and a ware's fact chips and short description for the shop windows.",
     "scripts/merchant/town-shop.mjs": "A town merchant's buy and sell on the player's own client, no GM needed.",
     "scripts/town/town-core.mjs": "A town's landing page flag: merchants as NPC references, restock revision, the games table, the table switch, the editor's form folded in (pure).",
     "scripts/town/town-view.mjs": "What the Town window and the shopfront show: ware cards, sell rows, tiles, the buyer (pure).",

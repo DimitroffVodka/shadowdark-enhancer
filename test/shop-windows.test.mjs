@@ -45,3 +45,18 @@ test("the merchant stock tooltip reads an unlimited flag instead of comparing a 
   assert.doesNotMatch(hbs, /eq stockDisplay/);
   assert.match(src, /unlimited: entry\.stock === -1,/);
 });
+
+test("the bastion shop rows carry fact chips and a Details control, and the stock asks the index for the stats", async () => {
+  const [hbs, src] = await Promise.all([read("templates/bastion-shop.hbs"), read("scripts/bastion/bastion-shop.mjs")]);
+  assert.match(hbs, /class="bs-facts"/);
+  assert.match(hbs, /<details class="bs-more">/);
+  for (const f of ["system.type", "system.damage", "system.ac", "system.properties", "system.description"]) assert.ok(src.includes(`"${f}"`), `${f} missing from the index request`);
+});
+
+test("the merchant window rows carry fact chips and a Details control wired in _onRender, and the catalog index carries the stats", async () => {
+  const [hbs, src] = await Promise.all([read("templates/merchant-shop.hbs"), read("scripts/merchant/merchant-shop.mjs")]);
+  assert.equal(hbs.match(/class="ms-facts"/g).length, 3);   // Buy, Catalog, Sell
+  assert.equal(hbs.match(/sdems-details-btn/g).length, 3);
+  assert.match(src, /on\("\.sdems-details-btn", "click"/);
+  for (const f of ["system.type", "system.damage", "system.ac", "system.properties", "system.description"]) assert.ok(src.includes(`"${f}"`), `${f} missing from the catalog index request`);
+});

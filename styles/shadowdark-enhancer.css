@@ -5472,6 +5472,10 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-ui.sde-merchant .ms-r-gamble { grid-template-columns: minmax(0, 1fr) 104px 96px; }
 .sde-ui.sde-merchant .ms-name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
 .sde-ui.sde-merchant .ms-row .ui-row-meta { text-align: right; white-space: nowrap; }
+.sde-ui.sde-merchant .ms-facts { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.sde-ui.sde-merchant .ms-facts .ui-chip { font-size: 11px; padding: 0 6px; }
+.sde-ui.sde-merchant .ms-blurb { margin: 2px 0 0; font-size: 12px; line-height: 1.4; color: var(--ui-muted); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.sde-ui.sde-merchant .ms-details { align-self: flex-start; margin-top: 2px; height: auto; padding: 0 6px; font-size: 11px; }
 .sde-ui.sde-merchant .ms-row .ms-stock { justify-self: center; }
 .sde-ui.sde-merchant .ms-r-gamble .ui-btn { width: 100%; padding: 0 6px; }
 .sde-ui.sde-merchant .sdems-item-desc { grid-column: 1 / -1; padding: 6px 2px 2px 38px; color: var(--ui-body); font-size: 12.5px; border-top: 1px dashed var(--ui-line); }
@@ -5542,6 +5546,10 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-ui.sde-bastion-shop .sde-bs-row { background: transparent; border-radius: 0; margin: 0; display: grid; grid-template-columns: 28px minmax(0, 1fr) 104px 56px 84px; align-items: center; gap: 10px; }
 .sde-ui.sde-bastion-shop .bs-name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
 .sde-ui.sde-bastion-shop .bs-price { text-align: right; white-space: nowrap; }
+.sde-ui.sde-bastion-shop .bs-facts { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.sde-ui.sde-bastion-shop .bs-facts .ui-chip { font-size: 11px; padding: 0 6px; }
+.sde-ui.sde-bastion-shop .bs-blurb, .sde-ui.sde-bastion-shop .bs-more p { margin: 2px 0 0; font-size: 12px; line-height: 1.4; color: var(--ui-muted); }
+.sde-ui.sde-bastion-shop .bs-more summary { cursor: pointer; font-size: 12px; color: var(--ui-muted); }
 .sde-ui.sde-bastion-shop .bs-row .ui-btn { width: 100%; padding: 0 6px; min-width: 0; }
 .sde-ui.sde-bastion-shop .sde-bs-row:hover { background: var(--ui-hover); }
 .sde-ui.sde-bastion-shop .bs-row .ui-num-in { width: 100% !important; }

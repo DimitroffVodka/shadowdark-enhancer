@@ -37,7 +37,11 @@
         {{#each items}}
         <div class="ui-row sdems-item-row ms-row ms-r-buy {{#if outOfStock}}ms-out{{/if}} {{#unless canAfford}}ms-poor{{/unless}}" data-shop-item-id="{{id}}">
           <img src="{{img}}" alt="">
-          <div class="ui-row-main"><span class="ui-row-name ms-name" title="{{name}}">{{name}}</span><span class="ui-row-sub">{{category}}</span></div>
+          <div class="ui-row-main"><span class="ui-row-name ms-name" title="{{name}}">{{name}}</span><span class="ui-row-sub">{{category}}</span>
+          {{#if facts.length}}<div class="ms-facts">{{#each facts}}<span class="ui-chip">{{this}}</span>{{/each}}</div>{{/if}}
+          {{#if blurb}}<p class="ms-blurb">{{blurb}}</p>{{/if}}
+          <button type="button" class="ui-btn sdems-details-btn ms-details" aria-label="{{localize 'SDE.town.details'}}"><i class="fa-solid fa-circle-info"></i> {{localize "SDE.town.details"}}</button>
+        </div>
           <span class="ui-row-meta">{{priceDisplay}}</span>
           <span class="ui-chip ms-stock" title="{{#if outOfStock}}{{localize 'SDE.merchant.stockOut'}}{{else if unlimited}}{{localize 'SDE.merchant.stockUnlimited'}}{{else}}{{localize 'SDE.merchant.stockRemaining' n=stockDisplay}}{{/if}}">{{stockDisplay}}</span>
           <div class="ui-inline sdems-item-actions ms-actions">
@@ -78,7 +82,11 @@
       {{#each catalogItems}}
       <div class="ui-row sdems-item-row ms-row ms-r-cat {{#unless canAfford}}ms-poor{{/unless}}" data-item-uuid="{{uuid}}">
         <img src="{{img}}" alt="">
-        <div class="ui-row-main"><span class="ui-row-name ms-name" title="{{name}}">{{name}}</span><span class="ui-row-sub"><span class="ui-tag">{{packLabel}}</span>{{#if folderName}} <span class="ui-tag">{{folderName}}</span>{{/if}}</span></div>
+        <div class="ui-row-main"><span class="ui-row-name ms-name" title="{{name}}">{{name}}</span><span class="ui-row-sub"><span class="ui-tag">{{packLabel}}</span>{{#if folderName}} <span class="ui-tag">{{folderName}}</span>{{/if}}</span>
+          {{#if facts.length}}<div class="ms-facts">{{#each facts}}<span class="ui-chip">{{this}}</span>{{/each}}</div>{{/if}}
+          {{#if blurb}}<p class="ms-blurb">{{blurb}}</p>{{/if}}
+          <button type="button" class="ui-btn sdems-details-btn ms-details" aria-label="{{localize 'SDE.town.details'}}"><i class="fa-solid fa-circle-info"></i> {{localize "SDE.town.details"}}</button>
+        </div>
         <span class="ui-row-meta">{{priceDisplay}}</span>
         <div class="ui-inline sdems-item-actions ms-actions">
           <input type="number" class="sdems-qty-input ui-num-in" value="1" min="1" max="99" aria-label="{{localize 'SDE.merchant.btn.buy'}}">
@@ -119,7 +127,11 @@
       {{#each sellItems}}
       <div class="ui-row sdems-item-row ms-row ms-r-sell {{#if isJunk}}ms-junk{{/if}}" data-item-id="{{id}}">
         <img src="{{img}}" alt="">
-        <div class="ui-row-main"><span class="ui-row-name ms-name" title="{{name}}">{{#if isJunk}}<i class="fas fa-trash-can ms-junk-ic"></i> {{/if}}{{name}}{{#if (gt quantity 1)}} ×{{quantity}}{{/if}}</span><span class="ui-row-sub">{{localize "SDE.merchant.valueLabel" cost=costDisplay}}</span></div>
+        <div class="ui-row-main"><span class="ui-row-name ms-name" title="{{name}}">{{#if isJunk}}<i class="fas fa-trash-can ms-junk-ic"></i> {{/if}}{{name}}{{#if (gt quantity 1)}} ×{{quantity}}{{/if}}</span><span class="ui-row-sub">{{localize "SDE.merchant.valueLabel" cost=costDisplay}}</span>
+          {{#if facts.length}}<div class="ms-facts">{{#each facts}}<span class="ui-chip">{{this}}</span>{{/each}}</div>{{/if}}
+          {{#if blurb}}<p class="ms-blurb">{{blurb}}</p>{{/if}}
+          <button type="button" class="ui-btn sdems-details-btn ms-details" aria-label="{{localize 'SDE.town.details'}}"><i class="fa-solid fa-circle-info"></i> {{localize "SDE.town.details"}}</button>
+        </div>
         <span class="ui-row-meta ms-sell">{{sellPriceDisplay}}</span>
         <div class="ui-inline sdems-item-actions ms-actions">
           <input type="number" class="sdems-qty-input ui-num-in" value="1" min="1" max="{{quantity}}" aria-label="{{localize 'SDE.merchant.btn.sell'}}">
