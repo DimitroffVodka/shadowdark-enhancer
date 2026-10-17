@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import {
   PLACE_IDS, PLACE_LABEL_KEYS, normalizeMerchant, normalizeLanding, landingOf, linkableNpcs, waresCount,
-  addMerchant, removeMerchant, restockMerchant, restockAll, applyForm, idOk,
+  addMerchant, removeMerchant, restockMerchant, restockAll, applyForm, idOk, setShown,
 } from "../scripts/town/town-core.mjs";
 
 const MOD = "shadowdark-enhancer";
@@ -28,12 +28,25 @@ test("a merchant needs a usable id and an NPC, and every value is kept in range"
 
 test("a landing page always has every field, keeps the places in order, and drops unusable merchants", () => {
   const empty = normalizeLanding(undefined);
-  assert.deepEqual(empty, { title: "", tagline: "", blurb: "", banner: "", places: PLACE_IDS, merchants: [] });
+  assert.deepEqual(empty, { title: "", tagline: "", blurb: "", places: PLACE_IDS, merchants: [], shown: true });
   const page = normalizeLanding({ title: " Hollowmere ", places: ["party", "bogus", "quests"], merchants: [{ id: "m1", actorId: "a1" }, { id: "bad.id", actorId: "a2" }, { id: "m1", actorId: "a3" }, { id: "m2", actorId: "a1" }] });
   assert.equal(page.title, "Hollowmere");
   assert.deepEqual(page.places, ["quests", "party"]);
   assert.deepEqual(page.merchants.map((m) => m.id), ["m1"]);     // the bad id, the repeated id and the repeated NPC are dropped
   assert.deepEqual(normalizeLanding({ places: [] }).places, []);  // a GM may turn every tile off
+});
+
+test("the page is up for the table until the GM switches it off, and no other edit changes that", () => {
+  assert.equal(normalizeLanding({}).shown, true);                       // a page saved before the switch existed stays up
+  const off = setShown(normalizeLanding({ title: "A", merchants: [{ id: "m1", actorId: "a1" }] }), false);
+  assert.equal(off.shown, false);
+  assert.equal(setShown(off, true).shown, true);
+  assert.deepEqual(setShown({}, true), { ...normalizeLanding({}), shown: true });  // a scene with no page gets an empty one, every tile on
+  assert.equal(off.merchants.length, 1);                                // switching it off keeps the page itself
+  assert.equal(applyForm(off, { title: "B" }).shown, false);            // the editor's save does not put it back up
+  assert.equal(restockAll(off).shown, false);
+  assert.equal(addMerchant(off, "a2", counter()).shown, false);
+  assert.equal(removeMerchant(off, "m1").shown, false);
 });
 
 test("landingOf reads the scene's flag, or null when there is none", () => {
@@ -96,12 +109,12 @@ test("the form folds into the page: texts, tiles, and each merchant's own fields
   const make = counter();
   const page = addMerchant(addMerchant(undefined, "a1", make), "a2", make);
   const out = applyForm(page, {
-    title: "Hollowmere", tagline: "A market town", blurb: "Fair day.", banner: "worlds/x/town.webp",
+    title: "Hollowmere", tagline: "A market town", blurb: "Fair day.",
     "place.quests": "on", "place.party": "on",
     "m.m1.role": "Smith", "m.m1.pitch": "Honest steel.", "m.m1.open": "on", "m.m1.buyMultiplier": "120", "m.m1.sellRatio": "40",
     "m.m2.role": "Armorer", "m.m2.buyMultiplier": "100", "m.m2.sellRatio": "50",     // open unchecked: closed
   });
-  assert.deepEqual([out.title, out.tagline, out.banner], ["Hollowmere", "A market town", "worlds/x/town.webp"]);
+  assert.deepEqual([out.title, out.tagline, out.blurb], ["Hollowmere", "A market town", "Fair day."]);
   assert.deepEqual(out.places, ["quests", "party"]);
   assert.deepEqual(out.merchants.map((m) => [m.id, m.role, m.open, m.buyMultiplier, m.sellRatio]), [["m1", "Smith", true, 120, 40], ["m2", "Armorer", false, 100, 50]]);
   assert.equal(out.merchants[0].rev, 0);

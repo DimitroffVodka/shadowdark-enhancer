@@ -1,10 +1,12 @@
 /**
  * Shadowdark Enhancer — the Town window (ApplicationV2): what players see when they land in a town.
  *
- * Drawn from the scene's landing page (town-core.mjs) and the world as it is now: the merchants' own NPCs, the
- * player's character, the Quest Log. A stall's Visit opens that merchant's shopfront; the tiles open the Quest Log,
- * the Journal sidebar, the Party and Downtime windows. The GM also gets a pencil (the landing page editor) and a
- * Restock for every shop. It opens by itself for a player arriving on a landing scene (town-entry-points.mjs).
+ * The scene's own picture is the page, as on a BaileyWiki landing page; this is the menu down the right of it, with
+ * no window frame. Drawn from the scene's landing page (town-core.mjs) and the world as it is now: the merchants' own
+ * NPCs, the player's character, the Quest Log. A merchant opens its shopfront; the other entries open the Quest Log,
+ * the Journal sidebar, the Party and Downtime windows. The GM also gets a pencil (the landing page editor), a Restock
+ * for every shop and a way to hide the menu. It opens by itself for a player arriving on a landing scene
+ * (town-entry-points.mjs).
  */
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
@@ -14,22 +16,22 @@ import { Party } from "../party/party.mjs";
 import { Quests } from "../quests/quests.mjs";
 import { DowntimeSession } from "../downtime/downtime-session.mjs";
 import { LANDING_FLAG, landingOf, normalizeLanding, restockAll } from "./town-core.mjs";
-import { buyerFor, characters, openPlace, redrawOnChange } from "./town-live.mjs";
-import { placeTiles, purseText, townStats } from "./town-view.mjs";
+import { buyerFor, characters, openPlace, redrawOnChange, switchTown } from "./town-live.mjs";
+import { placeTiles, purseText } from "./town-view.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 export class TownApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-town",
-    classes: ["shadowdark-enhancer", "sde-ui", "sde-town"],
-    position: { width: 780, height: 760 },
-    window: { icon: "fa-solid fa-landmark", title: "SDE.town.title", resizable: true },
+    classes: ["shadowdark-enhancer", "sde-ui", "sde-town", "tm-root"],
+    window: { frame: false, positioned: false },
     actions: {
       visitMerchant: TownApp.prototype._onVisit,
       openPlace: TownApp.prototype._onOpenPlace,
       editTown: TownApp.prototype._onEdit,
       restockAll: TownApp.prototype._onRestockAll,
+      hideTown: TownApp.prototype._onHide,
     },
   };
 
@@ -39,6 +41,8 @@ export class TownApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   scene = null;
   _stop = null;
+  _sidebarWatch = null;
+  _fit = null;
 
   /** Open (or bring forward) the Town window for a scene that has a landing page. */
   static open(scene = globalThis.canvas?.scene) {
@@ -49,7 +53,7 @@ export class TownApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return app;
   }
 
-  get title() { return landingOf(this.scene)?.title || this.scene?.name || t("SDE.town.title"); }
+  get townName() { return landingOf(this.scene)?.title || this.scene?.name || t("SDE.town.title"); }
 
   async _prepareContext(options) {
     const context = await super._prepareContext(options);
@@ -63,32 +67,51 @@ export class TownApp extends HandlebarsApplicationMixin(ApplicationV2) {
       };
     }).filter((m) => isGM || !m.missing);
     const activeQuests = Quests.list({ status: "active" }).length;
-    const open = merchants.filter((m) => m.open).length;
     const buyer = buyerFor();
     return Object.assign(context, {
-      townName: this.title, tagline: page.tagline, blurb: page.blurb, bannerImg: page.banner,
-      stats: townStats({ open, total: merchants.length, activeQuests, t }),
-      merchants, openCount: open,
+      townName: this.townName, tagline: page.tagline, blurb: page.blurb, merchants,
       places: placeTiles(page.places, { isGM, hasParty: Party.list().length > 0, downtimeOpen: DowntimeSession.active, activeQuests, t }),
       isGM, actorName: buyer?.name ?? "", purse: buyer ? purseText(buyer.system.coins) : "",
     });
   }
 
-  /** The window's title is only read when it is first drawn, so a redraw sets it again. */
-  _onRender(context, options) {
-    super._onRender?.(context, options);
-    if (this.window?.title) this.window.title.textContent = this.title;
-  }
-
   _onFirstRender(context, options) {
     super._onFirstRender?.(context, options);
     this._stop = redrawOnChange(this);
+    this._fit = () => this._fitToScreen();
+    this._sidebarWatch = new ResizeObserver(this._fit);
+    for (const id of ["sidebar", "shadowdark-enhancer-strip"]) { const el = document.getElementById(id); if (el) this._sidebarWatch.observe(el); }
+    window.addEventListener("resize", this._fit);
   }
 
   _onClose(options) {
     this._stop?.();
     this._stop = null;
+    this._sidebarWatch?.disconnect();
+    this._sidebarWatch = null;
+    window.removeEventListener("resize", this._fit);
     super._onClose?.(options);
+  }
+
+  /**
+   * The menu is fixed to the right edge, under the rest of the screen's furniture: keep it clear of Foundry's sidebar
+   * (its tab strip alone when closed, the open panel too when open) and, when the Crawl Strip is up and would sit on
+   * the menu's text, drop the menu below it.
+   */
+  _fitToScreen() {
+    const root = this.element;
+    if (!root) return;
+    root.style.setProperty("--sde-town-side", `${document.getElementById("sidebar")?.offsetWidth ?? 42}px`);
+    root.style.setProperty("--sde-town-top", "38px");
+    const strip = document.getElementById("shadowdark-enhancer-strip");
+    // The strip's own box runs to the sidebar; the cards are in .sde-strip-inner. Test them against the crest and the
+    // title's letters (the headings are centred, so the menu's padding box is no guide).
+    const cards = strip?.classList.contains("sde-strip-visible") ? strip.querySelector(".sde-strip-inner")?.getBoundingClientRect() : null;
+    if (!cards?.height) return;
+    const title = document.createRange();
+    title.selectNodeContents(root.querySelector(".tm-title"));
+    const heading = [root.querySelector(".tm-crest").getBoundingClientRect(), title.getBoundingClientRect()];
+    if (heading.some((h) => h.left < cards.right && h.top < cards.bottom)) root.style.setProperty("--sde-town-top", `${Math.ceil(cards.bottom) + 10}px`);
   }
 
   async _onVisit(_event, target) {
@@ -97,6 +120,9 @@ export class TownApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   _onOpenPlace(_event, target) { return openPlace(target.dataset.place); }
+
+  /** Away for the whole table. */
+  _onHide() { return switchTown(this.scene, false); }
 
   async _onEdit() {
     const { TownEditorApp } = await import("./town-editor-app.mjs");

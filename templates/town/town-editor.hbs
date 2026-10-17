@@ -20,11 +20,10 @@
       </div>
       <label class="ui-field"><span class="ui-label">{{localize "SDE.town.editor.blurb"}}</span><textarea name="blurb" rows="3" maxlength="600">{{page.blurb}}</textarea></label>
       <div class="ui-field">
-        <span class="ui-label">{{localize "SDE.town.editor.banner"}}</span>
+        <span class="ui-label">{{localize "SDE.town.editor.picture"}}</span>
         <div class="te-banner">
-          <input type="text" name="banner" value="{{page.banner}}" readonly placeholder="{{localize 'SDE.town.editor.bannerNone'}}">
-          <button type="button" class="ui-btn" data-action="pickBanner"><i class="fa-solid fa-image"></i> {{localize "SDE.town.editor.choose"}}</button>
-          {{#if page.banner}}<button type="button" class="ui-btn ghost" data-action="clearBanner">{{localize "SDE.town.editor.clear"}}</button>{{/if}}
+          <span class="ui-muted te-picture-note">{{localize "SDE.town.editor.pictureNote"}}</span>
+          <button type="button" class="ui-btn" data-action="openScene"><i class="fa-solid fa-image"></i> {{localize "SDE.town.editor.openScene"}}</button>
         </div>
       </div>
     </section>

@@ -1,88 +1,52 @@
-<div class="ui-shell tl-town">
-  <div class="tl-banner">
-    {{#if bannerImg}}
-    <img class="tl-photo" src="{{bannerImg}}" alt="">
-    {{else}}
-    <div class="tl-street" aria-hidden="true">
-      <img class="b1" src="modules/shadowdark-enhancer/assets/bastion/art/house.svg" alt="">
-      <img class="b2" src="modules/shadowdark-enhancer/assets/bastion/art/tavern.svg" alt="">
-      <img class="b3" src="modules/shadowdark-enhancer/assets/bastion/art/blacksmith.svg" alt="">
-      <img class="b4" src="modules/shadowdark-enhancer/assets/bastion/art/library.svg" alt="">
-      <img class="b5" src="modules/shadowdark-enhancer/assets/bastion/art/armorer.svg" alt="">
-      <img class="b6" src="modules/shadowdark-enhancer/assets/bastion/art/house.svg" alt="">
-    </div>
-    {{/if}}
+<nav class="tm-menu" aria-label="{{townName}}">
+  {{#if isGM}}
+  <div class="tm-gm">
+    <button type="button" class="ui-icon" data-action="editTown" data-tooltip="{{localize 'SDE.town.edit'}}" aria-label="{{localize 'SDE.town.edit'}}"><i class="fa-solid fa-pen"></i></button>
+    <button type="button" class="ui-icon" data-action="restockAll" data-tooltip="{{localize 'SDE.town.restock'}}" aria-label="{{localize 'SDE.town.restock'}}"><i class="fa-solid fa-boxes-packing"></i></button>
+    <button type="button" class="ui-icon" data-action="hideTown" data-tooltip="{{localize 'SDE.town.hide'}}" aria-label="{{localize 'SDE.town.hide'}}"><i class="fa-solid fa-eye-slash"></i></button>
   </div>
+  {{/if}}
 
-  <header class="ui-head">
-    <div class="ui-art tl-crest"><i class="fa-solid fa-landmark"></i></div>
-    <div class="ui-head-text">
-      <h2 class="ui-title">{{townName}}</h2>
-      <p class="ui-sub">{{tagline}}</p>
-    </div>
-    <div class="ui-stats">
-      {{#each stats}}<div class="ui-stat"><span class="ui-label">{{label}}</span><span class="ui-value">{{value}}</span></div>{{/each}}
-    </div>
-    {{#if isGM}}
-    <div class="tl-gm">
-      <button type="button" class="ui-icon" data-action="editTown" data-tooltip="{{localize 'SDE.town.edit'}}" aria-label="{{localize 'SDE.town.edit'}}"><i class="fa-solid fa-pen"></i></button>
-      <button type="button" class="ui-icon" data-action="restockAll" data-tooltip="{{localize 'SDE.town.restock'}}" aria-label="{{localize 'SDE.town.restock'}}"><i class="fa-solid fa-boxes-packing"></i></button>
-    </div>
-    {{/if}}
-  </header>
+  <div class="tm-crest"><i class="fa-solid fa-landmark"></i></div>
+  <h1 class="tm-title">{{townName}}</h1>
+  {{#if tagline}}<p class="tm-tag">{{tagline}}</p>{{/if}}
+  {{#if blurb}}<p class="tm-blurb">{{blurb}}</p>{{/if}}
+  <div class="tm-orn" aria-hidden="true"><i></i></div>
 
-  <div class="ui-body">
-    <p class="tl-blurb">{{blurb}}</p>
-    <div class="tl-orn" aria-hidden="true"><i></i></div>
-
-    <section class="ui-group">
-      <h3 class="ui-h"><span>{{localize "SDE.town.market"}}</span><small>{{localize "SDE.town.openCount" open=openCount total=merchants.length}}</small></h3>
-      {{#if merchants.length}}
-      <div class="tl-stalls">
-        {{#each merchants}}
-        <article class="ui-card tl-stall {{#unless open}}closed{{/unless}}" data-merchant-id="{{id}}">
-          <div class="tl-plaque"><img src="{{img}}" alt=""></div>
-          <div class="tl-stall-body">
-            <h4 class="tl-stall-name">{{name}}</h4>
-            <span class="ui-tag">{{role}}</span>
-            <p class="tl-pitch">{{pitch}}</p>
-          </div>
-          <footer class="tl-stall-foot">
-            <span class="ui-chip"><i class="fa-solid fa-boxes-stacked"></i> {{localize "SDE.town.wares" n=wares}}</span>
-            {{#if open}}<span class="ui-chip ok">{{localize "SDE.town.open"}}</span>{{else}}<span class="ui-chip off">{{localize "SDE.town.closed"}}</span>{{/if}}
-            <button type="button" class="ui-btn tl-visit" data-action="visitMerchant" data-merchant-id="{{id}}" aria-label="{{localize 'SDE.town.visitNamed' name=name}}" {{#unless open}}disabled data-tooltip="{{localize 'SDE.town.shut'}}"{{/unless}}>{{localize "SDE.town.visit"}} <i class="fa-solid fa-arrow-right"></i></button>
-          </footer>
-        </article>
-        {{/each}}
-      </div>
-      {{else}}
-      <div class="ui-empty"><i class="fa-solid fa-store-slash"></i>
-        {{#if isGM}}<span>{{localize "SDE.town.noMerchantsGM"}}</span><button type="button" class="ui-btn primary" data-action="editTown"><i class="fa-solid fa-plus"></i> {{localize "SDE.town.addMerchant"}}</button>
-        {{else}}<span>{{localize "SDE.town.noMerchants"}}</span>{{/if}}
-      </div>
-      {{/if}}
-    </section>
-
-    <section class="ui-group">
-      <h3 class="ui-h"><span>{{localize "SDE.town.around"}}</span></h3>
-      <div class="tl-tiles">
-        {{#each places}}
-        <button type="button" class="tl-tile" data-action="openPlace" data-place="{{id}}" {{#if disabled}}disabled data-tooltip="{{hint}}"{{/if}}>
-          <span class="tl-tile-head"><i class="fa-solid {{icon}}"></i>{{#if tag}}<span class="ui-tag">{{tag}}</span>{{/if}}</span>
-          <b>{{label}}</b>
-          <small>{{sub}}</small>
-        </button>
-        {{/each}}
-      </div>
-    </section>
+  {{#if merchants.length}}
+  <ul class="tm-list">
+    {{#each merchants}}
+    <li>
+      <button type="button" class="tm-item" data-action="visitMerchant" data-merchant-id="{{id}}" aria-label="{{localize 'SDE.town.visitNamed' name=name}}"
+        data-tooltip="{{#if open}}{{pitch}}{{else}}{{localize 'SDE.town.shut'}}{{/if}}" {{#unless open}}disabled{{/unless}}>
+        <span class="tm-dia"></span>
+        <span class="tm-txt"><b>{{name}}</b><small>{{#if open}}{{#if role}}{{role}}{{else}}{{localize "SDE.town.wares" n=wares}}{{/if}}{{else}}{{localize "SDE.town.closed"}}{{/if}}</small></span>
+      </button>
+    </li>
+    {{/each}}
+  </ul>
+  {{else}}
+  <div class="tm-empty">
+    {{#if isGM}}{{localize "SDE.town.noMerchantsGM"}}<br><button type="button" class="ui-btn primary" data-action="editTown"><i class="fa-solid fa-plus"></i> {{localize "SDE.town.addMerchant"}}</button>
+    {{else}}{{localize "SDE.town.noMerchants"}}{{/if}}
   </div>
+  {{/if}}
 
-  <footer class="ui-status tl-foot">
-    {{#if actorName}}
-    <span><i class="fa-solid fa-user"></i> {{localize "SDE.town.playingAs" name=actorName}}</span>
-    <span class="tl-purse"><i class="fa-solid fa-coins"></i> {{purse}}</span>
-    {{else}}
-    <span class="ui-muted">{{localize "SDE.town.noCharacter"}}</span>
-    {{/if}}
-  </footer>
-</div>
+  {{#if places.length}}
+  <div class="tm-orn" aria-hidden="true"><i></i></div>
+  <ul class="tm-list">
+    {{#each places}}
+    <li>
+      <button type="button" class="tm-item place" data-action="openPlace" data-place="{{id}}" {{#if disabled}}disabled data-tooltip="{{hint}}"{{/if}}>
+        <span class="tm-dia"></span>
+        <span class="tm-txt"><b>{{label}}</b><small>{{#if tag}}{{tag}}{{else}}{{sub}}{{/if}}</small></span>
+      </button>
+    </li>
+    {{/each}}
+  </ul>
+  {{/if}}
+
+  <p class="tm-foot">
+    {{#if actorName}}{{localize "SDE.town.playingAs" name=actorName}} &nbsp; <b>{{purse}}</b>{{else}}{{localize "SDE.town.noCharacter"}}{{/if}}
+  </p>
+</nav>

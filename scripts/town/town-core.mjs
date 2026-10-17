@@ -1,9 +1,13 @@
 /**
  * Shadowdark Enhancer — a town's landing page, as the GM sets it up (pure).
  *
- * A landing page is a small flag on the scene the players arrive in:
+ * A landing page is a small flag on the scene the players arrive in. The scene's own picture is the page (set in the
+ * scene's settings); the flag holds the menu drawn over it:
  *
- *   flags[MODULE_ID].landing = { title, tagline, blurb, banner, places: [...], merchants: [...] }
+ *   flags[MODULE_ID].landing = { title, tagline, blurb, places: [...], merchants: [...], shown }
+ *
+ * `shown` is the GM's switch for the whole table: every client follows it, so the page goes up for everyone or away
+ * from everyone (town-entry-points.mjs). It is on unless it is switched off.
  *
  * A merchant is a REFERENCE to an NPC actor, never a copy of its wares: the NPC's own items are the stock, and the
  * town shop reads them live (merchant/shop-core.mjs). Everything players need to see rides on this flag, so it stays
@@ -56,11 +60,15 @@ export function normalizeLanding(raw) {
     seen.add(m.id); actors.add(m.actorId); merchants.push(m);
   }
   return {
-    title: text(raw?.title, 80), tagline: text(raw?.tagline, 120), blurb: text(raw?.blurb, 600), banner: text(raw?.banner, 300),
+    title: text(raw?.title, 80), tagline: text(raw?.tagline, 120), blurb: text(raw?.blurb, 600),
     places: Array.isArray(raw?.places) ? PLACE_IDS.filter((p) => raw.places.includes(p)) : [...PLACE_IDS],
     merchants,
+    shown: raw?.shown !== false,
   };
 }
+
+/** The GM's switch for the whole table: whether the page is up for everyone on this scene (a page is up until it is switched off). */
+export const setShown = (landing, shown) => normalizeLanding({ ...landing, shown: !!shown });
 
 /** The landing page on a scene (or null when the scene has none). */
 export const landingOf = (scene) => (scene?.flags?.[MODULE_ID]?.[LANDING_FLAG] ? normalizeLanding(scene.flags[MODULE_ID][LANDING_FLAG]) : null);
@@ -95,7 +103,7 @@ export const restockAll = (landing) => normalizeLanding({ ...landing, merchants:
 
 /**
  * Fold the editor's form into a landing page. `fields` is the whole form as a flat object: `title`, `tagline`,
- * `blurb`, `banner`, a `place.<id>` checkbox per tile, and `m.<merchantId>.<field>` for each merchant (`open` is a
+ * `blurb`, a `place.<id>` checkbox per tile, and `m.<merchantId>.<field>` for each merchant (`open` is a
  * checkbox, so absent means off). A merchant the form does not mention is left as it was.
  */
 export function applyForm(landing, fields) {
@@ -106,7 +114,7 @@ export function applyForm(landing, fields) {
     return { ...m, role: f("role") ?? m.role, pitch: f("pitch") ?? m.pitch, open: on(f("open")), buyMultiplier: f("buyMultiplier") ?? m.buyMultiplier, sellRatio: f("sellRatio") ?? m.sellRatio };
   });
   return normalizeLanding({
-    title: fields.title ?? page.title, tagline: fields.tagline ?? page.tagline, blurb: fields.blurb ?? page.blurb, banner: fields.banner ?? page.banner,
-    places: PLACE_IDS.filter((p) => on(fields[`place.${p}`])), merchants,
+    title: fields.title ?? page.title, tagline: fields.tagline ?? page.tagline, blurb: fields.blurb ?? page.blurb,
+    places: PLACE_IDS.filter((p) => on(fields[`place.${p}`])), merchants, shown: page.shown,
   });
 }

@@ -1,7 +1,7 @@
 /**
  * Shadowdark Enhancer — the GM's landing page editor (ApplicationV2).
  *
- * One window per scene: the town's name and welcome text, a banner picture, which tiles players see, and its
+ * One window per scene: the town's name and welcome text, which tiles players see, and its
  * merchants. A merchant is an NPC the GM picks; its own items are the stock (edit them on the NPC), and what the GM
  * sets here is how it presents and prices: role, pitch, prices %, what it buys back for, open or closed, and a
  * Restock that puts the whole shelf back. Edits are kept in a draft and written once, on Save, as the scene's
@@ -24,8 +24,7 @@ export class TownEditorApp extends HandlebarsApplicationMixin(ApplicationV2) {
     position: { width: 680, height: 780 },
     window: { icon: "fa-solid fa-landmark", title: "SDE.town.editor.title", resizable: true },
     actions: {
-      pickBanner: TownEditorApp.prototype._onPickBanner,
-      clearBanner: TownEditorApp.prototype._onClearBanner,
+      openScene: TownEditorApp.prototype._onOpenScene,
       addMerchant: TownEditorApp.prototype._onAddMerchant,
       removeMerchant: TownEditorApp.prototype._onRemoveMerchant,
       restockMerchant: TownEditorApp.prototype._onRestockMerchant,
@@ -97,17 +96,8 @@ export class TownEditorApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return applyForm(this.draft, fields);
   }
 
-  _onPickBanner() {
-    return new foundry.applications.apps.FilePicker.implementation({
-      type: "image", current: this.draft.banner,
-      callback: (path) => { this.draft = normalizeLanding({ ...this._collect(), banner: path }); this.render(); },
-    }).browse();
-  }
-
-  _onClearBanner() {
-    this.draft = normalizeLanding({ ...this._collect(), banner: "" });
-    return this.render();
-  }
+  /** The picture the landing page is drawn over is the scene's own background; it is set in the scene's settings. */
+  _onOpenScene() { return this.scene?.sheet?.render(true); }
 
   _onAddMerchant() {
     const picked = this.element.querySelector("select[name=addActor]")?.value;

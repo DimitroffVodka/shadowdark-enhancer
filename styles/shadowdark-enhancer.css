@@ -5677,8 +5677,8 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 
 /* Town landing page editor (GM). Kit parts only; these are its own layout rules. */
 .sde-ui.sde-town-editor .te-crest { display: grid; place-items: center; font-size: 22px; color: var(--ui-frame); }
-.sde-ui.sde-town-editor .te-banner { display: flex; gap: 6px; align-items: center; }
-.sde-ui.sde-town-editor .te-banner > input { flex: 1 1 auto; min-width: 0; }
+.sde-ui.sde-town-editor .te-banner { display: flex; gap: 12px; align-items: center; }
+.sde-ui.sde-town-editor .te-picture-note { flex: 1 1 auto; min-width: 0; font-size: 12.5px; line-height: 1.4; }
 .sde-ui.sde-town-editor .te-places { gap: 6px 18px; }
 .sde-ui.sde-town-editor .te-merchant .ui-card-head { align-items: flex-start; }
 .sde-ui.sde-town-editor .te-portrait { flex: 0 0 auto; width: 52px; height: 52px; border: 1px solid var(--ui-frame); border-radius: var(--ui-r); background: var(--ui-raised); overflow: hidden; }
@@ -5690,57 +5690,47 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-ui.sde-town-editor .te-add > select { flex: 1 1 auto; width: auto; }
 @container (max-width: 520px) { .sde-ui.sde-town-editor .te-nums { grid-template-columns: repeat(2, minmax(0, 1fr)); } .sde-ui.sde-town-editor .te-nums .ui-switch { justify-self: start; } }
 
-/* Town landing page and Town shop. Tokens only (the UI kit, sde-ui.css); no hard-coded colour, no theme selector.
+/* Town landing page and Town shop. Tokens only (the UI kit, sde-ui.css), except the landing menu, which keeps the dark book over a painting.
    The art is the module's own bastion illustrations, so a town looks finished before the GM uploads anything. */
 .sde-ui [hidden] { display: none !important; }
 
-/* ── the street: the town's banner when the GM has not chosen a picture ─────────────────────────────── */
-.sde-ui .tl-banner { flex: 0 0 auto; background: var(--ui-panel); border-bottom: 1px solid var(--ui-line); overflow: hidden; }
-.sde-ui .tl-photo { display: block; width: 100%; height: 190px; object-fit: cover; }
-.sde-ui .tl-street { display: flex; align-items: flex-end; justify-content: space-between; gap: 4px; height: 190px; padding: 0 16px; border-bottom: 4px double var(--ui-frame); background: repeating-linear-gradient(0deg, transparent 0 7px, var(--ui-hover) 7px 8px); }
-.sde-ui .tl-street img { display: block; width: auto; min-width: 0; flex: 0 1 auto; object-fit: contain; object-position: bottom; margin-bottom: -1px; }
-.sde-ui .tl-street .b1 { height: 150px; } .sde-ui .tl-street .b2 { height: 250px; } .sde-ui .tl-street .b3 { height: 190px; }
-.sde-ui .tl-street .b4 { height: 240px; } .sde-ui .tl-street .b5 { height: 180px; } .sde-ui .tl-street .b6 { height: 138px; }
-@container (max-width: 560px) { .sde-ui .tl-street .b5, .sde-ui .tl-street .b6 { display: none; } .sde-ui .tl-street { justify-content: space-around; } }
-
-/* ── the title row ──────────────────────────────────────────────────────────────────────────────────── */
-.sde-ui .tl-crest { display: grid; place-items: center; font-size: 22px; color: var(--ui-frame); background: var(--ui-raised); box-shadow: inset 0 0 0 3px var(--ui-raised), inset 0 0 0 4px var(--ui-line); }
-.sde-ui .tl-town .ui-title { font-size: 34px; }
-.sde-ui .tl-gm { display: flex; gap: 4px; flex: 0 0 auto; }
-.sde-ui .tl-blurb { margin: 2px auto 0; max-width: 62ch; text-align: center; font-style: italic; color: var(--ui-body); font-size: 14px; line-height: 1.5; }
-.sde-ui .tl-orn { display: flex; align-items: center; gap: 12px; margin: 0 auto; width: min(360px, 80%); }
-.sde-ui .tl-orn::before, .sde-ui .tl-orn::after { content: ""; flex: 1 1 auto; height: 1px; background: var(--ui-line); }
-.sde-ui .tl-orn i { flex: 0 0 auto; width: 7px; height: 7px; transform: rotate(45deg); background: var(--ui-frame); }
-
-/* ── the market: one stall per merchant ─────────────────────────────────────────────────────────────── */
-.sde-ui .tl-stalls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-@container (max-width: 600px) { .sde-ui .tl-stalls { grid-template-columns: minmax(0, 1fr); } }
-.sde-ui .tl-stall { display: grid; grid-template-columns: 108px minmax(0, 1fr); gap: 4px 14px; padding: 12px; transition: border-color .12s; }
-.sde-ui .tl-stall:hover { border-color: var(--ui-frame); }
 .sde-ui .tl-plaque { flex: 0 0 auto; width: 108px; height: 108px; display: grid; place-items: center; overflow: hidden; border: 1px solid var(--ui-frame); border-radius: var(--ui-r); background: var(--ui-raised); box-shadow: inset 0 0 0 3px var(--ui-raised), inset 0 0 0 4px var(--ui-line); }
 /* an NPC's own portrait fills the plaque; the bastion's SVG shop art has empty margins, so it is drawn larger */
 .sde-ui .tl-plaque img { width: 100%; height: 100%; object-fit: cover; }
 .sde-ui .tl-plaque img[src$=".svg"] { object-fit: contain; padding: 2px; transform: scale(1.3); transform-origin: 50% 62%; }
-.sde-ui .tl-stall-body { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; min-width: 0; }
-.sde-ui .tl-stall-name { margin: 0; font: 400 22px/1.1 var(--ui-title); color: var(--ui-text); overflow-wrap: anywhere; }
-.sde-ui .tl-pitch { margin: 0; font-style: italic; color: var(--ui-muted); font-size: 12.5px; line-height: 1.4; }
-.sde-ui .tl-stall-foot { grid-column: 1 / -1; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 6px; padding-top: 10px; border-top: 1px dashed var(--ui-line); }
-.sde-ui .tl-stall-foot .tl-visit { margin-left: auto; }
-.sde-ui .tl-stall.closed { border-style: dashed; }
-.sde-ui .tl-stall.closed .tl-plaque img { filter: grayscale(1); opacity: .4; }
-.sde-ui .tl-stall.closed .tl-stall-name { color: var(--ui-muted); }
 
-/* ── around town: the other windows, one tile each ──────────────────────────────────────────────────── */
-.sde-ui .tl-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
-@container (max-width: 600px) { .sde-ui .tl-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-.sde-ui .tl-tile { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-height: 92px; padding: 12px; margin: 0; border: 1px solid var(--ui-line); border-radius: var(--ui-r2); background: var(--ui-panel); color: var(--ui-text); text-align: left; font: inherit; cursor: pointer; }
-.sde-ui .tl-tile:hover:not(:disabled) { border-color: var(--ui-frame); background: var(--ui-raised); }
-.sde-ui .tl-tile > i { font-size: 20px; color: var(--ui-frame); margin-bottom: 2px; }
-.sde-ui .tl-tile > b { font: 400 18px/1.1 var(--ui-title); color: var(--ui-text); }
-.sde-ui .tl-tile > small { color: var(--ui-muted); font-size: 11.5px; line-height: 1.35; }
-.sde-ui .tl-tile .ui-tag { margin-left: auto; }
-.sde-ui .tl-tile-head { display: flex; align-items: center; gap: 8px; width: 100%; }
-.sde-ui .tl-tile:disabled { border-style: dashed; opacity: .6; cursor: not-allowed; }
+/* ── the landing page: a menu down the right of the scene's own picture ─────────────────────────────────
+   Frameless. The scene's painting is the page; this is the menu over it. It sits over a painting, so it keeps the
+   dark book whatever the theme is (the tokens are set again here, and .tm-root beats the kit's light rule).
+   --sde-town-side (Foundry's sidebar: the tab strip alone when closed, the open panel too when open) and
+   --sde-town-top (below the Crawl Strip when it would cover the text) are set by town-app.mjs. */
+.sde-ui.sde-town.tm-root { position: fixed; inset: 0 0 0 auto; width: min(calc(518px + var(--sde-town-side, 42px)), 100vw); z-index: 25; margin: 0; padding: 0; background: none; border: 0; box-shadow: none; backdrop-filter: none; pointer-events: none; color-scheme: dark;
+  --ui-page: #000; --ui-panel: #0d0d0d; --ui-raised: #1a1a1a; --ui-hover: #161616; --ui-text: #fff; --ui-body: #ececec; --ui-muted: #a0a0a0; --ui-line: #443c3c; --ui-frame: #c9c9c9; --ui-gold: #c9aa58; }
+.sde-town .tm-menu { position: relative; pointer-events: auto; height: 100%; overflow-y: auto; display: flex; flex-direction: column; gap: 3px; padding: var(--sde-town-top, 38px) calc(var(--sde-town-side, 42px) + 22px) 22px 140px; color: var(--ui-body); font-family: var(--ui-font);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--ui-page) 80%, transparent) 34%, color-mix(in srgb, var(--ui-page) 92%, transparent)); }
+.sde-town .tm-gm { position: absolute; top: 8px; right: calc(var(--sde-town-side, 42px) + 18px); display: flex; gap: 2px; }
+.sde-town .tm-crest { align-self: center; flex: 0 0 auto; width: 60px; height: 60px; display: grid; place-items: center; font-size: 26px; color: var(--ui-frame); background: var(--ui-panel); border: 1px solid var(--ui-frame); border-radius: var(--ui-r); box-shadow: inset 0 0 0 4px var(--ui-panel), inset 0 0 0 5px var(--ui-line); }
+.sde-town .tm-title { margin: 8px 0 0; padding: 0; border: 0; text-align: center; font: 400 54px/1 var(--ui-title); color: var(--ui-text); overflow-wrap: anywhere; }
+.sde-town .tm-tag { margin: 6px 0 2px; text-align: center; font-style: italic; color: var(--ui-muted); font-size: 13px; }
+.sde-town .tm-blurb { margin: 2px 0 4px; text-align: center; color: var(--ui-body); font-size: 13px; line-height: 1.5; }
+.sde-town .tm-orn { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; margin: 8px 0; }
+.sde-town .tm-orn::before, .sde-town .tm-orn::after { content: ""; flex: 1 1 auto; height: 1px; background: var(--ui-line); }
+.sde-town .tm-orn i { flex: 0 0 auto; width: 8px; height: 8px; transform: rotate(45deg); background: var(--ui-gold); }
+.sde-town .tm-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.sde-town .tm-item { display: flex; align-items: center; justify-content: flex-start; gap: 16px; width: 100%; height: auto; min-height: 0; margin: 0; padding: 7px 8px; line-height: 1.2; border: 0; border-radius: var(--ui-r); background: transparent; box-shadow: none; color: var(--ui-text); text-align: left; font: inherit; cursor: pointer; }
+.sde-town .tm-item:hover:not(:disabled), .sde-town .tm-item:focus-visible { background: var(--ui-hover); }
+.sde-town .tm-dia { flex: 0 0 auto; width: 10px; height: 10px; transform: rotate(45deg); border: 1px solid var(--ui-gold); }
+.sde-town .tm-item:hover:not(:disabled) .tm-dia, .sde-town .tm-item:focus-visible .tm-dia { background: var(--ui-gold); }
+.sde-town .tm-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sde-town .tm-txt b { font: 400 28px/1.1 var(--ui-title); color: var(--ui-text); overflow-wrap: anywhere; }
+.sde-town .tm-item.place .tm-txt b { font-size: 24px; }
+.sde-town .tm-txt small { color: var(--ui-muted); font-size: 12px; line-height: 1.3; }
+.sde-town .tm-item:disabled { opacity: .45; cursor: not-allowed; }
+.sde-town .tm-empty { margin: 8px 0; text-align: center; color: var(--ui-muted); font-style: italic; }
+.sde-town .tm-empty .ui-btn { margin-top: 8px; font-style: normal; }
+.sde-town .tm-foot { margin: auto 0 0; padding-top: 10px; text-align: center; font-size: 12px; color: var(--ui-muted); }
+.sde-town .tm-foot b { color: var(--ui-gold); font-weight: 600; }
+@media (max-width: 720px) { .sde-ui.sde-town.tm-root { width: 100vw; } .sde-town .tm-menu { padding-left: 56px; background: color-mix(in srgb, var(--ui-page) 88%, transparent); } }
 
 /* ── the shopfront ──────────────────────────────────────────────────────────────────────────────────── */
 .sde-ui .tl-shop .ui-head > .tl-plaque { width: 84px; height: 84px; }

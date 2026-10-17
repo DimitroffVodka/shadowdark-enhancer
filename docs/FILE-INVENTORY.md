@@ -643,13 +643,13 @@ A place the party owns: the four types and twenty upgrades, built a week at a ti
 
 | File | Lines | Description |
 |---|---:|---|
-| `town-core.mjs` | 112 | A town's landing page flag: merchants as NPC references, restock revision, the editor's form folded in (pure). |
-| `town-view.mjs` | 94 | What the Town window and the shopfront show: ware cards, sell rows, tiles, the buyer (pure). |
-| `town-live.mjs` | 35 | What the two town windows share on the Foundry side: the buyer, redrawing on change, the tiles' windows. |
-| `town-app.mjs` | 111 | The Town window players see on a landing scene: stalls, tiles, the GM's pencil and restock. |
+| `town-core.mjs` | 120 | A town's landing page flag: merchants as NPC references, restock revision, the editor's form folded in (pure). |
+| `town-view.mjs` | 88 | What the Town window and the shopfront show: ware cards, sell rows, tiles, the buyer (pure). |
+| `town-live.mjs` | 46 | What the two town windows share on the Foundry side: the buyer, redrawing on change, the tiles' windows. |
+| `town-app.mjs` | 137 | The Town window players see on a landing scene: stalls, tiles, the GM's pencil and restock. |
 | `town-shop-app.mjs` | 168 | One merchant's shopfront: buy and sell as a chosen character with no GM, categories, search. |
-| `town-editor-app.mjs` | 141 | The GM's landing page editor window: town text, banner, tiles, merchants. |
-| `town-entry-points.mjs` | 55 | The Landing page entry in the Scenes directory's right-click menu (GM). |
+| `town-editor-app.mjs` | 131 | The GM's landing page editor window: town text, banner, tiles, merchants. |
+| `town-entry-points.mjs` | 88 | The Landing page entry in the Scenes directory's right-click menu (GM). |
 <!-- inventory:scripts:end -->
 ---
 

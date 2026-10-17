@@ -72,12 +72,6 @@ export function placeTiles(places, { isGM, hasParty, downtimeOpen, activeQuests,
   });
 }
 
-/** The header's headline numbers. */
-export const townStats = ({ open, total, activeQuests, t }) => [
-  { label: t("SDE.town.stat.stalls"), value: `${open} / ${total}` },
-  { label: t("SDE.town.stat.quests"), value: String(activeQuests) },
-];
-
 /** The price note on a shopfront: how far the merchant's prices sit from list, or "" at list price. */
 export function priceNote(merchant, t) {
   const pct = (merchant?.buyMultiplier ?? 100) - 100;

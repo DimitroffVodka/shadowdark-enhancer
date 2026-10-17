@@ -3,7 +3,18 @@
  *
  * Which character buys, redrawing when the world changes under an open window, and the windows the tiles open.
  */
+import { replaceModuleFlag } from "../shared/module-flags.mjs";
+import { LANDING_FLAG, landingOf, setShown } from "./town-core.mjs";
 import { pickBuyer } from "./town-view.mjs";
+
+/**
+ * The GM's switch, for the whole table: the scene's page goes up or away on every client (town-entry-points.mjs
+ * follows the change). Any scene can have a page: the first time the GM puts one up it is made, empty, with the
+ * scene's own name and every tile on.
+ */
+export async function switchTown(scene, shown) {
+  await replaceModuleFlag(scene, LANDING_FLAG, setShown(landingOf(scene) ?? {}, shown));
+}
 
 export const characters = () => game.actors.filter((a) => a.type === "Player");
 

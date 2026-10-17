@@ -1,27 +1,32 @@
-// The Town window players see on a landing scene. state = player | gm | photo | empty | empty-gm (add -full for the whole
-// window without scrolling). Built with the window's own view functions. Real window: 780 x 760, ApplicationV2.
-import { placeTiles, purseText, townStats } from "../../../scripts/town/town-view.mjs";
+// The landing page players see: the scene's own picture with this menu down the right. state = player | gm | empty |
+// empty-gm. Built with the window's own view functions. The real window has no frame; the harness draws one, so the
+// fixture hides it. The painting is a SAMPLE drawn for the docs in the harness cache (never in the repo); the real one is the scene's own.
+import { placeTiles, purseText } from "../../../scripts/town/town-view.mjs";
 import { PLACE_IDS } from "../../../scripts/town/town-core.mjs";
 import { MERCHANTS, COINS, ACTOR, t } from "./_town.mjs";
 
-const toolbar = `<span>State:</span>${["player", "player-full", "gm", "photo", "empty", "empty-gm"].map((s) => `<button data-action="s" data-state="${s}">${s}</button>`).join("")}`;
+const css = `
+html { background: #000 url(/cache/lp-sample-backdrop.jpg) 0 38% / cover no-repeat fixed !important; }
+body { background: none !important; }
+.sde-ui.sde-town.tm-root { position: fixed !important; inset: 0 0 0 auto !important; width: min(560px, 100vw) !important; height: 100vh !important; max-height: none !important; transform: none !important; }
+.sde-ui.sde-town, .sde-ui.sde-town * { backdrop-filter: none !important; }
+.sde-ui.sde-town .window-header { display: none; }
+.sde-ui.sde-town .window-content { padding: 0; background: none; overflow: visible; }
+`;
+const toolbar = `<span>State:</span>${["player", "gm", "empty", "empty-gm"].map((s) => `<button data-action="s" data-state="${s}">${s}</button>`).join("")}`;
 const build = (state) => {
-  const full = state.endsWith("-full"), s = state.replace("-full", "");
-  const merchants = s.startsWith("empty") ? [] : MERCHANTS;
-  const open = merchants.filter((m) => m.open).length, isGM = s === "gm" || s === "empty-gm";
+  const empty = state.startsWith("empty"), isGM = state === "gm" || state === "empty-gm";
   return {
-    toolbar, ...(full ? { height: 1180 } : {}),
+    toolbar,
     context: {
       townName: "Hollowmere", tagline: "A market town at the edge of the Western Reach",
-      blurb: "The fair has drawn every trader from three valleys. The smithy rings from dawn, and the Flagon has never once closed its doors.",
-      bannerImg: s === "photo" ? "modules/shadowdark-enhancer/assets/scenes/arena/greybanner-arena.webp" : "",
-      stats: townStats({ open, total: merchants.length, activeQuests: 3, t }), merchants, openCount: open,
+      blurb: "", merchants: empty ? [] : MERCHANTS.slice(0, 3).concat({ ...MERCHANTS[3], open: false }),
       places: placeTiles(PLACE_IDS, { isGM, hasParty: true, downtimeOpen: false, activeQuests: 3, t }),
       isGM, actorName: ACTOR, purse: purseText(COINS),
     },
   };
 };
 export default {
-  previewHeight: 760, title: "Hollowmere", icon: "fa-solid fa-landmark", classes: ["shadowdark-enhancer", "sde-ui", "sde-town"], resizable: true, width: 780, height: 760,
+  previewHeight: 860, title: "Hollowmere", classes: ["shadowdark-enhancer", "sde-ui", "sde-town", "tm-root"], width: 560, height: 860, css,
   template: "templates/town/town-landing.hbs", initial: "player", toolbar, actions: { s: { state: "{state}" } }, build,
 };

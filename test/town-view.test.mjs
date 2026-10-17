@@ -5,7 +5,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { shelf } from "../scripts/merchant/shop-core.mjs";
 import {
-  priceParts, purseText, plainText, wareCards, sellRows, placeTiles, townStats, priceNote, pickBuyer, CATEGORIES,
+  priceParts, purseText, plainText, wareCards, sellRows, placeTiles, priceNote, pickBuyer, CATEGORIES,
 } from "../scripts/town/town-view.mjs";
 
 const t = (key, data) => (data ? `${key} ${JSON.stringify(data)}` : key);
@@ -96,8 +96,7 @@ test("tiles: only the places left on, in order, with the ones that cannot open n
   assert.deepEqual(placeTiles([], base), []);
 });
 
-test("the headline numbers and the price note", () => {
-  assert.deepEqual(townStats({ open: 3, total: 4, activeQuests: 2, t }).map((s) => s.value), ["3 / 4", "2"]);
+test("the price note", () => {
   assert.equal(priceNote({ buyMultiplier: 110 }, t), 'SDE.town.prices {"sign":"+","pct":10}');
   assert.equal(priceNote({ buyMultiplier: 80 }, t), 'SDE.town.prices {"sign":"-","pct":20}');
   assert.equal(priceNote({ buyMultiplier: 100 }, t), "");
