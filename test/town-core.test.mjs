@@ -6,7 +6,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import {
-  PLACE_IDS, PLACE_LABEL_KEYS, normalizeMerchant, normalizeLanding, landingOf, linkableNpcs, waresCount,
+  PLACE_IDS, PLACE_LABEL_KEYS, GAME_DEFAULTS, normalizeGames, normalizeMerchant, normalizeLanding, landingOf, linkableNpcs, waresCount,
   addMerchant, removeMerchant, restockMerchant, restockAll, applyForm, idOk, setShown,
 } from "../scripts/town/town-core.mjs";
 
@@ -28,7 +28,7 @@ test("a merchant needs a usable id and an NPC, and every value is kept in range"
 
 test("a landing page always has every field, keeps the places in order, and drops unusable merchants", () => {
   const empty = normalizeLanding(undefined);
-  assert.deepEqual(empty, { title: "", tagline: "", blurb: "", places: PLACE_IDS, merchants: [], shown: true });
+  assert.deepEqual(empty, { title: "", tagline: "", blurb: "", places: PLACE_IDS, merchants: [], games: { on: false, maxBet: 10, edge: 5 }, shown: true });
   const page = normalizeLanding({ title: " Hollowmere ", places: ["party", "bogus", "quests"], merchants: [{ id: "m1", actorId: "a1" }, { id: "bad.id", actorId: "a2" }, { id: "m1", actorId: "a3" }, { id: "m2", actorId: "a1" }] });
   assert.equal(page.title, "Hollowmere");
   assert.deepEqual(page.places, ["quests", "party"]);
@@ -47,6 +47,26 @@ test("the page is up for the table until the GM switches it off, and no other ed
   assert.equal(restockAll(off).shown, false);
   assert.equal(addMerchant(off, "a2", counter()).shown, false);
   assert.equal(removeMerchant(off, "m1").shown, false);
+});
+
+test("the games table is off until the GM turns it on, and its limits stay in range", () => {
+  assert.deepEqual(normalizeGames(undefined), GAME_DEFAULTS);
+  assert.deepEqual(normalizeGames({ on: true, maxBet: 25.4, edge: 12 }), { on: true, maxBet: 25, edge: 12 });
+  assert.deepEqual(normalizeGames({ on: "on", maxBet: 99999, edge: 99 }), { on: true, maxBet: 1000, edge: 50 });
+  assert.deepEqual(normalizeGames({ on: "false", maxBet: 0, edge: -4 }), { on: false, maxBet: 1, edge: 0 });
+  assert.deepEqual(normalizeGames({ maxBet: "lots", edge: "few" }), GAME_DEFAULTS);
+  assert.deepEqual(normalizeLanding({ games: { on: true } }).games, { on: true, maxBet: 10, edge: 5 });
+});
+
+test("the editor's form sets the games table, and a form that does not mention it leaves it alone", () => {
+  const page = normalizeLanding({ games: { on: true, maxBet: 50, edge: 10 }, title: "A" });
+  assert.deepEqual(applyForm(page, { title: "B" }).games, { on: true, maxBet: 50, edge: 10 });
+  assert.deepEqual(applyForm(page, { "games.on": "on", "games.maxBet": "25", "games.edge": "3" }).games, { on: true, maxBet: 25, edge: 3 });
+  assert.equal(applyForm(page, { "games.maxBet": "25", "games.edge": "3" }).games.on, false);   // an unticked box is absent
+  assert.equal(applyForm(normalizeLanding({}), { "games.on": "on", "games.maxBet": "5", "games.edge": "0" }).games.on, true);
+  // the rest of the page rides along with the games table
+  assert.equal(restockAll(page).games.maxBet, 50);
+  assert.equal(setShown(page, false).games.edge, 10);
 });
 
 test("landingOf reads the scene's flag, or null when there is none", () => {
@@ -132,6 +152,6 @@ test("a merchant the form does not mention is left alone, and a bad number is cl
 
 test("every tile has a label in en.json", () => {
   const en = JSON.parse(fs.readFileSync(new URL("../languages/en.json", import.meta.url), "utf8"));
-  assert.deepEqual(Object.keys(PLACE_LABEL_KEYS), PLACE_IDS);
+  assert.deepEqual(Object.keys(PLACE_LABEL_KEYS), [...PLACE_IDS, "games"]);   // the games table is an entry too, with its own switch
   for (const key of Object.values(PLACE_LABEL_KEYS)) assert.ok(en[key], key);
 });

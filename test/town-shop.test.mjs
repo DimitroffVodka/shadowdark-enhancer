@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import { buyWare, sellItem } from "../scripts/merchant/town-shop.mjs";
 import { addToPurse } from "../scripts/shared/coins.mjs";
 import { applyExtortion, hasExtortion } from "../scripts/downtime/downtime-effects-core.mjs";
+import { entriesFrom } from "../scripts/town/town-log-core.mjs";
 
 const MOD = "shadowdark-enhancer";
 const setPath = (obj, path, value) => {
@@ -68,7 +69,7 @@ test("a buy charges the buyer, hands over the units asked for, records the ledge
   const hero = actor({ id: "a", name: "Creeg", gp: 10 });
   const npc = merchantActor([rope()]);
   const io = makeIo({ characters: [hero] });
-  const res = await buyWare({ buyer: hero, merchantActor: npc, merchant, wareId: "w1", quantity: 2 }, io);
+  const res = await buyWare({ buyer: hero, merchantActor: npc, merchant, wareId: "w1", quantity: 2, sceneId: "s1" }, io);
   assert.equal(res.ok, true);
   assert.equal(res.units, 2);
   assert.deepEqual(res.price, { gp: 2, sp: 0, cp: 0 });
@@ -79,6 +80,9 @@ test("a buy charges the buyer, hands over the units asked for, records the ledge
   assert.equal(io.log.chat.length, 1);
   assert.equal(io.log.chat[0].speaker.alias, "Hargrave");
   assert.equal(npc.updates.length, 0, "the merchant is never written");
+  // the card carries what the sales log reads: who paid what to whom, for what, in which town
+  const [entry] = entriesFrom([{ id: "x", timestamp: 1, flags: io.log.chat[0].flags }]);
+  assert.deepEqual([entry.kind, entry.sceneId, entry.placeId, entry.place, entry.charId, entry.charName, entry.what, entry.qty, entry.net], ["buy", "s1", "m1", "Hargrave", "a", "Creeg", "Rope", 2, -200]);
 });
 
 test("the next buy adds to the buyer's own earlier total", async () => {
@@ -181,13 +185,15 @@ test("a sale takes the item, pays the merchant's ratio and leaves the merchant a
   const hero = actor({ id: "a", name: "Creeg", gp: 0, items: [sword] });
   const npc = merchantActor([rope()]);
   const io = makeIo({ characters: [hero] });
-  const res = await sellItem({ seller: hero, merchantActor: npc, merchant, itemId: "s1", quantity: 1 }, io);
+  const res = await sellItem({ seller: hero, merchantActor: npc, merchant, itemId: "s1", quantity: 1, sceneId: "s1" }, io);
   assert.equal(res.ok, true);
   assert.deepEqual(res.price, { gp: 4, sp: 5, cp: 0 });
   assert.equal(sword.deleted, true);
   assert.deepEqual(hero.system.coins, { gp: 4, sp: 5, cp: 0 });
   assert.equal(npc.updates.length, 0);
   assert.equal(io.log.chat[0].speaker.alias, "Hargrave");
+  const [entry] = entriesFrom([{ id: "x", timestamp: 1, flags: io.log.chat[0].flags }]);
+  assert.deepEqual([entry.kind, entry.sceneId, entry.placeId, entry.what, entry.net], ["sell", "s1", "m1", "Longsword", 450]);
 });
 
 test("selling part of a stack lowers it, and a typed-in 1000 sells only what is held", async () => {

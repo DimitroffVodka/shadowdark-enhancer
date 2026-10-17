@@ -36,6 +36,15 @@
     </section>
 
     <section class="ui-group">
+      <h3 class="ui-h"><span>{{localize "SDE.town.editor.games"}}</span><small>{{localize "SDE.town.editor.gamesHint"}}</small></h3>
+      <label class="ui-switch"><input type="checkbox" name="games.on" {{checked page.games.on}}><span>{{localize "SDE.town.editor.gamesOn"}}</span></label>
+      <div class="ui-cols-2">
+        <label class="ui-field"><span class="ui-label">{{localize "SDE.town.editor.maxBet"}}</span><input type="number" name="games.maxBet" value="{{page.games.maxBet}}" min="1" max="1000" step="1"></label>
+        <label class="ui-field"><span class="ui-label">{{localize "SDE.town.editor.edge"}}</span><input type="number" name="games.edge" value="{{page.games.edge}}" min="0" max="50" step="1"></label>
+      </div>
+    </section>
+
+    <section class="ui-group">
       <h3 class="ui-h"><span>{{localize "SDE.town.editor.merchants"}}</span><small>{{merchants.length}}</small></h3>
       {{#each merchants}}
       <article class="ui-card te-merchant {{#if missing}}bad{{/if}}" data-merchant-id="{{id}}">

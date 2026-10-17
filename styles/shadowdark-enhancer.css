@@ -5783,3 +5783,32 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-ui .tl-ware-name[data-action]:hover { text-decoration: underline; text-underline-offset: 3px; }
 .sde-ui .tl-ware-main .ui-icon { width: 22px; height: 22px; }
 .sde-ui .tl-ware-main .ui-icon.on { color: var(--ui-text); border-color: var(--ui-frame); background: var(--ui-raised); }
+
+/* ── the sales log and the games table ──────────────────────────────────────────────────────────────────
+   Both are kit windows (sde-ui). The sales log is a list of rows; the games table is a wager and four game cards. */
+.sde-ui .tl-log-art, .sde-ui .tg-crest { display: grid; place-items: center; font-size: 22px; color: var(--ui-frame); }
+.sde-ui .tl-log .ui-title, .sde-ui .tg-games .ui-title { font-size: 26px; }
+.sde-ui .tl-log .tl-cats select { width: auto; min-width: 190px; height: 24px; margin-left: auto; }
+.sde-ui .tl-log-kind { display: grid; place-items: center; color: var(--ui-gold); font-size: 13px; }
+.sde-ui .tl-amount { white-space: nowrap; color: var(--ui-muted); }
+.sde-ui .tl-amount.gain { color: var(--ui-text); }
+.sde-ui .tl-amount.loss, .sde-ui .tl-loss { color: var(--ui-danger-text); }
+
+.sde-ui .tg-wager { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.sde-ui .tg-games .tl-step input { width: 76px !important; }
+.sde-ui .tg-games .tl-step .ui-muted { padding: 0 8px; }
+.sde-ui .tg-wager-text { color: var(--ui-gold); font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sde-ui .tg-chips { margin-left: auto; }
+.sde-ui .tg-chips button.ui-chip { cursor: pointer; font: inherit; font-size: 12px; }
+.sde-ui .tg-chips button.ui-chip:hover { border-color: var(--ui-frame); color: var(--ui-text); }
+.sde-ui .tg-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-items: start; }
+@container (max-width: 560px) { .sde-ui .tg-list { grid-template-columns: minmax(0, 1fr); } }
+.sde-ui .tg-game { display: grid; grid-template-columns: 48px minmax(0, 1fr); grid-template-areas: "art main" "play play"; gap: 8px 12px; padding: 12px; background: var(--ui-panel); border: 1px solid var(--ui-line); border-radius: var(--ui-r2); }
+.sde-ui .tg-game:hover { border-color: var(--ui-frame); }
+.sde-ui .tg-art { grid-area: art; width: 48px; height: 48px; display: grid; place-items: center; border: 1px solid var(--ui-line); border-radius: var(--ui-r); background: var(--ui-raised); color: var(--ui-gold); font-size: 20px; }
+.sde-ui .tg-main { grid-area: main; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0; }
+.sde-ui .tg-name { margin: 0; font: 400 21px/1.2 var(--ui-title); color: var(--ui-text); }
+.sde-ui .tg-rules { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--ui-body); }
+.sde-ui .tg-play { grid-area: play; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.sde-ui .tg-result { display: flex; flex-direction: column; gap: 2px; font-size: 13.5px; }
+.sde-ui .tg-result b { font: 400 19px/1.2 var(--ui-title); color: var(--ui-text); }

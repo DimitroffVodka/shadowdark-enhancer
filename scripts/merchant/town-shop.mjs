@@ -17,6 +17,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { canAfford, fromCopper, formatPrice, spendFromPurse } from "../shared/coins.mjs";
 import { purchaseCard } from "../shared/chat-cards.mjs";
 import { esc } from "../shared/esc.mjs";
+import { logFlag, LOG_FLAG } from "../town/town-log-core.mjs";
 import { boughtBy, buyQuote, ledgerPath, sanitizeQty, sellQuote, shelf } from "./shop-core.mjs";
 
 const fail = (error) => ({ ok: false, error });
@@ -28,9 +29,9 @@ export const waresOf = (merchantActor, merchant, io) =>
 
 /**
  * Buy `quantity` bundles of a ware. `merchant` is `{ id, rev, buyMultiplier, sellRatio }` (the landing page's
- * reference to the NPC); `merchantActor` is that NPC.
+ * reference to the NPC); `merchantActor` is that NPC. `sceneId` is the town, for the sales log.
  */
-export async function buyWare({ buyer, merchantActor, merchant, wareId, quantity }, io = null) {
+export async function buyWare({ buyer, merchantActor, merchant, wareId, quantity, sceneId = "" }, io = null) {
   io ??= await liveIo();
   if (!buyer?.isOwner) return fail(io.t(`${KEY}actorNotFound`));
   if (!merchantActor) return fail(io.t(`${KEY}unavailable`));
@@ -66,6 +67,7 @@ export async function buyWare({ buyer, merchantActor, merchant, wareId, quantity
       title: io.t("SDE.merchant.card.purchased"), buyer: buyer.name, img: entry.img || "icons/svg/item-bag.svg", name: entry.name,
       html: `${io.t("SDE.merchant.card.boughtLine", { buyer: `<strong>${esc(buyer.name)}</strong>`, item: `<strong>${esc(entry.name)}${qty > 1 ? ` ×${qty}` : ""}</strong>`, price: formatPrice(price) })}${swingNote}`,
     }),
+    flags: { [MODULE_ID]: { [LOG_FLAG]: logFlag({ kind: "buy", sceneId, placeId: merchant?.id, place: merchantActor.name, charId: buyer.id, charName: buyer.name, what: entry.name, qty, net: -swing.copper }) } },
   });
   return { ok: true, name: entry.name, units: quote.units, price, ledger };
 }
@@ -74,7 +76,7 @@ export async function buyWare({ buyer, merchantActor, merchant, wareId, quantity
  * Sell `quantity` of one of the seller's items to the merchant at its sell ratio. The merchant does not restock
  * what it buys: a player cannot write the NPC, and a returned item would need matching by name.
  */
-export async function sellItem({ seller, merchantActor, merchant, itemId, quantity }, io = null) {
+export async function sellItem({ seller, merchantActor, merchant, itemId, quantity, sceneId = "" }, io = null) {
   io ??= await liveIo();
   if (!seller?.isOwner) return fail(io.t(`${KEY}actorNotFound`));
   const item = seller.items.get(itemId);
@@ -96,6 +98,7 @@ export async function sellItem({ seller, merchantActor, merchant, itemId, quanti
       title: io.t("SDE.merchant.card.sold"), buyer: seller.name, img: item.img || "icons/svg/item-bag.svg", name: item.name,
       html: `${io.t("SDE.merchant.card.soldLine", { seller: `<strong>${esc(seller.name)}</strong>`, item: `<strong>${esc(item.name)}${qty > 1 ? ` ×${qty}` : ""}</strong>`, price: formatPrice(price), ratio: merchant?.sellRatio ?? 50 })}${swingNote}`,
     }),
+    flags: { [MODULE_ID]: { [LOG_FLAG]: logFlag({ kind: "sell", sceneId, placeId: merchant?.id, place: merchantActor?.name ?? "", charId: seller.id, charName: seller.name, what: item.name, qty, net: swing.copper }) } },
   });
   return { ok: true, name: item.name, qty, price };
 }

@@ -30,6 +30,7 @@ export class TownApp extends HandlebarsApplicationMixin(ApplicationV2) {
       visitMerchant: TownApp.prototype._onVisit,
       openPlace: TownApp.prototype._onOpenPlace,
       editTown: TownApp.prototype._onEdit,
+      openLog: TownApp.prototype._onLog,
       restockAll: TownApp.prototype._onRestockAll,
       hideTown: TownApp.prototype._onHide,
     },
@@ -70,7 +71,7 @@ export class TownApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const buyer = buyerFor();
     return Object.assign(context, {
       townName: this.townName, tagline: page.tagline, blurb: page.blurb, merchants,
-      places: placeTiles(page.places, { isGM, hasParty: Party.list().length > 0, downtimeOpen: DowntimeSession.active, activeQuests, t }),
+      places: placeTiles(page.games.on ? [...page.places, "games"] : page.places, { isGM, hasParty: Party.list().length > 0, downtimeOpen: DowntimeSession.active, activeQuests, t }),
       isGM, actorName: buyer?.name ?? "", purse: buyer ? purseText(buyer.system.coins) : "",
     });
   }
@@ -119,10 +120,15 @@ export class TownApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return TownShopApp.open(this.scene, target.dataset.merchantId);
   }
 
-  _onOpenPlace(_event, target) { return openPlace(target.dataset.place); }
+  _onOpenPlace(_event, target) { return openPlace(target.dataset.place, this.scene); }
 
   /** Away for the whole table. */
   _onHide() { return switchTown(this.scene, false); }
+
+  async _onLog() {
+    const { TownLogApp } = await import("./town-log-app.mjs");
+    return TownLogApp.open(this.scene);
+  }
 
   async _onEdit() {
     const { TownEditorApp } = await import("./town-editor-app.mjs");

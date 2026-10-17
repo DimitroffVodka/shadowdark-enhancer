@@ -94,6 +94,8 @@ test("tiles: only the places left on, in order, with the ones that cannot open n
   assert.equal(placeTiles(["party"], { ...base, hasParty: false })[0].disabled, true);
   assert.equal(placeTiles(["quests"], { ...base, activeQuests: 0 })[0].tag, "");
   assert.deepEqual(placeTiles([], base), []);
+  const games = placeTiles(["quests", "games"], base)[1];
+  assert.deepEqual([games.id, games.icon, games.label, games.sub, games.disabled], ["games", "fa-dice", "SDE.town.place.games", "SDE.town.sub.games", false]);
 });
 
 test("the price note", () => {

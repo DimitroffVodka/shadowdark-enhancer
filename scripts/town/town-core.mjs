@@ -4,7 +4,10 @@
  * A landing page is a small flag on the scene the players arrive in. The scene's own picture is the page (set in the
  * scene's settings); the flag holds the menu drawn over it:
  *
- *   flags[MODULE_ID].landing = { title, tagline, blurb, places: [...], merchants: [...], shown }
+ *   flags[MODULE_ID].landing = { title, tagline, blurb, places: [...], merchants: [...], games: {...}, shown }
+ *
+ * `games` is the town's table of games of chance: `{ on, maxBet, edge }` (off until the GM turns it on; the largest
+ * bet in gp; the share of winnings the house keeps, in %). The games themselves are in games-core.mjs.
  *
  * `shown` is the GM's switch for the whole table: every client follows it, so the page goes up for everyone or away
  * from everyone (town-entry-points.mjs). It is on unless it is switched off.
@@ -24,9 +27,11 @@ import { STOCK_TYPES } from "../merchant/shop-core.mjs";
 export const LANDING_FLAG = "landing";
 /** The tiles of the Town window that open other windows, in the order they show. */
 export const PLACE_IDS = ["quests", "journals", "party", "downtime"];
-export const PLACE_LABEL_KEYS = { quests: "SDE.town.place.quests", journals: "SDE.town.place.journals", party: "SDE.town.place.party", downtime: "SDE.town.place.downtime" };
-export const LIMITS = { buyMultiplier: [10, 500], sellRatio: [0, 100] };
+/** `games` is an entry too, but a separate switch (the GM turns the table on), so it is not one of the tiles above. */
+export const PLACE_LABEL_KEYS = { quests: "SDE.town.place.quests", journals: "SDE.town.place.journals", party: "SDE.town.place.party", downtime: "SDE.town.place.downtime", games: "SDE.town.place.games" };
+export const LIMITS = { buyMultiplier: [10, 500], sellRatio: [0, 100], maxBet: [1, 1000], edge: [0, 50] };
 export const DEFAULTS = { open: true, rev: 0, buyMultiplier: 100, sellRatio: 50 };
+export const GAME_DEFAULTS = { on: false, maxBet: 10, edge: 5 };
 
 const text = (value, max) => String(value ?? "").trim().slice(0, max);
 const whole = (value, [lo, hi], fallback) => {
@@ -50,6 +55,15 @@ export function normalizeMerchant(raw) {
   };
 }
 
+/** The town's games table as stored: off unless on, the largest bet in whole gp and the house's share in whole %, each in range. */
+export function normalizeGames(raw) {
+  return {
+    on: on(raw?.on),
+    maxBet: whole(raw?.maxBet, LIMITS.maxBet, GAME_DEFAULTS.maxBet),
+    edge: whole(raw?.edge, LIMITS.edge, GAME_DEFAULTS.edge),
+  };
+}
+
 /** A landing page as stored, with every field present, every value in range, and one reference per NPC. */
 export function normalizeLanding(raw) {
   const seen = new Set(), actors = new Set();
@@ -63,6 +77,7 @@ export function normalizeLanding(raw) {
     title: text(raw?.title, 80), tagline: text(raw?.tagline, 120), blurb: text(raw?.blurb, 600),
     places: Array.isArray(raw?.places) ? PLACE_IDS.filter((p) => raw.places.includes(p)) : [...PLACE_IDS],
     merchants,
+    games: normalizeGames(raw?.games),
     shown: raw?.shown !== false,
   };
 }
@@ -103,8 +118,9 @@ export const restockAll = (landing) => normalizeLanding({ ...landing, merchants:
 
 /**
  * Fold the editor's form into a landing page. `fields` is the whole form as a flat object: `title`, `tagline`,
- * `blurb`, a `place.<id>` checkbox per tile, and `m.<merchantId>.<field>` for each merchant (`open` is a
- * checkbox, so absent means off). A merchant the form does not mention is left as it was.
+ * `blurb`, a `place.<id>` checkbox per tile, `games.on` / `games.maxBet` / `games.edge` for the games table (`on` is a
+ * checkbox, so absent means off), and `m.<merchantId>.<field>` for each merchant (`open` is a checkbox too). A
+ * merchant, or the games table, that the form does not mention is left as it was.
  */
 export function applyForm(landing, fields) {
   const page = normalizeLanding(landing);
@@ -113,8 +129,11 @@ export function applyForm(landing, fields) {
     const f = (name) => fields[`m.${m.id}.${name}`];
     return { ...m, role: f("role") ?? m.role, pitch: f("pitch") ?? m.pitch, open: on(f("open")), buyMultiplier: f("buyMultiplier") ?? m.buyMultiplier, sellRatio: f("sellRatio") ?? m.sellRatio };
   });
+  const games = Object.keys(fields).some((k) => k.startsWith("games."))
+    ? { on: on(fields["games.on"]), maxBet: fields["games.maxBet"] ?? page.games.maxBet, edge: fields["games.edge"] ?? page.games.edge }
+    : page.games;
   return normalizeLanding({
     title: fields.title ?? page.title, tagline: fields.tagline ?? page.tagline, blurb: fields.blurb ?? page.blurb,
-    places: PLACE_IDS.filter((p) => on(fields[`place.${p}`])), merchants, shown: page.shown,
+    places: PLACE_IDS.filter((p) => on(fields[`place.${p}`])), merchants, games, shown: page.shown,
   });
 }

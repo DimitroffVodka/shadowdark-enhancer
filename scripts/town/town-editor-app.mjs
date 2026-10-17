@@ -121,7 +121,8 @@ export class TownEditorApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   async _onSave() {
-    const page = this._collect();
+    // The GM's switch for the table is not the editor's: a window left open must not put back a page they took away.
+    const page = { ...this._collect(), shown: landingOf(this.scene)?.shown ?? this.draft.shown };
     await replaceModuleFlag(this.scene, LANDING_FLAG, page);
     ui.notifications.info(t("SDE.town.editor.saved"));
     return this.close();

@@ -143,15 +143,15 @@ export class TownShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _onBuy(_event, target) {
     const card = target.closest(".tl-ware");
     const quantity = Number(card?.querySelector(".tl-step input")?.value) || 1;
-    return this.#run((buyer) => buyWare({ buyer, merchantActor: this.merchantActor, merchant: this.merchant, wareId: card?.dataset.wareId, quantity }, this._io));
+    return this.#run((buyer) => buyWare({ buyer, merchantActor: this.merchantActor, merchant: this.merchant, wareId: card?.dataset.wareId, quantity, sceneId: this.scene?.id }, this._io));
   }
 
   _onSell(_event, target) {
-    return this.#run((seller) => sellItem({ seller, merchantActor: this.merchantActor, merchant: this.merchant, itemId: target.dataset.itemId, quantity: 1 }, this._io));
+    return this.#run((seller) => sellItem({ seller, merchantActor: this.merchantActor, merchant: this.merchant, itemId: target.dataset.itemId, quantity: 1, sceneId: this.scene?.id }, this._io));
   }
 
   _onSellAll(_event, target) {
-    return this.#run((seller) => sellItem({ seller, merchantActor: this.merchantActor, merchant: this.merchant, itemId: target.dataset.itemId, quantity: seller.items.get(target.dataset.itemId)?.system.quantity ?? 1 }, this._io));
+    return this.#run((seller) => sellItem({ seller, merchantActor: this.merchantActor, merchant: this.merchant, itemId: target.dataset.itemId, quantity: seller.items.get(target.dataset.itemId)?.system.quantity ?? 1, sceneId: this.scene?.id }, this._io));
   }
 
   /** GM: a ware that never runs out (the `unlimitedStock` flag on the NPC's own item), or one that does again. */

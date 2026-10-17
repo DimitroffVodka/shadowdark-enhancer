@@ -36,11 +36,12 @@ export function redrawOnChange(app) {
   return () => hooks.forEach(([name, id]) => Hooks.off(name, id));
 }
 
-/** The window a tile opens. Each is loaded when first asked for. */
-export async function openPlace(id) {
+/** The window a tile opens, for the town on `scene`. Each is loaded when first asked for. */
+export async function openPlace(id, scene) {
   if (id === "quests") return (await import("../quests/quests.mjs")).openQuestLog();
   if (id === "journals") { ui.sidebar?.expand?.(); return ui.sidebar?.changeTab("journal", "primary"); }
   if (id === "party") return (await import("../party/party-app.mjs")).PartyApp.open();
   if (id === "downtime") return (await import("../downtime/downtime-app.mjs")).DowntimeApp.open();
+  if (id === "games") return (await import("./town-games-app.mjs")).TownGamesApp.open(scene);
   return null;
 }
