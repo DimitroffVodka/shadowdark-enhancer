@@ -5806,7 +5806,7 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-ui .tl-shop .ui-title { font-size: 30px; }
 .sde-ui .tl-shop-sub { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 4px; }
 .sde-ui .tl-haggle-chip { border-color: var(--ui-frame); color: var(--ui-text); }
-.sde-ui .tl-pardon { height: 22px; padding: 0 8px; font-size: 11px; }
+.sde-ui .tl-haggle, .sde-ui .tl-pardon { height: 22px; padding: 0 8px; font-size: 11px; }
 .sde-ui .tl-purse { color: var(--ui-gold); white-space: nowrap; }
 .sde-ui .tl-cats { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .sde-ui .tl-cats button.ui-chip { cursor: pointer; font: inherit; font-size: 12px; }

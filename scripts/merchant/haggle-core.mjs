@@ -62,3 +62,11 @@ export function haggleState(actor, merchant) {
     canHaggle: !banned && !done && merchant?.haggle !== false,
   };
 }
+
+/**
+ * The shop header's Haggle control: shown whenever the shop is open to this buyer and the merchant lets buyers bargain
+ * (never because of what is in the cart), enabled only while an attempt is open and no transaction runs.
+ */
+export const haggleControl = (state, merchant, { open = true, busy = false } = {}) => ({
+  show: !!open && merchant?.haggle !== false, canHaggle: state.canHaggle, enabled: state.canHaggle && !busy,
+});

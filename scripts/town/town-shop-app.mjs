@@ -9,7 +9,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { canAfford, fromCopper } from "../shared/coins.mjs";
 import { L as t } from "../shared/i18n.mjs";
 import { buyBack, checkoutCart, haggle, pardon, sellItem, liveIo, waresOf } from "../merchant/town-shop.mjs";
-import { TIER_KEYS, haggleState } from "../merchant/haggle-core.mjs";
+import { TIER_KEYS, haggleControl, haggleState } from "../merchant/haggle-core.mjs";
 import { STOCK_TYPES } from "../merchant/shop-core.mjs";
 import { lotsOf } from "../merchant/lots-core.mjs";
 import { landingOf } from "./town-core.mjs";
@@ -128,10 +128,10 @@ export class TownShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
       cart: {
         lines: cart.lines.map((l) => ({ wareId: l.wareId, name: l.entry.name, img: l.entry.img, qty: l.qty, price: priceParts(fromCopper(l.copper)), swung: l.swung, adjusted: l.adjusted })),
         total: priceParts(fromCopper(cart.total)), totalCopper: cart.total, adjusted: this._cartAdjusted,
-        canHaggle: stand.canHaggle, showHaggle: merchant?.haggle !== false,
         busy: this._busy, tooDear: !canAfford(purse, fromCopper(cart.total)),
       },
       merchant: { id: merchant?.id, name: actor?.name ?? t("SDE.town.editor.missingName"), role: merchant?.role ?? "", pitch: merchant?.pitch ?? "", img: actor?.img || "icons/svg/mystery-man.svg", open },
+      haggle: haggleControl(stand, merchant, { open, busy: this._busy }),
       banned: stand.banned, buyerName: buyer?.name ?? "", canPardon: stand.banned && game.user.isGM,
       haggleChip: stand.haggled && !stand.banned ? (stand.pct ? t("SDE.town.haggle.chip", { tier: t(TIER_KEYS[stand.tier]), pct: `${stand.pct > 0 ? "+" : ""}${stand.pct}` }) : t("SDE.town.haggle.chipFlat", { tier: t(TIER_KEYS[stand.tier]) })) : "",
       priceNote: open ? priceNote(merchant, t) : "", sellRatio: merchant?.sellRatio ?? 50,

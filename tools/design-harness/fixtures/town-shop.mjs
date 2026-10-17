@@ -41,7 +41,7 @@ const soldLots = [
   { id: "l2", name: "Dagger", img: ico("weapons/daggers/dagger-black"), qty: 1, copper: 50, data: { type: "Weapon", system: { ...melee("near", "d4"), properties: ["finesse"] } } },
   { id: "l3", name: "Torch", img: ico("sundries/lights/candle-lit-yellow"), qty: 4, copper: 2, data: { type: "Basic", system: {} } },
 ];
-const toolbar = `<span>State:</span>${["buy", "cart", "haggled", "shaky", "banned", "banned-gm", "cart-full", "sell", "closed", "broke", "gm"].map((s) => `<button data-action="s" data-state="${s}">${s}</button>`).join("")}`;
+const toolbar = `<span>State:</span>${["buy", "cart", "haggled", "shaky", "banned", "banned-gm", "nohaggle", "cart-full", "sell", "closed", "broke", "gm"].map((s) => `<button data-action="s" data-state="${s}">${s}</button>`).join("")}`;
 const build = (state) => {
   const full = state.endsWith("-full"), s = state.replace("-full", "");
   const closed = s === "closed" || s.startsWith("banned"), m = closed ? MERCHANTS[3] : MERCHANTS[0];
@@ -54,13 +54,14 @@ const build = (state) => {
   const priced = priceCart(withCart ? [{ wareId: "w2", qty: 2 }, { wareId: "w4", qty: 1 }, { wareId: "w9", qty: 3 }, { wareId: "w3", qty: 1 }] : [], rows, { merchant, pct: haggledPct, swing: (c) => ({ copper: Math.round(c * 0.85), applied: true, pct: 15 }) });
   const cart = {
     lines: priced.lines.map((l) => ({ wareId: l.wareId, name: l.entry.name, img: l.entry.img, qty: l.qty, price: priceParts(fromCopper(l.copper)), swung: l.swung, adjusted: l.adjusted })),
-    total: priceParts(fromCopper(priced.total)), totalCopper: priced.total, adjusted: priced.adjusted, busy: false, showHaggle: true, canHaggle: !haggledPct && !banned, tooDear: !canAfford(coins, fromCopper(priced.total)),
+    total: priceParts(fromCopper(priced.total)), totalCopper: priced.total, adjusted: priced.adjusted, busy: false, tooDear: !canAfford(coins, fromCopper(priced.total)),
   };
   return {
     toolbar, ...(full ? { height: 1000 } : {}),
     context: {
       cart, merchant: { id: m.id, name: m.name, role: m.role, pitch: m.pitch, img: m.img, open: !closed },
       priceNote: closed ? "" : priceNote(merchant, t), sellRatio: 50, purse: purseText(coins), isGM: s === "gm" || s === "banned-gm", banned, buyerName: "Creeg Greythorn", canPardon: s === "banned-gm",
+      haggle: { show: s !== "nohaggle", canHaggle: !haggledPct && !banned, enabled: !haggledPct && !banned },
       haggleChip: haggledPct ? t("SDE.town.haggle.chip", { tier: t(TIER_KEYS[tier]), pct: `${haggledPct > 0 ? "+" : ""}${haggledPct}` }) : "",
       tab: s === "sell" ? "sell" : "buy",
       tabs: [{ id: "buy", label: t("SDE.town.buy"), icon: "fa-cart-shopping", count: rows.length, active: s !== "sell" }, { id: "sell", label: t("SDE.town.sell"), icon: "fa-coins", count: selling.length, active: s === "sell" }],

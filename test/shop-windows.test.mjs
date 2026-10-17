@@ -60,3 +60,13 @@ test("the merchant window rows carry fact chips and a Details control wired in _
   assert.match(src, /on\("\.sdems-details-btn", "click"/);
   for (const f of ["system.type", "system.damage", "system.ac", "system.properties", "system.description"]) assert.ok(src.includes(`"${f}"`), `${f} missing from the catalog index request`);
 });
+
+test("the town shop's Haggle button is in the header and not in the cart bar", async () => {
+  const hbs = await read("templates/town/town-shop.hbs");
+  const button = hbs.indexOf('data-action="haggle"');
+  assert.ok(button > 0, "haggle control missing");
+  assert.ok(button < hbs.indexOf('<section class="tl-cart"'), "the haggle control must come before the cart bar");
+  assert.ok(hbs.indexOf("</header>") > button, "the haggle control must be inside the header");
+  assert.equal(hbs.split('data-action="haggle"').length, 2, "one haggle control only");
+  assert.doesNotMatch(hbs, /cart\.showHaggle/);
+});

@@ -8,6 +8,7 @@
         {{#if priceNote}}<span class="ui-chip warn" data-tooltip="{{localize 'SDE.town.priceNoteTip'}}">{{priceNote}}</span>{{/if}}
         {{#if merchant.open}}<span class="ui-chip">{{localize "SDE.town.buysBack" pct=sellRatio}}</span>{{/if}}
         {{#if haggleChip}}<span class="ui-chip tl-haggle-chip">{{haggleChip}}</span>{{/if}}
+        {{#if haggle.show}}<button type="button" class="ui-btn ghost tl-haggle" data-action="haggle" {{#unless haggle.enabled}}disabled{{/unless}} data-tooltip="{{#if haggle.canHaggle}}{{localize 'SDE.town.haggle.tip'}}{{else}}{{localize 'SDE.town.haggle.tipDone'}}{{/if}}"><i class="fa-solid fa-comments-dollar"></i> {{localize "SDE.town.haggle.button"}}</button>{{/if}}
         {{#if banned}}<span class="ui-chip warn">{{localize "SDE.town.haggle.bannedNote" name=buyerName}}</span>{{/if}}
         {{#if canPardon}}<button type="button" class="ui-btn ghost tl-pardon" data-action="pardon" data-tooltip="{{localize 'SDE.town.haggle.pardonTip'}}"><i class="fa-solid fa-dove"></i> {{localize "SDE.town.haggle.pardon"}}</button>{{/if}}
       </div>
@@ -132,7 +133,6 @@
     <div class="tl-cart-foot">
       <span class="ui-label">{{localize "SDE.town.cart.total"}}</span>
       <span class="tl-price tl-cart-total">{{#each cart.total}}<span class="tl-coin"><b>{{n}}</b><i>{{u}}</i></span>{{else}}<span class="tl-coin"><b>0</b><i>gp</i></span>{{/each}}</span>
-      {{#if cart.showHaggle}}<button type="button" class="ui-btn ghost" data-action="haggle" {{#if cart.busy}}disabled{{else}}{{#unless cart.canHaggle}}disabled data-tooltip="{{localize 'SDE.town.haggle.tipDone'}}"{{else}}data-tooltip="{{localize 'SDE.town.haggle.tip'}}"{{/unless}}{{/if}}><i class="fa-solid fa-comments-dollar"></i> {{localize "SDE.town.haggle.button"}}</button>{{/if}}
       <button type="button" class="ui-btn" data-action="checkout" data-total="{{cart.totalCopper}}" {{#if cart.busy}}disabled{{else}}{{#if cart.tooDear}}disabled data-tooltip="{{localize 'SDE.town.cannotAfford'}}"{{/if}}{{/if}}><i class="fa-solid fa-cash-register"></i> {{localize "SDE.town.cart.checkout"}}</button>
     </div>
   </section>

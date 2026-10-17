@@ -145,7 +145,7 @@ Change the key under *Configure Controls*.
 
 ## Haggling
 
-The **Haggle** button is in the cart bar, unless the GM switched haggling off
+The **Haggle** button is in the shop header (it does not need anything in the cart), unless the GM switched haggling off
 for that merchant. A character gets **one try per merchant per restock**: roll
 d20 and add the character's Charisma modifier.
 

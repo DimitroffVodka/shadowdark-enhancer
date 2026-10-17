@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { haggleResult, haggleState, haggleFlagPaths } from "../scripts/merchant/haggle-core.mjs";
+import { haggleControl, haggleResult, haggleState, haggleFlagPaths } from "../scripts/merchant/haggle-core.mjs";
 
 const MOD = "shadowdark-enhancer";
 const pctAt = (d20, mod = 0) => { const r = haggleResult(d20, mod); return r.banned ? "ban" : r.pct; };
@@ -39,4 +39,14 @@ test("haggle state reads the character's flags: one attempt per restock, a ban f
 test("flag paths are dotted and refuse an id that is not a key", () => {
   assert.deepEqual(haggleFlagPaths(merchant), { haggle: `flags.${MOD}.shopHaggle.m1`, ban: `flags.${MOD}.shopBan.m1`, banKey: "shopBan.m1" });
   assert.throws(() => haggleFlagPaths({ id: "a.b" }));
+});
+
+test("the header control does not depend on the cart: shown when open and allowed, enabled while an attempt is open", () => {
+  const fresh = haggleState({ flags: {} }, merchant);
+  assert.deepEqual(haggleControl(fresh, merchant), { show: true, canHaggle: true, enabled: true });
+  assert.equal(haggleControl(fresh, merchant, { busy: true }).enabled, false);
+  assert.equal(haggleControl(fresh, { ...merchant, haggle: false }).show, false);
+  assert.equal(haggleControl(fresh, merchant, { open: false }).show, false);
+  const tried = haggleState({ flags: { [MOD]: { shopHaggle: { m1: { rev: 2, pct: -5, tier: "fair" } } } } }, merchant);
+  assert.deepEqual(haggleControl(tried, merchant), { show: true, canHaggle: false, enabled: false });
 });
