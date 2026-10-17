@@ -6265,5 +6265,8 @@
   "SDE.importer.ui.monsterPastePlaceholder": "ENHANCED SYNTHETIC\nA glass-and-brass training construct built to exercise the importer.\nAC 13, HP 9, ATK 1 calibration beam +3 (1d6), MV near, S +1, D +2, C +1, I +0, W +0, Ch -2, AL N, LV 2\nAdaptive Plating. Gains +1 AC after it is hit, until the start of its next turn.",
   "SDE.importer.ui.spellSub": "Pick a spell list, paste the spells, check how they were sorted, then import.",
   "SDE.importer.ui.itemSub": "Paste a price table and the descriptions, match them up, then create the items.",
-  "SDE.importer.ui.tamSub": "Choose which installed art skins each monster, then apply."
+  "SDE.importer.ui.tamSub": "Choose which installed art skins each monster, then apply.",
+  "SDE.stage.tool": "Backdrop",
+  "SDE.stage.campPicture": "Show camp picture",
+  "SDE.stage.hintCampPicture": "Covers the map for everyone until a GM hides it from the Backdrop tool or the camp ends."
 }

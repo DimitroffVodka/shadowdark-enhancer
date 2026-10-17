@@ -86,6 +86,9 @@ designation is a licensing boundary of these assets, separate from the module's
 own code license. Supporting the artists is encouraged at their
 [Patreon](https://www.patreon.com/2minutetabletop).
 
+The seven party camp pictures (forest woods, forest road, open grassland, dense jungle, swamp bog, desert dunes and salt flat camp) are also shown full screen as the
+[Backdrop](docs/wiki/Backdrop.md), under the same licence and with the same credit.
+
 Two kinds of picture are here, and these are the only changes made to them:
 
 - **Built maps** are assembled for this module from the textures and objects of
