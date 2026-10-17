@@ -27,6 +27,7 @@ function setup({ gm = true, stage = null, actors = [] } = {}) {
   const released = { n: 0 }, rendered = { n: 0, opts: [] };
   const mk = () => ({ attrs: {}, style: {}, setAttribute(k, v) { this.attrs[k] = v; }, remove() { body.splice(body.indexOf(this), 1); } });
   globalThis.document = { body: { append: (e) => body.push(e) }, createElement: mk, querySelector: () => body[0] ?? null };
+  globalThis.foundry = { utils: { getRoute: (p) => `/route/${p}` } };
   globalThis.canvas = { tokens: { releaseAll: () => { released.n++; } } };
   globalThis.ui = { controls: { render: (o) => { rendered.n++; rendered.opts.push(o); } } };
   globalThis.Hooks = { once: (n, f) => { hooks[n] = f; }, on: (n, f) => { hooks[n] = f; } };
@@ -143,4 +144,11 @@ test("a hand raise with no party and no map still writes a camp picture", async 
   const e = setup();
   await raiseByHand(null);
   assert.ok(e.written.at(-1).image);
+});
+
+test("the layer draws every picture through fileRoute: world path routed, camp path routed, absolute URL as is", () => {
+  const draw = (image) => { const e = setup({ stage: { shown: true, place: "camp", image } }); e.hooks.ready(); return e.body[0].style.backgroundImage; };
+  assert.equal(draw("worlds/w/stage/boar-abc.webp"), 'url("/route/worlds/w/stage/boar-abc.webp")');
+  assert.equal(draw("modules/shadowdark-enhancer/assets/scenes/encounter/forest-woods-camp.webp"), 'url("/route/modules/shadowdark-enhancer/assets/scenes/encounter/forest-woods-camp.webp")');
+  assert.equal(draw("https://assets.example/x.webp"), 'url("https://assets.example/x.webp")');
 });

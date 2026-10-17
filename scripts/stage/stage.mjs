@@ -6,8 +6,10 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { isNativeParty } from "../party/party.mjs";
 import { campOf } from "../camping/camping.mjs";
-import { imageSrc } from "../encounter/battle-maps/battle-map-picker-core.mjs";
+import { fileRoute } from "../shared/file-route.mjs";
 import { isActiveGM } from "../shared/gm-relay.mjs";
+import { registerPlaces, readPlaces, showPlace } from "./places.mjs";
+import { reshowTarget } from "./places-core.mjs";
 import { campArtFor, campTransition, normalizeStage, showCamp } from "./stage-core.mjs";
 
 const read = () => normalizeStage(game.settings.get(MODULE_ID, "stage"));
@@ -29,7 +31,7 @@ function drawStage() {
     el.setAttribute("aria-hidden", "true");
     document.body.append(el);
   }
-  el.style.backgroundImage = `url("${imageSrc({ image: stage.image }).replace(/["\\]/g, "\\$&")}")`;
+  el.style.backgroundImage = `url("${fileRoute(stage.image).replace(/["\\]/g, "\\$&")}")`;
   // Arrow keys and Delete would otherwise keep driving the canvas hidden underneath.
   if (!wasShown) globalThis.canvas?.tokens?.releaseAll?.();
   wasShown = true;
@@ -83,6 +85,7 @@ export async function onPartyCamp(actor, changed, options) {
 }
 
 export function registerStage() {
+  registerPlaces();
   game.settings.register(MODULE_ID, "stage", {
     scope: "world",
     config: false,
@@ -102,7 +105,11 @@ export function registerStage() {
     controls.tokens.tools.sdeStage = {
       name: "sdeStage", title: "SDE.stage.tool", icon: "fa-solid fa-image", order: 91, toggle: true,
       active: read().shown,
-      onChange: () => (read().shown ? hideStage() : raiseByHand(pickParty())),
+      onChange: () => {
+        if (read().shown) return hideStage();
+        const again = reshowTarget(read(), readPlaces());
+        return again ? showPlace(again.id) : raiseByHand(pickParty());
+      },
     };
   });
 }

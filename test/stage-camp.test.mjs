@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { campArtFor } from "../scripts/stage/stage-core.mjs";
+import { campArtFor, campTransition, showCamp } from "../scripts/stage/stage-core.mjs";
 import { registerStage, onPartyCamp } from "../scripts/stage/stage.mjs";
 
 const M = "shadowdark-enhancer";
@@ -175,4 +175,14 @@ test("registerStage listens to updateActor with the watcher", () => {
   registerStage();
   assert.equal(on.updateActor, onPartyCamp);
   void w;
+});
+
+test("a custom place on the stage: a camp begin raises over it, a complete or cancel never drops it", () => {
+  const custom = { shown: true, place: "tavern1", image: "t.webp", partyId: "p1", campId: "c1" };
+  const S2 = { partyId: "p1", image: "camp.webp", partyTokenOnMap: false };
+  const begin = campTransition(custom, { id: "c2", phase: "setup" }, S2);
+  assert.deepEqual(begin, { shown: true, place: "camp", image: "camp.webp", partyId: "p1", campId: "c2" });
+  assert.equal(campTransition(custom, { id: "c1", phase: "complete" }, S2), null);
+  assert.equal(campTransition(custom, null, S2), null);
+  assert.equal(showCamp(null, { partyId: "p1", image: "x" }).place, "camp");
 });

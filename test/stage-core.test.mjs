@@ -8,11 +8,13 @@ const GOOD = { shown: true, place: "camp", image: "a.webp", partyId: "p1", campI
 
 test("normalizeStage turns junk into the defaults", () => {
   for (const junk of [null, undefined, "x", 5, true, [], [GOOD]]) assert.deepEqual(normalizeStage(junk), EMPTY);
-  assert.deepEqual(normalizeStage({ shown: "yes", place: "moon", image: 3, partyId: null, campId: {} }), EMPTY);
+  assert.deepEqual(normalizeStage({ shown: "yes", place: "no way!", image: 3, partyId: null, campId: {} }), EMPTY);
 });
 test("normalizeStage keeps good values field by field and drops extras", () => {
   assert.deepEqual(normalizeStage({ ...GOOD, extra: 1 }), GOOD);
-  assert.deepEqual(normalizeStage({ shown: true, place: "nowhere", image: "a" }), { ...EMPTY, shown: true, image: "a" });
+  assert.deepEqual(normalizeStage({ shown: true, place: "no where", image: "a" }), { ...EMPTY, shown: true, image: "a" });
+  assert.equal(normalizeStage({ place: "Ab_c-9" }).place, "Ab_c-9");
+  assert.equal(normalizeStage({ place: "x".repeat(41) }).place, "");
   assert.deepEqual(STAGE_PLACES, ["camp"]);
 });
 

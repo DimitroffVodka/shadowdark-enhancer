@@ -7,13 +7,16 @@
 import { ENCOUNTER_MAPS, campVariantOf, mapsForTerrain } from "../encounter/battle-maps/encounter-maps.mjs";
 import { terrainKeyOf } from "../encounter/battle-maps/battle-map-picker-core.mjs";
 
-/** Places a Stage can show. Phase 1a has only the camp; later phases add to this list. */
+/** The built-in places. Custom places (phase 1b) are stored by id and accepted by `normalizeStage` too. */
 export const STAGE_PLACES = ["camp"];
 
 /** Raise the camp backdrop even when a party token is on the viewed map. Patrick: "use a button". */
 export const RAISE_WITH_PARTY_TOKEN = false;
 
 const FALLBACK_CAMP_ID = "forest-woods-camp";
+
+/** A custom place's id as stored on the stage. */
+export const PLACE_ID = /^[A-Za-z0-9_-]{1,40}$/;
 
 const str = (v) => (typeof v === "string" ? v : "");
 
@@ -22,7 +25,7 @@ export function normalizeStage(raw) {
   const o = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
   return {
     shown: o.shown === true,
-    place: STAGE_PLACES.includes(o.place) ? o.place : "",
+    place: STAGE_PLACES.includes(o.place) || (typeof o.place === "string" && PLACE_ID.test(o.place)) ? o.place : "",
     image: str(o.image),
     partyId: str(o.partyId),
     campId: str(o.campId),
