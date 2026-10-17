@@ -76,7 +76,8 @@ and the real date it was heard, and who heard it, newest first.
   this off with **Draft a quest for each rumor given** in Configure Settings.
   - **From rumors**, in the Quest Log's header, drafts the same Hidden quests
     for rumors given before this was on. A rumor whose quest you deleted is
-    left without one.
+    left without one. When every rumor already has a quest, it takes you to
+    those Hidden quests.
   - **Promote to quest.** Each rumor also has a button, for the GM only, that
     makes an **Available** quest at once. Once a rumor has a quest, the button
     opens that quest in the Quest Log.

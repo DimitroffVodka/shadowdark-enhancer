@@ -18,7 +18,7 @@ globalThis.CONST = { DOCUMENT_OWNERSHIP_LEVELS: { OBSERVER: 2 }, SORT_INTEGER_DE
 globalThis.game = { user: { isGM: true }, i18n: { localize: (k) => k, format: (k) => k }, settings: { get: () => true, register() {} }, journal: { find: () => null } };
 
 const { Rumors, draftGiven } = await import("../scripts/rumors/rumors.mjs");
-const { QuestLogApp, fromRumorsDrafted } = await import("../scripts/quests/quest-log-app.mjs");
+const { QuestLogApp, fromRumorsDrafted, firstHiddenRumorQuest } = await import("../scripts/quests/quest-log-app.mjs");
 const { Quests } = await import("../scripts/quests/quests.mjs");
 const { Troubles } = await import("../scripts/troubles/troubles.mjs");
 
@@ -155,4 +155,23 @@ test("From rumors counts only the Hidden quests it drafted", () => {
   const made = [{ id: "a", status: "active" }, { id: "b", status: "hidden" }];
   assert.deepEqual(fromRumorsDrafted(made).map((q) => q.id), ["b"]);
   assert.equal(fromRumorsDrafted(null), null);
+});
+
+test("firstHiddenRumorQuest picks the first Hidden rumor or trouble quest", () => {
+  const q = (id, status, kind) => ({ id, status, source: { kind } });
+  assert.equal(firstHiddenRumorQuest([q("a", "active", "rumor"), q("b", "hidden", "gm"), q("c", "hidden", "trouble"), q("d", "hidden", "rumor")]).id, "c");
+  assert.equal(firstHiddenRumorQuest([q("a", "hidden", "gm"), q("b", "available", "rumor")]), null);
+  assert.equal(firstHiddenRumorQuest([]), null);
+});
+
+test("From rumors with nothing new still shows the Hidden tab and its first rumor quest", async () => {
+  const quiet = Rumors.draftQuests, list = Quests.list;
+  Rumors.draftQuests = async () => [];
+  Quests.list = () => [{ id: "g", status: "hidden", source: { kind: "gm" } }, { id: "r", status: "hidden", source: { kind: "rumor" } }];
+  const app = Object.create(QuestLogApp.prototype);
+  app.tab = "active"; app.selectedId = "old"; app.filters = { character: "x", party: "", source: "" }; app.render = () => {};
+  try { await app._onFromRumors(); } finally { Rumors.draftQuests = quiet; Quests.list = list; }
+  assert.equal(app.tab, "hidden");
+  assert.equal(app.selectedId, "r");
+  assert.equal(app.filters.character, "");
 });

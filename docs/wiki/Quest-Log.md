@@ -117,7 +117,8 @@ under the date. The Quest Log and the Party sheet redraw when the day changes.
 
 **From rumors.** Giving [Rumors](Rumors.md) already drafts a Hidden quest for
 each one. The **From rumors** button in the header drafts them for rumors you
-gave before that, then shows them on the Hidden tab.
+gave before that, then shows them on the Hidden tab. When every rumor already
+has a quest, it takes you to those Hidden quests instead.
 
 ---
 

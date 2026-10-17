@@ -37,6 +37,9 @@ export function onQuestDay(fn) {
 /** A trouble rumor hands back the trouble's existing quest, maybe Active: only Hidden ones were drafted. */
 export const fromRumorsDrafted = (made) => made?.filter((q) => q.status === "hidden") ?? made;
 
+/** The Hidden quest From rumors shows when nothing is new: the first (newest) one a rumor or trouble made. */
+export const firstHiddenRumorQuest = (list) => list?.find((q) => q.status === "hidden" && ["rumor", "trouble"].includes(q.source?.kind)) ?? null;
+
 export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-quest-log",
@@ -402,8 +405,9 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const made = fromRumorsDrafted(await Rumors.draftQuests());
     if (!made) return;
     ui.notifications.info(t(made.length ? "SDE.quests.notify.fromRumors" : "SDE.quests.notify.fromRumorsNone", { n: made.length }));
-    if (!made.length) return;
-    this.show(made[0]);
+    const first = made.length ? made[0] : firstHiddenRumorQuest(Quests.list());
+    if (!first) return;
+    this.show(first);
     this.render();
   }
 
