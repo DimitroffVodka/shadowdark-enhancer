@@ -4,8 +4,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { shelf } from "../scripts/merchant/shop-core.mjs";
+import { fromCopper } from "../scripts/shared/coins.mjs";
 import {
-  priceParts, purseText, plainText, wareCards, wareFacts, sellRows, placeTiles, priceNote, pickBuyer, CATEGORIES,
+  priceParts, purseText, plainText, wareCards, cartAdd, priceCart, wareFacts, sellRows, placeTiles, priceNote, pickBuyer, CATEGORIES,
 } from "../scripts/town/town-view.mjs";
 
 const t = (key, data) => (data ? `${key} ${JSON.stringify(data)}` : key);
@@ -170,4 +171,46 @@ test("ware cards: every card carries its facts and a short description; Details 
   // a card built with none of the new options is as it was
   const plain = wareCards(rows, { merchant, coins: rich, t })[0];
   assert.deepEqual([plain.facts, plain.blurb, plain.more, plain.rules], [[], "", false, []]);
+});
+
+test("ware cards: the price of a partly sold bundle is what the charge will be (13 of 20 arrows at 1 gp: 65 cp)", () => {
+  const arrows = item("w1", "Arrows", "Basic", { gp: 1 }, 13, { system: { slots: { per_slot: 20 } } });
+  const [card] = wareCards(shelf([arrows], merchant, []), { merchant, coins: rich, t });
+  assert.deepEqual(card.price, [{ n: 6, u: "sp" }, { n: 5, u: "cp" }]);
+});
+
+test("cart: the same ware merges, a line at zero goes, quantities are cut to the shelf, gone wares drop out", () => {
+  let lines = cartAdd(cartAdd([], "w1"), "w1", 2);
+  assert.deepEqual(lines, [{ wareId: "w1", qty: 3 }]);
+  assert.deepEqual(cartAdd(lines, "w1", -3), []);
+  const rope = item("w1", "Rope", "Basic", { gp: 1 }, 2), arrows = item("w3", "Arrows", "Basic", { gp: 1 }, 13, { system: { slots: { per_slot: 20 } } });
+  const rows = shelf([rope, arrows], merchant, []);
+  const cart = priceCart([{ wareId: "w1", qty: 5 }, { wareId: "w3", qty: 1 }, { wareId: "gone", qty: 1 }], rows, { merchant });
+  assert.deepEqual(cart.lines.map((l) => [l.wareId, l.qty, l.copper, l.adjusted]), [["w1", 2, 200, true], ["w3", 1, 65, false]]);
+  assert.equal(cart.total, 265);
+  assert.equal(cart.adjusted, true);
+});
+
+test("cart: the extortion swing falls on the costliest line only (ties: the first), and the haggle percent feeds every line", () => {
+  const rows = shelf([item("a", "Aaa", "Basic", { gp: 2 }, 5), item("b", "Bbb", "Basic", { gp: 2 }, 5), item("c", "Ccc", "Basic", { gp: 1 }, 5)], merchant, []);
+  const swing = (c) => ({ copper: Math.round(c * 0.75), applied: true, pct: 25 });
+  const cart = priceCart([{ wareId: "c", qty: 1 }, { wareId: "b", qty: 1 }, { wareId: "a", qty: 1 }], rows, { merchant, swing });
+  assert.deepEqual(cart.lines.map((l) => [l.wareId, l.copper, l.swung]), [["c", 100, false], ["b", 150, true], ["a", 200, false]]);
+  assert.equal(cart.total, 450);
+  assert.equal(priceCart([{ wareId: "a", qty: 1 }], rows, { merchant, pct: -10 }).total, 180);
+});
+
+test("sell rows carry the facts and the short description the Buy tab shows", () => {
+  const rows = sellRows([item("s1", "Dagger", "Weapon", { gp: 2 }, 1)], merchant, { t, facts: (i) => [`facts of ${i.name}`], blurb: (i) => `about ${i.name}` });
+  assert.deepEqual([rows[0].facts, rows[0].blurb], [["facts of Dagger"], "about Dagger"]);
+  assert.deepEqual(sellRows([item("s1", "Dagger", "Weapon", { gp: 2 }, 1)], merchant, { t })[0].facts, []);
+});
+
+test("with a swing armed the card price is the cart line price on every line but the swung one", () => {
+  const rows = shelf([item("a", "Aaa", "Basic", { gp: 2 }, 5), item("c", "Ccc", "Basic", { gp: 1 }, 5)], merchant, []);
+  const cards = Object.fromEntries(wareCards(rows, { merchant, coins: rich, t }).map((c) => [c.id, c.price]));
+  const swing = (c) => ({ copper: Math.round(c * 0.75), applied: true, pct: 25 });
+  const cart = priceCart([{ wareId: "a", qty: 1 }, { wareId: "c", qty: 1 }], rows, { merchant, swing });
+  for (const l of cart.lines.filter((x) => !x.swung)) assert.deepEqual(cards[l.wareId], priceParts(fromCopper(l.copper)));
+  assert.equal(cart.lines.filter((x) => x.swung).length, 1);
 });

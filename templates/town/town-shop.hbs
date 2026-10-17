@@ -52,7 +52,7 @@
               <input type="number" value="1" min="1" max="99" aria-label="{{localize 'SDE.town.quantity'}}">
               <button type="button" class="ui-icon" data-action="qtyUp" aria-label="{{localize 'SDE.town.more'}}"><i class="fa-solid fa-plus"></i></button>
             </div>
-            <button type="button" class="ui-btn" data-action="buy" {{#if poor}}disabled data-tooltip="{{localize 'SDE.town.cannotAfford'}}"{{/if}}><i class="fa-solid fa-cart-plus"></i> {{localize "SDE.town.buy"}}</button>
+            <button type="button" class="ui-btn" data-action="addToCart"><i class="fa-solid fa-cart-plus"></i> {{localize "SDE.town.addToCart"}}</button>
           </div>
           {{/if}}
         </div>
@@ -71,7 +71,10 @@
       {{#each sellItems}}
       <div class="ui-row">
         <img src="{{img}}" alt="">
-        <div class="ui-row-main"><span class="ui-row-name">{{name}}</span><span class="ui-row-sub">{{localize "SDE.town.pays" price=pays}}</span></div>
+        <div class="ui-row-main"><span class="ui-row-name">{{name}}</span><span class="ui-row-sub">{{localize "SDE.town.pays" price=pays}}</span>
+          {{#if facts.length}}<div class="tl-facts">{{#each facts}}<span class="ui-chip">{{this}}</span>{{/each}}</div>{{/if}}
+          {{#if blurb}}<p class="tl-blurb">{{blurb}}</p>{{/if}}
+        </div>
         <span class="ui-chip">{{localize "SDE.town.owned" n=qty}}</span>
         <button type="button" class="ui-btn" data-action="sell" data-item-id="{{id}}"><i class="fa-solid fa-coins"></i> {{localize "SDE.town.sell"}}</button>
         {{#if (gt qty 1)}}<button type="button" class="ui-btn ghost" data-action="sellAll" data-item-id="{{id}}" data-tooltip="{{localize 'SDE.town.sellAllTip'}}">{{localize "SDE.town.sellAll"}}</button>{{/if}}
@@ -85,6 +88,33 @@
     <div class="ui-empty tl-shut"><i class="fa-solid fa-store-slash"></i><b>{{localize "SDE.town.shutTitle" name=merchant.name}}</b><span>{{localize "SDE.town.shutBody"}}</span></div>
   </div>
   {{/if}}
+
+  {{#if merchant.open}}{{#if cart.lines.length}}
+  <section class="tl-cart" aria-label="{{localize 'SDE.town.cart.title'}}">
+    <h4 class="tl-cart-title"><i class="fa-solid fa-basket-shopping"></i> {{localize "SDE.town.cart.title"}}</h4>
+    <ul class="tl-cart-lines">
+      {{#each cart.lines}}
+      <li class="tl-cart-line" data-ware-id="{{wareId}}">
+        <img src="{{img}}" alt="">
+        <span class="tl-cart-name" title="{{name}}">{{name}}{{#if swung}} <i class="fa-solid fa-hand-holding-dollar" data-tooltip="{{localize 'SDE.town.cart.swung'}}"></i>{{/if}}</span>
+        <div class="tl-step">
+          <button type="button" class="ui-icon" data-action="cartLess" aria-label="{{localize 'SDE.town.less'}}"><i class="fa-solid fa-minus"></i></button>
+          <span class="tl-step-n">{{qty}}</span>
+          <button type="button" class="ui-icon" data-action="cartMore" aria-label="{{localize 'SDE.town.more'}}"><i class="fa-solid fa-plus"></i></button>
+        </div>
+        <span class="tl-price">{{#each price}}<span class="tl-coin"><b>{{n}}</b><i>{{u}}</i></span>{{/each}}</span>
+        <button type="button" class="ui-icon" data-action="cartRemove" data-tooltip="{{localize 'SDE.town.cart.remove'}}" aria-label="{{localize 'SDE.town.cart.remove'}}"><i class="fa-solid fa-trash"></i></button>
+      </li>
+      {{/each}}
+    </ul>
+    {{#if cart.adjusted}}<div class="ui-note warn">{{localize "SDE.town.cart.adjusted"}}</div>{{/if}}
+    <div class="tl-cart-foot">
+      <span class="ui-label">{{localize "SDE.town.cart.total"}}</span>
+      <span class="tl-price tl-cart-total">{{#each cart.total}}<span class="tl-coin"><b>{{n}}</b><i>{{u}}</i></span>{{else}}<span class="tl-coin"><b>0</b><i>gp</i></span>{{/each}}</span>
+      <button type="button" class="ui-btn" data-action="checkout" data-total="{{cart.totalCopper}}" {{#if cart.busy}}disabled{{else}}{{#if cart.tooDear}}disabled data-tooltip="{{localize 'SDE.town.cannotAfford'}}"{{/if}}{{/if}}><i class="fa-solid fa-cash-register"></i> {{localize "SDE.town.cart.checkout"}}</button>
+    </div>
+  </section>
+  {{/if}}{{/if}}
 
   <footer class="ui-status tl-foot">
     {{#if actors.length}}

@@ -1,8 +1,9 @@
-// One merchant's shopfront. state = buy | sell | closed | broke | gm (add -full for the whole window). Built with the window's
+// One merchant's shopfront. state = buy (empty cart) | cart (lines, one costliest swung, a sold-out ware dropped) | sell | closed | broke | gm (add -full for the whole window). Built with the window's
 // own view functions from fake items. buy shows every ware state at once: affordable, too dear, one left, unlimited,
 // sold out, a bundle and a description open. Real window: 720 x 760, ApplicationV2.
+import { fromCopper, canAfford } from "../../../scripts/shared/coins.mjs";
 import { shelf } from "../../../scripts/merchant/shop-core.mjs";
-import { CATEGORIES, plainText, priceNote, purseText, sellRows, wareCards, wareFacts } from "../../../scripts/town/town-view.mjs";
+import { CATEGORIES, plainText, priceCart, priceNote, priceParts, purseText, sellRows, wareCards, wareFacts } from "../../../scripts/town/town-view.mjs";
 import { MERCHANTS, COINS, ico, t } from "./_town.mjs";
 
 const MOD = "shadowdark-enhancer";
@@ -27,24 +28,30 @@ const stock = [
   it("w10", "Candles (3)", "Basic", "sundries/lights/candle-lit-yellow", { cp: 5 }, 20),
 ];
 const bag = [
-  it("s1", "Longsword, notched", "Weapon", "weapons/swords/greatsword-crossguard-curved", { gp: 9 }, 1),
+  it("s1", "Longsword, notched", "Weapon", "weapons/swords/greatsword-crossguard-curved", { gp: 9 }, 1, { sys: melee("close", "d8"), desc: "<p>A notch bitten out of the blade by a goblin axe.</p>" }),
   it("s2", "Chainmail, dented", "Armor", "equipment/chest/breastplate-banded-steel-grey", { gp: 60 }, 1),
   it("s3", "Rations (3 days)", "Basic", "consumables/food/berries-ration-round-red", { sp: 5 }, 4, { per: 3 }),
   it("s4", "Backpack", "Basic", "containers/bags/case-simple-leather-brown", { gp: 5 }, 2),
   it("s5", "Torch", "Basic", "sundries/lights/candle-lit-yellow", { cp: 1 }, 6),
 ];
-const toolbar = `<span>State:</span>${["buy", "buy-full", "sell", "closed", "broke", "gm"].map((s) => `<button data-action="s" data-state="${s}">${s}</button>`).join("")}`;
+const toolbar = `<span>State:</span>${["buy", "cart", "cart-full", "sell", "closed", "broke", "gm"].map((s) => `<button data-action="s" data-state="${s}">${s}</button>`).join("")}`;
 const build = (state) => {
   const full = state.endsWith("-full"), s = state.replace("-full", "");
   const closed = s === "closed", m = closed ? MERCHANTS[3] : MERCHANTS[0];
   const merchant = { id: m.id, rev: 0, buyMultiplier: closed ? 100 : 110, sellRatio: 50, open: !closed };
   const coins = s === "broke" ? { gp: 0, sp: 4, cp: 2 } : COINS;
   const rows = closed ? [] : shelf(stock, merchant, []);
-  const selling = closed ? [] : sellRows(bag, merchant, { t });
+  const selling = closed ? [] : sellRows(bag, merchant, { t, blurb: (i) => plainText(i.system.description, 110), facts: (i) => wareFacts(i, { t }) });
+  const withCart = s === "cart" || s === "broke";
+  const priced = priceCart(withCart ? [{ wareId: "w2", qty: 2 }, { wareId: "w4", qty: 1 }, { wareId: "w9", qty: 3 }, { wareId: "w3", qty: 1 }] : [], rows, { merchant, swing: (c) => ({ copper: Math.round(c * 0.85), applied: true, pct: 15 }) });
+  const cart = {
+    lines: priced.lines.map((l) => ({ wareId: l.wareId, name: l.entry.name, img: l.entry.img, qty: l.qty, price: priceParts(fromCopper(l.copper)), swung: l.swung, adjusted: l.adjusted })),
+    total: priceParts(fromCopper(priced.total)), totalCopper: priced.total, adjusted: priced.adjusted, busy: false, tooDear: !canAfford(coins, fromCopper(priced.total)),
+  };
   return {
     toolbar, ...(full ? { height: 1000 } : {}),
     context: {
-      merchant: { id: m.id, name: m.name, role: m.role, pitch: m.pitch, img: m.img, open: !closed },
+      cart, merchant: { id: m.id, name: m.name, role: m.role, pitch: m.pitch, img: m.img, open: !closed },
       priceNote: closed ? "" : priceNote(merchant, t), sellRatio: 50, purse: purseText(coins), isGM: s === "gm",
       tab: s === "sell" ? "sell" : "buy",
       tabs: [{ id: "buy", label: t("SDE.town.buy"), icon: "fa-cart-shopping", count: rows.length, active: s !== "sell" }, { id: "sell", label: t("SDE.town.sell"), icon: "fa-coins", count: selling.length, active: s === "sell" }],

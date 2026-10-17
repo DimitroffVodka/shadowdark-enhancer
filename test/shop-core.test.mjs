@@ -6,7 +6,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   bundleOf, buyUnits, buyCopper, sellCopper, sanitizeQty,
-  ledgerPath, boughtBy, soldUnits, stockLeft, shelf, buyQuote, sellQuote,
+  ledgerPath, boughtBy, soldUnits, stockLeft, shelf, buyQuote, sellQuote, quoteLine, cleanItemData,
 } from "../scripts/merchant/shop-core.mjs";
 
 const MOD = "shadowdark-enhancer";
@@ -113,4 +113,25 @@ test("sellQuote pays the merchant's ratio and never for more than the seller hol
   assert.deepEqual(sellQuote(sword, 1, { sellRatio: 50 }), { qty: 1, copper: 450 });
   assert.deepEqual(sellQuote(sword, 1000, {}), { qty: 2, copper: 900 });   // default 50%, two held
   assert.deepEqual(sellQuote(sword, 1, { sellRatio: 25 }), { qty: 1, copper: 225 });
+});
+
+test("quoteLine prices a partial bundle as the charge will: 13 arrows left of 20 at 1 gp are 65 cp, card and charge alike", () => {
+  const arrows = { cost: { gp: 1 }, bundle: 20, stock: 13 };
+  assert.deepEqual(quoteLine(arrows, 1, {}), { units: 13, copper: 65 });
+  assert.deepEqual(quoteLine({ ...arrows, stock: 40 }, 1, {}), { units: 20, copper: 100 });
+  assert.equal(quoteLine(arrows, 2, {}), null);
+});
+
+test("quoteLine applies the markup and a percent in whole numbers, rounded once", () => {
+  const e = { cost: { gp: 9 }, bundle: 1, stock: 3 };
+  assert.equal(quoteLine(e, 1, { buyMultiplier: 110 }).copper, 990);
+  assert.equal(quoteLine(e, 2, { buyMultiplier: 120 }, { pct: -25 }).copper, 1620);   // 2 x 900, +20%, -25%
+  assert.equal(quoteLine(e, 1, {}, { pct: 10 }).copper, 990);
+});
+
+test("cleanItemData drops what belongs to the merchant's copy and keeps the rest", () => {
+  const item = { toObject: () => ({ _id: "x", name: "Rope", folder: "f", sort: 5, ownership: { default: 3 }, _stats: { a: 1 }, flags: { m: { unlimitedStock: true } }, system: { equipped: true, stashed: true, quantity: 4, cost: { gp: 1 } } }) };
+  assert.deepEqual(cleanItemData(item), { name: "Rope", system: { quantity: 4, cost: { gp: 1 } } });
+  const linked = { toObject: () => ({ name: "Rope", _stats: { compendiumSource: "Compendium.x.Item.y", createdTime: 5 } }) };
+  assert.deepEqual(cleanItemData(linked), { name: "Rope", _stats: { compendiumSource: "Compendium.x.Item.y" } });
 });

@@ -4,7 +4,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buyWare, sellItem } from "../scripts/merchant/town-shop.mjs";
+import { buyWare, checkoutCart, sellItem } from "../scripts/merchant/town-shop.mjs";
 import { addToPurse } from "../scripts/shared/coins.mjs";
 import { applyExtortion, hasExtortion } from "../scripts/downtime/downtime-effects-core.mjs";
 import { entriesFrom } from "../scripts/town/town-log-core.mjs";
@@ -218,4 +218,139 @@ test("a sale pays with the extortion swing in the seller's favour, and refuses s
   const theirs = actor({ id: "b", name: "Elbin", owner: false, items: [item({ id: "s9", name: "Dagger" })] });
   assert.deepEqual(await sellItem({ seller: theirs, merchant, itemId: "s9", quantity: 1 }, makeIo()), { ok: false, error: "SDE.merchant.notify.actorNotFound" });
   assert.deepEqual(await sellItem({ seller: hero, merchant, itemId: "nope", quantity: 1 }, makeIo()), { ok: false, error: "SDE.merchant.notify.itemNotInInventory" });
+});
+
+// ── the cart ─────────────────────────────────────────────────────────────────────────────────────────────────────
+
+const cartShelf = () => merchantActor([rope(), item({ id: "w4", name: "Torch", quantity: 9, cost: { sp: 5 }, flags: { [MOD]: { unlimitedStock: true } } }), item({ id: "w5", name: "Dagger", type: "Weapon", quantity: 2, cost: { gp: 2 } })]);
+const cartArgs = (hero, npc, lines, extra = {}) => ({ buyer: hero, merchantActor: npc, merchant, lines, sceneId: "s1", ...extra });
+
+test("a cart is charged line by line, one card and one log entry list it, and the ledger is written per line", async () => {
+  const hero = actor({ id: "a", name: "Creeg", gp: 20 });
+  const io = makeIo({ characters: [hero] });
+  const res = await checkoutCart(cartArgs(hero, cartShelf(), [{ wareId: "w1", qty: 2 }, { wareId: "w5", qty: 1 }, { wareId: "w1", qty: 0 }], { expectedTotal: 400 }), io);
+  assert.equal(res.ok, true);
+  assert.equal(res.total, 400);
+  assert.equal(io.log.charged.length, 2);
+  assert.deepEqual(hero.system.coins, { gp: 16, sp: 0, cp: 0 });
+  assert.equal(io.log.chat.length, 1);
+  const [entry] = entriesFrom([{ id: "x", timestamp: 1, flags: io.log.chat[0].flags }]);
+  assert.deepEqual([entry.what, entry.qty, entry.net], ["Rope \u00d72, Dagger", 1, -400]);
+  assert.deepEqual(hero.updates.map((u) => Object.keys(u)[0]), [`flags.${MOD}.shopLedger.m1.r0.w1`, `flags.${MOD}.shopLedger.m1.r0.w5`]);
+  assert.equal(io.log.charged[0].itemData._id, undefined);
+});
+
+test("a cart whose total moved since the window drew it charges nothing", async () => {
+  const hero = actor({ id: "a", name: "Creeg", gp: 20 });
+  const io = makeIo({ characters: [hero] });
+  const res = await checkoutCart(cartArgs(hero, cartShelf(), [{ wareId: "w1", qty: 2 }], { merchant: { ...merchant, buyMultiplier: 150 }, expectedTotal: 200 }), io);
+  assert.deepEqual(res, { ok: false, error: "SDE.town.cart.changed" });
+  assert.equal(io.log.charged.length + io.log.chat.length + hero.updates.length, 0);
+});
+
+test("a cart dearer than the purse charges nothing", async () => {
+  const hero = actor({ id: "a", name: "Creeg", gp: 3 });
+  const io = makeIo({ characters: [hero] });
+  const res = await checkoutCart(cartArgs(hero, cartShelf(), [{ wareId: "w1", qty: 2 }, { wareId: "w5", qty: 1 }]), io);
+  assert.deepEqual(res, { ok: false, error: "SDE.merchant.notify.insufficientFunds" });
+  assert.equal(io.log.charged.length, 0);
+});
+
+test("line 2 failing at the charge stops the cart, keeps line 1, and the card says which line failed", async () => {
+  const hero = actor({ id: "a", name: "Creeg", gp: 20 });
+  const io = makeIo({ characters: [hero] });
+  const real = io.chargeAndGive;
+  io.chargeAndGive = async (...args) => (io.log.charged.length === 1 ? (io.log.charged.push({}), "SDE.merchant.notify.notSaved") : real(...args));
+  const res = await checkoutCart(cartArgs(hero, cartShelf(), [{ wareId: "w1", qty: 1 }, { wareId: "w5", qty: 1 }, { wareId: "w4", qty: 1 }]), io);
+  assert.equal(res.ok, false);
+  assert.equal(res.error, "SDE.merchant.notify.notSaved");
+  assert.deepEqual(res.bought.map((b) => b.name), ["Rope"]);
+  assert.equal(io.log.charged.length, 2, "nothing after the failed line is tried");
+  assert.equal(io.log.chat.length, 1);
+  assert.match(io.log.chat[0].content, /failedLine/);
+  const [entry] = entriesFrom([{ id: "x", timestamp: 1, flags: io.log.chat[0].flags }]);
+  assert.deepEqual([entry.what, entry.net], ["Rope", -100]);
+  assert.equal(hero.updates.length, 1);
+});
+
+test("a failed line whose refund did not land says so on the card, even when nothing else was bought", async () => {
+  const hero = actor({ id: "a", name: "Creeg", gp: 20 });
+  const io = makeIo({ characters: [hero], unsaved: "SDE.merchant.notify.notRefunded" });
+  const res = await checkoutCart(cartArgs(hero, cartShelf(), [{ wareId: "w1", qty: 1 }]), io);
+  assert.equal(res.ok, false);
+  assert.equal(io.log.chat.length, 1);
+  assert.match(io.log.chat[0].content, /notRefunded/);
+});
+
+test("the extortion swing lands on the costliest line only and is spent only if that line landed", async () => {
+  const hero = actor({ id: "a", name: "Creeg", gp: 20 });
+  const io = makeIo({ characters: [hero], swing: { pct: 25, uses: 1 } });
+  const res = await checkoutCart(cartArgs(hero, cartShelf(), [{ wareId: "w1", qty: 1 }, { wareId: "w5", qty: 1 }]), io);
+  assert.deepEqual(res.bought.map((b) => [b.name, b.copper, b.swung]), [["Rope", 100, false], ["Dagger", 150, true]]);
+  assert.deepEqual(io.log.spent, ["a"]);
+  // the same cart with the costliest line failing spends nothing
+  const hero2 = actor({ id: "b", name: "Elbin", gp: 20 });
+  const io2 = makeIo({ characters: [hero2], swing: { pct: 25, uses: 1 } });
+  io2.chargeAndGive = async () => "SDE.merchant.notify.notSaved";
+  await checkoutCart(cartArgs(hero2, cartShelf(), [{ wareId: "w5", qty: 1 }]), io2);
+  assert.deepEqual(io2.log.spent, []);
+});
+
+test("the same ware added twice is one line, and the unlimited flag does not follow a ware to its buyer", async () => {
+  const hero = actor({ id: "a", name: "Creeg", gp: 20 });
+  const io = makeIo({ characters: [hero] });
+  const res = await checkoutCart(cartArgs(hero, cartShelf(), [{ wareId: "w4", qty: 1 }, { wareId: "w4", qty: 2 }]), io);
+  assert.equal(res.bought.length, 1);
+  assert.equal(res.bought[0].units, 3);
+  assert.equal(io.log.charged[0].itemData.flags, undefined);
+});
+
+test("a failed line whose refund did not land is in the sales log with the coins that left", async () => {
+  const hero = actor({ id: "a", name: "Creeg", gp: 20 });
+  const io = makeIo({ characters: [hero], unsaved: "SDE.merchant.notify.notRefunded" });
+  await checkoutCart(cartArgs(hero, cartShelf(), [{ wareId: "w1", qty: 1 }]), io);
+  const [entry] = entriesFrom([{ id: "x", timestamp: 1, flags: io.log.chat[0].flags }]);
+  assert.deepEqual([entry.what, entry.qty, entry.net], ["Rope", 1, -100]);
+  // with an earlier line bought, the lost charge is added to the net
+  const hero2 = actor({ id: "b", name: "Elbin", gp: 20 });
+  const io2 = makeIo({ characters: [hero2] });
+  const real = io2.chargeAndGive;
+  io2.chargeAndGive = async (...a) => (io2.log.charged.length === 1 ? (io2.log.charged.push({}), "SDE.merchant.notify.notRefunded") : real(...a));
+  await checkoutCart(cartArgs(hero2, cartShelf(), [{ wareId: "w1", qty: 1 }, { wareId: "w5", qty: 1 }]), io2);
+  const [e2] = entriesFrom([{ id: "x", timestamp: 1, flags: io2.log.chat[0].flags }]);
+  assert.deepEqual([e2.qty, e2.net], [1, -300]);
+});
+
+test("a chat card or a swing spend that throws after the charges landed still reports what was bought", async () => {
+  const warn = console.warn; console.warn = () => {};
+  try {
+    const hero = actor({ id: "a", name: "Creeg", gp: 20 });
+    const io = makeIo({ characters: [hero], swing: { pct: 25, uses: 1 } });
+    io.chat = async () => { throw new Error("a hook threw"); };
+    io.extortion.spend = async () => { throw new Error("flag write failed"); };
+    const res = await checkoutCart(cartArgs(hero, cartShelf(), [{ wareId: "w1", qty: 1 }, { wareId: "w5", qty: 1 }]), io);
+    assert.equal(res.ok, true);
+    assert.deepEqual(res.bought.map((b) => b.name), ["Rope", "Dagger"]);
+  } finally { console.warn = warn; }
+});
+
+test("a ledger write that throws on line 2 keeps that purchase, says ledger false for it, and goes on to line 3", async () => {
+  const warn = console.warn; console.warn = () => {};
+  try {
+    const hero = actor({ id: "a", name: "Creeg", gp: 30 });
+    const io = makeIo({ characters: [hero] });
+    const record = io.record;
+    io.record = (a, path, value) => { if (path.endsWith(".w5")) throw new Error("rejected"); return record(a, path, value); };
+    const res = await checkoutCart(cartArgs(hero, cartShelf(), [{ wareId: "w1", qty: 1 }, { wareId: "w5", qty: 1 }, { wareId: "w4", qty: 1 }]), io);
+    assert.equal(res.ok, true);
+    assert.deepEqual(res.bought.map((b) => [b.name, b.ledger]), [["Rope", true], ["Dagger", false], ["Torch", true]]);
+  } finally { console.warn = warn; }
+});
+
+test("a closed shop sells nothing", async () => {
+  const hero = actor({ id: "a", name: "Creeg", gp: 20 });
+  const io = makeIo({ characters: [hero] });
+  const res = await checkoutCart(cartArgs(hero, cartShelf(), [{ wareId: "w1", qty: 1 }], { merchant: { ...merchant, open: false } }), io);
+  assert.deepEqual(res, { ok: false, error: "SDE.merchant.notify.unavailable" });
+  assert.equal(io.log.charged.length, 0);
 });

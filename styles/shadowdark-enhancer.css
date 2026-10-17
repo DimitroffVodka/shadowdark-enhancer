@@ -5817,6 +5817,16 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-ui .tl-coin i { font: 600 10.5px/1 var(--ui-head); font-style: normal; text-transform: uppercase; letter-spacing: .06em; color: var(--ui-muted); }
 .sde-ui .tl-ware-foot { grid-area: foot; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .sde-ui .tl-ware-foot .tl-buy { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; }
+.sde-ui .tl-cart { flex: 0 0 auto; padding: 10px 14px; border-top: 1px solid var(--ui-frame); background: var(--ui-panel); display: flex; flex-direction: column; gap: 6px; max-height: 40%; overflow: auto; }
+.sde-ui .tl-cart-title { margin: 0; font: 600 11px/1 var(--ui-head); text-transform: uppercase; letter-spacing: .08em; color: var(--ui-muted); }
+.sde-ui .tl-cart-lines { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.sde-ui .tl-cart-line { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto auto auto; align-items: center; gap: 8px; }
+.sde-ui .tl-cart-line img { width: 24px; height: 24px; object-fit: contain; }
+.sde-ui .tl-cart-line .tl-price, .sde-ui .tl-cart-foot .tl-price { grid-area: auto; align-self: center; }
+.sde-ui .tl-cart-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ui-text); font-size: 13px; }
+.sde-ui .tl-step-n { min-width: 28px; text-align: center; font-variant-numeric: tabular-nums; color: var(--ui-text); }
+.sde-ui .tl-cart-foot { display: flex; align-items: center; gap: 10px; }
+.sde-ui .tl-cart-foot .ui-btn { margin-left: auto; }
 .sde-ui .tl-step { display: inline-flex; align-items: center; border: 1px solid var(--ui-line); border-radius: var(--ui-r); overflow: hidden; background: var(--ui-page); }
 .sde-ui .tl-step .ui-icon { width: 26px; height: 26px; border: 0; border-radius: 0; }
 .sde-ui .tl-step input { width: 36px !important; height: 26px; padding: 0; border: 0; border-left: 1px solid var(--ui-line); border-right: 1px solid var(--ui-line); border-radius: 0; background: transparent; text-align: center; font-variant-numeric: tabular-nums; }

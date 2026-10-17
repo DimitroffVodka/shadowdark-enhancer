@@ -6,11 +6,13 @@
  * redraws as the world changes, so the other players' purchases show here as they happen.
  */
 import { MODULE_ID } from "../shared/module-id.mjs";
+import { canAfford, fromCopper } from "../shared/coins.mjs";
 import { L as t } from "../shared/i18n.mjs";
-import { buyWare, sellItem, liveIo, waresOf } from "../merchant/town-shop.mjs";
+import { checkoutCart, sellItem, liveIo, waresOf } from "../merchant/town-shop.mjs";
+import { STOCK_TYPES } from "../merchant/shop-core.mjs";
 import { landingOf } from "./town-core.mjs";
 import { buyerChoices, buyerFor, redrawOnChange } from "./town-live.mjs";
-import { CATEGORIES, plainText, priceNote, purseText, sellRows, wareCards, wareFacts } from "./town-view.mjs";
+import { CATEGORIES, cartAdd, plainText, priceCart, priceNote, priceParts, purseText, sellRows, wareCards, wareFacts } from "./town-view.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -27,7 +29,11 @@ export class TownShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
       toggleDesc: TownShopApp.prototype._onToggleDesc,
       qtyDown: (_event, target) => TownShopApp.#step(target, -1),
       qtyUp: (_event, target) => TownShopApp.#step(target, 1),
-      buy: TownShopApp.prototype._onBuy,
+      addToCart: TownShopApp.prototype._onAddToCart,
+      cartLess: TownShopApp.prototype._onCartLess,
+      cartMore: TownShopApp.prototype._onCartMore,
+      cartRemove: TownShopApp.prototype._onCartRemove,
+      checkout: TownShopApp.prototype._onCheckout,
       sell: TownShopApp.prototype._onSell,
       sellAll: TownShopApp.prototype._onSellAll,
       toggleUnlimited: TownShopApp.prototype._onToggleUnlimited,
@@ -44,6 +50,10 @@ export class TownShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
   tab = "buy";
   category = "all";
   expandedId = null;
+  /** What is in the cart: `[{ wareId, qty }]` (bundles). Client memory only; it survives a change of buyer, not of merchant. */
+  cart = [];
+  /** Set when a quantity was cut to the shelf; stays until the player's next cart action. */
+  _cartAdjusted = false;
   buyerId = null;
   _stop = null;
   _io = null;
@@ -54,7 +64,7 @@ export class TownShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** Open (or bring forward) the shopfront of one merchant on a scene's landing page. */
   static open(scene, merchantId) {
     const app = foundry.applications.instances.get(TownShopApp.DEFAULT_OPTIONS.id) ?? new TownShopApp();
-    if (app.merchantId !== merchantId) Object.assign(app, { tab: "buy", category: "all", expandedId: null });
+    if (app.merchantId !== merchantId) Object.assign(app, { tab: "buy", category: "all", expandedId: null, cart: [], _cartAdjusted: false });
     Object.assign(app, { scene, merchantId });
     app.render({ force: true });
     return app;
@@ -85,13 +95,28 @@ export class TownShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const buyer = buyerFor(this.buyerId);
     this.buyerId = buyer?.id ?? null;
     const flag = io.extortion.read(buyer);
-    const buySwing = (copper) => io.extortion.apply(copper, flag, "buy").copper;
+    const buyFull = (copper) => io.extortion.apply(copper, flag, "buy");
     const sellSwing = (copper) => io.extortion.apply(copper, flag, "sell").copper;
     const rows = open ? waresOf(actor, merchant, io) : [];
-    await this.#readProperties(rows);
+    await this.#readProperties(open && buyer ? [...rows, ...buyer.items.contents.filter((i) => STOCK_TYPES.includes(i.type)).map((i) => ({ item: i }))] : rows);
     const known = (link) => this._props.get(link);
-    const selling = open && buyer ? sellRows(buyer.items.contents, merchant, { swing: sellSwing, t }) : [];
+    const selling = open && buyer ? sellRows(buyer.items.contents, merchant, {
+      swing: sellSwing, t, blurb: (item) => plainText(item.system?.description, 110),
+      facts: (item) => wareFacts(item, { t, propName: (link) => known(link)?.name ?? "" }),
+    }) : [];
+    const cart = priceCart(this.cart, rows, { merchant, swing: buyFull });
+    // A closed shop prices nothing, so only an open one may tidy the cart (a moment closed must not empty it).
+    if (open) {
+      this.cart = cart.lines.map((l) => ({ wareId: l.wareId, qty: l.qty }));
+      if (cart.adjusted) this._cartAdjusted = true;
+    }
+    const purse = buyer?.system.coins ?? {};
     return Object.assign(context, {
+      cart: {
+        lines: cart.lines.map((l) => ({ wareId: l.wareId, name: l.entry.name, img: l.entry.img, qty: l.qty, price: priceParts(fromCopper(l.copper)), swung: l.swung, adjusted: l.adjusted })),
+        total: priceParts(fromCopper(cart.total)), totalCopper: cart.total, adjusted: this._cartAdjusted,
+        busy: this._busy, tooDear: !canAfford(purse, fromCopper(cart.total)),
+      },
       merchant: { id: merchant?.id, name: actor?.name ?? t("SDE.town.editor.missingName"), role: merchant?.role ?? "", pitch: merchant?.pitch ?? "", img: actor?.img || "icons/svg/mystery-man.svg", open },
       priceNote: open ? priceNote(merchant, t) : "", sellRatio: merchant?.sellRatio ?? 50,
       purse: buyer ? purseText(buyer.system.coins) : "", isGM: game.user.isGM,
@@ -102,7 +127,7 @@ export class TownShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
       ],
       categories: CATEGORIES.map((c) => ({ id: c.id, label: t(c.key), active: c.id === this.category })),
       wares: wareCards(rows, {
-        merchant, coins: buyer?.system.coins ?? {}, category: this.category, expandedId: this.expandedId, swing: buySwing, t,
+        merchant, coins: buyer?.system.coins ?? {}, category: this.category, expandedId: this.expandedId, t,
         describe: (entry) => plainText(entry.item.system?.description),
         blurb: (entry) => plainText(entry.item.system?.description, 110),
         facts: (entry) => wareFacts(entry.item, { t, propName: (link) => known(link)?.name ?? "" }),
@@ -156,10 +181,33 @@ export class TownShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return this.render();
   }
 
-  _onBuy(_event, target) {
+  _onAddToCart(_event, target) {
     const card = target.closest(".tl-ware");
-    const quantity = Number(card?.querySelector(".tl-step input")?.value) || 1;
-    return this.#run((buyer) => buyWare({ buyer, merchantActor: this.merchantActor, merchant: this.merchant, wareId: card?.dataset.wareId, quantity, sceneId: this.scene?.id }, this._io));
+    const by = Math.min(99, Math.max(1, Number(card?.querySelector(".tl-step input")?.value) || 1));
+    this._cartAdjusted = false;
+    this.cart = cartAdd(this.cart, card?.dataset.wareId, by);
+    return this.render();
+  }
+
+  _onCartLess(_event, target) { this._cartAdjusted = false; this.cart = cartAdd(this.cart, target.closest("[data-ware-id]")?.dataset.wareId, -1); return this.render(); }
+  _onCartMore(_event, target) { this._cartAdjusted = false; this.cart = cartAdd(this.cart, target.closest("[data-ware-id]")?.dataset.wareId, 1); return this.render(); }
+  _onCartRemove(_event, target) {
+    const id = target.closest("[data-ware-id]")?.dataset.wareId;
+    this._cartAdjusted = false;
+    this.cart = this.cart.filter((l) => l.wareId !== id);
+    return this.render();
+  }
+
+  _onCheckout(_event, target) {
+    const expectedTotal = Number(target.dataset.total);
+    return this.#run(async (buyer) => {
+      const res = await checkoutCart({ buyer, merchantActor: this.merchantActor, merchant: this.merchant, lines: this.cart, expectedTotal, sceneId: this.scene?.id }, this._io);
+      // what landed leaves the cart, even when a later line did not
+      const done = new Set((res.bought ?? []).map((b) => b.id));
+      this.cart = this.cart.filter((l) => !done.has(l.wareId));
+      this._cartAdjusted = false;
+      return res;
+    });
   }
 
   _onSell(_event, target) {
