@@ -33,7 +33,7 @@ export function stockItem(data, bundles) {
 const maxFor = (size, type) => (type === "Basic" ? size.maxBundles : Math.max(1, Math.floor(size.maxBundles / 2)));
 
 /**
- * Choose the stock. `pool` rows are `{ uuid, type, costCp }`; `rand` is a 0..1 source (Math.random in play).
+ * Choose the stock. `pool` rows are `{ uuid, name, type, costCp }`; `rand` is a 0..1 source (Math.random in play).
  * Returns `[{ uuid, bundles }]`: no ware twice, nothing free or over the size's ceiling, bundles from 1 to the cap.
  */
 export function pickStock(pool, { kind, size }, rand = Math.random) {
@@ -46,5 +46,8 @@ export function pickStock(pool, { kind, size }, rand = Math.random) {
     return true;
   });
   for (let i = fit.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [fit[i], fit[j]] = [fit[j], fit[i]]; }
-  return fit.slice(0, s.wares).map((r) => ({ uuid: r.uuid, bundles: 1 + Math.floor(rand() * maxFor(s, r.type)) }));
+  // Two entries with one name (the gear pack has two Arrows) are one ware: the first pick stays.
+  const names = new Set();
+  const unique = fit.filter((r) => { const n = String(r.name ?? r.uuid).trim().toLowerCase(); if (names.has(n)) return false; names.add(n); return true; });
+  return unique.slice(0, s.wares).map((r) => ({ uuid: r.uuid, bundles: 1 + Math.floor(rand() * maxFor(s, r.type)) }));
 }

@@ -151,7 +151,7 @@ export class TownEditorApp extends HandlebarsApplicationMixin(ApplicationV2) {
       if (!pack) continue;
       const index = await pack.getIndex({ fields: ["system.cost", "system.quantity", "system.magicItem", `flags.${MODULE_ID}.fromTreasureTable`, `flags.${MODULE_ID}.generated`] });
       for (const entry of index.contents) {
-        if (kind.types.some((type) => inStock(entry, { type }))) pool.push({ uuid: entry.uuid, type: entry.type, costCp: toCopper(entry.system.cost ?? {}) });
+        if (kind.types.some((type) => inStock(entry, { type }))) pool.push({ uuid: entry.uuid, name: entry.name, type: entry.type, costCp: toCopper(entry.system.cost ?? {}) });
       }
     }
     const picks = pickStock(pool, { kind: kind.id, size });

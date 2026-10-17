@@ -60,3 +60,12 @@ test("stock is counted in units: 2 bundles of arrows (20 to a slot) are 40, and 
   assert.equal(arrows.system.quantity, 20, "the source data is not changed");
   assert.equal(stockItem({ name: "Torch", system: {} }, 3).system.quantity, 3);
 });
+
+test("two entries with the same name (case and spaces aside) are one ware", () => {
+  const dup = [{ uuid: "a", name: "Arrows", type: "Basic", costCp: 100 }, { uuid: "b", name: " arrows ", type: "Basic", costCp: 100 }, { uuid: "c", name: "Rope", type: "Basic", costCp: 100 }];
+  for (const seed of [1, 2, 3, 4, 5]) {
+    const out = pickStock(dup, { kind: "general", size: "city" }, seeded(seed));
+    assert.equal(out.length, 2);
+    assert.equal(out.filter((o) => o.uuid !== "c").length, 1);
+  }
+});
