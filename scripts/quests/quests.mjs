@@ -27,10 +27,12 @@ import { Renown } from "../renown/renown.mjs";
 import { trainerByKey } from "../training/training-core.mjs";
 import {
   FOLDER_FLAG, OWNERSHIP, PAGE_FLAG, QUEST_FLAG,
-  canSee, defaultRecipients, hasNotes, makeQueue, matchesFilter, mergeQuest, normalizeQuest, ownershipFor, payoutPlan,
+  canSee, dateLabel, deadlineState, defaultRecipients, hasNotes, makeQueue, matchesFilter, mergeQuest, normalizeQuest, ownershipFor, payoutPlan,
   noteLines, pickPin, planStatusChange, playerPageHtml, playerView, rewardLines, summarize, trainerLabel, trainerTaskQuests,
 } from "./quest-core.mjs";
 import { L as t } from "../shared/i18n.mjs";
+import { questLineCard } from "../shared/chat-cards.mjs";
+import { secondsPerDay } from "../time/time-core.mjs";
 
 /** Fires on every client after any quest is created, changed or deleted. */
 export const QUESTS_CHANGED = `${MODULE_ID}.questsChanged`;
@@ -389,6 +391,30 @@ async function panToPin(pin, missingKey) {
 export const jumpToHex = (num, missingKey = "SDE.troubles.notify.noPin", skipSceneId = null) =>
   panToPin(findPin({ id: null, hex: Number(num) }, skipSceneId), missingKey);
 
+/**
+ * The one public chat line when a quest ends. Only a quest players could see
+ * (Available or Active) gets one, so a Hidden quest moved to Failed and a
+ * completion retry (already Completed) post nothing. A failure must never stop
+ * the status change.
+ */
+async function postQuestLine(entry, oldStatus) {
+  try {
+    const quest = flagOf(entry);
+    if (!["available", "active"].includes(oldStatus) || !["completed", "failed"].includes(quest?.status)) return;
+    const cal = game.time?.calendar;
+    const late = quest.status === "failed" && cal && deadlineState(quest, game.time.worldTime, secondsPerDay(cal)) === "overdue";
+    const title = late
+      ? t("SDE.quests.chat.overdue", { name: entry.name, date: dateLabel(cal, quest.deadline, t) })
+      : t(quest.status === "failed" ? "SDE.quests.chat.failed" : "SDE.quests.chat.completed", { name: entry.name });
+    await ChatMessage.create({
+      content: questLineCard({ title, failed: quest.status === "failed" }),
+      flags: { [MODULE_ID]: { questLine: { questUuid: entry.uuid, status: quest.status } } },
+    });
+  } catch (error) {
+    console.warn(`${MODULE_ID} | quest chat line`, error);
+  }
+}
+
 // ── The API ─────────────────────────────────────────────────────────────────
 
 export const Quests = {
@@ -454,7 +480,8 @@ export const Quests = {
       const plan = planStatusChange(flagOf(entry), status);
       if (!plan.ok) { ui.notifications?.warn(t("SDE.quests.notify.badStatus")); return null; }
       if (!plan.changed) return toSummary(entry);
-      if (!plan.pay) { await writeQuest(entry, plan.quest); return toSummary(entry); }
+      const oldStatus = flagOf(entry).status;
+      if (!plan.pay) { await writeQuest(entry, plan.quest); await postQuestLine(entry, oldStatus); return toSummary(entry); }
 
       const quest = plan.quest;
       if (!quest.payout) {
@@ -469,12 +496,16 @@ export const Quests = {
         // Freeze recipients/rewards before any write to a recipient. Retry never asks again.
         await writeQuest(entry, quest);
       }
+      // The status flag turns Completed at the freeze above or inside pay(); the line is posted
+      // once whichever way pay() ends, and only while the stored status was still Available/Active.
       try { await pay(entry, quest); }
       catch (error) {
         try { ui.notifications?.warn(t("SDE.quests.notify.payoutPending")); } catch { /* Reporting cannot alter progress. */ }
         console.warn(`${MODULE_ID} | quest payout pending`, error);
+        await postQuestLine(entry, oldStatus);
         return toSummary(entry);
       }
+      await postQuestLine(entry, oldStatus);
       training = quest.payout.plan.training;
       return toSummary(entry);
     });

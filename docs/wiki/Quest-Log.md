@@ -121,6 +121,24 @@ gave before that, then shows them on the Hidden tab.
 
 ---
 
+## How players find out
+
+- **A pop-up** on each player's screen when a quest they can see appears, starts,
+  is completed or failed, or gets a step ticked or a new step shown. Failed
+  quests use the warning style. Several changes at once become one line,
+  "Several quests were updated". There is no way for a player to turn them off.
+- **A chat line** for everyone when a quest that players could see goes from
+  Available or Active to Completed or Failed ("Quest failed: The drowned bell
+  (due 14 March 1348)"; the date appears when the deadline had passed). It is
+  the record for a player who was away. A Hidden quest moved straight to Failed
+  posts nothing, since players never saw it.
+- **The Failed tab** keeps the quest, with its count.
+
+GMs get no pop-ups; the chat line is posted by whoever changes the status (for a
+deadline failure, the GM whose game runs the clock), so it appears once.
+
+---
+
 ## Completing a quest
 
 Set the status to **Completed**. If the quest has rewards that have not been

@@ -4,7 +4,7 @@ import {
   OWNERSHIP, STATUSES,
   addObjective, addSubStep, canSee, dateLabel, dayChanged, deadlineState, dueChanges, timeToDate, hasNotes, hasRewards, noteLines, defaultRecipients, makeQueue, matchesFilter, mergeQuest, normalizeQuest, objectiveProgress,
   ownershipFor, payoutPlan, pickPin, planStatusChange, playerPageHtml, playerView, removeObjective, setObjectiveDone, setObjectiveSecret,
-  questsAtHex, setObjectiveText, shouldPay, summarize, trainerTaskQuests, visibleStatuses,
+  questEvents, questsAtHex, setObjectiveText, shouldPay, summarize, trainerTaskQuests, visibleStatuses,
 } from "../scripts/quests/quest-core.mjs";
 
 let n = 0;
@@ -678,5 +678,48 @@ describe("quest dates", () => {
     assert.ok(html.includes("SDE.quests.page.due"));
     assert.ok(!html.includes("123456"));
     assert.ok(!playerPageHtml(normalizeQuest({ status: "active" }), t, cal).includes("page.due"));
+  });
+});
+
+describe("questEvents", () => {
+  const snap = (status, steps = [], name = "Bell") => ({ name, status, steps });
+  const st = (id, done = false, text = `step ${id}`) => ({ id, text, done });
+  const only = (prev, next) => questEvents({ a: prev }, { a: next });
+
+  test("a new quest, and a quest first seen already finished", () => {
+    assert.deepEqual(questEvents({}, { a: snap("available") }), [{ id: "a", kind: "new", name: "Bell" }]);
+    assert.deepEqual(questEvents({}, { a: snap("completed") }), [{ id: "a", kind: "completed", name: "Bell" }]);
+    assert.deepEqual(questEvents({}, { a: snap("failed") }), [{ id: "a", kind: "failed", name: "Bell" }]);
+  });
+  test("each status change", () => {
+    assert.equal(only(snap("available"), snap("active"))[0].kind, "active");
+    assert.equal(only(snap("active"), snap("completed"))[0].kind, "completed");
+    assert.equal(only(snap("active"), snap("failed"))[0].kind, "failed");
+  });
+  test("a move to available or hidden tells nothing", () => {
+    assert.deepEqual(only(snap("active"), snap("available")), []);
+    assert.deepEqual(only(snap("active"), snap("hidden")), []);
+  });
+  test("a step done carries its text; an un-tick tells nothing", () => {
+    assert.deepEqual(only(snap("active", [st("s1"), st("s2")]), snap("active", [st("s1", true, "Ring it"), st("s2")])),
+      [{ id: "a", kind: "step", name: "Bell", text: "Ring it" }]);
+    assert.deepEqual(only(snap("active", [st("s1", true)]), snap("active", [st("s1")])), []);
+  });
+  test("a newly visible step carries its text", () => {
+    assert.deepEqual(only(snap("active", [st("s1")]), snap("active", [st("s1"), st("s2", false, "Dive")])),
+      [{ id: "a", kind: "newStep", name: "Bell", text: "Dive" }]);
+  });
+  test("one event per quest, by priority", () => {
+    const prev = snap("available", [st("s1")]);
+    const steps = [st("s1", true), st("s2")];
+    assert.equal(only(prev, snap("active", steps))[0].kind, "active");
+    assert.equal(only(snap("active", [st("s1")]), snap("completed", steps))[0].kind, "completed");
+    assert.equal(only(snap("active", [st("s1")]), snap("active", steps))[0].kind, "step");
+    assert.equal(only(snap("active", [st("s1")]), snap("active", steps)).length, 1);
+  });
+  test("an empty diff, and a quest that disappears", () => {
+    const same = { a: snap("active", [st("s1", true)]) };
+    assert.deepEqual(questEvents(same, structuredClone(same)), []);
+    assert.deepEqual(questEvents(same, {}), []);
   });
 });

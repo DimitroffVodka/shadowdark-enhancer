@@ -93,7 +93,7 @@ for (const kind of ["xp", "renown"]) test(`one recipient: failed ${kind} report 
   await Quests.setStatus("q", "active"); await f.run();
   assert.equal(attempts, 2);
   assert.equal(awards, 1);
-  assert.equal(game.messages.contents.filter(m => m.flags[M].questReport.key === `${kind}:a`).length, 1);
+  assert.equal(game.messages.contents.filter(m => m.flags[M].questReport?.key === `${kind}:a`).length, 1);
   assert.deepEqual(f.actors.map(a => ({ system: a.system, items: a.items.contents, ledger: a.flags[M].renownLog })), effects);
   assert.ok(Object.values(f.entry.flags[M].quest.payout.reports).every(r => r.done));
 });
@@ -114,7 +114,7 @@ for (const failure of ["reply", "checkpoint"]) test(`posted report with lost ${f
   assert.equal((await f.run()).paid, true);
   const effects = structuredClone(f.actors.map(a => a.system));
   await f.run(); await f.run();
-  assert.equal(game.messages.contents.filter(m => m.flags[M].questReport.key === "xp:a").length, 1);
+  assert.equal(game.messages.contents.filter(m => m.flags[M].questReport?.key === "xp:a").length, 1);
   assert.deepEqual(f.actors.map(a => a.system), effects);
 });
 
@@ -124,7 +124,7 @@ test("legacy paid quest with frozen payout but no report record remains untouche
   const before = structuredClone(f.entry.flags);
   await f.run(); await Quests.setStatus("q", "active"); await f.run();
   assert.deepEqual(f.entry.flags, before);
-  assert.equal(game.messages.contents.length, 0);
+  assert.equal(game.messages.contents.filter(m => !m.flags?.[M]?.questLine).length, 0);
   assert.equal(f.actors[0].system.level.xp, 0);
 });
 

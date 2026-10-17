@@ -1545,7 +1545,7 @@ await api.quests.setStatus(q.id, "completed");    // asks the GM to confirm the 
 | `quests.list({ status, party, character, sourceKind, sourceUuid })` | anyone | Quests this user may see, newest first. Every filter is optional. `status` is one status or an array. `party` and `character` take an Actor, a UUID or a world actor id. |
 | `quests.get(idOrUuid)` | anyone | One quest, or `null` when it does not exist or this user may not see it. |
 | `quests.create(data)` | GM | Make a quest and return it. Every field is optional; a bare call makes a Hidden *New quest* from the GM. |
-| `quests.setStatus(idOrUuid, status)` | GM | Move a quest. Returns it, or `null` when refused or cancelled. |
+| `quests.setStatus(idOrUuid, status)` | GM | Move a quest. Returns it, or `null` when refused or cancelled. Going from Available or Active to Completed or Failed also posts one public chat line, flagged `flags["shadowdark-enhancer"].questLine = { questUuid, status }`. |
 
 **The shape** every read returns:
 

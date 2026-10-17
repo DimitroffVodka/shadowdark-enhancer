@@ -390,6 +390,33 @@ export function dayChanged(prev, now, spd) {
   return Math.floor(prev / spd) !== Math.floor(now / spd);
 }
 
+/**
+ * What a player should be told, from two snapshots of what they may see (keyed
+ * by quest id, each `{name, status, steps: [{id, text, done}]}`). One event
+ * per quest, by priority: failed or completed, active, new, a step done, a
+ * step newly visible. A quest that vanished, an un-tick and a move to any
+ * other status tell nothing.
+ */
+export function questEvents(prev = {}, next = {}) {
+  const out = [];
+  for (const [id, q] of Object.entries(next)) {
+    const old = prev[id];
+    const ev = (kind, text) => out.push({ id, kind, name: q.name, ...(text === undefined ? {} : { text }) });
+    if (q.status === "completed" || q.status === "failed") {
+      if (!old || old.status !== q.status) ev(q.status);
+      continue;
+    }
+    if (!old) { if (q.status !== "hidden") ev("new"); continue; }
+    if (old.status !== q.status && q.status === "active") { ev("active"); continue; }
+    const before = new Map(old.steps.map((s) => [s.id, s]));
+    const ticked = q.steps.find((s) => s.done && before.get(s.id) && !before.get(s.id).done);
+    if (ticked) { ev("step", ticked.text); continue; }
+    const added = q.steps.find((s) => !before.has(s.id));
+    if (added) ev("newStep", added.text);
+  }
+  return out;
+}
+
 /** A worldTime as the calendar's day, month (from 1) and year as it prints it. */
 export function timeToDate(cal, t) {
   const c = cal.timeToComponents(t);

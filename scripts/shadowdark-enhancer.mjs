@@ -113,6 +113,7 @@ import { DowntimeSession } from "./downtime/downtime-session.mjs";
 import { Renown } from "./renown/renown.mjs";
 import { Quests, openQuestLog, registerQuests } from "./quests/quests.mjs";
 import { registerQuestClock } from "./quests/quest-clock.mjs";
+import { registerQuestNotices } from "./quests/quest-notices.mjs";
 import { Troubles, registerTroubles } from "./troubles/troubles.mjs";
 import { Rumors, registerRumors } from "./rumors/rumors.mjs";
 import { registerActorTypes, WARBAND_TYPE } from "./actors/register-actors.mjs";
@@ -154,7 +155,7 @@ const STYLESHEET_REV = "a4bd1b554f72";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "28675d20335a";
+const BUILD_REV = "7c754d809f0b";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -351,6 +352,8 @@ Hooks.once("init", () => {
   registerQuests();
   // Dates on quests: appears-on and fail-at-the-deadline, on the clock (never on an edit).
   registerQuestClock();
+  // Pop-ups for players when a quest they can see changes.
+  registerQuestNotices();
   registerTroubles();
   // The GM-only "Rules Data isn't set" cards get their button (#299).
   registerRulesNotice();
