@@ -184,6 +184,7 @@ export async function pardon({ actor, merchant }, io = null) {
 export async function sellItem({ seller, merchantActor, merchant, itemId, quantity, sceneId = "" }, io = null) {
   io ??= await liveIo();
   if (!seller?.isOwner) return fail(io.t(`${KEY}actorNotFound`));
+  if (!merchantActor || merchant?.open === false) return fail(io.t(`${KEY}unavailable`));
   if (haggleState(seller, merchant).banned) return fail(io.t("SDE.town.haggle.errBanned"));
   const item = seller.items.get(itemId);
   if (!item) return fail(io.t(`${KEY}itemNotInInventory`));
@@ -215,12 +216,12 @@ export async function sellItem({ seller, merchantActor, merchant, itemId, quanti
     if (back) return fail(io.t("SDE.town.lots.saleNotSaved"));
     // Neither the coins nor the item: the table's GM has to settle it, so it goes on a card and in the sales log.
     await io.chat({
-      speaker: { alias: merchantActor?.name ?? io.t("SDE.merchant.card.speaker") },
+      speaker: { alias: merchantActor.name },
       content: purchaseCard({
         title: io.t("SDE.merchant.card.sold"), buyer: seller.name, img: img || "icons/svg/item-bag.svg", name,
         html: io.t("SDE.town.lots.lostLine", { seller: `<strong>${esc(seller.name)}</strong>`, item: `<strong>${esc(name)}${qty > 1 ? ` ×${qty}` : ""}</strong>`, price: formatPrice(price) }),
       }),
-      flags: { [MODULE_ID]: { [LOG_FLAG]: logFlag({ kind: "sell", sceneId, placeId: merchant?.id, place: merchantActor?.name ?? "", charId: seller.id, charName: seller.name, what: name, qty, net: swing.copper }) } },
+      flags: { [MODULE_ID]: { [LOG_FLAG]: logFlag({ kind: "sell", sceneId, placeId: merchant?.id, place: merchantActor.name, charId: seller.id, charName: seller.name, what: name, qty, net: swing.copper }) } },
     }).catch((err) => console.warn(`${MODULE_ID} | town shop: the lost-sale card did not post`, err));
     return fail(io.t("SDE.town.lots.saleLost"));
   }
@@ -229,12 +230,12 @@ export async function sellItem({ seller, merchantActor, merchant, itemId, quanti
 
   const swingNote = swing.applied ? ` <em>${io.t("SDE.merchant.card.swingSell", { pct: swing.pct })}</em>` : "";
   await io.chat({
-    speaker: { alias: merchantActor?.name ?? io.t("SDE.merchant.card.speaker") },
+    speaker: { alias: merchantActor.name },
     content: purchaseCard({
       title: io.t("SDE.merchant.card.sold"), buyer: seller.name, img: item.img || "icons/svg/item-bag.svg", name: item.name,
       html: `${io.t("SDE.merchant.card.soldLine", { seller: `<strong>${esc(seller.name)}</strong>`, item: `<strong>${esc(item.name)}${qty > 1 ? ` ×${qty}` : ""}</strong>`, price: formatPrice(price), ratio: merchant?.sellRatio ?? 50 })}${swingNote}`,
     }),
-    flags: { [MODULE_ID]: { [LOG_FLAG]: logFlag({ kind: "sell", sceneId, placeId: merchant?.id, place: merchantActor?.name ?? "", charId: seller.id, charName: seller.name, what: item.name, qty, net: swing.copper }) } },
+    flags: { [MODULE_ID]: { [LOG_FLAG]: logFlag({ kind: "sell", sceneId, placeId: merchant?.id, place: merchantActor.name, charId: seller.id, charName: seller.name, what: item.name, qty, net: swing.copper }) } },
   });
   return { ok: true, name: item.name, qty, price };
 }

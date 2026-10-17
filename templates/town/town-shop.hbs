@@ -79,8 +79,8 @@
           {{#if blurb}}<p class="tl-blurb">{{blurb}}</p>{{/if}}
         </div>
         <span class="ui-chip">{{localize "SDE.town.owned" n=qty}}</span>
-        <button type="button" class="ui-btn" data-action="sell" data-item-id="{{id}}"><i class="fa-solid fa-coins"></i> {{localize "SDE.town.sell"}}</button>
-        {{#if (gt qty 1)}}<button type="button" class="ui-btn ghost" data-action="sellAll" data-item-id="{{id}}" data-tooltip="{{localize 'SDE.town.sellAllTip'}}">{{localize "SDE.town.sellAll"}}</button>{{/if}}
+        <button type="button" class="ui-btn" data-action="sell" data-item-id="{{id}}" {{#if ../busy}}disabled{{/if}}><i class="fa-solid fa-coins"></i> {{localize "SDE.town.sell"}}</button>
+        {{#if (gt qty 1)}}<button type="button" class="ui-btn ghost" data-action="sellAll" data-item-id="{{id}}" {{#if ../busy}}disabled{{/if}} data-tooltip="{{localize 'SDE.town.sellAllTip'}}">{{localize "SDE.town.sellAll"}}</button>{{/if}}
       </div>
       {{/each}}
     </div>

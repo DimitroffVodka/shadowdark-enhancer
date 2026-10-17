@@ -210,10 +210,10 @@ test("selling part of a stack lowers it, and a typed-in 1000 sells only what is 
   const torches = item({ id: "s2", name: "Torch", cost: { cp: 5 }, quantity: 10 });
   const hero = actor({ id: "a", name: "Creeg", items: [torches] });
   const io = makeIo();
-  await sellItem({ seller: hero, merchant, itemId: "s2", quantity: 4 }, io);
+  await sellItem({ merchantActor: merchantActor([]), seller: hero, merchant, itemId: "s2", quantity: 4 }, io);
   assert.deepEqual(torches.updates, [{ "system.quantity": 6 }]);
   assert.deepEqual(hero.system.coins, { gp: 0, sp: 1, cp: 0 });      // 4 x 5 cp at half = 10 cp
-  const res = await sellItem({ seller: hero, merchant, itemId: "s2", quantity: 1000 }, io);
+  const res = await sellItem({ merchantActor: merchantActor([]), seller: hero, merchant, itemId: "s2", quantity: 1000 }, io);
   assert.equal(res.qty, 6);
   assert.equal(torches.deleted, true);
 });
@@ -222,19 +222,19 @@ test("a sale pays with the extortion swing in the seller's favour, and refuses s
   const sword = item({ id: "s1", name: "Longsword", type: "Weapon", cost: { gp: 9 } });
   const hero = actor({ id: "a", name: "Creeg", items: [sword] });
   const io = makeIo({ swing: { pct: 20, uses: 1 } });
-  const res = await sellItem({ seller: hero, merchant, itemId: "s1", quantity: 1 }, io);
+  const res = await sellItem({ merchantActor: merchantActor([]), seller: hero, merchant, itemId: "s1", quantity: 1 }, io);
   assert.deepEqual(res.price, { gp: 5, sp: 4, cp: 0 });              // 450 cp +20%
   assert.deepEqual(io.log.spent, ["a"]);
   const theirs = actor({ id: "b", name: "Elbin", owner: false, items: [item({ id: "s9", name: "Dagger" })] });
-  assert.deepEqual(await sellItem({ seller: theirs, merchant, itemId: "s9", quantity: 1 }, makeIo()), { ok: false, error: "SDE.merchant.notify.actorNotFound" });
-  assert.deepEqual(await sellItem({ seller: hero, merchant, itemId: "nope", quantity: 1 }, makeIo()), { ok: false, error: "SDE.merchant.notify.itemNotInInventory" });
+  assert.deepEqual(await sellItem({ merchantActor: merchantActor([]), seller: theirs, merchant, itemId: "s9", quantity: 1 }, makeIo()), { ok: false, error: "SDE.merchant.notify.actorNotFound" });
+  assert.deepEqual(await sellItem({ merchantActor: merchantActor([]), seller: hero, merchant, itemId: "nope", quantity: 1 }, makeIo()), { ok: false, error: "SDE.merchant.notify.itemNotInInventory" });
 });
 
 test("a sale whose coins did not land gives the item back and says so", async () => {
   const sword = item({ id: "s1", name: "Longsword", type: "Weapon", cost: { gp: 9 } });
   const hero = actor({ id: "a", name: "Creeg", items: [sword] });
   const io = makeIo({ payFails: true });
-  const res = await sellItem({ seller: hero, merchant, itemId: "s1", quantity: 1 }, io);
+  const res = await sellItem({ merchantActor: merchantActor([]), seller: hero, merchant, itemId: "s1", quantity: 1 }, io);
   assert.deepEqual(res, { ok: false, error: "SDE.town.lots.saleNotSaved" });
   assert.equal(hero.flags[MOD]?.shopLots, undefined);   // no lot for a sale that did not land
   assert.equal(io.log.given.length, 1);
@@ -242,7 +242,7 @@ test("a sale whose coins did not land gives the item back and says so", async ()
   assert.equal(io.log.chat.length, 0);
   const torches = item({ id: "s2", name: "Torch", cost: { cp: 5 }, quantity: 10 });
   const other = actor({ id: "b", name: "Elbin", items: [torches] });
-  assert.equal((await sellItem({ seller: other, merchant, itemId: "s2", quantity: 4 }, makeIo({ payFails: true }))).ok, false);
+  assert.equal((await sellItem({ merchantActor: merchantActor([]), seller: other, merchant, itemId: "s2", quantity: 4 }, makeIo({ payFails: true }))).ok, false);
   assert.deepEqual(torches.updates, [{ "system.quantity": 6 }, { "system.quantity": 10 }]);
 });
 
@@ -265,7 +265,7 @@ test("a lot and a recovered item keep the item's own flags, effects and compendi
   const base = sword.toObject;
   sword.toObject = () => ({ ...base(), effects: [{ name: "Keen" }], ownership: { default: 3 }, folder: "f", _stats: { compendiumSource: "Compendium.x.y", modifiedTime: 1 } });
   const hero = actor({ id: "a", name: "Creeg", items: [sword] });
-  await sellItem({ seller: hero, merchant, itemId: "s1", quantity: 1 }, makeIo());
+  await sellItem({ merchantActor: merchantActor([]), seller: hero, merchant, itemId: "s1", quantity: 1 }, makeIo());
   const data = hero.flags[MOD].shopLots.m1[0].data;
   assert.deepEqual(data.flags, flags);
   assert.deepEqual(data.effects, [{ name: "Keen" }]);
@@ -274,7 +274,7 @@ test("a lot and a recovered item keep the item's own flags, effects and compendi
   const again = item({ id: "s2", name: "Dagger", type: "Weapon", flags });
   const h2 = actor({ id: "b", name: "Elbin", items: [again] });
   const io = makeIo({ payFails: true });
-  await sellItem({ seller: h2, merchant, itemId: "s2", quantity: 1 }, io);
+  await sellItem({ merchantActor: merchantActor([]), seller: h2, merchant, itemId: "s2", quantity: 1 }, io);
   assert.deepEqual(io.log.given[0].flags, flags);
 });
 
@@ -283,7 +283,7 @@ test("a sale whose item stays on the character (a vetoed delete or update) pays 
   sword.delete = async () => {};   // a preDeleteItem hook returned false: resolves, removes nothing
   const hero = actor({ id: "a", name: "Creeg", items: [sword] });
   const io = makeIo();
-  assert.deepEqual(await sellItem({ seller: hero, merchant, itemId: "s1", quantity: 1 }, io), { ok: false, error: "SDE.town.lots.saleNotSaved" });
+  assert.deepEqual(await sellItem({ merchantActor: merchantActor([]), seller: hero, merchant, itemId: "s1", quantity: 1 }, io), { ok: false, error: "SDE.town.lots.saleNotSaved" });
   assert.equal(io.log.paid.length, 0);
   assert.equal(hero.flags[MOD]?.shopLots, undefined);
   assert.equal(io.log.chat.length, 0);
@@ -291,7 +291,7 @@ test("a sale whose item stays on the character (a vetoed delete or update) pays 
   torches.update = async () => {};
   const other = actor({ id: "b", name: "Elbin", items: [torches] });
   const io2 = makeIo();
-  assert.equal((await sellItem({ seller: other, merchant, itemId: "s2", quantity: 4 }, io2)).ok, false);
+  assert.equal((await sellItem({ merchantActor: merchantActor([]), seller: other, merchant, itemId: "s2", quantity: 4 }, io2)).ok, false);
   assert.equal(io2.log.paid.length, 0);
   assert.equal(other.flags[MOD]?.shopLots, undefined);
 });
@@ -300,6 +300,17 @@ test("a normal sale still pays and records its lot", async () => {
   const hero = await sellSword({});
   assert.equal(hero.flags[MOD].shopLots.m1.length, 1);
   assert.deepEqual(hero.system.coins, { gp: 4, sp: 5, cp: 0 });
+});
+
+test("a sale is refused when the shop is closed or its merchant is missing: nothing taken, nothing paid, no lot", async () => {
+  const sword = item({ id: "s1", name: "Longsword", type: "Weapon", cost: { gp: 9 } });
+  const hero = actor({ id: "a", name: "Creeg", items: [sword] });
+  const io = makeIo();
+  assert.deepEqual(await sellItem({ seller: hero, merchantActor: merchantActor([]), merchant: { ...merchant, open: false }, itemId: "s1", quantity: 1 }, io), { ok: false, error: "SDE.merchant.notify.unavailable" });
+  assert.deepEqual(await sellItem({ seller: hero, merchant, itemId: "s1", quantity: 1 }, io), { ok: false, error: "SDE.merchant.notify.unavailable" });
+  assert.equal(sword.deleted, false);
+  assert.equal(io.log.paid.length, 0);
+  assert.equal(hero.flags[MOD]?.shopLots, undefined);
 });
 
 // ── buyback ──────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -325,9 +336,9 @@ test("a lot of a partial stack remembers the quantity sold, and only the newest 
   const torches = item({ id: "s2", name: "Torch", cost: { cp: 5 }, quantity: 10 });
   const hero = actor({ id: "a", name: "Creeg", items: [torches] });
   const io = makeIo();
-  await sellItem({ seller: hero, merchant, itemId: "s2", quantity: 4 }, io);
+  await sellItem({ merchantActor: merchantActor([]), seller: hero, merchant, itemId: "s2", quantity: 4 }, io);
   assert.equal(hero.flags[MOD].shopLots.m1[0].data.system.quantity, 4);
-  for (let i = 0; i < 12; i++) { const t = item({ id: `t${i}`, name: `T${i}`, cost: { cp: 5 } }); t.parent = hero; hero.items.contents.push(t); await sellItem({ seller: hero, merchant, itemId: `t${i}`, quantity: 1 }, io); }
+  for (let i = 0; i < 12; i++) { const t = item({ id: `t${i}`, name: `T${i}`, cost: { cp: 5 } }); t.parent = hero; hero.items.contents.push(t); await sellItem({ merchantActor: merchantActor([]), seller: hero, merchant, itemId: `t${i}`, quantity: 1 }, io); }
   assert.equal(hero.flags[MOD].shopLots.m1.length, 10);
   assert.equal(hero.flags[MOD].shopLots.m1.at(-1).name, "T11");
 });
@@ -590,7 +601,7 @@ test("a banned character cannot check out, sell or haggle, and a restock does no
   const io = makeIo({ characters: [hero] });
   const rev9 = { ...merchant, rev: 9 };
   assert.deepEqual(await checkoutCart(cartArgs(hero, cartShelf(), [{ wareId: "w1", qty: 1 }], { merchant: rev9 }), io), { ok: false, error: "SDE.town.haggle.errBanned" });
-  assert.deepEqual(await sellItem({ seller: hero, merchant: rev9, itemId: "s1", quantity: 1 }, io), { ok: false, error: "SDE.town.haggle.errBanned" });
+  assert.deepEqual(await sellItem({ merchantActor: merchantActor([]), seller: hero, merchant: rev9, itemId: "s1", quantity: 1 }, io), { ok: false, error: "SDE.town.haggle.errBanned" });
   assert.deepEqual(await hag(hero, io, rev9), { ok: false, error: "SDE.town.haggle.errBanned" });
   assert.equal(sword.deleted, false);
   assert.equal(io.log.charged.length, 0);
@@ -599,7 +610,7 @@ test("a banned character cannot check out, sell or haggle, and a restock does no
 test("a haggle does not change what the merchant pays for a sale", async () => {
   const sword = item({ id: "s1", name: "Longsword", type: "Weapon", cost: { gp: 9 } });
   const hero = chaActor({ items: [sword], flags: { [MOD]: { shopHaggle: { m1: { rev: 0, pct: -25, tier: "masterful" } } } } });
-  const res = await sellItem({ seller: hero, merchant, itemId: "s1", quantity: 1 }, makeIo());
+  const res = await sellItem({ merchantActor: merchantActor([]), seller: hero, merchant, itemId: "s1", quantity: 1 }, makeIo());
   assert.deepEqual(res.price, { gp: 4, sp: 5, cp: 0 });
 });
 
