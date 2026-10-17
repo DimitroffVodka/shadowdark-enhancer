@@ -3852,6 +3852,11 @@ body.theme-light .sde-parry-note { color: #2e6b2e; }
 .sde-quest-log-root .ql-flat .ui-row { padding-left: 0; padding-right: 0; }
 .sde-quest-log-root .ql-done input[type=text], .sde-quest-log-root .ql-done .ui-row-main { text-decoration: line-through; color: var(--ui-muted); }
 .sde-quest-log-root .ql-add input { flex: 1 1 0; width: auto; }
+.sde-quest-log-root .ql-flat .ql-sub { padding-left: 26px; }
+.sde-quest-log-root .ql-secret input[type=text], .sde-quest-log-root .ql-secret .ui-row-main { opacity: .6; font-style: italic; }
+.sde-quest-log-root .ql-secret-mark { flex: 0 0 auto; padding: 1px 6px; font-size: 10px; }
+.sde-quest-log-root .ql-new-secret { display: inline-flex; align-items: center; gap: 4px; flex: 0 0 auto; cursor: pointer; color: var(--ui-muted); }
+.sde-quest-log-root .ql-new-secret:has(input:checked) { color: var(--ui-text); }
 .sde-quest-log-root .ql-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
 .sde-quest-log-root .ql-drop { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 40px; padding: 8px; border: 1px dashed var(--ui-line); border-radius: var(--ui-r2); }
 .sde-quest-log-root .ql-drop.sde-drag-over { border-color: var(--ui-frame); background: var(--ui-raised); }

@@ -15,7 +15,11 @@
  *   characters   actor UUIDs. A quest with characters is personal to them.
  *   party        a Shadowdark Extras party actor's UUID, or null
  *   description  the player-facing text, typed by the GM
- *   objectives   [{ id, text, done }]
+ *   objectives   [{ id, text, done, parent, secret }] — parent is a top-level
+ *                step's id or null (one level only); secret hides the step
+ *                (and a parent's sub-steps) from players
+ *   reveal       "all" (default) or "next": players see the done top-level
+ *                steps and the first undone one
  *   rewards      { xp, renown, items: [{ uuid, name, img }], training }
  *   hex          a published hex number whose map pin the quest jumps to
  *   hexScene     the scene uuid that number belongs to (a number repeats between
@@ -84,10 +88,53 @@ export function canSee(quest, { isGM = false, observer = false } = {}) {
   return !!quest && quest.status !== "hidden" && !!observer;
 }
 
-function normalizeObjective(raw, newId) {
-  if (typeof raw === "string") return { id: newId(), text: str(raw), done: false };
-  return { id: str(raw?.id) || newId(), text: str(raw?.text), done: raw?.done === true };
+const SKIP_KEYS = new Set(["id", "uuid", "name", "created", "__proto__", "constructor", "prototype"]);
+
+/** Keys this build does not know, copied safely: no entry-level fields, and a value that cannot be cloned is skipped. */
+function carryUnknown(raw, known) {
+  const out = {};
+  if (!raw || typeof raw !== "object") return out;
+  for (const [k, v] of Object.entries(raw)) {
+    if (known.has(k) || SKIP_KEYS.has(k)) continue;
+    try { out[k] = structuredClone(v); } catch { /* not copyable: leave it out */ }
+  }
+  return out;
 }
+
+const OBJECTIVE_KEYS = new Set(["id", "text", "done", "parent", "secret"]);
+const REWARD_KEYS = new Set(["xp", "coins", "renown", "items", "training"]);
+
+function normalizeObjective(raw, newId) {
+  if (typeof raw === "string") return { id: newId(), text: str(raw), done: false, parent: null, secret: false };
+  return {
+    ...carryUnknown(raw, OBJECTIVE_KEYS),
+    id: str(raw?.id) || newId(), text: str(raw?.text), done: raw?.done === true,
+    parent: str(raw?.parent) || null, secret: raw?.secret === true,
+  };
+}
+
+/** Normalize, drop empty steps, then keep a parent only if it is an earlier top-level step. */
+function normalizeObjectives(rawList, newId) {
+  // A repeated id gets a fresh one, so a copied step cannot make its children multiply on every save.
+  const seen = new Set();
+  const all = list(rawList).map((o) => normalizeObjective(o, newId)).filter((o) => o.text).map((o) => {
+    while (seen.has(o.id)) o = { ...o, id: newId() };
+    seen.add(o.id);
+    return o;
+  });
+  const secretIds = new Set(all.filter((o) => o.secret).map((o) => o.id));
+  const top = new Set();
+  const flat = all.map((o) => {
+    if (o.parent && top.has(o.parent)) return o;
+    top.add(o.id);
+    // A promoted sub-step stays secret when its named parent is secret, wherever that parent sits.
+    return { ...o, parent: null, secret: o.secret || (!!o.parent && secretIds.has(o.parent)) };
+  });
+  // A sub-step sits right after its parent's block, so the window and the page agree.
+  return flat.filter((o) => !o.parent).flatMap((o) => [o, ...flat.filter((c) => c.parent === o.id)]);
+}
+
+const KNOWN_KEYS = new Set(["status", "source", "characters", "party", "description", "objectives", "rewards", "reveal", "hex", "hexScene", "paid", "payout"]);
 
 function wholeNumber(v, { min = -Infinity } = {}) {
   const n = Math.round(Number(v));
@@ -118,14 +165,19 @@ export function normalizeQuest(raw = {}, { newId = defaultId } = {}) {
   }
   const r = raw?.rewards ?? {};
   const hex = hexNumber(raw?.hex);
+  // Keys this build does not know ride through, so a newer build's fields survive an older GM tab.
+  const unknown = carryUnknown(raw, KNOWN_KEYS);
   return {
+    ...unknown,
     status: isStatus(raw?.status) ? raw.status : "hidden",
     source,
     characters: uniq(list(raw?.characters).map(str).filter(Boolean)),
     party: str(raw?.party) || null,
     description: String(raw?.description ?? ""),
-    objectives: list(raw?.objectives).map((o) => normalizeObjective(o, newId)).filter((o) => o.text),
+    objectives: normalizeObjectives(raw?.objectives, newId),
+    reveal: raw?.reveal === "next" ? "next" : "all",
     rewards: {
+      ...carryUnknown(r, REWARD_KEYS),
       xp: wholeNumber(r.xp, { min: 0 }),
       ...(r.coins ? { coins: Object.fromEntries(["gp", "sp", "cp"].map(k => [k, wholeNumber(r.coins[k], { min: 0 })])) } : {}),
       renown: wholeNumber(r.renown),
@@ -201,14 +253,30 @@ export function makeQueue() {
 
 // ── Objectives ──────────────────────────────────────────────────────────────
 
-export function addObjective(quest, text, newId = defaultId) {
+export function addObjective(quest, text, { secret = false, newId = defaultId } = {}) {
   const clean = str(text);
   if (!clean) return quest;
-  return { ...quest, objectives: [...quest.objectives, { id: newId(), text: clean, done: false }] };
+  return { ...quest, objectives: [...quest.objectives, { id: newId(), text: clean, done: false, parent: null, secret: !!secret }] };
+}
+
+/** A sub-step goes after its parent's last child. A sub-step cannot be a parent, so that is a no-op. */
+export function addSubStep(quest, parentId, text, { secret = false, newId = defaultId } = {}) {
+  const clean = str(text);
+  const at = quest.objectives.findIndex((o) => o.id === parentId && !o.parent);
+  if (!clean || at < 0) return quest;
+  let end = at;
+  quest.objectives.forEach((o, i) => { if (o.parent === parentId) end = i; });
+  const objectives = [...quest.objectives];
+  objectives.splice(end + 1, 0, { id: newId(), text: clean, done: false, parent: parentId, secret: !!secret });
+  return { ...quest, objectives };
 }
 
 export function setObjectiveDone(quest, id, done) {
   return { ...quest, objectives: quest.objectives.map((o) => (o.id === id ? { ...o, done: !!done } : o)) };
+}
+
+export function setObjectiveSecret(quest, id, secret) {
+  return { ...quest, objectives: quest.objectives.map((o) => (o.id === id ? { ...o, secret: !!secret } : o)) };
 }
 
 export function setObjectiveText(quest, id, text) {
@@ -217,13 +285,35 @@ export function setObjectiveText(quest, id, text) {
   return { ...quest, objectives: quest.objectives.map((o) => (o.id === id ? { ...o, text: clean } : o)) };
 }
 
+/** A parent takes its sub-steps with it. */
 export function removeObjective(quest, id) {
-  return { ...quest, objectives: quest.objectives.filter((o) => o.id !== id) };
+  return { ...quest, objectives: quest.objectives.filter((o) => o.id !== id && o.parent !== id) };
 }
 
-/** Ticked out of total. A quest with no objectives is never "complete" by them. */
-export function objectiveProgress(quest) {
+/**
+ * What a player may see of a quest: secret steps gone (with the sub-steps of a
+ * secret parent), and on a "next" quest the done top-level steps plus the first
+ * undone one. `quest` is normalized.
+ */
+export function playerView(quest) {
+  const secretParents = new Set(quest.objectives.filter((o) => o.secret && !o.parent).map((o) => o.id));
+  let objectives = quest.objectives.filter((o) => !o.secret && !secretParents.has(o.parent));
+  if (quest.reveal === "next") {
+    const next = objectives.find((o) => !o.parent && !o.done);
+    const shown = new Set(objectives.filter((o) => !o.parent && (o.done || o === next)).map((o) => o.id));
+    objectives = objectives.filter((o) => shown.has(o.parent ?? o.id));
+  }
+  return { ...quest, objectives };
+}
+
+/**
+ * Ticked out of total, over the steps the viewer can see (the GM's list is whole,
+ * a player's is `playerView`'d). A quest with no steps is never "complete" by
+ * them. A player gets no count on a "next" quest: it would give the chain's length away.
+ */
+export function objectiveProgress(quest, { isGM = true } = {}) {
   const all = quest?.objectives ?? [];
+  if (!isGM && quest?.reveal === "next") return { done: 0, total: 0, complete: false };
   const done = all.filter((o) => o.done).length;
   return { done, total: all.length, complete: all.length > 0 && done === all.length };
 }
@@ -284,7 +374,7 @@ export function rewardLines(rewards, t) {
 
 /** The API's view of one quest: the entry's id, uuid and name, and the flag. */
 export function summarize({ id, uuid, name, created = 0 }, flag) {
-  return { id, uuid, name, created, ...normalizeQuest(flag) };
+  return { ...normalizeQuest(flag), id, uuid, name, created };
 }
 
 /**
@@ -355,7 +445,8 @@ export function textToParagraphs(text) {
  * @param {object} quest normalized
  * @param {Function} t (key, data?) → string
  */
-export function playerPageHtml(quest, t) {
+export function playerPageHtml(full, t) {
+  const quest = playerView(full);
   const parts = [
     `<p><em>${esc(t("SDE.quests.page.statusLine", {
       status: t(STATUS_LABELS[quest.status]), source: t(SOURCE_LABELS[quest.source.kind]),
@@ -363,7 +454,11 @@ export function playerPageHtml(quest, t) {
     textToParagraphs(quest.description),
   ];
   if (quest.objectives.length) {
-    const rows = quest.objectives.map((o) => (o.done ? `<li>☑ <s>${esc(o.text)}</s></li>` : `<li>☐ ${esc(o.text)}</li>`));
+    const line = (o) => (o.done ? `☑ <s>${esc(o.text)}</s>` : `☐ ${esc(o.text)}`);
+    const rows = quest.objectives.filter((o) => !o.parent).map((o) => {
+      const kids = quest.objectives.filter((c) => c.parent === o.id);
+      return `<li>${line(o)}${kids.length ? `<ul>${kids.map((c) => `<li>${line(c)}</li>`).join("")}</ul>` : ""}</li>`;
+    });
     parts.push(`<h3>${esc(t("SDE.quests.objectives"))}</h3><ul>${rows.join("")}</ul>`);
   }
   if (hasRewards(quest.rewards)) {

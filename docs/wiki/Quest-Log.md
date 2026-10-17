@@ -62,6 +62,15 @@ never edit it.
 2. Name it, and type the description players will read.
 3. Add objectives: type one and press **Enter**. Tick them off as the party
    gets them done; only you can.
+   - **Sub-steps:** press the small arrow on a step to add a sub-step under it
+     (one level only). Deleting a step deletes its sub-steps; ticking a step
+     does not tick them.
+   - **Secret steps:** the eye on a step hides it from players until you press
+     it again; making a step secret does the same to its sub-steps. The box beside the **+**
+     lets you create a step already secret, so a twist never shows early.
+     You still see secret steps, dimmed and marked **Secret**.
+   - **Players see:** choose **Only the next step** to show the steps already
+     done plus the first one left. Players get no progress count on such a quest.
 4. Set the rewards:
    - **XP each**, **Gold each** and **Renown each**, paid in full to every character you pick.
    - **Items**: drag them from the sidebar, a compendium or a sheet onto the

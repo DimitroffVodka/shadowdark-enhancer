@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1985 tracked files · ~255,400 lines of code/markup across scripts+templates+styles+test.
+1987 tracked files · ~255,800 lines of code/markup across scripts+templates+styles+test.
 `v0.19.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 1503 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 1504 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 172 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 271 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 | `scavenger/scavenger-core.mjs` | 171 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
@@ -602,9 +602,9 @@ The report and idiom seams are pure data policy. Foundry adapters must translate
 
 | File | Lines | Description |
 |---|---:|---|
-| `quest-core.mjs` | 376 | The Quest Log's rules, pure: the quest flag's one shape, status changes and the ownership each status gives, who a player may see, objectives, when rewards are paid (once, on the way into Completed) and to whom, list filters, which trainer tasks a character has taken, which map pin to jump to, and the player page's HTML. |
-| `quests.mjs` | 575 | The Quest Log's data and public API: one world JournalEntry per quest in a flagged Quests folder, with a player page rewritten from the flag and a GM notes page left alone. GM-only writes serialized per client through replaceModuleFlag; the payout confirmation and payout through Party XP, the renown ledger and item copies; Shadowdark Extras parties read from its flags behind a feature check; jump to pin; the Ctrl+Q keybinding, the Journal sidebar button and the debounced questsChanged hook. |
-| `quest-log-app.mjs` | 287 | The Quest Log window (AppV2): a tab per status (Hidden for the GM only), filters by character, party and source, the quest list and the chosen quest. The GM edits in place (objectives, rewards with items dropped on, characters, party, hex); players get the same quest read-only. |
+| `quest-core.mjs` | 471 | The Quest Log's rules, pure: the quest flag's one shape, status changes and the ownership each status gives, who a player may see, objectives, when rewards are paid (once, on the way into Completed) and to whom, list filters, which trainer tasks a character has taken, which map pin to jump to, and the player page's HTML. |
+| `quests.mjs` | 577 | The Quest Log's data and public API: one world JournalEntry per quest in a flagged Quests folder, with a player page rewritten from the flag and a GM notes page left alone. GM-only writes serialized per client through replaceModuleFlag; the payout confirmation and payout through Party XP, the renown ledger and item copies; Shadowdark Extras parties read from its flags behind a feature check; jump to pin; the Ctrl+Q keybinding, the Journal sidebar button and the debounced questsChanged hook. |
+| `quest-log-app.mjs` | 323 | The Quest Log window (AppV2): a tab per status (Hidden for the GM only), filters by character, party and source, the quest list and the chosen quest. The GM edits in place (objectives, rewards with items dropped on, characters, party, hex); players get the same quest read-only. |
 
 One world JournalEntry per quest, its state one flag on the entry. World journals rather than the managed journal pack, because a compendium has one ownership for the whole pack and a quest's visibility is per quest. Every write is the GM's.
 

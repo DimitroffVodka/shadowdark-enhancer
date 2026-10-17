@@ -24,7 +24,7 @@ and Forge & Loot features.
 [`time`](#time--season-day-and-night-sun-moon-and-anchors) ·
 [`overland`](#overland--the-travel-state)
 
-**API version:** `1.31.0` (semver — additive changes bump the minor version,
+**API version:** `1.32.0` (semver — additive changes bump the minor version,
 breaking changes the major; check `apiVersion` before relying on newer keys).
 
 ## Discovery
@@ -1557,7 +1557,9 @@ await api.quests.setStatus(q.id, "completed");    // asks the GM to confirm the 
                             // task also carries { trainer, task } (key and task index)
   party,         // party actor UUID or null
   characters,    // actor UUIDs; non-empty means the quest is personal to them
-  objectives: [{ id, text, done }],
+  objectives: [{ id, text, done, parent, secret }],  // since 1.32.0: parent is a top-level
+                 // step's id or null (one level only); secret hides the step from players
+  reveal,        // since 1.32.0: "all" | "next" (players see the done steps and the first undone one)
   description,   // the GM's player-facing text
   rewards: { xp, coins: { gp, sp, cp }, renown, items: [{ uuid, name, img }], training },
   payout,        // absent, or saved plan, per-effect done and optional report progress
@@ -1566,6 +1568,13 @@ await api.quests.setStatus(q.id, "completed");    // asks the GM to confirm the 
   created,       // the entry's creation time, ms
 }
 ```
+
+**Steps for players (since `1.32.0`).** `list`/`get` give a non-GM the player view of
+a quest: secret steps are gone, and so are the sub-steps of a secret step. On a
+`reveal: "next"` quest the list holds the done top-level steps and the first
+undone one (with its non-secret sub-steps). The GM gets every step. Like a
+Hidden quest, a secret step is hidden at the table, not locked: the world's
+journal data still reaches every client.
 
 **What players see.** A Hidden quest is the GM's alone: its entry's default
 ownership is None, and `list`/`get` leave it out for a player whatever its

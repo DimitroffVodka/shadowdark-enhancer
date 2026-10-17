@@ -28,7 +28,7 @@ import { trainerByKey } from "../training/training-core.mjs";
 import {
   FOLDER_FLAG, OWNERSHIP, PAGE_FLAG, QUEST_FLAG,
   canSee, defaultRecipients, makeQueue, matchesFilter, mergeQuest, normalizeQuest, ownershipFor, payoutPlan,
-  pickPin, planStatusChange, playerPageHtml, rewardLines, summarize, trainerLabel, trainerTaskQuests,
+  pickPin, planStatusChange, playerPageHtml, playerView, rewardLines, summarize, trainerLabel, trainerTaskQuests,
 } from "./quest-core.mjs";
 import { L as t } from "../shared/i18n.mjs";
 
@@ -62,8 +62,10 @@ function mayRead(entry) {
   });
 }
 
+/** What this user may see: the whole quest for a GM, else its player view (no secret steps). */
 function toSummary(entry) {
-  return summarize({ id: entry.id, uuid: entry.uuid, name: entry.name, created: entry._stats?.createdTime ?? 0 }, flagOf(entry));
+  const q = summarize({ id: entry.id, uuid: entry.uuid, name: entry.name, created: entry._stats?.createdTime ?? 0 }, flagOf(entry));
+  return game.user?.isGM ? q : playerView(q);
 }
 
 /** An actor, a uuid or a world actor id, as a uuid. */

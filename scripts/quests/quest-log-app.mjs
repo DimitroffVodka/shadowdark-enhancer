@@ -13,7 +13,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { TRAINERS } from "../training/training-core.mjs";
 import {
   SOURCE_KINDS, SOURCE_LABELS, STATUSES, STATUS_LABELS,
-  addObjective, hasRewards, matchesFilter, objectiveProgress, planStatusChange, removeObjective, setObjectiveDone, setObjectiveText,
+  addObjective, addSubStep, hasRewards, matchesFilter, objectiveProgress, planStatusChange, removeObjective, setObjectiveDone, setObjectiveSecret, setObjectiveText,
   textToParagraphs, trainerLabel, visibleStatuses,
 } from "./quest-core.mjs";
 import { QUESTS_CHANGED, Quests, actorName, partiesAvailable, partyActors, partyMembers, questPayoutContent } from "./quests.mjs";
@@ -32,8 +32,8 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
     window: { title: "SDE.quests.title", icon: "fa-solid fa-list-check", resizable: true },
     position: { width: 780, height: 620 },
     actions: {
-      qlTab: function (_ev, el) { this.tab = el.dataset.status; this.selectedId = null; this.render(); },
-      qlSelect: function (_ev, el) { this.selectedId = el.dataset.id; this.render(); },
+      qlTab: function (_ev, el) { this.tab = el.dataset.status; this.selectedId = null; this.newSecret = false; this.newSubSecret = false; this.render(); },
+      qlSelect: function (_ev, el) { this.selectedId = el.dataset.id; this.newSecret = false; this.newSubSecret = false; this.render(); },
       qlNew: function () { return this._onNew(); },
       qlFromRumors: function () { return this._onFromRumors(); },
       qlConfirmPayout: function () { return this._onConfirmPayout(); },
@@ -49,6 +49,13 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
       },
       qlJump: function () { return Quests.jumpToPin(this.selectedId); },
       qlAddObjective: function () { return this._onAddObjective(); },
+      // Opens (or closes) the sub-step row under a step.
+      qlAddSubStep: function (_ev, el) { this.subFor = this.subFor === el.dataset.objective ? null : el.dataset.objective; this._focusSub = !!this.subFor; this.render(); },
+      qlSubmitSubStep: function () { return this._onAddSubStep(); },
+      qlToggleSecret: function (_ev, el) {
+        const id = el.dataset.objective;
+        return this._edit((q) => setObjectiveSecret(q, id, !q.objectives.find((o) => o.id === id)?.secret));
+      },
       qlRemoveObjective: function (_ev, el) { return this._edit((q) => removeObjective(q, el.dataset.objective)); },
       qlRemoveItem: function (_ev, el) {
         const i = Number(el.dataset.index);
@@ -74,6 +81,9 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   tab = "active";
+  subFor = null;
+  newSecret = false;
+  newSubSecret = false;
   selectedId = null;
   payoutId = null;
   filters = { character: "", party: "", source: "" };
@@ -138,7 +148,7 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
       filterSources: SOURCE_KINDS.map((k) => ({ kind: k, label: t(SOURCE_LABELS[k]), selected: k === f.source })),
       quests: inTab.map((q) => ({
         id: q.id, name: q.name, selected: q.id === this.selectedId,
-        sourceLabel: t(SOURCE_LABELS[q.source.kind]), progress: objectiveProgress(q),
+        sourceLabel: t(SOURCE_LABELS[q.source.kind]), progress: objectiveProgress(q, { isGM }),
       })),
       quest: quest ? await this._detail(quest, { isGM, players, parties }) : null,
     };
@@ -157,7 +167,15 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
       partyName: q.party ? actorName(q.party) : "",
       partyOptions: parties.map((p) => ({ uuid: p.uuid, name: p.name, selected: p.uuid === q.party })),
       descriptionHtml: isGM ? "" : await foundry.applications.ux.TextEditor.implementation.enrichHTML(textToParagraphs(q.description)),
-      progress: objectiveProgress(q),
+      progress: objectiveProgress(q, { isGM }),
+      revealOptions: ["all", "next"].map((v) => ({ value: v, label: t(v === "next" ? "SDE.quests.revealNext" : "SDE.quests.revealAll"), selected: v === q.reveal })),
+      newSecret: this.newSecret,
+      newSubSecret: this.newSubSecret,
+      objectives: q.objectives.map((o, i, all) => ({
+        ...o,
+        // The add-a-sub-step row sits under the last sub-step of the chosen step.
+        subRow: !!this.subFor && (o.parent ?? o.id) === this.subFor && (all[i + 1]?.parent ?? null) !== this.subFor,
+      })),
       trainerName: r.training ? trainerLabel(r.training) : "",
       trainerOptions: TRAINERS.map((x) => ({ key: x.key, label: trainerLabel(x.key), selected: x.key === r.training })),
       renownSigned: r.renown > 0 ? `+${r.renown}` : r.renown,
@@ -184,6 +202,12 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
     root.querySelector("[data-ql-new-objective]")?.addEventListener("keydown", (ev) => {
       if (ev.key === "Enter") { ev.preventDefault(); this._onAddObjective(); }
     });
+    root.querySelector("[data-ql-new-substep]")?.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter") { ev.preventDefault(); this._onAddSubStep(); }
+    });
+    root.querySelector("[data-ql-new-secret]")?.addEventListener("change", (ev) => { this.newSecret = ev.currentTarget.checked; });
+    root.querySelector("[data-ql-new-substep-secret]")?.addEventListener("change", (ev) => { this.newSubSecret = ev.currentTarget.checked; });
+    if (this._focusSub) { this._focusSub = false; root.querySelector("[data-ql-new-substep]")?.focus(); }
     const drop = root.querySelector(".sde-ql-drop");
     if (drop) {
       drop.addEventListener("dragover", (ev) => { ev.preventDefault(); drop.classList.add("sde-drag-over"); });
@@ -223,6 +247,7 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
       case "renown": return this._edit((q) => ({ ...q, rewards: { ...q.rewards, renown: value } }));
       case "training": return this._edit((q) => ({ ...q, rewards: { ...q.rewards, training: value || null } }));
       // A number typed here is the number on any map; Hex Data is what ties a quest to one scene's hex.
+      case "reveal": return this._edit((q) => ({ ...q, reveal: value }));
       case "hex": return this._edit((q) => ({ ...q, hex: value, hexScene: null }));
       case "objectiveDone": return this._edit((q) => setObjectiveDone(q, el.dataset.objective, value));
       case "objectiveText": return this._edit((q) => setObjectiveText(q, el.dataset.objective, value));
@@ -234,9 +259,20 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const text = input?.value ?? "";
     if (!text.trim()) return;
     input.value = "";
-    await this._edit((q) => addObjective(q, text, () => foundry.utils.randomID()));
+    await this._edit((q) => addObjective(q, text, { secret: this.newSecret, newId: () => foundry.utils.randomID() }));
     // Show it now: the box is empty again, so this redraw loses nothing, and
     // its name puts the cursor back for the next objective.
+    this.render();
+  }
+
+  async _onAddSubStep() {
+    const input = (this.root ?? this.element).querySelector("[data-ql-new-substep]");
+    const text = input?.value ?? "";
+    if (!text.trim() || !this.subFor) return;
+    input.value = "";
+    const parent = this.subFor;
+    await this._edit((q) => addSubStep(q, parent, text, { secret: this.newSubSecret, newId: () => foundry.utils.randomID() }));
+    this._focusSub = true;
     this.render();
   }
 

@@ -2,8 +2,8 @@ import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import {
   OWNERSHIP, STATUSES,
-  addObjective, canSee, defaultRecipients, makeQueue, matchesFilter, mergeQuest, normalizeQuest, objectiveProgress,
-  ownershipFor, payoutPlan, pickPin, planStatusChange, playerPageHtml, removeObjective, setObjectiveDone,
+  addObjective, addSubStep, canSee, defaultRecipients, makeQueue, matchesFilter, mergeQuest, normalizeQuest, objectiveProgress,
+  ownershipFor, payoutPlan, pickPin, planStatusChange, playerPageHtml, playerView, removeObjective, setObjectiveDone, setObjectiveSecret,
   questsAtHex, setObjectiveText, shouldPay, summarize, trainerTaskQuests, visibleStatuses,
 } from "../scripts/quests/quest-core.mjs";
 
@@ -44,7 +44,7 @@ describe("normalizeQuest", () => {
 
   test("objectives from strings get ids; blank ones are dropped", () => {
     const q = normalizeQuest({ objectives: ["  Go  ", "", { text: "Return", done: true, id: "keep" }] }, { newId: () => "new" });
-    assert.deepEqual(q.objectives, [{ id: "new", text: "Go", done: false }, { id: "keep", text: "Return", done: true }]);
+    assert.deepEqual(q.objectives, [{ id: "new", text: "Go", done: false, parent: null, secret: false }, { id: "keep", text: "Return", done: true, parent: null, secret: false }]);
   });
 
   test("rewards: XP is never negative, renown may be, and an unknown trainer is no training", () => {
@@ -140,7 +140,7 @@ describe("objectives", () => {
   test("adding a blank objective does nothing; blanking one removes it", () => {
     const q = quest();
     assert.equal(addObjective(q, "   ", newId), q);
-    assert.equal(addObjective(q, "Report back", () => "r").objectives.at(-1).id, "r");
+    assert.equal(addObjective(q, "Report back", { newId: () => "r" }).objectives.at(-1).id, "r");
     assert.equal(setObjectiveText(q, q.objectives[0].id, "").objectives.length, 1);
     assert.equal(setObjectiveText(q, q.objectives[0].id, "Find the old mill").objectives[0].text, "Find the old mill");
     assert.equal(removeObjective(q, q.objectives[1].id).objectives.length, 1);
@@ -320,5 +320,185 @@ describe("map pins", () => {
     assert.equal(pickPin(pins, "s1").noteId, "ownElsewhere");
     assert.equal(pickPin(pins.slice(0, 2), "s1").noteId, "hexHere");
     assert.equal(pickPin([], "s1"), null);
+  });
+});
+
+describe("sub-steps and secret steps", () => {
+  const steps = (q) => q.objectives.map((o) => `${o.parent ? "  " : ""}${o.text}${o.secret ? "*" : ""}${o.done ? "+" : ""}`);
+  /** A: [A1, A2], B, C (all fixed ids). */
+  const nested = (over = {}) => normalizeQuest({
+    status: "active",
+    objectives: [
+      { id: "a", text: "A" }, { id: "a1", text: "A1", parent: "a" }, { id: "a2", text: "A2", parent: "a" },
+      { id: "b", text: "B" }, { id: "c", text: "C" },
+    ],
+    ...over,
+  });
+
+  test("an old quest reads with parent null, secret false and reveal all", () => {
+    const q = normalizeQuest({ objectives: ["x", { id: "k", text: "y", done: true }] }, { newId });
+    assert.ok(q.objectives.every((o) => o.parent === null && o.secret === false));
+    assert.equal(q.reveal, "all");
+    assert.deepEqual(normalizeQuest(q, { newId }), q, "normalizing twice changes nothing");
+    assert.equal(normalizeQuest({ reveal: "bogus" }).reveal, "all");
+    assert.equal(normalizeQuest({ reveal: "next" }).reveal, "next");
+  });
+
+  test("unknown top-level keys ride through; known ones are still cleaned", () => {
+    const q = normalizeQuest({ status: "bogus", giver: { name: "Mara" }, deadline: 99, objectives: [{ id: "a", text: "A", secret: "yes" }] });
+    assert.deepEqual(q.giver, { name: "Mara" });
+    assert.equal(q.deadline, 99);
+    assert.equal(q.status, "hidden");
+    assert.equal(q.objectives[0].secret, false, "only a true boolean is secret");
+    const merged = mergeQuest(q, { description: "d" });
+    assert.equal(merged.deadline, 99);
+    assert.equal(merged.description, "d");
+  });
+
+  test("mergeQuest still never moves status, source or paid, and carries reveal and secrets", () => {
+    const q = nested({ paid: true });
+    const m = mergeQuest(q, { status: "completed", paid: false, source: { kind: "rumor" }, reveal: "next" });
+    assert.equal(m.status, "active");
+    assert.equal(m.paid, true);
+    assert.equal(m.source.kind, "gm");
+    assert.equal(m.reveal, "next");
+  });
+
+  test("a parent must be an earlier top-level step of the same quest, checked after empty steps drop", () => {
+    const q = normalizeQuest({
+      objectives: [
+        { id: "late", text: "Late child", parent: "p" },
+        { id: "p", text: "Parent" },
+        { id: "k", text: "Kid", parent: "p" },
+        { id: "gk", text: "Grandkid", parent: "k" },
+        { id: "gone", text: "   " },
+        { id: "orphan", text: "Orphan", parent: "gone" },
+        { id: "nope", text: "Nowhere", parent: "missing" },
+      ],
+    });
+    const parents = Object.fromEntries(q.objectives.map((o) => [o.id, o.parent]));
+    assert.deepEqual(parents, { late: null, p: null, k: "p", gk: null, orphan: null, nope: null });
+  });
+
+  test("a repeated step id gets a fresh id and children never multiply", () => {
+    const input = { objectives: [{ id: "p", text: "P" }, { id: "p", text: "P again" }, { id: "c", text: "C", parent: "p" }] };
+    const once = normalizeQuest(input);
+    assert.equal(once.objectives.length, 3);
+    assert.equal(new Set(once.objectives.map((o) => o.id)).size, 3);
+    assert.equal(once.objectives.find((o) => o.id === "c").parent, "p", "attaches to the first step with that id");
+    assert.deepEqual(normalizeQuest(once), once);
+    let q = once;
+    for (let i = 0; i < 4; i++) q = mergeQuest(q, { description: String(i) });
+    assert.equal(q.objectives.length, 3);
+  });
+
+  test("a promoted sub-step stays secret when its later parent is secret", () => {
+    const q = normalizeQuest({ status: "active", objectives: [{ id: "c", text: "C", parent: "p" }, { id: "p", text: "P", secret: true }] });
+    assert.equal(q.objectives.find((o) => o.id === "c").secret, true);
+    assert.deepEqual(playerView(q).objectives, []);
+  });
+
+  test("addSubStep goes after the parent's last child; a sub-step cannot be a parent", () => {
+    const q = addSubStep(nested(), "a", "A3", { newId: () => "a3" });
+    assert.deepEqual(steps(q), ["A", "  A1", "  A2", "  A3", "B", "C"]);
+    assert.deepEqual(steps(addSubStep(nested(), "b", "B1", { newId: () => "b1" })), ["A", "  A1", "  A2", "B", "  B1", "C"]);
+    const bad = nested();
+    assert.equal(addSubStep(bad, "a1", "deeper"), bad);
+    assert.equal(addSubStep(bad, "nope", "x"), bad);
+    assert.equal(addSubStep(bad, "a", "  "), bad);
+  });
+
+  test("a step can be created secret on a live quest, top level or sub-step", () => {
+    const q = addObjective(nested(), "Twist", { secret: true, newId: () => "t" });
+    assert.equal(q.objectives.at(-1).secret, true);
+    assert.equal(addSubStep(q, "b", "Hidden kid", { secret: true }).objectives.find((o) => o.text === "Hidden kid").secret, true);
+    assert.equal(addObjective(nested(), "Plain").objectives.at(-1).secret, false);
+    assert.equal(normalizeQuest(q).objectives.at(-1).secret, true, "survives normalizing");
+  });
+
+  test("removing a parent removes its sub-steps; removing a sub-step removes only it", () => {
+    assert.deepEqual(steps(removeObjective(nested(), "a")), ["B", "C"]);
+    assert.deepEqual(steps(removeObjective(nested(), "a1")), ["A", "  A2", "B", "C"]);
+    assert.deepEqual(steps(setObjectiveText(nested(), "a", "")), ["B", "C"]);
+  });
+
+  test("playerView hides secret steps, and the sub-steps of a secret parent", () => {
+    let q = setObjectiveSecret(nested(), "b", true);
+    assert.deepEqual(steps(playerView(q)), ["A", "  A1", "  A2", "C"]);
+    q = setObjectiveSecret(nested(), "a2", true);
+    assert.deepEqual(steps(playerView(q)), ["A", "  A1", "B", "C"]);
+    q = setObjectiveSecret(nested(), "a", true);
+    assert.deepEqual(steps(playerView(q)), ["B", "C"], "children of a secret parent go with it");
+    assert.equal(nested().objectives.length, 5, "the quest itself is untouched");
+  });
+
+  test("playerView with reveal next shows done top-level steps and the first undone one", () => {
+    let q = nested({ reveal: "next" });
+    assert.deepEqual(steps(playerView(q)), ["A", "  A1", "  A2"]);
+    q = setObjectiveDone(q, "a", true);
+    assert.deepEqual(steps(playerView(q)), ["A+", "  A1", "  A2", "B"]);
+    q = setObjectiveSecret(setObjectiveDone(q, "b", true), "c", true);
+    assert.deepEqual(steps(playerView(q)), ["A+", "  A1", "  A2", "B+"], "a secret step is never the next one");
+    q = setObjectiveSecret(nested({ reveal: "next" }), "a1", true);
+    assert.deepEqual(steps(playerView(q)), ["A", "  A2"], "a shown parent keeps only its non-secret sub-steps");
+  });
+
+  test("progress counts what the viewer sees; a player gets none on a next quest", () => {
+    const q = setObjectiveDone(setObjectiveSecret(nested(), "c", true), "a1", true);
+    assert.deepEqual(objectiveProgress(q), { done: 1, total: 5, complete: false }, "the GM sees every step");
+    assert.deepEqual(objectiveProgress(playerView(q), { isGM: false }), { done: 1, total: 4, complete: false });
+    const nx = nested({ reveal: "next" });
+    assert.deepEqual(objectiveProgress(playerView(nx), { isGM: false }), { done: 0, total: 0, complete: false });
+    assert.equal(objectiveProgress(nx).total, 5, "the GM still sees the count");
+  });
+
+  test("the player page nests sub-steps and carries no secret text", () => {
+    let q = setObjectiveSecret(setObjectiveSecret(nested(), "b", true), "a2", true);
+    q = { ...q, objectives: q.objectives.map((o) => (o.id === "b" ? { ...o, text: "The duke is the traitor" } : o.id === "a2" ? { ...o, text: "Poison the well" } : o)) };
+    const html = playerPageHtml(q, t);
+    assert.match(html, /<li>☐ A<ul><li>☐ A1<\/li><\/ul><\/li>/);
+    assert.ok(!html.includes("traitor") && !html.includes("Poison"));
+    const nx = playerPageHtml(nested({ reveal: "next" }), t);
+    assert.ok(nx.includes("A2") && !nx.includes(">☐ B") && !nx.includes("C<"));
+  });
+
+  test("summarize keeps the entry's own id and name over an unknown key of the same name", () => {
+    const s = summarize({ id: "i", uuid: "u", name: "n" }, { id: "evil", name: "evil" });
+    assert.equal(s.id, "i");
+    assert.equal(s.name, "n");
+  });
+
+  test("unknown keys ride through, but entry fields and junk do not", () => {
+    const q = normalizeQuest({ name: "x", id: "y", uuid: "u", created: 1, giver: { npc: "Bob" }, fn: () => 1 }, { newId });
+    assert.deepEqual(q.giver, { npc: "Bob" });
+    for (const k of ["name", "id", "uuid", "created", "fn"]) assert.equal(k in q, false, k);
+    assert.deepEqual(normalizeQuest(q, { newId }), q);
+    assert.doesNotThrow(() => normalizeQuest({ foo: () => 1, bar: 2 }));
+  });
+
+  test("unknown keys inside rewards and steps ride through, known keys win", () => {
+    const q = normalizeQuest({
+      rewards: { xp: 2, notes: "n", name: "no" },
+      objectives: [{ id: "a", text: "A", hint: "h", done: true, name: "no" }],
+    }, { newId });
+    assert.equal(q.rewards.notes, "n");
+    assert.equal(q.rewards.xp, 2);
+    assert.equal("name" in q.rewards, false);
+    assert.equal(q.objectives[0].hint, "h");
+    assert.equal(q.objectives[0].done, true);
+    assert.equal("name" in q.objectives[0], false);
+  });
+
+  test("a sub-step saved out of order moves under its parent", () => {
+    const q = normalizeQuest({ objectives: [{ id: "p", text: "P" }, { id: "q", text: "Q" }, { id: "c", text: "C", parent: "p" }] });
+    assert.deepEqual(q.objectives.map((o) => o.id), ["p", "c", "q"]);
+    assert.deepEqual(normalizeQuest(q).objectives.map((o) => o.id), ["p", "c", "q"]);
+  });
+
+  test("toggling secret flips what is stored", () => {
+    const q = nested();
+    const once = setObjectiveSecret(q, "b", !q.objectives.find((o) => o.id === "b").secret);
+    assert.equal(once.objectives.find((o) => o.id === "b").secret, true);
+    assert.equal(setObjectiveSecret(once, "b", !once.objectives.find((o) => o.id === "b").secret).objectives.find((o) => o.id === "b").secret, false);
   });
 });

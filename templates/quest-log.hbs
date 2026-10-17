@@ -92,20 +92,35 @@
 
           <div class="ui-card">
             <h3 class="ui-h">{{localize "SDE.quests.objectives"}}{{#if progress.total}} <small>{{progress.done}}/{{progress.total}}</small>{{/if}}</h3>
+            {{#if ../isGM}}
+              <div class="ui-pair"><label class="ui-label">{{localize "SDE.quests.reveal"}}
+                <select name="ql-reveal" data-ql-field="reveal">{{#each revealOptions}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></label></div>
+            {{/if}}
             <div class="ui-list ql-flat">
               {{#each objectives}}
-                <div class="ui-row {{#if done}}ql-done{{/if}}">
+                <div class="ui-row {{#if parent}}ql-sub{{/if}} {{#if done}}ql-done{{/if}} {{#if secret}}ql-secret{{/if}}">
                   <input type="checkbox" name="ql-obj-done-{{id}}" data-ql-field="objectiveDone" data-objective="{{id}}" {{#if done}}checked{{/if}} {{#unless ../../isGM}}disabled{{/unless}} aria-label="{{text}}">
                   {{#if ../../isGM}}
                     <input type="text" name="ql-obj-{{id}}" data-ql-field="objectiveText" data-objective="{{id}}" value="{{text}}" aria-label="{{text}}">
+                    {{#if secret}}<span class="ui-chip ql-secret-mark" title="{{localize "SDE.quests.secretMark"}}">{{localize "SDE.quests.secretChip"}}</span>{{/if}}
+                    <a class="ui-icon" data-action="qlToggleSecret" data-objective="{{id}}" title="{{#if secret}}{{localize "SDE.quests.makeVisible"}}{{else}}{{localize "SDE.quests.makeSecret"}}{{/if}}" aria-label="{{#if secret}}{{localize "SDE.quests.makeVisible"}}{{else}}{{localize "SDE.quests.makeSecret"}}{{/if}}"><i class="fa-solid {{#if secret}}fa-eye-slash{{else}}fa-eye{{/if}}"></i></a>
+                    {{#if parent}}<span class="ui-icon" aria-hidden="true"></span>{{else}}<a class="ui-icon" data-action="qlAddSubStep" data-objective="{{id}}" aria-label="{{localize "SDE.quests.addSubStep"}}" title="{{localize "SDE.quests.addSubStep"}}"><i class="fa-solid fa-turn-down fa-rotate-270"></i></a>{{/if}}
                     <a class="ui-icon danger" data-action="qlRemoveObjective" data-objective="{{id}}" aria-label="{{localize "SDE.quests.remove"}}"><i class="fa-solid fa-trash"></i></a>
                   {{else}}<span class="ui-row-main">{{text}}</span>{{/if}}
                 </div>
+                {{#if subRow}}
+                  <div class="ui-row ql-sub ql-add">
+                    <input type="text" name="ql-new-substep" data-ql-new-substep placeholder="{{localize "SDE.quests.newSubStep"}}" aria-label="{{localize "SDE.quests.newSubStep"}}">
+                    <label class="ql-new-secret" title="{{localize "SDE.quests.newSecret"}}"><input type="checkbox" name="ql-new-substep-secret" data-ql-new-substep-secret {{#if ../newSubSecret}}checked{{/if}} aria-label="{{localize "SDE.quests.newSecret"}}"><i class="fa-solid fa-eye-slash"></i></label>
+                    <button type="button" class="ui-btn" data-action="qlSubmitSubStep" aria-label="{{localize "SDE.quests.newSubStep"}}"><i class="fa-solid fa-plus"></i></button>
+                  </div>
+                {{/if}}
               {{else}}<div class="ui-row ui-muted">{{localize "SDE.quests.noObjectives"}}</div>{{/each}}
             </div>
             {{#if ../isGM}}
               <div class="ui-inline ql-add">
                 <input type="text" name="ql-new-objective" data-ql-new-objective placeholder="{{localize "SDE.quests.newObjective"}}" aria-label="{{localize "SDE.quests.newObjective"}}">
+                <label class="ql-new-secret" title="{{localize "SDE.quests.newSecret"}}"><input type="checkbox" name="ql-new-secret" data-ql-new-secret {{#if newSecret}}checked{{/if}} aria-label="{{localize "SDE.quests.newSecret"}}"><i class="fa-solid fa-eye-slash"></i></label>
                 <button type="button" class="ui-btn" data-action="qlAddObjective" aria-label="{{localize "SDE.quests.newObjective"}}"><i class="fa-solid fa-plus"></i></button>
               </div>
             {{/if}}

@@ -138,7 +138,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "96a23ff13639";
+const STYLESHEET_REV = "b4527ab98690";
 
 // The same problem for the SCRIPTS, which cannot be solved the same way: their
 // URLs come from the manifest, which Foundry validates as real package paths,
@@ -153,7 +153,7 @@ const STYLESHEET_REV = "96a23ff13639";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "dc6470cfe065";
+const BUILD_REV = "3b6620168977";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -534,7 +534,8 @@ Hooks.once("init", () => {
     // 1.29.0 — additive: the tempHp namespace, a temporary-hit-point pool that damage spends before HP.
     // 1.30.0 — additive: the hexFogChanged hook, one per redraw of the viewed hex scene's fog (#490).
     // 1.31.0 — additive: owns("hex.baked", scene), a map baked with Extras that the Enhancer draws itself.
-    apiVersion: "1.31.0",
+    // 1.32.0 — additive: quest steps gain parent and secret, quests gain reveal; a non-GM gets the player view.
+    apiVersion: "1.32.0",
     // The one travel state per world (scripts/overland/overland.mjs): a copy
     // with hexes left, climate, storm, harshness and night derived; whether
     // travel is on; today's weather roll, the travel day's start, Continue
