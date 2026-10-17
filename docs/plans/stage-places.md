@@ -1,0 +1,33 @@
+# Stage phase 1b: custom places (design, 2026-10-18)
+
+Status now: built on `feat/stage-places`.
+
+Source of truth for the work: `PLAN.md` (v2) and `HANDOFF.md` in this folder; phase 1a is merged (PR 527, master fa0152a5). Patrick asked for ALL remaining phases (1b, 3, 2) to be built; the orchestrator picked the safe defaults below instead of asking. Everything from the 1a rules still holds: nothing copied from Extras' ToM, no video overlays, no fake tokens, the module stands alone, never touch port 30000 or write into the module folder, no AI attribution, every string from `languages/en.json` (written out in full, no key a prefix of another), Foundry v14 only, flags only through `replaceModuleFlag`.
+
+## What 1b adds
+A GM can keep a short list of named places with their own pictures (town, tavern, camp, custom), pick one from the Backdrop tool, and upload the picture from their own computer. The Camp place stays automatic exactly as in 1a and is not part of the editable list.
+
+## State
+- New world setting `stagePlaces` (world scope, `config: false`, literal key in a `game.settings.register(MODULE_ID, "stagePlaces", {` call). Value `{ places: [ { id, kind, name, image } ] }`, read ONLY through a pure `normalizePlaces`. It never overwrites `stage`, and `stage` writes never touch it, so the live setting and the list cannot clobber each other.
+- `id`: `foundry.utils.randomID()` (16 chars, `[A-Za-z0-9]`). `kind`: one of `town`, `tavern`, `camp`, `custom` (unknown becomes `custom`); the kind only labels the place in 1b (phase 2 gives town and tavern their pages). `name`: trimmed, 1 to 60 characters (empty becomes a default from the kind's localized word, done by the UI, not the core). `image`: a served path or absolute URL string; a place without an image is dropped by `normalizePlaces`. At most 24 places.
+- The `stage` value keeps its shape `{shown, place, image, partyId, campId}`; `place` becomes `"camp"` or a place id (`normalizeStage` accepts `camp` or a string matching `^[A-Za-z0-9_-]{1,40}$`; anything else becomes ""). Showing a custom place writes `{ shown: true, place: <id>, image: <the place's image>, partyId: "", campId: "" }`, so the layer never needs the list. The camp watcher, `campTransition`, `showCamp` and `hideStage` are unchanged: a camp event never drops a custom place (it only drops `place === "camp"`), a camp that begins raises over whatever is up (most recent wins), Bring the table hides any place.
+- Deleting a place that the `stage` is showing hides the stage (`shown: false`, keep the rest). The uploaded FILE is never deleted (a GM may reuse it; no sweeps).
+
+## Upload
+- From the GM's computer only: a file input in the editor; no path typing needed. Check `game.user.can("FILES_UPLOAD")` first (pattern: `uploadMapImage` in `scripts/importer/adventure/adventure-scene.mjs` ~339-352 and its `uploadDenied` notification); refuse with a localized notice when missing.
+- Destination: `worlds/<world id>/stage/` (never the module folder: the file picker refuses module folders). First-time path: the folder may not exist yet, so create it (guarded, treat "already exists" as fine) before the upload; test it with NOTHING uploaded and no folder.
+- Downscale on upload with the pattern in `scripts/hex-map/hex-map-flow.mjs` ~430-453 (`createImageBitmap` with `resizeWidth/resizeHeight`): longest edge at most 2560 px, never upscale, output WebP quality 0.85 (JPEG 0.9 if WebP encoding is unavailable); a non-image or an undecodable file is refused with a localized notice before anything is uploaded; file name `<slug of the place name>-<6 random chars>.webp`, slug lowercase `[a-z0-9-]`, max 40 chars (the pure naming helper is tested).
+- Every stored path is used through `fileRoute` from `scripts/shared/file-route.mjs` when it is fetched or drawn (The Forge and S3 hand back absolute URLs from an upload).
+- The decoded size matters on weak devices (Steam Deck): 2560 px cap, no bigger.
+
+## UI
+- `StagePlacesApp`: an ApplicationV2 (HandlebarsApplicationMixin), classes `sde-ui` plus its own, GM only, GM opens it from a NEW toolbar button `sdeStagePlaces` (Tokens group, order 92, `button: true`, icon `fa-solid fa-images`, title string). The existing `sdeStage` toggle keeps working: hidden -> shows what the stage last showed if it is a custom place that still exists, else the camp picture as in 1a; up -> hides.
+- The window: a list of the GM's places (thumbnail 64 px, name input, kind select, buttons Show or Hide, Replace picture, Delete with a confirm that names the place); an Add place form (name, kind, choose picture, Add); an empty state (icon and one sentence saying what to do); a note that the Camp place is automatic and picked from the party's terrain. Built from the kit tokens (`styles/sde-ui.css`, see `docs/design-contract.md`): dark AND light, 420 px, buttons at least 22 px, one primary button, no pills, no colour literals, long names wrap or ellipsize with the full text in a tooltip. Strings only from en.json.
+- Edits write the whole `stagePlaces` value through `game.settings.set` (GM only). A harness fixture `tools/design-harness/fixtures/stage-places.mjs` (busiest state: 24 places, a very long name, all kinds, one shown), looked at dark, light and 420 px.
+
+## Defaults the orchestrator chose (Patrick said not to ask)
+24 places cap; 2560 px WebP 0.85; toolbar toggle re-shows the last custom place; kind labels only; files never deleted; Camp stays out of the editable list; the Places window is its own toolbar button (the toggle keeps one job).
+
+## Pieces
+A) Pure core + setting + service + upload (no window). B) The Places window, toolbar button and toggle change, strings, styles, harness fixture. C) Docs, changelog, credits note if needed, `docs/plans/stage-places.md`, wiki page update, inventory.
+Live lane checks: add a place by real upload (a PNG made in the lane), the first-time folder, GM picks it from the window, a player sees it, reload, late joiner, Hide, camp begin raises over it, delete a shown place hides it, a player has no button, `stage` and `stagePlaces` never clobber each other (write both concurrently), FILES_UPLOAD refused case.
