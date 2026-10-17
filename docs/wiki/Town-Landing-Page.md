@@ -5,7 +5,8 @@
 A front door for a town. The scene's own picture fills the screen and a menu
 runs down the right: the town's name, a line for each merchant, and the Quest
 Log, the Journals, the Party and Downtime. Players shop with their own
-characters, and they can do it between sessions with you not connected.
+characters, and they can do it between sessions with you not connected. A table of games of
+chance and a sales log for the GM can be added to the same page.
 
 ![The landing page: a scene's picture with the menu down the right](images/town-landing.jpg)
 
@@ -46,9 +47,9 @@ is up and would cover the town's name, the menu sits just below it.
    **Weapon** or **Armor**. Those items are the stock: an item's quantity is how
    many the merchant has, and its price is what it charges. Other item types
    are not sold.
-2. **Press the pencil** on the page (the GM sees three icons at the top: the
-   pencil for the settings, a button that restocks every shop, and the eye that
-   takes the page away).
+2. **Press the pencil** on the page (the GM sees four icons at the top: the
+   pencil for the settings, the receipt for the [sales log](#the-sales-log), a
+   button that restocks every shop, and the eye that takes the page away).
 3. **Fill in the town**, then pick an NPC under **Merchants** and press **Add
    merchant**. Set each merchant's fields (below).
 4. **Save.** Every open page updates at once.
@@ -57,6 +58,9 @@ is up and would cover the town's name, the menu sits just below it.
 |---|---|
 | **Name, Tagline, Welcome text** | The heading, the italic line and the paragraph under it. Name defaults to the scene's name |
 | **Around town** | Which entries players see: Quest Log, Journals, Party, Downtime |
+| **Open a games table** | Adds **Games of chance** to the menu (see Games of chance). Off until you turn it on |
+| **Largest bet (gp)** | The most one game may stake, 1 to 1000 gp (10 by default) |
+| **House keeps (% of winnings)** | The share of every win the town keeps, 0 to 50 (5 by default) |
 | **Role, One-line pitch** | The line under the merchant's name and the hover text |
 | **Prices %** | 100 charges list price; 110 is 10% dearer, 80 is 20% cheaper (10 to 500) |
 | **Buys back %** | What the merchant pays for what a player sells, as a share of the item's price (0 to 100) |
@@ -109,6 +113,53 @@ Change the key under *Configure Controls*.
 
 ---
 
+## Games of chance
+
+![The games table](images/town-games.png)
+
+Turn on **Open a games table** in the settings and **Games of chance** joins the
+menu. A player picks their character, sets a **wager** in silver (quick buttons
+for 1 sp, 1 gp, 5 gp, 10 gp... and the table's limit) and plays one of four games.
+The wager comes out of the purse only when the game is played, and a result
+card is posted to the chat for everyone to see.
+
+| Game | How it plays | Pays |
+|---|---|---|
+| **Coin toss** | Call heads or tails; the coin is flipped | 1 to 1 |
+| **Dice duel** | You and the house roll 2d6 each; higher wins, a tie gives the wager back | 1 to 1 |
+| **Fortune wheel** | A d100: 1-45 nothing back, 46-68 half back, 69-90 double, 91-98 triple, 99-100 the jackpot | Up to 10 to 1 |
+| **Card draw** | You and the dealer draw a card each, ace high; higher wins, the same rank gives the wager back | 1 to 1 |
+
+The **house keeps** a share of every *win*: at 5%, a 100 cp wager that wins pays
+95 cp. A loss, a tie and the wheel's half-back are not touched by it, and the
+winnings round down. With no cut the coin, the duel and the cards are exactly
+fair and the wheel returns 99.5% of what is staked, so the cut is what makes the
+house win over a night. The **largest bet** is the table's limit: the house has
+no purse to run dry, so the limit is what bounds a lucky streak.
+
+Like a purchase, a game only changes the player's own character, so it works
+with no GM connected. Dice are rolled with Foundry's own dice and show in Dice So
+Nice when it is installed.
+
+---
+
+## The sales log
+
+![The sales log](images/town-log.png)
+
+The receipt icon on the page (GM) opens the **Sales log**: every purchase, sale
+and game at the town's tables, newest first, with who did it, where, when, and
+the coins the character gained or lost. Filter by **Bought**, **Sold** or
+**Games**, by merchant or game, and between **This town** and every town. The
+header totals what was **paid in** (purchases and lost wagers), **paid out**
+(sales and winnings) and what the **town kept**.
+
+The log is read from the chat cards the town posts (each carries its facts), so
+it works with no GM connected and it lasts as long as the chat does: clearing
+the chat clears it, and sales made before the log existed are not in it.
+
+---
+
 ## Stock and restocking
 
 A merchant's stock is its NPC's items. Each purchase is recorded on the
@@ -135,7 +186,8 @@ shopping works with no GM connected. This is why the stock is kept on the
 buyers' characters and not in a setting only the GM can write.
 
 Because of that, town sales are not written to the Merchant Shop's transaction
-log or the [Session Recap](Session-Recap.md). The chat cards are the record.
+log or the [Session Recap](Session-Recap.md). The chat cards are the record, and
+the sales log reads them.
 
 ---
 
@@ -149,6 +201,9 @@ log or the [Session Recap](Session-Recap.md). The chat cards are the record.
   an Unknown NPC, ready to remove.
 - Items with no price sell for nothing.
 - The page does not lock the camera: players can pan and zoom the picture.
+- A game's dice are rolled on the player's own client, like everything else a
+  player does to their own character; the wager limit is the safeguard, not the
+  house's purse.
 
 ---
 
