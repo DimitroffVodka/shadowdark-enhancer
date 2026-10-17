@@ -33,7 +33,8 @@
 
 import { MODULE_ID }  from "../shared/module-id.mjs";
 import { CrawlState, isActiveGM } from "./crawl-state.mjs";
-import { hasOocRoll, freeCrawlActive } from "./crawl-state-core.mjs";
+import { hasOocRoll } from "./crawl-state-core.mjs";
+import { crawlFree } from "./crawl-free.mjs";
 import { CrawlStrip } from "./crawl-strip.mjs";
 import { ICONS }      from "../shared/icons.mjs";
 import { segmentFeet } from "./movement-calc.mjs";
@@ -60,7 +61,7 @@ function updateFeet(doc, changes) {
 }
 
 /** The "Free movement crawl" setting applies now: no budget, ruler colours or lock out of combat. */
-const freeCrawl = () => freeCrawlActive(game.settings.get(MODULE_ID, "crawlFreeMovement"), CrawlState.mode);
+const freeCrawl = () => crawlFree(CrawlState.mode);
 
 // ── Shared speed helpers ────────────────────────────────────────────────────
 

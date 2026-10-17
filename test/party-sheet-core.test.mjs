@@ -24,17 +24,11 @@ test("view flags: editing follows the party rule, the emblem is the GM's alone",
 });
 
 test("Marching order line: off is free, on names the leader, combat says so", () => {
-  const on = { follow: true, hasToken: true, hasLeader: true, manager: true };
+  const on = { follow: true, hasLeader: true };
   assert.deepEqual(marchState({ ...on, follow: false }), { mode: "free" });
   assert.deepEqual(marchState(on), { mode: "leads" });
   assert.deepEqual(marchState({ ...on, hasLeader: false }), { mode: "none" });
   assert.deepEqual(marchState({ ...on, reason: "combat" }), { mode: "notice", reason: "combat" });
-});
-
-test("Marching order line: no party token is a hint for a manager and nothing for a player", () => {
-  const bare = { follow: true, hasToken: false, hasLeader: true };
-  assert.deepEqual(marchState({ ...bare, manager: true }), { mode: "notice", reason: "noToken" });
-  assert.deepEqual(marchState({ ...bare, manager: false }), { mode: "leads" });
 });
 
 test("gems: the system's Gem items only, each worth its cost, the total is value times quantity", () => {
@@ -191,17 +185,14 @@ test("every tab has a name and an icon, and the row marks the active one", () =>
 });
 
 test("every movement notice has its own message, and the Marching order line says it", () => {
-  for (const reason of ["noToken", "combat"]) {
-    assert.notEqual(movementMessageKey(reason), "SDE.party.movement.unknown", reason);
-    assert.ok(en[movementMessageKey(reason)], reason);
-  }
+  assert.notEqual(movementMessageKey("combat"), "SDE.party.movement.unknown");
+  assert.ok(en[movementMessageKey("combat")]);
   assert.equal(movementMessageKey("???"), "SDE.party.movement.unknown");
   const names = { leaderName: "Creeg", missing: "Missing member" };
   assert.equal(marchText({ mode: "leads" }, names, words).text, "Creeg leads");
   assert.equal(marchText({ mode: "leads" }, { missing: "Missing member" }, words).text, "Missing member leads", "a leader who is gone is named as missing, not undefined");
   assert.equal(marchText({ mode: "free" }, names, words).text, "Moving freely");
   assert.equal(marchText({ mode: "none" }, names, words).text, "");
-  assert.equal(marchText({ mode: "notice", reason: "noToken" }, names, words).text, en["SDE.party.movement.noToken"]);
   assert.equal(marchText({ mode: "notice", reason: "combat" }, names, words).text, en["SDE.party.movement.combat"]);
 });
 

@@ -198,6 +198,8 @@
       "scripts/crawl-strip/turn-skip.mjs",
       "scripts/crawl-strip/turn-skip-core.mjs",
       "scripts/crawl-strip/movement-tracker.mjs",
+      "scripts/crawl-strip/crawl-free.mjs",
+      "scripts/crawl-strip/march-controls.mjs",
       "scripts/crawl-strip/movement-calc.mjs",
       "scripts/crawl-strip/npc-action-menu.mjs"
     ],
@@ -547,6 +549,8 @@
     "scripts/crawl-strip/crawl-strip.mjs": "The core feature: the top strip. Plain DOM (`#shadowdark-enhancer-strip`), not ApplicationV2.",
     "scripts/crawl-strip/crawl-state.mjs": "Foundry-coupled state singleton — persistence, sockets, hook emission.",
     "scripts/crawl-strip/crawl-state-core.mjs": "Pure reducer/normalizer behind crawl-state. Node-testable.",
+    "scripts/crawl-strip/crawl-free.mjs": "`crawlFree(mode)`: whether the crawl counts no feet, rolled order or turn lock, because the world setting says so or a party is marching (one mover). The strip, the tracker tab and the movement tracker all ask it.",
+    "scripts/crawl-strip/march-controls.mjs": "The strip's marching order: the 3x3 grid beside the PARTY plate and the march switch under it, drawn from the party, with the click, drag and switch handlers that write the party's own settings.",
     "scripts/crawl-strip/crawl-lights-core.mjs": "Pure light-source logic for the strip's flame badges.",
     "scripts/crawl-strip/crawl-tracker.mjs": "The out-of-combat tracker as a real sidebar tab (`AbstractSidebarTab`), registered into `Sidebar.TABS` + `CONFIG.ui` beside Combat. Hidden unless a crawl is running; carries the roll-all / advance / reset controls.",
     "scripts/crawl-strip/crawl-tracker-core.mjs": "Pure view model for the tracker tab: `buildTrackerRows()` (rolled first, unrolled last, holder flagged), `showOocReset()`, and `parseInitiativeInput()` — which treats a blanked box as \"no change\" rather than the initiative of 0 that `Number(\"\")` yields. Node-testable.",

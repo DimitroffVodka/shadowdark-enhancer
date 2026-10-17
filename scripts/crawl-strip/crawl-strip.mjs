@@ -19,7 +19,11 @@ import { ICONS }            from "../shared/icons.mjs";
 import { relayToGM, authorizeActorFor, refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
 import { computeLightState, isLightItem } from "./crawl-lights-core.mjs";
 import { canAdvanceTurn, canAdvanceOocTurn, nextTurnWouldRollRound } from "./crawl-turn-core.mjs";
-import { oocOrderComplete, stripShown, stripOptions, freeCrawlActive } from "./crawl-state-core.mjs";
+import { oocOrderComplete, stripShown, stripOptions } from "./crawl-state-core.mjs";
+import { crawlFree } from "./crawl-free.mjs";
+import { marchOf, stripParty } from "../party/party-movement.mjs";
+import { Party, isParty } from "../party/party.mjs";
+import { marchGridHTML, marchButtonHTML, bindMarchControls } from "./march-controls.mjs";
 import { combatantEntry, isHiddenFromStrip, isTurnless, commanderCombatant } from "./turn-skip-core.mjs";
 import { showOocReset } from "./crawl-tracker-core.mjs";
 import { dyingState, badgeHTML as dyingBadgeHTML, openMenu as openDyingMenu } from "../dying/dying.mjs";
@@ -254,6 +258,8 @@ export const CrawlStrip = {
                game.combat?.combatants.some(c => c.actorId === a.id)) queue();
     };
     on("updateActor",   queueIfShown);
+    // The Marching order switch and the leader live on the party, which has no card of its own.
+    on("updateActor",   actor => { if (isParty(actor)) queue(); });
     on("updateToken",   td => { if (shown("token-id", td?.id) || shown("actor-id", td?.actorId)) queue(); });
     on("createToken",   queue);
     on("deleteToken",   queue);
@@ -435,7 +441,7 @@ export const CrawlStrip = {
     const holderId = CrawlState.oocTurn;
     const holderActor = holderId ? game.actors.get(holderId) : null;
     const orderActive = CrawlState.mode === "crawl" && oocOrderComplete(CrawlState)
-      && !freeCrawlActive(game.settings.get(MODULE_ID, "crawlFreeMovement"), CrawlState.mode);
+      && !crawlFree(CrawlState.mode);
     const verdict = canAdvanceOocTurn({
       orderActive,
       requesterIsGM: !!user?.isGM,
@@ -675,8 +681,14 @@ export const CrawlStrip = {
     // to show). Shared by the card highlight idiom and the badge below, so
     // the two cannot disagree about whether an order is active.
     // Free movement crawl: no order, no feet — the strip is a roster plus the
-    // round counter (freeCrawlActive; combat is exempt).
-    const freeCrawl = freeCrawlActive(game.settings.get(MODULE_ID, "crawlFreeMovement"), state.mode);
+    // round counter (crawlFree; combat is exempt). A marching party is one too:
+    // one person moves everyone, so the strip says who leads instead.
+    const freeCrawl = crawlFree(state.mode);
+    const march = !inCombat ? marchOf() : null;
+    // The grid is the marker, and the switch beside the PARTY plate turns marching on and off without the Party sheet.
+    const marchParty = inCombat ? null : (march?.party ?? stripParty(state.members));
+    const marchSwitch = marchParty && Party.canManage(marchParty) ? marchButtonHTML(marchParty, { active: !!march }) : "";
+    const marchGrid = march ? marchGridHTML(march.party, { canEdit: Party.canManage(march.party) }) : "";
     const oocOrderActive = !inCombat && !freeCrawl && oocOrderComplete(state) && !!state.oocTurn;
 
     // Slim strip (the GM's setting for everyone, or the user's own): the same
@@ -820,11 +832,16 @@ export const CrawlStrip = {
         ? this._lightBadgeHTML(actor)
         : "";
 
+      // Marching: the leader's card says so; the others follow, so they carry no turn of their own.
+      const leads = !!march && m.actorId === march.leader.id;
+      const leadsTip = leads ? esc(game.i18n.format("SDE.crawlStrip.marchLeads", { name: march.leader.name })) : "";
+
       const cardHTML = `
-        <div class="sde-strip-member ${isActivePhase ? "sde-strip-active" : "sde-strip-dim"} ${isTurn ? "sde-strip-is-turn" : ""} ${isDefeated ? "sde-strip-defeated" : ""} ${isHidden ? "sde-strip-hidden" : ""} sde-strip-type-${m.type}${slim ? ` sde-strip-fill ${hpClass}` : ""}"
-             ${slim ? `style="--sde-fill:${hpPct}%"` : ""} data-member-id="${m.id}" data-token-id="${m.tokenId ?? ""}" data-actor-id="${m.actorId ?? ""}" ${m.combatantId ? `data-combatant-id="${m.combatantId}"` : ""} title="${!inCombat && isTurn ? game.i18n.localize("SDE.crawlStrip.currentTurn") : ""}" tabindex="0">
+        <div class="sde-strip-member ${isActivePhase ? "sde-strip-active" : "sde-strip-dim"} ${isTurn ? "sde-strip-is-turn" : ""} ${leads ? "sde-strip-leads" : ""} ${isDefeated ? "sde-strip-defeated" : ""} ${isHidden ? "sde-strip-hidden" : ""} sde-strip-type-${m.type}${slim ? ` sde-strip-fill ${hpClass}` : ""}"
+             ${slim ? `style="--sde-fill:${hpPct}%"` : ""} data-member-id="${m.id}" data-token-id="${m.tokenId ?? ""}" data-actor-id="${m.actorId ?? ""}" ${m.combatantId ? `data-combatant-id="${m.combatantId}"` : ""} title="${leads ? leadsTip : !inCombat && isTurn ? game.i18n.localize("SDE.crawlStrip.currentTurn") : ""}" tabindex="0">
           ${slim ? "" : `<img class="sde-strip-portrait" src="${esc(m.img)}" alt="${esc(m.name)}" />`}
           ${isHidden ? `<div class="sde-strip-hidden-icon" title="${esc(game.i18n.localize("SDE.crawlStrip.hiddenTip"))}">${ICONS.eyeSlash}</div>` : ""}
+          ${leads ? `<div class="sde-strip-leads-badge" title="${leadsTip}"><i class="fas fa-flag"></i></div>` : ""}
           <div class="sde-strip-overlay">
             ${displayName ? `<div class="sde-strip-name"${slim ? ` title="${displayName}"` : ""}>${displayName}</div>` : ""}
             ${acLine}
@@ -965,11 +982,13 @@ export const CrawlStrip = {
           ? `<div class="sde-strip-group sde-strip-group-combat">
                <div class="sde-strip-members">${heroCards}</div>
              </div>`
-          : `<div class="sde-strip-group sde-strip-group-heroes">
+          : `<div class="sde-strip-group sde-strip-group-heroes ${march ? "sde-strip-group-marching" : ""}">
                <div class="sde-strip-label-col sde-strip-label-heroes">
                  <div class="sde-strip-group-label">${esc(game.i18n.localize("SDE.crawlStrip.partyLabel"))}</div>
+                 ${marchSwitch}
                  ${shopButton}
                </div>
+               ${marchGrid}
                <div class="sde-strip-members">${heroCards}</div>
              </div>`)
       : "";
@@ -989,6 +1008,7 @@ export const CrawlStrip = {
       </div>`;
 
     this._bindEvents();
+    bindMarchControls(this._el);
     this._sizeCards();
     bindActionMenuEvents(this._el);
     requestAnimationFrame(() => {
