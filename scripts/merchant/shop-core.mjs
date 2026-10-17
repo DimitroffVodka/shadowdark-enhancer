@@ -123,6 +123,20 @@ export function cleanItemData(item) {
   return data;
 }
 
+/**
+ * A character's OWN item as it is kept or handed back: unlike a merchant's copy it keeps its flags (this module's
+ * downtime training, the junk mark, other modules' data), its effects and its compendium link. Only what belongs
+ * to the old document (id, folder, sort, ownership) and the equipped state go.
+ */
+export function ownItemData(item) {
+  const data = structuredClone(item.toObject());
+  for (const k of ["_id", "folder", "sort", "ownership"]) delete data[k];
+  if (data._stats) data._stats = data._stats.compendiumSource ? { compendiumSource: data._stats.compendiumSource } : undefined;
+  if (data._stats === undefined) delete data._stats;
+  if (data.system) delete data.system.equipped;
+  return data;
+}
+
 /** The quantity a sale takes (never more than the seller holds) and what it pays in copper, before extortion. */
 export function sellQuote(item, quantity, merchant) {
   const qty = Math.min(sanitizeQty(quantity), item.system?.quantity ?? 1);

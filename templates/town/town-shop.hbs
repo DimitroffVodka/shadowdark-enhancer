@@ -84,6 +84,24 @@
       </div>
       {{/each}}
     </div>
+    <h3 class="ui-h tl-lots-h">{{localize "SDE.town.lots.title"}}</h3>
+    <p class="ui-muted tl-lots-hint">{{localize "SDE.town.lots.hint"}}</p>
+    {{#if lots.length}}
+    <div class="ui-list">
+      {{#each lots}}
+      <div class="ui-row tl-lot" data-lot-id="{{id}}">
+        <img src="{{img}}" alt="">
+        <div class="ui-row-main"><span class="ui-row-name">{{name}}{{#if (gt qty 1)}} ×{{qty}}{{/if}}</span><span class="ui-row-sub">{{localize "SDE.town.lots.paid" price=paid}}</span>
+          {{#if facts.length}}<div class="tl-facts">{{#each facts}}<span class="ui-chip">{{this}}</span>{{/each}}</div>{{/if}}
+          {{#if blurb}}<p class="tl-blurb">{{blurb}}</p>{{/if}}
+        </div>
+        <button type="button" class="ui-btn" data-action="takeBack" data-lot-id="{{id}}" {{#if ../busy}}disabled{{else}}{{#if poor}}disabled data-tooltip="{{localize 'SDE.town.cannotAfford'}}"{{/if}}{{/if}}><i class="fa-solid fa-rotate-left"></i> {{localize "SDE.town.lots.takeBack"}}</button>
+      </div>
+      {{/each}}
+    </div>
+    {{else}}
+    <div class="ui-empty"><i class="fa-solid fa-box-open"></i><span>{{localize "SDE.town.lots.empty"}}</span></div>
+    {{/if}}
     {{/if}}
   </div>
   {{else}}

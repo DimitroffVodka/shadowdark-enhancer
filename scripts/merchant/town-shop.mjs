@@ -18,8 +18,9 @@ import { canAfford, fromCopper, formatPrice, spendFromPurse } from "../shared/co
 import { compactCard, purchaseCard } from "../shared/chat-cards.mjs";
 import { esc } from "../shared/esc.mjs";
 import { logFlag, LOG_FLAG } from "../town/town-log-core.mjs";
-import { boughtBy, cleanItemData, ledgerPath, quoteLine, sanitizeQty, sellQuote, shelf } from "./shop-core.mjs";
+import { boughtBy, cleanItemData, ledgerPath, ownItemData, quoteLine, sanitizeQty, sellQuote, shelf } from "./shop-core.mjs";
 import { priceCart } from "../town/town-view.mjs";
+import { lotsOf, lotsPath, addLot, takeLot } from "./lots-core.mjs";
 import { TIER_KEYS, haggleFlagPaths, haggleResult, haggleState } from "./haggle-core.mjs";
 
 const fail = (error) => ({ ok: false, error });
@@ -190,11 +191,41 @@ export async function sellItem({ seller, merchantActor, merchant, itemId, quanti
   const swing = io.extortion.apply(copper, io.extortion.read(seller), "sell");
   const price = fromCopper(swing.copper);
 
+  // The snapshot is taken before the item goes: a sale whose coins did not land puts it back, and a lot is made from it.
   const held = item.system.quantity ?? 1;
-  if (qty >= held) await item.delete();
-  else await item.update({ "system.quantity": held - qty });
-  await io.pay(seller, price);
+  const snapshot = ownItemData(item);
+  const lotData = structuredClone(snapshot);
+  lotData.system ??= {};
+  lotData.system.quantity = qty;
+  const name = item.name, img = item.img;
+  // v14 resolves a vetoed write without throwing, so the item is judged by reading it back, before anyone is paid.
+  const warn = (err) => console.warn(`${MODULE_ID} | town shop: the sold item was not taken`, err);
+  if (qty >= held) await item.delete().catch(warn);
+  else await item.update({ "system.quantity": held - qty }).catch(warn);
+  const left = seller.items.get(itemId);
+  if (qty >= held ? left : (left?.system?.quantity ?? held) !== held - qty) return fail(io.t("SDE.town.lots.saleNotSaved"));
+  if (!(await io.pay(seller, price))) {
+    // Nothing was paid: the seller gets the item back, so a sale that did not land costs them nothing.
+    let back = false;
+    if (qty >= held) back = !!(await Promise.resolve(io.give(seller, snapshot)).catch((err) => { console.warn(`${MODULE_ID} | town shop: the unsold item could not be returned`, err); return null; }));
+    else {
+      await item.update({ "system.quantity": held }).catch((err) => console.warn(`${MODULE_ID} | town shop: the unsold stack could not be restored`, err));
+      back = item.system.quantity === held;
+    }
+    if (back) return fail(io.t("SDE.town.lots.saleNotSaved"));
+    // Neither the coins nor the item: the table's GM has to settle it, so it goes on a card and in the sales log.
+    await io.chat({
+      speaker: { alias: merchantActor?.name ?? io.t("SDE.merchant.card.speaker") },
+      content: purchaseCard({
+        title: io.t("SDE.merchant.card.sold"), buyer: seller.name, img: img || "icons/svg/item-bag.svg", name,
+        html: io.t("SDE.town.lots.lostLine", { seller: `<strong>${esc(seller.name)}</strong>`, item: `<strong>${esc(name)}${qty > 1 ? ` ×${qty}` : ""}</strong>`, price: formatPrice(price) }),
+      }),
+      flags: { [MODULE_ID]: { [LOG_FLAG]: logFlag({ kind: "sell", sceneId, placeId: merchant?.id, place: merchantActor?.name ?? "", charId: seller.id, charName: seller.name, what: name, qty, net: swing.copper }) } },
+    }).catch((err) => console.warn(`${MODULE_ID} | town shop: the lost-sale card did not post`, err));
+    return fail(io.t("SDE.town.lots.saleLost"));
+  }
   if (swing.applied) await io.extortion.spend(seller);
+  await recordLot(seller, merchant, { id: io.randomId(), name, img, qty, copper: swing.copper, data: lotData }, io);
 
   const swingNote = swing.applied ? ` <em>${io.t("SDE.merchant.card.swingSell", { pct: swing.pct })}</em>` : "";
   await io.chat({
@@ -208,6 +239,63 @@ export async function sellItem({ seller, merchantActor, merchant, itemId, quanti
   return { ok: true, name: item.name, qty, price };
 }
 
+/** Keep what was sold, so it can be bought back. The sale has landed: a lot that does not save is only a lost convenience. */
+async function recordLot(seller, merchant, lot, io) {
+  try {
+    const path = lotsPath(merchant), lots = addLot(lotsOf(seller, merchant), lot);
+    await io.record(seller, path, lots);
+    if (!lotsOf(seller, merchant).some((l) => l.id === lot.id)) console.warn(`${MODULE_ID} | town shop: the lot did not read back`);
+  } catch (err) { console.warn(`${MODULE_ID} | town shop: the lot did not save`, err); }
+}
+
+/**
+ * Buy back a lot the buyer sold to this merchant, at exactly what they were paid: no markup, no haggle, no bargain swing.
+ * The coins are charged and the item given back through `io.chargeAndGive` (each read back, the coins refunded when the
+ * item does not appear); then the lot is removed. When removing it fails the buyer could take it back again, and
+ * would pay again, so nothing is free: it is only logged.
+ * @returns {Promise<{ok:true,name:string,qty:number,price:object}|{ok:false,error:string}>}
+ */
+export async function buyBack({ buyer, merchantActor, merchant, lotId, sceneId = "" }, io = null) {
+  io ??= await liveIo();
+  if (!buyer?.isOwner) return fail(io.t(`${KEY}actorNotFound`));
+  if (!merchantActor || merchant?.open === false) return fail(io.t(`${KEY}unavailable`));
+  if (haggleState(buyer, merchant).banned) return fail(io.t("SDE.town.haggle.errBanned"));
+  const lot = lotsOf(buyer, merchant).find((l) => l.id === lotId);
+  if (!lot) return fail(io.t("SDE.town.lots.errGone"));
+  const copper = Math.max(0, Math.floor(Number(lot.copper) || 0));
+  if (!canAfford(buyer.system.coins, fromCopper(copper))) return fail(io.t(`${KEY}insufficientFunds`));
+
+  const unsaved = await io.chargeAndGive(buyer, spendFromPurse(buyer.system.coins, copper), structuredClone(lot.data));
+  if (unsaved) {
+    // The coins left and did not come back: the card and the sales log are how the GM hears of it.
+    if (unsaved === io.t("SDE.merchant.notify.notRefunded")) {
+      await io.chat({
+        speaker: { alias: merchantActor.name },
+        content: purchaseCard({ title: io.t("SDE.merchant.card.purchased"), buyer: buyer.name, img: lot.img || "icons/svg/item-bag.svg", name: lot.name, html: `<strong>${io.t("SDE.town.cart.failedLine", { name: esc(lot.name) })}</strong> ${esc(unsaved)}` }),
+        flags: { [MODULE_ID]: { [LOG_FLAG]: logFlag({ kind: "buy", sceneId, placeId: merchant?.id, place: merchantActor.name, charId: buyer.id, charName: buyer.name, what: `${lot.name} ${io.t("SDE.town.lots.suffix")}`, qty: lot.qty, net: -copper }) } },
+      }).catch((err) => console.warn(`${MODULE_ID} | town shop: the buyback card did not post`, err));
+    }
+    return fail(unsaved);
+  }
+  try {
+    await io.record(buyer, lotsPath(merchant), takeLot(lotsOf(buyer, merchant), lot.id));
+    if (lotsOf(buyer, merchant).some((l) => l.id === lot.id)) console.warn(`${MODULE_ID} | town shop: the lot was not removed`);
+  } catch (err) { console.warn(`${MODULE_ID} | town shop: the lot was not removed`, err); }
+
+  const price = fromCopper(copper);
+  try {
+    await io.chat({
+      speaker: { alias: merchantActor.name },
+      content: purchaseCard({
+        title: io.t("SDE.merchant.card.purchased"), buyer: buyer.name, img: lot.img || "icons/svg/item-bag.svg", name: lot.name,
+        html: io.t("SDE.town.lots.cardLine", { buyer: `<strong>${esc(buyer.name)}</strong>`, item: `<strong>${esc(lineName(lot))}</strong>`, price: formatPrice(price) }),
+      }),
+      flags: { [MODULE_ID]: { [LOG_FLAG]: logFlag({ kind: "buy", sceneId, placeId: merchant?.id, place: merchantActor.name, charId: buyer.id, charName: buyer.name, what: `${lot.name} ${io.t("SDE.town.lots.suffix")}`, qty: lot.qty, net: -copper }) } },
+    });
+  } catch (err) { console.warn(`${MODULE_ID} | town shop: the buyback card did not post`, err); }
+  return { ok: true, name: lot.name, qty: lot.qty, price };
+}
+
 /** The real Foundry side. Imported on use, so the rules above load (and test) without a running Foundry. */
 export async function liveIo() {
   const [{ MerchantShop }, fx] = await Promise.all([import("./merchant-shop.mjs"), import("../downtime/downtime-effects.mjs")]);
@@ -215,6 +303,8 @@ export async function liveIo() {
     t: (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key)),
     characters: () => game.actors.filter((a) => a.type === "Player"),
     chargeAndGive: (buyer, purse, itemData) => MerchantShop._chargeAndGive(buyer, purse, itemData),
+    give: (actor, itemData) => MerchantShop._give(actor, itemData),
+    randomId: () => foundry.utils.randomID(),
     pay: (actor, coins) => MerchantShop._pay(actor, coins),
     record: (actor, path, value) => actor.update({ [path]: value }),
     recordFlags: (actor, data) => actor.update(data),

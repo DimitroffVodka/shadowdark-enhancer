@@ -94,6 +94,17 @@ export function sellRows(items, merchant, { swing = (c) => c, facts = () => [], 
   }).sort((a, b) => a.name.localeCompare(b.name));
 }
 
+/**
+ * What a character sold here and can take back: each lot with what they were paid, its facts, and whether they can
+ * afford it now (`poor`). `lots` are lots-core lots, whose `data` is the item as it was handed over.
+ */
+export function lotRows(lots, { coins, facts = () => [], blurb = () => "", t }) {
+  return [...lots].reverse().map((l) => ({
+    id: l.id, name: l.name, img: l.img, qty: l.qty, paid: l.copper ? formatPrice(fromCopper(l.copper)) : t("SDE.town.nothing"),
+    poor: !canAfford(coins, fromCopper(l.copper)), facts: facts(l.data), blurb: blurb(l.data),
+  }));
+}
+
 /** The tiles that open other windows, for the places the GM left on. */
 export function placeTiles(places, { isGM, hasParty, downtimeOpen, activeQuests, nightOpen = false, gmOnline = true, rumorsHeard = false, t }) {
   return places.map((id) => {

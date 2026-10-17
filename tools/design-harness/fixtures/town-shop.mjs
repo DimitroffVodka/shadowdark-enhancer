@@ -4,7 +4,7 @@
 import { fromCopper, canAfford } from "../../../scripts/shared/coins.mjs";
 import { TIER_KEYS } from "../../../scripts/merchant/haggle-core.mjs";
 import { shelf } from "../../../scripts/merchant/shop-core.mjs";
-import { CATEGORIES, plainText, priceCart, priceNote, priceParts, purseText, sellRows, wareCards, wareFacts } from "../../../scripts/town/town-view.mjs";
+import { CATEGORIES, plainText, priceCart, priceNote, priceParts, lotRows, purseText, sellRows, wareCards, wareFacts } from "../../../scripts/town/town-view.mjs";
 import { MERCHANTS, COINS, ico, t } from "./_town.mjs";
 
 const MOD = "shadowdark-enhancer";
@@ -35,6 +35,12 @@ const bag = [
   it("s4", "Backpack", "Basic", "containers/bags/case-simple-leather-brown", { gp: 5 }, 2),
   it("s5", "Torch", "Basic", "sundries/lights/candle-lit-yellow", { cp: 1 }, 6),
 ];
+// what Creeg sold here: the first is more than the purse holds (Take back is disabled), the last a stack
+const soldLots = [
+  { id: "l1", name: "Mithral chain shirt of the Lantern Hold", img: ico("equipment/chest/breastplate-banded-blue"), qty: 1, copper: 22500, data: { type: "Armor", system: { ac: { base: 13, attribute: "dex" }, description: "<p>Light as a shirt, hard as plate.</p>" } } },
+  { id: "l2", name: "Dagger", img: ico("weapons/daggers/dagger-black"), qty: 1, copper: 50, data: { type: "Weapon", system: { ...melee("near", "d4"), properties: ["finesse"] } } },
+  { id: "l3", name: "Torch", img: ico("sundries/lights/candle-lit-yellow"), qty: 4, copper: 2, data: { type: "Basic", system: {} } },
+];
 const toolbar = `<span>State:</span>${["buy", "cart", "haggled", "shaky", "banned", "banned-gm", "cart-full", "sell", "closed", "broke", "gm"].map((s) => `<button data-action="s" data-state="${s}">${s}</button>`).join("")}`;
 const build = (state) => {
   const full = state.endsWith("-full"), s = state.replace("-full", "");
@@ -64,7 +70,8 @@ const build = (state) => {
         facts: (e) => wareFacts(e.item, { t, propName: (l) => PROPS[l]?.name ?? "" }),
         rules: (e) => e.item.system.properties.map((l) => PROPS[l]).filter(Boolean), t,
       }),
-      sellItems: selling,
+      sellItems: selling, busy: false,
+      lots: closed ? [] : lotRows(soldLots, { coins, t, blurb: (d) => plainText(d.system.description, 110), facts: (d) => wareFacts(d, { t, propName: (l) => PROPS[l]?.name ?? "" }) }),
       actors: [{ id: "a", name: "Creeg Greythorn", selected: true }, { id: "b", name: "Elbin Grizzlegut", selected: false }],
     },
   };

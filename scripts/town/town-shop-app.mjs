@@ -8,12 +8,13 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { canAfford, fromCopper } from "../shared/coins.mjs";
 import { L as t } from "../shared/i18n.mjs";
-import { checkoutCart, haggle, pardon, sellItem, liveIo, waresOf } from "../merchant/town-shop.mjs";
+import { buyBack, checkoutCart, haggle, pardon, sellItem, liveIo, waresOf } from "../merchant/town-shop.mjs";
 import { TIER_KEYS, haggleState } from "../merchant/haggle-core.mjs";
 import { STOCK_TYPES } from "../merchant/shop-core.mjs";
+import { lotsOf } from "../merchant/lots-core.mjs";
 import { landingOf } from "./town-core.mjs";
 import { buyerChoices, buyerFor, redrawOnChange } from "./town-live.mjs";
-import { CATEGORIES, cartAdd, plainText, priceCart, priceNote, priceParts, purseText, sellRows, wareCards, wareFacts } from "./town-view.mjs";
+import { CATEGORIES, cartAdd, lotRows, plainText, priceCart, priceNote, priceParts, purseText, sellRows, wareCards, wareFacts } from "./town-view.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -39,6 +40,7 @@ export class TownShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
       pardon: TownShopApp.prototype._onPardon,
       sell: TownShopApp.prototype._onSell,
       sellAll: TownShopApp.prototype._onSellAll,
+      takeBack: TownShopApp.prototype._onTakeBack,
       toggleUnlimited: TownShopApp.prototype._onToggleUnlimited,
       back: TownShopApp.prototype._onBack,
     },
@@ -104,12 +106,17 @@ export class TownShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const buyFull = (copper) => io.extortion.apply(copper, flag, "buy");
     const sellSwing = (copper) => io.extortion.apply(copper, flag, "sell").copper;
     const rows = open ? waresOf(actor, merchant, io) : [];
-    await this.#readProperties(open && buyer ? [...rows, ...buyer.items.contents.filter((i) => STOCK_TYPES.includes(i.type)).map((i) => ({ item: i }))] : rows);
+    const lots = open && buyer ? lotsOf(buyer, merchant) : [];
+    await this.#readProperties(open && buyer ? [...rows, ...buyer.items.contents.filter((i) => STOCK_TYPES.includes(i.type)).map((i) => ({ item: i })), ...lots.map((l) => ({ item: l.data ?? {} }))] : rows);
     const known = (link) => this._props.get(link);
     const selling = open && buyer ? sellRows(buyer.items.contents, merchant, {
       swing: sellSwing, t, blurb: (item) => plainText(item.system?.description, 110),
       facts: (item) => wareFacts(item, { t, propName: (link) => known(link)?.name ?? "" }),
     }) : [];
+    const lotCards = lotRows(lots, {
+      coins: buyer?.system.coins ?? {}, t, blurb: (data) => plainText(data?.system?.description, 110),
+      facts: (data) => wareFacts(data, { t, propName: (link) => known(link)?.name ?? "" }),
+    });
     const cart = priceCart(this.cart, rows, { merchant, pct: stand.pct, swing: buyFull });
     // A closed shop prices nothing, so only an open one may tidy the cart (a moment closed must not empty it).
     if (open) {
@@ -142,7 +149,7 @@ export class TownShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
         facts: (entry) => wareFacts(entry.item, { t, propName: (link) => known(link)?.name ?? "" }),
         rules: (entry) => (entry.item.system?.properties ?? []).map(known).filter((p) => p?.name && p.text),
       }),
-      sellItems: selling,
+      sellItems: selling, lots: lotCards, busy: this._busy,
       actors: buyerChoices().map((a) => ({ id: a.id, name: a.name, selected: a.id === buyer?.id })),
     });
   }
@@ -233,6 +240,10 @@ export class TownShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   _onSellAll(_event, target) {
     return this.#run((seller) => sellItem({ seller, merchantActor: this.merchantActor, merchant: this.merchant, itemId: target.dataset.itemId, quantity: seller.items.get(target.dataset.itemId)?.system.quantity ?? 1, sceneId: this.scene?.id }, this._io));
+  }
+
+  _onTakeBack(_event, target) {
+    return this.#run((buyer) => buyBack({ buyer, merchantActor: this.merchantActor, merchant: this.merchant, lotId: target.dataset.lotId, sceneId: this.scene?.id }, this._io));
   }
 
   /** GM: a ware that never runs out (the `unlimitedStock` flag on the NPC's own item), or one that does again. */

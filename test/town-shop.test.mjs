@@ -4,7 +4,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buyWare, checkoutCart, haggle, pardon, sellItem } from "../scripts/merchant/town-shop.mjs";
+import { buyBack, buyWare, checkoutCart, haggle, pardon, sellItem } from "../scripts/merchant/town-shop.mjs";
 import { addToPurse } from "../scripts/shared/coins.mjs";
 import { applyExtortion, hasExtortion } from "../scripts/downtime/downtime-effects-core.mjs";
 import { haggleState } from "../scripts/merchant/haggle-core.mjs";
@@ -39,7 +39,8 @@ function actor({ id, name, gp = 0, sp = 0, cp = 0, owner = true, items = [], fla
 const merchantActor = (items) => actor({ id: "npc", name: "Hargrave", items });
 
 /** `swing` is the character's armed flag, `{ pct, uses }`; the swing itself is the real rule (a buy pays less, a sale more). */
-function makeIo({ characters = [], unsaved = null, swing = null, dice = [], gm = false } = {}) {
+let ids = 0;
+function makeIo({ characters = [], unsaved = null, swing = null, dice = [], gm = false, payFails = false, giveFails = false } = {}) {
   const log = { charged: [], paid: [], chat: [], spent: [], order: [] };
   return {
     log,
@@ -51,7 +52,9 @@ function makeIo({ characters = [], unsaved = null, swing = null, dice = [], gm =
       buyer.system.coins = purse;
       return null;
     },
-    async pay(a, coins) { log.paid.push(coins); a.system.coins = addToPurse(a.system.coins, coins); return true; },
+    async pay(a, coins) { log.paid.push(coins); if (payFails) return false; a.system.coins = addToPurse(a.system.coins, coins); return true; },
+    async give(a, data) { log.given = [...(log.given ?? []), data]; return giveFails ? null : "x"; },
+    randomId: () => `id${++ids}`,
     record: (a, path, value) => a.update({ [path]: value }),
     extortion: {
       read: () => (hasExtortion(swing) ? swing : null),
@@ -225,6 +228,169 @@ test("a sale pays with the extortion swing in the seller's favour, and refuses s
   const theirs = actor({ id: "b", name: "Elbin", owner: false, items: [item({ id: "s9", name: "Dagger" })] });
   assert.deepEqual(await sellItem({ seller: theirs, merchant, itemId: "s9", quantity: 1 }, makeIo()), { ok: false, error: "SDE.merchant.notify.actorNotFound" });
   assert.deepEqual(await sellItem({ seller: hero, merchant, itemId: "nope", quantity: 1 }, makeIo()), { ok: false, error: "SDE.merchant.notify.itemNotInInventory" });
+});
+
+test("a sale whose coins did not land gives the item back and says so", async () => {
+  const sword = item({ id: "s1", name: "Longsword", type: "Weapon", cost: { gp: 9 } });
+  const hero = actor({ id: "a", name: "Creeg", items: [sword] });
+  const io = makeIo({ payFails: true });
+  const res = await sellItem({ seller: hero, merchant, itemId: "s1", quantity: 1 }, io);
+  assert.deepEqual(res, { ok: false, error: "SDE.town.lots.saleNotSaved" });
+  assert.equal(hero.flags[MOD]?.shopLots, undefined);   // no lot for a sale that did not land
+  assert.equal(io.log.given.length, 1);
+  assert.equal(io.log.given[0].name, "Longsword");
+  assert.equal(io.log.chat.length, 0);
+  const torches = item({ id: "s2", name: "Torch", cost: { cp: 5 }, quantity: 10 });
+  const other = actor({ id: "b", name: "Elbin", items: [torches] });
+  assert.equal((await sellItem({ seller: other, merchant, itemId: "s2", quantity: 4 }, makeIo({ payFails: true }))).ok, false);
+  assert.deepEqual(torches.updates, [{ "system.quantity": 6 }, { "system.quantity": 10 }]);
+});
+
+test("a sale that failed to pay AND to give the item back says so, and posts a card for the GM", async () => {
+  const sword = item({ id: "s1", name: "Longsword", type: "Weapon", cost: { gp: 9 } });
+  const hero = actor({ id: "a", name: "Creeg", items: [sword] });
+  const io = makeIo({ payFails: true, giveFails: true });
+  const res = await sellItem({ seller: hero, merchantActor: merchantActor([]), merchant, itemId: "s1", quantity: 1, sceneId: "s1" }, io);
+  assert.deepEqual(res, { ok: false, error: "SDE.town.lots.saleLost" });
+  assert.equal(io.log.chat.length, 1);
+  assert.match(io.log.chat[0].content, /lots\.lostLine/);
+  const [entry] = entriesFrom([{ id: "x", timestamp: 1, flags: io.log.chat[0].flags }]);
+  assert.deepEqual([entry.kind, entry.what, entry.net], ["sell", "Longsword", 450]);
+  assert.equal(hero.flags[MOD]?.shopLots, undefined);
+});
+
+test("a lot and a recovered item keep the item's own flags, effects and compendium link", async () => {
+  const flags = { [MOD]: { downtimeTraining: { die: "d8" } } };
+  const sword = item({ id: "s1", name: "Longsword", type: "Weapon", cost: { gp: 9 }, flags });
+  const base = sword.toObject;
+  sword.toObject = () => ({ ...base(), effects: [{ name: "Keen" }], ownership: { default: 3 }, folder: "f", _stats: { compendiumSource: "Compendium.x.y", modifiedTime: 1 } });
+  const hero = actor({ id: "a", name: "Creeg", items: [sword] });
+  await sellItem({ seller: hero, merchant, itemId: "s1", quantity: 1 }, makeIo());
+  const data = hero.flags[MOD].shopLots.m1[0].data;
+  assert.deepEqual(data.flags, flags);
+  assert.deepEqual(data.effects, [{ name: "Keen" }]);
+  assert.deepEqual(data._stats, { compendiumSource: "Compendium.x.y" });
+  assert.equal(data._id, undefined); assert.equal(data.ownership, undefined); assert.equal(data.folder, undefined);
+  const again = item({ id: "s2", name: "Dagger", type: "Weapon", flags });
+  const h2 = actor({ id: "b", name: "Elbin", items: [again] });
+  const io = makeIo({ payFails: true });
+  await sellItem({ seller: h2, merchant, itemId: "s2", quantity: 1 }, io);
+  assert.deepEqual(io.log.given[0].flags, flags);
+});
+
+test("a sale whose item stays on the character (a vetoed delete or update) pays nothing and keeps no lot", async () => {
+  const sword = item({ id: "s1", name: "Longsword", type: "Weapon", cost: { gp: 9 } });
+  sword.delete = async () => {};   // a preDeleteItem hook returned false: resolves, removes nothing
+  const hero = actor({ id: "a", name: "Creeg", items: [sword] });
+  const io = makeIo();
+  assert.deepEqual(await sellItem({ seller: hero, merchant, itemId: "s1", quantity: 1 }, io), { ok: false, error: "SDE.town.lots.saleNotSaved" });
+  assert.equal(io.log.paid.length, 0);
+  assert.equal(hero.flags[MOD]?.shopLots, undefined);
+  assert.equal(io.log.chat.length, 0);
+  const torches = item({ id: "s2", name: "Torch", cost: { cp: 5 }, quantity: 10 });
+  torches.update = async () => {};
+  const other = actor({ id: "b", name: "Elbin", items: [torches] });
+  const io2 = makeIo();
+  assert.equal((await sellItem({ seller: other, merchant, itemId: "s2", quantity: 4 }, io2)).ok, false);
+  assert.equal(io2.log.paid.length, 0);
+  assert.equal(other.flags[MOD]?.shopLots, undefined);
+});
+
+test("a normal sale still pays and records its lot", async () => {
+  const hero = await sellSword({});
+  assert.equal(hero.flags[MOD].shopLots.m1.length, 1);
+  assert.deepEqual(hero.system.coins, { gp: 4, sp: 5, cp: 0 });
+});
+
+// ── buyback ──────────────────────────────────────────────────────────────────────────────────────────────────────
+
+const sellSword = async ({ gp = 0, swing = null, flags = {} } = {}) => {
+  const sword = item({ id: "s1", name: "Longsword", type: "Weapon", cost: { gp: 9 } });
+  const hero = actor({ id: "a", name: "Creeg", gp, items: [sword], flags });
+  const io = makeIo({ swing });
+  await sellItem({ seller: hero, merchantActor: merchantActor([]), merchant, itemId: "s1", quantity: 1, sceneId: "s1" }, io);
+  return hero;
+};
+const back = (hero, lotId, io, m = merchant, npc = merchantActor([])) => buyBack({ buyer: hero, merchantActor: npc, merchant: m, lotId, sceneId: "s1" }, io);
+
+test("a landed sale keeps a lot with exactly what was paid, swing included, and the cleaned item", async () => {
+  const hero = await sellSword({ swing: { pct: 20, uses: 1 } });
+  const [lot] = hero.flags[MOD].shopLots.m1;
+  assert.deepEqual([lot.name, lot.qty, lot.copper], ["Longsword", 1, 540]);
+  assert.equal(lot.data._id, undefined);
+  assert.equal(lot.data.system.quantity, 1);
+});
+
+test("a lot of a partial stack remembers the quantity sold, and only the newest ten lots are kept", async () => {
+  const torches = item({ id: "s2", name: "Torch", cost: { cp: 5 }, quantity: 10 });
+  const hero = actor({ id: "a", name: "Creeg", items: [torches] });
+  const io = makeIo();
+  await sellItem({ seller: hero, merchant, itemId: "s2", quantity: 4 }, io);
+  assert.equal(hero.flags[MOD].shopLots.m1[0].data.system.quantity, 4);
+  for (let i = 0; i < 12; i++) { const t = item({ id: `t${i}`, name: `T${i}`, cost: { cp: 5 } }); t.parent = hero; hero.items.contents.push(t); await sellItem({ seller: hero, merchant, itemId: `t${i}`, quantity: 1 }, io); }
+  assert.equal(hero.flags[MOD].shopLots.m1.length, 10);
+  assert.equal(hero.flags[MOD].shopLots.m1.at(-1).name, "T11");
+});
+
+test("buying back charges exactly what was paid (no markup, haggle or swing), gives the item, removes the lot and logs it", async () => {
+  const hero = await sellSword({ gp: 10 });
+  const [lot] = hero.flags[MOD].shopLots.m1;
+  const io = makeIo({ swing: { pct: -50, uses: 1 } });
+  const res = await back(hero, lot.id, io, { ...merchant, buyMultiplier: 300, rev: 4 });
+  assert.equal(res.ok, true);
+  assert.deepEqual(hero.system.coins, { gp: 10, sp: 0, cp: 0 });   // 10 gp + 4 gp 5 sp paid at the sale - 4 gp 5 sp back
+  assert.equal(io.log.charged[0].itemData.name, "Longsword");
+  assert.equal(hero.flags[MOD].shopLots.m1.length, 0);
+  assert.deepEqual(io.log.spent, []);
+  const [entry] = entriesFrom([{ id: "x", timestamp: 1, flags: io.log.chat[0].flags }]);
+  assert.deepEqual([entry.kind, entry.net, entry.what], ["buy", -450, "Longsword SDE.town.lots.suffix"]);
+});
+
+test("a buyback is refused when banned, when the shop is closed, when poor, and for a lot that is gone", async () => {
+  const hero = await sellSword({ gp: 0 });
+  const [lot] = hero.flags[MOD].shopLots.m1;
+  const io = makeIo();
+  assert.equal((await back(hero, lot.id, io, { ...merchant, open: false })).error, "SDE.merchant.notify.unavailable");
+  assert.equal((await back(hero, "nope", io)).error, "SDE.town.lots.errGone");
+  hero.system.coins = { gp: 0, sp: 0, cp: 0 };
+  assert.equal((await back(hero, lot.id, io)).error, "SDE.merchant.notify.insufficientFunds");
+  hero.system.coins = { gp: 20, sp: 0, cp: 0 };
+  hero.flags[MOD].shopBan = { m1: true };
+  assert.equal((await back(hero, lot.id, io)).error, "SDE.town.haggle.errBanned");
+  assert.equal(io.log.charged.length, 0);
+  assert.equal(hero.flags[MOD].shopLots.m1.length, 1);
+});
+
+test("when the charge or the item fails the lot stays, and nothing is logged", async () => {
+  const hero = await sellSword({ gp: 10 });
+  const [lot] = hero.flags[MOD].shopLots.m1;
+  const io = makeIo({ unsaved: "SDE.merchant.notify.notSaved" });
+  const res = await back(hero, lot.id, io);
+  assert.deepEqual(res, { ok: false, error: "SDE.merchant.notify.notSaved" });
+  assert.equal(hero.flags[MOD].shopLots.m1.length, 1);
+  assert.equal(io.log.chat.length, 0);
+});
+
+test("a take-back whose coins were not refunded is on a card and in the sales log", async () => {
+  const hero = await sellSword({ gp: 10 });
+  const [lot] = hero.flags[MOD].shopLots.m1;
+  const io = makeIo({ unsaved: "SDE.merchant.notify.notRefunded" });
+  const res = await back(hero, lot.id, io);
+  assert.equal(res.ok, false);
+  assert.equal(io.log.chat.length, 1);
+  assert.match(io.log.chat[0].content, /notRefunded/);
+  const [entry] = entriesFrom([{ id: "x", timestamp: 1, flags: io.log.chat[0].flags }]);
+  assert.deepEqual([entry.kind, entry.net], ["buy", -450]);
+  assert.equal(hero.flags[MOD].shopLots.m1.length, 1);
+});
+
+test("when the lot cannot be removed the buyback still stands (the buyer paid)", async () => {
+  const hero = await sellSword({ gp: 10 });
+  const [lot] = hero.flags[MOD].shopLots.m1;
+  const io = makeIo();
+  io.record = async () => { throw new Error("rejected"); };
+  assert.equal((await back(hero, lot.id, io)).ok, true);
+  assert.equal(io.log.chat.length, 1);
 });
 
 // ── the cart ─────────────────────────────────────────────────────────────────────────────────────────────────────

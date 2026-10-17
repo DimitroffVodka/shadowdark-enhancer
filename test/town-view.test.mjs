@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { shelf } from "../scripts/merchant/shop-core.mjs";
 import { fromCopper } from "../scripts/shared/coins.mjs";
 import {
-  priceParts, purseText, plainText, wareCards, cartAdd, priceCart, wareFacts, sellRows, placeTiles, priceNote, pickBuyer, CATEGORIES,
+  priceParts, purseText, plainText, wareCards, cartAdd, priceCart, wareFacts, sellRows, lotRows, placeTiles, priceNote, pickBuyer, CATEGORIES,
 } from "../scripts/town/town-view.mjs";
 
 const t = (key, data) => (data ? `${key} ${JSON.stringify(data)}` : key);
@@ -213,4 +213,11 @@ test("with a swing armed the card price is the cart line price on every line but
   const cart = priceCart([{ wareId: "a", qty: 1 }, { wareId: "c", qty: 1 }], rows, { merchant, swing });
   for (const l of cart.lines.filter((x) => !x.swung)) assert.deepEqual(cards[l.wareId], priceParts(fromCopper(l.copper)));
   assert.equal(cart.lines.filter((x) => x.swung).length, 1);
+});
+
+test("lotRows lists the newest lot first, what was paid, and whether the buyer can afford it", () => {
+  const lots = [{ id: "a", name: "Dagger", img: "d.webp", qty: 1, copper: 50, data: { type: "Weapon" } }, { id: "b", name: "Mail", img: "m.webp", qty: 2, copper: 9000, data: {} }];
+  const rows = lotRows(lots, { coins: { gp: 1, sp: 0, cp: 0 }, t: (k) => k, facts: (d) => [d.type ?? ""] });
+  assert.deepEqual(rows.map((r) => [r.id, r.poor, r.paid, r.facts[0]]), [["b", true, "90 gp", ""], ["a", false, "5 sp", "Weapon"]]);
+  assert.equal(lotRows([{ ...lots[0], copper: 0 }], { coins: {}, t: (k) => k })[0].paid, "SDE.town.nothing");
 });
