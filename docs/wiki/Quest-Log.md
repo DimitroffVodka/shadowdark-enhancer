@@ -139,6 +139,27 @@ deadline failure, the GM whose game runs the clock), so it appears once.
 
 ---
 
+## Accepting a quest
+
+A player who sees an **Available** quest gets an **Accept quest** link beside the
+quest's source. It is a link, not a button, so it also works for a player who only
+looks at the party in the Party sheet's Quests tab. GMs never see it, and neither
+does a quest in any other status.
+
+- **The player** presses it and sees "Sent to the GM". Nothing else changes on their
+  side: there is no waiting mark, and they can press it again later.
+- **The GM** sees a prompt, "Ava wants to take on The drowned bell. Approve?", with
+  **Approve** and **Not now**. A second press for the same quest while the prompt
+  is open is ignored, so a player cannot flood the GM.
+- **Approve** moves the quest to Active, if it is still Available, and the players
+  get the usual "quest started" pop-up.
+- **Not now**, or closing the prompt, whispers the player one line, "The GM isn't
+  ready for you to take The drowned bell". The quest stays Available.
+- **No GM connected:** the player is told so, and nothing is queued.
+- A quest that has moved on, or that the player cannot see, gets one plain refusal.
+
+---
+
 ## Completing a quest
 
 Set the status to **Completed**. If the quest has rewards that have not been

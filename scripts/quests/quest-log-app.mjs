@@ -15,7 +15,7 @@ import { secondsPerDay } from "../time/time-core.mjs";
 import { TRAINERS } from "../training/training-core.mjs";
 import {
   SOURCE_KINDS, SOURCE_LABELS, STATUSES, STATUS_LABELS,
-  addObjective, addSubStep, dateLabel, dayChanged, deadlineState, hasNotes, hasRewards, matchesFilter, objectiveProgress, planStatusChange, removeObjective, setObjectiveDone, setObjectiveSecret, setObjectiveText,
+  addObjective, addSubStep, canRequestAccept, dateLabel, dayChanged, deadlineState, hasNotes, hasRewards, matchesFilter, objectiveProgress, planStatusChange, removeObjective, setObjectiveDone, setObjectiveSecret, setObjectiveText,
   textToParagraphs, timeToDate, trainerLabel, visibleStatuses,
 } from "./quest-core.mjs";
 import { QUESTS_CHANGED, Quests, actorName, partiesAvailable, partyActors, partyMembers, questPayoutContent } from "./quests.mjs";
@@ -57,6 +57,7 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
         else doc?.sheet?.render(true);
       },
       qlJump: function () { return Quests.jumpToPin(this.selectedId); },
+      qlAccept: function () { return Quests.requestAccept(this.selectedId); },
       qlAddObjective: function () { return this._onAddObjective(); },
       // Opens (or closes) the sub-step row under a step.
       qlAddSubStep: function (_ev, el) { this.subFor = this.subFor === el.dataset.objective ? null : el.dataset.objective; this._focusSub = !!this.subFor; this.render(); },
@@ -228,6 +229,7 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
       noteList: r.notes.map((text, index) => ({ text, index })),
       coinRewards: Object.entries(r.coins ?? {}).filter(([,n]) => n > 0).map(([coin,n]) => t("SDE.quests.reward.coins", { coin, n })),
       hasPin: Quests.hasPin(q),
+      canAccept: canRequestAccept(q, { isGM }),
     };
   }
 

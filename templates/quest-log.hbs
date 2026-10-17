@@ -56,6 +56,7 @@
             <div class="ui-inline">
               <span class="ui-chip gold">{{statusLabel}}</span><span class="ui-chip">{{sourceLabel}}</span>{{#if when.overdue}}<span class="ui-chip bad">{{localize "SDE.quests.overdue"}}</span>{{/if}}
               {{#unless ../inline}}{{#if source.uuid}}<a data-action="qlOpenSource">{{localize "SDE.quests.openSource"}}</a>{{/if}}{{/unless}}
+              {{#if canAccept}}<a data-action="qlAccept"><i class="fa-solid fa-scroll"></i> {{localize "SDE.quests.acceptLink"}}</a>{{/if}}
               <span class="ui-right ui-inline">
                 {{#unless ../inline}}<button type="button" class="ui-btn" data-action="qlOpenJournal"><i class="fa-solid fa-book-open"></i> {{localize "SDE.quests.openJournal"}}</button>{{/unless}}
                 {{#if hasPin}}<button type="button" class="ui-btn" data-action="qlJump"><i class="fa-solid fa-location-dot"></i> {{localize "SDE.quests.jump"}}</button>{{/if}}

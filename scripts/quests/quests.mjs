@@ -11,8 +11,13 @@
  * ownership for the whole pack, and a quest's visibility is per quest (Hidden
  * is the GM's, anything else the players may read).
  *
- * Every write is the GM's. Players read; nothing here takes a write from a
- * player, so there is no relay.
+ * Every write is the GM's. Players read, with one exception: a player can ask
+ * to take on an Available quest ("Accept quest"). That is the first player
+ * request here. It goes over the module's authenticated relay (gm-relay.mjs) to
+ * the active GM's client, which asks the GM "{player} wants to take on {quest}.
+ * Approve?" and only on Approve moves the quest to Active. The player never
+ * writes anything, the sender is the server-stamped user (never the payload),
+ * and a refusal is one generic line whatever the reason.
  *
  * Native Parties work without Extras. Optional Extras party readers remain
  * available for legacy documents; adoption never replaces their identity.
@@ -32,10 +37,14 @@ import {
 } from "./quest-core.mjs";
 import { L as t } from "../shared/i18n.mjs";
 import { questLineCard } from "../shared/chat-cards.mjs";
+import { refuseQuery, registerQuery, relayToGM } from "../shared/gm-relay.mjs";
 import { secondsPerDay } from "../time/time-core.mjs";
 
 /** Fires on every client after any quest is created, changed or deleted. */
 export const QUESTS_CHANGED = `${MODULE_ID}.questsChanged`;
+
+/** The player to active-GM relay query: a player asks to take on a quest. */
+export const QUEST_QUERY = `${MODULE_ID}.quest`;
 
 const EXTRAS = "shadowdark-extras";
 
@@ -415,9 +424,71 @@ async function postQuestLine(entry, oldStatus) {
   }
 }
 
+// ── Accept quest (player request, GM approves) ─────────────────────────────
+
+/** Quest ids with a prompt open on this GM's screen: a second request for one is dropped. */
+const openPrompts = new Set();
+
+async function promptAccept(id, user) {
+  try {
+    const name = entryFor(id)?.name ?? "";
+    const answer = await foundry.applications.api.DialogV2.wait({
+      classes: ["sde-ui", "sde-dialog"],
+      window: { title: t("SDE.quests.acceptPromptTitle"), icon: "fa-solid fa-scroll" },
+      content: `<p>${t("SDE.quests.acceptPrompt", { player: esc(user.name), quest: esc(name) })}</p>`,
+      buttons: [
+        { action: "approve", label: t("SDE.quests.acceptApprove"), icon: "fa-solid fa-check", default: true },
+        { action: "notNow", label: t("SDE.quests.acceptNotNow"), icon: "fa-solid fa-xmark" },
+      ],
+      rejectClose: false,
+    });
+    if (answer === "approve") {
+      // The quest may have moved while the prompt was open.
+      if (flagOf(entryFor(id))?.status === "available") await Quests.setStatus(id, "active");
+    } else {
+      await ChatMessage.create({
+        whisper: [user.id],
+        content: questLineCard({ title: t("SDE.quests.acceptDeclined", { name }), failed: true }),
+      });
+    }
+  } catch (error) {
+    console.warn(`${MODULE_ID} | quest accept prompt`, error);
+  } finally {
+    openPrompts.delete(id);
+  }
+}
+
+/**
+ * A player's request, on the active GM's client. The sender is `user` (stamped by the server), never the payload.
+ * Answers at once; the GM's prompt is not awaited (the relay's answer window is 20 s).
+ */
+export async function handleQuestQuery(data, user) {
+  const refused = refuseQuery(user, t("SDE.quests.acceptRelayLabel"));
+  if (refused) return refused;
+  const generic = { ok: false, error: t("SDE.quests.acceptRefused") };
+  if (data?.action !== "accept") return generic;
+  const entry = entryFor(data.id);
+  const quest = flagOf(entry);
+  if (!quest || quest.status !== "available") return generic;
+  const observer = !!entry.testUserPermission?.(user, "OBSERVER");
+  if (!canSee(quest, { isGM: !!user.isGM, observer })) return generic;
+  if (!openPrompts.has(entry.id)) {
+    openPrompts.add(entry.id);
+    void promptAccept(entry.id, user);
+  }
+  return { ok: true };
+}
+
 // ── The API ─────────────────────────────────────────────────────────────────
 
 export const Quests = {
+  /** Player: ask the GM to let you take on an Available quest. No waiting state; Not now leaves it Available. */
+  async requestAccept(id) {
+    const ok = await relayToGM(QUEST_QUERY, { action: "accept", id: String(id ?? "") }, { label: t("SDE.quests.acceptRelayLabel") });
+    if (ok) ui.notifications?.info(t("SDE.quests.acceptSent"));
+    return ok;
+  },
+
   /**
    * The quests this user may see, newest first.
    * @param {{status?:string|string[], party?:*, character?:*, sourceKind?:string, sourceUuid?:string}} [filter]
@@ -592,6 +663,7 @@ export function registerQuests() {
     onDown: () => { openQuestLog(); return true; },
   });
   Hooks.on("renderJournalDirectory", addDirectoryButton);
+  registerQuery(QUEST_QUERY, (data, { user } = {}) => handleQuestQuery(data, user));
 
   // One hook per burst: a quest write is several document updates (the flag,
   // ownership, the page), and a listener should redraw once.

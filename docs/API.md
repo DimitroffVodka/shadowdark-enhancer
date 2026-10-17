@@ -1514,6 +1514,8 @@ in a *Quests* folder of the Journal sidebar, with a player page and a GM notes
 page, so it reads fine without the window. Its state is one flag on the entry,
 `flags["shadowdark-enhancer"].quest`; identity is that flag, never the name.
 
+Players can ask to take on an Available quest from the Quest Log's **Accept quest** link; the request goes to the active GM over the module's relay and the GM approves it. No API call is added.
+
 ```js
 const api = game.shadowdarkEnhancer;
 

@@ -95,6 +95,9 @@ export function canSee(quest, { isGM = false, observer = false } = {}) {
   return !!quest && quest.status !== "hidden" && !!observer;
 }
 
+/** The Accept quest link: a non-GM looking at an Available quest. */
+export const canRequestAccept = (quest, { isGM = false } = {}) => !isGM && quest?.status === "available";
+
 const SKIP_KEYS = new Set(["id", "uuid", "name", "created", "__proto__", "constructor", "prototype"]);
 
 /** Keys this build does not know, copied safely: no entry-level fields, and a value that cannot be cloned is skipped. */
