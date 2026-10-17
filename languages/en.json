@@ -4204,6 +4204,8 @@
   "SDE.clock.time": "Time",
   "SDE.clock.skyShow": "Show the sky",
   "SDE.clock.skyHide": "Hide the sky",
+  "SDE.clock.weatherHide": "Hide weather effects on this device",
+  "SDE.clock.weatherShow": "Show weather effects on this device",
   "SDE.clock.back": "−{step}",
   "SDE.clock.forward": "+{step}",
   "SDE.clock.step.day": "1 day",

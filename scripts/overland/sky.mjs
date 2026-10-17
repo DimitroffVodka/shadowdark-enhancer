@@ -206,20 +206,21 @@ function onRenderSceneConfig(app, element) {
 
 /** This client's switch: off draws no weather effect here, whatever the scene says. */
 export const WEATHER_VISUALS = "weatherVisuals";
-const visualsOn = () => {
+/** Is this device drawing the weather? Unset or unreadable counts as on. */
+export const weatherVisualsOn = () => {
   try { return game.settings.get(MODULE_ID, WEATHER_VISUALS) !== false; } catch { return true; }
 };
 
 /** drawWeatherEffects: the layer was just drawn with the scene's effect; with the switch off, drop it. */
 export function onDrawWeatherEffects(layer) {
-  if (!visualsOn()) layer.clearEffects();
+  if (!weatherVisualsOn()) layer.clearEffects();
 }
 
 /** The switch changed: put this client's effect back or take it away, with no redraw of the scene. */
 export function applyWeatherVisuals() {
   const layer = canvas?.weather;
   if (!canvas?.ready || !layer) return;
-  if (visualsOn()) layer.initializeEffects(CONFIG.weatherEffects?.[canvas.scene?.weather]);
+  if (weatherVisualsOn()) layer.initializeEffects(CONFIG.weatherEffects?.[canvas.scene?.weather]);
   else layer.clearEffects();
 }
 

@@ -384,9 +384,9 @@ the party token travels.
     weather.
   - Weather changes redraw the whole scene on every screen that shows it,
     which is slow on a very large map or a weak device. Each device has a
-    **Show weather effects** setting (see [Settings Reference](Settings-Reference.md));
-    turned off, that device draws no weather while the scene keeps it for
-    everyone else.
+    **Show weather effects** setting (see [Settings Reference](Settings-Reference.md)),
+    also the cloud button on the left of the clock bar; turned off, that
+    device draws no weather while the scene keeps it for everyone else.
   - A scene whose darkness is locked is left alone, and so is a weather effect
     you picked yourself. No calendar module is needed.
   - On the Isles of Andrik, the summer sun never sets and the winter night
