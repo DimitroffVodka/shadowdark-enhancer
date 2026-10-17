@@ -7,7 +7,8 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { isNativeParty } from "../party/party.mjs";
 import { campOf } from "../camping/camping.mjs";
 import { imageSrc } from "../encounter/battle-maps/battle-map-picker-core.mjs";
-import { campArtFor, normalizeStage, showCamp } from "./stage-core.mjs";
+import { isActiveGM } from "../shared/gm-relay.mjs";
+import { campArtFor, campTransition, normalizeStage, showCamp } from "./stage-core.mjs";
 
 const read = () => normalizeStage(game.settings.get(MODULE_ID, "stage"));
 const write = (value) => game.settings.set(MODULE_ID, "stage", value);
@@ -66,6 +67,21 @@ export async function hideStage() {
   await write({ ...stage, shown: false });
 }
 
+/** updateActor on a party: raise the camp picture when a camp BEGINS, drop it when the camp ends. Active GM only. */
+export async function onPartyCamp(actor, changed, options) {
+  if (!isActiveGM() || !isNativeParty(actor)) return;
+  // The diff names the key plainly with an operator as its value; the legacy ==/-= spellings still count.
+  if (!Object.keys(changed?.flags?.[MODULE_ID] ?? {}).some((k) => k.replace(/^(==|-=)/, "") === "camping")) return;
+  // Raising is decided once, on the write that creates the camp (camping.mjs marks it); later setup writes never re-raise.
+  const phase = campOf(actor)?.phase;
+  if (phase === "setup" && options?.[MODULE_ID]?.campBegin !== true) return;
+  const image = phase === "setup" ? (campArtFor(await partyTerrain())?.image ?? null) : null;
+  const camp = campOf(actor); // the document, never the diff (it holds the operator); read after the await so a cancel that landed meanwhile wins
+  const partyTokenOnMap = !!globalThis.canvas?.scene?.tokens?.some?.((t) => t.actorId === actor.id);
+  const next = campTransition(read(), camp, { partyId: actor.id, image, partyTokenOnMap }); // read after the await: fresh state
+  if (next) await write(next).catch((e) => console.warn(`${MODULE_ID} | stage write failed`, e));
+}
+
 export function registerStage() {
   game.settings.register(MODULE_ID, "stage", {
     scope: "world",
@@ -78,6 +94,7 @@ export function registerStage() {
     },
   });
   Hooks.once("ready", drawStage);
+  Hooks.on("updateActor", onPartyCamp);
   // Every canvas draw re-controls a player's tokens (after this hook's draw step, before canvasReady); a module returning false would stop ours, fine, it only releases.
   Hooks.on("canvasReady", () => { if (document.querySelector("#sde-stage")) canvas.tokens?.releaseAll?.(); });
   Hooks.on("getSceneControlButtons", (controls) => {

@@ -14,7 +14,9 @@ const own = (a, u) => !!a?.testUserPermission(u, "OWNER");
 const flag = (a, key) => a?.flags?.[MODULE_ID]?.[key];
 const invalid = () => { throw new Error("SDE.camping.invalid"); };
 export const campOf = party => structuredClone(flag(party, "camping"));
-const save = (party, camp) => replaceModuleFlag(party, "camping", camp);
+const save = (party, camp, options) => replaceModuleFlag(party, "camping", camp, {}, options);
+// The Stage raises its camp picture only on the write that creates a camp; update hooks on every client read this.
+const BEGIN = { [MODULE_ID]: { campBegin: true } };
 const torch = item => item.type === "Basic" && item.system?.light?.isSource && item.system.light.template === "torch" && !item.system.magicItem && !item.system.light.active && !item.system.light.hasBeenUsed;
 export function campTorchPlan(party, camp = campOf(party)) {
   const stacks = [party, ...camp.participants.map(p => actorOf(p.uuid)).filter(Boolean)].flatMap(a => a.items.filter(torch).map(i => ({ actorUuid: a.uuid, id: i.id, quantity: i.system.quantity })));
@@ -146,7 +148,7 @@ async function perform(party, action, data, user) {
     const participants = Party.members(party, { charactersOnly: true }).map(uuid => ({ uuid, actorId: actorOf(uuid).id, confirmed: true, participate: true, task: "", ability: null, craft: "torch", watchHalf: "first" }));
     const mounts = Party.members(party).filter(uuid => isMount(actorOf(uuid))).map(uuid => ({ uuid, actorId: actorOf(uuid).id }));
     for (const p of mounts) await adoptMountScores(actorOf(p.uuid));
-    camp = carryOver({ id: foundry.utils.randomID(), phase: "setup", participants, mounts, tasks: definitions(party), fuel: "none", anchor: anchor(party, participants), results: {}, effects: {}, day: null }, camp); await save(party, camp); return camp;
+    camp = carryOver({ id: foundry.utils.randomID(), phase: "setup", participants, mounts, tasks: definitions(party), fuel: "none", anchor: anchor(party, participants), results: {}, effects: {}, day: null }, camp); await save(party, camp, BEGIN); return camp;
   }
   if (!camp) invalid();
   if (action === "select") {

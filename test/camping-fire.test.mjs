@@ -17,6 +17,19 @@ test("begin anchors the camp at committed coordinates during token animation", a
   assert.deepEqual(flags[M].camping.anchor, { sceneId: "scene", x: 3050, y: 2600 });
   assert.equal(flags[M].sentinel, true);
 });
+test("only the begin save carries the campBegin option the Stage reads; other saves do not", async () => {
+  const pc = { id: "pc", uuid: "Actor.pc", type: "Player", system: { isPC: true }, testUserPermission: () => true, items: { contents: [] } };
+  const flags = { [M]: { party: true, partyData: { version: 1, members: [pc.uuid] } } }, opts = [];
+  globalThis._replace = value => value;
+  const party = { id: "party", uuid: "Actor.party", type: "NPC", flags, testUserPermission: () => true, items: { contents: [] }, update: async (data, o) => { opts.push(o); flags[M].camping = data[`flags.${M}.camping`]; } };
+  const user = { id: "gm", isGM: true };
+  globalThis.foundry = { utils: { randomID: () => "camp" } };
+  globalThis.game = { user, users: { activeGM: user }, actors: { contents: [party, pc], get: id => id === party.id ? party : pc }, settings: { settings: new Map() } };
+  delete globalThis.canvas;
+  await handleCamp({ partyId: party.id, action: "begin" }, user);
+  await handleCamp({ partyId: party.id, action: "fuelChoice", fuel: "wood" }, user);
+  assert.deepEqual(opts, [{ [M]: { campBegin: true } }, undefined]);
+});
 test("fire proximity follows committed movement even while token animation is still near", async () => {
   const pc = { id: "pc", uuid: "Actor.pc" }, camp = { id: "camp", anchor: { sceneId: "scene", x: 550, y: 550 }, participants: [{ uuid: pc.uuid, participate: true }], fire: { lit: true, started: 0, lightId: "fire" } };
   const flags = { [M]: { party: true, camping: camp, sentinel: true }, other: { retained: true } };
