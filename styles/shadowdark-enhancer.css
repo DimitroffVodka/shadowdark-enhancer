@@ -5892,6 +5892,8 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-ui .tg-name { margin: 0; font: 400 21px/1.2 var(--ui-title); color: var(--ui-text); }
 .sde-ui .tg-rules { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--ui-body); }
 .sde-ui .tg-play { grid-area: play; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.sde-ui .tg-number { display: inline-flex; align-items: center; gap: 6px; }
+.sde-ui .tg-games .tg-number input { width: 60px !important; text-align: center; }
 .sde-ui .tg-result { display: flex; flex-direction: column; gap: 2px; font-size: 13.5px; }
 .sde-ui .tg-result b { font: 400 19px/1.2 var(--ui-title); color: var(--ui-text); }
 

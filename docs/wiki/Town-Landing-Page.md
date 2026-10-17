@@ -195,7 +195,7 @@ call it "(bought back)".
 
 Turn on **Open a games table** in the settings and **Games of chance** joins the
 menu. A player picks their character, sets a **wager** in silver (quick buttons
-for 1 sp, 1 gp, 5 gp, 10 gp... and the table's limit) and plays one of four games.
+for 1 sp, 1 gp, 5 gp, 10 gp... and the table's limit) and plays one of seven games.
 The wager comes out of the purse only when the game is played, and a result
 card is posted to the chat for everyone to see.
 
@@ -205,12 +205,17 @@ card is posted to the chat for everyone to see.
 | **Dice duel** | You and the house roll 2d6 each; higher wins, a tie gives the wager back | 1 to 1 |
 | **Fortune wheel** | A d100: 1-45 nothing back, 46-68 half back, 69-90 double, 91-98 triple, 99-100 the jackpot | Up to 10 to 1 |
 | **Card draw** | You and the dealer draw a card each, ace high; higher wins, the same rank gives the wager back | 1 to 1 |
+| **Death roll** | You open on a d100; then the house and you take turns, each rolling a die as big as the last roll. Whoever rolls a 1 loses | 1 to 1 |
+| **Dice roulette** | The wheel is a d20. Bet **Even**, **Odd**, **Low** (1-10) or **High** (11-20), or call one number from 1 to 20 | 1 to 1, a number 19 to 1 |
+| **Three-dice brag** | You and the dealer roll 3d6. The better hand wins: a prial (all alike), a straight, a flush (all odd or all even), a pair, then the high dice. A pair of one parity is a flush. Equal hands give the wager back | 1 to 1 |
 
 The **house keeps** a share of every *win*: at 5%, a 100 cp wager that wins pays
 95 cp. A loss, a tie and the wheel's half-back are not touched by it, and the
-winnings round down. With no cut the coin, the duel and the cards are exactly
-fair and the wheel returns 99.5% of what is staked, so the cut is what makes the
-house win over a night. The **largest bet** is the table's limit: the house has
+winnings round down. With no cut the coin, the duel, the cards, roulette and brag
+are exactly fair, the death roll is within a hundredth of a percent of it (you
+open, so you lose 50.01% of them) and the wheel returns 99.5% of what is
+staked, so the cut is what makes the house win over a night. Roulette has no
+house number: every bet is fair before the cut. The **largest bet** is the table's limit: the house has
 no purse to run dry, so the limit is what bounds a lucky streak.
 
 Like a purchase, a game only changes the player's own character, so it works

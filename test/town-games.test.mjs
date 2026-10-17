@@ -95,10 +95,67 @@ test("cards use the dealt deck and need no dice", async () => {
   assert.match(r.lines[0], /"you":"A♠","house":"5♠"/);
 });
 
+test("death roll: the player opens on a d100, each roll sets the next die, and whoever rolls the 1 loses", async () => {
+  const win = player(), ioWin = makeIo({ rolls: [{ total: 73 }, { total: 41 }, { total: 9 }, { total: 1 }] });   // you 73, house 41, you 9, house 1
+  const r = await playGame({ player: win, game: "death", wager: 100, town: TOWN }, ioWin);
+  assert.deepEqual(ioWin.log.asked, ["1d100", "1d73", "1d41", "1d9"]);
+  assert.deepEqual([r.ok, r.result, r.net], [true, "win", 95]);
+  assert.equal(toCopper(win.system.coins), 595);
+  assert.equal(ioWin.log.chat[0].rolls.length, 4);
+  assert.match(r.lines[0], /"chain":"73, 41, 9, 1"/);
+  assert.match(r.lines[0], /deathEndHouse/);
+
+  const lose = player(), ioLose = makeIo({ rolls: [{ total: 2 }, { total: 2 }, { total: 1 }] });             // you 2, house 2 (a d2 again), you 1
+  const l = await playGame({ player: lose, game: "death", wager: 100, town: TOWN }, ioLose);
+  assert.deepEqual(ioLose.log.asked, ["1d100", "1d2", "1d2"]);
+  assert.deepEqual([l.result, l.net], ["lose", -100]);
+  assert.equal(toCopper(lose.system.coins), 400);
+  assert.match(l.lines[0], /deathEndYou/);
+
+  const first = makeIo({ rolls: [{ total: 1 }] });                                                           // rolling the 1 straight away loses
+  assert.equal((await playGame({ player: player(), game: "death", wager: 100, town: TOWN }, first)).result, "lose");
+});
+
+test("roulette: a bet on the d20 pays 1 to 1, a number 19 to 1, less the cut, and a miss costs the wager", async () => {
+  const even = player(), ioEven = makeIo({ rolls: [{ total: 14 }] });
+  const a = await playGame({ player: even, game: "roulette", wager: 100, pick: "even", town: TOWN }, ioEven);
+  assert.deepEqual([a.result, a.net], ["win", 95]);
+  assert.deepEqual(ioEven.log.asked, ["1d20"]);
+  assert.match(a.lines[0], /"bet":"SDE.town.games.bet.even","n":14/);
+
+  const number = player(), ioNumber = makeIo({ rolls: [{ total: 17 }] });
+  const b = await playGame({ player: number, game: "roulette", wager: 100, pick: "17", town: TOWN }, ioNumber);
+  assert.equal(b.net, Math.floor(100 * 19 * 0.95));
+  assert.equal(toCopper(number.system.coins), 500 + 1805);
+  assert.match(b.lines[0], /bet\.number.*17.*"n":17/);       // the bet is called number 17, the wheel came up 17
+
+  const miss = player(), ioMiss = makeIo({ rolls: [{ total: 11 }] });
+  const c = await playGame({ player: miss, game: "roulette", wager: 100, pick: "low", town: TOWN }, ioMiss);
+  assert.deepEqual([c.result, c.net], ["lose", -100]);
+  assert.equal(toCopper(miss.system.coins), 400);
+});
+
+test("brag: each side rolls 3d6, the better hand wins, equal hands move no coins", async () => {
+  const win = player(), ioWin = makeIo({ rolls: [{ total: 12, dice: [4, 5, 3] }, { total: 12, dice: [2, 2, 5] }] });   // a straight beats a pair
+  const r = await playGame({ player: win, game: "brag", wager: 100, town: TOWN }, ioWin);
+  assert.deepEqual(ioWin.log.asked, ["3d6", "3d6"]);
+  assert.deepEqual([r.result, r.net], ["win", 95]);
+  assert.match(r.lines[0], /"you":"4 5 3","youHand":"SDE.town.games.hand.straight","house":"2 2 5","houseHand":"SDE.town.games.hand.pair"/);
+
+  const lose = player(), ioLose = makeIo({ rolls: [{ total: 8, dice: [1, 3, 4] }, { total: 15, dice: [5, 5, 5] }] });
+  assert.deepEqual([(await playGame({ player: lose, game: "brag", wager: 100, town: TOWN }, ioLose)).result, toCopper(lose.system.coins)], ["lose", 400]);
+
+  const tie = player(), ioTie = makeIo({ rolls: [{ total: 10, dice: [1, 3, 6] }, { total: 10, dice: [6, 3, 1] }] });
+  const t = await playGame({ player: tie, game: "brag", wager: 100, town: TOWN }, ioTie);
+  assert.deepEqual([t.result, t.net, toCopper(tie.system.coins)], ["push", 0, 500]);
+});
+
 test("who may play, what, and for how much: every refusal changes nothing and posts nothing", async () => {
   const cases = [
     [{ player: player({ isOwner: false }), game: "coin", wager: 100, pick: "heads", town: TOWN }, /actorNotFound/],
-    [{ player: player(), game: "roulette", wager: 100, town: TOWN }, /noGame/],
+    [{ player: player(), game: "blackjack", wager: 100, town: TOWN }, /noGame/],
+    [{ player: player(), game: "roulette", wager: 100, pick: "red", town: TOWN }, /noBet/],
+    [{ player: player(), game: "roulette", wager: 100, pick: "21", town: TOWN }, /noBet/],
     [{ player: player(), game: "coin", wager: 100, pick: "heads", town: { ...TOWN, on: false } }, /games\.closed/],
     [{ player: player(), game: "coin", wager: 100, pick: "edge", town: TOWN }, /noPick/],
     [{ player: player(), game: "duel", wager: 0, town: TOWN }, /wagerMin/],

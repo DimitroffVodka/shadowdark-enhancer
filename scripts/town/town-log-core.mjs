@@ -67,7 +67,7 @@ export function placesIn(entries) {
   const seen = new Map();
   for (const e of entries) {
     if (!e.placeId) continue;
-    // A game is named for itself (the town's name is the same on all four).
+    // A game is named for itself (the town's name is the same on every game).
     const row = seen.get(e.placeId) ?? { id: e.placeId, name: e.kind === "game" ? e.what : e.place, n: 0 };
     row.n += 1;
     seen.set(e.placeId, row);

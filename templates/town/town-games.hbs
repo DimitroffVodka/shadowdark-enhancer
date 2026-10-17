@@ -45,6 +45,12 @@
         <div class="tg-play">
           {{#if picks}}
           {{#each picks}}<button type="button" class="ui-btn" data-action="play" data-game="{{../id}}" data-pick="{{id}}" {{#unless @root.hasPlayer}}disabled{{/unless}}>{{label}}</button>{{/each}}
+          {{#if numberBet}}
+          <span class="tg-number">
+            <input type="number" name="number" value="{{@root.number}}" min="1" max="{{@root.numberMax}}" step="1" aria-label="{{localize 'SDE.town.games.numberLabel'}}">
+            <button type="button" class="ui-btn" data-action="play" data-game="{{id}}" data-pick="number" {{#unless @root.hasPlayer}}disabled{{/unless}}>{{localize "SDE.town.games.numberBtn"}}</button>
+          </span>
+          {{/if}}
           {{else}}
           <button type="button" class="ui-btn" data-action="play" data-game="{{id}}" {{#unless @root.hasPlayer}}disabled{{/unless}}><i class="fa-solid fa-dice"></i> {{localize "SDE.town.games.playBtn"}}</button>
           {{/if}}

@@ -13,7 +13,10 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { formatPrice, fromCopper, spendFromPurse, toCopper } from "../shared/coins.mjs";
 import { gameCard } from "../shared/chat-cards.mjs";
 import { esc } from "../shared/esc.mjs";
-import { GAME_ICONS, GAME_IDS, GAME_KEYS, RESULT_KEYS, SIDES, SIDE_KEYS, SLOT_KEYS, WAGER_KEYS, cardName, cards, checkWager, coin, duel, settle, wheel } from "./games-core.mjs";
+import {
+  BET_KEYS, DEATH_START, GAME_ICONS, GAME_IDS, GAME_KEYS, HAND_KEYS, RESULT_KEYS, ROULETTE_BETS, SIDES, SIDE_KEYS, SLOT_KEYS, WAGER_KEYS,
+  brag, cardName, cards, checkWager, coin, deathStep, duel, isRouletteBet, roulette, settle, wheel,
+} from "./games-core.mjs";
 import { LOG_FLAG, logFlag } from "./town-log-core.mjs";
 
 const fail = (error) => ({ ok: false, error });
@@ -35,6 +38,34 @@ async function roll(game, pick, who, io) {
     const r = wheel({ d100: spin.total });
     return { mult: r.mult, rolls: [spin.roll], line: io.t(GAME_KEYS.wheel.line, { who, n: r.d100, slot: io.t(SLOT_KEYS[r.slot]) }) };
   }
+  if (game === "death") {
+    // The chain's length is not known until it ends, so it is rolled a die at a time; a 1 ends it.
+    const rolls = [], chain = [];
+    let max = DEATH_START, by = "you", step;
+    do {
+      const r = await io.roll(`1d${max}`);
+      rolls.push(r.roll);
+      chain.push(r.total);
+      step = deathStep({ by, n: r.total });
+      if (!step.over) ({ max, by } = step);
+    } while (!step.over);
+    const end = io.t(step.loser === "you" ? GAME_KEYS.death.endYou : GAME_KEYS.death.endHouse, { who });
+    return { mult: step.mult, rolls, line: io.t(GAME_KEYS.death.line, { who, start: DEATH_START, chain: chain.join(", "), end }) };
+  }
+  if (game === "roulette") {
+    const spin = await io.roll("1d20");
+    const r = roulette({ pick, d20: spin.total });
+    const bet = ROULETTE_BETS.includes(pick) ? io.t(BET_KEYS[pick]) : io.t(BET_KEYS.number, { n: pick });
+    return { mult: r.mult, rolls: [spin.roll], line: io.t(GAME_KEYS.roulette.line, { who, bet, n: r.d20 }) };
+  }
+  if (game === "brag") {
+    const [you, house] = [await io.roll("3d6"), await io.roll("3d6")];
+    const r = brag({ you: you.dice, house: house.dice });
+    return {
+      mult: r.mult, rolls: [you.roll, house.roll],
+      line: io.t(GAME_KEYS.brag.line, { who, you: you.dice.join(" "), youHand: io.t(HAND_KEYS[r.you]), house: house.dice.join(" "), houseHand: io.t(HAND_KEYS[r.house]) }),
+    };
+  }
   const [a, b] = io.deck();
   const r = cards({ you: a, house: b });
   return { mult: r.mult, rolls: [], line: io.t(GAME_KEYS.cards.line, { who, you: cardName(r.you), house: cardName(r.house) }) };
@@ -42,7 +73,7 @@ async function roll(game, pick, who, io) {
 
 /**
  * Play one game. `town` is the table as the landing page sets it: `{ name, sceneId, on, maxBet (gp), edge (%) }`;
- * `wager` is in copper; `pick` is the called side for the coin toss.
+ * `wager` is in copper; `pick` is the called side for the coin toss and the bet for roulette.
  */
 export async function playGame({ player, game, wager, pick = "", town }, io = null) {
   io ??= await liveIo();
@@ -50,6 +81,7 @@ export async function playGame({ player, game, wager, pick = "", town }, io = nu
   if (!GAME_IDS.includes(game)) return fail(io.t("SDE.town.games.noGame"));
   if (!town?.on) return fail(io.t("SDE.town.games.closed"));
   if (game === "coin" && !SIDES.includes(pick)) return fail(io.t("SDE.town.games.noPick"));
+  if (game === "roulette" && !isRouletteBet(pick)) return fail(io.t("SDE.town.games.noBet"));
   const check = checkWager(wager, { maxBetGp: town.maxBet, purse: toCopper(player.system.coins) });
   if (!check.ok) return fail(io.t(WAGER_KEYS[check.why], { max: formatPrice(fromCopper(town.maxBet * 100)) }));
 

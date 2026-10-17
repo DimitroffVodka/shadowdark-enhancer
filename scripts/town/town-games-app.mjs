@@ -1,14 +1,14 @@
 /**
  * Shadowdark Enhancer — a town's games table (ApplicationV2), opened from the landing page when the GM has turned it on.
  *
- * The player picks a character, sets a wager (in silver, up to the town's limit) and plays one of four games; the
+ * The player picks a character, sets a wager (in silver, up to the town's limit) and plays one of seven games; the
  * game is rolled and settled on this client by town-games.mjs, with no GM connected. The last result stays on the
  * window. The wager is never taken until a game is played, and a game that cannot be saved is not played.
  */
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { L as t } from "../shared/i18n.mjs";
 import { formatPrice, fromCopper } from "../shared/coins.mjs";
-import { GAME_ICONS, GAME_IDS, GAME_KEYS, SIDES, SIDE_KEYS, wagerFromSp } from "./games-core.mjs";
+import { BET_KEYS, GAME_ICONS, GAME_IDS, GAME_KEYS, ROULETTE_BETS, ROULETTE_SIZE, SIDES, SIDE_KEYS, wagerFromSp } from "./games-core.mjs";
 import { landingOf } from "./town-core.mjs";
 import { buyerChoices, buyerFor, redrawOnChange } from "./town-live.mjs";
 import { playGame, liveIo } from "./town-games.mjs";
@@ -35,6 +35,8 @@ export class TownGamesApp extends HandlebarsApplicationMixin(ApplicationV2) {
   scene = null;
   buyerId = null;
   wagerSp = 10;
+  /** The roulette number in the box, kept across redraws like the wager. */
+  number = 7;
   last = null;
   _stop = null;
   _io = null;
@@ -67,8 +69,11 @@ export class TownGamesApp extends HandlebarsApplicationMixin(ApplicationV2) {
       chips: [...CHIPS.filter((c) => c.sp < maxSp), { sp: maxSp, label: t("SDE.town.games.max") }],
       games: GAME_IDS.map((id) => ({
         id, icon: GAME_ICONS[id], name: t(GAME_KEYS[id].name), rules: t(GAME_KEYS[id].rules), odds: t(GAME_KEYS[id].odds),
-        picks: id === "coin" ? SIDES.map((s) => ({ id: s, label: t(SIDE_KEYS[s]) })) : null,
+        picks: id === "coin" ? SIDES.map((s) => ({ id: s, label: t(SIDE_KEYS[s]) }))
+          : id === "roulette" ? ROULETTE_BETS.map((b) => ({ id: b, label: t(BET_KEYS[b]) })) : null,
+        numberBet: id === "roulette",
       })),
+      number: this.number, numberMax: ROULETTE_SIZE,
       last: this.last, actors: buyerChoices().map((a) => ({ id: a.id, name: a.name, selected: a.id === player?.id })), hasPlayer: !!player,
     });
   }
@@ -82,6 +87,8 @@ export class TownGamesApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const text = root.querySelector(".tg-wager-text");
       if (text) text.textContent = formatPrice(fromCopper(wagerFromSp(this.wagerSp)));
     });
+    const pick = root.querySelector("input[name=number]");
+    pick?.addEventListener("input", () => { this.number = pick.value; });
   }
 
   _onFirstRender(context, options) {
@@ -108,7 +115,9 @@ export class TownGamesApp extends HandlebarsApplicationMixin(ApplicationV2) {
       // What is typed is the wager, even 0 (the game refuses it); only a box with nothing usable keeps the last one.
       const typed = input?.value === "" ? NaN : Number(input?.value);
       if (Number.isFinite(typed)) this.wagerSp = typed;
-      const result = await playGame({ player, game: target.dataset.game, wager: wagerFromSp(this.wagerSp), pick: target.dataset.pick ?? "", town: this.town }, this._io);
+      // The Number button bets on what is in the box; a box with nothing usable is no bet (the game says so).
+      const pick = target.dataset.pick === "number" ? String(Math.trunc(Number(this.number)) || "") : target.dataset.pick ?? "";
+      const result = await playGame({ player, game: target.dataset.game, wager: wagerFromSp(this.wagerSp), pick, town: this.town }, this._io);
       if (!result.ok) ui.notifications.warn(result.error);
       this.last = result.ok ? { lines: result.lines, tone: result.result === "win" ? "good" : result.result === "lose" ? "bad" : "info", game: t(GAME_KEYS[result.game].name) } : null;
     } finally { this._busy = false; }
