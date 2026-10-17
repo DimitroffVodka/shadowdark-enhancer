@@ -13,7 +13,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { TRAINERS } from "../training/training-core.mjs";
 import {
   SOURCE_KINDS, SOURCE_LABELS, STATUSES, STATUS_LABELS,
-  addObjective, addSubStep, hasRewards, matchesFilter, objectiveProgress, planStatusChange, removeObjective, setObjectiveDone, setObjectiveSecret, setObjectiveText,
+  addObjective, addSubStep, hasNotes, hasRewards, matchesFilter, objectiveProgress, planStatusChange, removeObjective, setObjectiveDone, setObjectiveSecret, setObjectiveText,
   textToParagraphs, trainerLabel, visibleStatuses,
 } from "./quest-core.mjs";
 import { QUESTS_CHANGED, Quests, actorName, partiesAvailable, partyActors, partyMembers, questPayoutContent } from "./quests.mjs";
@@ -61,6 +61,12 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
         const i = Number(el.dataset.index);
         return this._edit((q) => ({ ...q, rewards: { ...q.rewards, items: q.rewards.items.filter((_x, n) => n !== i) } }));
       },
+      qlClearGiver: function () { return this._edit((q) => ({ ...q, giver: null })); },
+      qlRemoveNote: function (_ev, el) {
+        const i = Number(el.dataset.index);
+        return this._edit((q) => ({ ...q, rewards: { ...q.rewards, notes: q.rewards.notes.filter((_x, n) => n !== i) } }));
+      },
+      qlSubmitNote: function () { return this._onAddNote(); },
       qlRemoveCharacter: function (_ev, el) { return this._edit((q) => ({ ...q, characters: q.characters.filter((c) => c !== el.dataset.uuid) })); },
     },
   };
@@ -180,6 +186,8 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
       trainerOptions: TRAINERS.map((x) => ({ key: x.key, label: trainerLabel(x.key), selected: x.key === r.training })),
       renownSigned: r.renown > 0 ? `+${r.renown}` : r.renown,
       hasRewards: hasRewards(r),
+      hasNotes: hasNotes(r),
+      noteList: r.notes.map((text, index) => ({ text, index })),
       coinRewards: Object.entries(r.coins ?? {}).filter(([,n]) => n > 0).map(([coin,n]) => t("SDE.quests.reward.coins", { coin, n })),
       hasPin: Quests.hasPin(q),
     };
@@ -208,6 +216,15 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
     root.querySelector("[data-ql-new-secret]")?.addEventListener("change", (ev) => { this.newSecret = ev.currentTarget.checked; });
     root.querySelector("[data-ql-new-substep-secret]")?.addEventListener("change", (ev) => { this.newSubSecret = ev.currentTarget.checked; });
     if (this._focusSub) { this._focusSub = false; root.querySelector("[data-ql-new-substep]")?.focus(); }
+    root.querySelector("[data-ql-new-note]")?.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter") { ev.preventDefault(); this._onAddNote(); }
+    });
+    const giverDrop = root.querySelector(".sde-ql-giver");
+    if (giverDrop) {
+      giverDrop.addEventListener("dragover", (ev) => { ev.preventDefault(); giverDrop.classList.add("sde-drag-over"); });
+      giverDrop.addEventListener("dragleave", () => giverDrop.classList.remove("sde-drag-over"));
+      giverDrop.addEventListener("drop", (ev) => this._onDropGiver(ev, giverDrop));
+    }
     const drop = root.querySelector(".sde-ql-drop");
     if (drop) {
       drop.addEventListener("dragover", (ev) => { ev.preventDefault(); drop.classList.add("sde-drag-over"); });
@@ -244,11 +261,15 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
       case "addCharacter": return value && this._edit((q) => ({ ...q, characters: [...q.characters, value] }));
       case "xp": return this._edit((q) => ({ ...q, rewards: { ...q.rewards, xp: value } }));
       case "gp": return this._edit((q) => ({ ...q, rewards: { ...q.rewards, coins: { ...q.rewards.coins, gp: value } } }));
+      case "sp": return this._edit((q) => ({ ...q, rewards: { ...q.rewards, coins: { ...q.rewards.coins, sp: value } } }));
+      case "cp": return this._edit((q) => ({ ...q, rewards: { ...q.rewards, coins: { ...q.rewards.coins, cp: value } } }));
       case "renown": return this._edit((q) => ({ ...q, rewards: { ...q.rewards, renown: value } }));
       case "training": return this._edit((q) => ({ ...q, rewards: { ...q.rewards, training: value || null } }));
       // A number typed here is the number on any map; Hex Data is what ties a quest to one scene's hex.
       case "reveal": return this._edit((q) => ({ ...q, reveal: value }));
       case "hex": return this._edit((q) => ({ ...q, hex: value, hexScene: null }));
+      // An emptied line is dropped when the quest is normalized.
+      case "noteText": return this._edit((q) => ({ ...q, rewards: { ...q.rewards, notes: q.rewards.notes.map((n, i) => (i === Number(el.dataset.index) ? value : n)) } }));
       case "objectiveDone": return this._edit((q) => setObjectiveDone(q, el.dataset.objective, value));
       case "objectiveText": return this._edit((q) => setObjectiveText(q, el.dataset.objective, value));
     }
@@ -262,6 +283,15 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await this._edit((q) => addObjective(q, text, { secret: this.newSecret, newId: () => foundry.utils.randomID() }));
     // Show it now: the box is empty again, so this redraw loses nothing, and
     // its name puts the cursor back for the next objective.
+    this.render();
+  }
+
+  async _onAddNote() {
+    const input = (this.root ?? this.element).querySelector("[data-ql-new-note]");
+    const text = input?.value ?? "";
+    if (!text.trim()) return;
+    input.value = "";
+    await this._edit((q) => ({ ...q, rewards: { ...q.rewards, notes: [...q.rewards.notes, text] } }));
     this.render();
   }
 
@@ -309,6 +339,17 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const moved = await Quests.setStatus(quest.id, "completed", { payoutAnswer, openTraining: false });
     if (moved) { this.payoutId = null; this.tab = moved.status; }
     this.render();
+  }
+
+  /** Only an Actor can give a quest; the name and portrait are copied now, so players need no access to it. */
+  async _onDropGiver(ev, drop) {
+    ev.preventDefault();
+    drop.classList.remove("sde-drag-over");
+    let data = null;
+    try { data = foundry.applications.ux.TextEditor.implementation.getDragEventData(ev); } catch { /* not ours */ }
+    const actor = data?.type === "Actor" && data.uuid ? await fromUuid(data.uuid).catch(() => null) : null;
+    if (!actor) { ui.notifications?.warn(t("SDE.quests.notify.dropActor")); return; }
+    await this._edit((q) => ({ ...q, giver: { uuid: actor.uuid, name: actor.name, img: actor.img } }));
   }
 
   async _onDropItem(ev, drop) {

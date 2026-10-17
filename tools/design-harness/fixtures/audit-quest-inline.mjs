@@ -3,6 +3,6 @@ import { renderTemplate, inParty, asQuest } from "./_audit-embed.mjs";
 import ql from "./audit-quest-log.mjs";
 const build = () => {
   const ctx = ql.build("gm").context; ctx.inline = true; ctx.hasParties = true;
-  return { ...inParty("gm.quests", { questHTML: asQuest(renderTemplate("templates/quest-log.hbs", ctx)) }), height: 1500 };
+  return { ...inParty("gm.quests", { questHTML: asQuest(renderTemplate("templates/quest-log.hbs", ctx)) }), height: 1700 };
 };
-export default { previewHeight: 1600, initial: "x", build, actions: {}, title: "The Lantern Guild", icon: "fa-solid fa-users", classes: ["shadowdark", "sheet", "party", "sde-party"], resizable: true, width: 750, height: 1500, template: "templates/party/party.hbs" };
+export default { previewHeight: 1800, initial: "x", build, actions: {}, title: "The Lantern Guild", icon: "fa-solid fa-users", classes: ["shadowdark", "sheet", "party", "sde-party"], resizable: true, width: 750, height: 1700, template: "templates/party/party.hbs" };

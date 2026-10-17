@@ -3861,6 +3861,8 @@ body.theme-light .sde-parry-note { color: #2e6b2e; }
 .sde-quest-log-root .ql-drop { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 40px; padding: 8px; border: 1px dashed var(--ui-line); border-radius: var(--ui-r2); }
 .sde-quest-log-root .ql-drop.sde-drag-over { border-color: var(--ui-frame); background: var(--ui-raised); }
 .sde-quest-log-root .ql-desc p { margin: 0 0 8px; }
+.sde-quest-log-root .ql-notes-h { margin: 10px 0 2px; }
+.sde-quest-log-root .sde-ql-giver { min-height: 34px; }
 .sde-quest-log-root a.ui-icon { color: var(--ui-muted); cursor: pointer; }
 .sde-quest-log-root a.ui-icon:hover { color: var(--ui-text); }
 @container (max-width: 560px) { .sde-quest-log-root .ql-split { grid-template-columns: minmax(0, 1fr); overflow-y: auto; } .sde-quest-log-root .ql-list { max-height: 220px; flex: 0 0 auto; } .sde-quest-log-root .ql-detail { overflow: visible; } .sde-quest-log-root .ql-body { overflow-y: auto; } }

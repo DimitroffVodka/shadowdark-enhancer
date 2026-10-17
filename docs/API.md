@@ -1560,8 +1560,11 @@ await api.quests.setStatus(q.id, "completed");    // asks the GM to confirm the 
   objectives: [{ id, text, done, parent, secret }],  // since 1.32.0: parent is a top-level
                  // step's id or null (one level only); secret hides the step from players
   reveal,        // since 1.32.0: "all" | "next" (players see the done steps and the first undone one)
+  giver,         // since 1.32.0: { uuid, name, img } snapshot of the NPC who gave it, or null; players see it
   description,   // the GM's player-facing text
-  rewards: { xp, coins: { gp, sp, cp }, renown, items: [{ uuid, name, img }], training },
+  rewards: { xp, coins: { gp, sp, cp }, renown, items: [{ uuid, name, img }], training,
+                 //   notes: string[] since 1.32.0, up to 10 lines of 200 characters the log does not pay
+                 //   (shown to players, ignored by the payout) },
   payout,        // absent, or saved plan, per-effect done and optional report progress
   hex,           // published hex number or null
   paid,          // true once the rewards were handed out

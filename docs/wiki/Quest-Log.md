@@ -59,7 +59,9 @@ never edit it.
 ## Making and editing a quest
 
 1. Press **New quest**. It is made Hidden and opened for you.
-2. Name it, and type the description players will read.
+2. Name it, and type the description players will read. Drag an NPC from the
+   sidebar onto **Given by** to say who gave the quest; players see their name
+   and portrait. Press the small x to clear it.
 3. Add objectives: type one and press **Enter**. Tick them off as the party
    gets them done; only you can.
    - **Sub-steps:** press the small arrow on a step to add a sub-step under it
@@ -72,7 +74,13 @@ never edit it.
    - **Players see:** choose **Only the next step** to show the steps already
      done plus the first one left. Players get no progress count on such a quest.
 4. Set the rewards:
-   - **XP each**, **Gold each** and **Renown each**, paid in full to every character you pick.
+   - **XP each**, **Gold each**, **Silver each**, **Copper each** and **Renown each**,
+     paid in full to every character you pick.
+   - **Other rewards**: type a line for anything the log does not hand out
+     ("free lodging at the lighthouse") and press **Enter**. Players see these
+     lines with the rewards, but nothing is paid for them, so a quest with only
+     these asks for no payout. When you complete a quest that pays something
+     else, the confirmation lists them as a reminder to hand out yourself.
    - **Items**: drag them from the sidebar, a compendium or a sheet onto the
      rewards box.
    - **Training benefit**: a trainer whose benefit roll follows completion.

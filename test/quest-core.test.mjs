@@ -2,7 +2,7 @@ import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import {
   OWNERSHIP, STATUSES,
-  addObjective, addSubStep, canSee, defaultRecipients, makeQueue, matchesFilter, mergeQuest, normalizeQuest, objectiveProgress,
+  addObjective, addSubStep, canSee, hasNotes, hasRewards, noteLines, defaultRecipients, makeQueue, matchesFilter, mergeQuest, normalizeQuest, objectiveProgress,
   ownershipFor, payoutPlan, pickPin, planStatusChange, playerPageHtml, playerView, removeObjective, setObjectiveDone, setObjectiveSecret,
   questsAtHex, setObjectiveText, shouldPay, summarize, trainerTaskQuests, visibleStatuses,
 } from "../scripts/quests/quest-core.mjs";
@@ -24,7 +24,7 @@ describe("normalizeQuest", () => {
     const q = normalizeQuest();
     assert.equal(q.status, "hidden");
     assert.deepEqual(q.source, { kind: "gm", uuid: null });
-    assert.deepEqual(q.rewards, { xp: 0, renown: 0, items: [], training: null });
+    assert.deepEqual(q.rewards, { xp: 0, renown: 0, items: [], training: null, notes: [] });
     assert.equal(q.paid, false);
     assert.equal(q.hex, null);
   });
@@ -49,7 +49,7 @@ describe("normalizeQuest", () => {
 
   test("rewards: XP is never negative, renown may be, and an unknown trainer is no training", () => {
     const q = normalizeQuest({ rewards: { xp: -4, renown: "-2", training: "nobody", items: [{ uuid: "Item.a", name: "Rope" }, { name: "no uuid" }] } });
-    assert.deepEqual(q.rewards, { xp: 0, renown: -2, training: null, items: [{ uuid: "Item.a", name: "Rope", img: "" }] });
+    assert.deepEqual(q.rewards, { xp: 0, renown: -2, training: null, notes: [], items: [{ uuid: "Item.a", name: "Rope", img: "" }] });
     assert.equal(normalizeQuest({ rewards: { training: "gladiator" } }).rewards.training, "gladiator");
   });
 
@@ -345,8 +345,8 @@ describe("sub-steps and secret steps", () => {
   });
 
   test("unknown top-level keys ride through; known ones are still cleaned", () => {
-    const q = normalizeQuest({ status: "bogus", giver: { name: "Mara" }, deadline: 99, objectives: [{ id: "a", text: "A", secret: "yes" }] });
-    assert.deepEqual(q.giver, { name: "Mara" });
+    const q = normalizeQuest({ status: "bogus", mood: { name: "Mara" }, deadline: 99, objectives: [{ id: "a", text: "A", secret: "yes" }] });
+    assert.deepEqual(q.mood, { name: "Mara" });
     assert.equal(q.deadline, 99);
     assert.equal(q.status, "hidden");
     assert.equal(q.objectives[0].secret, false, "only a true boolean is secret");
@@ -469,8 +469,8 @@ describe("sub-steps and secret steps", () => {
   });
 
   test("unknown keys ride through, but entry fields and junk do not", () => {
-    const q = normalizeQuest({ name: "x", id: "y", uuid: "u", created: 1, giver: { npc: "Bob" }, fn: () => 1 }, { newId });
-    assert.deepEqual(q.giver, { npc: "Bob" });
+    const q = normalizeQuest({ name: "x", id: "y", uuid: "u", created: 1, mood: { npc: "Bob" }, fn: () => 1 }, { newId });
+    assert.deepEqual(q.mood, { npc: "Bob" });
     for (const k of ["name", "id", "uuid", "created", "fn"]) assert.equal(k in q, false, k);
     assert.deepEqual(normalizeQuest(q, { newId }), q);
     assert.doesNotThrow(() => normalizeQuest({ foo: () => 1, bar: 2 }));
@@ -478,10 +478,10 @@ describe("sub-steps and secret steps", () => {
 
   test("unknown keys inside rewards and steps ride through, known keys win", () => {
     const q = normalizeQuest({
-      rewards: { xp: 2, notes: "n", name: "no" },
+      rewards: { xp: 2, bonus: "n", name: "no" },
       objectives: [{ id: "a", text: "A", hint: "h", done: true, name: "no" }],
     }, { newId });
-    assert.equal(q.rewards.notes, "n");
+    assert.equal(q.rewards.bonus, "n");
     assert.equal(q.rewards.xp, 2);
     assert.equal("name" in q.rewards, false);
     assert.equal(q.objectives[0].hint, "h");
@@ -500,5 +500,80 @@ describe("sub-steps and secret steps", () => {
     const once = setObjectiveSecret(q, "b", !q.objectives.find((o) => o.id === "b").secret);
     assert.equal(once.objectives.find((o) => o.id === "b").secret, true);
     assert.equal(setObjectiveSecret(once, "b", !once.objectives.find((o) => o.id === "b").secret).objectives.find((o) => o.id === "b").secret, false);
+  });
+});
+
+describe("giver and other rewards", () => {
+  const giver = { uuid: "Actor.g1", name: " Old Maren ", img: " a.webp " };
+
+  test("a giver is trimmed, and without a uuid it is no giver", () => {
+    assert.deepEqual(normalizeQuest({ giver }).giver, { uuid: "Actor.g1", name: "Old Maren", img: "a.webp" });
+    assert.deepEqual(normalizeQuest({ giver: { uuid: "Actor.g1" } }).giver, { uuid: "Actor.g1", name: "", img: "" });
+    for (const junk of [undefined, null, {}, { uuid: "  " }, { name: "x" }, "Actor.g1", 7, []]) assert.equal(normalizeQuest({ giver: junk }).giver, null);
+  });
+
+  test("notes are trimmed, empties dropped, clamped to 200 and capped at 10", () => {
+    const q = normalizeQuest({ rewards: { notes: ["  free lodging  ", "", "   ", 5, "x".repeat(300)] } });
+    assert.deepEqual(q.rewards.notes, ["free lodging", "5", "x".repeat(200)]);
+    const many = normalizeQuest({ rewards: { notes: Array.from({ length: 14 }, (_, i) => `n${i}`) } });
+    assert.equal(many.rewards.notes.length, 10);
+    assert.equal(many.rewards.notes[9], "n9");
+    assert.deepEqual(normalizeQuest({ rewards: { notes: "not a list" } }).rewards.notes, []);
+  });
+
+  test("notes are not rewards the log pays: hasRewards and shouldPay ignore them", () => {
+    const q = normalizeQuest({ status: "active", rewards: { notes: ["free lodging"] } });
+    assert.equal(hasNotes(q.rewards), true);
+    assert.equal(hasRewards(q.rewards), false);
+    assert.equal(shouldPay(q, "completed"), false);
+    assert.equal(planStatusChange(q, "completed").pay, false);
+    assert.equal(hasNotes(normalizeQuest().rewards), false);
+    assert.deepEqual(noteLines(q.rewards), ["free lodging"]);
+  });
+
+  test("payoutPlan passes silver and copper through", () => {
+    const q = normalizeQuest({ rewards: { coins: { gp: 1, sp: 20, cp: 5 } } });
+    assert.deepEqual(payoutPlan(q, { recipients: ["X"] }).coins, { amount: { gp: 1, sp: 20, cp: 5 }, to: ["X"] });
+    assert.equal(hasRewards(normalizeQuest({ rewards: { coins: { sp: 3 } } }).rewards), true);
+  });
+
+  test("mergeQuest takes a notes patch and a giver patch, and keeps the other rewards", () => {
+    const base = normalizeQuest({ rewards: { xp: 4, notes: ["a"] } });
+    const m = mergeQuest(base, { rewards: { notes: ["b", "c"] }, giver });
+    assert.deepEqual(m.rewards.notes, ["b", "c"]);
+    assert.equal(m.rewards.xp, 4);
+    assert.equal(m.giver.name, "Old Maren");
+    assert.equal(mergeQuest(m, { giver: null }).giver, null);
+  });
+
+  test("an old quest without either field reads as none and survives a round trip", () => {
+    const old = { status: "active", rewards: { xp: 2, coins: { gp: 5 } }, objectives: [] };
+    const q = normalizeQuest(old);
+    assert.equal(q.giver, null);
+    assert.deepEqual(q.rewards.notes, []);
+    assert.deepEqual(normalizeQuest(q), q);
+  });
+
+  test("the player page shows Given by (escaped) and a notes-only Rewards section, and nothing secret", () => {
+    const q = normalizeQuest({
+      status: "active", giver: { uuid: "Actor.g1", name: "Maren <b>" },
+      objectives: [{ id: "a", text: "Open step" }, { id: "s", text: "Hidden twist", secret: true }],
+      rewards: { notes: ["free <i>lodging</i>"] },
+    });
+    const html = playerPageHtml(q, t);
+    assert.ok(html.includes('SDE.quests.page.givenBy{"name":"Maren &lt;b&gt;"}') || html.includes("Maren &lt;b&gt;"));
+    assert.ok(html.includes("SDE.quests.rewards"));
+    assert.ok(html.includes("free &lt;i&gt;lodging&lt;/i&gt;"));
+    assert.ok(!html.includes("<i>lodging"));
+    assert.ok(!html.includes("Hidden twist"));
+    const plain = playerPageHtml(normalizeQuest({ status: "active" }), t);
+    assert.ok(!plain.includes("givenBy") && !plain.includes("SDE.quests.rewards"));
+  });
+
+  test("the player view keeps the giver and the notes", () => {
+    const q = normalizeQuest({ giver, rewards: { notes: ["a"] } });
+    const v = playerView(q);
+    assert.equal(v.giver.uuid, "Actor.g1");
+    assert.deepEqual(v.rewards.notes, ["a"]);
   });
 });

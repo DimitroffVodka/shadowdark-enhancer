@@ -20,7 +20,9 @@
  *                (and a parent's sub-steps) from players
  *   reveal       "all" (default) or "next": players see the done top-level
  *                steps and the first undone one
- *   rewards      { xp, renown, items: [{ uuid, name, img }], training }
+ *   giver        { uuid, name, img } snapshot of the NPC who gave it, or null
+ *   rewards      { xp, coins, renown, items: [{ uuid, name, img }], training,
+ *                notes: typed lines the log does not pay }
  *   hex          a published hex number whose map pin the quest jumps to
  *   hexScene     the scene uuid that number belongs to (a number repeats between
  *                books), or null for "any scene"; null whenever hex is null
@@ -102,7 +104,21 @@ function carryUnknown(raw, known) {
 }
 
 const OBJECTIVE_KEYS = new Set(["id", "text", "done", "parent", "secret"]);
-const REWARD_KEYS = new Set(["xp", "coins", "renown", "items", "training"]);
+const REWARD_KEYS = new Set(["xp", "coins", "renown", "items", "training", "notes"]);
+
+export const MAX_NOTES = 10;
+export const MAX_NOTE_LENGTH = 200;
+
+/** Typed reward lines: trimmed, empties dropped, each clamped, at most MAX_NOTES. */
+function normalizeNotes(v) {
+  return list(v).map((n) => str(n).slice(0, MAX_NOTE_LENGTH).trim()).filter(Boolean).slice(0, MAX_NOTES);
+}
+
+/** A giver needs a uuid; without one it is no giver. */
+function normalizeGiver(v) {
+  const uuid = str(v?.uuid);
+  return uuid ? { uuid, name: str(v.name), img: str(v.img) } : null;
+}
 
 function normalizeObjective(raw, newId) {
   if (typeof raw === "string") return { id: newId(), text: str(raw), done: false, parent: null, secret: false };
@@ -134,7 +150,7 @@ function normalizeObjectives(rawList, newId) {
   return flat.filter((o) => !o.parent).flatMap((o) => [o, ...flat.filter((c) => c.parent === o.id)]);
 }
 
-const KNOWN_KEYS = new Set(["status", "source", "characters", "party", "description", "objectives", "rewards", "reveal", "hex", "hexScene", "paid", "payout"]);
+const KNOWN_KEYS = new Set(["status", "source", "characters", "party", "description", "objectives", "rewards", "reveal", "giver", "hex", "hexScene", "paid", "payout"]);
 
 function wholeNumber(v, { min = -Infinity } = {}) {
   const n = Math.round(Number(v));
@@ -176,6 +192,7 @@ export function normalizeQuest(raw = {}, { newId = defaultId } = {}) {
     description: String(raw?.description ?? ""),
     objectives: normalizeObjectives(raw?.objectives, newId),
     reveal: raw?.reveal === "next" ? "next" : "all",
+    giver: normalizeGiver(raw?.giver),
     rewards: {
       ...carryUnknown(r, REWARD_KEYS),
       xp: wholeNumber(r.xp, { min: 0 }),
@@ -184,6 +201,7 @@ export function normalizeQuest(raw = {}, { newId = defaultId } = {}) {
       items: list(r.items).filter((i) => str(i?.uuid))
         .map((i) => ({ uuid: str(i.uuid), name: str(i.name), img: str(i.img) })),
       training: trainerByKey(str(r.training)) ? str(r.training) : null,
+      notes: normalizeNotes(r.notes),
     },
     hex,
     hexScene: hex === null ? null : str(raw?.hexScene) || null,
@@ -212,6 +230,11 @@ export function mergeQuest(current, patch = {}, opts) {
 
 export function hasRewards(rewards) {
   return !!rewards && (rewards.xp > 0 || Object.values(rewards.coins ?? {}).some(n => n > 0) || !!rewards.renown || rewards.items?.length > 0 || !!rewards.training);
+}
+
+/** Typed rewards the log does not pay; shown to players, never paid, so separate from hasRewards. */
+export function hasNotes(rewards) {
+  return list(rewards?.notes).length > 0;
 }
 
 /**
@@ -359,6 +382,11 @@ export function trainerLabel(key) {
   return tr ? `${tr.topic} — ${tr.trainer}` : null;
 }
 
+/** The typed reward lines, as strings. */
+export function noteLines(rewards) {
+  return list(rewards?.notes).map(str).filter(Boolean);
+}
+
 /** One line per reward, for the page and the confirmation. Items carry their uuid. */
 export function rewardLines(rewards, t) {
   const out = [];
@@ -451,6 +479,7 @@ export function playerPageHtml(full, t) {
     `<p><em>${esc(t("SDE.quests.page.statusLine", {
       status: t(STATUS_LABELS[quest.status]), source: t(SOURCE_LABELS[quest.source.kind]),
     }))}</em></p>`,
+    ...(quest.giver ? [`<p>${esc(t("SDE.quests.page.givenBy", { name: quest.giver.name || quest.giver.uuid }))}</p>`] : []),
     textToParagraphs(quest.description),
   ];
   if (quest.objectives.length) {
@@ -461,10 +490,11 @@ export function playerPageHtml(full, t) {
     });
     parts.push(`<h3>${esc(t("SDE.quests.objectives"))}</h3><ul>${rows.join("")}</ul>`);
   }
-  if (hasRewards(quest.rewards)) {
+  if (hasRewards(quest.rewards) || hasNotes(quest.rewards)) {
     // Items as links, so a player can open what they are being promised.
-    const rows = rewardLines(quest.rewards, t)
-      .map((l) => `<li>${l.uuid ? `@UUID[${l.uuid}]{${esc(l.text)}}` : esc(l.text)}</li>`);
+    const rows = [...rewardLines(quest.rewards, t)
+      .map((l) => `<li>${l.uuid ? `@UUID[${l.uuid}]{${esc(l.text)}}` : esc(l.text)}</li>`),
+    ...noteLines(quest.rewards).map((n) => `<li>${esc(n)}</li>`)];
     parts.push(`<h3>${esc(t("SDE.quests.rewards"))}</h3><ul>${rows.join("")}</ul>`);
   }
   return parts.join("");

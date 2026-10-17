@@ -34,10 +34,12 @@ const build = (state) => {
       revealOptions: [["all", "All steps"], ["next", "Only the next step"]].map(([value, label]) => ({ value, label, selected: value === (state === "playernext" ? "next" : "all") })),
       newSecret: true, newSubSecret: false,
       objectives: objectives.filter((o) => gm || (!o.secret && !o.parentSecret)).filter((o) => state !== "playernext" || !o.later),
-      rewards: { xp: 3, coins: { gp: 150 }, renown: 2, items: [{ img: "/icons/svg/sword.svg", name: "Merchant's ring of seals" }, { img: "/icons/svg/shield.svg", name: "Caravan guard's shield" }], training: null },
-      hasRewards: true, coinRewards: ["150 gp"], renownSigned: "+2", trainerName: "", trainerOptions: [{ key: "yodeling", label: "Yodeling - Clementine" }], paid: false, hex: 214,
+      rewards: { xp: 3, coins: { gp: 150, sp: 20, cp: 5 }, renown: 2, items: [{ img: "/icons/svg/sword.svg", name: "Merchant's ring of seals" }, { img: "/icons/svg/shield.svg", name: "Caravan guard's shield" }], training: null, notes: ["Free lodging at the lighthouse for a month", "The miller owes you a favour"] },
+      giver: { uuid: "Actor.g", name: "Old Maren Vosk", img: "/icons/svg/mystery-man.svg" },
+      hasNotes: true, noteList: ["Free lodging at the lighthouse for a month", "The miller owes you a favour"].map((text, index) => ({ text, index })),
+      hasRewards: true, coinRewards: ["150 gp", "20 sp", "5 cp"], renownSigned: "+2", trainerName: "", trainerOptions: [{ key: "yodeling", label: "Yodeling - Clementine" }], paid: false, hex: 214,
     },
   } };
 };
-export default { previewHeight: 1800, title: "SDE.quests.title", icon: "fa-solid fa-list-check", classes: ["shadowdark", "sde-quest-log", "sde-ui"], width: 780, height: 1700, resizable: true,
+export default { previewHeight: 2000, title: "SDE.quests.title", icon: "fa-solid fa-list-check", classes: ["shadowdark", "sde-quest-log", "sde-ui"], width: 780, height: 1900, resizable: true,
   template: "templates/quest-log.hbs", initial: "gm", build, toolbar: `<button data-action="v" data-state="gm">GM</button><button data-action="v" data-state="player">player</button><button data-action="v" data-state="playernext">player (next only)</button>`, actions: { v: { state: "{state}" } } };

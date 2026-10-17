@@ -24,6 +24,7 @@ const entry = {
       { id: "a", text: "Find the bell" }, { id: "a1", text: "Ask the ferryman", parent: "a" },
       { id: "s", text: "The ferryman is a ghost", secret: true }, { id: "s1", text: "Child of a secret", parent: "s" },
     ],
+    giver: { uuid: "Actor.g1", name: "Old Maren", img: "m.webp" }, rewards: { notes: ["free lodging"] },
   } } },
 };
 globalThis.game = { user: { isGM: false }, journal: { contents: [entry], get: (id) => (id === "q1" ? entry : null) },
@@ -42,4 +43,11 @@ test("a GM sees every step", () => {
   globalThis.game.user.isGM = true;
   assert.equal(Quests.get("q1").objectives.length, 4);
   globalThis.game.user.isGM = false;
+});
+
+test("a player's list and get keep the giver and the reward notes", () => {
+  for (const q of [Quests.list()[0], Quests.get("q1")]) {
+    assert.deepEqual(q.giver, { uuid: "Actor.g1", name: "Old Maren", img: "m.webp" });
+    assert.deepEqual(q.rewards.notes, ["free lodging"]);
+  }
 });

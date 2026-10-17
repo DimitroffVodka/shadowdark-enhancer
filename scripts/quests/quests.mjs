@@ -27,8 +27,8 @@ import { Renown } from "../renown/renown.mjs";
 import { trainerByKey } from "../training/training-core.mjs";
 import {
   FOLDER_FLAG, OWNERSHIP, PAGE_FLAG, QUEST_FLAG,
-  canSee, defaultRecipients, makeQueue, matchesFilter, mergeQuest, normalizeQuest, ownershipFor, payoutPlan,
-  pickPin, planStatusChange, playerPageHtml, playerView, rewardLines, summarize, trainerLabel, trainerTaskQuests,
+  canSee, defaultRecipients, hasNotes, makeQueue, matchesFilter, mergeQuest, normalizeQuest, ownershipFor, payoutPlan,
+  noteLines, pickPin, planStatusChange, playerPageHtml, playerView, rewardLines, summarize, trainerLabel, trainerTaskQuests,
 } from "./quest-core.mjs";
 import { L as t } from "../shared/i18n.mjs";
 
@@ -214,6 +214,7 @@ export function questPayoutContent(quest, name, { partyScope = null } = {}) {
   return `<div class="sde-ql-payout">
     <p>${esc(t("SDE.quests.payout.intro", { name }))}</p>
     <ul>${rewardLines(r, t).map((l) => `<li>${esc(l.text)}</li>`).join("")}</ul>
+    ${hasNotes(r) ? `<p>${esc(t("SDE.quests.payout.handOut"))}</p><ul>${noteLines(r).map((n) => `<li>${esc(n)}</li>`).join("")}</ul>` : ""}
     ${(r.xp > 0 || r.renown || r.coins) ? `<fieldset><legend>${esc(t("SDE.quests.payout.recipients"))}</legend>
       ${candidates.map((u) => `<label class="checkbox"><input type="checkbox" name="recipients" value="${esc(u)}" ${defaults.includes(u) ? "checked" : ""}> ${esc(actorName(u))}</label>`).join("")}
     </fieldset>` : ""}
