@@ -83,6 +83,8 @@ The button reads **Ready 3/4**, players ready out of players, and turns green wh
 everyone is. You can press it early. The window then asks first, and names who is
 still loading.
 
+Bring the table also hides the [Backdrop](Backdrop.md) if it is up.
+
 Once the table is brought the panel says so, and says whether the combat is waiting
 to start, in its round, or over.
 
