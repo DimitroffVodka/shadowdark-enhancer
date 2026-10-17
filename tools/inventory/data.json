@@ -141,6 +141,12 @@
     },
     {
       "id": "3.24",
+      "dir": "scripts/stage",
+      "title": "`scripts/stage/` — Stage (Backdrop)",
+      "note": "A full-screen picture every client shows behind Foundry's UI, kept in one world setting. Phase 1a raises a Camp place when a camp starts."
+    },
+    {
+      "id": "3.25",
       "dir": "scripts/town",
       "title": "`scripts/town/`",
       "note": ""
@@ -492,6 +498,10 @@
       "scripts/bastion/bastion-shop-app.mjs"
     ],
     "3.24": [
+      "scripts/stage/stage-core.mjs",
+      "scripts/stage/stage.mjs"
+    ],
+    "3.25": [
       "scripts/town/town-core.mjs",
       "scripts/town/town-view.mjs",
       "scripts/town/town-live.mjs",
@@ -989,6 +999,8 @@
     "scripts/town/town-games.mjs": "A game at a town table on the player's own client, no GM needed: roll, settle, coins, chat card.",
     "scripts/town/town-games-app.mjs": "The games table window: wager, four games, the last result, as a chosen character.",
     "scripts/town/town-log-core.mjs": "The town's sales log read from flagged chat cards: entries, filters, totals (pure).",
-    "scripts/town/town-log-app.mjs": "The GM's sales log window: what was bought, sold and played, filtered and totalled."
+    "scripts/town/town-log-app.mjs": "The GM's sales log window: what was bought, sold and played, filtered and totalled.",
+    "scripts/stage/stage-core.mjs": "Stage's Foundry-free half: `normalizeStage` (the only reader of the stage setting), `campArtFor` (a terrain's camp picture, null on water) and `campTransition` (the raise/drop table for the Camp place; one camp id raises once).",
+    "scripts/stage/stage.mjs": "Stage's layer and switch: registers the world setting `stage` (every client redraws from its onChange and on ready), keeps one `div#sde-stage` behind Foundry's UI, adds the GM's Backdrop tool to the Tokens toolbar, watches party updates (`onPartyCamp`: raises the camp picture only on the write that begins a camp, drops it when the camp ends), and exports `raiseByHand`, `pickParty`, `partyTerrain`, `hideStage` and `onPartyCamp`."
   }
 }

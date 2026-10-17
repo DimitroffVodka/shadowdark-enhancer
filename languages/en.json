@@ -6447,5 +6447,8 @@
   "SDE.town.fact.acStat": "AC {n} + {stat}",
   "SDE.town.fact.acBonus": "+{n} AC",
   "SDE.town.fact.perSlot": "{n} to a slot",
-  "SDE.town.fact.slots": "{n} slots"
+  "SDE.town.fact.slots": "{n} slots",
+  "SDE.stage.tool": "Backdrop",
+  "SDE.stage.campPicture": "Show camp picture",
+  "SDE.stage.hintCampPicture": "Covers the map for everyone until a GM hides it from the Backdrop tool or the camp ends."
 }
