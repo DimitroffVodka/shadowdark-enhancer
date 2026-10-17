@@ -11,7 +11,7 @@ Unless noted otherwise, settings are **world-scoped**, configured by the GM for 
 ## Settings you can see
 
 Go to **Configure Settings → Shadowdark Enhancer**. Apart from the per-user hex
-coordinates switch and the battle map preload switch, feature settings live in one of nine
+coordinates switch, the battle map preload switch and the rumor quests switch, feature settings live in one of nine
 pop-out windows, one per feature, each opened by its own button (**Configure**, or
 **Modes of Play** for that one): Character Builder, Monsters, PC Automation, Modes
 of Play, Movement, Crawl Strip, Overland, Encounters, and Loot & XP. One more
@@ -244,6 +244,14 @@ See [Crawl Strip and Crawl Bar](Crawl-Strip-and-Crawl-Bar.md#overland-travel).
 | **Preload battle maps for players** | on | While you set a battle up, loads the map's art on every player's computer and shows who is ready, so the scene is there when you bring the table. Off skips the loading. It sits in the main Configure Settings list, not in a pop-out. |
 
 See [Encounter Battle Maps](Encounter-Battle-Maps.md).
+
+### Rumors
+
+| Setting | Default | What it does |
+|---|---|---|
+| **Draft a quest for each rumor given** | on | When you give rumors, also makes a Hidden quest for each in the Quest Log. Players cannot see Hidden quests; you move one to Available to offer it. Off makes a quest only with a rumor's Promote to quest button. It sits in the main Configure Settings list, not in a pop-out. |
+
+See [Rumors](Rumors.md).
 
 ### Rules data
 

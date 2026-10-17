@@ -35,6 +35,7 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
       qlTab: function (_ev, el) { this.tab = el.dataset.status; this.selectedId = null; this.render(); },
       qlSelect: function (_ev, el) { this.selectedId = el.dataset.id; this.render(); },
       qlNew: function () { return this._onNew(); },
+      qlFromRumors: function () { return this._onFromRumors(); },
       qlConfirmPayout: function () { return this._onConfirmPayout(); },
       qlCancelPayout: function () { this.payoutId = null; this.render(); },
       qlOpenJournal: function () { game.journal.get(this.selectedId)?.sheet?.render(true); },
@@ -244,6 +245,19 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!quest) return;
     this.tab = quest.status;
     this.selectedId = quest.id;
+    this.filters = { character: "", party: "", source: "" };
+    this.render();
+  }
+
+  /** Hidden quests for the ledger's rumors that have none; shows them. */
+  async _onFromRumors() {
+    const { Rumors } = await import("../rumors/rumors.mjs");
+    const made = await Rumors.draftQuests();
+    if (!made) return;
+    ui.notifications.info(t(made.length ? "SDE.quests.notify.fromRumors" : "SDE.quests.notify.fromRumorsNone", { n: made.length }));
+    if (!made.length) return;
+    this.tab = "hidden";
+    this.selectedId = made[0].id;
     this.filters = { character: "", party: "", source: "" };
     this.render();
   }

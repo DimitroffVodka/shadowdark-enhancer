@@ -16,6 +16,7 @@
       <option value="">{{localize "SDE.quests.filter.anySource"}}</option>
       {{#each filterSources}}<option value="{{kind}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
     </select>
+    {{#if isGM}}{{#unless inline}}<button type="button" class="ui-btn ql-rumors" data-action="qlFromRumors"><i class="fa-solid fa-scroll"></i> {{localize "SDE.quests.fromRumors"}}</button>{{/unless}}{{/if}}
     {{#if isGM}}<button type="button" class="ui-btn primary ql-new" data-action="qlNew"><i class="fa-solid fa-plus"></i> {{localize "SDE.quests.new"}}</button>{{/if}}
   </header>
 

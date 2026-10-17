@@ -4,6 +4,7 @@
 
 ### Added
 
+- **Giving rumors drafts a Hidden quest for each one.** Every rumor you give also lands in the Quest Log as a **Hidden** quest, which only you can see: its text is the quest's description and it links back to the rumor's page, so the rumors the party hears are a ready list of jobs to offer. Move one to **Available** to show it to your players. A rumor about a trouble drafts through the Trouble tracker, so completing that quest still resolves the trouble. **From rumors**, a new button in the Quest Log's header, drafts the same quests for rumors given earlier, and leaves a rumor alone whose quest you deleted. The **Promote to quest** button on a rumor still makes an Available quest at once. A new setting, **Draft a quest for each rumor given** (on by default), turns the drafting off.
 - **Origins has a dice button on Alignment, Background and Deity.** Each section header in the Character Builder's Origins tab rolls just that one pick, so you can re-roll a background without losing the alignment or deity you chose. The footer **Random** still rolls all three. The buttons are hidden when you edit an existing character, and the Deity roller is greyed out when your class fixes the deity.
 
 ## [0.19.0] — 2026-10-14

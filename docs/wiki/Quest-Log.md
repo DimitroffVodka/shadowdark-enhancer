@@ -73,6 +73,10 @@ never edit it.
 
 Every change saves as you make it.
 
+**From rumors.** Giving [Rumors](Rumors.md) already drafts a Hidden quest for
+each one. The **From rumors** button in the header drafts them for rumors you
+gave before that, then shows them on the Hidden tab.
+
 ---
 
 ## Completing a quest

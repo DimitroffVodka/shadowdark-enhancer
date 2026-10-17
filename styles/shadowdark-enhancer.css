@@ -3833,6 +3833,8 @@ body.theme-light .sde-parry-note { color: #2e6b2e; }
 .sde-quest-log-root .ql-filters { flex-wrap: wrap; padding: 10px 16px; gap: 8px; }
 .sde-quest-log-root .ql-filters select { flex: 1 1 130px; width: auto; min-width: 0; }
 .sde-quest-log-root .ql-new { flex: 0 0 auto; margin-left: auto; }
+.sde-quest-log-root .ql-rumors { flex: 0 0 auto; margin-left: auto; }
+.sde-quest-log-root .ql-rumors + .ql-new { margin-left: 0; }
 .sde-quest-log-root .ql-body { padding: 12px 16px; overflow: hidden; }
 .sde-quest-log-root .ql-split { display: grid; grid-template-columns: minmax(150px, 220px) minmax(0, 1fr); gap: 14px; min-height: 0; flex: 1 1 auto; }
 .sde-quest-log-root .ql-list, .sde-quest-log-root .ql-detail { overflow-y: auto; min-height: 0; align-content: start; }

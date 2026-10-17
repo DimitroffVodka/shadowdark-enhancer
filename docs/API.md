@@ -1656,8 +1656,11 @@ api.rumors.heard({ region: "Sablewood" });                 // one region's; null
   (default ownership Observer). Each page holds its rumors in
   `flags["shadowdark-enhancer"].rumorPage = { region, rumors }` and its text is
   written from that flag.
-- A promoted rumor's quest has `source: { kind: "rumor", uuid }` (its ledger
-  page); a trouble's goes through `troubles.promote`.
+- A rumor's quest has `source: { kind: "rumor", uuid }` (its ledger
+  page); a trouble's goes through `troubles.promote`. With the world setting
+  `draftRumorQuests` on (the default), `give` also makes a **Hidden** quest for
+  each rumor it gives, so `quests.list({ status: "hidden", sourceKind: "rumor" })`
+  returns them for the GM. The ledger button promotes to Available instead.
 
 ## `troubles` — the Trouble tracker
 
