@@ -9,14 +9,13 @@
  * (town-entry-points.mjs).
  */
 import { MODULE_ID } from "../shared/module-id.mjs";
-import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { L as t } from "../shared/i18n.mjs";
 import { shelf } from "../merchant/shop-core.mjs";
 import { Party } from "../party/party.mjs";
 import { Quests } from "../quests/quests.mjs";
 import { DowntimeSession } from "../downtime/downtime-session.mjs";
-import { LANDING_FLAG, landingOf, normalizeLanding, restockAll } from "./town-core.mjs";
-import { buyerFor, characters, nightParty, openPlace, redrawOnChange, switchTown } from "./town-live.mjs";
+import { landingOf, normalizeLanding, restockAll } from "./town-core.mjs";
+import { buyerFor, characters, nightParty, openPlace, redrawOnChange, switchTown, today, updateLanding } from "./town-live.mjs";
 import { normalizeStage } from "../stage/stage-core.mjs";
 import { isHostedPage } from "./town-host-core.mjs";
 import { placeTiles, purseText } from "./town-view.mjs";
@@ -145,7 +144,8 @@ export class TownApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   /** Every shop's shelf back at once: each merchant's revision goes up (nothing is written to any player). */
   async _onRestockAll() {
-    await replaceModuleFlag(this.scene, LANDING_FLAG, restockAll(landingOf(this.scene)));
+    const day = today();
+    await updateLanding(this.scene, (page) => page && restockAll(page, day));
     ui.notifications.info(t("SDE.town.restocked"));
   }
 }

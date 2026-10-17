@@ -119,6 +119,7 @@ import { registerQuestNotices } from "./quests/quest-notices.mjs";
 import { Troubles, registerTroubles } from "./troubles/troubles.mjs";
 import { Rumors, registerRumors } from "./rumors/rumors.mjs";
 import { registerTownEntryPoints } from "./town/town-entry-points.mjs";
+import { registerTownRestock } from "./town/town-restock.mjs";
 import { registerActorTypes, WARBAND_TYPE } from "./actors/register-actors.mjs";
 import { bastionApi } from "./bastion/register-bastion.mjs";
 import { registerTraps, trapsApi } from "./traps/traps.mjs";
@@ -397,6 +398,7 @@ Hooks.once("init", () => {
   registerRumors();
   // Town landing page: the GM's "Landing page" entry in the Scenes directory menu.
   registerTownEntryPoints();
+  registerTownRestock();
 
   // Handlebars helpers
   Handlebars.registerHelper("includes", (arr, val) => {

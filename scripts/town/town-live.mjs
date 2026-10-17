@@ -4,10 +4,35 @@
  * Which character buys, redrawing when the world changes under an open window, and the windows the tiles open.
  */
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
+import { absDay } from "../time/time-core.mjs";
 import { LANDING_FLAG, landingOf, setShown } from "./town-core.mjs";
 import { Party, isNativeParty } from "../party/party.mjs";
 import { carousingOf } from "../carousing/carousing.mjs";
 import { pickBuyer } from "./town-view.mjs";
+
+const writing = new Map();
+
+/**
+ * The one way the GM's side writes a scene's page (the switch, Restock all, the automatic restock). Writes on a scene
+ * go one after another, and each re-reads the live page right before `transform(page)` runs, so a restock can never
+ * undo a switch that landed a moment earlier and two ticks can never raise a revision twice. `transform` returns the
+ * page to write, or null to write nothing; the result is the page as written (or as found).
+ */
+export function updateLanding(scene, transform) {
+  const run = async () => {
+    const live = landingOf(scene), next = transform(live);
+    if (!next) return live;
+    await replaceModuleFlag(scene, LANDING_FLAG, next);
+    return next;
+  };
+  const turn = (writing.get(scene.id) ?? Promise.resolve()).catch(() => {}).then(run);
+  writing.set(scene.id, turn);
+  turn.catch(() => {}).then(() => { if (writing.get(scene.id) === turn) writing.delete(scene.id); });
+  return turn;
+}
+
+/** The world's current day (a whole number, from the calendar's own day length). */
+export const today = () => absDay(game.time.calendar, game.time.worldTime);
 
 /**
  * The GM's switch, for the whole table: the scene's page goes up or away on every client (town-entry-points.mjs
@@ -15,7 +40,7 @@ import { pickBuyer } from "./town-view.mjs";
  * scene's own name and the four town tiles on.
  */
 export async function switchTown(scene, shown) {
-  await replaceModuleFlag(scene, LANDING_FLAG, setShown(landingOf(scene) ?? {}, shown));
+  await updateLanding(scene, (page) => setShown(page ?? {}, shown));
 }
 
 export const characters = () => game.actors.filter((a) => a.type === "Player");

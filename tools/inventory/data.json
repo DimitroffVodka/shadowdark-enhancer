@@ -284,7 +284,8 @@
       "scripts/merchant/merchant-defaults.mjs",
       "scripts/merchant/catalog-stock.mjs",
       "scripts/merchant/shop-core.mjs",
-      "scripts/merchant/town-shop.mjs"
+      "scripts/merchant/town-shop.mjs",
+      "scripts/merchant/stock-generator.mjs"
     ],
     "3.10": [
       "scripts/party-xp/party-xp.mjs",
@@ -515,6 +516,7 @@
       "scripts/town/town-editor-app.mjs",
       "scripts/town/town-entry-points.mjs",
       "scripts/town/town-host-core.mjs",
+      "scripts/town/town-restock.mjs",
       "scripts/town/games-core.mjs",
       "scripts/town/town-games.mjs",
       "scripts/town/town-games-app.mjs",
@@ -640,7 +642,9 @@
     "scripts/merchant/town-shop.mjs": "A town merchant's buy and sell on the player's own client, no GM needed.",
     "scripts/town/town-core.mjs": "A town's landing page flag: merchants as NPC references, restock revision, the games table, the table switch, the editor's form folded in (pure).",
     "scripts/town/town-view.mjs": "What the Town window and the shopfront show: ware cards, sell rows, tiles, the buyer (pure).",
-    "scripts/town/town-live.mjs": "What the town windows share on the Foundry side: the buyer, redrawing on change, the table switch, the tiles' windows.",
+    "scripts/town/town-live.mjs": "What the town windows share on the Foundry side: the buyer, redrawing on change, the serialized page writer `updateLanding`, the table switch, the tiles' windows.",
+    "scripts/merchant/stock-generator.mjs": "A generated merchant's stock (pure): which ordinary gear a kind of shop carries and how much, by town size.",
+    "scripts/town/town-restock.mjs": "Shelves that restock by themselves: on a new world day the active GM runs `autoRestock` over every scene's landing page (plus a catch-up on ready).",
     "scripts/town/town-app.mjs": "The landing page menu over the scene's picture: merchants, tiles, the GM's pencil, sales log, restock and switch; clear of the sidebar and the Crawl Strip.",
     "scripts/town/town-shop-app.mjs": "One merchant's shopfront: buy and sell as a chosen character with no GM, categories, search.",
     "scripts/town/town-editor-app.mjs": "The GM's landing page editor window: town text, tiles, games table, merchants.",

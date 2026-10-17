@@ -334,6 +334,7 @@
 | `catalog-stock.mjs` | 37 | What the Catalog tab may sell: gear types with a list price, not loot-table props. |
 | `shop-core.mjs` | 108 | Shop price rules shared by both shops, and the town shop's per-character stock ledger (pure). |
 | `town-shop.mjs` | 118 | A town merchant's buy and sell on the player's own client, no GM needed. |
+| `stock-generator.mjs` | 50 | A generated merchant's stock (pure): which ordinary gear a kind of shop carries and how much, by town size. |
 
 ### 3.10 `scripts/party-xp/`
 

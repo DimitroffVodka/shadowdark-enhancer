@@ -5747,6 +5747,9 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-ui.sde-town-editor .te-add { display: flex; gap: 8px; align-items: center; }
 .sde-ui.sde-town-editor .te-add > select { flex: 1 1 auto; width: auto; }
 @container (max-width: 520px) { .sde-ui.sde-town-editor .te-nums { grid-template-columns: repeat(2, minmax(0, 1fr)); } .sde-ui.sde-town-editor .te-nums .ui-switch { justify-self: start; } }
+.sde-ui.sde-town-editor .te-generate { margin-top: 12px; align-items: end; }
+.sde-ui.sde-town-editor .te-generate .ui-field { flex: 1 1 0; min-width: 0; }
+.sde-ui.sde-town-editor .te-generate-hint { margin: 4px 0 0; font-size: 12px; }
 
 /* Town landing page and Town shop. Tokens only (the UI kit, sde-ui.css), except the landing menu, which keeps the dark book over a painting.
    The art is the module's own bastion illustrations, so a town looks finished before the GM uploads anything. */
