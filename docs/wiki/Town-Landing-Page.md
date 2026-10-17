@@ -54,6 +54,9 @@ is up and would cover the town's name, the menu sits just below it.
    merchant**. Set each merchant's fields (below).
 4. **Save.** Every open page updates at once.
 
+Instead of picking an NPC you already have, use **Generate merchant** under the
+list (see [Generating a merchant](#generating-a-merchant)).
+
 | Field | What it does |
 |---|---|
 | **Name, Tagline, Welcome text** | The heading, the italic line and the paragraph under it. Name defaults to the scene's name |
@@ -66,6 +69,8 @@ is up and would cover the town's name, the menu sits just below it.
 | **Buys back %** | What the merchant pays for what a player sells, as a share of the item's price (0 to 100) |
 | **Open** | A closed merchant shows as closed and cannot be visited |
 | **Restock** | Puts the merchant's whole shelf back when you press Save (see Restocking) |
+| **Restock (days)** | The shelf puts itself back this many world days after its last restock. 0 means only by hand (see Restocking) |
+| **Allows haggling** | On by default. Off removes the Haggle button for this merchant (see Haggling) |
 | **Edit stock** | Opens the NPC, so you edit its items there |
 
 An NPC can be a merchant once per town. The same NPC in two towns has its own
@@ -108,16 +113,79 @@ Change the key under *Configure Controls*.
   armor's AC (AC 13 + DEX, +2 AC for a shield), and how many slots it takes. The
   start of the item's description sits under the name. The **info** button (or a
   click on the name) opens the whole description and what each property does.
-- **Buy.** Set the quantity with the stepper and press **Buy**. Coins come off
-  the character's purse and the item lands on its sheet. A ware that costs more
-  than the purse shows its price in red and cannot be bought. Gear sold in
-  bundles (arrows, rations) is priced per bundle.
+- **Add to cart.** Set the quantity with the stepper and press **Add to cart**.
+  The same ware added twice stays one line. A ware that costs more than the
+  purse shows its price in red. Gear sold in bundles (arrows, rations) is
+  priced per bundle, and a ware card shows what will actually be charged, even
+  for a bundle that is partly sold.
+- **The cart** sits above the foot of the window: each line has plus, minus and
+  remove, and the total updates as you change it. A quantity is cut to what is
+  on the shelf, and the cart says so. The cart is kept while you switch which
+  character buys (the prices are worked out again) and is emptied when you open
+  another merchant.
+- **Checkout.** One press buys everything: coins come off the purse and the
+  items land on the sheet, line by line. Checkout is greyed while the total is
+  over the purse. If the GM changed a price, a restock came or a haggle landed
+  since you filled the cart, nothing is charged and the cart says the prices
+  changed, so you look it over and press again. If a line cannot be completed,
+  the lines before it stay bought and the chat card names the line that failed.
 - **Sell.** The **Sell** tab lists what the character carries of those types
-  and what one unit pays at the merchant's buy-back %. **Sell** sells one;
-  **All** sells the stack. The merchant does not restock what it buys.
-- **A chat card** is posted for each sale, in the merchant's name.
+  and what one unit pays at the merchant's buy-back %, with the same facts and
+  short description as the Buy tab. **Sell** sells one; **All** sells the
+  stack. The merchant does not restock what it buys. Below the list, **Sold
+  here** keeps what this character sold to this merchant (see
+  [Taking it back](#taking-it-back)).
+- **A chat card** is posted for each checkout (one card listing every ware
+  bought) and each sale, in the merchant's name.
 - **A downtime extortion swing** a character has armed applies to the next
-  buy or sale, as in the [Merchant Shop](Merchant-Shop.md).
+  sale, or at checkout to the dearest line of the cart only, and is used up
+  only if that line is bought. See the [Merchant Shop](Merchant-Shop.md).
+
+---
+
+## Haggling
+
+The **Haggle** button is in the cart bar, unless the GM switched haggling off
+for that merchant. A character gets **one try per merchant per restock**: roll
+d20 and add the character's Charisma modifier.
+
+| Natural roll or total | Result | Every price at that merchant |
+|---|---|---|
+| Natural 20, or total 20 or more | Masterful deal | 25% off |
+| 17 to 19 | Sharp deal | 15% off |
+| 14 to 16 | Good deal | 10% off |
+| 11 to 13 | Fair deal | 5% off |
+| 8 to 10 | No change | unchanged |
+| 5 to 7 | Shaky | 10% dearer |
+| 2 to 4 | Insulted | 25% dearer |
+| Natural 1, or total 1 or less | Thrown out | the character is banned |
+
+- **How long it lasts.** A good or bad result applies to everything the
+  character buys from that merchant, in the cart and on the cards, until the
+  merchant restocks. A restock is a new negotiation, so the character can try
+  again. It never changes what the merchant pays for what a player sells.
+- **The ban is permanent.** A banned character sees the shop shut, and cannot
+  buy, sell or take back from that merchant. At Charisma +0 every try has a 1 in
+  20 chance of it, and tries come back with each restock, so over a long
+  campaign it is likely to happen to someone.
+- **Pardon.** When you shop as a banned character, the shop header shows a
+  **Pardon** button. Pressing it lets the character back in; that restock's
+  attempt stays used.
+- **The roll** is posted to the chat only after the result is saved, so a
+  roll you can see always counted.
+- **Turning it off.** Untick **Allows haggling** on the merchant in the editor.
+
+---
+
+## Taking it back
+
+Every sale to a merchant is kept in the **Sold here** list on the Sell tab: the
+item, how many and what the character was paid. The newest ten per merchant are
+kept, and a restock does not clear them. **Take back** charges exactly what the
+character was paid, with no markup, no haggle and no extortion swing, and gives
+the item back as it was sold, with its own flags. It cannot be done while the
+merchant is closed or the character is banned. The chat card and the sales log
+call it "(bought back)".
 
 ---
 
@@ -180,9 +248,46 @@ and every open shop updates as others buy.
 - **Restock.** Press **Restock** on a merchant in the editor (it takes effect
   when you Save), or the restock button on the page for every shop. The shelf
   is back to the NPC's quantities. Nothing is written to any player's
-  character.
+  character. A restock also starts a new round of haggling.
+- **Restock by itself.** Put a number in **Restock (days)** on a merchant. When
+  the world day turns, the shelf is put back once that many days have passed
+  since its last restock, whichever way it was restocked. The count starts the
+  first time the table sees the merchant with days set (and when you turn days
+  on), so nothing restocks at once. If the clock jumps a month ahead the shelf
+  restocks once, not once per interval. Setting the clock back restarts the
+  count. Leave it at 0 to restock by hand. Only the active GM's browser does
+  this, so a GM must be connected on the day it turns; a GM who was away
+  catches up when they next load the world.
 - **Changing an NPC's quantity** changes the shelf at once: raise it to add
   stock without a restock.
+
+---
+
+## Generating a merchant
+
+Under the merchants list the editor has a **Generate merchant** row. Pick a
+**kind of shop** and a **town size** and press the button.
+
+| Kind | Sells |
+|---|---|
+| General store | Basic gear |
+| Weaponsmith | Weapons |
+| Armorer | Armor |
+| Outfitter | Basic gear, weapons and armor |
+
+| Town size | Different wares | Dearest single item | Most of one ware |
+|---|---|---|---|
+| Village | 6 | 20 gp | 3 bundles |
+| Town | 12 | 70 gp | 5 bundles |
+| City | 20 | no limit | 8 bundles |
+
+Weapons and armor come in half those numbers (at least 1). Only ordinary gear is
+picked, the same priced gear the Merchant Shop's Catalog lists, never magic
+items. The button makes an NPC named after the kind and the scene (for example
+"Armorer, Hollowmere") in an Actor folder called "Hollowmere merchants", gives it
+the wares, and adds it to the page with the kind as its role. Edit its items on
+the NPC afterwards like any merchant's. The NPC is made at once: if you cancel
+the editor it stays in its folder.
 
 ---
 
@@ -208,6 +313,11 @@ the sales log reads them.
 - A merchant whose NPC was deleted is hidden from players and shown to you as
   an Unknown NPC, ready to remove.
 - Items with no price sell for nothing.
+- Haggling, a ban and the Sold here list are kept on the player's own
+  character, per merchant. Removing a merchant and adding the NPC again makes a
+  new merchant, so it starts clean.
+- Automatic restock needs a GM connected on the day the world clock turns.
+- The cart is not kept when the window is closed.
 - The page does not lock the camera: players can pan and zoom the picture.
 - A game's dice are rolled on the player's own client, like everything else a
   player does to their own character; the wager limit is the safeguard, not the

@@ -62,6 +62,14 @@ Items are organized into collapsible category sections:
 
 **Basic Gear · Weapons · Armor · Scrolls · Wands · Potions · Poisons · Other**
 
+### What each ware is
+
+On the Buy, Catalog and Sell tabs every row shows what the item is, read from
+the item's own stats: a weapon's kind (melee or ranged), range and damage, an
+armor's AC, how many slots it takes, a weapon's properties, and the start of its
+description. **Details** opens the whole description. The Catalog reads these
+from the compendium index, so no items are loaded to draw it.
+
 ---
 
 ## Buying and selling
