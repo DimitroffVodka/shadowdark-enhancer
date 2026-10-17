@@ -366,6 +366,11 @@ the party token travels.
 
     Overland only ever changes or clears an effect it put there; one you
     picked on the scene yourself is left alone.
+
+    The Weather list in Scene Configuration also has five looks of the
+    Enhancer's own: Drizzle, Mist, Heavy Fog, Sleet and Dust Storm. They run
+    on Foundry's rain, fog and snow shaders and are for you to pick on any
+    scene; Overland never chooses them.
   - A hex map (any hex grid) counts as outdoors and only darkens to a readable
     tint. Any other scene joins in when you set **Follows the sky** to Yes in
     its Scene Configuration, on the Environment tab; dungeons are left alone.

@@ -4,6 +4,7 @@
 
 ### Added
 
+- **Five more weather looks in Scene Configuration.** Foundry's Weather list on the Environment tab had six effects. It now also offers Drizzle, Mist, Heavy Fog, Sleet and Dust Storm on every scene, built on Foundry's own rain, fog and snow shaders, so no other module is needed. They are for you to pick: Overland still chooses only the rain storm, the blizzard and the falling leaves, and leaves a look you chose alone. The per-device **Show weather effects** switch turns them off like any other.
 - **Origins has a dice button on Alignment, Background and Deity.** Each section header in the Character Builder's Origins tab rolls just that one pick, so you can re-roll a background without losing the alignment or deity you chose. The footer **Random** still rolls all three. The buttons are hidden when you edit an existing character, and the Deity roller is greyed out when your class fixes the deity.
 
 ## [0.19.0] — 2026-10-14
