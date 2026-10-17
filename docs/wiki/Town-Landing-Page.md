@@ -281,7 +281,7 @@ Under the merchants list the editor has a **Generate merchant** row. Pick a
 | Town | 12 | 70 gp | 5 bundles |
 | City | 20 | no limit | 8 bundles |
 
-Weapons and armor come in half those numbers (at least 1). Only ordinary gear is
+Weapons and armor get half as many bundles of each ware (at least 1). Only ordinary gear is
 picked, the same priced gear the Merchant Shop's Catalog lists, never magic
 items. The button makes an NPC named after the kind and the scene (for example
 "Armorer, Hollowmere") in an Actor folder called "Hollowmere merchants", gives it
@@ -316,7 +316,7 @@ the sales log reads them.
 - Haggling, a ban and the Sold here list are kept on the player's own
   character, per merchant. Removing a merchant and adding the NPC again makes a
   new merchant, so it starts clean.
-- Automatic restock needs a GM connected on the day the world clock turns.
+- Automatic restock happens while a GM is connected when the world clock turns, or when a GM next loads the world.
 - The cart is not kept when the window is closed.
 - The page does not lock the camera: players can pan and zoom the picture.
 - A game's dice are rolled on the player's own client, like everything else a
