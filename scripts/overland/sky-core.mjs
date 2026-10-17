@@ -130,3 +130,13 @@ export function skyScenes({ active = null, travel = null, follows }) {
  * @param {"on"|"off"|"default"|undefined} choice  the scene's followsSky flag
  */
 export const followsSky = (choice, isHexMap) => (choice === "on" ? true : choice === "off" ? false : !!isHexMap);
+
+/**
+ * Does this scene show the party's weather? Its own choice, else whatever it
+ * does about the sky, so a scene that never set the choice stays as it was. A
+ * town or a dungeon set to "on" shows the weather without being darkened.
+ * @param {"on"|"off"|"default"|undefined} choice  the scene's followsWeather flag
+ * @param {"on"|"off"|"default"|undefined} skyChoice  the scene's followsSky flag
+ */
+export const followsWeather = (choice, skyChoice, isHexMap) =>
+  (choice === "on" ? true : choice === "off" ? false : followsSky(skyChoice, isHexMap));

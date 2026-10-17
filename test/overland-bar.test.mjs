@@ -67,3 +67,9 @@ test("an item change redraws the bar when it's on a travelling member (#249 revi
   assert.equal(itemTouchesBar(on("stranger"), ["mine"]), false);
   assert.equal(itemTouchesBar({ parent: null }, ["mine"]), false, "a world item");
 });
+
+test("the bar's weather switch: a rain cloud while the weather is drawn, a lit bare cloud while it is not", async () => {
+  const { weatherSwitch } = await import("../scripts/overland/overland-bar-core.mjs");
+  assert.deepEqual(weatherSwitch(true), { icon: "fa-cloud-rain", pressed: false, labelKey: "SDE.clock.weatherHide" });
+  assert.deepEqual(weatherSwitch(false), { icon: "fa-cloud", pressed: true, labelKey: "SDE.clock.weatherShow" });
+});

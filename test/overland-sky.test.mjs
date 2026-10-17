@@ -3,7 +3,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  FAIR_DAY_EFFECT, HEX_MAP_CAP, darknessAt, darknessMoved, followsSky, nightWithOverride, skyOverride, skyScenes, weatherEffect, weatherPlan,
+  FAIR_DAY_EFFECT, HEX_MAP_CAP, darknessAt, darknessMoved, followsSky, followsWeather, nightWithOverride, skyOverride, skyScenes, weatherEffect, weatherPlan,
 } from "../scripts/overland/sky-core.mjs";
 
 const SUN = { sunrise: 6, sunset: 18 };
@@ -83,6 +83,16 @@ test("which scenes follow the sky", () => {
   assert.equal(darknessMoved(0.4, 0.42), true);
 });
 
+test("which scenes show the party's weather: its own choice, else as the sky does", () => {
+  assert.equal(followsWeather(undefined, undefined, true), true, "a hex map by default");
+  assert.equal(followsWeather("default", "default", false), false, "a dungeon by default");
+  assert.equal(followsWeather(undefined, "on", false), true, "a scene marked outdoors shows it as before");
+  assert.equal(followsWeather(undefined, "off", true), false, "a scene set not to follow the sky shows none, as before");
+  assert.equal(followsWeather("on", undefined, false), true, "a town can show the weather alone");
+  assert.equal(followsWeather("on", "off", false), true, "whatever the sky says");
+  assert.equal(followsWeather("off", "on", true), false, "a hex map can turn it off alone");
+});
+
 test("skyScenes: the active scene and the party's scene, once each, only those that follow the sky", () => {
   const dungeon = { id: "d", follows: false };
   const hexMap = { id: "h", follows: true };
@@ -130,9 +140,9 @@ const { applySky, applySkies, applyWeatherVisuals, onDrawWeatherEffects, registe
 const { registerOverland, OVERLAND_CHANGED } = await import("../scripts/overland/overland.mjs");
 
 /** A stubbed Scene that keeps its flags and applies its updates, so a reload is a fresh stub with the same data. */
-function scene({ hex = true, tagged = true, follows, darkness = 0, locked = false, weather = "", owned, id = "s" } = {}) {
+function scene({ hex = true, tagged = true, follows, weatherFollows, darkness = 0, locked = false, weather = "", owned, id = "s" } = {}) {
   const writes = [];
-  const flags = { hexTags: hex && tagged ? { origin: {} } : null, followsSky: follows, skyWeather: owned };
+  const flags = { hexTags: hex && tagged ? { origin: {} } : null, followsSky: follows, followsWeather: weatherFollows, skyWeather: owned };
   const doc = {
     writes, weather, flags, id,
     grid: { isHexagonal: hex },
@@ -483,6 +493,87 @@ test("a scene whose update rejects does not stop the party's scene; the next pas
     console.error = log;
     delete globalThis.game.scenes;
     delete globalThis.fromUuidSync;
+  }
+});
+
+test("weather and darkness are chosen apart: a town shows the storm unlit, a hex map can dim without it", async () => {
+  sky({ weather: STORMY, climate: "Temperate" });
+  const town = scene({ hex: false, weatherFollows: "on" });
+  await applySky(town);
+  assert.deepEqual(town.writes.map((w) => w.changes), [{ weather: "rainStorm", "flags.shadowdark-enhancer.skyWeather": "rainStorm" }],
+    "the weather and its record, and no darkness");
+  const dimOnly = scene({ weatherFollows: "off" });
+  await applySky(dimOnly);
+  assert.deepEqual(dimOnly.writes.map((w) => w.changes), [{ "environment.darknessLevel": 0.6 }], "the darkness, and no storm");
+  const neither = scene({ hex: false, weatherFollows: "off", follows: "on" });
+  await applySky(neither);
+  assert.equal(neither.writes[0].changes.weather, undefined, "marked outdoors but weather off: darkness only");
+  const quiet = scene({ hex: false });
+  await applySky(quiet);
+  assert.deepEqual(quiet.writes, [], "a dungeon that chose nothing is still left alone");
+  const lockedTown = scene({ hex: false, weatherFollows: "on", locked: true });
+  await applySky(lockedTown);
+  assert.equal(lockedTown.writes[0].changes.weather, "rainStorm", "a locked darkness does not hold the weather back");
+});
+
+test("a town that shows the weather clears Overland's own storm when it passes, and leaves a GM's effect", async () => {
+  sky();
+  const town = scene({ hex: false, weatherFollows: "on", weather: "rainStorm", owned: "rainStorm" });
+  await applySky(town);
+  assert.deepEqual(town.writes[0].changes, { weather: "", "flags.shadowdark-enhancer.skyWeather": DEL });
+  const gm = scene({ hex: false, weatherFollows: "on", weather: "sdeMist" });
+  await applySky(gm);
+  assert.deepEqual(gm.writes, [], "one of our looks, picked by hand, stays");
+});
+
+test("a pass reaches a town that shows the weather, active or the party's, once each", async () => {
+  sky({ weather: STORMY, climate: "Temperate" });
+  stored.overlandState.tokenUuid = "Scene.town.Token.t";
+  registerOverland();
+  const town = scene({ hex: false, weatherFollows: "on", id: "town" });
+  const dungeon = scene({ hex: false, id: "dungeon" });
+  globalThis.game.scenes = { active: dungeon };
+  globalThis.fromUuidSync = (uuid) => (uuid === "Scene.town.Token.t" ? { parent: town } : null);
+  try {
+    await applySkies();
+    assert.deepEqual(dungeon.writes, [], "the dungeon that chose nothing");
+    assert.equal(town.writes.length, 1, "the party's town");
+    assert.equal(town.writes[0].changes.weather, "rainStorm");
+    globalThis.game.scenes = { active: town };
+    await applySkies();
+    assert.equal(town.writes.length, 1, "active and the party's at once: not written twice");
+  } finally {
+    delete globalThis.game.scenes;
+    delete globalThis.fromUuidSync;
+  }
+});
+
+test("changing a scene's weather choice runs a pass, as the sky choice does", async () => {
+  sky({ weather: STORMY, climate: "Temperate" });
+  const town = scene({ hex: false, weatherFollows: "on" });
+  town.active = true;
+  globalThis.game.scenes = { active: town };
+  const handlers = {};
+  const { on } = globalThis.Hooks;
+  globalThis.Hooks.on = (name, fn) => { handlers[name] = fn; };
+  try {
+    registerSky();
+    await new Promise((r) => setTimeout(r, 20));
+    town.writes.length = 0;
+    town.weather = "";
+    delete town.flags.skyWeather;
+    handlers.updateScene(town, { flags: { "shadowdark-enhancer": { followsWeather: "on" } } });
+    await new Promise((r) => setTimeout(r, 20));
+    assert.equal(town.writes.length, 1, "the weather choice triggers a pass");
+    town.writes.length = 0;
+    town.weather = "";
+    delete town.flags.skyWeather;
+    handlers.updateScene(town, { flags: { "shadowdark-enhancer": { somethingElse: 1 } } });
+    await new Promise((r) => setTimeout(r, 20));
+    assert.deepEqual(town.writes, [], "an unrelated flag does not");
+  } finally {
+    globalThis.Hooks.on = on;
+    delete globalThis.game.scenes;
   }
 });
 
