@@ -84,11 +84,36 @@ never edit it.
    - **Items**: drag them from the sidebar, a compendium or a sheet onto the
      rewards box.
    - **Training benefit**: a trainer whose benefit roll follows completion.
-5. Pick the **characters** the quest is personal to, if any, and its native
+5. Open **When** to give the quest dates (below), if it needs them.
+6. Pick the **characters** the quest is personal to, if any, and its native
    [Party](Party.md). Extras is optional.
-6. Set the status to **Available** or **Active** when the players should see it.
+7. Set the status to **Available** or **Active** when the players should see it.
 
 Every change saves as you make it.
+
+### Dates on a quest
+
+Open **When** at the foot of the quest. Each date is a day, a month (from the
+world calendar's own months) and a year; the quest saves the date once all
+three are filled in, and the small x clears it. If the calendar has no such day,
+the date is not saved and you are told so.
+
+- **Appears on**: a Hidden quest becomes Available on that day. Only you see
+  this date.
+- **Deadline**: players see it as a **Due** line on the quest and on its
+  journal page. The quest runs through the end of that day. Once the day is
+  over, an **Overdue** chip shows on an Available or Active quest, to everyone
+  (on a Hidden quest, to you only), and nothing else happens.
+- **Fail the quest at the deadline**: tick it and the quest moves to Failed by
+  itself once the deadline's day is over. It fires once: if you move the quest
+  back to Active, it stays open until you set a new deadline and tick the box
+  again. A Hidden quest whose deadline has already passed when its date
+  arrives stays Hidden.
+
+The world clock acts when it passes midnight, and once when the world loads;
+never while you are typing. A date already in the past therefore takes effect
+at the next midnight, or the next time the world loads, and the window says so
+under the date. The Quest Log and the Party sheet redraw when the day changes.
 
 **From rumors.** Giving [Rumors](Rumors.md) already drafts a Hidden quest for
 each one. The **From rumors** button in the header drafts them for rumors you

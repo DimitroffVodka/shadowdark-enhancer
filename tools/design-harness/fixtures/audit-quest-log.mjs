@@ -25,6 +25,16 @@ const build = (state) => {
     filterCharacters: ["Creeg Greythorn", "Elbin Grizzlegut"].map((name, i) => ({ uuid: "c" + i, name })), filterParties: [{ uuid: "p", name: "The Lantern Guild" }],
     filterSources: ["GM", "Rumor", "Trouble", "Trainer"].map((label, i) => ({ kind: "k" + i, label })), quests,
     quest: {
+      when: {
+        overdue: true,
+        dueText: gm ? "" : "Due: 14 March 1348",
+        rows: gm ? [
+          { field: "startsAt", label: "Appears on", day: "", year: "", set: false, months: ["January", "February", "March"].map((label, i) => ({ value: i + 1, label, selected: false })) },
+          { field: "deadline", label: "Deadline", day: 14, year: 1348, set: true, months: ["January", "February", "March"].map((label, i) => ({ value: i + 1, label, selected: i === 2 })) },
+        ] : [],
+        appearsPassed: false, failPassed: gm,
+      },
+      whenOpen: true, deadline: 5, autoFail: true,
       id: "q0", name: quests[0].name, statusLabel: "Active", sourceLabel: "GM", source: { uuid: "JournalEntry.x" }, hasPin: true,
       statusOptions: ["Hidden", "Available", "Active", "Completed", "Failed"].map((label) => ({ value: label, label, selected: label === "Active" })),
       characterList: ["Creeg Greythorn", "Elbin Grizzlegut", "Iraga Draguul", "Jorbin Ironhelm", "Martin Rast"].map((name, i) => ({ uuid: "c" + i, name })),
@@ -41,5 +51,5 @@ const build = (state) => {
     },
   } };
 };
-export default { previewHeight: 2000, title: "SDE.quests.title", icon: "fa-solid fa-list-check", classes: ["shadowdark", "sde-quest-log", "sde-ui"], width: 780, height: 1900, resizable: true,
+export default { previewHeight: 2400, title: "SDE.quests.title", icon: "fa-solid fa-list-check", classes: ["shadowdark", "sde-quest-log", "sde-ui"], width: 780, height: 2300, resizable: true,
   template: "templates/quest-log.hbs", initial: "gm", build, toolbar: `<button data-action="v" data-state="gm">GM</button><button data-action="v" data-state="player">player</button><button data-action="v" data-state="playernext">player (next only)</button>`, actions: { v: { state: "{state}" } } };

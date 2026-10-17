@@ -10,11 +10,13 @@
  * items dragged on as rewards. None of its code is used.
  */
 import { MODULE_ID } from "../shared/module-id.mjs";
+import { dateToTime } from "../overland/hud-core.mjs";
+import { secondsPerDay } from "../time/time-core.mjs";
 import { TRAINERS } from "../training/training-core.mjs";
 import {
   SOURCE_KINDS, SOURCE_LABELS, STATUSES, STATUS_LABELS,
-  addObjective, addSubStep, hasNotes, hasRewards, matchesFilter, objectiveProgress, planStatusChange, removeObjective, setObjectiveDone, setObjectiveSecret, setObjectiveText,
-  textToParagraphs, trainerLabel, visibleStatuses,
+  addObjective, addSubStep, dateLabel, dayChanged, deadlineState, hasNotes, hasRewards, matchesFilter, objectiveProgress, planStatusChange, removeObjective, setObjectiveDone, setObjectiveSecret, setObjectiveText,
+  textToParagraphs, timeToDate, trainerLabel, visibleStatuses,
 } from "./quest-core.mjs";
 import { QUESTS_CHANGED, Quests, actorName, partiesAvailable, partyActors, partyMembers, questPayoutContent } from "./quests.mjs";
 import { L as t } from "../shared/i18n.mjs";
@@ -22,8 +24,15 @@ import { L as t } from "../shared/i18n.mjs";
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 /** Fields a GM types into; a redraw waits while one of them has focus. */
+const DATE_FIELDS = ["startsAt", "deadline"];
 const TEXT_FIELDS = "textarea, input:not([type]), input[type='text'], input[type='number']";
 
+/** Run `fn` when the world clock moves into another day; returns the [hook, id] pair for Hooks.off. */
+export function onQuestDay(fn) {
+  return ["updateWorldTime", Hooks.on("updateWorldTime", (worldTime, delta) => {
+    if (dayChanged(worldTime - delta, worldTime, secondsPerDay(game.time.calendar))) fn();
+  })];
+}
 
 export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
@@ -61,6 +70,7 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
         const i = Number(el.dataset.index);
         return this._edit((q) => ({ ...q, rewards: { ...q.rewards, items: q.rewards.items.filter((_x, n) => n !== i) } }));
       },
+      qlClearDate: function (_ev, el) { return DATE_FIELDS.includes(el.dataset.date) && this._edit((q) => ({ ...q, [el.dataset.date]: null })); },
       qlClearGiver: function () { return this._edit((q) => ({ ...q, giver: null })); },
       qlRemoveNote: function (_ev, el) {
         const i = Number(el.dataset.index);
@@ -90,6 +100,7 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
   subFor = null;
   newSecret = false;
   newSubSecret = false;
+  whenOpen = false;   // the When block stays open across redraws once the GM opens it
   selectedId = null;
   payoutId = null;
   filters = { character: "", party: "", source: "" };
@@ -97,6 +108,7 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _onFirstRender(context, options) {
     await super._onFirstRender(context, options);
     this._hook = Hooks.on(QUESTS_CHANGED, () => this._onQuestsChanged());
+    this._dayHook = onQuestDay(() => this._onQuestsChanged());   // the Overdue chip and the due line follow the clock
   }
 
   /**
@@ -118,6 +130,7 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   _onClose(options) {
     Hooks.off(QUESTS_CHANGED, this._hook);
+    if (this._dayHook) Hooks.off(...this._dayHook);
     super._onClose(options);
   }
 
@@ -160,11 +173,36 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
     };
   }
 
+  /** The When block's two date rows, and the lines that say what a passed date will do. */
+  _when(q, isGM) {
+    const cal = game.time.calendar, now = game.time.worldTime, spd = secondsPerDay(cal);
+    const state = deadlineState(q, now, spd);
+    const open = q.status === "available" || q.status === "active";
+    const row = (field) => {
+      const d = q[field] === null ? null : timeToDate(cal, q[field]);
+      return {
+        field, label: t(field === "startsAt" ? "SDE.quests.startsAt" : "SDE.quests.deadline"),
+        day: d?.day ?? "", year: d?.year ?? "", set: !!d,
+        months: (cal.months?.values ?? []).map((m, i) => ({ value: i + 1, label: t(m.name), selected: d?.month === i + 1 })),
+      };
+    };
+    return {
+      rows: isGM ? [row("startsAt"), row("deadline")] : [],
+      // A Hidden quest already overdue stays Hidden, so only a quest that will really appear gets the appears line.
+      appearsPassed: isGM && q.status === "hidden" && q.startsAt !== null && now >= q.startsAt && state !== "overdue",
+      failPassed: isGM && open && q.autoFail && state === "overdue",
+      overdue: state === "overdue" && (open || (isGM && q.status === "hidden")),
+      dueText: !isGM && q.deadline !== null ? t("SDE.quests.dueLine", { date: dateLabel(cal, q.deadline, t) }) : "",
+    };
+  }
+
   /** The right-hand pane for one quest. */
   async _detail(q, { isGM, players, parties }) {
     const r = q.rewards;
     return {
       ...q,
+      when: this._when(q, isGM),
+      whenOpen: this.whenOpen,
       sourceLabel: t(SOURCE_LABELS[q.source.kind]),
       statusLabel: t(STATUS_LABELS[q.status]),
       statusOptions: STATUSES.map((s) => ({ value: s, label: t(STATUS_LABELS[s]), selected: s === q.status })),
@@ -206,6 +244,10 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     for (const el of root.querySelectorAll("[data-ql-field]")) {
       el.addEventListener("change", (ev) => this._onField(el.dataset.qlField, ev.currentTarget));
+    }
+    root.querySelector("[data-ql-when]")?.addEventListener("toggle", (ev) => { this.whenOpen = ev.currentTarget.open; });
+    for (const row of root.querySelectorAll("[data-ql-date]")) {
+      for (const el of row.querySelectorAll("[data-part]")) el.addEventListener("change", () => this._onDate(row));
     }
     root.querySelector("[data-ql-new-objective]")?.addEventListener("keydown", (ev) => {
       if (ev.key === "Enter") { ev.preventDefault(); this._onAddObjective(); }
@@ -266,6 +308,7 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
       case "renown": return this._edit((q) => ({ ...q, rewards: { ...q.rewards, renown: value } }));
       case "training": return this._edit((q) => ({ ...q, rewards: { ...q.rewards, training: value || null } }));
       // A number typed here is the number on any map; Hex Data is what ties a quest to one scene's hex.
+      case "autoFail": return this._edit((q) => ({ ...q, autoFail: value }));
       case "reveal": return this._edit((q) => ({ ...q, reveal: value }));
       case "hex": return this._edit((q) => ({ ...q, hex: value, hexScene: null }));
       // An emptied line is dropped when the quest is normalized.
@@ -273,6 +316,20 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
       case "objectiveDone": return this._edit((q) => setObjectiveDone(q, el.dataset.objective, value));
       case "objectiveText": return this._edit((q) => setObjectiveText(q, el.dataset.objective, value));
     }
+  }
+
+  /** Save a date once its day, month and year are all numbers; a day the calendar lacks keeps the old date. */
+  async _onDate(row) {
+    const field = row.dataset.qlDate;
+    if (!DATE_FIELDS.includes(field)) return;
+    const [day, month, year] = ["day", "month", "year"].map((p) => {
+      const v = row.querySelector(`[data-part="${p}"]`)?.value ?? "";
+      return v === "" ? NaN : Number(v);
+    });
+    if (![day, month, year].every(Number.isInteger)) return;   // half typed: wait for the rest
+    const time = dateToTime(game.time.calendar, { year, month, day });
+    if (time === null) { ui.notifications?.warn(t("SDE.quests.notify.noSuchDay")); this.render(); return; }
+    await this._edit((q) => ({ ...q, [field]: time }));
   }
 
   async _onAddObjective() {

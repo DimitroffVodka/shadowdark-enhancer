@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1987 tracked files · ~256,000 lines of code/markup across scripts+templates+styles+test.
+1990 tracked files · ~256,500 lines of code/markup across scripts+templates+styles+test.
 `v0.19.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 1504 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 1507 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 172 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 271 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 | `scavenger/scavenger-core.mjs` | 171 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
@@ -138,7 +138,7 @@
 | `overland/sky-core.mjs` | 132 | The sky on scenes (#235, O9), pure: darkness by the sun and moon (0 by day, a four-hour cosine twilight each way (#389), night 1 - 0.2 x illumination, the hex map capped at 0.6), the Isles of Andrik's Midnight Sun and Long Dark by region and season, the weather effect (rainStorm, blizzard in the cold, the season's snow or leaves on a fair day: #294), and which scenes follow the sky and are written (the active scene and the party's). |
 | `overland/sky.mjs` | 250 | The sky on scenes (#235, O9): the active GM writes the darkness of the active scene and of the party's scene, the one the travel token is on (#294; only on a 0.02 change, animated for steps under an hour, never on a locked scene; no other module is consulted) and weather effect (never over one the GM chose) on each clock move, weather change and scene activation; one pass at a time. While the clock is paced every screen paints the darkness from the time it shows and the GM writes it once the slices stop (#257). Also the per-device Show weather effects setting and its drawWeatherEffects hook (#294). Adds the Follows the sky choice to Scene Configuration's Environment tab (the followsSky scene flag). |
 | `overland/travel-panel.mjs` | 217 | The clock HUD's Travel panel (#257): the day as the book's travel procedure in eight steps (weather, sight, method, speed, traveling, encounters, resting, night), the step list as the day's record with the current step marked; step bodies read Overland's state (the weather and its roll, sight in hexes by hex rules, the budget meter, forage by member with INT and DC, the checks by half for a GM) and carry the day's buttons. |
-| `party/party-app.mjs` | 616 | Native ApplicationV2 Party actor sheet and directory/token-HUD entry points, preserving detailed member cards with inline activities, scoped quests/payouts and description editing. |
+| `party/party-app.mjs` | 618 | Native ApplicationV2 Party actor sheet and directory/token-HUD entry points, preserving detailed member cards with inline activities, scoped quests/payouts and description editing. |
 | `party/party-core.mjs` | 32 | Pure versioned roster validation, membership permissions, groups and quest scoping. |
 | `party/party-create-option.mjs` | 15 | Adds the Enhancer's Party entry to the Create Actor type list and drops Extras' duplicate Party entry. |
 | `party/party-emblem-core.mjs` | 110 | Pure party emblem: the curated icon and colour sets, the default, the safe read of the stored flag and the picker's choices. |
@@ -602,9 +602,10 @@ The report and idiom seams are pure data policy. Foundry adapters must translate
 
 | File | Lines | Description |
 |---|---:|---|
-| `quest-core.mjs` | 501 | The Quest Log's rules, pure: the quest flag's one shape, status changes and the ownership each status gives, who a player may see, objectives, when rewards are paid (once, on the way into Completed) and to whom, list filters, which trainer tasks a character has taken, which map pin to jump to, and the player page's HTML. |
+| `quest-core.mjs` | 564 | The Quest Log's rules, pure: the quest flag's one shape, status changes and the ownership each status gives, who a player may see, objectives, when rewards are paid (once, on the way into Completed) and to whom, list filters, which trainer tasks a character has taken, which map pin to jump to, and the player page's HTML. |
 | `quests.mjs` | 578 | The Quest Log's data and public API: one world JournalEntry per quest in a flagged Quests folder, with a player page rewritten from the flag and a GM notes page left alone. GM-only writes serialized per client through replaceModuleFlag; the payout confirmation and payout through Party XP, the renown ledger and item copies; Shadowdark Extras parties read from its flags behind a feature check; jump to pin; the Ctrl+Q keybinding, the Journal sidebar button and the debounced questsChanged hook. |
-| `quest-log-app.mjs` | 364 | The Quest Log window (AppV2): a tab per status (Hidden for the GM only), filters by character, party and source, the quest list and the chosen quest. The GM edits in place (objectives, rewards with items dropped on, characters, party, hex); players get the same quest read-only. |
+| `quest-log-app.mjs` | 421 | The Quest Log window (AppV2): a tab per status (Hidden for the GM only), filters by character, party and source, the quest list and the chosen quest. The GM edits in place (objectives, rewards with items dropped on, characters, party, hex); players get the same quest read-only. |
+| `quest-clock.mjs` | 44 | The Quest Log's clock: on the active GM only, when the world clock crosses a midnight and once at load, it reveals Hidden quests whose date has come and fails quests that asked to fail at their deadline, moving the status first and clearing the date second. Never runs on an edit. |
 
 One world JournalEntry per quest, its state one flag on the entry. World journals rather than the managed journal pack, because a compendium has one ownership for the whole pack and a quest's visibility is per quest. Every write is the GM's.
 

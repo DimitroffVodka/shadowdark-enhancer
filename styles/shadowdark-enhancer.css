@@ -3861,6 +3861,12 @@ body.theme-light .sde-parry-note { color: #2e6b2e; }
 .sde-quest-log-root .ql-drop { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 40px; padding: 8px; border: 1px dashed var(--ui-line); border-radius: var(--ui-r2); }
 .sde-quest-log-root .ql-drop.sde-drag-over { border-color: var(--ui-frame); background: var(--ui-raised); }
 .sde-quest-log-root .ql-desc p { margin: 0 0 8px; }
+.sde-quest-log-root .ql-date-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.sde-quest-log-root .ql-date-row input[type=number] { flex: 0 0 64px; width: 64px; min-width: 0; }
+.sde-quest-log-root .ql-date-row input[data-part=year] { flex-basis: 80px; width: 80px; }
+.sde-quest-log-root .ql-date-row select { flex: 1 1 0; min-width: 0; }
+.sde-quest-log-root .ql-check { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.sde-quest-log-root .ql-due { margin: 4px 0 0; color: var(--ui-text); }
 .sde-quest-log-root .ql-notes-h { margin: 10px 0 2px; }
 .sde-quest-log-root .sde-ql-giver { min-height: 34px; }
 .sde-quest-log-root a.ui-icon { color: var(--ui-muted); cursor: pointer; }

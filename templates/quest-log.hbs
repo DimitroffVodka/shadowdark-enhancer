@@ -54,13 +54,14 @@
               <h2 class="ui-title ql-title">{{name}}</h2>
             {{/if}}
             <div class="ui-inline">
-              <span class="ui-chip gold">{{statusLabel}}</span><span class="ui-chip">{{sourceLabel}}</span>
+              <span class="ui-chip gold">{{statusLabel}}</span><span class="ui-chip">{{sourceLabel}}</span>{{#if when.overdue}}<span class="ui-chip bad">{{localize "SDE.quests.overdue"}}</span>{{/if}}
               {{#unless ../inline}}{{#if source.uuid}}<a data-action="qlOpenSource">{{localize "SDE.quests.openSource"}}</a>{{/if}}{{/unless}}
               <span class="ui-right ui-inline">
                 {{#unless ../inline}}<button type="button" class="ui-btn" data-action="qlOpenJournal"><i class="fa-solid fa-book-open"></i> {{localize "SDE.quests.openJournal"}}</button>{{/unless}}
                 {{#if hasPin}}<button type="button" class="ui-btn" data-action="qlJump"><i class="fa-solid fa-location-dot"></i> {{localize "SDE.quests.jump"}}</button>{{/if}}
               </span>
             </div>
+            {{#if when.dueText}}<p class="ql-due">{{when.dueText}}</p>{{/if}}
             {{#if ../isGM}}
               <div class="ui-field"><span class="ui-label">{{localize "SDE.quests.givenBy"}}</span>
                 <div class="sde-ql-giver ql-drop">
@@ -184,6 +185,34 @@
               {{/if}}
             {{/if}}
           </div>
+
+          {{#if ../isGM}}
+            <details class="ui-details" data-ql-when {{#if whenOpen}}open{{/if}}>
+              <summary>{{localize "SDE.quests.when"}}</summary>
+              <div class="ui-details-body">
+                {{#each when.rows}}
+                  <div class="ui-field ql-date" data-ql-date="{{field}}">
+                    <span class="ui-label">{{label}}</span>
+                    <div class="ql-date-row">
+                      <input class="ui-num-in" type="number" step="1" name="ql-{{field}}-day" data-part="day" value="{{day}}" aria-label="{{localize "SDE.quests.dateDay"}}" placeholder="{{localize "SDE.quests.dateDay"}}">
+                      <select name="ql-{{field}}-month" data-part="month" aria-label="{{localize "SDE.quests.dateMonth"}}">
+                        <option value="">{{localize "SDE.quests.dateMonth"}}</option>
+                        {{#each months}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+                      </select>
+                      <input class="ui-num-in" type="number" step="1" name="ql-{{field}}-year" data-part="year" value="{{year}}" aria-label="{{localize "SDE.quests.dateYear"}}" placeholder="{{localize "SDE.quests.dateYear"}}">
+                      {{#if set}}<a class="ui-icon danger" data-action="qlClearDate" data-date="{{field}}" aria-label="{{localize "SDE.quests.dateClear"}}" title="{{localize "SDE.quests.dateClear"}}"><i class="fa-solid fa-xmark"></i></a>{{else}}<span class="ui-icon" aria-hidden="true"></span>{{/if}}
+                    </div>
+                  </div>
+                {{/each}}
+                {{#if when.appearsPassed}}<p class="ui-muted">{{localize "SDE.quests.datePassedAppears"}}</p>{{/if}}
+                {{#if deadline}}
+                  <label class="ql-check"><input type="checkbox" name="ql-autofail" data-ql-field="autoFail" {{#if autoFail}}checked{{/if}}> {{localize "SDE.quests.autoFail"}}</label>
+                {{/if}}
+                {{#if when.failPassed}}<p class="ui-muted">{{localize "SDE.quests.datePassedFails"}}</p>{{/if}}
+                <p class="ui-muted">{{localize "SDE.quests.whenHint"}}</p>
+              </div>
+            </details>
+          {{/if}}
 
           {{#if ../isGM}}
             <details class="ui-details">

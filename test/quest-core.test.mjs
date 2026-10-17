@@ -2,7 +2,7 @@ import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import {
   OWNERSHIP, STATUSES,
-  addObjective, addSubStep, canSee, hasNotes, hasRewards, noteLines, defaultRecipients, makeQueue, matchesFilter, mergeQuest, normalizeQuest, objectiveProgress,
+  addObjective, addSubStep, canSee, dateLabel, dayChanged, deadlineState, dueChanges, timeToDate, hasNotes, hasRewards, noteLines, defaultRecipients, makeQueue, matchesFilter, mergeQuest, normalizeQuest, objectiveProgress,
   ownershipFor, payoutPlan, pickPin, planStatusChange, playerPageHtml, playerView, removeObjective, setObjectiveDone, setObjectiveSecret,
   questsAtHex, setObjectiveText, shouldPay, summarize, trainerTaskQuests, visibleStatuses,
 } from "../scripts/quests/quest-core.mjs";
@@ -575,5 +575,108 @@ describe("giver and other rewards", () => {
     const v = playerView(q);
     assert.equal(v.giver.uuid, "Actor.g1");
     assert.deepEqual(v.rewards.notes, ["a"]);
+  });
+});
+
+describe("quest dates", () => {
+  const D = 86400;
+  const day = (n) => n * D;
+
+  test("an old quest has no dates and round-trips", () => {
+    const q = normalizeQuest({ status: "active", objectives: ["a"] });
+    assert.equal(q.startsAt, null);
+    assert.equal(q.deadline, null);
+    assert.equal(q.autoFail, false);
+    assert.deepEqual(normalizeQuest(q), q);
+  });
+
+  test("a date is a finite worldTime from 0 up, floored; anything else is no date", () => {
+    for (const junk of ["100", "", NaN, -1, Infinity, -Infinity, {}, [], true, undefined]) {
+      const q = normalizeQuest({ startsAt: junk, deadline: junk, autoFail: true });
+      assert.equal(q.startsAt, null, String(junk));
+      assert.equal(q.deadline, null, String(junk));
+      assert.equal(q.autoFail, false, "no deadline, no auto-fail");
+    }
+    const q = normalizeQuest({ startsAt: 0, deadline: 99.9, autoFail: true });
+    assert.deepEqual([q.startsAt, q.deadline, q.autoFail], [0, 99, true]);
+  });
+
+  test("autoFail is only true when it is exactly true and a deadline stands", () => {
+    assert.equal(normalizeQuest({ deadline: 5, autoFail: "yes" }).autoFail, false);
+    assert.equal(normalizeQuest({ deadline: 5, autoFail: true }).autoFail, true);
+    assert.equal(mergeQuest(normalizeQuest({ deadline: 5, autoFail: true }), { deadline: null }).autoFail, false);
+  });
+
+  test("deadlineState: the quest runs through the end of the deadline day", () => {
+    const q = (deadline) => normalizeQuest({ deadline });
+    assert.equal(deadlineState(q(null), 1e9, D), "none");
+    assert.equal(deadlineState(q(day(10)), day(10), D), "open");
+    assert.equal(deadlineState(q(day(10)), day(11) - 1, D), "open");
+    assert.equal(deadlineState(q(day(10)), day(11), D), "overdue");
+  });
+
+  const mk = (id, over) => ({ ...normalizeQuest(over), id });
+
+  test("dueChanges: a fail comes at deadline + a day, not one second sooner", () => {
+    const qs = [mk("a", { status: "active", deadline: day(10), autoFail: true })];
+    assert.deepEqual(dueChanges(qs, day(11) - 1, D), []);
+    assert.deepEqual(dueChanges(qs, day(11), D), [{ id: "a", status: "failed", clear: ["autoFail"] }]);
+    const open = [mk("b", { status: "available", deadline: day(10), autoFail: true })];
+    assert.equal(dueChanges(open, day(11), D)[0].status, "failed");
+  });
+
+  test("dueChanges: no autoFail, no fail; completed, failed and hidden quests never fail", () => {
+    const base = { deadline: day(10), autoFail: true };
+    assert.deepEqual(dueChanges([mk("a", { status: "active", deadline: day(10) })], day(50), D), []);
+    for (const status of ["completed", "failed", "hidden"]) {
+      assert.deepEqual(dueChanges([mk("a", { ...base, status })], day(50), D), [], status);
+    }
+  });
+
+  test("dueChanges: a reopened quest (autoFail switched off) stays open", () => {
+    const q = mk("a", { status: "active", deadline: day(10), autoFail: false });
+    assert.deepEqual(dueChanges([q], day(50), D), []);
+  });
+
+  test("dueChanges: a Hidden quest appears on the first second of its day, clearing startsAt", () => {
+    const q = mk("h", { status: "hidden", startsAt: day(5) });
+    assert.deepEqual(dueChanges([q], day(5) - 1, D), []);
+    assert.deepEqual(dueChanges([q], day(5), D), [{ id: "h", status: "available", clear: ["startsAt"] }]);
+    assert.equal(dueChanges([mk("h", { status: "hidden" })], day(5), D).length, 0, "no date, no reveal");
+    assert.deepEqual(dueChanges([mk("x", { status: "active", startsAt: day(1) })], day(5), D), [], "only a Hidden quest appears");
+  });
+
+  test("dueChanges: a Hidden quest whose deadline is over stays Hidden and keeps startsAt; one still open appears", () => {
+    const over = mk("h", { status: "hidden", startsAt: day(5), deadline: day(6), autoFail: true });
+    assert.deepEqual(dueChanges([over], day(7), D), []);
+    assert.deepEqual(dueChanges([over], day(7) - 1, D)[0].status, "available", "the deadline day is not over yet");
+    assert.equal(over.startsAt, day(5));
+  });
+
+  test("dueChanges: one pass never reveals and fails the same quest", () => {
+    const q = mk("h", { status: "hidden", startsAt: day(5), deadline: day(6), autoFail: true });
+    assert.equal(dueChanges([q], day(6), D).length, 1);
+  });
+
+  test("dayChanged only when the day number moves", () => {
+    assert.equal(dayChanged(day(3), day(3) + 5, D), false);
+    assert.equal(dayChanged(day(4) - 1, day(4), D), true);
+    assert.equal(dayChanged(day(9), day(2), D), true, "back in time is another day too");
+  });
+
+  test("timeToDate and dateLabel read the calendar's own names", () => {
+    const cal = { years: { yearZero: 100 }, months: { values: [{ name: "M.Jan" }, { name: "M.Feb" }] },
+      timeToComponents: () => ({ year: 1248, month: 1, dayOfMonth: 13 }) };
+    assert.deepEqual(timeToDate(cal, 0), { day: 14, month: 2, year: 1348 });
+    assert.equal(dateLabel(cal, 0, t), 'SDE.quests.dateFormat{"day":14,"month":"M.Feb","year":1348}');
+  });
+
+  test("the player page shows the Due line, never a start date", () => {
+    const cal = { timeToComponents: () => ({ year: 1348, month: 2, dayOfMonth: 13 }), months: { values: [] } };
+    const q = normalizeQuest({ status: "active", deadline: 777, startsAt: 123456 });
+    const html = playerPageHtml(q, t, cal);
+    assert.ok(html.includes("SDE.quests.page.due"));
+    assert.ok(!html.includes("123456"));
+    assert.ok(!playerPageHtml(normalizeQuest({ status: "active" }), t, cal).includes("page.due"));
   });
 });

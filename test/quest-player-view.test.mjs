@@ -19,7 +19,7 @@ const entry = {
   id: "q1", uuid: "JournalEntry.q1", name: "The drowned bell", _stats: { createdTime: 1 },
   testUserPermission: () => true,
   flags: { [M]: { quest: {
-    status: "active",
+    status: "active", startsAt: 4242, deadline: 9000, autoFail: true,
     objectives: [
       { id: "a", text: "Find the bell" }, { id: "a1", text: "Ask the ferryman", parent: "a" },
       { id: "s", text: "The ferryman is a ghost", secret: true }, { id: "s1", text: "Child of a secret", parent: "s" },
@@ -50,4 +50,16 @@ test("a player's list and get keep the giver and the reward notes", () => {
     assert.deepEqual(q.giver, { uuid: "Actor.g1", name: "Old Maren", img: "m.webp" });
     assert.deepEqual(q.rewards.notes, ["free lodging"]);
   }
+});
+
+test("a player's list and get carry the deadline but never startsAt; a GM gets both", () => {
+  for (const q of [Quests.list()[0], Quests.get("q1")]) {
+    assert.equal(q.deadline, 9000);
+    assert.equal(q.autoFail, true);
+    assert.ok(!("startsAt" in q));
+  }
+  assert.ok(!JSON.stringify(Quests.list()).includes("4242"));
+  globalThis.game.user.isGM = true;
+  assert.equal(Quests.get("q1").startsAt, 4242);
+  globalThis.game.user.isGM = false;
 });

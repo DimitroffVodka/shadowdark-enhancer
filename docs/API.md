@@ -1561,6 +1561,9 @@ await api.quests.setStatus(q.id, "completed");    // asks the GM to confirm the 
                  // step's id or null (one level only); secret hides the step from players
   reveal,        // since 1.32.0: "all" | "next" (players see the done steps and the first undone one)
   giver,         // since 1.32.0: { uuid, name, img } snapshot of the NPC who gave it, or null; players see it
+  startsAt,      // since 1.32.0: worldTime of the first second of the day a Hidden quest appears, or null; GM only, a player's list/get never carries it
+  deadline,      // since 1.32.0: worldTime of the first second of the last day to finish it, or null; players see it
+  autoFail,      // since 1.32.0: true fails the quest once the deadline's day is over; false without a deadline, and off again once it has fired
   description,   // the GM's player-facing text
   rewards: { xp, coins: { gp, sp, cp }, renown, items: [{ uuid, name, img }], training,
                  //   notes: string[] since 1.32.0, up to 10 lines of 200 characters the log does not pay

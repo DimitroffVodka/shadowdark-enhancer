@@ -112,6 +112,7 @@ import { SessionRecap } from "./session-recap/session-recap.mjs";
 import { DowntimeSession } from "./downtime/downtime-session.mjs";
 import { Renown } from "./renown/renown.mjs";
 import { Quests, openQuestLog, registerQuests } from "./quests/quests.mjs";
+import { registerQuestClock } from "./quests/quest-clock.mjs";
 import { Troubles, registerTroubles } from "./troubles/troubles.mjs";
 import { Rumors, registerRumors } from "./rumors/rumors.mjs";
 import { registerActorTypes, WARBAND_TYPE } from "./actors/register-actors.mjs";
@@ -138,7 +139,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "302d4995c525";
+const STYLESHEET_REV = "a4bd1b554f72";
 
 // The same problem for the SCRIPTS, which cannot be solved the same way: their
 // URLs come from the manifest, which Foundry validates as real package paths,
@@ -153,7 +154,7 @@ const STYLESHEET_REV = "302d4995c525";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "27149cb9d6d5";
+const BUILD_REV = "28675d20335a";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -348,6 +349,8 @@ Hooks.once("init", () => {
   MonsterTokenArt.register();
   // Quest Log: its keybinding can only be registered during init.
   registerQuests();
+  // Dates on quests: appears-on and fail-at-the-deadline, on the clock (never on an edit).
+  registerQuestClock();
   registerTroubles();
   // The GM-only "Rules Data isn't set" cards get their button (#299).
   registerRulesNotice();

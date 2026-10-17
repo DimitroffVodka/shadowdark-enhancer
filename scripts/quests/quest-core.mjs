@@ -21,6 +21,11 @@
  *   reveal       "all" (default) or "next": players see the done top-level
  *                steps and the first undone one
  *   giver        { uuid, name, img } snapshot of the NPC who gave it, or null
+ *   startsAt     worldTime of the first second of the day a Hidden quest appears,
+ *                or null. GM only: never in a player's view
+ *   deadline     worldTime of the first second of the last day to finish it, or null
+ *   autoFail     true: the clock fails the quest once the deadline day is over.
+ *                False without a deadline, and switched off once it has fired
  *   rewards      { xp, coins, renown, items: [{ uuid, name, img }], training,
  *                notes: typed lines the log does not pay }
  *   hex          a published hex number whose map pin the quest jumps to
@@ -150,11 +155,16 @@ function normalizeObjectives(rawList, newId) {
   return flat.filter((o) => !o.parent).flatMap((o) => [o, ...flat.filter((c) => c.parent === o.id)]);
 }
 
-const KNOWN_KEYS = new Set(["status", "source", "characters", "party", "description", "objectives", "rewards", "reveal", "giver", "hex", "hexScene", "paid", "payout"]);
+const KNOWN_KEYS = new Set(["status", "source", "characters", "party", "description", "objectives", "rewards", "reveal", "giver", "startsAt", "deadline", "autoFail", "hex", "hexScene", "paid", "payout"]);
 
 function wholeNumber(v, { min = -Infinity } = {}) {
   const n = Math.round(Number(v));
   return Number.isFinite(n) && n >= min ? n : 0;
+}
+
+/** A worldTime is a finite number from 0 up, floored; anything else is no date. */
+function worldTime(v) {
+  return typeof v === "number" && Number.isFinite(v) && v >= 0 ? Math.floor(v) : null;
 }
 
 function hexNumber(v) {
@@ -181,6 +191,7 @@ export function normalizeQuest(raw = {}, { newId = defaultId } = {}) {
   }
   const r = raw?.rewards ?? {};
   const hex = hexNumber(raw?.hex);
+  const deadline = worldTime(raw?.deadline);
   // Keys this build does not know ride through, so a newer build's fields survive an older GM tab.
   const unknown = carryUnknown(raw, KNOWN_KEYS);
   return {
@@ -193,6 +204,9 @@ export function normalizeQuest(raw = {}, { newId = defaultId } = {}) {
     objectives: normalizeObjectives(raw?.objectives, newId),
     reveal: raw?.reveal === "next" ? "next" : "all",
     giver: normalizeGiver(raw?.giver),
+    startsAt: worldTime(raw?.startsAt),
+    deadline,
+    autoFail: deadline !== null && raw?.autoFail === true,
     rewards: {
       ...carryUnknown(r, REWARD_KEYS),
       xp: wholeNumber(r.xp, { min: 0 }),
@@ -318,7 +332,8 @@ export function removeObjective(quest, id) {
  * secret parent), and on a "next" quest the done top-level steps plus the first
  * undone one. `quest` is normalized.
  */
-export function playerView(quest) {
+export function playerView(full) {
+  const { startsAt: _gmOnly, ...quest } = full;
   const secretParents = new Set(quest.objectives.filter((o) => o.secret && !o.parent).map((o) => o.id));
   let objectives = quest.objectives.filter((o) => !o.secret && !secretParents.has(o.parent));
   if (quest.reveal === "next") {
@@ -339,6 +354,52 @@ export function objectiveProgress(quest, { isGM = true } = {}) {
   if (!isGM && quest?.reveal === "next") return { done: 0, total: 0, complete: false };
   const done = all.filter((o) => o.done).length;
   return { done, total: all.length, complete: all.length > 0 && done === all.length };
+}
+
+// ── Time ────────────────────────────────────────────────────────────────────
+
+/** "none" without a deadline, "overdue" once the deadline's day is over, else "open". `spd` is seconds per day. */
+export function deadlineState(quest, now, spd) {
+  if (quest?.deadline == null) return "none";
+  return now >= quest.deadline + spd ? "overdue" : "open";
+}
+
+/**
+ * The status moves the world clock calls for, as `{id, status, clear}`: `clear`
+ * names the fields to reset once the status has moved. A Hidden quest whose
+ * date has come appears, unless its deadline is already over (it stays Hidden
+ * and keeps its date). An Available or Active quest that asked to fail at its
+ * deadline fails once the deadline's day is over. Hidden, Completed and Failed
+ * quests never fail.
+ */
+export function dueChanges(quests, now, spd) {
+  const out = [];
+  for (const q of quests) {
+    const overdue = deadlineState(q, now, spd) === "overdue";
+    if (q.status === "hidden" && q.startsAt != null && now >= q.startsAt && !overdue) {
+      out.push({ id: q.id, status: "available", clear: ["startsAt"] });
+    } else if ((q.status === "available" || q.status === "active") && q.autoFail && overdue) {
+      out.push({ id: q.id, status: "failed", clear: ["autoFail"] });
+    }
+  }
+  return out;
+}
+
+/** Did the world clock move into another day? (A window redraws only then.) */
+export function dayChanged(prev, now, spd) {
+  return Math.floor(prev / spd) !== Math.floor(now / spd);
+}
+
+/** A worldTime as the calendar's day, month (from 1) and year as it prints it. */
+export function timeToDate(cal, t) {
+  const c = cal.timeToComponents(t);
+  return { day: c.dayOfMonth + 1, month: c.month + 1, year: c.year + (cal.years?.yearZero ?? 0) };
+}
+
+/** A worldTime as "14 March 1348", the month named by the calendar (a localisation key, run through `t`). */
+export function dateLabel(cal, time, t) {
+  const d = timeToDate(cal, time);
+  return t("SDE.quests.dateFormat", { day: d.day, month: t(cal.months?.values?.[d.month - 1]?.name ?? ""), year: d.year });
 }
 
 // ── Rewards ─────────────────────────────────────────────────────────────────
@@ -472,13 +533,15 @@ export function textToParagraphs(text) {
  *
  * @param {object} quest normalized
  * @param {Function} t (key, data?) → string
+ * @param {object} [cal] the world calendar, for the Due line
  */
-export function playerPageHtml(full, t) {
+export function playerPageHtml(full, t, cal = null) {
   const quest = playerView(full);
   const parts = [
     `<p><em>${esc(t("SDE.quests.page.statusLine", {
       status: t(STATUS_LABELS[quest.status]), source: t(SOURCE_LABELS[quest.source.kind]),
     }))}</em></p>`,
+    ...(quest.deadline != null && cal ? [`<p>${esc(t("SDE.quests.page.due", { date: dateLabel(cal, quest.deadline, t) }))}</p>`] : []),
     ...(quest.giver ? [`<p>${esc(t("SDE.quests.page.givenBy", { name: quest.giver.name || quest.giver.uuid }))}</p>`] : []),
     textToParagraphs(quest.description),
   ];

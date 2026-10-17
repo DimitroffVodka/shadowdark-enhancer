@@ -132,7 +132,7 @@ function playerPageData(quest) {
   return {
     name: t("SDE.quests.page.player"),
     type: "text",
-    text: { content: playerPageHtml(quest, t), format: CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML },
+    text: { content: playerPageHtml(quest, t, game.time?.calendar), format: CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML },
     ownership: { default: OWNERSHIP.INHERIT },
     flags: { [MODULE_ID]: { [PAGE_FLAG]: "player" } },
   };
@@ -158,7 +158,7 @@ async function writeQuest(entry, quest, { name } = {}) {
   if (entry.ownership?.default !== level) extra["ownership.default"] = level;
   if (Object.keys(extra).length) await entry.update(extra);
   const page = entry.pages.find((p) => p.flags?.[MODULE_ID]?.[PAGE_FLAG] === "player");
-  if (page) await page.update({ "text.content": playerPageHtml(quest, t) });
+  if (page) await page.update({ "text.content": playerPageHtml(quest, t, game.time?.calendar) });
   else await entry.createEmbeddedDocuments("JournalEntryPage", [playerPageData(quest)]);
 }
 
