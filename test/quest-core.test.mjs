@@ -521,6 +521,17 @@ describe("giver and other rewards", () => {
     assert.deepEqual(normalizeQuest({ rewards: { notes: "not a list" } }).rewards.notes, []);
   });
 
+  test("only strings and finite numbers survive as notes", () => {
+    const q = normalizeQuest({ rewards: { notes: [{ a: 1 }, ["a", "b"], "ok", 7, NaN, null, true] } });
+    assert.deepEqual(q.rewards.notes, ["ok", "7"]);
+  });
+
+  test("a giver with no name prints no Given by line", () => {
+    const html = playerPageHtml(normalizeQuest({ giver: { uuid: "Actor.xyz" } }), t);
+    assert.ok(!html.includes("givenBy") && !html.includes("Actor.xyz"));
+    assert.ok(playerPageHtml(normalizeQuest({ giver: { uuid: "Actor.xyz", name: "Mara" } }), t).includes("givenBy"));
+  });
+
   test("notes are not rewards the log pays: hasRewards and shouldPay ignore them", () => {
     const q = normalizeQuest({ status: "active", rewards: { notes: ["free lodging"] } });
     assert.equal(hasNotes(q.rewards), true);

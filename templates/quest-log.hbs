@@ -22,7 +22,7 @@
 
   <nav class="ui-tabs">
     {{#each tabs}}
-      <button type="button" class="ui-tab {{#if active}}active{{/if}}" data-action="qlTab" data-status="{{status}}">{{label}} <span class="ui-count">{{count}}</span></button>
+      <a class="ui-tab {{#if active}}active{{/if}}" data-action="qlTab" data-status="{{status}}">{{label}} <span class="ui-count">{{count}}</span></a>
     {{/each}}
   </nav>
 
@@ -58,8 +58,8 @@
               {{#unless ../inline}}{{#if source.uuid}}<a data-action="qlOpenSource">{{localize "SDE.quests.openSource"}}</a>{{/if}}{{/unless}}
               {{#if canAccept}}<a data-action="qlAccept"><i class="fa-solid fa-scroll"></i> {{localize "SDE.quests.acceptLink"}}</a>{{/if}}
               <span class="ui-right ui-inline">
-                {{#unless ../inline}}<button type="button" class="ui-btn" data-action="qlOpenJournal"><i class="fa-solid fa-book-open"></i> {{localize "SDE.quests.openJournal"}}</button>{{/unless}}
-                {{#if hasPin}}<button type="button" class="ui-btn" data-action="qlJump"><i class="fa-solid fa-location-dot"></i> {{localize "SDE.quests.jump"}}</button>{{/if}}
+                {{#unless ../inline}}<a class="ui-btn" data-action="qlOpenJournal"><i class="fa-solid fa-book-open"></i> {{localize "SDE.quests.openJournal"}}</a>{{/unless}}
+                {{#if hasPin}}<a class="ui-btn" data-action="qlJump"><i class="fa-solid fa-location-dot"></i> {{localize "SDE.quests.jump"}}</a>{{/if}}
               </span>
             </div>
             {{#if when.dueText}}<p class="ql-due">{{when.dueText}}</p>{{/if}}
@@ -116,7 +116,7 @@
                     <input type="text" name="ql-obj-{{id}}" data-ql-field="objectiveText" data-objective="{{id}}" value="{{text}}" aria-label="{{text}}">
                     {{#if secret}}<span class="ui-chip ql-secret-mark" title="{{localize "SDE.quests.secretMark"}}">{{localize "SDE.quests.secretChip"}}</span>{{/if}}
                     <a class="ui-icon" data-action="qlToggleSecret" data-objective="{{id}}" title="{{#if secret}}{{localize "SDE.quests.makeVisible"}}{{else}}{{localize "SDE.quests.makeSecret"}}{{/if}}" aria-label="{{#if secret}}{{localize "SDE.quests.makeVisible"}}{{else}}{{localize "SDE.quests.makeSecret"}}{{/if}}"><i class="fa-solid {{#if secret}}fa-eye-slash{{else}}fa-eye{{/if}}"></i></a>
-                    {{#if parent}}<span class="ui-icon" aria-hidden="true"></span>{{else}}<a class="ui-icon" data-action="qlAddSubStep" data-objective="{{id}}" aria-label="{{localize "SDE.quests.addSubStep"}}" title="{{localize "SDE.quests.addSubStep"}}"><i class="fa-solid fa-turn-down fa-rotate-270"></i></a>{{/if}}
+                    {{#if parent}}<span class="ui-icon" aria-hidden="true"></span>{{else}}<a class="ui-icon" data-action="qlAddSubStep" data-objective="{{id}}" aria-label="{{localize "SDE.quests.addSubStep"}}" title="{{localize "SDE.quests.addSubStep"}}"><i class="fa-solid fa-indent"></i></a>{{/if}}
                     <a class="ui-icon danger" data-action="qlRemoveObjective" data-objective="{{id}}" aria-label="{{localize "SDE.quests.remove"}}"><i class="fa-solid fa-trash"></i></a>
                   {{else}}<span class="ui-row-main">{{text}}</span>{{/if}}
                 </div>
@@ -165,13 +165,15 @@
                   </div>
                 {{/each}}
               </div>
+              {{#if canAddNote}}
               <div class="ui-inline ql-add">
                 <input type="text" maxlength="200" name="ql-new-note" data-ql-new-note placeholder="{{localize "SDE.quests.newNote"}}" aria-label="{{localize "SDE.quests.newNote"}}">
                 <button type="button" class="ui-btn" data-action="qlSubmitNote" aria-label="{{localize "SDE.quests.newNote"}}"><i class="fa-solid fa-plus"></i></button>
               </div>
+              {{/if}}
               <p class="ui-muted">{{localize "SDE.quests.noteHint"}}</p>
             {{else}}
-              {{#if hasNotes}}{{else if hasRewards}}{{else}}<span class="ui-muted">{{localize "SDE.quests.noRewards"}}</span>{{/if}}
+              {{#unless showRewards}}<span class="ui-muted">{{localize "SDE.quests.noRewards"}}</span>{{/unless}}
               {{#if hasRewards}}
                 <div class="ui-inline">
                   {{#if rewards.xp}}<span class="ui-chip gold">{{localize "SDE.quests.reward.xp" n=rewards.xp}}</span>{{/if}}
@@ -206,7 +208,7 @@
                   </div>
                 {{/each}}
                 {{#if when.appearsPassed}}<p class="ui-muted">{{localize "SDE.quests.datePassedAppears"}}</p>{{/if}}
-                {{#if deadline}}
+                {{#if hasDeadline}}
                   <label class="ql-check"><input type="checkbox" name="ql-autofail" data-ql-field="autoFail" {{#if autoFail}}checked{{/if}}> {{localize "SDE.quests.autoFail"}}</label>
                 {{/if}}
                 {{#if when.failPassed}}<p class="ui-muted">{{localize "SDE.quests.datePassedFails"}}</p>{{/if}}

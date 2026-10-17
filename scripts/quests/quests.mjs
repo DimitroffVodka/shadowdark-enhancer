@@ -416,6 +416,7 @@ async function postQuestLine(entry, oldStatus) {
       ? t("SDE.quests.chat.overdue", { name: entry.name, date: dateLabel(cal, quest.deadline, t) })
       : t(quest.status === "failed" ? "SDE.quests.chat.failed" : "SDE.quests.chat.completed", { name: entry.name });
     await ChatMessage.create({
+      speaker: { alias: t("SDE.quests.title") },
       content: questLineCard({ title, failed: quest.status === "failed" }),
       flags: { [MODULE_ID]: { questLine: { questUuid: entry.uuid, status: quest.status } } },
     });
@@ -437,8 +438,9 @@ async function promptAccept(id, user) {
       window: { title: t("SDE.quests.acceptPromptTitle"), icon: "fa-solid fa-scroll" },
       content: `<p>${t("SDE.quests.acceptPrompt", { player: esc(user.name), quest: esc(name) })}</p>`,
       buttons: [
-        { action: "approve", label: t("SDE.quests.acceptApprove"), icon: "fa-solid fa-check", default: true },
-        { action: "notNow", label: t("SDE.quests.acceptNotNow"), icon: "fa-solid fa-xmark" },
+        { action: "approve", label: t("SDE.quests.acceptApprove"), icon: "fa-solid fa-check" },
+        // Default (autofocused) is the safe answer: a keystroke meant for chat must not approve.
+        { action: "notNow", label: t("SDE.quests.acceptNotNow"), icon: "fa-solid fa-xmark", default: true },
       ],
       rejectClose: false,
     });
@@ -448,7 +450,7 @@ async function promptAccept(id, user) {
     } else {
       await ChatMessage.create({
         whisper: [user.id],
-        content: questLineCard({ title: t("SDE.quests.acceptDeclined", { name }), failed: true }),
+        content: questLineCard({ title: t("SDE.quests.acceptDeclined", { name }), failed: false }),
       });
     }
   } catch (error) {
@@ -466,7 +468,7 @@ export async function handleQuestQuery(data, user) {
   const refused = refuseQuery(user, t("SDE.quests.acceptRelayLabel"));
   if (refused) return refused;
   const generic = { ok: false, error: t("SDE.quests.acceptRefused") };
-  if (data?.action !== "accept") return generic;
+  if (data?.action !== "accept" || typeof data.id !== "string") return generic;
   const entry = entryFor(data.id);
   const quest = flagOf(entry);
   if (!quest || quest.status !== "available") return generic;
@@ -552,7 +554,11 @@ export const Quests = {
       if (!plan.ok) { ui.notifications?.warn(t("SDE.quests.notify.badStatus")); return null; }
       if (!plan.changed) return toSummary(entry);
       const oldStatus = flagOf(entry).status;
-      if (!plan.pay) { await writeQuest(entry, plan.quest); await postQuestLine(entry, oldStatus); return toSummary(entry); }
+      if (!plan.pay) {
+        // The flag is written first; if a later write throws the status is already final, so the line still goes out.
+        try { await writeQuest(entry, plan.quest); } finally { await postQuestLine(entry, oldStatus); }
+        return toSummary(entry);
+      }
 
       const quest = plan.quest;
       if (!quest.payout) {
@@ -565,7 +571,7 @@ export const Quests = {
         }
         quest.payout = { plan: payout, done: {} };
         // Freeze recipients/rewards before any write to a recipient. Retry never asks again.
-        await writeQuest(entry, quest);
+        try { await writeQuest(entry, quest); } catch (error) { await postQuestLine(entry, oldStatus); throw error; }
       }
       // The status flag turns Completed at the freeze above or inside pay(); the line is posted
       // once whichever way pay() ends, and only while the stored status was still Available/Active.
@@ -630,8 +636,8 @@ export const Quests = {
 
 // ── Wiring ──────────────────────────────────────────────────────────────────
 
-export async function openQuestLog() {
-  return (await import("./quest-log-app.mjs")).QuestLogApp.open();
+export async function openQuestLog(idOrUuid) {
+  return (await import("./quest-log-app.mjs")).QuestLogApp.open(idOrUuid);
 }
 
 /** "Quest Log" at the foot of the Journal sidebar, for everyone. */

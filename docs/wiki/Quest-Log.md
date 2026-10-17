@@ -29,7 +29,7 @@ Everyone can open it. Players get it read-only; only the GM edits.
 Each quest is a journal entry in a **Quests** folder of the Journal sidebar,
 with two pages:
 
-- **Quest**: the description, the objectives and the rewards. The Quest Log
+- **Quest**: the description, the steps and the rewards. The Quest Log
   writes this page every time the quest changes, so edit those parts in the
   Quest Log, not on the page.
 - **GM notes**: yours. Players never see this page, and the Quest Log never
@@ -62,9 +62,9 @@ never edit it.
 2. Name it, and type the description players will read. Drag an NPC from the
    sidebar onto **Given by** to say who gave the quest; players see their name
    and portrait. Press the small x to clear it.
-3. Add objectives: type one and press **Enter**. Tick them off as the party
+3. Add steps: type one and press **Enter**. Tick them off as the party
    gets them done; only you can.
-   - **Sub-steps:** press the small arrow on a step to add a sub-step under it
+   - **Sub-steps:** press the indent button on a step to add a sub-step under it
      (one level only). Deleting a step deletes its sub-steps; ticking a step
      does not tick them.
    - **Secret steps:** the eye on a step hides it from players until you press
@@ -131,7 +131,8 @@ gave before that, then shows them on the Hidden tab.
   Available or Active to Completed or Failed ("Quest failed: The drowned bell
   (due 14 March 1348)"; the date appears when the deadline had passed). It is
   the record for a player who was away. A Hidden quest moved straight to Failed
-  posts nothing, since players never saw it.
+  posts no chat line; players learn of it from the "Quest failed" pop-up and
+  the Failed tab.
 - **The Failed tab** keeps the quest, with its count.
 
 GMs get no pop-ups; the chat line is posted by whoever changes the status (for a
@@ -141,8 +142,8 @@ deadline failure, the GM whose game runs the clock), so it appears once.
 
 ## Accepting a quest
 
-A player who sees an **Available** quest gets an **Accept quest** link beside the
-quest's source. It is a link, not a button, so it also works for a player who only
+A player who sees an **Available** quest gets an **Accept quest** link in the
+quest's details. It is a link, not a button, so it also works for a player who only
 looks at the party in the Party sheet's Quests tab. GMs never see it, and neither
 does a quest in any other status.
 
@@ -200,7 +201,7 @@ are deliberately omitted from the plan.
 Each task in the [Regional Training](Regional-Training.md) window has an **Add to Quest Log** button
 (GM only). Choose the character in the window's **Character** list first; until
 then the button is greyed out. It adds an **Available** quest personal
-to that character, with the task as its one objective and the trainer's
+to that character, with the task as its one step and the trainer's
 benefit as its reward. The task then shows **Taken**, and **Done** once the
 quest is completed.
 

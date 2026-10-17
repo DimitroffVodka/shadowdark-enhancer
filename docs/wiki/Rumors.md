@@ -79,7 +79,7 @@ and the real date it was heard, and who heard it, newest first.
     left without one.
   - **Promote to quest.** Each rumor also has a button, for the GM only, that
     makes an **Available** quest at once. Once a rumor has a quest, the button
-    opens the Quest Log.
+    opens that quest in the Quest Log.
   - A rumor about a trouble uses the trouble itself, so completing the quest
     resolves the trouble. That quest links to the trouble's page, which only
     GMs see.

@@ -155,7 +155,7 @@ const STYLESHEET_REV = "a4bd1b554f72";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "f3781eddac1a";
+const BUILD_REV = "f4e8e4b739c2";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -541,6 +541,7 @@ Hooks.once("init", () => {
     // 1.30.0 — additive: the hexFogChanged hook, one per redraw of the viewed hex scene's fog (#490).
     // 1.31.0 — additive: owns("hex.baked", scene), a map baked with Extras that the Enhancer draws itself.
     // 1.32.0 — additive: quest steps gain parent and secret, quests gain reveal; a non-GM gets the player view.
+    //          Also giver, rewards.notes, startsAt, deadline, autoFail and the questLine chat flag (see docs/API.md).
     apiVersion: "1.32.0",
     // The one travel state per world (scripts/overland/overland.mjs): a copy
     // with hexes left, climate, storm, harshness and night derived; whether

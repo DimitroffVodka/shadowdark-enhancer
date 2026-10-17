@@ -398,7 +398,7 @@ function decoratePage(sheet, html) {
   if (!tr.resolved) {
     button(t(tr.discovered ? "SDE.troubles.button.unheard" : "SDE.troubles.button.heard"), () => Troubles.discover(page.id, !tr.discovered));
     button(t(tr.questUuid ? "SDE.troubles.button.openQuest" : "SDE.troubles.button.promote"),
-      async () => { if (tr.questUuid) await openQuestLog(); else await Troubles.promote(page.id); });
+      async () => { if (tr.questUuid) await openQuestLog(tr.questUuid); else await Troubles.promote(page.id); });
   }
   button(t("SDE.troubles.button.pin"), () => jumpToHex(tr.settlement.num));
   html.prepend(bar);

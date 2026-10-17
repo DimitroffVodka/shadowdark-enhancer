@@ -61,6 +61,24 @@ test("one generic refusal: unknown quest, not Available, unreadable, Hidden", as
   }
 });
 
+test("a hostile id gets the generic refusal and no prompt", async () => {
+  const w = world();
+  for (const id of [{ toString: 1 }, ["q"], 5, null]) {
+    assert.deepEqual(await handleQuestQuery({ action: "accept", id }, PLAYER), { ok: false, error: generic });
+  }
+  await tick();
+  assert.equal(w.prompts.length, 0);
+});
+
+test("the prompt's default button is Not now, never Approve; Approve is listed first", async () => {
+  const w = world();
+  await handleQuestQuery({ action: "accept", id: "q" }, PLAYER);
+  await tick();
+  const buttons = w.prompts[0].buttons;
+  assert.deepEqual(buttons.filter((b) => b.default).map((b) => b.action), ["notNow"]);
+  assert.equal(buttons[0].action, "approve");
+});
+
 test("the sender comes from the user, never from the payload", async () => {
   const w = world({ observers: ["p1"] });
   // The payload names the GM, who could read anything; the sender is a player who cannot read the quest.
@@ -115,6 +133,7 @@ test("Not now and a closed prompt each whisper the requester exactly once", asyn
     assert.equal(w.messages.length, 1);
     assert.deepEqual(w.messages[0].whisper, ["p1"]);
     assert.match(w.messages[0].content, /The GM isn&#39;t ready for you to take The Drowned Bell/);
+    assert.doesNotMatch(w.messages[0].content, /warn/);
   }
 });
 
@@ -165,4 +184,10 @@ test("a GM never gets the link, nor a quest that is not Available", () => {
   const hbs = readFileSync(new URL("../templates/quest-log.hbs", import.meta.url), "utf8");
   assert.match(hbs, /\{\{#if canAccept\}\}<a data-action="qlAccept"/, "an anchor: the Party sheet disables buttons for observers");
   assert.doesNotMatch(hbs, /<button[^>]*qlAccept/);
+});
+
+test("player-facing quest log controls are anchors, never buttons (the Party sheet disables buttons for observers)", () => {
+  const hbs = readFileSync(new URL("../templates/quest-log.hbs", import.meta.url), "utf8");
+  const bad = [...hbs.matchAll(/<button\b[^>]*>/g)].map((m) => m[0]).filter((tag) => /data-action="(qlTab|qlJump|qlOpenJournal|qlAccept|qlSelect)"/.test(tag));
+  assert.deepEqual(bad, []);
 });

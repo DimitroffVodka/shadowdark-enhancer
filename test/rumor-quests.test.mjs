@@ -17,7 +17,8 @@ globalThis.ui = { notifications: { warn() {}, info() {} } };
 globalThis.CONST = { DOCUMENT_OWNERSHIP_LEVELS: { OBSERVER: 2 }, SORT_INTEGER_DENSITY: 100000 };
 globalThis.game = { user: { isGM: true }, i18n: { localize: (k) => k, format: (k) => k }, settings: { get: () => true, register() {} }, journal: { find: () => null } };
 
-const { Rumors } = await import("../scripts/rumors/rumors.mjs");
+const { Rumors, draftGiven } = await import("../scripts/rumors/rumors.mjs");
+const { QuestLogApp, fromRumorsDrafted } = await import("../scripts/quests/quest-log-app.mjs");
 const { Quests } = await import("../scripts/quests/quests.mjs");
 const { Troubles } = await import("../scripts/troubles/troubles.mjs");
 
@@ -90,4 +91,68 @@ test("only a GM can draft", async () => {
   globalThis.game.user.isGM = false;
   try { assert.equal(await Rumors.draftQuests(), null); } finally { globalThis.game.user.isGM = true; }
   assert.equal(calls.length, 0);
+});
+
+/** The ledger of ledgerWith, with the `find` on its pages that a give needs. */
+function givenLedger(rumors) {
+  const page = ledgerWith(rumors);
+  const entry = globalThis.game.journal.find(() => true);
+  entry.pages.find = (fn) => [page].find(fn);
+  return page;
+}
+
+test("a give drafts a Hidden quest per new rumor with the setting on, none with it off", async () => {
+  const page = givenLedger([{ id: "a", text: "A bell." }, { id: "b", text: "Maps." }]);
+  const calls = stubQuests();
+  const settings = globalThis.game.settings;
+  try {
+    globalThis.game.settings = { get: () => false };
+    assert.deepEqual(await draftGiven([{ id: "a", region: null }]), []);
+    assert.equal(calls.length, 0);
+    globalThis.game.settings = { get: () => true };
+    assert.equal((await draftGiven([{ id: "a", region: null }, { id: "b", region: null }])).length, 2);
+  } finally { globalThis.game.settings = settings; }
+  assert.deepEqual(calls.map((c) => c.status), ["hidden", "hidden"]);
+  assert.deepEqual(page.flags[M].rumorPage.rumors.map((r) => r.questUuid), ["JournalEntry.q1", "JournalEntry.q2"]);
+});
+
+test("a draft that fails during a give does not throw out of it", async () => {
+  givenLedger([{ id: "a", text: "Bad." }]);
+  stubQuests({ fail: "Bad." });
+  const quiet = console.error;
+  console.error = () => {};
+  try { assert.deepEqual(await draftGiven([{ id: "a", region: null }]), []); } finally { console.error = quiet; }
+});
+
+/** Opens the Quest Log with `Quests.get` serving `known` (id to summary). */
+function openLog(known, arg) {
+  Quests.get = (id) => known[id] ?? null;
+  const app = Object.create(QuestLogApp.prototype);
+  app.tab = "active"; app.selectedId = "old"; app.filters = { character: "x", party: "", source: "" };
+  app.render = () => {};
+  globalThis.foundry.applications.instances = { get: () => app };
+  QuestLogApp.open(arg);
+  return app;
+}
+
+test("opening the Quest Log on a Hidden quest selects its tab and clears the filters", () => {
+  const app = openLog({ q1: { id: "q1", status: "hidden" } }, "q1");
+  assert.equal(app.tab, "hidden");
+  assert.equal(app.selectedId, "q1");
+  assert.deepEqual(app.filters, { character: "", party: "", source: "" });
+});
+
+test("opening on an unknown or unreadable quest, or on none, changes nothing", () => {
+  for (const arg of ["nope", undefined]) {
+    const app = openLog({}, arg);
+    assert.equal(app.tab, "active");
+    assert.equal(app.selectedId, "old");
+    assert.equal(app.filters.character, "x");
+  }
+});
+
+test("From rumors counts only the Hidden quests it drafted", () => {
+  const made = [{ id: "a", status: "active" }, { id: "b", status: "hidden" }];
+  assert.deepEqual(fromRumorsDrafted(made).map((q) => q.id), ["b"]);
+  assert.equal(fromRumorsDrafted(null), null);
 });

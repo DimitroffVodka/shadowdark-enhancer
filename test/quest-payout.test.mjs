@@ -178,3 +178,12 @@ test("a non-Player recipient in a frozen plan is skipped with one warning, never
   assert.equal(f.actors[1].system.level.xp, 0, "the non-Player recipient is skipped, not a wedge");
   assert.deepEqual(warns, ["SDE.quests.notify.recipientMissing"]);
 });
+test("the payout reminder lists Other rewards, escaped; a quest without notes has none", () => {
+  const f = fixture();
+  const withNotes = normalizeQuest({ status: "active", rewards: { xp: 3, notes: ["free <b>lodging</b>"] } });
+  const html = questPayoutContent(withNotes, "The Drowned Bell");
+  assert.ok(html.includes("SDE.quests.payout.handOut"));
+  assert.ok(html.includes("free &lt;b&gt;lodging&lt;/b&gt;") || html.includes("free <b>lodging</b>") === false);
+  assert.ok(!html.includes("<b>lodging"));
+  assert.ok(!questPayoutContent(f.entry.flags[M].quest, "The Drowned Bell").includes("SDE.quests.payout.handOut"));
+});

@@ -119,7 +119,7 @@ export const MAX_NOTE_LENGTH = 200;
 
 /** Typed reward lines: trimmed, empties dropped, each clamped, at most MAX_NOTES. */
 function normalizeNotes(v) {
-  return list(v).map((n) => str(n).slice(0, MAX_NOTE_LENGTH).trim()).filter(Boolean).slice(0, MAX_NOTES);
+  return list(v).filter((n) => typeof n === "string" || Number.isFinite(n)).map((n) => str(n).slice(0, MAX_NOTE_LENGTH).trim()).filter(Boolean).slice(0, MAX_NOTES);
 }
 
 /** A giver needs a uuid; without one it is no giver. */
@@ -426,6 +426,16 @@ export function timeToDate(cal, t) {
   return { day: c.dayOfMonth + 1, month: c.month + 1, year: c.year + (cal.years?.yearZero ?? 0) };
 }
 
+/**
+ * A leap year's first day is printed twice by core's calendar; a deadline typed
+ * as that date must be the last of them, or it goes Overdue while the clock still reads it.
+ */
+export function lastDayPrinted(cal, time, spd) {
+  const same = (a, b) => { const x = timeToDate(cal, a), y = timeToDate(cal, b); return x.day === y.day && x.month === y.month && x.year === y.year; };
+  while (same(time, time + spd)) time += spd;
+  return time;
+}
+
 /** A worldTime as "14 March 1348", the month named by the calendar (a localisation key, run through `t`). */
 export function dateLabel(cal, time, t) {
   const d = timeToDate(cal, time);
@@ -572,7 +582,7 @@ export function playerPageHtml(full, t, cal = null) {
       status: t(STATUS_LABELS[quest.status]), source: t(SOURCE_LABELS[quest.source.kind]),
     }))}</em></p>`,
     ...(quest.deadline != null && cal ? [`<p>${esc(t("SDE.quests.page.due", { date: dateLabel(cal, quest.deadline, t) }))}</p>`] : []),
-    ...(quest.giver ? [`<p>${esc(t("SDE.quests.page.givenBy", { name: quest.giver.name || quest.giver.uuid }))}</p>`] : []),
+    ...(quest.giver?.name ? [`<p>${esc(t("SDE.quests.page.givenBy", { name: quest.giver.name }))}</p>`] : []),
     textToParagraphs(quest.description),
   ];
   if (quest.objectives.length) {

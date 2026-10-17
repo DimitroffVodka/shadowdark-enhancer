@@ -100,3 +100,41 @@ test("a chat message that throws does not stop the status change", async () => {
   finally { console.warn = warn; }
   assert.equal(f.entry.flags[M].quest.status, "completed");
 });
+
+test("completing with rewards and a successful award posts exactly one line and ends paid", async () => {
+  const f = fixture({ status: "active", rewards: { xp: 3 } });
+  const actor = { id: "a", uuid: "Actor.a", type: "Player", name: "a", system: { level: { xp: 0 }, coins: {} }, flags: {}, items: { contents: [] } };
+  actor.update = async (data) => { for (const [key, value] of Object.entries(data)) { const ks = key.split("."); let t = actor; for (const k of ks.slice(0, -1)) t = t[k] ??= {}; t[ks.at(-1)] = structuredClone(value); } return actor; };
+  globalThis.game.actors = { contents: [actor], get: () => actor, filter: (fn) => [actor].filter(fn) };
+  globalThis.fromUuidSync = (uuid) => (uuid === "Actor.a" ? actor : null);
+  const q = await Quests.setStatus("q", "completed", { payoutAnswer: { recipients: ["Actor.a"], itemTo: {} }, openTraining: false });
+  assert.equal(q.paid, true);
+  assert.equal(actor.system.level.xp, 3);
+  assert.equal(f.lines().length, 1);
+});
+
+test("a write that throws after the flag was saved still posts one line; a failed flag write posts none", async () => {
+  const warn = console.warn; console.warn = () => {};
+  try {
+    const f = fixture({ status: "active" });
+    f.entry.pages[0].update = async () => { throw Error("page write failed"); };
+    await assert.rejects(Quests.setStatus("q", "failed"), /page write failed/);
+    assert.equal(f.entry.flags[M].quest.status, "failed");
+    assert.equal(f.lines().length, 1);
+
+    const g = fixture({ status: "active" });
+    const update = g.entry.update;
+    g.entry.update = async (data) => { if (Object.keys(data).some((k) => k.startsWith("flags"))) throw Error("flag write failed"); return update(data); };
+    await assert.rejects(Quests.setStatus("q", "failed"), /flag write failed/);
+    assert.equal(g.entry.flags[M].quest.status, "active");
+    assert.equal(g.lines().length, 0);
+  } finally { console.warn = warn; }
+});
+
+test("the chat line speaks as the Quest Log", async () => {
+  fixture({ status: "available" });
+  let seen;
+  globalThis.ChatMessage.create = async (data) => { seen = data; return data; };
+  await Quests.setStatus("q", "completed");
+  assert.equal(seen.speaker.alias, format("SDE.quests.title"));
+});

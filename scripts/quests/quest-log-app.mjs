@@ -15,7 +15,7 @@ import { secondsPerDay } from "../time/time-core.mjs";
 import { TRAINERS } from "../training/training-core.mjs";
 import {
   SOURCE_KINDS, SOURCE_LABELS, STATUSES, STATUS_LABELS,
-  addObjective, addSubStep, canRequestAccept, dateLabel, dayChanged, deadlineState, hasNotes, hasRewards, matchesFilter, objectiveProgress, planStatusChange, removeObjective, setObjectiveDone, setObjectiveSecret, setObjectiveText,
+  addObjective, addSubStep, canRequestAccept, dateLabel, dayChanged, deadlineState, hasNotes, hasRewards, lastDayPrinted, MAX_NOTES, matchesFilter, objectiveProgress, planStatusChange, removeObjective, setObjectiveDone, setObjectiveSecret, setObjectiveText,
   textToParagraphs, timeToDate, trainerLabel, visibleStatuses,
 } from "./quest-core.mjs";
 import { QUESTS_CHANGED, Quests, actorName, partiesAvailable, partyActors, partyMembers, questPayoutContent } from "./quests.mjs";
@@ -33,6 +33,9 @@ export function onQuestDay(fn) {
     if (dayChanged(worldTime - delta, worldTime, secondsPerDay(game.time.calendar))) fn();
   })];
 }
+
+/** A trouble rumor hands back the trouble's existing quest, maybe Active: only Hidden ones were drafted. */
+export const fromRumorsDrafted = (made) => made?.filter((q) => q.status === "hidden") ?? made;
 
 export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
@@ -89,12 +92,22 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
   constructor(options = {}, host = null) { super(options); this.host = host; }
   render(...args) { return this.host ? this.host.render() : super.render(...args); }
 
-  static open() {
+  /** Opens the window; with a quest id or uuid this user can read, on that quest's tab with it selected. */
+  static open(idOrUuid) {
     const existing = foundry.applications.instances?.get?.("sde-quest-log");
-    if (existing) { existing.render(true); existing.bringToFront?.(); return existing; }
-    const app = new QuestLogApp();
+    const app = existing ?? new QuestLogApp();
+    const quest = idOrUuid ? Quests.get(idOrUuid) : null;
+    if (quest) app.show(quest);
     app.render(true);
+    if (existing) existing.bringToFront?.();
     return app;
+  }
+
+  /** Goes to a quest: its tab, selected, no filter hiding it. */
+  show(quest) {
+    this.tab = quest.status;
+    this.selectedId = quest.id;
+    this.filters = { character: "", party: "", source: "" };
   }
 
   tab = "active";
@@ -226,6 +239,9 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
       renownSigned: r.renown > 0 ? `+${r.renown}` : r.renown,
       hasRewards: hasRewards(r),
       hasNotes: hasNotes(r),
+      showRewards: hasRewards(r) || hasNotes(r),
+      canAddNote: r.notes.length < MAX_NOTES,
+      hasDeadline: q.deadline !== null,
       noteList: r.notes.map((text, index) => ({ text, index })),
       coinRewards: Object.entries(r.coins ?? {}).filter(([,n]) => n > 0).map(([coin,n]) => t("SDE.quests.reward.coins", { coin, n })),
       hasPin: Quests.hasPin(q),
@@ -236,6 +252,11 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _onRender(context, options) {
     super._onRender(context, options);
     this.bindControls(this.element, context);
+    // Inline in the Party sheet, the sheet makes these keyboard links itself.
+    if (!this.host) for (const control of this.element.querySelectorAll("a[data-action]")) {
+      control.setAttribute("role", "button"); control.tabIndex = 0;
+      control.addEventListener("keydown", (ev) => { if (["Enter", " "].includes(ev.key)) { ev.preventDefault(); control.click(); } });
+    }
   }
   bindControls(root, context) {
     this.root = root;
@@ -329,8 +350,9 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
       return v === "" ? NaN : Number(v);
     });
     if (![day, month, year].every(Number.isInteger)) return;   // half typed: wait for the rest
-    const time = dateToTime(game.time.calendar, { year, month, day });
+    let time = dateToTime(game.time.calendar, { year, month, day });
     if (time === null) { ui.notifications?.warn(t("SDE.quests.notify.noSuchDay")); this.render(); return; }
+    if (field === "deadline") time = lastDayPrinted(game.time.calendar, time, secondsPerDay(game.time.calendar));
     await this._edit((q) => ({ ...q, [field]: time }));
   }
 
@@ -377,13 +399,11 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** Hidden quests for the ledger's rumors that have none; shows them. */
   async _onFromRumors() {
     const { Rumors } = await import("../rumors/rumors.mjs");
-    const made = await Rumors.draftQuests();
+    const made = fromRumorsDrafted(await Rumors.draftQuests());
     if (!made) return;
     ui.notifications.info(t(made.length ? "SDE.quests.notify.fromRumors" : "SDE.quests.notify.fromRumorsNone", { n: made.length }));
     if (!made.length) return;
-    this.tab = "hidden";
-    this.selectedId = made[0].id;
-    this.filters = { character: "", party: "", source: "" };
+    this.show(made[0]);
     this.render();
   }
 

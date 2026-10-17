@@ -224,10 +224,7 @@ async function runGive({ count = 1, region, heardBy } = {}) {
   for (const tr of troubles) await Troubles.discover(tr.id);
 
   const safely = (what, fn) => Promise.resolve().then(fn).catch((err) => console.error(`${MODULE_ID} | rumors: ${what}`, err));
-  if (game.settings.get(MODULE_ID, "draftRumorQuests")) {
-    const log = ledger();
-    await safely("quests", () => draftQuests(rumors.map((r) => [pageFor(log, r.region), r.id]).filter(([page]) => page)));
-  }
+  await safely("quests", () => draftGiven(rumors));
   await safely("recap", () => SessionRecap.logRumors(rumors.map(core.heardView)));
   await safely("chat", () => ChatMessage.create({
     content: rumorsCard({ title: t("SDE.rumors.chat.title"), rumors: rumors.map((r) => r.text) }),
@@ -304,7 +301,7 @@ function promote(pageId, rumorId) {
     const page = ledger()?.pages.get(pageId);
     const rumor = (page ? pageFlag(page) : null)?.rumors?.find((r) => r.id === rumorId);
     if (!rumor) return null;
-    if (rumor.questUuid && Quests.get(rumor.questUuid)) { await openQuestLog(); return Quests.get(rumor.questUuid); }
+    if (rumor.questUuid && Quests.get(rumor.questUuid)) { await openQuestLog(rumor.questUuid); return Quests.get(rumor.questUuid); }
     return questFor(page, rumorId, "available");
   });
 }
@@ -324,6 +321,13 @@ async function draftQuests(pairs) {
     }
   }
   return made;
+}
+
+/** After a give: a Hidden quest per new rumor, when the setting is on. */
+export async function draftGiven(rumors) {
+  if (!game.settings.get(MODULE_ID, "draftRumorQuests")) return [];
+  const log = ledger();
+  return draftQuests(rumors.map((r) => [pageFor(log, r.region), r.id]).filter(([page]) => page));
 }
 
 /** Each rumor on a ledger page gets the GM's Promote to quest (or Quest Log) button. */

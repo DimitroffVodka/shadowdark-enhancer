@@ -47,7 +47,7 @@ const build = (state) => {
       rewards: { xp: 3, coins: { gp: 150, sp: 20, cp: 5 }, renown: 2, items: [{ img: "/icons/svg/sword.svg", name: "Merchant's ring of seals" }, { img: "/icons/svg/shield.svg", name: "Caravan guard's shield" }], training: null, notes: ["Free lodging at the lighthouse for a month", "The miller owes you a favour"] },
       giver: { uuid: "Actor.g", name: "Old Maren Vosk", img: "/icons/svg/mystery-man.svg" },
       hasNotes: true, noteList: ["Free lodging at the lighthouse for a month", "The miller owes you a favour"].map((text, index) => ({ text, index })),
-      hasRewards: true, coinRewards: ["150 gp", "20 sp", "5 cp"], renownSigned: "+2", trainerName: "", trainerOptions: [{ key: "yodeling", label: "Yodeling - Clementine" }], paid: false, hex: 214,
+      hasRewards: true, showRewards: true, coinRewards: ["150 gp", "20 sp", "5 cp"], renownSigned: "+2", trainerName: "", trainerOptions: [{ key: "yodeling", label: "Yodeling - Clementine" }], paid: false, hex: 214,
     },
   } };
 };

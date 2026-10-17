@@ -1,6 +1,6 @@
 # Quest Log upgrade: plan
 
-Status: plan only, nothing built. Revision 2, 2026-10-17: folds in the first independent review (Opus, section 1a).
+Status: built on feat/quest-log-upgrade (commits 33707fa2 to the review-fix commits); this is the design record. Revision 2, 2026-10-17: folds in the first independent review (Opus, section 1a).
 Base: `master` 2702afdd plus `feat/rumor-quests` 81c71b9c (Hidden quests drafted from rumors, already committed, unpushed).
 Working copy: `/home/patricks/git/.worktrees/rumor-quests` (a fresh clone; the main checkout has no `.git`).
 
@@ -288,7 +288,8 @@ because that test scans only tracked files.
   `+ spd`, hidden never fails, a Hidden quest already overdue stays Hidden, `startsAt` cleared after a reveal, `autoFail`
   switched off after a fail, a reopened quest stays open, completed and failed untouched.
 - A date test: every day of 1348 to 1352 through `dateToTime` against core's conversion (`quirkyGregorian`).
-- `test/quest-events.test.mjs`: new, each status, step done, step revealed, un-tick ignored, hidden to available is "new",
+- `questEvents` tests (in `test/quest-core.test.mjs`; the pop-up queue is in `test/quest-notices.test.mjs`, the chat line in
+  `test/quest-chat-line.test.mjs`): each status, step done, step revealed, un-tick ignored, hidden to available is "new",
   jump straight to failed, priority collapse to one event per quest, the more-than-three summary, empty diff.
 - `test/quest-accept.test.mjs` and `test/quest-clock.test.mjs`, in the stubbed-Foundry style of
   `test/rumor-quests.test.mjs`: the handler refuses without an active GM, and gives the one generic refusal for an unknown

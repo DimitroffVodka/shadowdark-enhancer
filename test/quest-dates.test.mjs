@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { dateToTime } from "../scripts/overland/hud-core.mjs";
-import { timeToDate } from "../scripts/quests/quest-core.mjs";
+import { lastDayPrinted, timeToDate } from "../scripts/quests/quest-core.mjs";
 import { quirkyGregorian as cal } from "./gregorian-calendar.mjs";
 
 const DAY = 86400;
@@ -43,4 +43,17 @@ test("a date with no day answers null, never a wrong time", () => {
   assert.equal(dateToTime(cal, { year: 1348, month: 2, day: 29 }), null);
   assert.equal(dateToTime(cal, { year: 1349, month: 2, day: 30 }), null);
   assert.equal(dateToTime(cal, { year: 1349, month: 13, day: 1 }), null);
+});
+
+test("a deadline typed as the doubled first day of a leap year is the second of the two days", () => {
+  const typed = dateToTime(cal, { year: 1352, month: 1, day: 1 });
+  const last = lastDayPrinted(cal, typed, DAY);
+  assert.equal(last, typed + DAY);
+  assert.equal(label(timeToDate(cal, last)), "1352-01-01");
+  assert.equal(label(timeToDate(cal, last + DAY)), "1352-01-02");
+  // An ordinary day is unchanged.
+  const plain = dateToTime(cal, { year: 1351, month: 6, day: 10 });
+  assert.equal(lastDayPrinted(cal, plain, DAY), plain);
+  // "Appears on" is not advanced: the helper is for deadlines only, and the typed time stays the first day.
+  assert.equal(label(timeToDate(cal, typed)), "1352-01-01");
 });
