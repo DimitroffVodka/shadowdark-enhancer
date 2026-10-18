@@ -106,7 +106,7 @@ export function registerStage() {
       refreshPlacesWindow();
       // A place can host a Town page; the Town module failing must not break the Stage.
       import("../town/town-entry-points.mjs").then((m) => m.syncHostedPage()).catch((e) => console.warn(`${MODULE_ID} | stage: hosted page sync failed`, e));
-      if (game.user?.isGM) ui.controls?.render({ reset: true });
+      ui.controls?.render({ reset: true }); // players too: their Town tool follows the hosted page
     },
   });
   // The Places window's Page scene list follows scenes gaining, losing or going. The diff names the key with an

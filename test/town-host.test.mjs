@@ -301,3 +301,12 @@ test("the hide icon's title: the Backdrop string when hosted, the Town string wh
     assert.equal((await ctx("C")).hideTitle, "SDE.town.hide");
   } finally { if (had) Object.defineProperty(base, "_prepareContext", had); else delete base._prepareContext; e.restore(); }
 });
+
+test("a player keeps the Town tool while the stage hosts a page on a canvas scene with none; with nothing hosted they do not", async () => {
+  const tools = () => { const c = { tokens: { tools: {} } }; e.hooks.getSceneControlButtons(c); return Object.keys(c.tokens.tools); };
+  const scenes = [scene("E", null), scene("H", { shown: true })];
+  var e = await setup({ stage: HOSTED, canvasId: "E", scenes });
+  assert.deepEqual(tools(), ["sdeTown"]);
+  e = await setup({ stage: { ...HOSTED, shown: false }, canvasId: "E", scenes });
+  assert.deepEqual(tools(), []);
+});

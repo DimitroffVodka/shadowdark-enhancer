@@ -87,11 +87,11 @@ export function registerTownEntryPoints() {
     onDown: () => { toggleTown(); return true; },
   });
 
-  // The toolbar button: the GM on every scene (lit while the page is up for the table), players on a scene whose
-  // page is up. The toolbar is rebuilt when the scene changes and when its page changes.
+  // The toolbar button: the GM on every scene (lit while the page is up for the table), players while a page is up
+  // (on this scene or hosted by the Stage). The toolbar is rebuilt when the scene changes and when its page changes.
   Hooks.on("getSceneControlButtons", (controls) => {
     const page = landingOf(globalThis.canvas?.scene);
-    if (!game.user.isGM && !page?.shown) return;
+    if (!game.user.isGM && !hostNow()) return; // a page up on this scene, or hosted by the Stage from another
     if (controls.tokens?.tools) controls.tokens.tools.sdeTown = {
       name: "sdeTown", title: "SDE.town.control", icon: "fa-solid fa-landmark", order: 90,
       ...(game.user.isGM ? { toggle: true, active: !!page?.shown } : { button: true }),

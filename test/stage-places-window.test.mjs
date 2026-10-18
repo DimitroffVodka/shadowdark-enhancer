@@ -517,3 +517,23 @@ test("the open Places window redraws its list when a scene gains or loses its pa
   assert.doesNotThrow(() => { e.hooks.createScene({}); e.hooks.updateScene({}, { flags: { [MODKEY]: { landing: {} } } }); });
   assert.equal(renders.length, 5);
 });
+
+test("a scene gaining or losing its page updates the Add select's options in place, keeping the typed name", async () => {
+  setup({ places: [PL("a")] });
+  withScenes([bare, paged]);
+  const { setPlacesWindow, refreshPlacesWindow } = await import("../scripts/stage/places.mjs");
+  const { app, el } = windowWith({ name: "The Flagon", page: "s1" });
+  el.page.replaceChildren = (...kids) => { el.page.kids = kids.map((k) => k.value); };
+  app.render = () => Promise.resolve();
+  setPlacesWindow(app);
+  withScenes([bare, paged, paged2]);
+  refreshPlacesWindow();
+  assert.deepEqual(el.page.kids, ["", "s1", "s2"]);
+  assert.equal(el.page.value, "s1");
+  assert.equal(el.name.value, "The Flagon");
+  withScenes([bare, paged2]); // s1 lost its page: the selection falls back to None
+  refreshPlacesWindow();
+  assert.deepEqual(el.page.kids, ["", "s2"]);
+  assert.equal(el.page.value, "");
+  setPlacesWindow(null);
+});

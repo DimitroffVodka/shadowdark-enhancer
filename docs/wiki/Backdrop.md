@@ -126,7 +126,10 @@ A place (of any kind) can open a Town page over the Backdrop for everyone.
 1. On a scene, press the Town tool to make its page, and edit it with the
    pencil on the page ([Town Landing Page](Town-Landing-Page.md)).
 2. In Backdrop places, set the place's **Page scene** to that scene. Only scenes
-   that already have a page are listed. In the Add form you can leave the
+   that already have a page are listed, and only scenes your players can see
+   (give them at least Limited ownership of the scene): a scene they have no
+   access to never reaches their client, so they see the Backdrop with no page
+   and no notice. In the Add form you can leave the
    picture empty: a Town or Tavern place then uses that scene's background as
    its picture (a Custom place still needs one).
 3. Making a page with the Town tool also switches it on for everyone viewing

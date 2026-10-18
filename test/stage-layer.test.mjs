@@ -77,7 +77,7 @@ test("drawStage keeps exactly one aria-hidden layer, updates it, removes it, rel
   assert.ok(e.rendered.opts.every((o) => o?.reset === true), "toolbar render resets");
   const p = setup({ gm: false, stage: { shown: true, place: "camp", image: "a.webp" } });
   p.registered.stage.onChange();
-  assert.equal(p.rendered.n, 0, "players do not render the toolbar");
+  assert.equal(p.rendered.n, 1, "players re-render the toolbar too: their Town tool follows the hosted page");
 });
 
 test("canvasReady releases tokens only while the layer is up", () => {

@@ -101,6 +101,17 @@ export class StagePlacesApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return { places, kinds, pageScenes: scenes, busy: this._busy };
   }
 
+  /** The Add form's Page scene options, in place: re-rendering that part would clear what the GM has typed. */
+  refreshAddPages() {
+    const select = this.element?.querySelector?.("[data-add-page]");
+    if (!select) return;
+    const keep = select.value;
+    const opt = (value, text) => { const o = document.createElement("option"); o.value = value; o.textContent = text; return o; };
+    const scenes = pageScenes();
+    select.replaceChildren(opt("", game.i18n.localize("SDE.stage.places.pageNone")), ...scenes.map((s) => opt(s.id, s.name)));
+    select.value = scenes.some((s) => s.id === keep) ? keep : "";
+  }
+
   _onRender(context, options) {
     super._onRender?.(context, options);
     // Only the part that was replaced has fresh elements; binding a kept part again would double every handler.
