@@ -494,7 +494,7 @@ export const TravelBar = {
       <div class="sde-hud-side">
         ${gm ? ib("stack", "fa-backward", t("SDE.clock.rewind"), { id: "rew", pressed: this._stack === "rew" }) : ""}
         ${ib("open", "fa-calendar-days", t("SDE.clock.month"), { id: "month", pressed: this._open === "month" })}
-        ${ib("weather", wx.icon, t(wx.labelKey), { pressed: wx.pressed })}
+        ${ib("weather", wx.icon, t(wx.labelKey), { pressed: wx.on, cls: wx.cls })}
         ${gm ? ib("open", "fa-sliders", t("SDE.clock.time"), { id: "time", pressed: this._open === "time" }) : ""}
       </div>
       <span class="sde-hud-date sde-hud-date-mid"><span class="sde-hud-d">${esc(date)}</span><span class="sde-hud-t">${esc(parts.time)}</span>

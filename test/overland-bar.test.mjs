@@ -70,6 +70,6 @@ test("an item change redraws the bar when it's on a travelling member (#249 revi
 
 test("the bar's weather switch: a rain cloud while the weather is drawn, a lit bare cloud while it is not", async () => {
   const { weatherSwitch } = await import("../scripts/overland/overland-bar-core.mjs");
-  assert.deepEqual(weatherSwitch(true), { icon: "fa-cloud-rain", pressed: false, labelKey: "SDE.clock.weatherHide" });
-  assert.deepEqual(weatherSwitch(false), { icon: "fa-cloud", pressed: true, labelKey: "SDE.clock.weatherShow" });
+  assert.deepEqual(weatherSwitch(true), { icon: "fa-cloud-rain", on: true, cls: "sde-hud-cloud", labelKey: "SDE.clock.weatherHide" });
+  assert.deepEqual(weatherSwitch(false), { icon: "fa-cloud", on: false, cls: "sde-hud-cloud sde-hud-cloud-off", labelKey: "SDE.clock.weatherShow" });
 });

@@ -19,6 +19,7 @@ Left to right:
 |---|---|---|
 | **⏪** | GM | Opens a column of steps back: a day, 8 hours, an hour, 10 minutes, a round. |
 | **Month** | everyone | Opens the month view (below). |
+| **Weather** (cloud) | everyone | Turns the weather drawing off and on for this device only (the Show weather effects setting); the scene keeps its weather and everyone else still sees it. A bare cloud, lit, means it is off here. |
 | **Time** | GM | Opens the Time panel (below). |
 | **The date** | everyone | In the middle of the bar: weekday, day, month and year, then the time. |
 | **⌃ / ⌄** | everyone | A small, quiet chevron beside the date: shows or hides the sky. |

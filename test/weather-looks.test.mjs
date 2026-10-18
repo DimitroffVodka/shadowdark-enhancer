@@ -24,7 +24,7 @@ test("every look is built: its own id and label, core's shader class, core's con
   assert.equal(mist.effects[0].shaderClass, FogShader, "core's shader, not a copy of it");
   assert.equal(mist.effects[0].effectClass, effectClass);
   assert.deepEqual(mist.effects[0].config, { slope: 0.35, intensity: 0.15, speed: 0.2 }, "ours over core's");
-  assert.deepEqual(built.sdeDrizzle.effects[0].config, { opacity: 0.25, intensity: 1, strength: 0.8, rotation: 0.26 }, "what we leave alone stays core's");
+  assert.deepEqual(built.sdeDrizzle.effects[0].config, { opacity: 0.25, intensity: 1, strength: 0.8, rotation: 0.1, speed: 0.12 }, "what we leave alone stays core's");
 });
 
 test("a look with two parts runs both shaders, in order", () => {

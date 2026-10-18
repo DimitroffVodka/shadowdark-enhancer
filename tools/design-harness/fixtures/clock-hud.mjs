@@ -43,6 +43,7 @@ const hud = (s) => {
     <div class="sde-hud-side">
       <button type="button" class="sde-hud-ib"><i class="fa-solid fa-backward"></i></button>
       <button type="button" class="sde-hud-ib"><i class="fa-solid fa-calendar-days"></i></button>
+      <button type="button" class="sde-hud-ib sde-hud-cloud" aria-pressed="true" data-tooltip="Hide weather effects on this device"><i class="fa-solid fa-cloud-rain"></i></button>
       <button type="button" class="sde-hud-ib"><i class="fa-solid fa-sliders"></i></button>
     </div>
     <span class="sde-hud-date sde-hud-date-mid"><span class="sde-hud-d">${esc(s.date)}</span><span class="sde-hud-t">${esc(s.time)}</span>

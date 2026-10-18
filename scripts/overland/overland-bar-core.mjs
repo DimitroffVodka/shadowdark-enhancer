@@ -62,7 +62,8 @@ export const redrawStamp = (worldTime, secondsPerMinute, weather, pending = null
 /** The bar's weather switch: a rain cloud while this device draws the weather, a bare cloud, lit, while it does not. */
 export const weatherSwitch = (on) => ({
   icon: on ? "fa-cloud-rain" : "fa-cloud",
-  pressed: !on,
+  on,
+  cls: on ? "sde-hud-cloud" : "sde-hud-cloud sde-hud-cloud-off",
   labelKey: on ? "SDE.clock.weatherHide" : "SDE.clock.weatherShow",
 });
 

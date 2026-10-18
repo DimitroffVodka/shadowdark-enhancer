@@ -39,11 +39,13 @@ const weatherButton = (html) => html.match(/<button[^>]*data-action="weather"[^>
 test("the switch is on the bar for a player too, lit only while this device draws no weather", () => {
   const on = weatherButton(TravelBar._bar());
   assert.ok(on, "a player sees it");
-  assert.match(on, /aria-pressed="false"/);
+  assert.match(on, /aria-pressed="true"/, "pressed says the weather is on, as the name does");
+  assert.doesNotMatch(on, /sde-hud-cloud-off/);
   assert.match(TravelBar._bar(), /fa-cloud-rain/);
   stored.weatherVisuals = false;
   const off = weatherButton(TravelBar._bar());
-  assert.match(off, /aria-pressed="true"/);
+  assert.match(off, /aria-pressed="false"/);
+  assert.match(off, /sde-hud-cloud-off/, "off: lit by its class");
   assert.match(off, /SDE\.clock\.weatherShow/, "off: its tooltip offers to show them");
   delete stored.weatherVisuals;
 });

@@ -69,6 +69,8 @@ const sceneFollows = (scene) => followsSky(scene.getFlag(MODULE_ID, FOLLOWS_SKY)
 const sceneFollowsWeather = (scene) => followsWeather(scene.getFlag(MODULE_ID, FOLLOWS_WEATHER), scene.getFlag(MODULE_ID, FOLLOWS_SKY), isHexMap(scene));
 /** Does the sky write anything to this scene, its darkness or its weather? */
 const sceneFollowsAny = (scene) => sceneFollows(scene) || sceneFollowsWeather(scene);
+/** The scenes a pass reaches: those that follow either, and one still holding an effect Overland put there (so turning the choice off takes it away). */
+const sceneTouched = (scene) => sceneFollowsAny(scene) || !!scene.getFlag(MODULE_ID, SKY_WEATHER);
 
 let _running = null;
 let _again = null;
@@ -100,7 +102,7 @@ let _pacing = null;
  * @returns {Promise<object|null>} what was written, or null
  */
 export async function applySky(scene = game.scenes?.active, { dt = null } = {}) {
-  if (!scene || !isActiveGM() || !sceneFollowsAny(scene)) return null;
+  if (!scene || !isActiveGM() || !sceneTouched(scene)) return null;
   const api = game.shadowdarkEnhancer?.time;
   if (!api) return null;
   const now = game.time.worldTime;
@@ -115,19 +117,20 @@ export async function applySky(scene = game.scenes?.active, { dt = null } = {}) 
     if (Number.isFinite(dt) && Math.abs(dt) < ANIMATE_BELOW) options.animateDarkness = ANIMATE_MS;
   }
 
-  if (sceneFollowsWeather(scene)) {
-    const plan = weatherPlan({
-      current: scene.weather ?? "",
-      owned: scene.getFlag(MODULE_ID, SKY_WEATHER) ?? null,
-      effect: weatherEffect({ kind: weatherNow(), climate: state.climate?.label, season: api.season(now)?.key ?? null }),
-    });
-    if ("weather" in plan) updates.weather = plan.weather;
-    // The record goes in the same update as the effect it records, so the two
-    // never disagree. A string flag in an ordinary (recursive) update; nothing
-    // here uses recursive: false, so our other flags on the scene are untouched.
-    if (plan.own) updates[`flags.${MODULE_ID}.${SKY_WEATHER}`] = plan.own;
-    else if ("own" in plan) updates[`flags.${MODULE_ID}.${SKY_WEATHER}`] = _del;
-  }
+  const plan = weatherPlan({
+    current: scene.weather ?? "",
+    owned: scene.getFlag(MODULE_ID, SKY_WEATHER) ?? null,
+    // With the weather choice off the wanted effect is none: that lets go of Overland's own and leaves a hand-picked one.
+    effect: sceneFollowsWeather(scene)
+      ? weatherEffect({ kind: weatherNow(), climate: state.climate?.label, season: api.season(now)?.key ?? null })
+      : "",
+  });
+  if ("weather" in plan) updates.weather = plan.weather;
+  // The record goes in the same update as the effect it records, so the two
+  // never disagree. A string flag in an ordinary (recursive) update; nothing
+  // here uses recursive: false, so our other flags on the scene are untouched.
+  if (plan.own) updates[`flags.${MODULE_ID}.${SKY_WEATHER}`] = plan.own;
+  else if ("own" in plan) updates[`flags.${MODULE_ID}.${SKY_WEATHER}`] = _del;
 
   if (!Object.keys(updates).length) return null;
   await scene.update(updates, options);
@@ -140,7 +143,7 @@ export async function applySky(scene = game.scenes?.active, { dt = null } = {}) 
  * @returns {Promise<Array<object|null>>} what was written to each
  */
 export async function applySkies(options) {
-  const scenes = skyScenes({ active: game.scenes?.active, travel: travelScene(), follows: sceneFollowsAny });
+  const scenes = skyScenes({ active: game.scenes?.active, travel: travelScene(), follows: sceneTouched });
   const written = [];
   // One scene's failed write must not skip the party's scene; the next trigger retries it.
   for (const scene of scenes) {

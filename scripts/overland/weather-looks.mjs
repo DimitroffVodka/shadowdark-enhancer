@@ -17,7 +17,7 @@
 export const WEATHER_LOOKS = [
   {
     id: "sdeDrizzle", label: "SDE.weather.drizzle",
-    parts: [{ from: "rain", effect: "rainShader", config: { opacity: 0.25, intensity: 1, strength: 0.8 } }],
+    parts: [{ from: "rain", effect: "rainShader", config: { opacity: 0.25, intensity: 1, strength: 0.8, rotation: 0.1, speed: 0.12 } }],
   },
   {
     id: "sdeMist", label: "SDE.weather.mist",

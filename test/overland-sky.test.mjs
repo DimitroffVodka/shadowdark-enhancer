@@ -577,6 +577,24 @@ test("changing a scene's weather choice runs a pass, as the sky choice does", as
   }
 });
 
+test("the weather choice set to No takes Overland's own effect off, and leaves a hand-picked one", async () => {
+  sky({ weather: STORMY, climate: "Temperate" });
+  const storm = scene({ weatherFollows: "off", darkness: 0.6, weather: "rainStorm", owned: "rainStorm" });
+  await applySky(storm);
+  assert.deepEqual(storm.writes.map((w) => w.changes), [{ weather: "", "flags.shadowdark-enhancer.skyWeather": DEL }],
+    "the storm Overland put there goes, even in a storm, and the record with it");
+  const picked = scene({ weatherFollows: "off", darkness: 0.6, weather: "sdeMist" });
+  await applySky(picked);
+  assert.deepEqual(picked.writes, [], "a look the GM chose stays");
+  const stale = scene({ hex: false, weatherFollows: "off", weather: "rainStorm", owned: "rainStorm" });
+  await applySky(stale);
+  assert.deepEqual(stale.writes.map((w) => w.changes), [{ weather: "", "flags.shadowdark-enhancer.skyWeather": DEL }],
+    "a scene that follows nothing now but still holds Overland's effect is cleaned up when a pass reaches it");
+  const quiet = scene({ hex: false, weatherFollows: "off" });
+  await applySky(quiet);
+  assert.deepEqual(quiet.writes, [], "and one that never had an effect is left alone");
+});
+
 test("a weather roll that lands while a sky pass is writing still reaches the scene (#295 review)", async () => {
   sky();
   const s = scene();
