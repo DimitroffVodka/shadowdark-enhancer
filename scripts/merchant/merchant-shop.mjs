@@ -27,6 +27,7 @@ import {
 } from "../loot/loot-pack.mjs";
 import { resolveInlineSubroll } from "../loot/subroll.mjs";
 import { IMPORTED_ITEMS_PACK, isShopType, isCatalogStock } from "./catalog-stock.mjs";
+import { bundleOf, buyUnits, buyCopper, sellCopper, sanitizeQty } from "./shop-core.mjs";
 // Downtime's "extortion" outcome arms a ONE-SHOT ±25% swing on a single
 // character. It is deliberately per-actor (an actor flag) rather than a tweak
 // to `ctx.buyMultiplier`, which is shop-wide and GM-authored: one character's
@@ -66,27 +67,12 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const _toCopper = toCopper;
 const _fromCopper = fromCopper;
 const _formatPrice = formatPrice;
-/**
- * How many units a listed price buys. The system prices bundled gear per slot-full (Arrows 1 gp buys 20, Rations
- * 5 sp buy 3, Iron Spikes 1 gp buy 10), and `per_slot` is that bundle on every one of them. Buying takes whole
- * bundles; selling pays per unit, so 20 arrows bought for 1 gp sell for half of 1 gp, not twenty times that.
- */
 /** A purse as the three fields an update writes. */
 const _purseFields = (c) => ({ "system.coins.gp": c.gp, "system.coins.sp": c.sp, "system.coins.cp": c.cp });
-const _bundleOf = (data) => Math.max(1, Math.floor(Number(data?.system?.slots?.per_slot)) || 1);
-/**
- * The units a buy of `quantity` bundles takes from `stock` (units; -1 is unlimited), or 0 when the shop cannot fill
- * it. A shop holding less than the last bundle asked for sells what it has: 13 arrows a player sold back are one buy
- * of 13, charged at the bundle price shared out per unit (_buyCopper). Shared by the GM handler and the player's
- * pre-check so the two never disagree.
- */
-const _buyUnits = (quantity, bundle, stock) => {
-  const units = quantity * bundle;
-  if (stock === -1 || stock >= units) return units;
-  return quantity <= Math.ceil(stock / bundle) ? stock : 0;
-};
-/** List price in copper for `units` of an item priced per `bundle`, before extortion. */
-const _buyCopper = (cost, mult, units, bundle) => Math.round(_toCopper(cost) * mult * units / bundle);
+// The price rules live in shop-core.mjs, shared with the player-side town shop.
+const _bundleOf = bundleOf;
+const _buyUnits = buyUnits;
+const _buyCopper = buyCopper;
 const _addToPurse = addToPurse;
 const _spendFromPurse = spendFromPurse;
 const _parseCoinsFromText = parseCoinsFromText;
@@ -814,7 +800,7 @@ export const MerchantShop = {
 
   /** Clamp a client-supplied quantity to a positive integer. */
   _sanitizeQty(qty) {
-    return Math.max(1, Math.floor(Number(qty) || 1));
+    return sanitizeQty(qty);
   },
 
   /** True when `uuid` belongs to one of the purchasable catalog packs. */
@@ -952,9 +938,7 @@ export const MerchantShop = {
     if (!ctx) return this._broadcastError(game.i18n.localize("SDE.merchant.notify.unavailable"), userId);
     const sellRatio = ctx.sellRatio ?? game.settings.get(MODULE_ID, "shopSellRatio") ?? 50;
     const cost = item.system.cost ?? { gp: 0, sp: 0, cp: 0 };
-    // The ratio applies to the whole sale and rounds once: ten 5 cp torches at half price pay 25 cp, where
-    // rounding each torch down to 2 cp paid 20. A bundle's price is shared out per unit (_bundleOf).
-    const saleCopper = Math.floor(_toCopper(cost) * quantity * sellRatio / (100 * _bundleOf(item)));
+    const saleCopper = sellCopper(cost, quantity, sellRatio, _bundleOf(item));
     // The same one-shot downtime extortion swing, in the seller's favour.
     const swing = applyExtortion(saleCopper, readExtortion(seller), "sell");
     const totalCopper = swing.copper;

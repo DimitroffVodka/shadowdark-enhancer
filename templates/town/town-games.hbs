@@ -1,0 +1,71 @@
+<div class="ui-shell tg-games">
+  <header class="ui-head">
+    <div class="ui-art tg-crest"><i class="fa-solid fa-dice"></i></div>
+    <div class="ui-head-text">
+      <h2 class="ui-title">{{townName}}</h2>
+      <p class="ui-sub">{{localize "SDE.town.games.sub"}}</p>
+    </div>
+    <div class="ui-stats">
+      <div class="ui-stat"><span class="ui-label">{{localize "SDE.town.purse"}}</span><span class="ui-value tl-purse"><i class="fa-solid fa-coins"></i> {{purse}}</span></div>
+    </div>
+  </header>
+
+  {{#if open}}
+  <div class="ui-body">
+    <section class="ui-group tg-stake">
+      <h3 class="ui-h"><span>{{localize "SDE.town.games.wagerLabel"}}</span><small>{{localize "SDE.town.games.limit" max=maxBet edge=edge}}</small></h3>
+      <div class="tg-wager">
+        <div class="tl-step">
+          <input type="number" name="wager" value="{{wagerSp}}" min="1" max="{{maxSp}}" step="1" aria-label="{{localize 'SDE.town.games.wagerSp'}}">
+          <span class="ui-muted">sp</span>
+        </div>
+        <span class="tg-wager-text">{{wagerText}}</span>
+        <div class="ui-inline tg-chips">
+          {{#each chips}}<button type="button" class="ui-chip" data-action="setWager" data-sp="{{sp}}">{{label}}</button>{{/each}}
+        </div>
+      </div>
+    </section>
+
+    {{#if last}}
+    <div class="ui-note {{last.tone}} tg-result" role="status">
+      <b>{{last.game}}</b>
+      {{#each last.lines}}<span>{{this}}</span>{{/each}}
+    </div>
+    {{/if}}
+
+    <div class="tg-list">
+      {{#each games}}
+      <article class="tg-game" data-game="{{id}}">
+        <div class="tg-art"><i class="fa-solid {{icon}}"></i></div>
+        <div class="tg-main">
+          <h4 class="tg-name">{{name}}</h4>
+          <p class="tg-rules">{{rules}}</p>
+          <span class="ui-chip">{{odds}}</span>
+        </div>
+        <div class="tg-play">
+          {{#if picks}}
+          {{#each picks}}<button type="button" class="ui-btn" data-action="play" data-game="{{../id}}" data-pick="{{id}}" {{#unless @root.hasPlayer}}disabled{{/unless}}>{{label}}</button>{{/each}}
+          {{else}}
+          <button type="button" class="ui-btn" data-action="play" data-game="{{id}}" {{#unless @root.hasPlayer}}disabled{{/unless}}><i class="fa-solid fa-dice"></i> {{localize "SDE.town.games.playBtn"}}</button>
+          {{/if}}
+        </div>
+      </article>
+      {{/each}}
+    </div>
+
+  </div>
+  {{else}}
+  <div class="ui-body">
+    <div class="ui-empty"><i class="fa-solid fa-dice"></i><b>{{localize "SDE.town.games.closedTitle"}}</b><span>{{localize "SDE.town.games.closedBody"}}</span></div>
+  </div>
+  {{/if}}
+
+  <footer class="ui-status tl-foot">
+    {{#if actors.length}}
+    <label class="ui-inline"><span class="ui-label">{{localize "SDE.town.games.playingAs"}}</span>
+      <select name="player">{{#each actors}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select>
+    </label>
+    {{else}}<span class="ui-muted">{{localize "SDE.town.noCharacter"}}</span>{{/if}}
+    <div class="ui-right"><button type="button" class="ui-btn ghost" data-action="back"><i class="fa-solid fa-arrow-left"></i> {{localize "SDE.town.backToTown"}}</button></div>
+  </footer>
+</div>

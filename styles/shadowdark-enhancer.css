@@ -5713,3 +5713,150 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-npc-preview li { margin: 2px 0; line-height: 1.3; }
 .sde-npc-preview em { font-style: normal; opacity: 0.8; }
 .sde-npc-preview .sde-np-hint { margin: 8px 0 0; font-size: var(--font-size-11, 11px); opacity: 0.6; }
+
+/* Town landing page editor (GM). Kit parts only; these are its own layout rules. */
+.sde-ui.sde-town-editor .te-crest { display: grid; place-items: center; font-size: 22px; color: var(--ui-frame); }
+.sde-ui.sde-town-editor .te-banner { display: flex; gap: 12px; align-items: center; }
+.sde-ui.sde-town-editor .te-picture-note { flex: 1 1 auto; min-width: 0; font-size: 12.5px; line-height: 1.4; }
+.sde-ui.sde-town-editor .te-places { gap: 6px 18px; }
+.sde-ui.sde-town-editor .te-merchant .ui-card-head { align-items: flex-start; }
+.sde-ui.sde-town-editor .te-portrait { flex: 0 0 auto; width: 52px; height: 52px; border: 1px solid var(--ui-frame); border-radius: var(--ui-r); background: var(--ui-raised); overflow: hidden; }
+.sde-ui.sde-town-editor .te-portrait img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.sde-ui.sde-town-editor .te-who { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.sde-ui.sde-town-editor .te-nums { display: grid; grid-template-columns: 110px 110px minmax(0, 1fr); gap: 12px; align-items: end; }
+.sde-ui.sde-town-editor .te-nums .ui-switch { justify-self: end; }
+.sde-ui.sde-town-editor .te-add { display: flex; gap: 8px; align-items: center; }
+.sde-ui.sde-town-editor .te-add > select { flex: 1 1 auto; width: auto; }
+@container (max-width: 520px) { .sde-ui.sde-town-editor .te-nums { grid-template-columns: repeat(2, minmax(0, 1fr)); } .sde-ui.sde-town-editor .te-nums .ui-switch { justify-self: start; } }
+
+/* Town landing page and Town shop. Tokens only (the UI kit, sde-ui.css), except the landing menu, which keeps the dark book over a painting.
+   The art is the module's own bastion illustrations, so a town looks finished before the GM uploads anything. */
+.sde-ui [hidden] { display: none !important; }
+
+.sde-ui .tl-plaque { flex: 0 0 auto; width: 108px; height: 108px; display: grid; place-items: center; overflow: hidden; border: 1px solid var(--ui-frame); border-radius: var(--ui-r); background: var(--ui-raised); box-shadow: inset 0 0 0 3px var(--ui-raised), inset 0 0 0 4px var(--ui-line); }
+/* an NPC's own portrait fills the plaque; the bastion's SVG shop art has empty margins, so it is drawn larger */
+.sde-ui .tl-plaque img { width: 100%; height: 100%; object-fit: cover; }
+.sde-ui .tl-plaque img[src$=".svg"] { object-fit: contain; padding: 2px; transform: scale(1.3); transform-origin: 50% 62%; }
+
+/* ── the landing page: a menu down the right of the scene's own picture ─────────────────────────────────
+   Frameless. The scene's painting is the page; this is the menu over it. It sits over a painting, so it keeps the
+   dark book whatever the theme is (the tokens are set again here, and .tm-root beats the kit's light rule).
+   --sde-town-side (Foundry's sidebar: the tab strip alone when closed, the open panel too when open) and
+   --sde-town-top (below the Crawl Strip when it would cover the text) are set by town-app.mjs. */
+.sde-ui.sde-town.tm-root { position: fixed; inset: 0 0 0 auto; width: min(calc(518px + var(--sde-town-side, 42px)), 100vw); z-index: 25; margin: 0; padding: 0; background: none; border: 0; box-shadow: none; backdrop-filter: none; pointer-events: none; color-scheme: dark;
+  --ui-page: #000; --ui-panel: #0d0d0d; --ui-raised: #1a1a1a; --ui-hover: #161616; --ui-text: #fff; --ui-body: #ececec; --ui-muted: #a0a0a0; --ui-line: #443c3c; --ui-frame: #c9c9c9; --ui-gold: #c9aa58; }
+.sde-town .tm-menu { position: relative; pointer-events: auto; height: 100%; overflow-y: auto; display: flex; flex-direction: column; gap: 3px; padding: var(--sde-town-top, 38px) calc(var(--sde-town-side, 42px) + 22px) 22px 140px; color: var(--ui-body); font-family: var(--ui-font);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--ui-page) 80%, transparent) 34%, color-mix(in srgb, var(--ui-page) 92%, transparent)); }
+.sde-town .tm-gm { position: absolute; top: 8px; right: calc(var(--sde-town-side, 42px) + 18px); display: flex; gap: 2px; }
+.sde-town .tm-crest { align-self: center; flex: 0 0 auto; width: 60px; height: 60px; display: grid; place-items: center; font-size: 26px; color: var(--ui-frame); background: var(--ui-panel); border: 1px solid var(--ui-frame); border-radius: var(--ui-r); box-shadow: inset 0 0 0 4px var(--ui-panel), inset 0 0 0 5px var(--ui-line); }
+.sde-town .tm-title { margin: 8px 0 0; padding: 0; border: 0; text-align: center; font: 400 54px/1 var(--ui-title); color: var(--ui-text); overflow-wrap: anywhere; }
+.sde-town .tm-tag { margin: 6px 0 2px; text-align: center; font-style: italic; color: var(--ui-muted); font-size: 13px; }
+.sde-town .tm-blurb { margin: 2px 0 4px; text-align: center; color: var(--ui-body); font-size: 13px; line-height: 1.5; }
+.sde-town .tm-orn { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; margin: 8px 0; }
+.sde-town .tm-orn::before, .sde-town .tm-orn::after { content: ""; flex: 1 1 auto; height: 1px; background: var(--ui-line); }
+.sde-town .tm-orn i { flex: 0 0 auto; width: 8px; height: 8px; transform: rotate(45deg); background: var(--ui-gold); }
+.sde-town .tm-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.sde-town .tm-item { display: flex; align-items: center; justify-content: flex-start; gap: 16px; width: 100%; height: auto; min-height: 0; margin: 0; padding: 7px 8px; line-height: 1.2; border: 0; border-radius: var(--ui-r); background: transparent; box-shadow: none; color: var(--ui-text); text-align: left; font: inherit; cursor: pointer; }
+.sde-town .tm-item:hover:not(:disabled), .sde-town .tm-item:focus-visible { background: var(--ui-hover); }
+.sde-town .tm-dia { flex: 0 0 auto; width: 10px; height: 10px; transform: rotate(45deg); border: 1px solid var(--ui-gold); }
+.sde-town .tm-item:hover:not(:disabled) .tm-dia, .sde-town .tm-item:focus-visible .tm-dia { background: var(--ui-gold); }
+.sde-town .tm-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sde-town .tm-txt b { font: 400 28px/1.1 var(--ui-title); color: var(--ui-text); overflow-wrap: anywhere; }
+.sde-town .tm-item.place .tm-txt b { font-size: 24px; }
+.sde-town .tm-txt small { color: var(--ui-muted); font-size: 12px; line-height: 1.3; }
+.sde-town .tm-item:disabled { opacity: .45; cursor: not-allowed; }
+.sde-town .tm-empty { margin: 8px 0; text-align: center; color: var(--ui-muted); font-style: italic; }
+.sde-town .tm-empty .ui-btn { margin-top: 8px; font-style: normal; }
+.sde-town .tm-foot { margin: auto 0 0; padding-top: 10px; text-align: center; font-size: 12px; color: var(--ui-muted); }
+.sde-town .tm-foot b { color: var(--ui-gold); font-weight: 600; }
+@media (max-width: 720px) { .sde-ui.sde-town.tm-root { width: 100vw; } .sde-town .tm-menu { padding-left: 56px; background: color-mix(in srgb, var(--ui-page) 88%, transparent); } }
+
+/* ── the shopfront ──────────────────────────────────────────────────────────────────────────────────── */
+.sde-ui .tl-shop .ui-head > .tl-plaque { width: 84px; height: 84px; }
+.sde-ui .tl-shop .ui-title { font-size: 30px; }
+.sde-ui .tl-shop-sub { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 4px; }
+.sde-ui .tl-purse { color: var(--ui-gold); white-space: nowrap; }
+.sde-ui .tl-cats { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.sde-ui .tl-cats button.ui-chip { cursor: pointer; font: inherit; font-size: 12px; }
+.sde-ui .tl-cats button.ui-chip:hover:not(.on) { border-color: var(--ui-frame); color: var(--ui-text); }
+.sde-ui .tl-cats .ui-search { margin-left: auto; flex: 1 1 160px; max-width: 240px; }
+
+.sde-ui .tl-wares { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-items: start; }
+@container (max-width: 600px) { .sde-ui .tl-wares { grid-template-columns: minmax(0, 1fr); } }
+.sde-ui .tl-ware { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; grid-template-areas: "art main price" "art foot foot"; gap: 6px 12px; padding: 10px; background: var(--ui-panel); border: 1px solid var(--ui-line); border-radius: var(--ui-r2); }
+.sde-ui .tl-ware:hover { border-color: var(--ui-frame); }
+.sde-ui .tl-ware-art { grid-area: art; width: 52px; height: 52px; display: grid; place-items: center; border: 1px solid var(--ui-line); border-radius: var(--ui-r); background: var(--ui-raised); }
+.sde-ui .tl-ware-art img { width: 40px; height: 40px; object-fit: contain; }
+.sde-ui .tl-ware-main { grid-area: main; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-width: 0; }
+.sde-ui .tl-ware-name { margin: 0; font: 700 14px/1.25 var(--ui-font); color: var(--ui-text); overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.sde-ui .tl-price { grid-area: price; align-self: start; display: flex; gap: 6px; justify-content: flex-end; white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--ui-text); }
+.sde-ui .tl-coin { display: inline-flex; align-items: baseline; gap: 3px; }
+.sde-ui .tl-coin b { font: 700 15px/1.2 var(--ui-font); }
+.sde-ui .tl-coin i { font: 600 10.5px/1 var(--ui-head); font-style: normal; text-transform: uppercase; letter-spacing: .06em; color: var(--ui-muted); }
+.sde-ui .tl-ware-foot { grid-area: foot; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.sde-ui .tl-ware-foot .tl-buy { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; }
+.sde-ui .tl-step { display: inline-flex; align-items: center; border: 1px solid var(--ui-line); border-radius: var(--ui-r); overflow: hidden; background: var(--ui-page); }
+.sde-ui .tl-step .ui-icon { width: 26px; height: 26px; border: 0; border-radius: 0; }
+.sde-ui .tl-step input { width: 36px !important; height: 26px; padding: 0; border: 0; border-left: 1px solid var(--ui-line); border-right: 1px solid var(--ui-line); border-radius: 0; background: transparent; text-align: center; font-variant-numeric: tabular-nums; }
+.sde-ui .tl-ware-desc { grid-column: 2 / -1; margin: 0; padding-top: 8px; border-top: 1px dashed var(--ui-line); color: var(--ui-body); font-size: 12.5px; line-height: 1.5; }
+.sde-ui .tl-ware.poor .tl-price { color: var(--ui-danger-text); }
+.sde-ui .tl-ware.out .tl-ware-art, .sde-ui .tl-ware.out .tl-ware-main, .sde-ui .tl-ware.out .tl-price { opacity: .5; }
+
+.sde-ui .tl-shut { padding: 44px 20px; }
+.sde-ui .tl-shut > i { font-size: 44px; }
+.sde-ui .tl-shut b { font: 400 22px/1.2 var(--ui-title); color: var(--ui-text); }
+.sde-ui .tl-shop.closed .ui-head > .tl-plaque img { filter: grayscale(1); opacity: .4; }
+
+.sde-ui .tl-foot { align-items: center; gap: 10px 16px; }
+.sde-ui .tl-foot select { width: auto; min-width: 150px; height: 24px; }
+.sde-ui .tl-foot .ui-right { margin-left: auto; }
+
+/* the shop header keeps the picture beside the name when narrow; only the purse drops to its own row */
+.sde-ui .tl-shop .ui-head { flex-wrap: wrap; }
+.sde-ui .tl-shop .ui-head-text { flex: 1 1 0; min-width: 160px; }
+@container (max-width: 520px) {
+  .sde-ui .tl-shop .ui-title { font-size: 26px; }
+  .sde-ui .tl-cats .ui-search { max-width: none; flex-basis: 100%; margin-left: 0; }
+}
+.sde-ui .tl-ware-name[data-action] { cursor: pointer; }
+.sde-ui .tl-ware-name[data-action]:hover { text-decoration: underline; text-underline-offset: 3px; }
+.sde-ui .tl-ware-main .ui-icon { width: 22px; height: 22px; }
+.sde-ui .tl-ware-main .ui-icon.on { color: var(--ui-text); border-color: var(--ui-frame); background: var(--ui-raised); }
+
+/* ── the sales log and the games table ──────────────────────────────────────────────────────────────────
+   Both are kit windows (sde-ui). The sales log is a list of rows; the games table is a wager and four game cards. */
+.sde-ui .tl-log-art, .sde-ui .tg-crest { display: grid; place-items: center; font-size: 22px; color: var(--ui-frame); }
+.sde-ui .tl-log .ui-title, .sde-ui .tg-games .ui-title { font-size: 26px; }
+.sde-ui .tl-log .tl-cats select { width: auto; min-width: 190px; height: 24px; margin-left: auto; }
+.sde-ui .tl-log-kind { display: grid; place-items: center; color: var(--ui-gold); font-size: 13px; }
+.sde-ui .tl-amount { white-space: nowrap; color: var(--ui-muted); }
+.sde-ui .tl-amount.gain { color: var(--ui-text); }
+.sde-ui .tl-amount.loss, .sde-ui .tl-loss { color: var(--ui-danger-text); }
+
+.sde-ui .tg-wager { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.sde-ui .tg-games .tl-step input { width: 76px !important; }
+.sde-ui .tg-games .tl-step .ui-muted { padding: 0 8px; }
+.sde-ui .tg-wager-text { color: var(--ui-gold); font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sde-ui .tg-chips { margin-left: auto; }
+.sde-ui .tg-chips button.ui-chip { cursor: pointer; font: inherit; font-size: 12px; }
+.sde-ui .tg-chips button.ui-chip:hover { border-color: var(--ui-frame); color: var(--ui-text); }
+.sde-ui .tg-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-items: start; }
+@container (max-width: 560px) { .sde-ui .tg-list { grid-template-columns: minmax(0, 1fr); } }
+.sde-ui .tg-game { display: grid; grid-template-columns: 48px minmax(0, 1fr); grid-template-areas: "art main" "play play"; gap: 8px 12px; padding: 12px; background: var(--ui-panel); border: 1px solid var(--ui-line); border-radius: var(--ui-r2); }
+.sde-ui .tg-game:hover { border-color: var(--ui-frame); }
+.sde-ui .tg-art { grid-area: art; width: 48px; height: 48px; display: grid; place-items: center; border: 1px solid var(--ui-line); border-radius: var(--ui-r); background: var(--ui-raised); color: var(--ui-gold); font-size: 20px; }
+.sde-ui .tg-main { grid-area: main; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0; }
+.sde-ui .tg-name { margin: 0; font: 400 21px/1.2 var(--ui-title); color: var(--ui-text); }
+.sde-ui .tg-rules { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--ui-body); }
+.sde-ui .tg-play { grid-area: play; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.sde-ui .tg-result { display: flex; flex-direction: column; gap: 2px; font-size: 13.5px; }
+.sde-ui .tg-result b { font: 400 19px/1.2 var(--ui-title); color: var(--ui-text); }
+
+/* ── what a ware is: its facts and a short description on the card, the rest under Details ─────────── */
+.sde-ui .tl-facts { display: flex; flex-wrap: wrap; gap: 4px; }
+.sde-ui .tl-facts .ui-chip { font-size: 11px; padding: 0 6px; }
+.sde-ui .tl-blurb { margin: 0; font-size: 12px; line-height: 1.4; color: var(--ui-muted); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.sde-ui .tl-ware-more { grid-column: 2 / -1; display: flex; flex-direction: column; gap: 6px; padding-top: 8px; border-top: 1px dashed var(--ui-line); }
+.sde-ui .tl-ware-more .tl-ware-desc { padding: 0; border: 0; }
+.sde-ui .tl-rules { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; font-size: 12px; line-height: 1.45; color: var(--ui-body); }
+.sde-ui .tl-rules b { color: var(--ui-text); }

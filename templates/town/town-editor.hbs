@@ -1,0 +1,102 @@
+<form class="ui-shell te-form" autocomplete="off" onsubmit="return false">
+  <header class="ui-head">
+    <div class="ui-art te-crest"><i class="fa-solid fa-landmark"></i></div>
+    <div class="ui-head-text">
+      <h2 class="ui-title">{{sceneName}}</h2>
+      <p class="ui-sub">{{localize "SDE.town.editor.sub"}}</p>
+    </div>
+    <div class="ui-stats">
+      <div class="ui-stat"><span class="ui-label">{{localize "SDE.town.editor.merchants"}}</span><span class="ui-value">{{merchants.length}}</span></div>
+      <div class="ui-stat"><span class="ui-label">{{localize "SDE.town.editor.open"}}</span><span class="ui-value">{{openCount}}</span></div>
+    </div>
+  </header>
+
+  <div class="ui-body">
+    <section class="ui-group">
+      <h3 class="ui-h"><span>{{localize "SDE.town.editor.town"}}</span></h3>
+      <div class="ui-cols-2">
+        <label class="ui-field"><span class="ui-label">{{localize "SDE.town.editor.name"}}</span><input type="text" name="title" value="{{page.title}}" maxlength="80"></label>
+        <label class="ui-field"><span class="ui-label">{{localize "SDE.town.editor.tagline"}}</span><input type="text" name="tagline" value="{{page.tagline}}" maxlength="120"></label>
+      </div>
+      <label class="ui-field"><span class="ui-label">{{localize "SDE.town.editor.blurb"}}</span><textarea name="blurb" rows="3" maxlength="600">{{page.blurb}}</textarea></label>
+      <div class="ui-field">
+        <span class="ui-label">{{localize "SDE.town.editor.picture"}}</span>
+        <div class="te-banner">
+          <span class="ui-muted te-picture-note">{{localize "SDE.town.editor.pictureNote"}}</span>
+          <button type="button" class="ui-btn" data-action="openScene"><i class="fa-solid fa-image"></i> {{localize "SDE.town.editor.openScene"}}</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="ui-group">
+      <h3 class="ui-h"><span>{{localize "SDE.town.editor.places"}}</span><small>{{localize "SDE.town.editor.placesHint"}}</small></h3>
+      <div class="ui-inline te-places">
+        {{#each places}}<label class="ui-check"><input type="checkbox" name="place.{{id}}" {{checked on}}> {{label}}</label>{{/each}}
+      </div>
+    </section>
+
+    <section class="ui-group">
+      <h3 class="ui-h"><span>{{localize "SDE.town.editor.games"}}</span><small>{{localize "SDE.town.editor.gamesHint"}}</small></h3>
+      <label class="ui-switch"><input type="checkbox" name="games.on" {{checked page.games.on}}><span>{{localize "SDE.town.editor.gamesOn"}}</span></label>
+      <div class="ui-cols-2">
+        <label class="ui-field"><span class="ui-label">{{localize "SDE.town.editor.maxBet"}}</span><input type="number" name="games.maxBet" value="{{page.games.maxBet}}" min="1" max="1000" step="1"></label>
+        <label class="ui-field"><span class="ui-label">{{localize "SDE.town.editor.edge"}}</span><input type="number" name="games.edge" value="{{page.games.edge}}" min="0" max="50" step="1"></label>
+      </div>
+    </section>
+
+    <section class="ui-group">
+      <h3 class="ui-h"><span>{{localize "SDE.town.editor.merchants"}}</span><small>{{merchants.length}}</small></h3>
+      {{#each merchants}}
+      <article class="ui-card te-merchant {{#if missing}}bad{{/if}}" data-merchant-id="{{id}}">
+        <div class="ui-card-head">
+          <div class="te-portrait"><img src="{{img}}" alt=""></div>
+          <div class="te-who">
+            <h4 class="ui-card-name" title="{{name}}">{{name}}</h4>
+            <div class="ui-inline">
+              {{#if missing}}<span class="ui-chip bad">{{localize "SDE.town.editor.missing"}}</span>
+              {{else if empty}}<span class="ui-chip warn" data-tooltip="{{localize 'SDE.town.editor.noWares'}}">{{localize "SDE.town.editor.wares" n=wares}}</span>
+              {{else}}<span class="ui-chip">{{localize "SDE.town.editor.wares" n=wares}}</span>{{/if}}
+              {{#if restocking}}<span class="ui-chip gold">{{localize "SDE.town.editor.restocking"}}</span>{{/if}}
+            </div>
+          </div>
+          <div class="ui-card-actions">
+            {{#unless missing}}<button type="button" class="ui-icon" data-action="openStock" data-actor-id="{{actorId}}" data-tooltip="{{localize 'SDE.town.editor.stock'}}" aria-label="{{localize 'SDE.town.editor.stock'}}"><i class="fa-solid fa-boxes-stacked"></i></button>{{/unless}}
+            <button type="button" class="ui-icon" data-action="restockMerchant" data-merchant-id="{{id}}" data-tooltip="{{localize 'SDE.town.editor.restockTip'}}" aria-label="{{localize 'SDE.town.editor.restock'}}"><i class="fa-solid fa-rotate"></i></button>
+            <button type="button" class="ui-icon danger" data-action="removeMerchant" data-merchant-id="{{id}}" data-tooltip="{{localize 'SDE.town.editor.remove'}}" aria-label="{{localize 'SDE.town.editor.remove'}}"><i class="fa-solid fa-trash"></i></button>
+          </div>
+        </div>
+        <div class="ui-cols-2">
+          <label class="ui-field"><span class="ui-label">{{localize "SDE.town.editor.role"}}</span><input type="text" name="m.{{id}}.role" value="{{role}}" maxlength="60"></label>
+          <label class="ui-field"><span class="ui-label">{{localize "SDE.town.editor.pitch"}}</span><input type="text" name="m.{{id}}.pitch" value="{{pitch}}" maxlength="200"></label>
+        </div>
+        <div class="te-nums">
+          <label class="ui-field"><span class="ui-label">{{localize "SDE.town.editor.markup"}}</span><input type="number" name="m.{{id}}.buyMultiplier" value="{{buyMultiplier}}" min="10" max="500" step="5"></label>
+          <label class="ui-field"><span class="ui-label">{{localize "SDE.town.editor.buyback"}}</span><input type="number" name="m.{{id}}.sellRatio" value="{{sellRatio}}" min="0" max="100" step="5"></label>
+          <label class="ui-switch"><input type="checkbox" name="m.{{id}}.open" {{checked open}}><span>{{localize "SDE.town.editor.open"}}</span></label>
+        </div>
+      </article>
+      {{else}}
+      <div class="ui-empty"><i class="fa-solid fa-store-slash"></i><span>{{localize "SDE.town.editor.none"}}</span></div>
+      {{/each}}
+
+      {{#if npcs.length}}
+      <div class="te-add">
+        <select name="addActor" aria-label="{{localize 'SDE.town.editor.pick'}}">
+          <option value="">{{localize "SDE.town.editor.pick"}}</option>
+          {{#each npcs}}<option value="{{id}}">{{name}}</option>{{/each}}
+        </select>
+        <button type="button" class="ui-btn" data-action="addMerchant"><i class="fa-solid fa-plus"></i> {{localize "SDE.town.editor.add"}}</button>
+      </div>
+      {{else}}
+      <p class="ui-note info">{{localize "SDE.town.editor.noNpcs"}}</p>
+      {{/if}}
+    </section>
+  </div>
+
+  <footer class="ui-footer">
+    <div class="ui-right">
+      <button type="button" class="ui-btn ghost" data-action="cancel">{{localize "SDE.town.editor.cancel"}}</button>
+      <button type="button" class="ui-btn primary" data-action="save"><i class="fa-solid fa-floppy-disk"></i> {{localize "SDE.town.editor.save"}}</button>
+    </div>
+  </footer>
+</form>
