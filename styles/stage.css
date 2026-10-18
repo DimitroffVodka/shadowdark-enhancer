@@ -20,3 +20,30 @@
 
 /* The Camping footer gained a third button; let its right group wrap instead of running past the window edge. */
 .sde-camping-body .ui-actions .ui-right { flex-wrap: wrap; justify-content: flex-end; }
+
+/* Places window. Kit tokens only (styles/sde-ui.css); the window is a container, so it also works narrow. */
+.sde-stage-places [hidden] { display: none !important; }
+.sde-stage-places .sp-top { flex: 0 0 auto; }
+.sde-stage-places .sp-add-group { padding: 8px 16px 0; }
+.sde-stage-places .sp-row { align-items: flex-start; padding: 10px; }
+.sde-stage-places .sp-row > .sp-thumb { width: 64px; height: 64px; border-radius: var(--ui-r); border: 1px solid var(--ui-line); object-fit: cover; flex: 0 0 auto; background: var(--ui-raised); }
+.sde-stage-places .sp-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.sde-stage-places .sp-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 9em); gap: 6px; }
+.sde-stage-places .sp-name { text-overflow: ellipsis; }
+.sde-stage-places .sp-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.sde-stage-places .sp-actions .ui-btn { min-height: 24px; }
+.sde-stage-places .sp-add { gap: 6px; padding: 8px 10px; }
+.sde-stage-places .sp-add-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px 10px; align-items: end; }
+.sde-stage-places .sp-add-file input[type=file] { max-width: 100%; color: var(--ui-body); }
+.sde-stage-places .sp-add-foot { display: flex; align-items: center; justify-content: flex-end; gap: 8px; min-width: 0; }
+.sde-stage-places .sp-add-foot > .ui-row-sub { margin-right: auto; }
+
+@container (max-width: 470px) {
+  .sde-stage-places .sp-fields { grid-template-columns: minmax(0, 1fr); }
+  .sde-stage-places .sp-row { gap: 8px; padding: 8px; }
+  .sde-stage-places .sp-row > .sp-thumb { width: 48px; height: 48px; }
+}
+
+@container (max-width: 420px) {
+  .sde-stage-places .sp-add-fields { grid-template-columns: minmax(0, 1fr); }
+}

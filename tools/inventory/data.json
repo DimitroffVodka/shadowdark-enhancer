@@ -143,7 +143,7 @@
       "id": "3.24",
       "dir": "scripts/stage",
       "title": "`scripts/stage/` — Stage (Backdrop)",
-      "note": "A full-screen picture every client shows behind Foundry's UI, kept in one world setting. Phase 1a raises a Camp place when a camp starts."
+      "note": "A full-screen picture every client shows behind Foundry's UI, kept in one world setting. Phase 1a raises a Camp place when a camp starts; phase 1b adds the GM's own places with uploaded pictures."
     }
   ],
   "order": {
@@ -493,6 +493,8 @@
     ],
     "3.24": [
       "scripts/stage/stage-core.mjs",
+      "scripts/stage/places-core.mjs",
+      "scripts/stage/places.mjs",
       "scripts/stage/stage.mjs"
     ]
   },
@@ -969,6 +971,9 @@
     "scripts/hex-map/hex-tile-chooser.mjs": "Hex Data's tile picker, pure parts and thin calls to Extras' hex API (getTilePool, repaintHexTiles): whether choosing is offered, which painted scene a change goes to, the picker's options with the hex's own marked, and the reshuffle / exact-tile repaint entries.",
     "scripts/hex-map/bake-map.mjs": "Hex Data's Bake map, pure parts and the sequence: which baked scenes a map has, which one a new bake stands in for, what a bake over a played-on scene would not carry (tokens, recorded hexes), the new scene's name, and fill-keyed-ground / hex.bakeMap / remove-ground with the removal guaranteed.",
     "scripts/stage/stage-core.mjs": "Stage's Foundry-free half: `normalizeStage` (the only reader of the stage setting), `campArtFor` (a terrain's camp picture, null on water) and `campTransition` (the raise/drop table for the Camp place; one camp id raises once).",
-    "scripts/stage/stage.mjs": "Stage's layer and switch: registers the world setting `stage` (every client redraws from its onChange and on ready), keeps one `div#sde-stage` behind Foundry's UI, adds the GM's Backdrop tool to the Tokens toolbar, watches party updates (`onPartyCamp`: raises the camp picture only on the write that begins a camp, drops it when the camp ends), and exports `raiseByHand`, `pickParty`, `partyTerrain`, `hideStage` and `onPartyCamp`."
+    "scripts/stage/places-core.mjs": "Stage places, Foundry-free: `normalizePlaces` (the only reader of the list: bad ids, pictureless and duplicate places dropped, 24 at most), add/update/remove, `fitWithin` and `uploadName` for the picture upload, and `reshowTarget` (the custom place the toolbar switch raises again).",
+    "scripts/stage/places.mjs": "Stage places, Foundry side: registers the world setting `stagePlaces`, `showPlace` (writes the `stage` value), `removePlaceAndHide`, GM-only list writes, `refreshPlacesWindow` (a setting change redraws the open Places window), and `uploadPlacePicture` (FILES_UPLOAD check, downscale to 2560 px WebP, world `stage` folder created first).",
+    "scripts/stage/places-app.mjs": "The Stage Places window (GM only, AppV2, opened by the Backdrop places toolbar button): the list of the GM's places with a thumbnail, name and kind edits, Show/Hide, Replace picture and a confirmed Delete, plus the Add place form with its busy state. Edits go through the places.mjs services; the file is never deleted.",
+    "scripts/stage/stage.mjs": "Stage's layer and switch: registers the world setting `stage` (every client redraws from its onChange and on ready), keeps one `div#sde-stage` behind Foundry's UI, adds the GM's Backdrop toggle and Backdrop places button to the Tokens toolbar, watches party updates (`onPartyCamp`: raises the camp picture only on the write that begins a camp, drops it when the camp ends), and exports `raiseByHand`, `pickParty`, `partyTerrain`, `hideStage` and `onPartyCamp`."
   }
 }
