@@ -2357,11 +2357,14 @@ the scene the Overland travel token is on (#294), in step with the clock,
 whether or not anyone is travelling.
 
 **Which scenes.** Each of those two scenes is written once, if it follows
-the sky. A scene follows the sky when Scene Configuration's
-Environment tab says so. The choice is stored as the scene flag
+the sky or shows the party's weather. A scene follows the sky when Scene
+Configuration's Environment tab says so. The choice is stored as the scene flag
 `shadowdark-enhancer.followsSky`: `"on"`, `"off"`, or `"default"`, which is
-yes for a tagged hex map and no everywhere else. Dungeons and interiors are
-untouched unless marked.
+yes for a hex map and no everywhere else. Dungeons and interiors are
+untouched unless marked. The weather has its own flag,
+`shadowdark-enhancer.followsWeather`, with the same three values; `"default"`
+does what `followsSky` does, so a scene that never set it is unchanged, and a
+town set to `"on"` shows the weather without being darkened.
 
 **Darkness.**
 - It is 0 by day. The light eases between day and night over the four hours

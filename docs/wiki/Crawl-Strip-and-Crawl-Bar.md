@@ -393,17 +393,27 @@ the party token travels.
 
     Overland only ever changes or clears an effect it put there; one you
     picked on the scene yourself is left alone.
+
+    The Weather list in Scene Configuration also has five looks of the
+    Enhancer's own: Drizzle, Mist, Heavy Fog, Sleet and Dust Storm. They run
+    on Foundry's rain, fog and snow shaders and are for you to pick on any
+    scene; Overland never chooses them.
   - A hex map (any hex grid) counts as outdoors and only darkens to a readable
     tint. Any other scene joins in when you set **Follows the sky** to Yes in
     its Scene Configuration, on the Environment tab; dungeons are left alone.
+  - The weather has its own choice there, **Shows the party's weather**. Set
+    to Yes, a town or a dungeon shows the weather without being darkened; set
+    to No, a hex map keeps its sun and moon but shows no weather. Default does
+    what Follows the sky does, so a scene that never chose is unchanged.
   - The sky is written to the active scene and to the scene the travel token
     is on, so the map darkens and shows the weather even while a dungeon is the
-    world's active scene. Each of the two must follow the sky.
+    world's active scene. Each of the two must follow the sky or show the
+    weather.
   - Weather changes redraw the whole scene on every screen that shows it,
     which is slow on a very large map or a weak device. Each device has a
-    **Show weather effects** setting (see [Settings Reference](Settings-Reference.md));
-    turned off, that device draws no weather while the scene keeps it for
-    everyone else.
+    **Show weather effects** setting (see [Settings Reference](Settings-Reference.md)),
+    also the cloud button on the left of the clock bar; turned off, that
+    device draws no weather while the scene keeps it for everyone else.
   - A scene whose darkness is locked is left alone, and so is a weather effect
     you picked yourself. No calendar module is needed.
   - On the Isles of Andrik, the summer sun never sets and the winter night

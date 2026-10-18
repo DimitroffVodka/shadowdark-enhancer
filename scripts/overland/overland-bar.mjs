@@ -42,7 +42,8 @@ import {
   endOverland, resume, forage, startOverland, advanceClock, checkNow, encounterSettings, ENCOUNTER_SETTINGS, OVERLAND_CHANGED,
 } from "./overland.mjs";
 import { Party, isNativeParty } from "../party/party.mjs";
-import { barModel, itemTouchesBar, redrawStamp, hhmm } from "./overland-bar-core.mjs";
+import { barModel, itemTouchesBar, redrawStamp, hhmm, weatherSwitch } from "./overland-bar-core.mjs";
+import { WEATHER_VISUALS, weatherVisualsOn } from "./sky.mjs";
 import { travelPanel } from "./travel-panel.mjs";
 import { campOf } from "../camping/camping.mjs";
 import { isZoneFight } from "../stage/zone-core.mjs";
@@ -189,6 +190,8 @@ export const TravelBar = {
       this.render();
     });
     Hooks.on(CrawlState.HOOK_CHANGED, queue);
+    // The switch can also be changed in Module Settings.
+    Hooks.on("clientSettingChanged", (key) => { if (key === `${MODULE_ID}.${WEATHER_VISUALS}`) queue(); });
     Hooks.on(`${MODULE_ID}.clockBarChanged`, queue);
     Hooks.on(CALENDAR_CHANGED, () => { if (this._open === "month") this.render(); });
     // A GM changed what players may see of the holidays: an open month view catches up.
@@ -474,6 +477,7 @@ export const TravelBar = {
     const gm = game.user.isGM;
     const { parts } = this._now();
     const state = overlandState();
+    const wx = weatherSwitch(weatherVisualsOn());
     const date = t("SDE.clock.date", { weekday: t(parts.weekday), day: parts.day, month: t(parts.month), year: parts.year });
     let travel = "";
     if (isHexMapScene()) {
@@ -490,6 +494,7 @@ export const TravelBar = {
       <div class="sde-hud-side">
         ${gm ? ib("stack", "fa-backward", t("SDE.clock.rewind"), { id: "rew", pressed: this._stack === "rew" }) : ""}
         ${ib("open", "fa-calendar-days", t("SDE.clock.month"), { id: "month", pressed: this._open === "month" })}
+        ${ib("weather", wx.icon, t(wx.labelKey), { pressed: wx.on, cls: wx.cls })}
         ${gm ? ib("open", "fa-sliders", t("SDE.clock.time"), { id: "time", pressed: this._open === "time" }) : ""}
       </div>
       <span class="sde-hud-date sde-hud-date-mid"><span class="sde-hud-d">${esc(date)}</span><span class="sde-hud-t">${esc(parts.time)}</span>
@@ -891,6 +896,8 @@ export const TravelBar = {
       case "see": { const n = Number(id); this._see = (this._see === n || el.dataset.now) ? null : n; return this.render(); }
       case "findParty": return findParty();
       case "partySheet": return openPartySheet();
+      // This device's Show weather effects setting; the setting's own change repaints the canvas and this bar.
+      case "weather": return game.settings.set(MODULE_ID, WEATHER_VISUALS, !weatherVisualsOn());
       case "sky": this._sky = !this._sky; this._open = null; return this.render();
       case "month": this._monthOffset += Number(id) || 0; this._info = null; return this.render();
       case "step": return this._move(Number(id));
