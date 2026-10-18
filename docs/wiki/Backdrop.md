@@ -7,9 +7,17 @@ Foundry's windows and toolbar. It is the same on every scene, so it covers the
 map without you having to move the table anywhere. It is kept in a world setting,
 so it survives a reload and a player who joins late sees it too.
 
-The party's camp is the automatic place. You can also keep your own list of
-pictures, see [Backdrop places](#backdrop-places). A place can also carry a Town page, see [A Town page on a place](#a-town-page-on-a-place). A fight with no battle map is drawn over it as
-[Zone Combat](Zone-Combat.md).
+**It works the moment the module is on, with nothing to set up.** Press the
+**Backdrop places** button (the pictures icon beside the Backdrop tool, GMs only)
+and under **Ready to use** press **Show** next to **Tavern**, **Town** or
+**Market**: everyone sees that picture. **Hide** takes it down. The pictures ship
+with the module, so there is nothing to upload and no page to make first. See
+[Ready places](#ready-places).
+
+Everything else is optional: the party's camp is the automatic place, you can add
+pictures of your own ([Backdrop places](#backdrop-places)), a place can carry a
+Town page ([A Town page on a place](#a-town-page-on-a-place)), and a fight with no
+battle map is drawn over it as [Zone Combat](Zone-Combat.md).
 
 ---
 
@@ -17,8 +25,8 @@ pictures, see [Backdrop places](#backdrop-places). A place can also carry a Town
 
 A GM gets a **Backdrop** tool in the Tokens group of the left toolbar. It is lit
 while the picture is up. Click it to hide the picture; click it again to bring a picture
-back: the last custom place you showed, if it still exists, otherwise the camp
-picture. Players have no tool and cannot hide it.
+back: the last ready or custom place you showed, if it still exists, otherwise
+the camp picture. Players have no tool and cannot hide it.
 
 While the picture is up, selected tokens are released for the GM and for the
 players, so the arrow keys do not move tokens on the map underneath.
@@ -77,18 +85,37 @@ are the camp pictures that ship with the module for
 River, lake, ocean and arctic sea never raise it by themselves; a hand raise
 there shows Forest woods (camp).
 
+## Ready places
+
+Three places come with the module and are always in the window's **Ready to use**
+block, above your own:
+
+| Place | Kind | Picture |
+|---|---|---|
+| Tavern | Tavern | a lit inn, ground floor (Twilight Tavern) |
+| Town | Town | a town square by day (Town Center) |
+| Market | Custom | a festival market (Market Festival) |
+
+Each row has a thumbnail, the name and **Show** (or **Hide** while it is up). That
+is all: a ready place cannot be renamed, replaced or deleted, and it does not use
+one of your 24 places. Show puts the picture up exactly as it does for a place of
+your own (same layer, same release of selected tokens, and Bring the table hides
+it), and a camp that begins never replaces the Tavern or the Town. The pictures are
+at most 2048 px WebP files by [2-Minute Tabletop](https://2minutetabletop.com)
+under CC BY-NC 4.0, credited in `CREDITS.md`.
+
 ## Backdrop places
 
-A GM can keep a list of up to 24 named places, each with its own picture. The
+Beyond the ready places, a GM can keep a list of up to 24 named places, each with its own picture. The
 camp picture is not in this list: it stays automatic.
 
 **The window.** A second GM-only button, **Backdrop places**, sits beside the
-Backdrop tool in the Tokens group. It opens a window with an **Add a place** form
-and the list of your places. Each row has a thumbnail, a name you can edit, a kind,
+Backdrop tool in the Tokens group. It opens a window with the **Ready to use** places, an optional **Add your own
+picture** form and the list of **Your places**. Each row has a thumbnail, a name you can edit, a kind,
 and the buttons **Show** (or **Hide** while it is up), **Replace picture** and
 **Delete**.
 
-**Adding one.** Type a name (left empty, it takes the kind's word, such as
+**Adding one (optional).** Type a name (left empty, it takes the kind's word, such as
 Tavern), pick a kind (Town, Tavern, Camp or Custom) and choose a picture from your
 own computer, then press **Add place**. At 24 places you get a notice and must
 delete one first.
@@ -113,8 +140,8 @@ the Backdrop. The picture file stays in the world folder.
 
 **The kind.** The kind labels the place, and a Town or Tavern place is not
 replaced by a camp that begins (the Show camp picture button still switches by
-hand). No town or
-tavern pictures ship with the module: you add your own.
+hand). Your own
+places need your own pictures; the three ready places already have theirs.
 
 The list is its own hidden world setting, apart from the one that holds what is
 showing, so neither overwrites the other.
@@ -153,5 +180,5 @@ While it is up:
 ## What it does not do yet
 
 - No tavern page tiles yet; a Tavern place hosts the same Town page as a Town place.
-- No pictures for town or tavern come with the module.
+- The ready Tavern and Town show a picture only: a page for them is not made for you yet (give one a Page scene by hand, as for any place).
 - It is not in the Settings list; the values sit in hidden world settings.

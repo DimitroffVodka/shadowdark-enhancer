@@ -11,6 +11,21 @@ const NAME_MAX = 60;
 
 const str = (v) => (typeof v === "string" ? v : "");
 
+const READY_ART = "modules/shadowdark-enhancer/assets/scenes/places/";
+
+/**
+ * The places that ship with the module: a picture, a name and nothing to set up. They are never stored in the
+ * `stagePlaces` list and cannot be edited, renamed, replaced or deleted; the window shows them first with Show and Hide.
+ * Their ids are permanent: a stage value written today names one. `thumb` is the 480 px preview for the window.
+ */
+export const READY_PLACES = Object.freeze([
+  { id: "ready-tavern", kind: "tavern", nameKey: "SDE.stage.ready.tavern", image: `${READY_ART}tavern.webp`, thumb: `${READY_ART}thumbs/tavern.webp` },
+  { id: "ready-town", kind: "town", nameKey: "SDE.stage.ready.town", image: `${READY_ART}town.webp`, thumb: `${READY_ART}thumbs/town.webp` },
+  { id: "ready-market", kind: "custom", nameKey: "SDE.stage.ready.market", image: `${READY_ART}market.webp`, thumb: `${READY_ART}thumbs/market.webp` },
+].map((p) => Object.freeze(p)));
+
+export const readyById = (id) => READY_PLACES.find((p) => p.id === id) ?? null;
+
 /** The only reader of the places setting: junk is dropped place by place. Never throws. */
 export function normalizePlaces(raw) {
   const list = Array.isArray(raw?.places) ? raw.places : [];
@@ -18,7 +33,7 @@ export function normalizePlaces(raw) {
   for (const p of list) {
     if (places.length >= MAX_PLACES) break;
     const id = str(p?.id), image = str(p?.image).trim();
-    if (!PLACE_ID.test(id) || id === "camp" || !image || seen.has(id)) continue;
+    if (!PLACE_ID.test(id) || id === "camp" || readyById(id) || !image || seen.has(id)) continue;
     seen.add(id);
     const place = { id, kind: PLACE_KINDS.includes(p.kind) ? p.kind : "custom", name: [...str(p.name).trim()].slice(0, NAME_MAX).join("").trim(), image };
     if (PLACE_ID.test(str(p.pageSceneId))) place.pageSceneId = p.pageSceneId;
@@ -27,7 +42,8 @@ export function normalizePlaces(raw) {
   return { places };
 }
 
-export const placeById = (value, id) => normalizePlaces(value).places.find((p) => p.id === id) ?? null;
+/** A ready place or one of the GM's own, by id (ready ones come with their `nameKey`, own ones with a `name`). */
+export const placeById = (value, id) => readyById(id) ?? normalizePlaces(value).places.find((p) => p.id === id) ?? null;
 
 export function addPlace(value, place) {
   const cur = normalizePlaces(value);

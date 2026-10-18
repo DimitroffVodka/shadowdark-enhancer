@@ -7,7 +7,7 @@
 import { ENCOUNTER_MAPS, campVariantOf, mapsForTerrain } from "../encounter/battle-maps/encounter-maps.mjs";
 import { terrainKeyOf } from "../encounter/battle-maps/battle-map-picker-core.mjs";
 
-/** The built-in places. Custom places (phase 1b) are stored by id and accepted by `normalizeStage` too. */
+/** The built-in automatic place. Ready places (places-core READY_PLACES) and custom places are stored by id and accepted by `normalizeStage` too (any PLACE_ID). */
 export const STAGE_PLACES = ["camp"];
 
 /** Raise the camp backdrop even when a party token is on the viewed map. Patrick: "use a button". */

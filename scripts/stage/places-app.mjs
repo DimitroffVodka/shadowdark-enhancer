@@ -7,7 +7,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { L } from "../shared/i18n.mjs";
 import { esc } from "../shared/esc.mjs";
 import { fileRoute } from "../shared/file-route.mjs";
-import { MAX_PLACES, PLACE_KINDS } from "./places-core.mjs";
+import { MAX_PLACES, PLACE_KINDS, READY_PLACES } from "./places-core.mjs";
 import { addPlaceToList, readPlaces, removePlaceAndHide, setPlacesWindow, showPlace, updatePlaceInList, uploadPlacePicture } from "./places.mjs";
 import { landingOf } from "../town/town-core.mjs";
 import { normalizeStage } from "./stage-core.mjs";
@@ -57,8 +57,9 @@ export class StagePlacesApp extends HandlebarsApplicationMixin(ApplicationV2) {
     },
   };
 
-  // Two parts so a list redraw (a setting change) never wipes the Add form the GM is filling in.
+  // Separate parts so a redraw (a setting change) never wipes the Add form the GM is filling in; the ready places and the list follow the stage.
   static PARTS = {
+    ready: { template: `modules/${MODULE_ID}/templates/stage/places-ready.hbs` },
     add: { template: `modules/${MODULE_ID}/templates/stage/places-add.hbs` },
     list: { template: `modules/${MODULE_ID}/templates/stage/places-list.hbs`, scrollable: [".ui-body"] },
   };
@@ -71,7 +72,7 @@ export class StagePlacesApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const app = (StagePlacesApp._current ??= new StagePlacesApp());
     setPlacesWindow(app);
     // Awaited: bringToFront needs the window element, which a first render creates asynchronously.
-    await app.render(app.rendered ? { parts: ["list"] } : { force: true });
+    await app.render(app.rendered ? { parts: ["ready", "list"] } : { force: true });
     if (app.element) app.bringToFront?.();
     return app;
   }
@@ -98,7 +99,8 @@ export class StagePlacesApp extends HandlebarsApplicationMixin(ApplicationV2) {
       shown: stage.shown && stage.place === p.id,
       kinds: kinds.map((k) => ({ ...k, selected: k.value === p.kind })),
     }));
-    return { places, kinds, pageScenes: scenes, busy: this._busy };
+    const ready = READY_PLACES.map((p) => ({ id: p.id, nameKey: p.nameKey, image: fileRoute(p.thumb), shown: stage.shown && stage.place === p.id }));
+    return { ready, places, kinds, pageScenes: scenes, busy: this._busy };
   }
 
   /** The Add form's Page scene options, in place: re-rendering that part would clear what the GM has typed. */

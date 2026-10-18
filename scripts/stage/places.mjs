@@ -12,7 +12,7 @@ const MAX_EDGE = 2560;
 let placesWindow = null;
 /** The Places window registers itself here so a setting change on this client redraws it. */
 export const setPlacesWindow = (app) => { placesWindow = app; };
-export const refreshPlacesWindow = () => { placesWindow?.render({ parts: ["list"] }); placesWindow?.refreshAddPages?.(); };
+export const refreshPlacesWindow = () => { placesWindow?.render({ parts: ["ready", "list"] }); placesWindow?.refreshAddPages?.(); };
 
 export function registerPlaces() {
   game.settings.register(MODULE_ID, "stagePlaces", {
@@ -45,7 +45,7 @@ const enqueue = (task) => {
   return run;
 };
 
-/** Raise a custom place on the stage. The stage carries the picture, so the layer never needs the list. */
+/** Raise a ready or custom place on the stage. The stage carries the picture, so the layer never needs the list. */
 export async function showPlace(id) {
   if (!game.user?.isGM) return;
   const place = placeById(readPlaces(), id);

@@ -263,6 +263,25 @@ as lossless WebP for the module.
   text ships beside the bundle in
   [`scripts/pdf-export/lib/LICENSE`](scripts/pdf-export/lib/LICENSE).
 
+## Backdrop ready places (`assets/scenes/places/`)
+
+The three places the [Backdrop](docs/wiki/Backdrop.md) shows with nothing to set up
+live in this folder, each with a 480-pixel preview in `thumbs/` for the places
+window. All of them are by **[2-Minute Tabletop](https://2minutetabletop.com)**
+(Ross McConnell) and licensed under
+[CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/). Each is the
+product's own picture, unchanged apart from being re-encoded to WebP (lossy,
+quality 82) and, where it is larger, scaled down to at most 2048 pixels on the
+long side; `tools/places-art/build-assets.py` makes them. Their
+**non-commercial** designation is a licensing boundary of these assets,
+separate from the module's own code license.
+
+| File | Shown as | Product | Picture used |
+|---|---|---|---|
+| `tavern.webp` | Tavern | [Twilight Tavern](https://2minutetabletop.com/product/twilight-tavern/) (Volume 9) | Everyday, Light, Floor 1 |
+| `town.webp` | Town | [Town Center](https://2minutetabletop.com/product/town-center/) (Volume 7) | Clear, Day |
+| `market.webp` | Market | [Market Festival](https://2minutetabletop.com/product/market-festival/) (Volume 3) | the battle map |
+
 ## Ported code (`scripts/time/`)
 
 - `daylightHours` in `time-core.mjs` — the solstice-to-solstice daylight
