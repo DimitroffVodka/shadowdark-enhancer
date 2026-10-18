@@ -6276,5 +6276,7 @@
   "SDE.stage.zone.addFoeFailed": "Adding the foe failed. Nothing was kept.",
   "SDE.stage.zone.gmOnly": "Only a GM can do that.",
   "SDE.stage.zone.folderName": "Zone fight foes",
-  "SDE.stage.zone.foeName": "Foe"
+  "SDE.stage.zone.foeName": "Foe",
+  "SDE.stage.zone.crawlRefused": "A zone fight is running. End it before starting a combat from the Crawl Bar.",
+  "SDE.stage.zone.bringRefused": "A zone fight is running. End it before bringing the table to a battle map."
 }

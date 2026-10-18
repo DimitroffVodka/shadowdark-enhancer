@@ -43,7 +43,7 @@ export function registerHiddenSync() {
     const tokenDoc = speaker.token ? scene?.tokens?.get(speaker.token) : null;
     const combatant = speaker.token
       ? game.combat?.combatants.find(c => c.tokenId === speaker.token)
-      : null;
+      : (speaker.actor ? game.combat?.combatants.find(c => !c.tokenId && c.actorId === speaker.actor) : null);
     const hidden = tokenDoc?.hidden === true || combatant?.hidden === true;
     if (hidden) return false; // cancel creation — initiative is already set
   });

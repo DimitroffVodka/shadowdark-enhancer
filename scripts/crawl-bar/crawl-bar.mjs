@@ -771,6 +771,12 @@ export const CrawlBar = {
       return;
     }
 
+    // game.combat would be the zone fight: enrolling the party's tokens there doubles every PC.
+    if ((await import("../stage/zone-fight.mjs")).findZoneFight()) {
+      ui.notifications.warn(game.i18n.localize("SDE.stage.zone.crawlRefused"));
+      return;
+    }
+
     // Create combat if none exists — CrawlState transitions to "combat" via the
     // combatStart / createCombat hook in CrawlState.init().
     // noAutoEnroll: this method adds the whole party itself (all scene PC

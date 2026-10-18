@@ -422,3 +422,20 @@ export function formatForDiscordFromData(data, startTime, endTime) {
   if (lines.length <= 3) return L("SDE.sessionRecap.discord.empty");
   return lines.join("\n");
 }
+
+/**
+ * Friend or foe for a combatant, tokened or not (a Stage zone fight has no tokens): the token's
+ * disposition, else the actor's prototype. A tokenless Player-type actor with a player owner is
+ * friendly and a participant. Null when there is no actor to name.
+ */
+export function classifyCombatant(c, FRIENDLY = 1) {
+  const actor = c?.actor;
+  if (!actor) return null;
+  const owned = !!actor.hasPlayerOwner;
+  if (c.token) {
+    const friendly = (c.token.disposition ?? c.token.document?.disposition) === FRIENDLY;
+    return { friendly, participant: friendly && owned };
+  }
+  const player = actor.type === "Player" && owned;
+  return { friendly: player || actor.prototypeToken?.disposition === FRIENDLY, participant: player };
+}
