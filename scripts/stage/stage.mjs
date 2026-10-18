@@ -8,6 +8,7 @@ import { isNativeParty } from "../party/party.mjs";
 import { campOf } from "../camping/camping.mjs";
 import { fileRoute } from "../shared/file-route.mjs";
 import { isActiveGM } from "../shared/gm-relay.mjs";
+import { isZoneFight } from "./zone-core.mjs";
 import { registerPlaces, readPlaces, refreshPlacesWindow, showPlace } from "./places.mjs";
 import { reshowTarget } from "./places-core.mjs";
 import { campArtFor, campTransition, normalizeStage, showCamp } from "./stage-core.mjs";
@@ -123,6 +124,22 @@ export function registerStage() {
         if (read().shown) return hideStage();
         const again = reshowTarget(read(), readPlaces());
         return again ? showPlace(again.id) : raiseByHand(pickParty());
+      },
+    };
+    controls.tokens.tools.sdeZoneFight = {
+      name: "sdeZoneFight", title: "SDE.stage.zone.tool", icon: "fa-solid fa-swords", order: 93, toggle: true,
+      active: Array.from(game.combats ?? []).some(isZoneFight),
+      onChange: async () => {
+        try {
+          const { findZoneFight, startZoneFight, confirmEndZoneFight } = await import("./zone-fight.mjs");
+          const fight = findZoneFight();
+          if (fight) await confirmEndZoneFight(fight);
+          else await startZoneFight();
+        } catch (err) {
+          console.error(`${MODULE_ID} | zone fight tool failed`, err);
+          ui.notifications?.error(game.i18n.localize("SDE.stage.zone.boardFailed"));
+        }
+        ui.controls?.render({ reset: true }); // a declined End must put the toggle back
       },
     };
   });
