@@ -113,6 +113,44 @@ export async function tokenSourceFor(worldActor, origin = null) {
 }
 
 /**
+ * Ask for one canvas click per label, in order, and report where each landed (snapped to the grid's top-left).
+ * Escape stops: the points picked so far come back with `cancelled: true`. Nothing is created here.
+ *
+ * @param {string[]} labels  who each click is for, named in the running notification
+ * @returns {Promise<{points: Array<{x:number, y:number}>, cancelled: boolean}>}
+ */
+export function pickPoints(labels) {
+  const points = [];
+  if (!labels?.length) return Promise.resolve({ points, cancelled: false });
+  if (!canvas?.ready || !canvas.scene) {
+    ui.notifications?.warn(fmt("SDE.shared.placement.noScene"));
+    return Promise.resolve({ points, cancelled: true });
+  }
+  return new Promise((resolve) => {
+    const announce = () => ui.notifications?.info(fmt("SDE.shared.placement.clickToPlace", { label: labels[points.length], n: points.length + 1, total: labels.length }));
+    const finish = (cancelled) => {
+      document.removeEventListener("pointerdown", onClick, true);
+      document.removeEventListener("keydown", onKey);
+      resolve({ points, cancelled });
+    };
+    const onClick = (event) => {
+      // Only the board counts: not the sidebar, chat or our own window.
+      if (event.button !== 0 || !(event.target?.closest?.("#board, #board-canvas, canvas, .scene") || event.target?.tagName === "CANVAS")) return;
+      // Capture phase plus a full stop keeps Foundry's token layer from reading this as a drag-select or a deselect.
+      event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
+      const pos = canvas.mousePosition;
+      if (!pos) return;
+      points.push(canvas.grid.getSnappedPoint({ x: pos.x, y: pos.y }, { mode: CONST.GRID_SNAPPING_MODES.TOP_LEFT_VERTEX }));
+      if (points.length >= labels.length) finish(false); else announce();
+    };
+    const onKey = (event) => { if (event.key === "Escape") finish(true); };
+    document.addEventListener("pointerdown", onClick, true);
+    document.addEventListener("keydown", onKey);
+    announce();
+  });
+}
+
+/**
  * Drop a queue of tokens on the active scene, one per canvas click.
  *
  * Each entry is placed `count` times before the queue moves on, and the running

@@ -551,6 +551,45 @@ body.theme-light .sde-bar-start-btn:hover {
   color: var(--sde-bar-heroes-text);
   border-right-color: var(--sde-bar-heroes);
 }
+/* Marching: the label plate and the leader's card are the cue that one person is moving everyone. */
+/* The strip's own late block forces its accent and no shadow with !important, so these have to out-rank it. */
+.sde-strip-inner { --sde-march-gold: #f0c24b; }
+body.theme-light .sde-strip-inner { --sde-march-gold: #8a6a10; }
+.sde-strip-group-marching .sde-strip-label-col,
+.sde-strip-group-marching .sde-strip-group-label { color: var(--sde-march-gold) !important; border-color: var(--sde-march-gold) !important; }
+/* The 3x3 marching order beside the PARTY plate: the marker that the party is marching, and where it is rearranged. */
+.sde-strip-march {
+  display: grid; grid-template-columns: repeat(3, 44px); grid-auto-rows: 44px; gap: 3px;
+  align-content: center; flex-shrink: 0; padding: 6px;
+  background: #000; border-right: 2px solid var(--sde-march-gold);
+}
+.sde-strip-march-cell { border: 1px solid #3a3d44; border-radius: 4px; background: #1b1d22; overflow: hidden; }
+.sde-strip-march-cell:not(.empty) { cursor: pointer; }
+.sde-strip-march-cell img { display: block; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+.sde-strip-march-cell.leader { border-color: var(--sde-march-gold); box-shadow: 0 0 0 1px var(--sde-march-gold); }
+.sde-strip-slim-mode .sde-strip-march { grid-template-columns: repeat(3, 28px); grid-auto-rows: 28px; gap: 2px; padding: 4px; }
+body.theme-light .sde-strip-march { background: #e8e4dc; }
+body.theme-light .sde-strip-march-cell { background: #d8d3c8; border-color: #b8b2a4; }
+.sde-strip-march-btn {
+  display: flex; align-items: center; justify-content: center;
+  align-self: stretch; height: 30px; margin: 0; padding: 0;
+  background: transparent; color: #8a8f99; font-size: 14px; cursor: pointer;
+  border: none; border-top: 1px solid var(--sde-bar-border, #3a3d44); border-radius: 0;
+}
+.sde-strip-march-btn:hover { background: rgba(240, 194, 75, 0.15); }
+.sde-strip-march-btn.on { color: var(--sde-march-gold); }
+.sde-strip-march-btn.active { background: rgba(240, 194, 75, 0.25); }
+/* An outline, not a shadow: the card's active and turn states set box-shadow with !important at a higher specificity. */
+.sde-strip-member.sde-strip-leads { outline: 2px solid var(--sde-march-gold); outline-offset: -2px; }
+/* The slim card is only 100px wide: keep the flag off the end of the name, so the ellipsis still shows. */
+.sde-strip-slim-mode .sde-strip-leads .sde-strip-name { padding-right: 22px; }
+body.theme-light .sde-strip-leads-badge { color: #fff; }
+.sde-strip-leads-badge {
+  position: absolute; top: 3px; right: 3px; z-index: 3;
+  display: flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--sde-march-gold); color: #1a1306; font-size: 10px; pointer-events: none;
+}
 .sde-strip-label-npcs {
   color: var(--sde-bar-npcs-text);
   border-right-color: var(--sde-bar-combat);

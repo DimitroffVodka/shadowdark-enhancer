@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { isParty, Party } from "../scripts/party/party.mjs";
 import { registerPartyHUD } from "../scripts/party/party-hud.mjs";
-import { executeMovement, registerPartyMovement } from "../scripts/party/party-movement.mjs";
+import { executeMovement, registerPartyMovement, movementStatus } from "../scripts/party/party-movement.mjs";
 import { registerPartyLight } from "../scripts/party/party-light.mjs";
 const MOD = "shadowdark-enhancer";
 test("shared Party identity excludes flagged NPC and SDX Party but not real monsters", () => {
@@ -271,6 +271,17 @@ test("a follower riding a mount stays with its mount; once off it, it follows ag
   await leaderMove("north");
   assert.equal(paths.length, 1);
 });
+test("a player who leads the march drags the characters they cannot observe, but not a hidden hireling", async () => {
+  const { f, paths, leaderMove } = marchFixture({ x: 100, y: 500 });
+  const gm = u => !!u.isGM;   // the leader's player owns the party and their own character, nothing else
+  f.scene.tokens.get("pc2Token").actor.testUserPermission = gm;
+  await leaderMove("north");
+  assert.deepEqual(paths, [[[300, 200]]], "a player character is shared with the whole party");
+  paths.length = 0;
+  f.scene.tokens.get("pc2Token").actor.type = "NPC";
+  await leaderMove("north");
+  assert.deepEqual(paths, [], "an NPC the player cannot observe stays behind");
+});
 test("turning the leader around reverses the order", async () => {
   const north = marchFixture({ x: 100, y: 500 }), south = marchFixture({ x: 100, y: 500 });
   await north.leaderMove("north"); await south.leaderMove("south");
@@ -296,4 +307,130 @@ test("a follower shut in a room with the door elsewhere walks round to its slot 
   assert.deepEqual(paths[0].at(-1), [300, 200], "reaches its slot");
   assert.ok(paths[0].some(([x, y]) => x === 300 && y === 400), "comes through the gap in the wall");
   assert.ok(paths[0].every((p, i) => i === 0 || Math.max(Math.abs(p[0] - paths[0][i - 1][0]), Math.abs(p[1] - paths[0][i - 1][1])) === 100), "one square at a time");
+});
+
+// Marching order needs the characters' tokens on the scene and nothing else: no party token, no Place.
+function byHand() {
+  const m = marchFixture({ x: 100, y: 500 });
+  m.f.scene.tokens.contents = m.f.scene.tokens.contents.filter(d => d.id !== "pt");
+  for (const id of ["pcToken", "pc2Token"]) m.f.scene.tokens.get(id).flags = {};
+  globalThis.CONFIG.Canvas.polygonBackends.move.testCollision = () => false;
+  return m;
+}
+test("marching order follows the leader with no party token on the scene and the tokens placed by hand", async () => {
+  const { paths, leaderMove } = byHand();
+  await leaderMove("north");
+  assert.deepEqual(paths, [[[300, 200]]], "behind a northbound leader, in its slot");
+});
+test("a character who leads no party moves nobody, and the switch off moves nobody", async () => {
+  const { f, paths, leaderMove } = byHand();
+  f.party.flags[MOD].partyData.leaderUuid = "Actor.pc2";
+  await leaderMove("north");
+  assert.deepEqual(paths, [], "pc leads nothing, so a pc drag is not a march");
+  f.party.flags[MOD].partyData.leaderUuid = f.member.uuid; f.party.flags[MOD].partyData.followLeader = false;
+  await leaderMove("north");
+  assert.deepEqual(paths, [], "marching order is off");
+});
+test("the sheet's status names combat on a scene with no party token", () => {
+  const f = fixture();
+  f.scene.tokens.contents = [];
+  f.party.flags[MOD].partyData.followLeader = true;
+  globalThis.canvas = { scene: f.scene };
+  assert.equal(movementStatus(f.party).token, null);
+  assert.equal(movementStatus(f.party).reason, "");
+  globalThis.game.combats.contents = [{ started: true, scene: f.scene }];
+  assert.equal(movementStatus(f.party).reason, "combat");
+});
+
+test("Place / Recall uses the party token on the level being viewed, not the first one on the scene", () => {
+  const f = fixture();
+  f.pt._source.level = "floor2";
+  const here = { ...f.pt, id: "pt1", uuid: "Scene.s.Token.pt1", _source: { ...f.pt._source, level: "floor1" }, flags: {} };
+  f.scene.tokens.contents = [f.pt, here];
+  f.scene.initialLevel = { id: "floor1" };
+  globalThis.canvas = { scene: f.scene, level: { id: "floor1" } };
+  assert.equal(movementStatus(f.party).token.id, "pt1", "the one on the viewed floor wins over the first on the scene");
+  globalThis.canvas.level = { id: "floor2" };
+  assert.equal(movementStatus(f.party).token.id, "pt");
+  globalThis.canvas.level = { id: "floor3" };
+  assert.equal(movementStatus(f.party).token, null, "a token on another floor is not here");
+  globalThis.canvas.level = undefined;
+  assert.equal(movementStatus(f.party).token.id, "pt", "no level to look at: the first, as before");
+  here._source.level = undefined;
+  globalThis.canvas.level = { id: "floor1" };
+  assert.equal(movementStatus(f.party).token.id, "pt1", "a token with no level of its own is on the scene's initial level");
+});
+
+// Place by hand: each member goes exactly where it was clicked.
+function placeFixture() {
+  const f = fixture();
+  f.scene.dimensions = { sceneRect: { x: 0, y: 0, width: 1000, height: 1000 } };
+  f.member.getTokenDocument = async () => ({ toObject: () => ({ _id: "memberTok", actorId: "pc", width: 1, height: 1, flags: {}, texture: {} }) });
+  globalThis.game.packs = [];
+  f.party.flags[MOD].partyData.leaderUuid = f.member.uuid;
+  return { ...f, owner: { id: "owner", isGM: false } };
+}
+test("deploy with picked spots puts each member exactly there, keeps the others, and clamps a forged spot", async () => {
+  const f = placeFixture();
+  f.scene.tokens.contents = [f.pt];
+  const owner = f.owner;
+  const result = await executeMovement({ partyId: "p", sceneId: "s", tokenId: "pt", action: "deploy", positions: { [f.member.uuid]: { x: 700, y: 400 } } }, owner);
+  assert.equal(result.ok, true);
+  const placed = f.scene.tokens.contents.find(d => d.actorId === "pc");
+  assert.deepEqual([placed.x, placed.y], [700, 400], "exactly the clicked square, not a formation slot");
+  assert.equal(placed.flags[MOD].partyMovement.partyUuid, f.party.uuid);
+  // A spot outside the scene is pulled back inside; a member with no usable spot is left alone.
+  f.scene.tokens.contents = [f.pt];
+  await executeMovement({ partyId: "p", sceneId: "s", tokenId: "pt", action: "deploy", positions: { [f.member.uuid]: { x: 99999, y: -50 } } }, owner);
+  const far = f.scene.tokens.contents.find(d => d.actorId === "pc");
+  assert.deepEqual([far.x, far.y], [900, 0], "inside the 1000 x 1000 scene, one square in from the edge");
+  f.scene.tokens.contents = [f.pt];
+  await executeMovement({ partyId: "p", sceneId: "s", tokenId: "pt", action: "deploy", positions: { [f.member.uuid]: { x: "left", y: 4 } } }, owner);
+  assert.equal(f.scene.tokens.contents.some(d => d.actorId === "pc"), false, "a spot that is not a number places nobody");
+});
+test("deploy with picked spots takes a member already out into the march without moving it", async () => {
+  const f = placeFixture();
+  f.scene.tokens.contents = [f.pt, f.pc];   // already on the scene at (0, 0)
+  const result = await executeMovement({ partyId: "p", sceneId: "s", tokenId: "pt", action: "deploy", positions: { [f.member.uuid]: { x: f.pc.x, y: f.pc.y } } }, f.owner);
+  assert.equal(result.ok, true);
+  assert.deepEqual([f.pc.x, f.pc.y], [0, 0]);
+  assert.equal(f.pc.flags[MOD].partyMovement.partyUuid, f.party.uuid, "marked, so Recall will pack it");
+  assert.equal(f.pt.flags[MOD].partyMovement.deployed, true);
+});
+test("pickPoints asks for one click per name, in order, snaps each, and Escape keeps what was picked", async () => {
+  const { pickPoints } = await import("../scripts/shared/token-placement.mjs");
+  const listeners = {}, notes = [];
+  globalThis.document = { addEventListener: (type, fn) => { listeners[type] = fn; }, removeEventListener: (type) => { delete listeners[type]; } };
+  globalThis.CONST = { GRID_SNAPPING_MODES: { TOP_LEFT_VERTEX: 1 } };
+  globalThis.ui = { notifications: { info: m => notes.push(m), warn() {} } };
+  globalThis.game = { ...globalThis.game, i18n: { format: (k, d) => `${k}|${d.label}|${d.n}/${d.total}`, localize: k => k } };
+  let at = { x: 130, y: 260 };
+  globalThis.canvas = { ready: true, scene: {}, get mousePosition() { return at; }, grid: { getSnappedPoint: p => ({ x: Math.floor(p.x / 100) * 100, y: Math.floor(p.y / 100) * 100 }) } };
+  const click = target => listeners.pointerdown({ button: 0, target, preventDefault() {}, stopPropagation() {}, stopImmediatePropagation() {} });
+  const board = { closest: () => ({}) }, sidebar = { closest: () => null, tagName: "DIV" };
+  let picked = pickPoints(["Ayla", "Bran", "Cato"]);
+  click(sidebar);                                  // not the board: ignored
+  click(board); at = { x: 480, y: 90 }; click(board);
+  assert.match(notes.at(-1), /Cato\|3\/3/, "the next click is announced by name");
+  listeners.keydown({ key: "Escape" });
+  const result = await picked;
+  assert.equal(result.cancelled, true);
+  assert.deepEqual(result.points, [{ x: 100, y: 200 }, { x: 400, y: 0 }]);
+  assert.deepEqual(Object.keys(listeners), [], "its listeners are gone");
+  picked = pickPoints(["Ayla"]); click(board);
+  assert.equal((await picked).cancelled, false);
+});
+
+// A `type: "Party"` actor (Shadowdark Extras makes them) is listed by Party.list() but has no roster of ours: Party.data() throws for it.
+test("a type Party actor in the world breaks neither marchOf, stripParty nor the leader hook", async () => {
+  const { marchOf, stripParty } = await import("../scripts/party/party-movement.mjs");
+  const { f, paths, leaderMove } = byHand();
+  const odd = { id: "odd", uuid: "Actor.odd", type: "Party", name: "Extras party", flags: {}, testUserPermission: () => true };
+  globalThis.game.actors.contents.unshift(odd);   // listed before the real party
+  globalThis.canvas = { scene: f.scene };
+  assert.doesNotThrow(() => marchOf(f.scene));
+  assert.equal(marchOf(f.scene).party, f.party, "the real party still marches");
+  assert.equal(stripParty(["pc"], f.scene), f.party);
+  await leaderMove("north");
+  assert.deepEqual(paths, [[[300, 200]]], "and the hook still moves the follower instead of throwing");
 });
