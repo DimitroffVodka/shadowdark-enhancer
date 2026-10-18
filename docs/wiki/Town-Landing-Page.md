@@ -57,7 +57,7 @@ is up and would cover the town's name, the menu sits just below it.
 | Field | What it does |
 |---|---|
 | **Name, Tagline, Welcome text** | The heading, the italic line and the paragraph under it. Name defaults to the scene's name |
-| **Around town** | Which entries players see: Quest Log, Journals, Party, Downtime |
+| **Around town** | Which entries players see: Quest Log, Journals, Party, Downtime, Carouse, Rumors (the last two are off on a new page; see A tavern page) |
 | **Open a games table** | Adds **Games of chance** to the menu (see Games of chance). Off until you turn it on |
 | **Largest bet (gp)** | The most one game may stake, 1 to 1000 gp (10 by default) |
 | **House keeps (% of winnings)** | The share of every win the town keeps, 0 to 50 (5 by default) |
@@ -78,10 +78,12 @@ stock in each. Removing a merchant and adding the NPC again starts it fresh.
 - **The merchants** are listed by name with their role. Pressing one opens its
   shop. A merchant you closed shows as closed.
 - **The other entries** open the [Quest Log](Quest-Log.md), the Journal sidebar,
-  the [Party](Party.md) and [Downtime](Downtime.md). An entry that cannot open is
+  the [Party](Party.md) and [Downtime](Downtime.md), plus Carouse and Rumors if
+  you ticked them (see A tavern page below). An entry that cannot open is
   greyed and says why: Party until the player can see a party (the
   [Party](Party.md) needs at least Observer), Downtime until you start a
-  downtime session.
+  downtime session, Carouse until you start a night of carousing (or while no GM
+  is connected), Rumors until a rumor has been given.
 - **The foot** says which character the player is, and their purse.
 - **Their own copy.** While you have the page up, a player can close it for
   themselves and bring it back with the same button or Alt+T. When you take it
