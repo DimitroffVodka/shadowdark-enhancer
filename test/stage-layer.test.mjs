@@ -117,7 +117,7 @@ test("the toolbar tool is for a GM only, in the Tokens group, and toggles hide /
 });
 
 test("hideStage is a no-op for players and when hidden, and keeps campId", async () => {
-  const shown = { shown: true, place: "camp", image: "a.webp", campId: "c1", partyId: "p" };
+  const shown = { shown: true, place: "camp", image: "a.webp", campId: "c1", partyId: "p", kind: "", pageSceneId: "" };
   const p = setup({ gm: false, stage: shown });
   await hideStage();
   assert.equal(p.written.length, 0);

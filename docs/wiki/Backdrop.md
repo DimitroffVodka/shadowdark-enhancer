@@ -34,6 +34,9 @@ players, so the arrow keys do not move tokens on the map underneath.
   it normally will not raise. Raise it by hand then (below). A camp in a dungeon
   or town with only the characters' tokens on the map is covered by the picture,
   and the GM hides it from the Backdrop tool.
+- A camp that begins does not replace a Town or Tavern place that is up. **Show
+  camp picture** in the Camping window switches to the camp by hand. A place can
+  later point at a page scene; that is not in this release and has no control yet.
 - Water terrain does not raise it by itself: the boat is the camp.
 - Camps run by Shadowdark Extras do not raise it.
 - **After a GM hides it, it stays down for that camp.** Task picks, token moves, a
@@ -102,7 +105,8 @@ A file that is not a picture is refused before anything is uploaded.
 camp picture: the same layer, the same release of selected tokens, and
 [Bring the table](Encounter-Battle-Maps.md#bring-the-table) hides it. Replacing
 the picture of the place that is up changes what the table sees. A camp that
-begins raises the camp picture over whatever is up; a camp ending or being
+begins raises the camp picture over a Custom or Camp place, but never over a Town or
+Tavern place; a camp ending or being
 cancelled never takes down a custom place, you hide it yourself.
 
 **Delete.** It asks first and names the place. Deleting a place that is up hides

@@ -55,7 +55,7 @@ test("registerStage registers the places setting too", () => {
 test("showPlace writes exactly the stage value and never stagePlaces", async () => {
   const e = setup();
   await showPlace("p1");
-  assert.deepEqual(e.sets, [{ k: "stage", v: { shown: true, place: "p1", image: PL.image, partyId: "", campId: "" } }]);
+  assert.deepEqual(e.sets, [{ k: "stage", v: { shown: true, place: "p1", image: PL.image, partyId: "", campId: "", kind: "tavern", pageSceneId: "" } }]);
   await showPlace("gone");
   assert.equal(e.sets.length, 1);
 });
@@ -67,7 +67,7 @@ test("writing the list never writes the stage; removing a non-shown place leaves
   assert.deepEqual(readPlaces().places.map((p) => p.id), ["p1"]);
 });
 test("removing the shown place hides the stage and keeps the rest of it", async () => {
-  const shown = { shown: true, place: "p1", image: PL.image, partyId: "", campId: "" };
+  const shown = { shown: true, place: "p1", image: PL.image, partyId: "", campId: "", kind: "tavern", pageSceneId: "" };
   const e = setup({ stage: shown });
   await removePlaceAndHide("p1");
   assert.deepEqual(e.sets.map((s) => s.k), ["stagePlaces", "stage"]);
@@ -130,13 +130,13 @@ test("an upload that reports no path fails with a notice and null", async () => 
   assert.deepEqual(e.notes, ["SDE.stage.uploadFailed"]);
 });
 test("the toolbar toggle re-shows the last custom place, else raises the camp", async () => {
-  const hiddenCustom = { shown: false, place: "p1", image: PL.image, partyId: "", campId: "" };
+  const hiddenCustom = { shown: false, place: "p1", image: PL.image, partyId: "", campId: "", kind: "tavern", pageSceneId: "" };
   let e = setup({ stage: hiddenCustom });
   registerStage();
   const controls = { tokens: { tools: {} } };
   e.hooks.getSceneControlButtons(controls);
   await controls.tokens.tools.sdeStage.onChange();
-  assert.deepEqual(e.sets.at(-1).v, { shown: true, place: "p1", image: PL.image, partyId: "", campId: "" });
+  assert.deepEqual(e.sets.at(-1).v, { shown: true, place: "p1", image: PL.image, partyId: "", campId: "", kind: "tavern", pageSceneId: "" });
   e = setup({ stage: { ...hiddenCustom, image: "old.webp" }, places: { places: [{ ...PL, image: "worlds/w/stage/new.webp" }] } });
   registerStage();
   e.hooks.getSceneControlButtons(controls);
@@ -149,16 +149,38 @@ test("the toolbar toggle re-shows the last custom place, else raises the camp", 
   assert.equal(e.sets.at(-1).v.place, "camp");
 });
 test("a picture change of the place on show also writes the stage; other edits and other places do not", async () => {
-  const shown = { shown: true, place: "p1", image: PL.image, partyId: "", campId: "" };
+  const shown = { shown: true, place: "p1", image: PL.image, partyId: "", campId: "", kind: "tavern", pageSceneId: "" };
   const other = { id: "p2", kind: "custom", name: "Other", image: "o.webp" };
   let e = setup({ stage: shown, places: { places: [PL, other] } });
   await updatePlaceInList("p1", { image: "worlds/w/stage/new.webp" });
   assert.deepEqual(e.sets.map((s) => s.k), ["stagePlaces", "stage"]);
   assert.deepEqual(e.sets[1].v, { ...shown, image: "worlds/w/stage/new.webp" });
   e = setup({ stage: shown, places: { places: [PL, other] } });
-  await updatePlaceInList("p1", { name: "New", kind: "town" });
+  await updatePlaceInList("p1", { name: "New" });
   await updatePlaceInList("p2", { image: "z.webp" });
   assert.deepEqual(e.sets.map((s) => s.k), ["stagePlaces", "stagePlaces"]);
+});
+test("showPlace copies kind and pageSceneId (empty when none) into the stage", async () => {
+  let e = setup({ places: { places: [{ ...PL, kind: "town", pageSceneId: "sc1" }] } });
+  await showPlace("p1");
+  assert.deepEqual(e.store.stage, { shown: true, place: "p1", image: PL.image, partyId: "", campId: "", kind: "town", pageSceneId: "sc1" });
+  e = setup({ places: { places: [{ ...PL, kind: "custom" }] } });
+  await showPlace("p1");
+  assert.equal(e.store.stage.pageSceneId, "");
+  assert.equal(e.store.stage.kind, "custom");
+});
+test("an edit to the shown place's kind or page scene refreshes the stage, so the camp guard follows", async () => {
+  const shown = { shown: true, place: "p1", image: PL.image, partyId: "", campId: "", kind: "tavern", pageSceneId: "" };
+  let e = setup({ stage: shown });
+  await updatePlaceInList("p1", { kind: "custom" });
+  assert.deepEqual(e.sets.map((s) => s.k), ["stagePlaces", "stage"]);
+  assert.equal(e.store.stage.kind, "custom");
+  e = setup({ stage: shown });
+  await updatePlaceInList("p1", { pageSceneId: "sc9" });
+  assert.equal(e.store.stage.pageSceneId, "sc9");
+  e = setup({ stage: { ...shown, place: "p2" } });
+  await updatePlaceInList("p1", { kind: "town" });
+  assert.deepEqual(e.sets.map((s) => s.k), ["stagePlaces"]);
 });
 test("a failing resize closes the decoded bitmap, warns uploadFailed and uploads nothing", async () => {
   const e = setup();
@@ -185,7 +207,7 @@ test("the downscaled bitmap is closed before the network upload", async () => {
 });
 
 /** The store write takes a tick, as a real setting write does. */
-const slowWrites = (e) => {
+const slowWrites = () => {
   const set = globalThis.game.settings.set;
   globalThis.game.settings.set = async (m, k, v) => { await new Promise((r) => setImmediate(r)); return set(m, k, v); };
 };
@@ -210,7 +232,7 @@ test("a rename and an add in parallel both survive", async () => {
 });
 
 test("a failing mutation rejects to its caller and does not block the next one", async () => {
-  const e = setup();
+  setup();
   const set = globalThis.game.settings.set;
   let fail = true;
   globalThis.game.settings.set = async (...a) => { if (fail) { fail = false; throw new Error("write failed"); } return set(...a); };

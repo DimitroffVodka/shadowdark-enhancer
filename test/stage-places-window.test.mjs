@@ -146,7 +146,7 @@ test("a fresh open raises the window only once it exists, with no warning; a rea
   const e = setup();
   const proto = ApplicationV2.prototype, render = proto.render, front = proto.bringToFront;
   // The element appears only after the render promise settles, as in Foundry.
-  proto.render = function (o) { this.renders++; this.rendered = true; return new Promise((r) => setImmediate(() => { this.element = {}; r(this); })); };
+  proto.render = function () { this.renders++; this.rendered = true; return new Promise((r) => setImmediate(() => { this.element = {}; r(this); })); };
   proto.bringToFront = function () { if (!this.element) throw new TypeError("reading 'style'"); this.fronted++; };
   try {
     StagePlacesApp._current = null;

@@ -79,3 +79,15 @@ test("normalizePlaces trims leading spaces before cutting, so they do not eat in
 test("fitWithin gives 1 by 1 for non-finite or non-positive input", () => {
   for (const a of [[NaN, 5, 10], [5, 0, 10], [-3, 5, 10], [Infinity, 5, 10], [5, 5, 0]]) assert.deepEqual(fitWithin(...a), { width: 1, height: 1 });
 });
+
+test("pageSceneId is kept when valid, omitted otherwise, and add/update set and clear it", () => {
+  const base = { id: "a1", kind: "town", name: "T", image: "t.webp" };
+  assert.equal(normalizePlaces({ places: [{ ...base, pageSceneId: "sc1" }] }).places[0].pageSceneId, "sc1");
+  for (const bad of ["", "no way!", 5, null, undefined]) assert.equal("pageSceneId" in normalizePlaces({ places: [{ ...base, pageSceneId: bad }] }).places[0], false, String(bad));
+  const added = addPlace(null, { ...base, pageSceneId: "sc1" });
+  assert.equal(added.places[0].pageSceneId, "sc1");
+  assert.equal(updatePlace(added, "a1", { pageSceneId: "sc2" }).places[0].pageSceneId, "sc2");
+  assert.equal("pageSceneId" in updatePlace(added, "a1", { pageSceneId: "" }).places[0], false);
+  assert.equal("pageSceneId" in updatePlace(added, "a1", { pageSceneId: null }).places[0], false);
+  assert.equal(updatePlace(added, "a1", { name: "N" }).places[0].pageSceneId, "sc1");
+});

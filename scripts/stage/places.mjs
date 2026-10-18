@@ -50,7 +50,7 @@ export async function showPlace(id) {
   if (!game.user?.isGM) return;
   const place = placeById(readPlaces(), id);
   if (!place) return;
-  await game.settings.set(MODULE_ID, "stage", { shown: true, place: place.id, image: place.image, partyId: "", campId: "" });
+  await game.settings.set(MODULE_ID, "stage", { shown: true, place: place.id, image: place.image, partyId: "", campId: "", kind: place.kind, pageSceneId: place.pageSceneId ?? "" });
 }
 
 /** Delete a place; if the stage is showing it, hide the stage. The picture file stays where it is. */
@@ -62,12 +62,15 @@ export const removePlaceAndHide = (id) => enqueue(async () => {
 });
 
 export const addPlaceToList = (place) => enqueue(() => writePlaces(addPlace(readPlaces(), place)));
-/** A new picture for the place on show goes to the stage too, or the table keeps the old one. */
+/** A new picture, kind or page scene for the place on show goes to the stage too, or the table keeps the old one. */
 export const updatePlaceInList = (id, patch) => enqueue(async () => {
   const next = await writePlaces(updatePlace(readPlaces(), id, patch));
   const stage = normalizeStage(game.settings.get(MODULE_ID, "stage"));
-  const image = next?.places.find((p) => p.id === id)?.image;
-  if (image && stage.shown && stage.place === id && image !== stage.image) await game.settings.set(MODULE_ID, "stage", { ...stage, image });
+  const p = next?.places.find((q) => q.id === id);
+  if (p && stage.shown && stage.place === id) {
+    const fresh = { image: p.image, kind: p.kind, pageSceneId: p.pageSceneId ?? "" };
+    if (Object.keys(fresh).some((k) => fresh[k] !== stage[k])) await game.settings.set(MODULE_ID, "stage", { ...stage, ...fresh });
+  }
   return next;
 });
 

@@ -3,9 +3,9 @@
  * edits, picture sizing and file naming. No Foundry globals here.
  */
 
-import { PLACE_ID } from "./stage-core.mjs";
+import { PLACE_ID, PLACE_KINDS } from "./stage-core.mjs";
 
-export const PLACE_KINDS = ["town", "tavern", "camp", "custom"];
+export { PLACE_KINDS };
 export const MAX_PLACES = 24;
 const NAME_MAX = 60;
 
@@ -20,7 +20,9 @@ export function normalizePlaces(raw) {
     const id = str(p?.id), image = str(p?.image).trim();
     if (!PLACE_ID.test(id) || id === "camp" || !image || seen.has(id)) continue;
     seen.add(id);
-    places.push({ id, kind: PLACE_KINDS.includes(p.kind) ? p.kind : "custom", name: [...str(p.name).trim()].slice(0, NAME_MAX).join("").trim(), image });
+    const place = { id, kind: PLACE_KINDS.includes(p.kind) ? p.kind : "custom", name: [...str(p.name).trim()].slice(0, NAME_MAX).join("").trim(), image };
+    if (PLACE_ID.test(str(p.pageSceneId))) place.pageSceneId = p.pageSceneId;
+    places.push(place);
   }
   return { places };
 }
@@ -34,8 +36,8 @@ export function addPlace(value, place) {
 }
 
 export function updatePlace(value, id, patch) {
-  const { name, kind, image } = patch ?? {};
-  const keep = Object.fromEntries(Object.entries({ name, kind, image }).filter(([, v]) => v !== undefined));
+  const { name, kind, image, pageSceneId } = patch ?? {};
+  const keep = Object.fromEntries(Object.entries({ name, kind, image, pageSceneId }).filter(([, v]) => v !== undefined));
   return normalizePlaces({ places: normalizePlaces(value).places.map((p) => (p.id === id ? { ...p, ...keep } : p)) });
 }
 

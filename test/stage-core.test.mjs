@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import { TERRAINS } from "../scripts/encounter/battle-maps/constants.mjs";
 import { RAISE_WITH_PARTY_TOKEN, STAGE_PLACES, campArtFor, campTransition, normalizeStage, showCamp } from "../scripts/stage/stage-core.mjs";
 
-const EMPTY = { shown: false, place: "", image: "", partyId: "", campId: "" };
-const GOOD = { shown: true, place: "camp", image: "a.webp", partyId: "p1", campId: "c1" };
+const EMPTY = { shown: false, place: "", image: "", partyId: "", campId: "", kind: "", pageSceneId: "" };
+const GOOD = { shown: true, place: "camp", image: "a.webp", partyId: "p1", campId: "c1", kind: "", pageSceneId: "" };
 
 test("normalizeStage turns junk into the defaults", () => {
   for (const junk of [null, undefined, "x", 5, true, [], [GOOD]]) assert.deepEqual(normalizeStage(junk), EMPTY);
@@ -113,4 +113,12 @@ test("showCamp writes what the raise writes, tied to a running camp only", () =>
   assert.deepEqual(showCamp({ id: "c1", phase: "complete" }, args), { ...GOOD, campId: "" });
   assert.deepEqual(showCamp(null, args), { ...GOOD, campId: "" });
   assert.equal(showCamp(null, { ...args, partyId: 5 }).partyId, "");
+});
+
+test("normalizeStage keeps kind and pageSceneId, drops junk", () => {
+  assert.deepEqual(normalizeStage({ ...GOOD, kind: "town", pageSceneId: "Sc_1-x" }), { ...GOOD, kind: "town", pageSceneId: "Sc_1-x" });
+  const j = normalizeStage({ ...GOOD, kind: "castle", pageSceneId: "no way!" });
+  assert.equal(j.kind, "");
+  assert.equal(j.pageSceneId, "");
+  assert.equal(normalizeStage({ kind: 5, pageSceneId: 5 }).kind, "");
 });

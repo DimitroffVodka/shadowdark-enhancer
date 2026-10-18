@@ -18,6 +18,9 @@ const FALLBACK_CAMP_ID = "forest-woods-camp";
 /** A custom place's id as stored on the stage. */
 export const PLACE_ID = /^[A-Za-z0-9_-]{1,40}$/;
 
+/** What a place is; town and tavern places are protected from a camp raise (campTransition). */
+export const PLACE_KINDS = ["town", "tavern", "camp", "custom"];
+
 const str = (v) => (typeof v === "string" ? v : "");
 
 /** The only reader of the stage setting: junk becomes the defaults, field by field. Never throws. */
@@ -29,6 +32,8 @@ export function normalizeStage(raw) {
     image: str(o.image),
     partyId: str(o.partyId),
     campId: str(o.campId),
+    kind: PLACE_KINDS.includes(o.kind) ? o.kind : "",
+    pageSceneId: PLACE_ID.test(str(o.pageSceneId)) ? o.pageSceneId : "",
   };
 }
 
@@ -54,7 +59,9 @@ export function campTransition(prev, camp, state, { raiseWithToken = RAISE_WITH_
   if (camp?.phase === "setup") {
     if (!camp.id || camp.id === stage.campId || !state?.image) return null;
     if (state.partyTokenOnMap && !raiseWithToken) return null;
-    return { shown: true, place: "camp", image: state.image, partyId: str(state.partyId), campId: str(camp.id) };
+    // A camp that begins never replaces a town or tavern place that is up.
+    if (stage.shown && (stage.kind === "town" || stage.kind === "tavern")) return null;
+    return { shown: true, place: "camp", image: state.image, partyId: str(state.partyId), campId: str(camp.id), kind: "", pageSceneId: "" };
   }
   if (camp && camp.phase !== "complete") return null;
   // Only the party whose camp this is may drop it; several parties share the one stage.
@@ -66,5 +73,5 @@ export function campTransition(prev, camp, state, { raiseWithToken = RAISE_WITH_
 /** What the toolbar switch and the Camping window's button write to raise the camp picture by hand. */
 export function showCamp(camp, { partyId, image }) {
   const running = camp && camp.phase !== "complete";
-  return { shown: true, place: "camp", image, partyId: str(partyId), campId: running ? str(camp.id) : "" };
+  return { shown: true, place: "camp", image, partyId: str(partyId), campId: running ? str(camp.id) : "", kind: "", pageSceneId: "" };
 }
