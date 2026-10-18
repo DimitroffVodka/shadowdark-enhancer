@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1996 tracked files · ~256,400 lines of code/markup across scripts+templates+styles+test.
+2006 tracked files · ~257,600 lines of code/markup across scripts+templates+styles+test.
 `v0.19.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -642,10 +642,13 @@ A place the party owns: the four types and twenty upgrades, built a week at a ti
 
 | File | Lines | Description |
 |---|---:|---|
-| `stage-core.mjs` | 67 | Stage's Foundry-free half: `normalizeStage` (the only reader of the stage setting), `campArtFor` (a terrain's camp picture, null on water) and `campTransition` (the raise/drop table for the Camp place; one camp id raises once). |
-| `stage.mjs` | 108 | Stage's layer and switch: registers the world setting `stage` (every client redraws from its onChange and on ready), keeps one `div#sde-stage` behind Foundry's UI, adds the GM's Backdrop tool to the Tokens toolbar, watches party updates (`onPartyCamp`: raises the camp picture only on the write that begins a camp, drops it when the camp ends), and exports `raiseByHand`, `pickParty`, `partyTerrain`, `hideStage` and `onPartyCamp`. |
+| `stage-core.mjs` | 77 | Stage's Foundry-free half: `normalizeStage` (the only reader of the stage setting), `campArtFor` (a terrain's camp picture, null on water) and `campTransition` (the raise/drop table for the Camp place; one camp id raises once). |
+| `places-core.mjs` | 63 | Stage places, Foundry-free: `normalizePlaces` (the only reader of the list: bad ids, pictureless and duplicate places dropped, 24 at most), add/update/remove, `fitWithin` and `uploadName` for the picture upload, and `reshowTarget` (the custom place the toolbar switch raises again). |
+| `places.mjs` | 122 | Stage places, Foundry side: registers the world setting `stagePlaces`, `showPlace` (writes the `stage` value), `removePlaceAndHide`, GM-only list writes, `refreshPlacesWindow` (a setting change redraws the open Places window), and `uploadPlacePicture` (FILES_UPLOAD check, downscale to 2560 px WebP, world `stage` folder created first). |
+| `stage.mjs` | 129 | Stage's layer and switch: registers the world setting `stage` (every client redraws from its onChange and on ready), keeps one `div#sde-stage` behind Foundry's UI, adds the GM's Backdrop toggle and Backdrop places button to the Tokens toolbar, watches party updates (`onPartyCamp`: raises the camp picture only on the write that begins a camp, drops it when the camp ends), and exports `raiseByHand`, `pickParty`, `partyTerrain`, `hideStage` and `onPartyCamp`. |
+| `places-app.mjs` | 176 | The Stage Places window (GM only, AppV2, opened by the Backdrop places toolbar button): the list of the GM's places with a thumbnail, name and kind edits, Show/Hide, Replace picture and a confirmed Delete, plus the Add place form with its busy state. Edits go through the places.mjs services; the file is never deleted. |
 
-A full-screen picture every client shows behind Foundry's UI, kept in one world setting. Phase 1a raises a Camp place when a camp starts.
+A full-screen picture every client shows behind Foundry's UI, kept in one world setting. Phase 1a raises a Camp place when a camp starts; phase 1b adds the GM's own places with uploaded pictures.
 <!-- inventory:scripts:end -->
 ---
 

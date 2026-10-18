@@ -36,7 +36,7 @@ Tools you run during an active game session.
 | [Movement Budgets](Movement-Budgets.md) | Turn movement allowances, over-budget warnings or enforcement, rollback to turn start |
 | [Random Encounters](Random-Encounters.md) | The `1d6` encounter check, the Encounter Roller, placing results directly on the map |
 | [Encounter Battle Maps](Encounter-Battle-Maps.md) | A battle map for a travel encounter, one click away, or from Tools with no encounter: the party and the monsters on it, the table brought over when the art is loaded, then back to travel |
-| [Backdrop](Backdrop.md) | A full-screen camp picture every player sees, raised when a camp begins, hidden from a toolbar tool, dropped when the camp ends |
+| [Backdrop](Backdrop.md) | A full-screen camp picture every player sees, raised when a camp begins, hidden from a toolbar tool, dropped when the camp ends; the GM can add pictures of their own |
 | [Loot & Treasure](Loot-and-Treasure.md) | Hoard rolls, claimable chat cards, opt-in loot drops on combat end, coin piles |
 | [Merchant Shop](Merchant-Shop.md) | A live shop window for the whole party, buying and selling against `system.coins` |
 | [Party XP](Party-XP.md) | Whole-party XP awards and Shadowdark treasure-XP rules |
