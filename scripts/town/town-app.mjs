@@ -16,7 +16,7 @@ import { Party } from "../party/party.mjs";
 import { Quests } from "../quests/quests.mjs";
 import { DowntimeSession } from "../downtime/downtime-session.mjs";
 import { LANDING_FLAG, landingOf, normalizeLanding, restockAll } from "./town-core.mjs";
-import { buyerFor, characters, openPlace, redrawOnChange, switchTown } from "./town-live.mjs";
+import { buyerFor, characters, nightParty, openPlace, redrawOnChange, switchTown } from "./town-live.mjs";
 import { normalizeStage } from "../stage/stage-core.mjs";
 import { isHostedPage } from "./town-host-core.mjs";
 import { placeTiles, purseText } from "./town-view.mjs";
@@ -71,9 +71,10 @@ export class TownApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }).filter((m) => isGM || !m.missing);
     const activeQuests = Quests.list({ status: "active" }).length;
     const buyer = buyerFor();
+    const { hasRumorsHeard } = await import("../rumors/rumors.mjs");
     return Object.assign(context, {
       townName: this.townName, tagline: page.tagline, blurb: page.blurb, merchants,
-      places: placeTiles(page.games.on ? [...page.places, "games"] : page.places, { isGM, hasParty: Party.list().length > 0, downtimeOpen: DowntimeSession.active, activeQuests, t }),
+      places: placeTiles(page.games.on ? [...page.places, "games"] : page.places, { isGM, hasParty: Party.list().length > 0, downtimeOpen: DowntimeSession.active, activeQuests, nightOpen: !!nightParty(), gmOnline: !!game.users.activeGM, rumorsHeard: hasRumorsHeard(), t }),
       isGM, hideTitle: t(this.hosted ? "SDE.stage.hostHide" : "SDE.town.hide"), actorName: buyer?.name ?? "", purse: buyer ? purseText(buyer.system.coins) : "",
     });
   }

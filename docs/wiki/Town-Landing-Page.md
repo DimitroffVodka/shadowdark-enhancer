@@ -57,7 +57,7 @@ is up and would cover the town's name, the menu sits just below it.
 | Field | What it does |
 |---|---|
 | **Name, Tagline, Welcome text** | The heading, the italic line and the paragraph under it. Name defaults to the scene's name |
-| **Around town** | Which entries players see: Quest Log, Journals, Party, Downtime |
+| **Around town** | Which entries players see: Quest Log, Journals, Party, Downtime, Carouse, Rumors (the last two are off on a new page; see A tavern page) |
 | **Open a games table** | Adds **Games of chance** to the menu (see Games of chance). Off until you turn it on |
 | **Largest bet (gp)** | The most one game may stake, 1 to 1000 gp (10 by default) |
 | **House keeps (% of winnings)** | The share of every win the town keeps, 0 to 50 (5 by default) |
@@ -78,10 +78,12 @@ stock in each. Removing a merchant and adding the NPC again starts it fresh.
 - **The merchants** are listed by name with their role. Pressing one opens its
   shop. A merchant you closed shows as closed.
 - **The other entries** open the [Quest Log](Quest-Log.md), the Journal sidebar,
-  the [Party](Party.md) and [Downtime](Downtime.md). An entry that cannot open is
+  the [Party](Party.md) and [Downtime](Downtime.md), plus Carouse and Rumors if
+  you ticked them (see A tavern page below). An entry that cannot open is
   greyed and says why: Party until the player can see a party (the
   [Party](Party.md) needs at least Observer), Downtime until you start a
-  downtime session.
+  downtime session, Carouse until you start a night of carousing (or while no GM
+  is connected), Rumors until a rumor has been given.
 - **The foot** says which character the player is, and their purse.
 - **Their own copy.** While you have the page up, a player can close it for
   themselves and bring it back with the same button or Alt+T. When you take it
@@ -212,6 +214,31 @@ the sales log reads them.
   house's purse.
 
 ---
+
+## A tavern page
+
+Tick **Carouse** and **Rumors** in the page's settings (the pencil) and the same
+page becomes a tavern. A new page does not get these two; only the four town
+entries.
+
+- **Carouse.** You open the Carousing window on the party that has a night
+  open, else on the party you have selected if it is a native one, else on the
+  first native party, and start a night there. With no native party you get a
+  notice instead. A player can open it only while a party they can see has a
+  night open; it then opens that party's Carousing tab. Until then the entry is
+  greyed and says it opens when you start a night. Carousing needs a GM
+  connected, so with none the entry stays greyed and says so (it updates when
+  the GM connects or leaves). Joining and confirming there also needs Owner on
+  the party actor: the Party sheet disables its controls for anyone who cannot
+  edit it, so a player who only observes the party sees the night and who has
+  confirmed, but cannot join or confirm. Give your players Owner on the party if
+  they should carouse from the tavern page.
+- **Rumors.** You get the usual Give rumors dialog. A player opens the Rumors
+  Heard journal, which exists once any rumor has been given; until then the entry
+  is greyed.
+
+The games table, the shop and the sales log close with the page, so nothing is left
+open when it goes away.
 
 ## On a Backdrop
 

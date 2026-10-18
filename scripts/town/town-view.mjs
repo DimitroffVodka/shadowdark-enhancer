@@ -17,9 +17,9 @@ export const CATEGORIES = [
   { id: "gear", key: "SDE.town.cat.gear", types: ["Basic"] },
 ];
 export const TYPE_LABEL_KEYS = { Weapon: "SDE.town.type.weapon", Armor: "SDE.town.type.armor", Basic: "SDE.town.type.gear" };
-export const PLACE_ICONS = { quests: "fa-list-check", journals: "fa-book-open", party: "fa-people-group", downtime: "fa-hourglass-half", games: "fa-dice" };
+export const PLACE_ICONS = { quests: "fa-list-check", journals: "fa-book-open", party: "fa-people-group", downtime: "fa-hourglass-half", carouse: "fa-beer-mug-empty", rumors: "fa-comments", games: "fa-dice" };
 export const PLACE_SUB_KEYS = {
-  quests: "SDE.town.sub.quests", journals: "SDE.town.sub.journals", party: "SDE.town.sub.party", downtime: "SDE.town.sub.downtime", games: "SDE.town.sub.games",
+  quests: "SDE.town.sub.quests", journals: "SDE.town.sub.journals", party: "SDE.town.sub.party", downtime: "SDE.town.sub.downtime", carouse: "SDE.town.sub.carouse", rumors: "SDE.town.sub.rumors", games: "SDE.town.sub.games",
 };
 
 /** A price as the coins it is made of, for the card ("9 gp", "6 gp 5 sp"). A price of nothing has no parts. */
@@ -95,12 +95,15 @@ export function sellRows(items, merchant, { swing = (c) => c, t }) {
 }
 
 /** The tiles that open other windows, for the places the GM left on. */
-export function placeTiles(places, { isGM, hasParty, downtimeOpen, activeQuests, t }) {
+export function placeTiles(places, { isGM, hasParty, downtimeOpen, activeQuests, nightOpen = false, gmOnline = true, rumorsHeard = false, t }) {
   return places.map((id) => {
     const tile = { id, icon: PLACE_ICONS[id], label: t(PLACE_LABEL_KEYS[id]), sub: t(PLACE_SUB_KEYS[id]), tag: "", disabled: false, hint: "" };
     if (id === "quests" && activeQuests) tile.tag = t("SDE.town.activeQuests", { n: activeQuests });
     if (id === "party" && !hasParty) Object.assign(tile, { disabled: true, hint: t("SDE.town.hint.party") });
     if (id === "downtime" && !isGM && !downtimeOpen) Object.assign(tile, { disabled: true, hint: t("SDE.town.hint.downtime") });
+    if (id === "carouse" && !isGM && !nightOpen) Object.assign(tile, { disabled: true, hint: t("SDE.town.hint.carouse") });
+    if (id === "carouse" && !isGM && nightOpen && !gmOnline) Object.assign(tile, { disabled: true, hint: t("SDE.town.hint.carouseGM") });
+    if (id === "rumors" && !isGM && !rumorsHeard) Object.assign(tile, { disabled: true, hint: t("SDE.town.hint.rumors") });
     return tile;
   });
 }

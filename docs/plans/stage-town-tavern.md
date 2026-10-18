@@ -1,6 +1,6 @@
 # Stage phase 2: town and tavern places (plan v2, 2026-10-17, after the Opus review)
 
-Status now: 2b (hosting) built on `feat/stage-town-hosting`; 2a (tavern tiles) is a separate PR
+Status now: 2a (tavern tiles) and 2b (hosting) are built; 2a is merged (PR 530), 2b is on `feat/stage-town-hosting`
 
 STATUS: REVIEWED (Opus-High review 2026-10-17: FIX, all findings folded in below). May be built.
 
@@ -48,7 +48,7 @@ Part of the Stage (player-facing "Backdrop"), see `PLAN.md` v2 and `PHASE-1B.md`
 ## Pieces
 
 **2a (PR `feat/stage-tavern-tiles`, base `feat/town-landing`):** (1) core split + tile rules + tests; (2) handlers, openers, strings, `closeTown` list, fixture; (3) docs, changelog, inventory.
-**2b (local integration branch, PR when 524 and 1b are merged, base `master`):** (1) `pageSceneId` through `places-core.mjs` and `showPlace`, `normalizeStage`, `pageHost` + tests; (2) the guards in `town-entry-points.mjs`, the hosted open/close from the Stage draw and `onChange`, the hide icon string, the camp guard in `campTransition` + stubbed-Foundry tests (a scene change keeps the hosted page; the hide icon drops the Stage; the hosted page wins and the canvas page returns; the hosted page closes when its scene or page is removed); (3) the "Page scene" select in the Places window, harness fixture, docs (`Backdrop.md`, `Town-Landing-Page.md`), `CHANGELOG.md`, inventory, `docs/plans/stage-town-tavern.md` (this file).
+**2b (local integration branch, PR when 524 and 1b are merged, base `master`):** (1) `pageSceneId` through `places-core.mjs` and `showPlace`, `normalizeStage`, `pageHost` + tests; (2) the guards in `town-entry-points.mjs`, the hosted open/close from the Stage draw and `onChange`, the hide icon string, the camp guard in `campTransition` + stubbed-Foundry tests (a scene change keeps the hosted page; the hide icon drops the Stage; the hosted page wins and the canvas page returns; the hosted page closes when its scene or page is removed); (3) the "Page scene" select in the Places window, harness fixture, docs (`Backdrop.md`, `Town-Landing-Page.md`), `CHANGELOG.md`, inventory, `docs/plans/stage-town-tavern.md` (a copy of this file).
 
 ## Lane checks (throwaway lane, never port 30000; GM plus a real Player user, the GM tab closed for the player steps where noted)
 

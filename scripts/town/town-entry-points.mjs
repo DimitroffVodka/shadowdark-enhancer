@@ -7,7 +7,7 @@
  * leaving for one without a page closes it. A player can still close their own copy and bring it back with the same
  * button while it is up.
  *
- * Any scene can have a page. The first time the GM puts one up it is made, empty (the scene's name, every tile, no
+ * Any scene can have a page. The first time the GM puts one up it is made, empty (the scene's name, the four town tiles, no
  * merchants); its pencil opens the editor, where merchants are added.
  *
  * A Stage place can host a page of its scene (pageSceneId): that page is up while the Stage shows the place, whatever
@@ -21,9 +21,9 @@ import { landingOf } from "./town-core.mjs";
 import { normalizeStage } from "../stage/stage-core.mjs";
 import { pageHost } from "./town-host-core.mjs";
 
-const WINDOWS = ["sde-town", "sde-town-shop"];
+const WINDOWS = ["sde-town", "sde-town-shop", "sde-town-games", "sde-town-log"];
 const closeWindows = (ids) => { for (const id of ids) foundry.applications.instances.get(id)?.close(); };
-const closeTown = () => closeWindows(WINDOWS);
+export const closeTown = () => closeWindows(WINDOWS);
 const closeOthers = () => closeWindows(WINDOWS.filter((id) => id !== "sde-town"));
 
 async function openTown(scene = globalThis.canvas?.scene) {

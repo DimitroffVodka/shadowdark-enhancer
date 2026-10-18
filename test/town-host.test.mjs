@@ -283,10 +283,17 @@ test("re-pointing the window at another page closes the old page's other windows
 test("the hide icon's title: the Backdrop string when hosted, the Town string when not", async () => {
   const e = await setup({ gm: true, stage: HOSTED });
   const { TownApp } = await import("../scripts/town/town-app.mjs");
+  const deep = () => new Proxy(class {}, { get: (t, k) => (k in t ? t[k] : k === "then" ? undefined : deep()) });
+  const stubbed = globalThis.foundry;
+  const wrap = (o) => new Proxy(o, { get: (t, k) => (k in t ? (t[k] && typeof t[k] === "object" ? wrap(t[k]) : t[k]) : deep()) });
+  globalThis.foundry = wrap(stubbed); // rumors.mjs pulls in the module graph
+  try { await import("../scripts/rumors/rumors.mjs"); } finally { globalThis.foundry = stubbed; }
   const base = Object.getPrototypeOf(TownApp.prototype);
   const had = Object.getOwnPropertyDescriptor(base, "_prepareContext");
   base._prepareContext = async () => ({});
-  globalThis.game.actors = Object.assign([], { get: () => null });
+  globalThis.game.actors = Object.assign([], { get: () => null, contents: [] });
+  globalThis.game.users = {};
+  globalThis.game.journal = [];
   globalThis.game.i18n = { localize: (k) => k, format: (k) => k };
   try {
     const ctx = async (id) => { const a = Object.create(TownApp.prototype); a.scene = e.byId.get(id); return a._prepareContext({}); };
