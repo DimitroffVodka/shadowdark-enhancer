@@ -1,0 +1,111 @@
+/* Zone fight board: z 0 like the Backdrop, appended after it. Kit tokens only (styles/sde-ui.css), so dark and light follow. */
+#sde-zone-board {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-index-canvas, 0);
+  pointer-events: auto;
+  container-type: inline-size;
+  box-sizing: border-box;
+  /* clear of the scene navigation (top), the sidebar (right) and the hotbar (bottom) */
+  padding: 64px calc(var(--sidebar-width, 300px) + 32px) 104px 16px;
+  background: none;
+  border: 0;
+  overflow: hidden;
+}
+#sde-zone-board.zb-backed { background: var(--color-cool-5); }
+
+#sde-zone-board .zb-bands { display: flex; flex-direction: column; gap: 10px; height: 100%; min-height: 0; overflow-y: auto; }
+#sde-zone-board .zb-band {
+  flex: 1 0 auto; /* share the height while it fits; the stack scrolls when it does not, so an open popover is never clipped */
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 0 0;
+  border-top: 1px solid var(--color-light-5); /* the rule sits on the backing or the picture, not on a panel */
+}
+#sde-zone-board .zb-title {
+  align-self: flex-start;
+  margin: 0;
+  padding: 2px 8px;
+  border: 1px solid var(--ui-line);
+  border-radius: 2px;
+  background: var(--ui-panel);
+  color: var(--ui-text);
+  font: 600 10.5px/1.4 var(--ui-head);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+#sde-zone-board .zb-count { margin-left: 6px; color: var(--ui-muted); }
+#sde-zone-board .zb-chips {
+  margin: 0;
+  padding: 0 4px 4px 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  align-content: flex-start;
+  gap: 8px;
+}
+#sde-zone-board .zb-empty {
+  align-self: flex-start;
+  padding: 2px 8px;
+  border: 1px dashed var(--ui-line);
+  border-radius: 2px;
+  background: var(--ui-panel);
+  color: var(--ui-muted);
+  font: 500 12px/1.4 var(--ui-font);
+}
+
+#sde-zone-board .zb-chip {
+  box-sizing: border-box;
+  flex: 0 1 320px;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  padding: 6px;
+  border: 1px solid var(--ui-line);
+  border-radius: var(--ui-r);
+  background: var(--ui-panel);
+  color: var(--ui-body);
+  font: 500 12px/1.35 var(--ui-font);
+}
+#sde-zone-board .zb-chip.turn { border-color: var(--ui-gold); box-shadow: 0 0 0 1px var(--ui-gold); }
+#sde-zone-board .zb-chip.defeated .zb-portrait,
+#sde-zone-board .zb-chip.defeated .zb-main { opacity: .55; }
+#sde-zone-board .zb-chip.defeated .zb-name { text-decoration: line-through; }
+#sde-zone-board .zb-chip.concealed { border-style: dashed; }
+#sde-zone-board .zb-portrait { flex: none; width: 44px; height: 44px; object-fit: cover; border: 1px solid var(--ui-line); border-radius: 2px; background: var(--ui-raised); }
+#sde-zone-board .zb-main { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+#sde-zone-board .zb-name { overflow-wrap: anywhere; color: var(--ui-text); font-family: var(--ui-head); font-weight: 600; }
+#sde-zone-board .zb-marks { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+#sde-zone-board .zb-marks:empty { display: none; }
+#sde-zone-board .zb-mark { padding: 0 5px; border: 1px solid var(--ui-frame); border-radius: 2px; color: var(--ui-muted); font: 600 10px/1.5 var(--ui-head); letter-spacing: .06em; text-transform: uppercase; }
+#sde-zone-board .zb-mark.turn-mark { border-color: var(--ui-gold); color: var(--ui-gold); }
+#sde-zone-board .zb-hp { display: flex; align-items: center; gap: 6px; }
+#sde-zone-board .zb-bar { flex: 1 1 auto; }
+#sde-zone-board .zb-bar > i { background: var(--ui-frame); }
+#sde-zone-board .zb-bar.tone-low > i { background: var(--ui-gold); }
+#sde-zone-board .zb-bar.tone-critical > i { background: var(--ui-danger); }
+#sde-zone-board .zb-hpnum { flex: none; color: var(--ui-body); font-variant-numeric: tabular-nums; }
+#sde-zone-board .zb-status { display: block; width: 20px; height: 20px; padding: 1px; border: 0; border-radius: 2px; background: var(--color-cool-5); } /* core icons are white: give them a dark tile so they read on a light panel */
+
+#sde-zone-board .zb-controls { flex: 1 1 100%; display: flex; flex-wrap: wrap; align-items: flex-start; gap: 4px; }
+#sde-zone-board .zb-controls .ui-btn { height: 28px; padding: 0 10px; font-size: 11px; }
+#sde-zone-board .zb-sum { list-style: none; }
+#sde-zone-board .zb-sum::-webkit-details-marker { display: none; }
+#sde-zone-board .zb-pop[open] { flex: 1 1 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+#sde-zone-board .zb-popbody .ui-btn { padding: 0 12px; }
+#sde-zone-board .zb-popbody { display: contents; }
+#sde-zone-board .zb-amount { box-sizing: border-box; width: 72px; height: 28px; padding: 0 6px; border: 1px solid var(--ui-frame); border-radius: var(--ui-r); background: var(--ui-page); color: var(--ui-text); font: 500 12px var(--ui-font); }
+#sde-zone-board .zb-defeat[aria-pressed="true"] { border-color: var(--ui-gold); color: var(--ui-gold); }
+
+@container (max-width: 560px) {
+  #sde-zone-board .zb-chip { flex-basis: 100%; }
+}
+@media (max-width: 760px) {
+  #sde-zone-board { padding-right: 16px; } /* the sidebar collapses on a narrow screen */
+}
+@media (prefers-reduced-motion: reduce) {
+  #sde-zone-board, #sde-zone-board * { animation: none; transition: none; }
+}

@@ -10,6 +10,7 @@ import { isActiveGM } from "../shared/gm-relay.mjs";
 import { worldActorFor } from "../shared/token-placement.mjs";
 import { lootSettled } from "../loot/loot-drops.mjs";
 import { Party } from "../party/party.mjs";
+import { registerZoneBoard } from "./zone-board.mjs";
 import { canMoveZone, cloneActorData, cloneNames, isZoneFight, normalizeZone, stepZone, zoneFightOf } from "./zone-core.mjs";
 
 const L = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
@@ -169,4 +170,5 @@ export async function cleanZoneClones(combat) {
 
 export function registerZoneFight() {
   Hooks.on("deleteCombat", (combat) => { cleanZoneClones(combat); });
+  registerZoneBoard();
 }

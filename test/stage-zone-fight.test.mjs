@@ -51,7 +51,8 @@ function world({ isGM = true, userId = "gm", active = true } = {}) {
   };
   Object.defineProperty(globalThis.game.users, "activeGM", { value: active ? user : { id: "other" } });
   globalThis.canvas = undefined;
-  globalThis.Hooks = { on: (name, fn) => { (log.hooks[name] ??= []).push(fn); }, callAll() {} };
+  globalThis.Hooks = { on: (name, fn) => { (log.hooks[name] ??= []).push(fn); }, once() {}, callAll() {} };
+  globalThis.document = { querySelector: () => null }; // the board's redraw looks for its layer
   globalThis.Combat = { create: async (data) => { log.calls.push(["Combat.create", data]); return mkCombat(data); } };
   globalThis.Folder = { create: async (data) => { const f = { id: id(), type: data.type, flags: data.flags, name: data.name }; folders.set(f.id, f); log.calls.push(["Folder.create", data]); return f; } };
   globalThis.Actor = { create: async (data) => { log.calls.push(["Actor.create", data.name]); if (log.failOn && data.name === log.failOn) throw new Error("boom"); return mkActor(data); } };

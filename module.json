@@ -68,7 +68,8 @@
     },
     { "src": "styles/sde-ui.css" },
     { "src": "styles/encounter-maps.css" },
-    { "src": "styles/stage.css" }
+    { "src": "styles/stage.css" },
+    { "src": "styles/stage-zone.css" }
   ],
   "languages": [
     {
@@ -82,5 +83,5 @@
   "url": "https://github.com/DimitroffVodka/shadowdark-enhancer",
   "manifest": "https://github.com/DimitroffVodka/shadowdark-enhancer/releases/latest/download/module.json",
   "download": "https://github.com/DimitroffVodka/shadowdark-enhancer/releases/latest/download/module.zip",
-  "flags": { "buildRev": "3d94530919f3" }
+  "flags": { "buildRev": "7154570fba8b" }
 }
