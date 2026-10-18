@@ -16,8 +16,7 @@ with the module, so there is nothing to upload and no page to make first. See
 
 Everything else is optional: the party's camp is the automatic place, you can add
 pictures of your own ([Backdrop places](#backdrop-places)), a place can carry a
-Town page ([A Town page on a place](#a-town-page-on-a-place)), and a fight with no
-battle map is drawn over it as [Zone Combat](Zone-Combat.md).
+Town page ([A Town page on a place](#a-town-page-on-a-place)).
 
 ---
 
@@ -179,6 +178,5 @@ While it is up:
 
 ## What it does not do yet
 
-- No tavern page tiles yet; a Tavern place hosts the same Town page as a Town place.
 - The ready Tavern and Town show a picture only: a page for them is not made for you yet (give one a Page scene by hand, as for any place).
 - It is not in the Settings list; the values sit in hidden world settings.

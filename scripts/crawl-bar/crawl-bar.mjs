@@ -55,6 +55,8 @@ const TOOL_OPENERS = {
   bastions:    (api) => api.bastion.openPanel(),
   battleMap:   () => import("../encounter/battle-maps/battle-actions.mjs").then(({ openPartyBattleMap }) => openPartyBattleMap())
     .catch((err) => console.error("shadowdark-enhancer | battle map", err)),
+  arenaFight:  () => import("../encounter/battle-maps/battle-actions.mjs").then(({ openPartyArenaFight }) => openPartyArenaFight())
+    .catch((err) => console.error("shadowdark-enhancer | arena fight", err)),
   // A dialog: the Tools panel is closed before it opens.
   rumors:      () => import("../rumors/rumors.mjs").then(({ askAndGive }) => askAndGive())
     .catch((err) => console.error("shadowdark-enhancer | give rumors", err)),
@@ -722,11 +724,6 @@ export const CrawlBar = {
 
     // In combat mode: add to the combat tracker (Vagabond behavior).
     if (CrawlState.mode === "combat" && game.combat) {
-      // game.combat may be the zone fight: its combatants are tokenless, tokens do not belong there.
-      if ((await import("../stage/zone-fight.mjs")).findZoneFight()) {
-        ui.notifications.warn(game.i18n.localize("SDE.stage.zone.crawlRefused"));
-        return;
-      }
       const existing = new Set(game.combat.combatants.map(c => c.tokenId));
       const docs = selected.map(t => t.document).filter(td => !existing.has(td.id));
       if (!docs.length) {
@@ -773,12 +770,6 @@ export const CrawlBar = {
     const scene = canvas.scene;
     if (!scene) {
       ui.notifications.warn(game.i18n.localize("SDE.crawlBar.notify.noScene"));
-      return;
-    }
-
-    // game.combat would be the zone fight: enrolling the party's tokens there doubles every PC.
-    if ((await import("../stage/zone-fight.mjs")).findZoneFight()) {
-      ui.notifications.warn(game.i18n.localize("SDE.stage.zone.crawlRefused"));
       return;
     }
 

@@ -13,21 +13,12 @@ import { LootDelivery } from "./loot-delivery.mjs";
 import { esc } from "../shared/esc.mjs";
 import { isActiveGM } from "../shared/gm-relay.mjs";
 
-// The drop of each ended combat, so a zone fight's clones outlive it (hooks are not awaited).
-const settling = new Map();
-
-/** Resolves when `combatId`'s loot drop is done; at once when none is running. */
-export const lootSettled = (combatId) => settling.get(combatId) ?? Promise.resolve();
-
 export const LootDrops = {
   init() {
     // A fight thrown away with the Crawl Bar's Delete Encounter drops nothing.
     Hooks.on("deleteCombat", (combat, options) => {
       if (options?.[MODULE_ID]?.discard) return;
-      const done = Promise.resolve(this._onCombatEnd(combat)).catch(() => {}).finally(() => {
-        if (settling.get(combat.id) === done) settling.delete(combat.id);
-      });
-      settling.set(combat.id, done);
+      this._onCombatEnd(combat);
     });
 
     // Per-NPC drop config: a GM-only Loot entry in the Actors directory's right-click

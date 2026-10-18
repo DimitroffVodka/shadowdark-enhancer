@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
 import { normalizeStage } from "../scripts/stage/stage-core.mjs";
-import { registerStage, hideStage, pickParty, raiseByHand } from "../scripts/stage/stage.mjs";
+import { registerStage, hideStage, reshowStage, pickParty, raiseByHand } from "../scripts/stage/stage.mjs";
 
 const M = "shadowdark-enhancer";
 const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
@@ -116,24 +116,6 @@ test("the toolbar tool is for a GM only, in the Tokens group, and toggles hide /
   assert.equal(g2.written.at(-1).partyId, "");
 });
 
-test("the zone fight tool: GM only, Tokens group, order 93, toggle, lit while a fight exists", () => {
-  const fight = { flags: { [M]: { zoneFight: { id: "f", clones: [] } } } };
-  const gm = setup();
-  globalThis.game.combats = [];
-  const c = { tokens: { tools: {} } };
-  gm.hooks.getSceneControlButtons(c);
-  const t = c.tokens.tools.sdeZoneFight;
-  assert.deepEqual([t.order, t.toggle, t.active, c.tokens.tools.sdeStage.order], [93, true, false, 91]);
-  globalThis.game.combats = [fight];
-  const c2 = { tokens: { tools: {} } };
-  gm.hooks.getSceneControlButtons(c2);
-  assert.equal(c2.tokens.tools.sdeZoneFight.active, true);
-  const p = setup({ gm: false });
-  const pc = { tokens: { tools: {} } };
-  p.hooks.getSceneControlButtons(pc);
-  assert.equal(pc.tokens.tools.sdeZoneFight, undefined);
-});
-
 test("hideStage is a no-op for players and when hidden, and keeps campId", async () => {
   const shown = { shown: true, place: "camp", image: "a.webp", campId: "c1", partyId: "p", kind: "", pageSceneId: "" };
   const p = setup({ gm: false, stage: shown });
@@ -143,8 +125,25 @@ test("hideStage is a no-op for players and when hidden, and keeps campId", async
   await hideStage();
   assert.equal(h.written.length, 0);
   const g = setup({ stage: shown });
-  await hideStage();
+  assert.equal(await hideStage(), "camp", "answers the place it hid");
   assert.deepEqual(g.written, [{ ...shown, shown: false }]);
+});
+
+test("reshowStage shows the hidden place again only while the setting still holds it, for the GM", async () => {
+  const hidden = { shown: false, place: "ready-tavern", image: "a.webp", campId: "", partyId: "", kind: "", pageSceneId: "" };
+  const g = setup({ stage: hidden });
+  assert.equal(await reshowStage("ready-tavern"), true);
+  assert.deepEqual(g.written, [{ ...hidden, shown: true }]);
+  const other = setup({ stage: hidden });
+  assert.equal(await reshowStage("ready-town"), false, "the GM switched place meanwhile");
+  assert.equal(await reshowStage(null), false);
+  assert.equal(other.written.length, 0);
+  const live = setup({ stage: { ...hidden, shown: true } });
+  assert.equal(await reshowStage("ready-tavern"), false, "already showing");
+  assert.equal(live.written.length, 0);
+  const p = setup({ gm: false, stage: hidden });
+  assert.equal(await reshowStage("ready-tavern"), false);
+  assert.equal(p.written.length, 0);
 });
 
 test("pickParty prefers the party with a camp in progress, else the first native party", () => {
