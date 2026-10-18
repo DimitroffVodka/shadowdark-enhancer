@@ -69,12 +69,22 @@ and the real date it was heard, and who heard it, newest first.
 - **The pages are rewritten** from the rumors given each time one is added,
   so edits you make to a page are replaced. A GM-only line on each page says
   so. Adjust who heard a rumor in the dialog before giving it.
-- **Promote to quest.** Each rumor has a button, for the GM only, that makes
-  an Available quest in the [Quest Log](Quest-Log.md). The quest links back
-  to the rumor's page. Once a rumor has a quest, the button opens the Quest Log.
-  - A rumor about a trouble promotes the trouble itself, so completing the
-    quest resolves the trouble. That quest links to the trouble's page,
-    which only GMs see.
+- **Quests from rumors.** Every rumor you give also gets a **Hidden** quest in
+  the [Quest Log](Quest-Log.md), for you alone: its text is the quest's
+  description and it links back to the rumor's page. Players never see a
+  Hidden quest. Move one to **Available** when you want to offer it. Turn
+  this off with **Draft a quest for each rumor given** in Configure Settings.
+  - **From rumors**, in the Quest Log's header, drafts the same Hidden quests
+    for rumors given before this was on. A rumor whose quest you deleted is
+    left without one. When every rumor already has a quest, it takes you to
+    those Hidden quests while one of them is still Hidden, and otherwise only
+    says so.
+  - **Promote to quest.** Each rumor also has a button, for the GM only, that
+    makes an **Available** quest at once. Once a rumor has a quest, the button
+    opens that quest in the Quest Log.
+  - A rumor about a trouble uses the trouble itself, so completing the quest
+    resolves the trouble. That quest links to the trouble's page, which only
+    GMs see.
 
 ---
 

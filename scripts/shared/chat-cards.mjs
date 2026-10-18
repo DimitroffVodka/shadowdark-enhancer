@@ -31,6 +31,11 @@ export function rumorsCard({ title, rumors }) {
   return card(`${head("ear-listen", title)}<ul class="cc-list">${list}</ul>`);
 }
 
+/** One public line when a quest ends: `title` is the whole sentence. */
+export function questLineCard({ title, failed = false }) {
+  return card(head(failed ? "circle-xmark" : "circle-check", title), failed ? "warn" : "");
+}
+
 /** A settlement-trouble whisper; `html` is the escaped line (it carries links and bold). */
 export function troubleCard({ title, html }) {
   return card(`${head("triangle-exclamation", title)}${body(`<p class="cc-text">${html}</p>`)}`, "warn");

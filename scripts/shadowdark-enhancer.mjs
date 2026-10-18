@@ -115,6 +115,8 @@ import { SessionRecap } from "./session-recap/session-recap.mjs";
 import { DowntimeSession } from "./downtime/downtime-session.mjs";
 import { Renown } from "./renown/renown.mjs";
 import { Quests, openQuestLog, registerQuests } from "./quests/quests.mjs";
+import { registerQuestClock } from "./quests/quest-clock.mjs";
+import { registerQuestNotices } from "./quests/quest-notices.mjs";
 import { Troubles, registerTroubles } from "./troubles/troubles.mjs";
 import { Rumors, registerRumors } from "./rumors/rumors.mjs";
 import { registerTownEntryPoints } from "./town/town-entry-points.mjs";
@@ -142,7 +144,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "9f35dfd34a5f";
+const STYLESHEET_REV = "e42c59841fff";
 
 // The same problem for the SCRIPTS, which cannot be solved the same way: their
 // URLs come from the manifest, which Foundry validates as real package paths,
@@ -157,7 +159,7 @@ const STYLESHEET_REV = "9f35dfd34a5f";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "83cfae3810bf";
+const BUILD_REV = "a6f01536fe46";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -353,6 +355,10 @@ Hooks.once("init", () => {
   MonsterTokenArt.register();
   // Quest Log: its keybinding can only be registered during init.
   registerQuests();
+  // Dates on quests: appears-on and fail-at-the-deadline, on the clock (never on an edit).
+  registerQuestClock();
+  // Pop-ups for players when a quest they can see changes.
+  registerQuestNotices();
   registerTroubles();
   // The GM-only "Rules Data isn't set" cards get their button (#299).
   registerRulesNotice();
@@ -543,7 +549,9 @@ Hooks.once("init", () => {
     // 1.29.0 — additive: the tempHp namespace, a temporary-hit-point pool that damage spends before HP.
     // 1.30.0 — additive: the hexFogChanged hook, one per redraw of the viewed hex scene's fog (#490).
     // 1.31.0 — additive: owns("hex.baked", scene), a map baked with Extras that the Enhancer draws itself.
-    apiVersion: "1.31.0",
+    // 1.32.0 — additive: quest steps gain parent and secret, quests gain reveal; a non-GM gets the player view.
+    //          Also giver, rewards.notes, startsAt, deadline, autoFail and the questLine chat flag (see docs/API.md).
+    apiVersion: "1.32.0",
     // The one travel state per world (scripts/overland/overland.mjs): a copy
     // with hexes left, climate, storm, harshness and night derived; whether
     // travel is on; today's weather roll, the travel day's start, Continue

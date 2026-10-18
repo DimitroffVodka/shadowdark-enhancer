@@ -13,7 +13,7 @@ import { stateOf as bastionState, stats as bastionStats, upgradeOf, GRANARY_SAVI
 import { logText as bastionLogText } from "../bastion/bastion-text.mjs";
 import { configureMovement, requestMovement, placeByClick, marchGrid, movementStatus, inPartyCombat, MOVEMENT_CHANGED } from "./party-movement.mjs";
 import { Quests, QUESTS_CHANGED } from "../quests/quests.mjs";
-import { QuestLogApp } from "../quests/quest-log-app.mjs";
+import { QuestLogApp, onQuestDay } from "../quests/quest-log-app.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { PartyItemPicker } from "./party-item-picker.mjs";
 import { postRollRequest } from "./party-roll.mjs";
@@ -479,6 +479,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _onFirstRender(context, options) {
     await super._onFirstRender(context, options);
     this._hooks = ["updateActor", "deleteActor", "createActor", "createItem", "updateItem", "deleteItem", "updateRollTable", "createCombat", "updateCombat", "deleteCombat", "canvasReady", MOVEMENT_CHANGED, QUESTS_CHANGED, DOWNTIME_CHANGED].map((name) => [name, Hooks.on(name, () => this._onStateChanged())]);
+    this._hooks.push(onQuestDay(() => this._onStateChanged()));   // the Overdue chip and the due line follow the clock
     await this._hookTravel();
   }
   /** The status bar's Today readout follows the overland state; its change hook is named in the overland module. */
@@ -533,6 +534,7 @@ export class PartySheet extends HandlebarsApplicationMixin(foundry.applications.
   async _onFirstRender(context, options) {
     await super._onFirstRender(context, options);
     this._hooks = ["updateActor", "deleteActor", "createItem", "updateItem", "deleteItem", "updateRollTable", "createCombat", "updateCombat", "deleteCombat", "canvasReady", MOVEMENT_CHANGED, QUESTS_CHANGED, DOWNTIME_CHANGED].map(name => [name, Hooks.on(name, () => this._onStateChanged())]);
+    this._hooks.push(onQuestDay(() => this._onStateChanged()));   // the Overdue chip and the due line follow the clock
     await this._hookTravel();
   }
   _onClose(options) { for (const [name, id] of this._hooks ?? []) Hooks.off(name, id); this._hooks = null; globalThis.document?.removeEventListener("pointerdown", this._pickerAway, true); return super._onClose(options); }

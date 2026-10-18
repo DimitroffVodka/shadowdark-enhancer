@@ -11,8 +11,13 @@
  * ownership for the whole pack, and a quest's visibility is per quest (Hidden
  * is the GM's, anything else the players may read).
  *
- * Every write is the GM's. Players read; nothing here takes a write from a
- * player, so there is no relay.
+ * Every write is the GM's. Players read, with one exception: a player can ask
+ * to take on an Available quest ("Accept quest"). That is the first player
+ * request here. It goes over the module's authenticated relay (gm-relay.mjs) to
+ * the active GM's client, which asks the GM "{player} wants to take on {quest}.
+ * Approve?" and only on Approve moves the quest to Active. The player never
+ * writes anything, the sender is the server-stamped user (never the payload),
+ * and a refusal is one generic line whatever the reason.
  *
  * Native Parties work without Extras. Optional Extras party readers remain
  * available for legacy documents; adoption never replaces their identity.
@@ -27,13 +32,19 @@ import { Renown } from "../renown/renown.mjs";
 import { trainerByKey } from "../training/training-core.mjs";
 import {
   FOLDER_FLAG, OWNERSHIP, PAGE_FLAG, QUEST_FLAG,
-  canSee, defaultRecipients, makeQueue, matchesFilter, mergeQuest, normalizeQuest, ownershipFor, payoutPlan,
-  pickPin, planStatusChange, playerPageHtml, rewardLines, summarize, trainerLabel, trainerTaskQuests,
+  canSee, dateLabel, deadlineState, defaultRecipients, hasNotes, makeQueue, matchesFilter, mergeQuest, normalizeQuest, ownershipFor, payoutPlan,
+  noteLines, pickPin, planStatusChange, playerPageHtml, playerView, rewardLines, summarize, trainerLabel, trainerTaskQuests,
 } from "./quest-core.mjs";
 import { L as t } from "../shared/i18n.mjs";
+import { questLineCard } from "../shared/chat-cards.mjs";
+import { refuseQuery, registerQuery, relayToGM } from "../shared/gm-relay.mjs";
+import { secondsPerDay } from "../time/time-core.mjs";
 
 /** Fires on every client after any quest is created, changed or deleted. */
 export const QUESTS_CHANGED = `${MODULE_ID}.questsChanged`;
+
+/** The player to active-GM relay query: a player asks to take on a quest. */
+export const QUEST_QUERY = `${MODULE_ID}.quest`;
 
 const EXTRAS = "shadowdark-extras";
 
@@ -62,8 +73,10 @@ function mayRead(entry) {
   });
 }
 
+/** What this user may see: the whole quest for a GM, else its player view (no secret steps). */
 function toSummary(entry) {
-  return summarize({ id: entry.id, uuid: entry.uuid, name: entry.name, created: entry._stats?.createdTime ?? 0 }, flagOf(entry));
+  const q = summarize({ id: entry.id, uuid: entry.uuid, name: entry.name, created: entry._stats?.createdTime ?? 0 }, flagOf(entry));
+  return game.user?.isGM ? q : playerView(q);
 }
 
 /** An actor, a uuid or a world actor id, as a uuid. */
@@ -130,7 +143,7 @@ function playerPageData(quest) {
   return {
     name: t("SDE.quests.page.player"),
     type: "text",
-    text: { content: playerPageHtml(quest, t), format: CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML },
+    text: { content: playerPageHtml(quest, t, game.time?.calendar), format: CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML },
     ownership: { default: OWNERSHIP.INHERIT },
     flags: { [MODULE_ID]: { [PAGE_FLAG]: "player" } },
   };
@@ -156,7 +169,7 @@ async function writeQuest(entry, quest, { name } = {}) {
   if (entry.ownership?.default !== level) extra["ownership.default"] = level;
   if (Object.keys(extra).length) await entry.update(extra);
   const page = entry.pages.find((p) => p.flags?.[MODULE_ID]?.[PAGE_FLAG] === "player");
-  if (page) await page.update({ "text.content": playerPageHtml(quest, t) });
+  if (page) await page.update({ "text.content": playerPageHtml(quest, t, game.time?.calendar) });
   else await entry.createEmbeddedDocuments("JournalEntryPage", [playerPageData(quest)]);
 }
 
@@ -212,6 +225,7 @@ export function questPayoutContent(quest, name, { partyScope = null } = {}) {
   return `<div class="sde-ql-payout">
     <p>${esc(t("SDE.quests.payout.intro", { name }))}</p>
     <ul>${rewardLines(r, t).map((l) => `<li>${esc(l.text)}</li>`).join("")}</ul>
+    ${hasNotes(r) ? `<p>${esc(t("SDE.quests.payout.handOut"))}</p><ul>${noteLines(r).map((n) => `<li>${esc(n)}</li>`).join("")}</ul>` : ""}
     ${(r.xp > 0 || r.renown || r.coins) ? `<fieldset><legend>${esc(t("SDE.quests.payout.recipients"))}</legend>
       ${candidates.map((u) => `<label class="checkbox"><input type="checkbox" name="recipients" value="${esc(u)}" ${defaults.includes(u) ? "checked" : ""}> ${esc(actorName(u))}</label>`).join("")}
     </fieldset>` : ""}
@@ -386,9 +400,97 @@ async function panToPin(pin, missingKey) {
 export const jumpToHex = (num, missingKey = "SDE.troubles.notify.noPin", skipSceneId = null) =>
   panToPin(findPin({ id: null, hex: Number(num) }, skipSceneId), missingKey);
 
+/**
+ * The one public chat line when a quest ends. Only a quest players could see
+ * (Available or Active) gets one, so a Hidden quest moved to Failed and a
+ * completion retry (already Completed) post nothing. A failure must never stop
+ * the status change.
+ */
+async function postQuestLine(entry, oldStatus) {
+  try {
+    const quest = flagOf(entry);
+    if (!["available", "active"].includes(oldStatus) || !["completed", "failed"].includes(quest?.status)) return;
+    const cal = game.time?.calendar;
+    const late = quest.status === "failed" && cal && deadlineState(quest, game.time.worldTime, secondsPerDay(cal)) === "overdue";
+    const title = late
+      ? t("SDE.quests.chat.overdue", { name: entry.name, date: dateLabel(cal, quest.deadline, t) })
+      : t(quest.status === "failed" ? "SDE.quests.chat.failed" : "SDE.quests.chat.completed", { name: entry.name });
+    await ChatMessage.create({
+      speaker: { alias: t("SDE.quests.title") },
+      content: questLineCard({ title, failed: quest.status === "failed" }),
+      flags: { [MODULE_ID]: { questLine: { questUuid: entry.uuid, status: quest.status } } },
+    });
+  } catch (error) {
+    console.warn(`${MODULE_ID} | quest chat line`, error);
+  }
+}
+
+// ── Accept quest (player request, GM approves) ─────────────────────────────
+
+/** Quest ids with a prompt open on this GM's screen: a second request for one is dropped. */
+const openPrompts = new Set();
+
+async function promptAccept(id, user) {
+  try {
+    const name = entryFor(id)?.name ?? "";
+    const answer = await foundry.applications.api.DialogV2.wait({
+      classes: ["sde-ui", "sde-dialog"],
+      window: { title: t("SDE.quests.acceptPromptTitle"), icon: "fa-solid fa-scroll" },
+      content: `<p>${t("SDE.quests.acceptPrompt", { player: esc(user.name), quest: esc(name) })}</p>`,
+      buttons: [
+        { action: "approve", label: t("SDE.quests.acceptApprove"), icon: "fa-solid fa-check" },
+        // Default (autofocused) is the safe answer: a keystroke meant for chat must not approve.
+        { action: "notNow", label: t("SDE.quests.acceptNotNow"), icon: "fa-solid fa-xmark", default: true },
+      ],
+      rejectClose: false,
+    });
+    if (answer === "approve") {
+      // The quest may have moved while the prompt was open.
+      if (flagOf(entryFor(id))?.status === "available") await Quests.setStatus(id, "active");
+    } else {
+      await ChatMessage.create({
+        whisper: [user.id],
+        content: questLineCard({ title: t("SDE.quests.acceptDeclined", { name }), failed: false }),
+      });
+    }
+  } catch (error) {
+    console.warn(`${MODULE_ID} | quest accept prompt`, error);
+  } finally {
+    openPrompts.delete(id);
+  }
+}
+
+/**
+ * A player's request, on the active GM's client. The sender is `user` (stamped by the server), never the payload.
+ * Answers at once; the GM's prompt is not awaited (the relay's answer window is 20 s).
+ */
+export async function handleQuestQuery(data, user) {
+  const refused = refuseQuery(user, t("SDE.quests.acceptRelayLabel"));
+  if (refused) return refused;
+  const generic = { ok: false, error: t("SDE.quests.acceptRefused") };
+  if (data?.action !== "accept" || typeof data.id !== "string") return generic;
+  const entry = entryFor(data.id);
+  const quest = flagOf(entry);
+  if (!quest || quest.status !== "available") return generic;
+  const observer = !!entry.testUserPermission?.(user, "OBSERVER");
+  if (!canSee(quest, { isGM: !!user.isGM, observer })) return generic;
+  if (!openPrompts.has(entry.id)) {
+    openPrompts.add(entry.id);
+    void promptAccept(entry.id, user);
+  }
+  return { ok: true };
+}
+
 // ── The API ─────────────────────────────────────────────────────────────────
 
 export const Quests = {
+  /** Player: ask the GM to let you take on an Available quest. No waiting state; Not now leaves it Available. */
+  async requestAccept(id) {
+    const ok = await relayToGM(QUEST_QUERY, { action: "accept", id: String(id ?? "") }, { label: t("SDE.quests.acceptRelayLabel") });
+    if (ok) ui.notifications?.info(t("SDE.quests.acceptSent"));
+    return ok;
+  },
+
   /**
    * The quests this user may see, newest first.
    * @param {{status?:string|string[], party?:*, character?:*, sourceKind?:string, sourceUuid?:string}} [filter]
@@ -451,7 +553,12 @@ export const Quests = {
       const plan = planStatusChange(flagOf(entry), status);
       if (!plan.ok) { ui.notifications?.warn(t("SDE.quests.notify.badStatus")); return null; }
       if (!plan.changed) return toSummary(entry);
-      if (!plan.pay) { await writeQuest(entry, plan.quest); return toSummary(entry); }
+      const oldStatus = flagOf(entry).status;
+      if (!plan.pay) {
+        // The flag is written first; if a later write throws the status is already final, so the line still goes out.
+        try { await writeQuest(entry, plan.quest); } finally { await postQuestLine(entry, oldStatus); }
+        return toSummary(entry);
+      }
 
       const quest = plan.quest;
       if (!quest.payout) {
@@ -464,14 +571,18 @@ export const Quests = {
         }
         quest.payout = { plan: payout, done: {} };
         // Freeze recipients/rewards before any write to a recipient. Retry never asks again.
-        await writeQuest(entry, quest);
+        try { await writeQuest(entry, quest); } catch (error) { await postQuestLine(entry, oldStatus); throw error; }
       }
+      // The status flag turns Completed at the freeze above or inside pay(); the line is posted
+      // once whichever way pay() ends, and only while the stored status was still Available/Active.
       try { await pay(entry, quest); }
       catch (error) {
         try { ui.notifications?.warn(t("SDE.quests.notify.payoutPending")); } catch { /* Reporting cannot alter progress. */ }
         console.warn(`${MODULE_ID} | quest payout pending`, error);
+        await postQuestLine(entry, oldStatus);
         return toSummary(entry);
       }
+      await postQuestLine(entry, oldStatus);
       training = quest.payout.plan.training;
       return toSummary(entry);
     });
@@ -525,8 +636,8 @@ export const Quests = {
 
 // ── Wiring ──────────────────────────────────────────────────────────────────
 
-export async function openQuestLog() {
-  return (await import("./quest-log-app.mjs")).QuestLogApp.open();
+export async function openQuestLog(idOrUuid) {
+  return (await import("./quest-log-app.mjs")).QuestLogApp.open(idOrUuid);
 }
 
 /** "Quest Log" at the foot of the Journal sidebar, for everyone. */
@@ -558,6 +669,7 @@ export function registerQuests() {
     onDown: () => { openQuestLog(); return true; },
   });
   Hooks.on("renderJournalDirectory", addDirectoryButton);
+  registerQuery(QUEST_QUERY, (data, { user } = {}) => handleQuestQuery(data, user));
 
   // One hook per burst: a quest write is several document updates (the flag,
   // ownership, the page), and a listener should redraw once.

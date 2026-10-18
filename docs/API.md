@@ -24,7 +24,7 @@ and Forge & Loot features.
 [`time`](#time--season-day-and-night-sun-moon-and-anchors) ·
 [`overland`](#overland--the-travel-state)
 
-**API version:** `1.31.0` (semver — additive changes bump the minor version,
+**API version:** `1.32.0` (semver — additive changes bump the minor version,
 breaking changes the major; check `apiVersion` before relying on newer keys).
 
 ## Discovery
@@ -1518,6 +1518,8 @@ in a *Quests* folder of the Journal sidebar, with a player page and a GM notes
 page, so it reads fine without the window. Its state is one flag on the entry,
 `flags["shadowdark-enhancer"].quest`; identity is that flag, never the name.
 
+Players can ask to take on an Available quest from the Quest Log's **Accept quest** link; the request goes to the active GM over the module's relay and the GM approves it. No API call is added.
+
 ```js
 const api = game.shadowdarkEnhancer;
 
@@ -1549,7 +1551,7 @@ await api.quests.setStatus(q.id, "completed");    // asks the GM to confirm the 
 | `quests.list({ status, party, character, sourceKind, sourceUuid })` | anyone | Quests this user may see, newest first. Every filter is optional. `status` is one status or an array. `party` and `character` take an Actor, a UUID or a world actor id. |
 | `quests.get(idOrUuid)` | anyone | One quest, or `null` when it does not exist or this user may not see it. |
 | `quests.create(data)` | GM | Make a quest and return it. Every field is optional; a bare call makes a Hidden *New quest* from the GM. |
-| `quests.setStatus(idOrUuid, status)` | GM | Move a quest. Returns it, or `null` when refused or cancelled. |
+| `quests.setStatus(idOrUuid, status)` | GM | Move a quest. Returns it, or `null` when refused or cancelled. Going from Available or Active to Completed or Failed also posts one public chat line, flagged `flags["shadowdark-enhancer"].questLine = { questUuid, status }`. |
 
 **The shape** every read returns:
 
@@ -1561,15 +1563,30 @@ await api.quests.setStatus(q.id, "completed");    // asks the GM to confirm the 
                             // task also carries { trainer, task } (key and task index)
   party,         // party actor UUID or null
   characters,    // actor UUIDs; non-empty means the quest is personal to them
-  objectives: [{ id, text, done }],
+  objectives: [{ id, text, done, parent, secret }],  // since 1.32.0: parent is a top-level
+                 // step's id or null (one level only); secret hides the step from players
+  reveal,        // since 1.32.0: "all" | "next" (players see the done steps and the first undone one)
+  giver,         // since 1.32.0: { uuid, name, img } snapshot of the NPC who gave it, or null; players see it
+  startsAt,      // since 1.32.0: worldTime of the first second of the day a Hidden quest appears, or null; GM only, a player's list/get never carries it
+  deadline,      // since 1.32.0: worldTime of the first second of the last day to finish it, or null; players see it
+  autoFail,      // since 1.32.0: true fails the quest once the deadline's day is over; false without a deadline, and off again once it has fired
   description,   // the GM's player-facing text
-  rewards: { xp, coins: { gp, sp, cp }, renown, items: [{ uuid, name, img }], training },
+  rewards: { xp, coins: { gp, sp, cp }, renown, items: [{ uuid, name, img }], training,
+                 //   notes: string[] since 1.32.0, up to 10 lines of 200 characters the log does not pay
+                 //   (shown to players, ignored by the payout) },
   payout,        // absent, or saved plan, per-effect done and optional report progress
   hex,           // published hex number or null
   paid,          // true once the rewards were handed out
   created,       // the entry's creation time, ms
 }
 ```
+
+**Steps for players (since `1.32.0`).** `list`/`get` give a non-GM the player view of
+a quest: secret steps are gone, and so are the sub-steps of a secret step. On a
+`reveal: "next"` quest the list holds the done top-level steps and the first
+undone one (with its non-secret sub-steps). The GM gets every step. Like a
+Hidden quest, a secret step is hidden at the table, not locked: the world's
+journal data still reaches every client.
 
 **What players see.** A Hidden quest is the GM's alone: its entry's default
 ownership is None, and `list`/`get` leave it out for a player whatever its
@@ -1660,8 +1677,11 @@ api.rumors.heard({ region: "Sablewood" });                 // one region's; null
   (default ownership Observer). Each page holds its rumors in
   `flags["shadowdark-enhancer"].rumorPage = { region, rumors }` and its text is
   written from that flag.
-- A promoted rumor's quest has `source: { kind: "rumor", uuid }` (its ledger
-  page); a trouble's goes through `troubles.promote`.
+- A rumor's quest has `source: { kind: "rumor", uuid }` (its ledger
+  page); a trouble's goes through `troubles.promote`. With the world setting
+  `draftRumorQuests` on (the default), `give` also makes a **Hidden** quest for
+  each rumor it gives, so `quests.list({ status: "hidden", sourceKind: "rumor" })`
+  returns them for the GM. The ledger button promotes to Available instead.
 
 ## `troubles` — the Trouble tracker
 
