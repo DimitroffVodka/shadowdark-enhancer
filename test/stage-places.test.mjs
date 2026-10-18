@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { normalizePlaces } from "../scripts/stage/places-core.mjs";
-import { registerPlaces, readPlaces, writePlaces, showPlace, removePlaceAndHide, uploadPlacePicture, updatePlaceInList } from "../scripts/stage/places.mjs";
+import { registerPlaces, readPlaces, writePlaces, showPlace, removePlaceAndHide, uploadPlacePicture, updatePlaceInList, addPlaceToList } from "../scripts/stage/places.mjs";
 import { registerStage } from "../scripts/stage/stage.mjs";
 
 const M = "shadowdark-enhancer";
@@ -182,4 +182,41 @@ test("the downscaled bitmap is closed before the network upload", async () => {
   await uploadPlacePicture(img(5000, 3000));
   assert.ok(order.indexOf("small") < order.indexOf("upload"));
   assert.ok(order.includes("full"));
+});
+
+/** The store write takes a tick, as a real setting write does. */
+const slowWrites = (e) => {
+  const set = globalThis.game.settings.set;
+  globalThis.game.settings.set = async (m, k, v) => { await new Promise((r) => setImmediate(r)); return set(m, k, v); };
+};
+
+test("parallel adds on one client all survive, up to the cap", async () => {
+  const e = setup({ places: { places: [] } });
+  slowWrites(e);
+  const mk = (i) => ({ id: `n${i}`, kind: "custom", name: `N${i}`, image: `worlds/w/stage/n${i}.webp` });
+  await Promise.all(Array.from({ length: 10 }, (_, i) => addPlaceToList(mk(i))));
+  assert.equal(readPlaces().places.length, 10);
+  const { MAX_PLACES } = await import("../scripts/stage/places-core.mjs");
+  await Promise.all(Array.from({ length: MAX_PLACES }, (_, i) => addPlaceToList(mk(100 + i))));
+  assert.equal(readPlaces().places.length, MAX_PLACES);
+});
+
+test("a rename and an add in parallel both survive", async () => {
+  const e = setup();
+  slowWrites(e);
+  await Promise.all([updatePlaceInList("p1", { name: "Renamed" }), addPlaceToList({ id: "p2", kind: "camp", name: "Camp", image: "worlds/w/stage/c.webp" })]);
+  const list = readPlaces().places;
+  assert.deepEqual(list.map((p) => [p.id, p.name]), [["p1", "Renamed"], ["p2", "Camp"]]);
+});
+
+test("a failing mutation rejects to its caller and does not block the next one", async () => {
+  const e = setup();
+  const set = globalThis.game.settings.set;
+  let fail = true;
+  globalThis.game.settings.set = async (...a) => { if (fail) { fail = false; throw new Error("write failed"); } return set(...a); };
+  const bad = updatePlaceInList("p1", { name: "X" });
+  const good = addPlaceToList({ id: "p2", kind: "camp", name: "Camp", image: "worlds/w/stage/c.webp" });
+  await assert.rejects(bad, /write failed/);
+  await good;
+  assert.deepEqual(readPlaces().places.map((p) => p.id), ["p1", "p2"]);
 });

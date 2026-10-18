@@ -86,7 +86,7 @@ export async function onPartyCamp(actor, changed, options) {
 
 async function openPlaces() {
   try {
-    (await import("./places-app.mjs")).StagePlacesApp.open();
+    await (await import("./places-app.mjs")).StagePlacesApp.open();
   } catch (err) {
     console.error(`${MODULE_ID} | stage: the places window failed to open`, err);
     ui.notifications?.warn(game.i18n.localize("SDE.stage.places.openFailed"));

@@ -17,7 +17,7 @@ const css = read("styles/stage.css").replace(/\/\*[\s\S]*?\*\//g, "");
 
 class ApplicationV2 {
   constructor(options = {}) { this.options = options; this.renders = 0; this.fronted = 0; }
-  render(o) { this.renders++; (this.renderArgs ??= []).push(o); this.lastRender = o; if (o?.force) this.rendered = true; return Promise.resolve(this); }
+  render(o) { this.renders++; (this.renderArgs ??= []).push(o); this.lastRender = o; if (o?.force) { this.rendered = true; this.element = {}; } return Promise.resolve(this); }
   bringToFront() { this.fronted++; }
   async close() { return this; }
 }
@@ -67,6 +67,7 @@ test("window options: id, classes, title and icon, one template that exists, GM-
   assert.ok(en[o.window.title]);
   assert.equal(o.window.resizable, true);
   assert.equal(o.position.width, 560);
+  assert.equal(o.position.height, 680);
   assert.deepEqual(Object.keys(StagePlacesApp.PARTS), ["add", "list"]); // the Add form comes first and is not redrawn with the list
   for (const part of Object.values(StagePlacesApp.PARTS)) assert.ok(existsSync(new URL(`../${part.template.replace(/^modules\/shadowdark-enhancer\//, "")}`, import.meta.url)));
   for (const fn of Object.values(o.actions)) assert.equal(typeof fn, "function");
@@ -128,17 +129,43 @@ test("the Places tool exists only for a GM: Tokens group, order 92, a button, im
   assert.deepEqual(pc.tokens.tools, {});
 });
 
-test("open() is null for a non-GM; a GM gets one window, redrawn and raised each time", () => {
+test("open() is null for a non-GM; a GM gets one window, redrawn and raised each time", async () => {
   setup({ gm: false });
-  assert.equal(StagePlacesApp.open(), null);
+  assert.equal(await StagePlacesApp.open(), null);
   setup();
-  const a = StagePlacesApp.open();
-  const b = StagePlacesApp.open();
+  const a = await StagePlacesApp.open();
+  const b = await StagePlacesApp.open();
   assert.equal(a, b);
   assert.equal(a.renders, 2);
   assert.equal(a.fronted, 2);
   assert.deepEqual(a.renderArgs, [{ force: true }, { parts: ["list"] }]); // a second open keeps the Add form: only the list is redrawn
   StagePlacesApp._current = null;
+});
+
+test("a fresh open raises the window only once it exists, with no warning; a real render failure still warns", async () => {
+  const e = setup();
+  const proto = ApplicationV2.prototype, render = proto.render, front = proto.bringToFront;
+  // The element appears only after the render promise settles, as in Foundry.
+  proto.render = function (o) { this.renders++; this.rendered = true; return new Promise((r) => setImmediate(() => { this.element = {}; r(this); })); };
+  proto.bringToFront = function () { if (!this.element) throw new TypeError("reading 'style'"); this.fronted++; };
+  try {
+    StagePlacesApp._current = null;
+    const app = await StagePlacesApp.open();
+    assert.equal(app.fronted, 1);
+    assert.deepEqual(e.notes, []);
+    StagePlacesApp._current = null;
+    proto.render = () => Promise.reject(new Error("render failed"));
+    const controls = { tokens: { tools: {} } };
+    e.tools.fn(controls);
+    const err = console.error;
+    console.error = () => {};
+    try { await controls.tokens.tools.sdeStagePlaces.onChange(); } finally { console.error = err; }
+    assert.deepEqual(e.notes, ["SDE.stage.places.openFailed"]);
+  } finally {
+    proto.render = render;
+    proto.bringToFront = front;
+    StagePlacesApp._current = null;
+  }
 });
 
 test("Add refuses at the cap and uploads nothing", async () => {
@@ -267,7 +294,7 @@ test("redraw wiring: both settings redraw only the list of the open window, and 
   const e = setup();
   const { refreshPlacesWindow } = await import("../scripts/stage/places.mjs");
   assert.equal(e.registered.stagePlaces.onChange, refreshPlacesWindow);
-  const app = StagePlacesApp.open();
+  const app = await StagePlacesApp.open();
   app.renderArgs.length = 0;
   e.registered.stage.onChange(); // a camp raising the stage
   assert.deepEqual(app.renderArgs, [{ parts: ["list"] }]);
@@ -314,7 +341,7 @@ test("the toolbar button warns instead of failing silently when the window canno
   gm.tools.fn(controls);
   const open = StagePlacesApp.open, err = console.error;
   const logged = [];
-  StagePlacesApp.open = () => { throw new Error("boom"); };
+  StagePlacesApp.open = async () => { throw new Error("boom"); };
   console.error = (...a) => logged.push(a);
   try {
     await controls.tokens.tools.sdeStagePlaces.onChange();

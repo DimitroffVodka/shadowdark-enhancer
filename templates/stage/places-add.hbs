@@ -17,10 +17,10 @@
           <select data-add-kind>{{#each kinds as |k|}}<option value="{{k.value}}">{{localize k.label}}</option>{{/each}}</select>
         </label>
         <label class="ui-field sp-add-file"><span class="ui-label">{{localize "SDE.stage.places.fieldPicture"}}</span><input type="file" accept="image/*" data-add-file></label>
+        <div class="sp-add-foot">
+          <span class="ui-row-sub" data-busy-note{{#unless busy}} hidden{{/unless}}>{{localize "SDE.stage.places.uploading"}}</span>
+          <button type="button" class="ui-btn primary" data-action="addPlace"{{#if busy}} disabled{{/if}}><i class="fa-solid fa-plus"></i> {{localize "SDE.stage.places.addButton"}}</button>
       </div>
-      <div class="sp-add-foot">
-        <span class="ui-row-sub" data-busy-note{{#unless busy}} hidden{{/unless}}>{{localize "SDE.stage.places.uploading"}}</span>
-        <button type="button" class="ui-btn primary" data-action="addPlace"{{#if busy}} disabled{{/if}}><i class="fa-solid fa-plus"></i> {{localize "SDE.stage.places.addButton"}}</button>
       </div>
     </div>
   </section>

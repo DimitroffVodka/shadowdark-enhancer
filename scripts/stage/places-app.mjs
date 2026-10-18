@@ -28,7 +28,7 @@ export class StagePlacesApp extends HandlebarsApplicationMixin(ApplicationV2) {
     id: "sde-stage-places",
     classes: ["sde-ui", "sde-stage-places"],
     window: { title: "SDE.stage.places.title", icon: "fa-solid fa-images", resizable: true },
-    position: { width: 560, height: 640 },
+    position: { width: 560, height: 680 },
     actions: {
       showPlace: StagePlacesApp.prototype._onShow,
       hidePlace: StagePlacesApp.prototype._onHide,
@@ -47,12 +47,13 @@ export class StagePlacesApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static _current = null;
 
   /** GM only. An open window is redrawn and raised rather than opened twice. */
-  static open() {
+  static async open() {
     if (!game.user?.isGM) return null;
     const app = (StagePlacesApp._current ??= new StagePlacesApp());
     setPlacesWindow(app);
-    app.render(app.rendered ? { parts: ["list"] } : { force: true });
-    app.bringToFront?.();
+    // Awaited: bringToFront needs the window element, which a first render creates asynchronously.
+    await app.render(app.rendered ? { parts: ["list"] } : { force: true });
+    if (app.element) app.bringToFront?.();
     return app;
   }
 

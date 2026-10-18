@@ -34,6 +34,17 @@ export async function writePlaces(value) {
   return next;
 }
 
+/**
+ * Every read-modify-write of the list runs through this one queue, each task reading the list fresh, so parallel
+ * calls on one client cannot overwrite each other. A failed task rejects to its own caller only.
+ */
+let queue = Promise.resolve();
+const enqueue = (task) => {
+  const run = queue.then(task);
+  queue = run.catch(() => {});
+  return run;
+};
+
 /** Raise a custom place on the stage. The stage carries the picture, so the layer never needs the list. */
 export async function showPlace(id) {
   if (!game.user?.isGM) return;
@@ -43,22 +54,22 @@ export async function showPlace(id) {
 }
 
 /** Delete a place; if the stage is showing it, hide the stage. The picture file stays where it is. */
-export async function removePlaceAndHide(id) {
+export const removePlaceAndHide = (id) => enqueue(async () => {
   if (!game.user?.isGM) return;
   await writePlaces(removePlace(readPlaces(), id));
   const stage = normalizeStage(game.settings.get(MODULE_ID, "stage"));
   if (stage.shown && stage.place === id) await game.settings.set(MODULE_ID, "stage", { ...stage, shown: false });
-}
+});
 
-export const addPlaceToList = (place) => writePlaces(addPlace(readPlaces(), place));
+export const addPlaceToList = (place) => enqueue(() => writePlaces(addPlace(readPlaces(), place)));
 /** A new picture for the place on show goes to the stage too, or the table keeps the old one. */
-export async function updatePlaceInList(id, patch) {
+export const updatePlaceInList = (id, patch) => enqueue(async () => {
   const next = await writePlaces(updatePlace(readPlaces(), id, patch));
   const stage = normalizeStage(game.settings.get(MODULE_ID, "stage"));
   const image = next?.places.find((p) => p.id === id)?.image;
   if (image && stage.shown && stage.place === id && image !== stage.image) await game.settings.set(MODULE_ID, "stage", { ...stage, image });
   return next;
-}
+});
 
 const warn = (key) => ui.notifications?.warn(game.i18n.localize(key));
 
