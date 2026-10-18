@@ -1,9 +1,9 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { queryActiveGM, registerQuery, refuseQuery, isActiveGM } from "../shared/gm-relay.mjs";
-import { tokenSourceFor } from "../shared/token-placement.mjs";
+import { tokenSourceFor, pickPoints } from "../shared/token-placement.mjs";
 import { mountOf } from "../mounted/mounted-tokens.mjs";
-import { Party, isParty } from "./party.mjs";
+import { Party, isParty, isNativeParty, isLegacyParty } from "./party.mjs";
 import { normalizeParty } from "./party-core.mjs";
 import { fillFormation, deploymentOrder, followOrder, planPlacement, headingTurns, routeToward, safeTrail, turnSlot } from "./party-movement-core.mjs";
 
@@ -24,17 +24,56 @@ export const inPartyCombat = scene => (game.combats?.contents ?? []).some(c => c
 // the GM's client every actor reads as visible, so a forged entry would deploy a hidden boss or move another PC.
 const roster = (actor, user = null) => Party.rows(actor).filter(r => r.actor && ["characters", "hirelings", "mounts"].includes(r.group)
   && (!user || r.actor.testUserPermission(user, "OBSERVER")));
+// A march only moves tokens already out, so it follows the party sheet's rule (Party.rows): a player character is shared
+// with the whole party, anything else stays behind Observer. Roster(actor, user) alone left a player who leads moving
+// only what they can observe, so the other characters never followed.
+const marchers = (actor, user) => roster(actor).filter(r => r.actor.type === "Player" || r.actor.testUserPermission(user, "OBSERVER"));
 const linked = (scene, uuid, partyUuid) => scene.tokens.contents.filter(d => d.actorLink && d.actor?.uuid === uuid && (!state(d).partyUuid || state(d).partyUuid === partyUuid));
+const queueKey = (sceneId, partyId) => `Scene.${sceneId}.Party.${partyId}`;
 const serial = (key, work) => { const next = (queues.get(key) ?? Promise.resolve()).catch(() => {}).then(work); queues.set(key, next); return next; };
 function partyToken(ref, scene = globalThis.canvas?.scene) {
   const actor = Party.get(ref);
-  return scene?.tokens?.contents?.find(d => d.actorLink && d.actor?.uuid === actor?.uuid) ?? null;
+  const mine = scene?.tokens?.contents?.filter(d => d.actorLink && d.actor?.uuid === actor?.uuid) ?? [];
+  // A scene with several levels can hold one per floor: only the one on the level this client is viewing is
+  // "here". The first one on the scene would place and recall the party on a floor nobody is looking at.
+  const level = globalThis.canvas?.level?.id;
+  return (level ? mine.find(d => (d._source.level ?? scene.initialLevel?.id) === level) : mine[0]) ?? null;
 }
+// Party.list() also holds `type: "Party"` actors, and Party.data() throws for those: only a party with a roster of our own can march.
+const rosterParties = () => Party.list().filter(p => isNativeParty(p) || isLegacyParty(p));
+/**
+ * The march on `scene` right now: a party with Marching order on, its leader and at least one follower out on the
+ * scene, and no combat. One person moves everyone then, so the crawl strip asks this before it counts feet or turns.
+ * @returns {{ party: Actor, leader: Actor }|null}
+ */
+export function marchOf(scene = globalThis.canvas?.scene) {
+  if (!scene || inPartyCombat(scene)) return null;
+  for (const party of rosterParties()) {
+    const data = Party.data(party);
+    if (!data.followLeader || !data.leaderUuid) continue;
+    const rows = roster(party), out = r => linked(scene, r.uuid, party.uuid).length > 0;
+    const leader = rows.find(r => r.uuid === data.leaderUuid);
+    if (leader?.actor && out(leader) && rows.some(r => r !== leader && r.group !== "mounts" && out(r))) return { party, leader: leader.actor };
+  }
+  return null;
+}
+/** The 3x3 marching order of `party`, row by row from the front: who stands in each cell and who leads. */
+export function marchGrid(party) {
+  const data = Party.data(party), rows = Party.rows(party), formation = fillFormation(data, rows), cells = [];
+  for (let row = -1; row <= 1; row++) for (let col = -1; col <= 1; col++) {
+    const uuid = formation.slots.find(s => s.row === row && s.col === col)?.memberUuid, member = rows.find(r => r.uuid === uuid)?.actor;
+    cells.push({ row, col, uuid, name: member?.name, img: member?.img, leader: uuid === data.leaderUuid });
+  }
+  return cells;
+}
+/** The party the Crawl Strip speaks for: the one marching, else the first whose roster holds a crawl member. */
+export function stripParty(actorIds, scene = globalThis.canvas?.scene) {
+  return marchOf(scene)?.party ?? rosterParties().find(p => roster(p).some(r => actorIds?.includes(r.actor?.id))) ?? null;
+}
+// Marching order needs no party token, so a scene without one is not a reason: `token` is null there.
 export function movementStatus(ref) {
-  const token = partyToken(ref), actor = Party.get(ref);
-  if (!token) return { reason: "noToken", deployed: false };
-  const data = Party.data(actor);
-  return { deployed: isPartyDeployed(token), reason: !data.followLeader ? "free" : inPartyCombat(token.parent) ? "combat" : "", token };
+  const token = partyToken(ref), data = Party.data(Party.get(ref));
+  return { deployed: isPartyDeployed(token), reason: !data.followLeader ? "free" : inPartyCombat(token?.parent ?? globalThis.canvas?.scene) ? "combat" : "", token };
 }
 async function saveState(token, value) {
   await replaceModuleFlag(token, FLAG, value);
@@ -55,6 +94,24 @@ export async function requestMovement(ref, action, extra = {}) {
   if (!token) { const reply = { ok: false, error: t("noToken") }; ui.notifications?.warn(reply.error); return reply; }
   return requestTokenMovement(actor, token, action, extra);
 }
+/**
+ * Place, by hand: the user clicks the canvas for each member who is not on the scene yet, and each goes exactly
+ * there. Members already out stay where they are and are taken into the party's march. Escape keeps what was picked.
+ */
+export async function placeByClick(ref) {
+  const actor = Party.get(ref), token = partyToken(actor);
+  if (!token || inPartyCombat(token.parent)) return requestMovement(actor, "deploy");   // says why
+  const scene = token.parent, rows = roster(actor, game.user), positions = {}, who = [];
+  for (const slot of deploymentOrder(Party.data(actor), rows)) {
+    const row = rows.find(r => r.uuid === slot.memberUuid), out = linked(scene, slot.memberUuid, actor.uuid)[0];
+    if (!row?.actor) continue;
+    if (out) positions[row.uuid] = { x: out.x, y: out.y }; else who.push(row);
+  }
+  const { points } = await pickPoints(who.map(r => r.actor.name));
+  if (who.length && !points.length) return { ok: false };
+  points.forEach((p, i) => { positions[who[i].uuid] = { x: p.x, y: p.y }; });
+  return requestMovement(actor, "deploy", { positions });
+}
 async function requestTokenMovement(actor, token, action, extra = {}) {
   // The requester's client id rides to whoever executes: a relayed deploy is driven by the tab that clicked.
   const payload = { ...extra, partyId: actor.id, sceneId: token.parent.id, tokenId: token.id, action };
@@ -65,7 +122,7 @@ async function requestTokenMovement(actor, token, action, extra = {}) {
 function context(payload, user) {
   const actor = game.actors.get(payload.partyId), scene = game.scenes.get(payload.sceneId), token = scene?.tokens.get(payload.tokenId);
   if (!isParty(actor) || !user || !actor.testUserPermission(user, "OWNER") || !token?.actorLink || token.actor?.uuid !== actor.uuid) throw new Error("SDE.party.noPermission");
-  return { actor, scene, token, user };
+  return { actor, scene, token, user, positions: payload.positions };
 }
 // V14 polygons derive their scene from the level; never use the relay GM's canvas.
 const collisionFor = (scene, token) => (a, b) => CONFIG.Canvas.polygonBackends.move.testCollision(
@@ -91,12 +148,20 @@ async function gather({ actor, scene, token, user }) {
   if (orphans.length) await scene.deleteEmbeddedDocuments("Token", orphans.map(d => d.id));
   return { ok: true, gathered: [...tokens, ...orphans].map(d => d.id) };
 }
-async function deploy({ actor, scene, token, user }) {
+// Where the requester said each member goes, kept inside the scene. A member with no usable spot is not placed.
+function pickedSpot(scene, positions, uuid) {
+  const at = positions?.[uuid], rect = scene.dimensions.sceneRect, { sizeX, sizeY } = scene.grid;
+  if (!Number.isFinite(at?.x) || !Number.isFinite(at?.y)) return null;
+  return { x: Math.min(Math.max(at.x, rect.x), rect.x + Math.max(0, rect.width - sizeX)), y: Math.min(Math.max(at.y, rect.y), rect.y + Math.max(0, rect.height - sizeY)) };
+}
+async function deploy({ actor, scene, token, user, positions = null }) {
   const data = Party.data(actor), rows = roster(actor, user), sources = new Map((state(token).packed ?? []).map(s => [s.actorId, s]));
   const entries = [];
   for (const slot of deploymentOrder(data, rows)) {
     const member = rows.find(r => r.uuid === slot.memberUuid)?.actor;
     if (!member) continue;
+    // Placed by hand: only the members that were given a spot, each exactly there.
+    if (positions && !pickedSpot(scene, positions, slot.memberUuid)) continue;
     const existing = linked(scene, member.uuid, actor.uuid)[0];
     // A repeated Export leaves already deployed members where play put them.
     if (isPartyDeployed(token) && existing) {
@@ -108,8 +173,9 @@ async function deploy({ actor, scene, token, user }) {
     entries.push({ ...slot, width: source.width, height: source.height, source, existing, member });
   }
   const moving = new Set(entries.map(e => e.existing?.id));
-  const plan = planPlacement({ ...dimensions(scene, token), anchor: { x: token.x, y: token.y }, entries,
-    occupied: scene.tokens.contents.filter(d => d.id !== token.id && !moving.has(d.id)).map(d => ({ x: d.x, y: d.y, width: d.width * scene.grid.sizeX, height: d.height * scene.grid.sizeY })) });
+  const plan = positions ? entries.map(e => ({ ...e, ...pickedSpot(scene, positions, e.memberUuid) }))
+    : planPlacement({ ...dimensions(scene, token), anchor: { x: token.x, y: token.y }, entries,
+      occupied: scene.tokens.contents.filter(d => d.id !== token.id && !moving.has(d.id)).map(d => ({ x: d.x, y: d.y, width: d.width * scene.grid.sizeX, height: d.height * scene.grid.sizeY })) });
   const failed = [];
   for (const p of plan) {
     if (inPartyCombat(scene)) throw new Error("SDE.party.movement.combat");
@@ -132,7 +198,7 @@ async function deploy({ actor, scene, token, user }) {
   return { ok: !failed.length, failed, error: failed.length ? t("blockedMembers", { names: failed.join(", ") }) : undefined };
 }
 export function executeMovement(payload, user) {
-  return serial(`Scene.${payload.sceneId}.Token.${payload.tokenId}`, async () => {
+  return serial(queueKey(payload.sceneId, payload.partyId), async () => {
     try {
       const ctx = context(payload, user);
       if (["gather", "deploy", "toggle"].includes(payload.action) && inPartyCombat(ctx.scene)) throw new Error("SDE.party.movement.combat");
@@ -150,13 +216,14 @@ export function executeMovement(payload, user) {
 // the way it walks round it (routeToward) to the nearest square it can reach, so nobody gets stranded off the
 // path. One that still cannot move (missing token, combat) stays where it is and the rest carry on; the next
 // leader move tries again.
-async function follow(token, leader, movement, user) {
-  const actor = token.actor, data = Party.data(actor);
-  if (!data.followLeader || !isPartyDeployed(token) || inPartyCombat(token.parent) || !actor.testUserPermission(user, "OWNER")) return;
+async function follow(actor, scene, leaderId, movement, user) {
+  const data = Party.data(actor);
+  // The leader's token must still be there: a recall that ran first took it away.
+  if (!data.followLeader || !scene.tokens.has(leaderId) || inPartyCombat(scene) || !actor.testUserPermission(user, "OWNER")) return;
   const waypoints = movement.passed.waypoints;
   if (waypoints.some(w => CONFIG.Token.movement.actions[w.action]?.teleport)) return;
-  const scene = token.parent, { grid } = scene, { sizeX, sizeY } = grid, bounds = scene.dimensions.sceneRect;
-  const slots = new Map(deploymentOrder(data, roster(actor, user)).map(s => [s.memberUuid, s]));
+  const { grid } = scene, { sizeX, sizeY } = grid, bounds = scene.dimensions.sceneRect;
+  const slots = new Map(deploymentOrder(data, marchers(actor, user)).map(s => [s.memberUuid, s]));
   const lead = slots.get(data.leaderUuid) ?? { col: 0, row: 0 }, end = waypoints.at(-1);
   // Facing is the leader's last step; the grid's top row is the front. Hex grids keep it north-up.
   const points = [movement.origin, ...waypoints];
@@ -167,7 +234,7 @@ async function follow(token, leader, movement, user) {
   const cellOf = p => grid.getOffset({ x: p.x + sizeX / 2, y: p.y + sizeY / 2 }), key = o => `${o.i},${o.j}`;
   const leaderCell = cellOf(end), taken = new Set([key(leaderCell)]);
   const step = p => ({ x: p.x, y: p.y, elevation: end.elevation, action: "walk", checkpoint: true });
-  for (const uuid of followOrder(data, roster(actor, user)).filter(u => u !== data.leaderUuid)) {
+  for (const uuid of followOrder(data, marchers(actor, user)).filter(u => u !== data.leaderUuid)) {
     if (inPartyCombat(scene)) return;
     const doc = linked(scene, uuid, actor.uuid)[0];
     if (!doc || mountOf(doc)) continue;   // a rider goes where its mount goes (#326)
@@ -185,12 +252,13 @@ async function follow(token, leader, movement, user) {
 export function registerPartyMovement() {
   registerQuery(MOVEMENT_QUERY, (payload, { user }) => refuseQuery(user) ?? executeMovement(payload, user));
   Hooks.on("moveToken", (doc, movement, options, user) => {
-    if (!isActiveGM() || options?.[MODULE_ID]?.partyFollow) return;
-    for (const token of doc.parent.tokens.contents.filter(d => isPartyDeployed(d))) {
-      const data = Party.data(token.actor);
-      // The same key every movement action serialises this token on: a leader drag must
-      // queue behind an in-flight recall, never move followers mid-recall.
-      if (doc.actorLink && doc.actor?.uuid === data.leaderUuid) void serial(`Scene.${token.parent.id}.Token.${token.id}`, () => follow(token, doc, movement, user)).catch(error => console.error(`${MODULE_ID} | Party follow`, error));
+    if (!isActiveGM() || options?.[MODULE_ID]?.partyFollow || !doc.actorLink || !doc.actor) return;
+    // Any party this character leads marches. The characters' own tokens on the scene are all it needs: put there
+    // by hand or by Place, with or without a party token.
+    for (const actor of rosterParties().filter(p => Party.data(p).leaderUuid === doc.actor.uuid)) {
+      // The key every movement action on this party serialises on: a leader drag must queue behind an
+      // in-flight recall, never move followers mid-recall.
+      void serial(queueKey(doc.parent.id, actor.id), () => follow(actor, doc.parent, doc.id, movement, user)).catch(error => console.error(`${MODULE_ID} | Party follow`, error));
     }
   });
   Hooks.on("updateToken", () => Hooks.callAll(MOVEMENT_CHANGED));
