@@ -13,7 +13,7 @@
 
 ### Fixed
 
-- **The party token keeps its emblem when Foundry has logged the browser out.** The emblem picture is a world file, and Foundry's upload route refuses a browser whose one-day session has run out (the page keeps working, so the log-out is easy to miss) with "User [] does not have permission to upload files."; the token then kept the stock black-and-white hex. An emblem whose picture is already in the world is now used as it stands with no upload, an upload that is still refused says so and tells the GM to reload, and the party's picture and every token of it are reconciled once the world is ready, so a flag written during the outage no longer stays stale.
+- **The party token keeps its emblem when Foundry has logged the browser out.** The emblem picture is a world file, and Foundry's upload route refuses a browser whose one-day session has run out (the page keeps working, so the log-out is easy to miss) with "User [] does not have permission to upload files."; the token then kept the stock black-and-white hex. An emblem whose picture is already in the world is now used as it stands with no upload, an upload that is still refused says so and points at the reload that clears a logged-out browser rather than naming it as the cause, and the party's picture and every token of it are reconciled once the world is ready, so a flag written during the outage no longer stays stale.
 
 ## [0.19.0] — 2026-10-14
 

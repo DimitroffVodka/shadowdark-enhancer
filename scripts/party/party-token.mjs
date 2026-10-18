@@ -17,7 +17,10 @@ const served = async (path) => {
   catch (_err) { return false; }
 };
 
-/** The upload route refuses an anonymous request with "User [] does not have permission to upload files."; say what fixes it. */
+/**
+ * A refused upload answers the same empty result for a lost session and for any other server error
+ * (a permission, a full disk), so the notice offers the reload without asserting which one it was.
+ */
 const warnRefused = () => {
   if (warned) return;
   warned = true;
