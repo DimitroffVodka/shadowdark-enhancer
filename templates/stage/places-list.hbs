@@ -13,6 +13,11 @@
               <select class="sp-kind" id="sp-kind-{{p.id}}" name="sp-kind-{{p.id}}" data-place-field="kind" data-place-id="{{p.id}}" aria-label="{{localize 'SDE.stage.places.ariaKind' name=p.name}}">
                 {{#each p.kinds as |k|}}<option value="{{k.value}}"{{#if k.selected}} selected{{/if}}>{{localize k.label}}</option>{{/each}}
               </select>
+              <select class="sp-page" id="sp-page-{{p.id}}" name="sp-page-{{p.id}}" data-place-field="pageSceneId" data-place-id="{{p.id}}" aria-label="{{localize 'SDE.stage.places.ariaPage' name=p.name}}">
+                <option value=""{{#if p.pageNone}} selected{{/if}}>{{localize "SDE.stage.places.pageNone"}}</option>
+                {{#if p.pageMissing}}<option value="{{p.pageSceneId}}" selected>{{localize "SDE.stage.places.pageMissing"}}</option>{{/if}}
+                {{#each p.pageScenes as |s|}}<option value="{{s.id}}"{{#if s.selected}} selected{{/if}}>{{s.name}}</option>{{/each}}
+              </select>
             </div>
             <div class="sp-actions">
               {{#if p.shown}}

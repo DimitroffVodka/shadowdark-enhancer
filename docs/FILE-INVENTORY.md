@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-2055 tracked files · ~262,500 lines of code/markup across scripts+templates+styles+test.
+2057 tracked files · ~263,100 lines of code/markup across scripts+templates+styles+test.
 `v0.19.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -646,12 +646,12 @@ A place the party owns: the four types and twenty upgrades, built a week at a ti
 | `places-core.mjs` | 63 | Stage places, Foundry-free: `normalizePlaces` (the only reader of the list: bad ids, pictureless and duplicate places dropped, 24 at most), add/update/remove, `fitWithin` and `uploadName` for the picture upload, and `reshowTarget` (the custom place the toolbar switch raises again). |
 | `places.mjs` | 122 | Stage places, Foundry side: registers the world setting `stagePlaces`, `showPlace` (writes the `stage` value), `removePlaceAndHide`, GM-only list writes, `refreshPlacesWindow` (a setting change redraws the open Places window), and `uploadPlacePicture` (FILES_UPLOAD check, downscale to 2560 px WebP, world `stage` folder created first). |
 | `stage-core.mjs` | 77 | Stage's Foundry-free half: `normalizeStage` (the only reader of the stage setting), `campArtFor` (a terrain's camp picture, null on water) and `campTransition` (the raise/drop table for the Camp place; one camp id raises once). |
-| `stage.mjs` | 146 | Stage's layer and switch: registers the world setting `stage` (every client redraws from its onChange and on ready), keeps one `div#sde-stage` behind Foundry's UI, adds the GM's Backdrop toggle and Backdrop places button and the Zone fight toggle (start, or confirm ending, a zone fight) to the Tokens toolbar, watches party updates (`onPartyCamp`: raises the camp picture only on the write that begins a camp, drops it when the camp ends), and exports `raiseByHand`, `pickParty`, `partyTerrain`, `hideStage` and `onPartyCamp`. |
+| `stage.mjs` | 155 | Stage's layer and switch: registers the world setting `stage` (every client redraws from its onChange and on ready), keeps one `div#sde-stage` behind Foundry's UI, adds the GM's Backdrop toggle and Backdrop places button and the Zone fight toggle (start, or confirm ending, a zone fight) to the Tokens toolbar, watches party updates (`onPartyCamp`: raises the camp picture only on the write that begins a camp, drops it when the camp ends), and exports `raiseByHand`, `pickParty`, `partyTerrain`, `hideStage` and `onPartyCamp`. |
 | `zone-board-core.mjs` | 85 | The zone board's Foundry-free half: `boardContext` turns a Combat, a viewer and the stage into three bands (Far, Near, Close) of chips, with the HP rule per viewer (numbers for the GM and for any PC, a bar only for a foe), marks, status icons, controls only where `canMoveZone` allows, and the opaque-backing flag. |
 | `zone-board.mjs` | 181 | The zone board layer: `div#sde-zone-board` (region, z 0, after `#sde-stage`) drawn from `templates/stage/zone-board.hbs` whenever a zone fight exists, redrawn once per tick from the Combat, Combatant, Actor, effect and `stage` hooks (`registerZoneBoard`, called by `registerZoneFight`), one delegated click listener for closer, farther, damage, heal and defeated. |
 | `zone-core.mjs` | 83 | Zone fight's Foundry-free core: the Close/Near/Far bands (`normalizeZone`, `stepZone`, `foeZoneFor` via `distanceBand`), clone names and create data (`cloneNames`, `cloneActorData`), who may move a chip (`canMoveZone`), `layoutBands`, the player-facing `hpBand` (the Crawl Strip's five tones), and the one definition of a zone fight (`isZoneFight`, `zoneFightOf`). |
 | `zone-fight.mjs` | 198 | Zone fight's Foundry side: one global Combat of tokenless combatants (`startZoneFight`, `findZoneFight`, `addFoe` cloning the foe into the flagged "Zone fight foes" folder, `moveZone`, `applyZoneDamage` through `applyDamage`, `toggleDefeated`, `endZoneFight`), and the `deleteCombat` handler that waits for the loot drop (`lootSettled`) and deletes the recorded clones by exact id where `zoneClone` matches. |
-| `places-app.mjs` | 176 | The Stage Places window (GM only, AppV2, opened by the Backdrop places toolbar button): the list of the GM's places with a thumbnail, name and kind edits, Show/Hide, Replace picture and a confirmed Delete, plus the Add place form with its busy state. Edits go through the places.mjs services; the file is never deleted. |
+| `places-app.mjs` | 207 | The Stage Places window (GM only, AppV2, opened by the Backdrop places toolbar button): the list of the GM's places with a thumbnail, name and kind edits, Show/Hide, Replace picture and a confirmed Delete, plus the Add place form with its busy state. Edits go through the places.mjs services; the file is never deleted. |
 
 A full-screen picture every client shows behind Foundry's UI, kept in one world setting. Phase 1a raises a Camp place when a camp starts; phase 1b adds the GM's own places with uploaded pictures; phase 3 (zone combat) adds the zone board and fight.
 
@@ -662,10 +662,11 @@ A full-screen picture every client shows behind Foundry's UI, kept in one world 
 | `town-core.mjs` | 141 | A town's landing page flag: merchants as NPC references, restock revision, the games table, the table switch, the editor's form folded in (pure). |
 | `town-view.mjs` | 124 | What the Town window and the shopfront show: ware cards, sell rows, tiles, the buyer (pure). |
 | `town-live.mjs` | 70 | What the town windows share on the Foundry side: the buyer, redrawing on change, the table switch, the tiles' windows. |
-| `town-app.mjs` | 144 | The landing page menu over the scene's picture: merchants, tiles, the GM's pencil, sales log, restock and switch; clear of the sidebar and the Crawl Strip. |
+| `town-app.mjs` | 151 | The landing page menu over the scene's picture: merchants, tiles, the GM's pencil, sales log, restock and switch; clear of the sidebar and the Crawl Strip. |
 | `town-shop-app.mjs` | 184 | One merchant's shopfront: buy and sell as a chosen character with no GM, categories, search. |
 | `town-editor-app.mjs` | 132 | The GM's landing page editor window: town text, tiles, games table, merchants. |
-| `town-entry-points.mjs` | 88 | The Landing page toolbar button and Alt+T: one switch for the table, the page made on any scene, followed by every client. |
+| `town-entry-points.mjs` | 153 | The Landing page toolbar button and Alt+T: one switch for the table, the page made on any scene, followed by every client. |
+| `town-host-core.mjs` | 22 | Which scene's Town page is up: the Stage-hosted page wins over the canvas scene's, decided from the stage value only. |
 | `games-core.mjs` | 96 | The town's four games of chance, the house's cut and the wager limits (pure). |
 | `town-games.mjs` | 94 | A game at a town table on the player's own client, no GM needed: roll, settle, coins, chat card. |
 | `town-games-app.mjs` | 123 | The games table window: wager, four games, the last result, as a chosen character. |

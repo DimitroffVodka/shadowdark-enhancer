@@ -9,8 +9,19 @@ import { esc } from "../shared/esc.mjs";
 import { fileRoute } from "../shared/file-route.mjs";
 import { MAX_PLACES, PLACE_KINDS } from "./places-core.mjs";
 import { addPlaceToList, readPlaces, removePlaceAndHide, setPlacesWindow, showPlace, updatePlaceInList, uploadPlacePicture } from "./places.mjs";
+import { landingOf } from "../town/town-core.mjs";
 import { normalizeStage } from "./stage-core.mjs";
 import { hideStage } from "./stage.mjs";
+
+/** Scenes that already have a Town page: the only ones a place can host. */
+const pageScenes = () => (game.scenes?.contents ?? []).filter((s) => landingOf(s)).map((s) => ({ id: s.id, name: s.name }));
+
+const VIDEO = /\.(webm|mp4|m4v|ogv)$/i;
+/** The picture of a scene's opening level; a video is no picture for a place. (Scene#background is deprecated in v14.) */
+const sceneBackground = (scene) => {
+  const src = scene?.initialLevel?.background?.src ?? scene?.firstLevel?.background?.src;
+  return src && !VIDEO.test(src.split(/[?#]/)[0]) ? src : null;
+};
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -76,13 +87,29 @@ export class StagePlacesApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _prepareContext() {
     const stage = normalizeStage(game.settings.get(MODULE_ID, "stage"));
     const kinds = PLACE_KINDS.map((value) => ({ value, label: kindLabel(value) }));
+    const scenes = pageScenes();
     const places = readPlaces().places.map((p) => ({
       ...p,
+      // A stored id whose scene lost its page (or was deleted) stays selected as "Page missing" so the place keeps it.
+      pageMissing: !!p.pageSceneId && !scenes.some((s) => s.id === p.pageSceneId),
+      pageNone: !p.pageSceneId,
+      pageScenes: scenes.map((s) => ({ ...s, selected: s.id === p.pageSceneId })),
       image: fileRoute(p.image),
       shown: stage.shown && stage.place === p.id,
       kinds: kinds.map((k) => ({ ...k, selected: k.value === p.kind })),
     }));
-    return { places, kinds, busy: this._busy };
+    return { places, kinds, pageScenes: scenes, busy: this._busy };
+  }
+
+  /** The Add form's Page scene options, in place: re-rendering that part would clear what the GM has typed. */
+  refreshAddPages() {
+    const select = this.element?.querySelector?.("[data-add-page]");
+    if (!select) return;
+    const keep = select.value;
+    const opt = (value, text) => { const o = document.createElement("option"); o.value = value; o.textContent = text; return o; };
+    const scenes = pageScenes();
+    select.replaceChildren(opt("", game.i18n.localize("SDE.stage.places.pageNone")), ...scenes.map((s) => opt(s.id, s.name)));
+    select.value = scenes.some((s) => s.id === keep) ? keep : "";
   }
 
   _onRender(context, options) {
@@ -107,6 +134,7 @@ export class StagePlacesApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _saveField(el) {
     const id = el.dataset.placeId;
     if (el.dataset.placeField === "kind") return updatePlaceInList(id, { kind: el.value });
+    if (el.dataset.placeField === "pageSceneId") return updatePlaceInList(id, { pageSceneId: el.value });
     const name = el.value.trim();
     if (!name) { el.value = el.defaultValue; return null; }
     return updatePlaceInList(id, { name });
@@ -157,16 +185,19 @@ export class StagePlacesApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (readPlaces().places.length >= MAX_PLACES) return warn("SDE.stage.places.capReached", { max: MAX_PLACES });
     const fileEl = root.querySelector("[data-add-file]");
     const file = fileEl?.files?.[0];
-    if (!file) return warn("SDE.stage.places.noPicture");
-    const nameEl = root.querySelector("[data-add-name]");
     const kindEl = root.querySelector("[data-add-kind]");
     const kind = PLACE_KINDS.includes(kindEl?.value) ? kindEl.value : "custom";
+    const pageSceneId = root.querySelector("[data-add-page]")?.value || "";
+    // A town or tavern page needs no upload: with no picture chosen, the page scene's own background is the picture.
+    const fallback = !file && (kind === "town" || kind === "tavern") && pageSceneId ? sceneBackground(game.scenes?.get?.(pageSceneId)) : null;
+    if (!file && !fallback) return warn("SDE.stage.places.noPicture");
+    const nameEl = root.querySelector("[data-add-name]");
     const name = nameEl.value.trim() || L(kindLabel(kind));
     this._setBusy(true);
     try {
-      const image = await uploadPlacePicture(file, name);
+      const image = file ? await uploadPlacePicture(file, name) : fallback;
       if (!image) return;
-      await addPlaceToList({ id: foundry.utils.randomID(), kind, name, image });
+      await addPlaceToList({ id: foundry.utils.randomID(), kind, name, image, ...(pageSceneId && { pageSceneId }) });
       nameEl.value = "";
       fileEl.value = "";
     } finally {
