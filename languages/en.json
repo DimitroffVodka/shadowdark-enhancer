@@ -108,6 +108,7 @@
   "SDE.party.emblem.iconColor": "Icon colour",
   "SDE.party.emblem.custom": "Custom colour",
   "SDE.party.emblem.done": "Done",
+  "SDE.party.emblem.uploadRefused": "The party emblem picture could not be saved: Foundry no longer has this browser logged in, so it would not accept the file. Reload the page (F5) and pick the emblem again.",
   "SDE.party.emblem.color.white": "White",
   "SDE.party.emblem.color.black": "Black",
   "SDE.party.status.rations": "Rations",
