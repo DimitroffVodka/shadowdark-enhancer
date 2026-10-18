@@ -195,6 +195,16 @@ test("applyZoneDamage goes through applyDamage and never writes HP; permissions 
   assert.equal(p.log.calls.filter((c) => c[0] === "applyDamage").length, 1);
 });
 
+test("toggleDefeated returns the state it wrote, even once the update has applied", async () => {
+  const w = world();
+  const cb = w.mkCombatant(w.mkActor({ name: "G", type: "NPC" }));
+  cb.defeated = false;
+  const base = cb.update;
+  cb.update = async (d, o) => { await base(d, o); cb.defeated = d.defeated; };
+  assert.equal(await toggleDefeated(cb), true);
+  assert.equal(await toggleDefeated(cb), false);
+});
+
 test("toggleDefeated is GM only", async () => {
   const w = world();
   const cb = w.mkCombatant(w.mkActor({ name: "G", type: "NPC" }));
@@ -207,12 +217,27 @@ test("toggleDefeated is GM only", async () => {
   assert.equal(p.log.updates.length, 0);
 });
 
-test("endZoneFight deletes the Combat and touches nothing else", async () => {
+test("endZoneFight deletes the Combat first, then waits for loot, then each recorded clone", async () => {
   const w = world();
-  const c = await startZoneFight();
-  w.log.deletes.length = 0;
-  assert.equal(await endZoneFight(c), true);
-  assert.deepEqual(w.log.deletes, [["combat", c.id]]);
+  const c1 = w.mkActor({ name: "G1", type: "NPC", flags: { [M]: { zoneClone: "fight1" } } });
+  const c2 = w.mkActor({ name: "G2", type: "NPC", flags: { [M]: { zoneClone: "fight1" } } });
+  const combat = fightCombat(w, [c1.id, c2.id]);
+  const order = [];
+  const baseDelete = combat.delete;
+  combat.delete = async () => { order.push("combat"); await baseDelete(); w.log.hooks.deleteCombat.forEach((h) => h(combat, {})); };
+  for (const a of [c1, c2]) { const d = a.delete; a.delete = async () => { order.push(`actor ${a.id}`); await d(); }; }
+  globalThis.game.settings = { get: () => false };
+  let release; const gate = new Promise((r) => { release = r; });
+  LootDrops._onCombatEnd = () => { order.push("loot"); return gate; };
+  registerZoneFight();
+  LootDrops.init();
+  assert.equal(await endZoneFight(combat), true);
+  await new Promise((r) => setTimeout(r, 20));
+  assert.deepEqual(order, ["combat", "loot"], "no actor is deleted before the loot settles");
+  release();
+  await lootSettled(combat.id);
+  await new Promise((r) => setTimeout(r, 10));
+  assert.deepEqual(order, ["combat", "loot", `actor ${c1.id}`, `actor ${c2.id}`]);
 });
 
 const fightCombat = (w, clones) => w.mkCombat({ flags: { [M]: { zoneFight: { id: "fight1", at: 1, clones, source: "" } } } });
@@ -226,19 +251,17 @@ test("the deleteCombat handler waits for loot before deleting, and only clones w
   const bystander = w.mkActor({ name: "Unrecorded", type: "NPC", flags: { [M]: { zoneClone: "fight1" } } });
   const combat = fightCombat(w, [c1.id, "gone", stray.id, plain.id, c2.id]);
 
-  // A loot drop in flight for this combat, registered through the real hook.
+  // Production order: ours registers at init, loot at ready; callAll runs them one after the other.
   globalThis.game.settings = { get: () => false };
   let release; const gate = new Promise((r) => { release = r; });
   LootDrops._onCombatEnd = () => gate;
-  LootDrops.init();
-  w.log.hooks.deleteCombat[0](combat, {});
   registerZoneFight();
-  const handler = w.log.hooks.deleteCombat[1];
-  const run = handler(combat);
+  LootDrops.init();
+  const runs = w.log.hooks.deleteCombat.map((h) => h(combat, {}));
   await new Promise((r) => setTimeout(r, 20));
   assert.equal(w.log.deletes.length, 0, "nothing is deleted while loot is settling");
   release();
-  await run; await lootSettled(combat.id);
+  await Promise.all(runs); await lootSettled(combat.id);
   await new Promise((r) => setTimeout(r, 10));
   assert.deepEqual(w.log.deletes, [["actor", c1.id], ["actor", c2.id]]);
   assert.ok(w.actors.has(stray.id) && w.actors.has(plain.id) && w.actors.has(bystander.id));
@@ -264,4 +287,47 @@ test("cleanZoneClones: a failing delete does not stop the rest; non-zone and non
   await cleanZoneClones(fightCombat(n, [d.id]));
   assert.equal(n.log.deletes.length, 0);
   assert.ok(c);
+});
+
+function delayWrites(w, c) {
+  const tick = () => new Promise((r) => setTimeout(r, 5));
+  const upd = c.update, mk = c.createEmbeddedDocuments, fc = globalThis.Folder.create;
+  c.update = async (d) => { await tick(); return upd(d); };
+  c.createEmbeddedDocuments = async (t, rows) => { await tick(); return mk(t, rows); };
+  globalThis.Folder.create = async (d) => { await tick(); return fc(d); };
+}
+
+test("two parallel addFoe calls keep both clone lists, make one folder and never repeat a name", async () => {
+  const w = world();
+  w.src("Actor.g", "Goblin");
+  const c = await startZoneFight();
+  delayWrites(w, c);
+  const [r1, r2] = await Promise.all([addFoe(c, { uuid: "Actor.g", count: 2 }), addFoe(c, { uuid: "Actor.g", count: 2 })]);
+  const names = [...r1.actors, ...r2.actors].map((a) => a.name);
+  assert.equal(new Set(names).size, 4);
+  assert.deepEqual(c.flags[M].zoneFight.clones, [...r1.actors, ...r2.actors].map((a) => a.id));
+  assert.equal(w.log.calls.filter((x) => x[0] === "Folder.create").length, 1);
+});
+
+test("a failing addFoe rejects to its own caller only and does not block the next", async () => {
+  const w = world();
+  w.src("Actor.g", "Goblin");
+  w.src("Actor.h", "Hobgoblin");
+  const c = await startZoneFight();
+  w.log.failOn = "Goblin 1";
+  const [bad, good] = await Promise.all([addFoe(c, { uuid: "Actor.g" }), addFoe(c, { uuid: "Actor.h" })]);
+  assert.equal(bad, null);
+  assert.equal(good.actors.length, 1);
+  assert.deepEqual(c.flags[M].zoneFight.clones, [good.actors[0].id]);
+});
+
+test("a task that throws outright does not block the queue", async () => {
+  const w = world();
+  w.src("Actor.g", "Goblin");
+  const c = await startZoneFight();
+  const orig = globalThis.fromUuid;
+  globalThis.fromUuid = async () => { throw new Error("uuid"); };
+  await assert.rejects(addFoe(c, { uuid: "Actor.g" }), /uuid/);
+  globalThis.fromUuid = orig;
+  assert.equal((await addFoe(c, { uuid: "Actor.g" })).actors.length, 1);
 });

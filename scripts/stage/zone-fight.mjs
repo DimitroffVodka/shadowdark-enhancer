@@ -63,10 +63,22 @@ async function foeFolder() {
   return found ?? Folder.create({ name: L("SDE.stage.zone.folderName"), type: "Actor", flags: { [MODULE_ID]: { zoneFoes: true } } });
 }
 
+// One add at a time: each reads the clone list, the folder and the taken names fresh.
+let addQueue = Promise.resolve();
+const enqueue = (task) => {
+  const run = addQueue.then(task);
+  addQueue = run.catch(() => {});
+  return run;
+};
+
 /** Clone `count` of the foe at `uuid` into `combat`; returns { actors, combatants } or null (nothing kept). */
-export async function addFoe(combat, { uuid, count = 1, zone = "near" } = {}) {
-  if (refuseUnlessGM()) return null;
-  const fight = zoneFightOf(combat);
+export function addFoe(combat, opts = {}) {
+  if (refuseUnlessGM()) return Promise.resolve(null);
+  return enqueue(() => addFoeNow(combat, opts));
+}
+
+async function addFoeNow(combat, { uuid, count = 1, zone = "near" } = {}) {
+  const fight = zoneFightOf(game.combats?.get?.(combat.id) ?? combat);
   if (!fight) return null;
   const world = await worldActorFor(uuid ? await fromUuid(uuid) : null);
   if (!world) { notify("warn", "SDE.stage.zone.noSource"); return null; }
@@ -124,8 +136,9 @@ export async function applyZoneDamage(combatant, amount) {
 
 export async function toggleDefeated(combatant) {
   if (refuseUnlessGM()) return null;
-  await combatant.update({ defeated: !combatant.defeated });
-  return !combatant.defeated;
+  const next = !combatant.defeated;
+  await combatant.update({ defeated: next });
+  return next;
 }
 
 /** Delete the Combat first; `deleteCombat` readers need the clones alive, and the hook below removes them. */

@@ -49,6 +49,8 @@ test("classifyCombatant: a tokenless combatant falls back to the actor", () => {
   const foe = { actor: { type: "NPC", hasPlayerOwner: false, prototypeToken: { disposition: -1 } } };
   assert.deepEqual(classifyCombatant(foe), { friendly: false, participant: false });
   assert.equal(classifyCombatant({ actor: { type: "NPC", prototypeToken: { disposition: 1 } } }).participant, false);
+  const npcOwned = classifyCombatant({ actor: { type: "NPC", hasPlayerOwner: true, prototypeToken: { disposition: -1 } } });
+  assert.deepEqual(npcOwned, { friendly: false, participant: false });
 });
 
 test("classifyCombatant: no actor is skipped without throwing", () => {
