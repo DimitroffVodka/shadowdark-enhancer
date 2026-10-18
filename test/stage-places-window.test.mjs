@@ -362,3 +362,30 @@ test("the cap notice passes the real maximum", async () => {
   assert.deepEqual(seen, [["SDE.stage.places.capReached", { max: MAX_PLACES }]]);
   assert.equal(e.notes.length, 1);
 });
+
+test("_prepareContext routes world pictures, keeps absolute URLs, and marks only the shown place", () => {
+  const places = [{ ...PL("a"), image: "worlds/w/stage/a.webp" }, { ...PL("b"), image: "https://cdn.example/b.webp" }];
+  const shownOf = (stage) => { setup({ places, stage }); return new StagePlacesApp()._prepareContext().places; };
+  const ctx = shownOf({ shown: true, place: "a", image: "x", partyId: "", campId: "" });
+  assert.equal(ctx[0].image, "/r/worlds/w/stage/a.webp");
+  assert.equal(ctx[1].image, "https://cdn.example/b.webp");
+  assert.deepEqual(ctx.map((p) => p.shown), [true, false]);
+  for (const stage of [{ shown: false, place: "a" }, { shown: true, place: "b2" }, { shown: true, place: "camp" }]) {
+    assert.deepEqual(shownOf(stage).map((p) => p.shown), [false, false]);
+  }
+});
+
+test("a rejected write warns and logs instead of throwing", async () => {
+  const e = setup({ places: [PL("a")] });
+  globalThis.game.settings.set = async () => { throw new Error("nope"); };
+  const err = console.error, logged = [];
+  console.error = (...a) => logged.push(a);
+  try {
+    const app = new StagePlacesApp();
+    await app._onField({ dataset: { placeId: "a", placeField: "kind" }, value: "tavern" });
+    await app._onDelete(null, { dataset: { placeId: "a" } });
+  } finally { console.error = err; }
+  assert.deepEqual(e.notes, ["SDE.stage.places.saveFailed", "SDE.stage.places.saveFailed"]);
+  assert.equal(logged.length, 2);
+  assert.ok(en["SDE.stage.places.saveFailed"]);
+});

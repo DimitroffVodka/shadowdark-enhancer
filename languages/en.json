@@ -6290,6 +6290,7 @@
   "SDE.stage.places.deleteButton": "Delete",
   "SDE.stage.places.addButton": "Add place",
   "SDE.stage.places.uploading": "Uploading the picture...",
+  "SDE.stage.places.saveFailed": "The places list could not be saved. See the console (F12) for details.",
   "SDE.stage.places.capReached": "You already have the most places allowed ({max}). Delete one to add another.",
   "SDE.stage.places.noPicture": "Choose a picture first.",
   "SDE.stage.places.confirmTitle": "Delete this place?",

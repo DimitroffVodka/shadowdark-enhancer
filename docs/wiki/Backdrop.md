@@ -112,7 +112,9 @@ cancelled never takes down a custom place, you hide it yourself.
 **Delete.** It asks first and names the place. Deleting a place that is up hides
 the Backdrop. The picture file stays in the world folder.
 
-**The kind.** For now the kind only labels the place. Town and tavern pages are
+**The kind.** The kind labels the place, and a Town or Tavern place is not
+replaced by a camp that begins (the Show camp picture button still switches by
+hand). Town and tavern pages are
 planned, not built, and no town or tavern pictures ship with the module: you add
 your own.
 

@@ -22,6 +22,14 @@ const KIND_KEYS = {
 };
 const kindLabel = (kind) => KIND_KEYS[kind];
 const warn = (key, data) => ui.notifications?.warn(L(key, data));
+/** A rejected write must not vanish as an unhandled rejection: log it and tell the GM. */
+const safely = async (fn) => {
+  try { return await fn(); } catch (err) {
+    console.error(`${MODULE_ID} | stage: places write failed`, err);
+    warn("SDE.stage.places.saveFailed");
+    return null;
+  }
+};
 
 export class StagePlacesApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
@@ -94,7 +102,9 @@ export class StagePlacesApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /** A name or kind edit. An empty name keeps the old one. */
-  async _onField(el) {
+  _onField(el) { return safely(() => this._saveField(el)); }
+
+  async _saveField(el) {
     const id = el.dataset.placeId;
     if (el.dataset.placeField === "kind") return updatePlaceInList(id, { kind: el.value });
     const name = el.value.trim();
@@ -121,7 +131,9 @@ export class StagePlacesApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (image) await updatePlaceInList(id, { image });
   }
 
-  async _onDelete(event, target) {
+  _onDelete(event, target) { return safely(() => this._deletePlace(target)); }
+
+  async _deletePlace(target) {
     const id = target.dataset.placeId;
     const place = readPlaces().places.find((p) => p.id === id);
     if (!place) return;
@@ -135,7 +147,9 @@ export class StagePlacesApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (ok) await removePlaceAndHide(id);
   }
 
-  async _onAdd() {
+  _onAdd() { return safely(() => this._addPlace()); }
+
+  async _addPlace() {
     if (this._busy) return;
     const root = this.element;
     if (readPlaces().places.length >= MAX_PLACES) return warn("SDE.stage.places.capReached", { max: MAX_PLACES });
