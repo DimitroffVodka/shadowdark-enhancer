@@ -40,7 +40,7 @@ Tools you run during an active game session.
 | [Zone Combat](Zone-Combat.md) | A fight with no battle map: three bands over the Backdrop, one real Combat, foes as their own copies |
 | [Loot & Treasure](Loot-and-Treasure.md) | Hoard rolls, claimable chat cards, opt-in loot drops on combat end, coin piles |
 | [Merchant Shop](Merchant-Shop.md) | A live shop window for the whole party, buying and selling against `system.coins` |
-| [Town Landing Page](Town-Landing-Page.md) | A menu over a scene's picture: merchants as NPCs, shopping on their own characters with no GM connected, the Quest Log, Journals, Party and Downtime, put up or away for the table with one button, plus games of chance and a sales log |
+| [Town Landing Page](Town-Landing-Page.md) | A menu over a scene's picture: merchants as NPCs, shopping on their own characters with no GM connected, the Quest Log, Journals, Party, Downtime, Carouse and Rumors, put up or away for the table with one button, plus games of chance and a sales log |
 | [Party XP](Party-XP.md) | Whole-party XP awards and Shadowdark treasure-XP rules |
 | [Party](Party.md) | Explicit roster, formation, deploy/gather/follow and shared items without Extras |
 | [Camping](Camping.md) | Owner choices, eight tasks, fire, daily PC/mount food and eligible rest |
