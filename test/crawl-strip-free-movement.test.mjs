@@ -31,10 +31,10 @@ const { CrawlStrip } = await import("../scripts/crawl-strip/crawl-strip.mjs");
 const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
 const { normalizeCrawlState } = await import("../scripts/crawl-strip/crawl-state-core.mjs");
 
-function draw(free) {
+function draw(free, el = null) {
   settings.crawlFreeMovement = free;
   CrawlState._state = normalizeCrawlState({ mode: "crawl", active: true, crawlTurn: 3, members: [pc.id], oocInitiative: { [pc.id]: { roll: 12 } }, oocTurn: pc.id });
-  CrawlStrip._el = { innerHTML: "", classList, querySelectorAll: () => [], querySelector: () => null };
+  CrawlStrip._el = el ?? { innerHTML: "", classList, querySelectorAll: () => [], querySelector: () => null };
   CrawlStrip._bindEvents = () => {}; CrawlStrip._sizeCards = () => {};
   CrawlStrip.render();
   return CrawlStrip._el.innerHTML;
@@ -51,7 +51,7 @@ test("free movement crawl: no feet pill, no order controls, Next Round stays", (
 });
 
 // A marching party: one person moves everyone, so the strip is a free crawl that says who leads.
-function marching({ followLeader = true, followersOut = true } = {}) {
+function marching({ followLeader = true, followersOut = true } = {}, el = null) {
   const MOD = "shadowdark-enhancer";
   const mate = { ...pc, id: "pc2", uuid: "Actor.pc2", name: "Bran", testUserPermission: () => true };
   Object.assign(pc, { uuid: "Actor.pc1", testUserPermission: () => true });
@@ -62,7 +62,7 @@ function marching({ followLeader = true, followersOut = true } = {}) {
   tokens.contents = tokens;
   globalThis.canvas.scene = { id: "s", tokens };
   globalThis.game.combats = { contents: [] };
-  return draw(false);
+  return draw(false, el);
 }
 test("a marching party draws as a free crawl: no feet, no order, the leader marked, the 3x3 grid and the switch shown", () => {
   const html = marching();
@@ -107,4 +107,12 @@ test("a type Party actor in the world does not stop the strip drawing", () => {
   let html;
   assert.doesNotThrow(() => { html = draw(false); });
   assert.match(html, /data-march-grid/, "the real party's march still draws");
+});
+
+test("render hands the strip's root to the march binder, so the switch and the grid get their listeners", () => {
+  const registered = [];
+  const node = name => ({ dataset: {}, closest: () => null, addEventListener: type => registered.push(`${name}:${type}`) });
+  const el = { innerHTML: "", classList, querySelectorAll: sel => (sel === "[data-march-slot]" ? [node("cell")] : []), querySelector: sel => (sel === '[data-action="toggleMarch"]' ? node("switch") : null) };
+  marching({}, el);
+  for (const wanted of ["switch:click", "cell:click", "cell:keydown", "cell:dragstart", "cell:drop"]) assert.ok(registered.includes(wanted), `${wanted} registered after render`);
 });

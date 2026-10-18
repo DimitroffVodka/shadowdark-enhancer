@@ -33,11 +33,17 @@ test("the grid draws nine cells from the front, names its leader, escapes names,
   const { party } = world();
   const html = marchGridHTML(party, { canEdit: true });
   assert.equal(html.match(/data-march-slot/g).length, 9);
-  assert.match(html, /sde-strip-march-cell leader" data-march-slot data-row="-1" data-col="0" data-uuid="Actor.a"/, "Ayla leads from the front row");
+  assert.match(html, /sde-strip-march-cell leader"[^>]*data-march-slot data-row="-1" data-col="0" data-uuid="Actor.a"/, "Ayla leads from the front row");
   assert.equal(html.match(/draggable="true"/g).length, 3, "only cells that hold someone");
+  assert.equal(html.match(/role="button"/g).length, 9);
+  assert.equal(html.match(/tabindex="0"/g).length, 3, "only a cell that can be used takes focus");
+  assert.equal(html.match(/aria-disabled="true"/g).length, 6, "the empty ones are inert");
+  assert.match(html, /aria-label="SDE\.crawlStrip\.marchCellLeader\|Ayla"/, "named for a screen reader");
   assert.equal(html.match(/sde-strip-march-cell empty/g).length, 6);
   assert.doesNotMatch(html, /Bran <b>/, "a name is never raw markup");
-  assert.doesNotMatch(marchGridHTML(party, { canEdit: false }), /draggable/);
+  const readOnly = marchGridHTML(party, { canEdit: false });
+  assert.doesNotMatch(readOnly, /draggable|tabindex="0"/, "a viewer who cannot manage the party gets nothing to focus or drag");
+  assert.equal(readOnly.match(/aria-disabled="true"/g).length, 9);
 });
 test("the switch says what it will do: on and marching, on and waiting, off", () => {
   const { party } = world();
@@ -92,4 +98,20 @@ test("moveToSlot swaps the dragged member with whoever holds the cell, and refus
   const slots = moveToSlot(data, rows, "Actor.a", 0, 0);
   assert.deepEqual(slots.map(s => [s.memberUuid, s.row]).sort(), [["Actor.a", 0], ["Actor.b", -1], ["Actor.c", 1]]);
   assert.equal(moveToSlot(data, rows, "Actor.zed", 0, 0), null);
+});
+test("Enter or Space on a focused portrait makes them lead; other keys and a viewer without rights do nothing", async () => {
+  const { party, writes } = world();
+  const root = fakeRoot(party); bindMarchControls(root);
+  const cell = root.cells[4]; cell.dataset.uuid = "Actor.b";
+  const press = key => { const e = evt({ key }); cell.listeners.keydown(e); return e; };
+  assert.equal(press("a").prevented, undefined); await settle();
+  assert.equal(writes.length, 0, "an ordinary key is not a lead");
+  assert.equal(press("Enter").prevented, true); await settle();
+  assert.equal(party.flags[MOD].partyData.leaderUuid, "Actor.b");
+  party.flags[MOD].partyData.leaderUuid = "Actor.a"; const before = writes.length;
+  assert.equal(press(" ").prevented, true); await settle();
+  assert.equal(party.flags[MOD].partyData.leaderUuid, "Actor.b", "Space does the same");
+  globalThis.game.user.isGM = false; party.testUserPermission = () => false;
+  press("Enter"); await settle();
+  assert.equal(writes.length, before + 1, "a viewer who cannot manage the party writes nothing");
 });

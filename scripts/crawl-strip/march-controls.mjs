@@ -17,7 +17,9 @@ export function marchButtonHTML(party, { active }) {
 export function marchGridHTML(party, { canEdit }) {
   const cells = marchGrid(party).map(c => {
     const tip = c.name ? t(c.leader ? "SDE.crawlStrip.marchCellLeader" : "SDE.crawlStrip.marchCell", { name: c.name }) : t("SDE.party.movement.emptySlot");
-    return `<div class="sde-strip-march-cell${c.leader ? " leader" : ""}${c.name ? "" : " empty"}" data-march-slot data-row="${c.row}" data-col="${c.col}" data-uuid="${esc(c.uuid ?? "")}" title="${esc(tip)}"${canEdit && c.name ? ` draggable="true"` : ""}>${c.img ? `<img src="${esc(c.img)}" alt="${esc(c.name)}">` : ""}</div>`;
+    const live = canEdit && !!c.name;
+    // A button for the keyboard too, as the sheet's own grid and the strip's cards are; an empty or read-only cell is inert.
+    return `<div class="sde-strip-march-cell${c.leader ? " leader" : ""}${c.name ? "" : " empty"}" role="button" tabindex="${live ? 0 : -1}" aria-label="${esc(tip)}"${live ? ` draggable="true"` : ` aria-disabled="true"`} data-march-slot data-row="${c.row}" data-col="${c.col}" data-uuid="${esc(c.uuid ?? "")}" title="${esc(tip)}">${c.img ? `<img src="${esc(c.img)}" alt="${esc(c.name)}">` : ""}</div>`;
   }).join("");
   return `<div class="sde-strip-march" data-march-grid data-party-id="${esc(party.id)}" title="${esc(t("SDE.crawlStrip.marchGridTip"))}">${cells}</div>`;
 }
@@ -39,7 +41,9 @@ export function bindMarchControls(root) {
   for (const cell of root.querySelectorAll("[data-march-slot]")) {
     const party = () => Party.get(cell.closest("[data-march-grid]")?.dataset.partyId);
     const manage = () => { const p = party(); return p && Party.canManage(p) ? p : null; };
-    cell.addEventListener("click", () => { const p = manage(); if (p && cell.dataset.uuid) void change(() => configureMovement(p, { leaderUuid: cell.dataset.uuid })); });
+    const lead = () => { const p = manage(); if (p && cell.dataset.uuid) void change(() => configureMovement(p, { leaderUuid: cell.dataset.uuid })); };
+    cell.addEventListener("click", lead);
+    cell.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); lead(); } });
     cell.addEventListener("dragstart", event => { if (!manage() || !cell.dataset.uuid) return event.preventDefault(); event.dataTransfer.setData("text/plain", cell.dataset.uuid); });
     cell.addEventListener("dragover", event => { if (manage()) event.preventDefault(); });
     cell.addEventListener("drop", event => {

@@ -162,7 +162,8 @@ so the strip stops counting feet and turns for them, as in a
 
 - The **3x3 marching order** appears beside the PARTY plate, the top row the
   front, and it is the marker that the party is marching. Click a portrait to
-  make that character lead; drag one onto another cell to rearrange. Whoever
+  make that character lead (or focus it and press Enter or Space); drag one onto
+  another cell to rearrange. Whoever
   may manage the party can do this, so nobody has to open the Party sheet; to
   everyone else the grid is read-only.
 - The leader's card has a gold outline and a flag; hovering it names the leader.
@@ -173,8 +174,9 @@ so the strip stops counting feet and turns for them, as in a
 
 The **march switch** (the people icon under PARTY, shown to whoever may manage
 the party whenever the party has a character in the crawl) turns Marching order
-on and off from the strip. Gold means the party is marching; outlined means it
-is on but waits for the leader and a member to be on the map; grey is off. It
+on and off from the strip. A gold icon on a gold fill means the party is
+marching; a gold icon alone means it is on but waits for the leader and a member
+to be on the map; grey is off. It
 writes the same switch as the Party sheet. Switch it off, or start combat, and
 feet and initiative come back as they were.
 
