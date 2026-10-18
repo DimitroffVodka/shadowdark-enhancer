@@ -44,8 +44,9 @@ function partyActors() {
 export async function startZoneFight({ foes = [], source = "" } = {}) {
   if (refuseUnlessGM()) return null;
   if (findZoneFight()) { notify("warn", "SDE.stage.zone.startRunning"); return null; }
-  // A second Combat would split the table: the tracker and Crawl Strip stay on the first. Only a real fight counts.
-  const other = Array.from(game.combats ?? []).find((c) => (c.combatants?.size ?? 0) > 0 && (c.started || c.round >= 1));
+  // A second Combat would split the table: the tracker and Crawl Strip stay on the first. Any other Combat with combatants counts, started or not
+  // (a battle map brought to the table leaves one at round 0); an empty one is ignored.
+  const other = Array.from(game.combats ?? []).find((c) => (c.combatants?.size ?? 0) > 0);
   if (other) { notify("warn", "SDE.stage.zone.startOtherCombat"); return null; }
   const combat = await Combat.create({
     scene: null,

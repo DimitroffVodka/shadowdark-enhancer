@@ -106,6 +106,7 @@ function snapshot(el) {
   const open = el.querySelector?.("details[open]");
   const active = document.activeElement;
   return {
+    scroll: el.querySelector?.(".zb-bands")?.scrollTop ?? 0,
     openId: open?.closest?.("[data-combatant-id]")?.dataset?.combatantId ?? null,
     amount: open?.querySelector?.(".zb-amount")?.value ?? "",
     focus: el.contains?.(active) && active?.closest?.("[data-combatant-id]")
@@ -115,6 +116,8 @@ function snapshot(el) {
 }
 
 function restore(el, snap) {
+  const bands = el.querySelector?.(".zb-bands");
+  if (bands && snap.scroll) bands.scrollTop = snap.scroll;
   if (snap.openId) {
     const chip = el.querySelector?.(`[data-combatant-id="${snap.openId}"]`);
     const pop = chip?.querySelector?.("details");

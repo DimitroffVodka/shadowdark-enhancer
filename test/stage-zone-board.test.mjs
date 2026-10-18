@@ -271,6 +271,21 @@ test("redraws are coalesced to one render per tick; actor and effect hooks redra
   assert.equal(e.log.renders.length, base + 2);
 });
 
+test("a redraw keeps the scroll of the bands, which innerHTML would reset to the top", async () => {
+  const e = setup({ stage: stageUp, combats: [fightOf([PC])] });
+  e.once.ready();
+  await tick();
+  const layer = e.body[0];
+  const bands = { scrollTop: 0 };
+  let html = "";
+  Object.defineProperty(layer, "innerHTML", { get: () => html, set: (v) => { html = v; bands.scrollTop = 0; } });
+  layer.querySelector = (s) => (s === ".zb-bands" ? bands : null);
+  bands.scrollTop = 120;
+  fire(e, "updateCombat", {});
+  await tick();
+  assert.equal(bands.scrollTop, 120);
+});
+
 // --- the click listener -------------------------------------------------------------------------------
 
 async function clickSetup({ gm = true } = {}) {

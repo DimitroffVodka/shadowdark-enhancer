@@ -92,22 +92,20 @@ test("start with a fight running is refused and creates nothing", async () => {
   assert.deepEqual(w.log.notes.at(-1), ["warn", "SDE.stage.zone.startRunning"]);
 });
 
-test("start is refused beside a started non-zone combat, allowed beside idle ones", async () => {
+test("start is refused beside any non-zone combat that has combatants, started or not; an empty one does not block", async () => {
   const w = world();
+  const empty = w.mkCombat({ flags: { [M]: {} } }); empty.round = 0; empty.started = false;
+  assert.ok(await startZoneFight(), "only an empty Combat beside: allowed");
+  w.combats.forEach((c) => { if (c.flags[M].zoneFight) w.combats.delete(c.id); });
   const other = w.mkCombat({ flags: { [M]: {} } });
   other.round = 0; other.started = false;
   other.createEmbeddedDocuments("Combatant", [{ actorId: "x" }]);
-  // an empty Combat, and one with combatants that has not started, do not block
-  const empty = w.mkCombat({ flags: { [M]: {} } }); empty.round = 0; empty.started = false;
-  assert.ok(await startZoneFight(), "idle Combats beside: allowed");
-  w.combats.forEach((c) => { if (c.flags[M].zoneFight) w.combats.delete(c.id); });
   const before = w.log.calls.length;
-  other.started = true;
-  assert.equal(await startZoneFight(), null);
+  assert.equal(await startZoneFight(), null, "combatants at round 0, not started (a battle map brought to the table)");
   assert.equal(w.log.calls.length, before, "nothing created");
   assert.deepEqual(w.log.notes.at(-1), ["warn", "SDE.stage.zone.startOtherCombat"]);
-  other.started = false; other.round = 2;
-  assert.equal(await startZoneFight(), null, "round 1 or later counts too");
+  other.started = true; other.round = 2;
+  assert.equal(await startZoneFight(), null, "a running one still blocks");
   w.combats.delete(other.id);
   assert.ok(await startZoneFight(), "only the empty one beside: allowed");
 });

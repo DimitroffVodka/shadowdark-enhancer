@@ -101,8 +101,10 @@ in **Zone fight foes**. Delete them by hand; nothing sweeps that folder for you.
 
 ## What works differently
 
-- A zone fight cannot be started while another combat is running; end that
-  combat first.
+- A zone fight cannot be started while another combat that has combatants
+  exists, whether or not it has started (a battle map brought to the table
+  leaves one); end or delete that combat first. An empty combat left in the
+  tracker is ignored and can be deleted by hand.
 - **Bring the table** to a battle map is refused with a notice while a zone
   fight exists. The Battle map button itself still works.
 - **Start Combat** on the Crawl Bar is refused with a notice while a zone fight
