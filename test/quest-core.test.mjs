@@ -639,8 +639,16 @@ describe("quest dates", () => {
   test("dueChanges: no autoFail, no fail; completed, failed and hidden quests never fail", () => {
     const base = { deadline: day(10), autoFail: true };
     assert.deepEqual(dueChanges([mk("a", { status: "active", deadline: day(10) })], day(50), D), []);
-    for (const status of ["completed", "failed", "hidden"]) {
-      assert.deepEqual(dueChanges([mk("a", { ...base, status })], day(50), D), [], status);
+    assert.deepEqual(dueChanges([mk("a", { ...base, status: "hidden" })], day(50), D), []);
+    for (const status of ["completed", "failed"]) {
+      assert.ok(!dueChanges([mk("a", { ...base, status })], day(50), D).some((c) => c.status), status);
+    }
+  });
+
+  test("dueChanges: a Failed or Completed quest whose autoFail was never cleared only gets the flag cleared", () => {
+    for (const status of ["failed", "completed"]) {
+      assert.deepEqual(dueChanges([mk("a", { status, deadline: day(10), autoFail: true })], day(50), D), [{ id: "a", clear: ["autoFail"] }], status);
+      assert.deepEqual(dueChanges([mk("a", { status, deadline: day(10), autoFail: false })], day(50), D), [], status);
     }
   });
 

@@ -175,3 +175,37 @@ test("From rumors with nothing new still shows the Hidden tab and its first rumo
   assert.equal(app.selectedId, "r");
   assert.equal(app.filters.character, "");
 });
+
+/** Runs _onFromRumors over `quests` with nothing newly drafted; returns the app and the notification keys sent. */
+async function fromRumorsNothingNew(quests) {
+  const quiet = Rumors.draftQuests, list = Quests.list, info = globalThis.ui.notifications.info;
+  const keys = []; let renders = 0;
+  Rumors.draftQuests = async () => [];
+  Quests.list = () => quests;
+  globalThis.ui.notifications.info = (m) => keys.push(m);
+  const app = Object.create(QuestLogApp.prototype);
+  app.tab = "active"; app.selectedId = "old"; app.filters = { character: "x", party: "", source: "" }; app.render = () => { renders++; };
+  try { await app._onFromRumors(); } finally { Rumors.draftQuests = quiet; Quests.list = list; globalThis.ui.notifications.info = info; }
+  return { app, keys, renders };
+}
+
+test("From rumors promises the Hidden tab only when it can go there", async () => {
+  const found = await fromRumorsNothingNew([{ id: "r", status: "hidden", source: { kind: "rumor" } }]);
+  assert.deepEqual(found.keys, ["SDE.quests.notify.fromRumorsHidden"]);
+  assert.equal(found.app.tab, "hidden");
+  const q = (status, kind) => ({ id: "x", status, source: { kind } });
+  const cases = {
+    "every rumor quest promoted": [q("available", "rumor")],
+    "every rumor quest deleted": [],
+    "only a gm quest Hidden": [q("hidden", "gm")],
+    "only a trainer quest Hidden": [q("hidden", "trainer")],
+  };
+  for (const [name, quests] of Object.entries(cases)) {
+    const { app, keys, renders } = await fromRumorsNothingNew(quests);
+    assert.deepEqual(keys, ["SDE.quests.notify.fromRumorsNone"], name);
+    assert.equal(app.tab, "active", name);
+    assert.equal(app.selectedId, "old", name);
+    assert.equal(app.filters.character, "x", name);
+    assert.equal(renders, 0, name);
+  }
+});

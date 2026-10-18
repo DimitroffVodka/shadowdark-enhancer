@@ -404,8 +404,10 @@ export class QuestLogApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const { Rumors } = await import("../rumors/rumors.mjs");
     const made = fromRumorsDrafted(await Rumors.draftQuests());
     if (!made) return;
-    ui.notifications.info(t(made.length ? "SDE.quests.notify.fromRumors" : "SDE.quests.notify.fromRumorsNone", { n: made.length }));
     const first = made.length ? made[0] : firstHiddenRumorQuest(Quests.list());
+    // Say only what is true: the Hidden-tab sentence needs somewhere to go.
+    const key = made.length ? "SDE.quests.notify.fromRumors" : first ? "SDE.quests.notify.fromRumorsHidden" : "SDE.quests.notify.fromRumorsNone";
+    ui.notifications.info(t(key, { n: made.length }));
     if (!first) return;
     this.show(first);
     this.render();

@@ -21,7 +21,7 @@ const build = (state) => {
   const gm = state === "gm", avail = state === "playeravail";
   return { context: {
     isGM: gm, inline: false, payoutHTML: "", hasParties: true,
-    tabs: [["hidden", "Hidden", 2], ["available", "Available", 3], ["active", "Active", 7], ["completed", "Completed", 12], ["failed", "Failed", 1]].filter(([s]) => gm || s !== "hidden").map(([status, label, count]) => ({ status, label, count, active: status === "active" })),
+    tabs: [["hidden", "Hidden", 2], ["available", "Available", 3], ["active", "Active", 7], ["completed", "Completed", 12], ["failed", "Failed", 1]].filter(([s]) => gm || s !== "hidden").map(([status, label, count]) => ({ status, label, count, active: status === (avail ? "available" : "active") })),
     filterCharacters: ["Creeg Greythorn", "Elbin Grizzlegut"].map((name, i) => ({ uuid: "c" + i, name })), filterParties: [{ uuid: "p", name: "The Lantern Guild" }],
     filterSources: ["GM", "Rumor", "Trouble", "Trainer"].map((label, i) => ({ kind: "k" + i, label })), quests,
     quest: {
@@ -34,7 +34,7 @@ const build = (state) => {
         ] : [],
         appearsPassed: false, failPassed: gm,
       },
-      whenOpen: true, deadline: 5, autoFail: true,
+      whenOpen: true, deadline: 5, hasDeadline: true, autoFail: true,
       id: "q0", name: quests[0].name, statusLabel: avail ? "Available" : "Active", canAccept: avail, sourceLabel: "GM", source: { uuid: "JournalEntry.x" }, hasPin: true,
       statusOptions: ["Hidden", "Available", "Active", "Completed", "Failed"].map((label) => ({ value: label, label, selected: label === "Active" })),
       characterList: ["Creeg Greythorn", "Elbin Grizzlegut", "Iraga Draguul", "Jorbin Ironhelm", "Martin Rast"].map((name, i) => ({ uuid: "c" + i, name })),

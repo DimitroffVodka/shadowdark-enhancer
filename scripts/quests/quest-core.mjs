@@ -373,7 +373,9 @@ export function deadlineState(quest, now, spd) {
  * date has come appears, unless its deadline is already over (it stays Hidden
  * and keeps its date). An Available or Active quest that asked to fail at its
  * deadline fails once the deadline's day is over. Hidden, Completed and Failed
- * quests never fail.
+ * quests never fail. A Failed or Completed quest
+ * with `autoFail` still set (its clearing write failed) yields a change with
+ * no `status`, which only clears the flag.
  */
 export function dueChanges(quests, now, spd) {
   const out = [];
@@ -383,6 +385,8 @@ export function dueChanges(quests, now, spd) {
       out.push({ id: q.id, status: "available", clear: ["startsAt"] });
     } else if ((q.status === "available" || q.status === "active") && q.autoFail && overdue) {
       out.push({ id: q.id, status: "failed", clear: ["autoFail"] });
+    } else if ((q.status === "failed" || q.status === "completed") && q.autoFail) {
+      out.push({ id: q.id, clear: ["autoFail"] });   // a failed clearing write left it set; do not let a reopen fail it again
     }
   }
   return out;

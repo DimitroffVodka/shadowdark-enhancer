@@ -28,8 +28,10 @@ export async function runQuestClock() {
   const changes = dueChanges(Quests.list(), game.time.worldTime, secondsPerDay(game.time.calendar));
   for (const { id, status, clear } of changes) {
     try {
-      const moved = await Quests.setStatus(id, status);
-      if (moved?.status !== status) continue;   // it did not move: keep the date so the next pass tries again
+      if (status) {
+        const moved = await Quests.setStatus(id, status);
+        if (moved?.status !== status) continue;   // it did not move: keep the date so the next pass tries again
+      }
       await Quests.update(id, Object.fromEntries(clear.map((k) => [k, CLEARED[k]])));
     } catch (err) {
       console.error(`${MODULE_ID} | quest clock: ${id}`, err);

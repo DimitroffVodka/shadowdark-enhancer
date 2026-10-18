@@ -66,6 +66,12 @@ test("a status change that did not take (setStatus returned nothing) is not clea
   assert.ok(!calls.some((c) => c[0] === "update"));
 });
 
+test("a clear-only change (stale autoFail on a Failed quest) skips setStatus and just clears", async () => {
+  list = [q("stale", { status: "failed", deadline: 10 * DAY, autoFail: true }), q("open", { status: "active", deadline: 10 * DAY, autoFail: false })];
+  await runQuestClock();
+  assert.deepEqual(calls, [["update", "stale", { autoFail: false }]]);
+});
+
 test("nothing happens off the active GM", async () => {
   world.activeGM = false; await runQuestClock();
   world.activeGM = true; world.isGM = false; await runQuestClock();

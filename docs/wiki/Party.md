@@ -170,11 +170,14 @@ The **Travel** tab holds [Camping](Camping.md) and the **Carousing** tab holds
 task and ability, confirm their choices, then lock and roll. Results and
 food/fuel decisions stay in the same tab; the `camping.open` / `carousing.open`
 API opens the sheet on the matching tab rather than opening another window.
-The **Quests** tab uses the existing Quest Log's status tabs, objectives and
+The **Quests** tab uses the existing Quest Log's status tabs, steps and
 rewards, scoped to this Party and its PCs. GMs create/edit quests and confirm
 payouts inline; players retain the normal read-only quest permissions. New quests
 remain Hidden until the GM changes their status. **Description** edits and saves
-Party notes inline, with a cancel option.
+Party notes inline, with a cancel option. On the Quests tab a player, even one who
+only observes the party, can switch the status tabs and, on an Available quest,
+press **Accept quest**; the GM sees a prompt (default button **Not now**) and
+approves it or says not yet.
 Selected-party XP, encounters and travel use this roster rather than guessing
 the first Party or auto-enrolling all world PCs.
 
