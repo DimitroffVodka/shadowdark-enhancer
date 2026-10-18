@@ -22,7 +22,9 @@ import { normalizeStage } from "../stage/stage-core.mjs";
 import { pageHost } from "./town-host-core.mjs";
 
 const WINDOWS = ["sde-town", "sde-town-shop"];
-const closeTown = () => { for (const id of WINDOWS) foundry.applications.instances.get(id)?.close(); };
+const closeWindows = (ids) => { for (const id of ids) foundry.applications.instances.get(id)?.close(); };
+const closeTown = () => closeWindows(WINDOWS);
+const closeOthers = () => closeWindows(WINDOWS.filter((id) => id !== "sde-town"));
 
 async function openTown(scene = globalThis.canvas?.scene) {
   const { TownApp } = await import("./town-app.mjs");
@@ -30,7 +32,16 @@ async function openTown(scene = globalThis.canvas?.scene) {
 }
 
 /** The window seam (tests replace it). */
-export const townIo = { open: openTown, close: closeTown };
+export const townIo = { open: openTown, close: closeTown, closeOthers };
+
+let shownId = null; // the scene the singleton window was last pointed at
+/** Point the window at `sceneId`'s page; the old page's other windows (its shop) would link back to the old scene. */
+function showPage(sceneId) {
+  if (shownId && shownId !== sceneId) townIo.closeOthers();
+  shownId = sceneId;
+  return townIo.open(game.scenes.get(sceneId));
+}
+const closePage = () => { shownId = null; return townIo.close(); };
 
 /** The page that should be up for `scene` on the canvas, from the Stage value and the scenes. */
 function hostNow(scene = globalThis.canvas?.scene, exclude = "") {
@@ -53,7 +64,7 @@ export function syncHostedPage({ exclude = "" } = {}) {
   const next = host?.hosted ? host.sceneId : null;
   if (next === hostedId) return;
   hostedId = next;
-  if (host) townIo.open(game.scenes.get(host.sceneId)); else townIo.close();
+  if (host) showPage(host.sceneId); else closePage();
 }
 
 /** The GM flips the page for everyone (making it first on a scene that has none). A player flips their own copy. */
@@ -63,11 +74,12 @@ async function toggleTown() {
   if (game.user.isGM) return (await import("./town-live.mjs")).switchTown(scene, !page?.shown);
   const host = hostNow(scene);
   if (!host) return null;
-  return mine?.rendered ? mine.close() : townIo.open(game.scenes.get(host.sceneId));
+  return mine?.rendered ? mine.close() : showPage(host.sceneId);
 }
 
 export function registerTownEntryPoints() {
   hostedId = null;
+  shownId = null;
   game.keybindings.register(MODULE_ID, "openTown", {
     name: "SDE.town.keybinding.name",
     hint: "SDE.town.keybinding.hint",
@@ -97,7 +109,7 @@ export function registerTownEntryPoints() {
     const host = hostNow(scene);
     if (host?.hosted) { syncHostedPage(); return; } // a scene change keeps the hosted page
     hostedId = null;
-    if (host) townIo.open(game.scenes.get(host.sceneId)); else if (!page) townIo.close();
+    if (host) showPage(host.sceneId); else if (!page) closePage();
   };
   Hooks.on("updateScene", (scene, changed) => {
     // The toolbar and the windows follow the scene's page. The diff names the key with an operator when it was
@@ -109,14 +121,18 @@ export function registerTownEntryPoints() {
     if (!page) seen.delete(scene.id);
     const was = hostedId;
     syncHostedPage(); // the hosted page ends only when its scene or page goes
-    if (hostNow(here)?.hosted) return; // the hosted page wins: the GM's Alt+T on the canvas scene does not touch it
+    if (hostNow(here)?.hosted) { // the hosted page wins: the GM's Alt+T on the canvas scene does not touch it
+      if (page && scene.id === here?.id) seen.set(scene.id, page.shown); // so a later rewrite is not a change
+      return;
+    }
     if (scene.id !== here?.id) return;
     if (was) { if (page) seen.set(scene.id, page.shown); return; } // sync has just put the canvas page back or closed
-    if (!page) { townIo.close(); return; }
+    if (!page) { closePage(); return; }
     if (seen.get(scene.id) === page.shown) return;
     seen.set(scene.id, page.shown);
-    if (page.shown) townIo.open(scene); else townIo.close();
+    if (page.shown) showPage(scene.id); else closePage();
   });
+  // v14 removes the scene from game.scenes before this hook; `exclude` is only a guard.
   Hooks.on("deleteScene", (scene) => { seen.delete(scene.id); syncHostedPage({ exclude: scene.id }); });
 
   // canvasDraw, not canvasReady: Foundry runs canvasReady with Hooks.call, which stops at the first handler that returns
@@ -127,8 +143,10 @@ export function registerTownEntryPoints() {
     // The world's first canvas is drawn before "ready" (Game#setupGame), so a user who loads straight into the
     // town is opened on by the ready hook below; this one covers moving between scenes.
     if (!game.ready) return;
+    const page = landingOf(canvas.scene);
+    if (page) seen.set(canvas.scene.id, page.shown); // also while hosted: a closed copy must not reopen on a rewrite
     if (hostNow(canvas.scene)?.hosted) { syncHostedPage(); return; } // never closed by a scene change
-    if (!landingOf(canvas.scene)) { hostedId = null; townIo.close(); return; }
+    if (!page) { hostedId = null; closePage(); return; }
     arrive(canvas.scene);
   });
   Hooks.once("ready", () => arrive(globalThis.canvas?.scene));

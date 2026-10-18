@@ -30,7 +30,7 @@ const { registerStage } = await import("../scripts/stage/stage.mjs");
 const PL = (id, name = id) => ({ id, kind: "town", name, image: `worlds/w/stage/${id}.webp` });
 
 function setup({ gm = true, places = [], stage = null, canUpload = true } = {}) {
-  const store = { stage, stagePlaces: { places } }, registered = {}, sets = [], notes = [], tools = {}, uploads = [];
+  const store = { stage, stagePlaces: { places } }, registered = {}, sets = [], notes = [], tools = {}, uploads = [], hooks = {};
   confirmAsk = []; confirmAnswer = true;
   globalThis.document = { body: { append() {} }, createElement: () => ({ setAttribute() {}, style: {} }), querySelector: () => null };
   globalThis.canvas = null;
@@ -43,12 +43,12 @@ function setup({ gm = true, places = [], stage = null, canUpload = true } = {}) 
   globalThis.game = { user: { isGM: gm, can: (p) => p === "FILES_UPLOAD" && canUpload }, world: { id: "w" }, actors: { contents: [] },
     i18n: { localize: (k) => k, format: (k, d) => `${k}|${JSON.stringify(d)}` },
     settings: { register: (m, k, o) => { registered[k] = o; }, get: (m, k) => store[k], set: async (m, k, v) => { store[k] = v; sets.push({ k, v }); } } };
-  globalThis.Hooks = { once() {}, on: (n, f) => { if (n === "getSceneControlButtons") tools.fn = f; } };
+  globalThis.Hooks = { once() {}, on: (n, f) => { hooks[n] = f; if (n === "getSceneControlButtons") tools.fn = f; } };
   globalThis.OffscreenCanvas = class { getContext() { return { drawImage() {} }; } async convertToBlob({ type }) { return { type }; } };
   globalThis.File = class { constructor(parts, name, o) { this.name = name; this.type = o?.type; } };
   globalThis.createImageBitmap = async (src) => ({ width: src.w, height: src.h, close() {} });
   registerStage();
-  return { store, sets, notes, tools, uploads, registered };
+  return { store, sets, notes, tools, uploads, registered, hooks };
 }
 
 /** A window with a fake DOM: just the elements the handlers read. */
@@ -411,8 +411,8 @@ const scene = (id, name, extra = {}) => ({ id, name, ...extra });
 function withScenes(list) {
   globalThis.game.scenes = { contents: list, get: (id) => list.find((s) => s.id === id) };
 }
-const bare = scene("s0", "Bare", { background: { src: "worlds/w/bare.webp" } });
-const paged = scene("s1", "Greybanner", { ...LAND, background: { src: "worlds/w/grey.webp" } });
+const bare = scene("s0", "Bare", { initialLevel: { background: { src: "worlds/w/bare.webp" } } });
+const paged = scene("s1", "Greybanner", { ...LAND, initialLevel: { background: { src: "worlds/w/grey.webp" } } });
 const paged2 = scene("s2", "Flagon", LAND);
 const field = (id, value) => ({ dataset: { placeField: "pageSceneId", placeId: id }, value });
 
@@ -478,4 +478,42 @@ test("default picture: a Town or Tavern place with a page and no picture uses th
   withScenes([paged]);
   await windowWith({ kind: "town", page: "s1" }).app._onAdd();
   assert.match(f.store.stagePlaces.places[0].image, /^worlds\/w\/stage\/.+\.webp$/);
+});
+
+test("the default picture reads the opening level, falls back to the first level, never Scene#background, and a video is no picture", async () => {
+  const trap = (extra) => ({ ...scene("s3", "Trap", LAND), get background() { throw new Error("deprecated getter read"); }, ...extra });
+  const levelOnly = trap({ firstLevel: { background: { src: "worlds/w/first.webp" } } });
+  const e = setup();
+  withScenes([levelOnly]);
+  await windowWith({ kind: "town", page: "s3", file: null }).app._onAdd();
+  assert.equal(e.store.stagePlaces.places[0].image, "worlds/w/first.webp");
+  for (const src of ["worlds/w/loop.webm", "worlds/w/loop.MP4", "worlds/w/a.m4v", "worlds/w/b.ogv?x=1"]) {
+    const v = setup();
+    withScenes([trap({ initialLevel: { background: { src } } })]);
+    await windowWith({ kind: "town", page: "s3", file: null }).app._onAdd();
+    assert.deepEqual(v.store.stagePlaces.places, [], src);
+    assert.equal(v.notes[0], "SDE.stage.places.noPicture");
+  }
+});
+
+test("the open Places window redraws its list when a scene gains or loses its page or is created or deleted; a closed window renders nothing", async () => {
+  const { setPlacesWindow } = await import("../scripts/stage/places.mjs");
+  const e = setup();
+  const renders = [];
+  setPlacesWindow({ render: (o) => renders.push(o) });
+  const MODKEY = "shadowdark-enhancer";
+  e.hooks.updateScene({}, { flags: { [MODKEY]: { landing: { shown: true } } } });
+  e.hooks.updateScene({}, { flags: { [MODKEY]: { "==landing": { shown: true } } } });
+  e.hooks.updateScene({}, { flags: { [MODKEY]: { "-=landing": null } } });
+  e.hooks.createScene({});
+  e.hooks.deleteScene({});
+  assert.equal(renders.length, 5);
+  assert.ok(renders.every((o) => o.parts.length === 1 && o.parts[0] === "list"));
+  e.hooks.updateScene({}, { flags: { [MODKEY]: { other: 1 } } });
+  e.hooks.updateScene({}, { name: "x" });
+  e.hooks.updateScene({}, undefined);
+  assert.equal(renders.length, 5);
+  setPlacesWindow(null);
+  assert.doesNotThrow(() => { e.hooks.createScene({}); e.hooks.updateScene({}, { flags: { [MODKEY]: { landing: {} } } }); });
+  assert.equal(renders.length, 5);
 });

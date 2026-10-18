@@ -113,16 +113,15 @@ the Backdrop. The picture file stays in the world folder.
 
 **The kind.** The kind labels the place, and a Town or Tavern place is not
 replaced by a camp that begins (the Show camp picture button still switches by
-hand). Town and tavern pages are
-planned, not built, and no town or tavern pictures ship with the module: you add
-your own.
+hand). No town or
+tavern pictures ship with the module: you add your own.
 
 The list is its own hidden world setting, apart from the one that holds what is
 showing, so neither overwrites the other.
 
 ## A Town page on a place
 
-A Town or Tavern place can open a Town page over the Backdrop for everyone.
+A place (of any kind) can open a Town page over the Backdrop for everyone.
 
 1. On a scene, press the Town tool to make its page, and edit it with the
    pencil on the page ([Town Landing Page](Town-Landing-Page.md)).
@@ -130,7 +129,11 @@ A Town or Tavern place can open a Town page over the Backdrop for everyone.
    that already have a page are listed. In the Add form you can leave the
    picture empty: a Town or Tavern place then uses that scene's background as
    its picture (a Custom place still needs one).
-3. Show the place. The picture goes up and the page opens over it for everyone.
+3. Making a page with the Town tool also switches it on for everyone viewing
+   that scene. If it should appear only on the Backdrop, switch the page off with
+   its own switch after making it; otherwise it also shows whenever someone views
+   that scene, and the hide icon below hides only the Backdrop.
+4. Show the place. The picture goes up and the page opens over it for everyone.
 
 While it is up:
 
@@ -141,7 +144,7 @@ While it is up:
   closes if the place changes, or the page or its scene is removed. If that
   happens, the place keeps its Page scene and shows "Page missing" until you
   pick another or None.
-- A camp that begins does not replace the place or its page.
+- A camp that begins does not replace a Town or Tavern place or its page (that guard is by the place's kind; a Camp or Custom place is replaced).
 - Shopping works with no GM connected. Carousing needs a GM connected.
 
 ## What it does not do yet

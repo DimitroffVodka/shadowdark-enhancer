@@ -47,7 +47,7 @@ const scene = (id, page) => ({
 });
 
 async function setup({ gm = false, stage = {}, canvasId = "C", scenes = [scene("C", { shown: true }), scene("H", { shown: true })] } = {}) {
-  const hooks = {}, store = { stage }, written = [], opened = [], closed = { n: 0 }, warns = [];
+  const hooks = {}, store = { stage }, written = [], opened = [], closed = { n: 0, others: 0 }, warns = [];
   const byId = new Map(scenes.map((s) => [s.id, s]));
   const instances = new Map();
   globalThis.Hooks = { on: (n, f) => { hooks[n] = f; }, once: (n, f) => { hooks[n] = f; } };
@@ -65,6 +65,7 @@ async function setup({ gm = false, stage = {}, canvasId = "C", scenes = [scene("
   const entry = await import("../scripts/town/town-entry-points.mjs");
   entry.townIo.open = (s) => { opened.push(s.id); instances.set("sde-town", { rendered: true, close() { closed.n++; instances.delete("sde-town"); } }); };
   entry.townIo.close = () => { closed.n++; instances.delete("sde-town"); };
+  entry.townIo.closeOthers = () => { closed.others++; };
   entry.registerTownEntryPoints();
   const orig = console.warn; console.warn = (...a) => warns.push(a);
   return {
@@ -130,7 +131,7 @@ test("the hosted page closes when its page or its scene is removed", async () =>
   f.byId.delete("H");
   f.hooks.deleteScene(gone);
   assert.equal(f.closed.n, 1);
-  const g = await setup({ stage: HOSTED, scenes: [scene("C", null), scene("H", { shown: true })] }); // the scene still in the collection during the hook
+  const g = await setup({ stage: HOSTED, scenes: [scene("C", null), scene("H", { shown: true })] }); // a stub that still holds it; v14 has already removed it before the hook, `exclude` is only a guard
   g.hooks.ready();
   g.hooks.deleteScene(g.byId.get("H"));
   assert.equal(g.closed.n, 1);
@@ -219,4 +220,77 @@ test("the hosted hide icon has its own title, and Escape cannot close a frameles
   const app = readFileSync(new URL("../scripts/town/town-app.mjs", import.meta.url), "utf8");
   assert.match(app, /window: \{ frame: false/); // frameless: no close control, Escape is not offered
   for (const f of ["town-host-core", "town-entry-points"]) assert.doesNotMatch(readFileSync(new URL(`../scripts/town/${f}.mjs`, import.meta.url), "utf8"), /shadowdarkEnhancer\./);
+});
+
+test("hosted state comes from the stage value: a player's closed copy stays closed across a no-page scene and a stage write", async () => {
+  const scenes = [scene("C", { shown: true }), scene("H", { shown: true }), scene("D", null)];
+  const e = await setup({ stage: HOSTED, scenes });
+  e.hooks.ready();
+  await e.hooks["key:openTown"](); // Alt+T closes their hosted copy
+  assert.equal(e.instances.has("sde-town"), false);
+  e.goTo("D"); // a scene with no page
+  await e.setStage({ ...HOSTED, image: "b.webp" }); // a place picture refresh
+  assert.deepEqual(e.opened, ["H"]);
+  assert.equal(e.instances.has("sde-town"), false);
+});
+
+test("an unhosted page closes when the GM moves to a scene with no page", async () => {
+  const e = await setup({ stage: {}, scenes: [scene("C", { shown: true }), scene("E", null)] });
+  e.hooks.ready();
+  assert.deepEqual(e.opened, ["C"]);
+  e.goTo("E");
+  assert.equal(e.closed.n, 1);
+  assert.equal(e.instances.has("sde-town"), false);
+});
+
+test("a closed copy stays closed after the hosted page ends: the canvas scene's switch was recorded while hosted", async () => {
+  const scenes = [scene("C", null), scene("H", { shown: true }), scene("D", { shown: true })];
+  const e = await setup({ stage: HOSTED, scenes });
+  e.hooks.ready();
+  e.goTo("D"); // hosted guard in canvasDraw
+  await e.setStage({ ...HOSTED, shown: false }); // the Stage drops: D's page opens
+  assert.deepEqual(e.opened, ["H", "D"]);
+  await e.hooks["key:openTown"](); // the player closes it
+  e.byId.get("D").flags[MOD].landing = { shown: true, restocked: 1 };
+  e.hooks.updateScene(e.byId.get("D"), { flags: { [MOD]: { landing: {} } } }); // the GM restocks D
+  assert.deepEqual(e.opened, ["H", "D"]);
+  // the same through the updateScene follow while hosted on another scene
+  const f = await setup({ stage: HOSTED, scenes: [scene("C", null), scene("H", { shown: true }), scene("D", { shown: false })], canvasId: "D" });
+  f.hooks.ready();
+  f.byId.get("D").flags[MOD].landing = { shown: true };
+  f.hooks.updateScene(f.byId.get("D"), { flags: { [MOD]: { landing: {} } } }); // hosted wins, D's switch is recorded
+  await f.setStage({ ...HOSTED, shown: false });
+  await f.hooks["key:openTown"]();
+  f.hooks.updateScene(f.byId.get("D"), { flags: { [MOD]: { landing: {} } } });
+  assert.deepEqual(f.opened, ["H", "D"]);
+});
+
+test("re-pointing the window at another page closes the old page's other windows; the first open and a same-page sync do not", async () => {
+  const e = await setup({ stage: HOSTED, scenes: [scene("C", null), scene("H", { shown: true }), scene("T", { shown: true })] });
+  e.hooks.ready();
+  assert.equal(e.closed.others, 0);
+  await e.setStage({ ...HOSTED, pageSceneId: "T" });
+  assert.equal(e.closed.others, 1);
+  await e.setStage({ ...HOSTED, pageSceneId: "T", image: "c.webp" });
+  assert.equal(e.closed.others, 1);
+  const f = await setup({ stage: HOSTED, scenes: [scene("C", { shown: true }), scene("H", { shown: true })] }); // hosted, then back to the canvas page
+  f.hooks.ready();
+  await f.setStage({ ...HOSTED, shown: false });
+  assert.deepEqual(f.opened, ["H", "C"]);
+  assert.equal(f.closed.others, 1);
+});
+
+test("the hide icon's title: the Backdrop string when hosted, the Town string when not", async () => {
+  const e = await setup({ gm: true, stage: HOSTED });
+  const { TownApp } = await import("../scripts/town/town-app.mjs");
+  const base = Object.getPrototypeOf(TownApp.prototype);
+  const had = Object.getOwnPropertyDescriptor(base, "_prepareContext");
+  base._prepareContext = async () => ({});
+  globalThis.game.actors = Object.assign([], { get: () => null });
+  globalThis.game.i18n = { localize: (k) => k, format: (k) => k };
+  try {
+    const ctx = async (id) => { const a = Object.create(TownApp.prototype); a.scene = e.byId.get(id); return a._prepareContext({}); };
+    assert.equal((await ctx("H")).hideTitle, "SDE.stage.hostHide");
+    assert.equal((await ctx("C")).hideTitle, "SDE.town.hide");
+  } finally { if (had) Object.defineProperty(base, "_prepareContext", had); else delete base._prepareContext; e.restore(); }
 });

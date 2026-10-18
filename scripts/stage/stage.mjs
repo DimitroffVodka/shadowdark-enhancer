@@ -109,6 +109,13 @@ export function registerStage() {
       if (game.user?.isGM) ui.controls?.render({ reset: true });
     },
   });
+  // The Places window's Page scene list follows scenes gaining, losing or going. The diff names the key with an
+  // operator when it was replaced or removed ("==landing", "-=landing").
+  Hooks.on("updateScene", (scene, changed) => {
+    if (Object.keys(changed?.flags?.[MODULE_ID] ?? {}).some((k) => k.replace(/^(==|-=)/, "") === "landing")) refreshPlacesWindow();
+  });
+  Hooks.on("createScene", () => refreshPlacesWindow());
+  Hooks.on("deleteScene", () => refreshPlacesWindow());
   Hooks.once("ready", drawStage);
   Hooks.on("updateActor", onPartyCamp);
   // Every canvas draw re-controls a player's tokens (after this hook's draw step, before canvasReady); a module returning false would stop ours, fine, it only releases.

@@ -6449,7 +6449,7 @@
   "SDE.town.fact.perSlot": "{n} to a slot",
   "SDE.town.fact.slots": "{n} slots",
   "SDE.stage.tool": "Backdrop",
-  "SDE.stage.hostHide": "Put the backdrop away for everyone (this page goes with it; the Backdrop button brings it back)",
+  "SDE.stage.hostHide": "Hide the Backdrop for everyone (the page closes with it)",
   "SDE.stage.campPicture": "Show camp picture",
   "SDE.stage.hintCampPicture": "Covers the map for everyone until a GM hides it from the Backdrop tool or the camp ends.",
   "SDE.stage.zone.startRunning": "A zone fight is already running. End it before starting another.",

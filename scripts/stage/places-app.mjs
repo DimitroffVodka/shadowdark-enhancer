@@ -16,6 +16,13 @@ import { hideStage } from "./stage.mjs";
 /** Scenes that already have a Town page: the only ones a place can host. */
 const pageScenes = () => (game.scenes?.contents ?? []).filter((s) => landingOf(s)).map((s) => ({ id: s.id, name: s.name }));
 
+const VIDEO = /\.(webm|mp4|m4v|ogv)$/i;
+/** The picture of a scene's opening level; a video is no picture for a place. (Scene#background is deprecated in v14.) */
+const sceneBackground = (scene) => {
+  const src = scene?.initialLevel?.background?.src ?? scene?.firstLevel?.background?.src;
+  return src && !VIDEO.test(src.split(/[?#]/)[0]) ? src : null;
+};
+
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 const KIND_KEYS = {
@@ -171,7 +178,7 @@ export class StagePlacesApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const kind = PLACE_KINDS.includes(kindEl?.value) ? kindEl.value : "custom";
     const pageSceneId = root.querySelector("[data-add-page]")?.value || "";
     // A town or tavern page needs no upload: with no picture chosen, the page scene's own background is the picture.
-    const fallback = !file && (kind === "town" || kind === "tavern") && pageSceneId ? game.scenes?.get?.(pageSceneId)?.background?.src : null;
+    const fallback = !file && (kind === "town" || kind === "tavern") && pageSceneId ? sceneBackground(game.scenes?.get?.(pageSceneId)) : null;
     if (!file && !fallback) return warn("SDE.stage.places.noPicture");
     const nameEl = root.querySelector("[data-add-name]");
     const name = nameEl.value.trim() || L(kindLabel(kind));
