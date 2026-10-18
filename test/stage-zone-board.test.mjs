@@ -49,7 +49,7 @@ test("the template has no literal text; every key it uses exists; aria-labels na
 const unit = (id, name, zone, hp, max, o = {}) => ({
   id, name, actorId: "a" + id, flags: { [M]: { zone } }, defeated: !!o.defeated, hidden: !!o.hidden, visible: o.visible,
   actor: {
-    id: "a" + id, name, img: `${id}.webp`, isOwner: !!o.own, flags: o.clone ? { [M]: { zoneClone: "fight1" } } : {},
+    id: "a" + id, name, type: o.clone ? "NPC" : "Player", img: `${id}.webp`, isOwner: !!o.own, flags: o.clone ? { [M]: { zoneClone: "fight1" } } : {},
     prototypeToken: { disposition: o.hostile ? -1 : 1 }, system: { attributes: { hp: { value: hp, max } } },
     effects: o.fx ?? [],
   },
@@ -97,6 +97,20 @@ test("boardContext: foe HP is a bar only for a player, numbers for the GM; a PC'
   assert.equal(chip(p, "pc").hp.numbers, true);
   assert.deepEqual([chip(p, "f1").hp.tone, chip(p, "f1").hp.pct, chip(p, "f1").hp.word], ["low", 50, "SDE.stage.zone.hpLow"]);
   assert.equal(chip(boardContext({ combat: fightOf([DEAD]), user: { isGM: false } }), "f3").hp.numbers, false, "a clone is a foe");
+});
+
+test("boardContext: a hostile NPC that is not a clone is a bar only for a player; Player type and owned actors show numbers", () => {
+  const npc = unit("n1", "Goblin", "near", 2, 4, { hostile: true });
+  npc.actor.type = "NPC";
+  const owned = unit("n2", "Pet", "near", 2, 4, { own: true });
+  owned.actor.type = "NPC";
+  const combat = fightOf([npc, owned, PC]);
+  PC.actor.type = "Player";
+  const p = boardContext({ combat, user: { isGM: false } });
+  assert.equal(chip(p, "n1").hp.numbers, false);
+  assert.equal(chip(p, "n2").hp.numbers, true);
+  assert.equal(chip(p, "pc").hp.numbers, true);
+  assert.equal(chip(boardContext({ combat, user: { isGM: true } }), "n1").hp.numbers, true);
 });
 
 test("boardContext: disposition decides nothing; a hostile Player the viewer owns shows numbers and controls, a clone is a foe whatever its disposition", () => {
@@ -295,6 +309,20 @@ test("the click listener: closer and farther move one band, damage and heal go t
   assert.deepEqual(k.damage, [3, -4], "heal is a negative amount");
   await k.click("defeated");
   assert.deepEqual(k.writes.pop(), { defeated: true });
+});
+
+test("the click listener: the amount is cleared and the popover closed before the service call, and restored if it throws", async () => {
+  const k = await clickSetup();
+  let seen;
+  k.cb.actor.applyDamage = async () => { seen = [k.input.value, k.pop.open]; };
+  k.input.value = "3";
+  await k.click("damage");
+  assert.deepEqual(seen, ["", false], "already cleared and closed while the call runs");
+  k.cb.actor.applyDamage = async () => { throw new Error("boom"); };
+  k.input.value = "5"; k.pop.open = true;
+  const orig = console.error; console.error = () => {};
+  try { await k.click("damage"); } finally { console.error = orig; }
+  assert.deepEqual([k.input.value, k.pop.open], ["5", true], "a failure keeps the typed number");
 });
 
 test("the click listener: an empty or bad amount does nothing; a disabled button does nothing; a failing service warns, never throws", async () => {

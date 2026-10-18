@@ -6270,6 +6270,7 @@
   "SDE.stage.campPicture": "Show camp picture",
   "SDE.stage.hintCampPicture": "Covers the map for everyone until a GM hides it from the Backdrop tool or the camp ends.",
   "SDE.stage.zone.startRunning": "A zone fight is already running. End it before starting another.",
+  "SDE.stage.zone.startOtherCombat": "Another combat is running. End it before starting a zone fight.",
   "SDE.stage.zone.noSource": "That foe could not be found, so nothing was added.",
   "SDE.stage.zone.moveRefused": "You can only move your own character.",
   "SDE.stage.zone.damageRefused": "You cannot change that character's hit points.",

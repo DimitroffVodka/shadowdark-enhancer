@@ -92,6 +92,33 @@ test("start with a fight running is refused and creates nothing", async () => {
   assert.deepEqual(w.log.notes.at(-1), ["warn", "SDE.stage.zone.startRunning"]);
 });
 
+test("start is refused beside a started non-zone combat, allowed beside idle ones", async () => {
+  const w = world();
+  const other = w.mkCombat({ flags: { [M]: {} } });
+  other.round = 0; other.started = false;
+  other.createEmbeddedDocuments("Combatant", [{ actorId: "x" }]);
+  // an empty Combat, and one with combatants that has not started, do not block
+  const empty = w.mkCombat({ flags: { [M]: {} } }); empty.round = 0; empty.started = false;
+  assert.ok(await startZoneFight(), "idle Combats beside: allowed");
+  w.combats.forEach((c) => { if (c.flags[M].zoneFight) w.combats.delete(c.id); });
+  const before = w.log.calls.length;
+  other.started = true;
+  assert.equal(await startZoneFight(), null);
+  assert.equal(w.log.calls.length, before, "nothing created");
+  assert.deepEqual(w.log.notes.at(-1), ["warn", "SDE.stage.zone.startOtherCombat"]);
+  other.started = false; other.round = 2;
+  assert.equal(await startZoneFight(), null, "round 1 or later counts too");
+  w.combats.delete(other.id);
+  assert.ok(await startZoneFight(), "only the empty one beside: allowed");
+});
+
+test("a clone of ANOTHER fight is not a foe of this one", async () => {
+  const w = world({ isGM: false, userId: "p" });
+  const fight = w.mkCombat({ flags: { [M]: { zoneFight: { id: "fight1", clones: [] } } } });
+  const stray = w.mkActor({ name: "Old", type: "NPC", flags: { [M]: { zoneClone: "fight0" } } }); stray.isOwner = true;
+  assert.equal(await moveZone(w.mkCombatant(stray, "close", fight), "farther"), "near", "an owned clone of fight0 is not a foe here");
+});
+
 test("a player cannot start, add or end", async () => {
   const w = world({ isGM: false });
   assert.equal(await startZoneFight(), null);

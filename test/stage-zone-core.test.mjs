@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { ZONES, canMoveZone, cloneActorData, cloneNames, foeZoneFor, hpBand, isZoneFight, layoutBands, normalizeZone, stepZone, zoneFightOf } from "../scripts/stage/zone-core.mjs";
+import { ZONES, canMoveZone, cloneActorData, cloneNames, foeZoneFor, hpBand, isZoneClone, isZoneFight, layoutBands, normalizeZone, stepZone, zoneFightOf } from "../scripts/stage/zone-core.mjs";
 
 const M = "shadowdark-enhancer";
 
@@ -104,4 +104,9 @@ test("isZoneFight and zoneFightOf read one flag", () => {
   assert.equal(isZoneFight(c), true);
   assert.deepEqual(zoneFightOf(c), { id: "f1", at: 5, clones: ["a", "b"], source: "s" });
   assert.deepEqual(zoneFightOf(fight({ id: "f2", clones: "no" })), { id: "f2", at: null, clones: [], source: null });
+});
+
+test("isZoneClone: only a non-empty string flag", () => {
+  assert.equal(isZoneClone({ flags: { [M]: { zoneClone: "f1" } } }), true);
+  for (const a of [null, {}, { flags: { [M]: { zoneClone: "" } } }, { flags: { [M]: { zoneClone: true } } }]) assert.equal(isZoneClone(a), false);
 });

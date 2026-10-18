@@ -52,10 +52,17 @@ async function onClick(ev) {
         const input = chip.querySelector(".zb-amount");
         const n = Math.floor(Number(input?.value));
         if (!(n >= 1)) { input?.focus?.(); return; }
-        await applyZoneDamage(combatant, btn.dataset.action === "heal" ? -n : n);
-        if (input) input.value = "";
+        // Clear and close before the await: the updateActor redraw would otherwise restore the typed amount.
         const pop = chip.querySelector("details");
+        if (input) input.value = "";
         if (pop) pop.open = false;
+        try {
+          await applyZoneDamage(combatant, btn.dataset.action === "heal" ? -n : n);
+        } catch (err) {
+          if (input) input.value = String(n);
+          if (pop) pop.open = true;
+          throw err;
+        }
         break;
       }
     }

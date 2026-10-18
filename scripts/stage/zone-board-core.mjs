@@ -61,7 +61,7 @@ export function boardContext({ combat, user, stage } = {}) {
           tone: band.tone,
           pct: Math.round(band.ratio * 100),
           word: HP_WORD[band.tone],
-          numbers: isGM || !foe,
+          numbers: isGM || !!actor?.isOwner || actor?.type === "Player",
           value: hp.value ?? 0,
           max: hp.max ?? 0,
         },

@@ -66,6 +66,12 @@ export function hpBand(hp, max) {
   return { ratio, tone };
 }
 
+/** An actor made as a foe copy for some zone fight. */
+export const isZoneClone = (actor) => {
+  const id = actor?.flags?.[MODULE_ID]?.zoneClone;
+  return typeof id === "string" && id !== "";
+};
+
 const zoneFightRaw = (combat) => combat?.flags?.[MODULE_ID]?.zoneFight;
 export const isZoneFight = (combat) => typeof zoneFightRaw(combat)?.id === "string" && zoneFightRaw(combat).id !== "";
 

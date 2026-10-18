@@ -101,6 +101,8 @@ in **Zone fight foes**. Delete them by hand; nothing sweeps that folder for you.
 
 ## What works differently
 
+- A zone fight cannot be started while another combat is running; end that
+  combat first.
 - **Bring the table** to a battle map is refused with a notice while a zone
   fight exists. The Battle map button itself still works.
 - **Start Combat** on the Crawl Bar is refused with a notice while a zone fight
@@ -110,6 +112,8 @@ in **Zone fight foes**. Delete them by hand; nothing sweeps that folder for you.
 - **Parry and Taunt** need a token target and do not work in a zone fight.
 - **The system's own apply-damage buttons** in chat need a token and do nothing
   here. Use the HP popover.
+- **The Crawl Strip**, which follows the fight's turn order, shows a player a
+  foe's hit points as a bar only: no numbers, no armor class, no movement.
 - **The session recap** counts the party as participants and the foes as enemies.
 - **A hidden foe's initiative** roll does not leave a "GM privately rolled" line
   in the chat.
