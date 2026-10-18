@@ -46,6 +46,7 @@ import { barModel, itemTouchesBar, redrawStamp, hhmm, weatherSwitch } from "./ov
 import { WEATHER_VISUALS, weatherVisualsOn } from "./sky.mjs";
 import { travelPanel } from "./travel-panel.mjs";
 import { campOf } from "../camping/camping.mjs";
+import { isZoneFight } from "../stage/zone-core.mjs";
 import { encounterCard, encounterPanel, encounterStrip } from "./encounter-panel.mjs";
 import { BATTLE_STATUS, FLAGS } from "../encounter/battle-maps/constants.mjs";
 import {
@@ -536,7 +537,7 @@ export const TravelBar = {
   _drop() {
     const enc = overlandState().encounter;
     if (this._open === "encounter") {
-      return encounterPanel({ enc, cal: game.time.calendar, battle: this._view, preload: this._preload, keep: this._keep, battleMaps: !!this._parts });
+      return encounterPanel({ enc, cal: game.time.calendar, battle: this._view, preload: this._preload, keep: this._keep, battleMaps: !!this._parts, zoneFight: Array.from(game.combats ?? []).some(isZoneFight) });
     }
     // Folded, a held encounter rides under the bar as a strip, above whatever else is open (#257).
     const strip = game.user.isGM && enc && CrawlState.isOverland ? encounterStrip({ enc, cal: game.time.calendar, battle: this._view }) : "";
@@ -943,6 +944,10 @@ export const TravelBar = {
       case "resume": return warn(await resume());
       // The panel's Post is the GM's decision to show it: to everyone, whatever the roller's GM-only setting.
       case "postEncounter": return postEncounter(encounterCard(overlandState().encounter), { gmOnly: false });
+      case "zoneFight": {
+        const { startZoneFightFromEncounter } = await import("../stage/zone-fight.mjs");
+        return startZoneFightFromEncounter(encounterCard(overlandState().encounter));
+      }
       case "openRoller": {
         // The roller opens on the held encounter, for CHA and renown on the reaction, and its tokens.
         const app = await game.shadowdarkEnhancer.encounter.openRoller("tables");

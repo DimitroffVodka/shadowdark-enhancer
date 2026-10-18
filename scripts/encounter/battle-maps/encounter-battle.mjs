@@ -103,6 +103,7 @@ export const _deps = {
   scenes: () => import("./encounter-scene.mjs"),
   preload: () => import("./encounter-preload.mjs"),
   stage: () => import("../../stage/stage.mjs"),
+  zoneFight: async () => (await import("../../stage/zone-fight.mjs")).findZoneFight(),
   foe: loadFoe,
   party: loadParty,
 };
@@ -650,6 +651,8 @@ async function changeBattleMap(battleId, { mapId = null, sceneId = null, variant
 
 async function bringBattleTable(battleId) {
   if (!gmOnly()) return null;
+  // An active scene combat would sit next to the global zone fight.
+  if (await _deps.zoneFight()) { notify("warn", "SDE.stage.zone.bringRefused"); return null; }
   return guarded(async () => {
     const found = get(battleId);
     if (!found) { notify("warn", "SDE.encounterMaps.notify.noBattle"); return null; }
