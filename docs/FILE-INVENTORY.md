@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-2056 tracked files · ~262,900 lines of code/markup across scripts+templates+styles+test.
+2058 tracked files · ~263,100 lines of code/markup across scripts+templates+styles+test.
 `v0.19.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -156,7 +156,7 @@
 | `rules-data/rules-data-notice.mjs` | 56 | The GM-only "Rules Data isn't set" notices (#299): tellMissing posts one whispered card per empty table per session, naming Importer Hub > Rules Data > Import from GM Guide with a button that opens the hub's Rules Data step; openRulesStep; the chat hook that wires the button. |
 | `rules-data/rules-data-scope.mjs` | 49 | Which ruleset a scene reads: the default `rulesData`, or one of the `rulesSets` a scene names in its `rulesSet` flag. storedRulesFor for the API, Overland and recruiting; setSceneRuleset for the editor. |
 | `rumors/rumor-core.mjs` | 179 | The rumor generator's rules, pure (#190): which names are rumor tables and for which region, how N rumors split between the region's table and the general one, picking rows still there to give (weighted by range, no repeats) and the rows a re-import recreated, a trouble as rumor text, the ledger page body, heard()'s shape, and a quest name from a rumor. |
-| `rumors/rumors.mjs` | 394 | The rumor generator and the Rumors Heard ledger (#190): give (troubles first, then the tables in turn; rows marked drawn by the module, since core marks nothing drawn on a pack table), the Give Rumors dialog, the player-readable ledger (a page per region, rumors in the page flag, text written from it), heard() for anyone and Extras' party sheet, Promote to quest per rumor, the RollTable.draw wrap that marks a GM's hand-rolled rumor drawn, and the debounced rumorsChanged hook. |
+| `rumors/rumors.mjs` | 405 | The rumor generator and the Rumors Heard ledger (#190): give (troubles first, then the tables in turn; rows marked drawn by the module, since core marks nothing drawn on a pack table), the Give Rumors dialog, the player-readable ledger (a page per region, rumors in the page flag, text written from it), heard() for anyone and Extras' party sheet, Promote to quest per rumor, the RollTable.draw wrap that marks a GM's hand-rolled rumor drawn, and the debounced rumorsChanged hook. |
 | `time/off-duty.mjs` | 250 | time.advanceOffDuty (#228, Overland O2): the off-duty clock move. GM only; runs on the Shadowdark system's primary light GM (a GM-to-GM query when that is another GM), refuses when two GM tabs hold the flag, stops the system's real-time light clock for the move, puts out every lit Basic light the player-owned PCs carry with the sheet toggle's steps minus its per-light card (remainingSecs kept, one chat line saying whether the clock moved), rebuilds the tracker's cache and waits until it holds no PC's Basic light, re-checks the flag, then advances with the offDuty reason. A refusal or a throw never advances and reports what was put out. Pure decisions (who, which lights, where it runs, the last flag check) are exported for tests. 0 seconds only puts the lights out (Overland's camp, #233). |
 | `time/time-core.mjs` | 348 | Time (#227, Overland O1), pure: readings on the core world calendar (a CalendarData) and a worldTime. Season from core's components, keyed by where its months fall in the year, sunrise/sunset on a solstice-to-solstice cosine (9 to 15 hours, ported from Calendaria, MIT), isNight, the moon's phase from an epoch on the synodic month, anchors (equinoxes, solstices, cross-quarters read back as the date the calendar shows, lastFullMoon), what a clock move crosses (days, weeks, dawns and dusks by arithmetic; season changes by jumping from one to the next, the list capped at one per season), the date's parts, and the nth dawn after a time (dawnAfter, for Overland's weather). |
 | `time/time.mjs` | 156 | game.shadowdarkEnhancer.time (#227): now, season, isNight, sun, moonPhase, anchor, format over game.time.calendar and the moonEpoch world setting (a real 1348 new moon when no GM has set one), and the shadowdark-enhancer.timeAdvanced hook, fired on the active GM once per world-time change with what it crossed and the offDuty reason from the advance options. Also carries advanceOffDuty and registers its GM-to-GM query. isNight takes { region } for the Isles of Andrik's skies (#235). Also the time this screen shows (shownTime, onShownTime): a paced clock step (a walk, a time-lapse) slides it frame by frame for the bar and the sky to paint (#257). |
@@ -661,10 +661,10 @@ A full-screen picture every client shows behind Foundry's UI, kept in one world 
 
 | File | Lines | Description |
 |---|---:|---|
-| `town-core.mjs` | 139 | A town's landing page flag: merchants as NPC references, restock revision, the games table, the table switch, the editor's form folded in (pure). |
-| `town-view.mjs` | 121 | What the Town window and the shopfront show: ware cards, sell rows, tiles, the buyer (pure). |
-| `town-live.mjs` | 47 | What the town windows share on the Foundry side: the buyer, redrawing on change, the table switch, the tiles' windows. |
-| `town-app.mjs` | 143 | The landing page menu over the scene's picture: merchants, tiles, the GM's pencil, sales log, restock and switch; clear of the sidebar and the Crawl Strip. |
+| `town-core.mjs` | 141 | A town's landing page flag: merchants as NPC references, restock revision, the games table, the table switch, the editor's form folded in (pure). |
+| `town-view.mjs` | 124 | What the Town window and the shopfront show: ware cards, sell rows, tiles, the buyer (pure). |
+| `town-live.mjs` | 70 | What the town windows share on the Foundry side: the buyer, redrawing on change, the table switch, the tiles' windows. |
+| `town-app.mjs` | 144 | The landing page menu over the scene's picture: merchants, tiles, the GM's pencil, sales log, restock and switch; clear of the sidebar and the Crawl Strip. |
 | `town-shop-app.mjs` | 184 | One merchant's shopfront: buy and sell as a chosen character with no GM, categories, search. |
 | `town-editor-app.mjs` | 132 | The GM's landing page editor window: town text, tiles, games table, merchants. |
 | `town-entry-points.mjs` | 88 | The Landing page toolbar button and Alt+T: one switch for the table, the page made on any scene, followed by every client. |
