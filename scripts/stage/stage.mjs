@@ -6,8 +6,11 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { isNativeParty } from "../party/party.mjs";
 import { campOf } from "../camping/camping.mjs";
-import { imageSrc } from "../encounter/battle-maps/battle-map-picker-core.mjs";
+import { fileRoute } from "../shared/file-route.mjs";
 import { isActiveGM } from "../shared/gm-relay.mjs";
+import { isZoneFight } from "./zone-core.mjs";
+import { registerPlaces, readPlaces, refreshPlacesWindow, showPlace } from "./places.mjs";
+import { reshowTarget } from "./places-core.mjs";
 import { campArtFor, campTransition, normalizeStage, showCamp } from "./stage-core.mjs";
 
 const read = () => normalizeStage(game.settings.get(MODULE_ID, "stage"));
@@ -29,7 +32,7 @@ function drawStage() {
     el.setAttribute("aria-hidden", "true");
     document.body.append(el);
   }
-  el.style.backgroundImage = `url("${imageSrc({ image: stage.image }).replace(/["\\]/g, "\\$&")}")`;
+  el.style.backgroundImage = `url("${fileRoute(stage.image).replace(/["\\]/g, "\\$&")}")`;
   // Arrow keys and Delete would otherwise keep driving the canvas hidden underneath.
   if (!wasShown) globalThis.canvas?.tokens?.releaseAll?.();
   wasShown = true;
@@ -82,7 +85,17 @@ export async function onPartyCamp(actor, changed, options) {
   if (next) await write(next).catch((e) => console.warn(`${MODULE_ID} | stage write failed`, e));
 }
 
+async function openPlaces() {
+  try {
+    await (await import("./places-app.mjs")).StagePlacesApp.open();
+  } catch (err) {
+    console.error(`${MODULE_ID} | stage: the places window failed to open`, err);
+    ui.notifications?.warn(game.i18n.localize("SDE.stage.places.openFailed"));
+  }
+}
+
 export function registerStage() {
+  registerPlaces();
   game.settings.register(MODULE_ID, "stage", {
     scope: "world",
     config: false,
@@ -90,6 +103,7 @@ export function registerStage() {
     default: normalizeStage(null),
     onChange: () => {
       drawStage();
+      refreshPlacesWindow();
       if (game.user?.isGM) ui.controls?.render({ reset: true });
     },
   });
@@ -99,10 +113,34 @@ export function registerStage() {
   Hooks.on("canvasReady", () => { if (document.querySelector("#sde-stage")) canvas.tokens?.releaseAll?.(); });
   Hooks.on("getSceneControlButtons", (controls) => {
     if (!game.user?.isGM || !controls.tokens?.tools) return;
+    controls.tokens.tools.sdeStagePlaces = {
+      name: "sdeStagePlaces", title: "SDE.stage.places.tool", icon: "fa-solid fa-images", order: 92, button: true,
+      onChange: openPlaces,
+    };
     controls.tokens.tools.sdeStage = {
       name: "sdeStage", title: "SDE.stage.tool", icon: "fa-solid fa-image", order: 91, toggle: true,
       active: read().shown,
-      onChange: () => (read().shown ? hideStage() : raiseByHand(pickParty())),
+      onChange: () => {
+        if (read().shown) return hideStage();
+        const again = reshowTarget(read(), readPlaces());
+        return again ? showPlace(again.id) : raiseByHand(pickParty());
+      },
+    };
+    controls.tokens.tools.sdeZoneFight = {
+      name: "sdeZoneFight", title: "SDE.stage.zone.tool", icon: "fa-solid fa-swords", order: 93, toggle: true,
+      active: Array.from(game.combats ?? []).some(isZoneFight),
+      onChange: async () => {
+        try {
+          const { findZoneFight, startZoneFight, confirmEndZoneFight } = await import("./zone-fight.mjs");
+          const fight = findZoneFight();
+          if (fight) await confirmEndZoneFight(fight);
+          else await startZoneFight();
+        } catch (err) {
+          console.error(`${MODULE_ID} | zone fight tool failed`, err);
+          ui.notifications?.error(game.i18n.localize("SDE.stage.zone.boardFailed"));
+        }
+        ui.controls?.render({ reset: true }); // a declined End must put the toggle back
+      },
     };
   });
 }

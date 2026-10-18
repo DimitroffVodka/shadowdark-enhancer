@@ -36,7 +36,8 @@ Tools you run during an active game session.
 | [Movement Budgets](Movement-Budgets.md) | Turn movement allowances, over-budget warnings or enforcement, rollback to turn start |
 | [Random Encounters](Random-Encounters.md) | The `1d6` encounter check, the Encounter Roller, placing results directly on the map |
 | [Encounter Battle Maps](Encounter-Battle-Maps.md) | A battle map for a travel encounter, one click away, or from Tools with no encounter: the party and the monsters on it, the table brought over when the art is loaded, then back to travel |
-| [Backdrop](Backdrop.md) | A full-screen camp picture every player sees, raised when a camp begins, hidden from a toolbar tool, dropped when the camp ends |
+| [Backdrop](Backdrop.md) | A full-screen camp picture every player sees, raised when a camp begins, hidden from a toolbar tool, dropped when the camp ends; the GM can add pictures of their own |
+| [Zone Combat](Zone-Combat.md) | A fight with no battle map: three bands over the Backdrop, one real Combat, foes as their own copies |
 | [Loot & Treasure](Loot-and-Treasure.md) | Hoard rolls, claimable chat cards, opt-in loot drops on combat end, coin piles |
 | [Merchant Shop](Merchant-Shop.md) | A live shop window for the whole party, buying and selling against `system.coins` |
 | [Town Landing Page](Town-Landing-Page.md) | A menu over a scene's picture: merchants as NPCs, shopping on their own characters with no GM connected, the Quest Log, Journals, Party and Downtime, put up or away for the table with one button, plus games of chance and a sales log |
