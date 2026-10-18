@@ -59,6 +59,14 @@ export function barModel({ state, isGM, owns, actors }) {
 export const redrawStamp = (worldTime, secondsPerMinute, weather, pending = null) =>
   `${Math.floor(worldTime / (secondsPerMinute || 60))}|${weather ?? ""}|${pending ? 1 : 0}`;
 
+/** The bar's weather switch: a rain cloud while this device draws the weather, a bare cloud, lit, while it does not. */
+export const weatherSwitch = (on) => ({
+  icon: on ? "fa-cloud-rain" : "fa-cloud",
+  on,
+  cls: on ? "sde-hud-cloud" : "sde-hud-cloud sde-hud-cloud-off",
+  labelKey: on ? "SDE.clock.weatherHide" : "SDE.clock.weatherShow",
+});
+
 /**
  * "19:10" from hours with a fraction, in the calendar's own hours and minutes (`days` is
  * `game.time.calendar.days`): a 100-minute hour reads "19:75", not "20:15".

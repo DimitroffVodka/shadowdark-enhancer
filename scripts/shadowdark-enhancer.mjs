@@ -42,6 +42,7 @@ import { registerPartyLight } from "./party/party-light.mjs";
 import { registerPartyRoll } from "./party/party-roll.mjs";
 import { registerRoute } from "./overland/route.mjs";
 import { registerSky, registerWeatherVisuals } from "./overland/sky.mjs";
+import { registerWeatherLooks } from "./overland/weather-looks.mjs";
 import { CrawlState } from "./crawl-strip/crawl-state.mjs";
 import { CrawlStrip } from "./crawl-strip/crawl-strip.mjs";
 import { registerCrawlTracker, refreshTracker } from "./crawl-strip/crawl-tracker.mjs";
@@ -141,7 +142,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "14c00366016a";
+const STYLESHEET_REV = "9f35dfd34a5f";
 
 // The same problem for the SCRIPTS, which cannot be solved the same way: their
 // URLs come from the manifest, which Foundry validates as real package paths,
@@ -156,7 +157,7 @@ const STYLESHEET_REV = "14c00366016a";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "308a74f3da10";
+const BUILD_REV = "83cfae3810bf";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -336,6 +337,7 @@ Hooks.once("init", () => {
   registerAdventurePackImport();
   // This client's Show weather effects switch (#294), before the first canvas draw.
   registerWeatherVisuals();
+  registerWeatherLooks();
   // timeAdvanced: the active GM reports what each world-time change crossed (#227).
   registerTimeHooks();
   // Register Western Reaches as an official source tag for items, so it appears

@@ -31,10 +31,12 @@ import { overlandState, travelRegion, travelScene, weatherNow, OVERLAND_CHANGED 
 import { hourOfDay } from "../time/time-core.mjs";
 import { isPacedStep, onShownTime } from "../time/time.mjs";
 import {
-  HEX_MAP_CAP, darknessAt, darknessMoved, followsSky, skyOverride, skyScenes, weatherEffect, weatherPlan,
+  HEX_MAP_CAP, darknessAt, darknessMoved, followsSky, followsWeather, skyOverride, skyScenes, weatherEffect, weatherPlan,
 } from "./sky-core.mjs";
 
 export const FOLLOWS_SKY = "followsSky";
+/** The scene's own choice about the party's weather; unset, it does what the sky does. */
+export const FOLLOWS_WEATHER = "followsWeather";
 /** The weather effect Overland put on this scene, while it is still the one there. */
 export const SKY_WEATHER = "skyWeather";
 /** A darkness step under this many seconds of clock is animated. */
@@ -48,16 +50,27 @@ const ANIMATE_MS = 2000;
 const PACING_SETTLES_MS = 2000;
 
 const t = (key) => game.i18n.localize(key);
-const FOLLOWS_LABEL = {
-  default: "SDE.overland.sky.followsDefault",
-  on: "SDE.overland.sky.followsOn",
-  off: "SDE.overland.sky.followsOff",
-};
+/** The two choices Scene Configuration's Environment tab gets, each default | on | off. */
+const CHOICES = [
+  {
+    cls: "sde-follows-sky", flag: FOLLOWS_SKY, label: "SDE.overland.sky.follows", hint: "SDE.overland.sky.followsHint",
+    options: { default: "SDE.overland.sky.followsDefault", on: "SDE.overland.sky.followsOn", off: "SDE.overland.sky.followsOff" },
+  },
+  {
+    cls: "sde-follows-weather", flag: FOLLOWS_WEATHER, label: "SDE.overland.sky.weather", hint: "SDE.overland.sky.weatherHint",
+    options: { default: "SDE.overland.sky.weatherDefault", on: "SDE.overland.sky.weatherOn", off: "SDE.overland.sky.weatherOff" },
+  },
+];
 
 /** Is this scene a hex map, any hex grid (#298)? (The scene's own, not the viewed canvas.) */
 const isHexMap = isHexRulesScene;
 
 const sceneFollows = (scene) => followsSky(scene.getFlag(MODULE_ID, FOLLOWS_SKY), isHexMap(scene));
+const sceneFollowsWeather = (scene) => followsWeather(scene.getFlag(MODULE_ID, FOLLOWS_WEATHER), scene.getFlag(MODULE_ID, FOLLOWS_SKY), isHexMap(scene));
+/** Does the sky write anything to this scene, its darkness or its weather? */
+const sceneFollowsAny = (scene) => sceneFollows(scene) || sceneFollowsWeather(scene);
+/** The scenes a pass reaches: those that follow either, and one still holding an effect Overland put there (so turning the choice off takes it away). */
+const sceneTouched = (scene) => sceneFollowsAny(scene) || !!scene.getFlag(MODULE_ID, SKY_WEATHER);
 
 let _running = null;
 let _again = null;
@@ -89,9 +102,7 @@ let _pacing = null;
  * @returns {Promise<object|null>} what was written, or null
  */
 export async function applySky(scene = game.scenes?.active, { dt = null } = {}) {
-  if (!scene || !isActiveGM()) return null;
-  const hex = isHexMap(scene);
-  if (!followsSky(scene.getFlag(MODULE_ID, FOLLOWS_SKY), hex)) return null;
+  if (!scene || !isActiveGM() || !sceneTouched(scene)) return null;
   const api = game.shadowdarkEnhancer?.time;
   if (!api) return null;
   const now = game.time.worldTime;
@@ -109,7 +120,10 @@ export async function applySky(scene = game.scenes?.active, { dt = null } = {}) 
   const plan = weatherPlan({
     current: scene.weather ?? "",
     owned: scene.getFlag(MODULE_ID, SKY_WEATHER) ?? null,
-    effect: weatherEffect({ kind: weatherNow(), climate: state.climate?.label, season: api.season(now)?.key ?? null }),
+    // With the weather choice off the wanted effect is none: that lets go of Overland's own and leaves a hand-picked one.
+    effect: sceneFollowsWeather(scene)
+      ? weatherEffect({ kind: weatherNow(), climate: state.climate?.label, season: api.season(now)?.key ?? null })
+      : "",
   });
   if ("weather" in plan) updates.weather = plan.weather;
   // The record goes in the same update as the effect it records, so the two
@@ -129,7 +143,7 @@ export async function applySky(scene = game.scenes?.active, { dt = null } = {}) 
  * @returns {Promise<Array<object|null>>} what was written to each
  */
 export async function applySkies(options) {
-  const scenes = skyScenes({ active: game.scenes?.active, travel: travelScene(), follows: sceneFollows });
+  const scenes = skyScenes({ active: game.scenes?.active, travel: travelScene(), follows: sceneTouched });
   const written = [];
   // One scene's failed write must not skip the party's scene; the next trigger retries it.
   for (const scene of scenes) {
@@ -171,41 +185,45 @@ function paintDarkness(time) {
   canvas.environment.initialize({ environment: { darknessLevel: level } });
 }
 
-/** Scene Configuration's Environment tab gets the "Follows the sky" choice (GM). */
+/** Scene Configuration's Environment tab gets the "Follows the sky" and "Shows the party's weather" choices (GM). */
 function onRenderSceneConfig(app, element) {
   if (!game.user?.isGM) return;
   const root = element instanceof HTMLElement ? element : element?.[0];
   const tab = root?.querySelector('.tab[data-tab="environment"]');
   if (!tab || tab.querySelector(".sde-follows-sky")) return;
-  const current = app.document?.getFlag(MODULE_ID, FOLLOWS_SKY) ?? "default";
-  const group = document.createElement("div");
-  group.className = "form-group sde-follows-sky";
-  group.innerHTML = `<label>${esc(t("SDE.overland.sky.follows"))}</label>
-    <div class="form-fields"><select name="flags.${MODULE_ID}.${FOLLOWS_SKY}">${
-  Object.entries(FOLLOWS_LABEL).map(([v, key]) => `<option value="${v}"${v === current ? " selected" : ""}>${esc(t(key))}</option>`).join("")
+  const groups = CHOICES.map(({ cls, flag, label, hint, options }) => {
+    const current = app.document?.getFlag(MODULE_ID, flag) ?? "default";
+    const group = document.createElement("div");
+    group.className = `form-group ${cls}`;
+    group.innerHTML = `<label>${esc(t(label))}</label>
+    <div class="form-fields"><select name="flags.${MODULE_ID}.${flag}">${
+  Object.entries(options).map(([v, key]) => `<option value="${v}"${v === current ? " selected" : ""}>${esc(t(key))}</option>`).join("")
 }</select></div>
-    <p class="hint">${esc(t("SDE.overland.sky.followsHint"))}</p>`;
-  tab.prepend(group);
+    <p class="hint">${esc(t(hint))}</p>`;
+    return group;
+  });
+  tab.prepend(...groups);
 }
 
 // ── Weather visuals, per client (#294) ─────────────────────────────────────
 
 /** This client's switch: off draws no weather effect here, whatever the scene says. */
 export const WEATHER_VISUALS = "weatherVisuals";
-const visualsOn = () => {
+/** Is this device drawing the weather? Unset or unreadable counts as on. */
+export const weatherVisualsOn = () => {
   try { return game.settings.get(MODULE_ID, WEATHER_VISUALS) !== false; } catch { return true; }
 };
 
 /** drawWeatherEffects: the layer was just drawn with the scene's effect; with the switch off, drop it. */
 export function onDrawWeatherEffects(layer) {
-  if (!visualsOn()) layer.clearEffects();
+  if (!weatherVisualsOn()) layer.clearEffects();
 }
 
 /** The switch changed: put this client's effect back or take it away, with no redraw of the scene. */
 export function applyWeatherVisuals() {
   const layer = canvas?.weather;
   if (!canvas?.ready || !layer) return;
-  if (visualsOn()) layer.initializeEffects(CONFIG.weatherEffects?.[canvas.scene?.weather]);
+  if (weatherVisualsOn()) layer.initializeEffects(CONFIG.weatherEffects?.[canvas.scene?.weather]);
   else layer.clearEffects();
 }
 
@@ -242,7 +260,7 @@ export function registerSky() {
   Hooks.on(OVERLAND_CHANGED, () => { if (isActiveGM()) queueSky(); });
   Hooks.on("updateScene", (scene, changed) => {
     if (!isActiveGM()) return;
-    const flagChanged = changed.flags?.[MODULE_ID] && FOLLOWS_SKY in changed.flags[MODULE_ID];
+    const flagChanged = changed.flags?.[MODULE_ID] && (FOLLOWS_SKY in changed.flags[MODULE_ID] || FOLLOWS_WEATHER in changed.flags[MODULE_ID]);
     if (changed.active === true || (flagChanged && (scene.active || scene.id === travelScene()?.id))) queueSky();
   });
   // Called from the module's ready hook: set the sky now, on the active scene and the party's.
