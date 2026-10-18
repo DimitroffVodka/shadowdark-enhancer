@@ -1,6 +1,6 @@
 # Stage (player-facing name: Backdrop): plan v2, 2026-10-17, after the Opus review
 
-Status now (2026-10-17), replacing the status line below: phase 1a built on `feat/stage-camp-backdrop` (layer and hidden `stage` setting, GM toolbar tool, camp raise and drop, Show camp picture button, hide on Bring the table); phases 1b, 2 and 3 not started. The status line below is the plan's original, from before the build.
+Status now (2026-10-17), replacing the status line below: phase 1a built on `feat/stage-camp-backdrop` (layer and hidden `stage` setting, GM toolbar tool, camp raise and drop, Show camp picture button, hide on Bring the table); phase 1b built on `feat/stage-places` (see `stage-places.md`); phases 3 and 2 not started. The status line below is the plan's original, from before the build.
 
 Status: reviewed, not built. "Stage" is the working and code name (`scripts/stage/`, `SDE.stage.*`); the player-facing word is "Backdrop" because "Staged" already means a battle map only the GM sees (en.json:1154-1156). Patrick has not chosen the name yet.
 
