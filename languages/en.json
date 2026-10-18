@@ -6466,6 +6466,7 @@
   "SDE.town.fact.perSlot": "{n} to a slot",
   "SDE.town.fact.slots": "{n} slots",
   "SDE.stage.tool": "Backdrop",
+  "SDE.stage.hostHide": "Hide the Backdrop for everyone (the page closes with it)",
   "SDE.stage.campPicture": "Show camp picture",
   "SDE.stage.hintCampPicture": "Covers the map for everyone until a GM hides it from the Backdrop tool or the camp ends.",
   "SDE.stage.zone.startRunning": "A zone fight is already running. End it before starting another.",
@@ -6553,5 +6554,10 @@
   "SDE.stage.places.ariaShow": "Show {name}",
   "SDE.stage.places.ariaHide": "Hide {name}",
   "SDE.stage.places.ariaReplace": "Replace the picture of {name}",
-  "SDE.stage.places.ariaDelete": "Delete {name}"
+  "SDE.stage.places.ariaDelete": "Delete {name}",
+  "SDE.stage.places.ariaPage": "Page scene of {name}",
+  "SDE.stage.places.pageLabel": "Page scene",
+  "SDE.stage.places.pageNone": "None",
+  "SDE.stage.places.pageMissing": "Page missing",
+  "SDE.stage.places.pageHint": "Only scenes that already have a Town page are listed. Make one with the Town tool on that scene and edit it with the pencil. With no picture chosen, a Town or Tavern place uses that scene's background."
 }

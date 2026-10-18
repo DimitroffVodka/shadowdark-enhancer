@@ -1,6 +1,6 @@
 # Stage phase 2: town and tavern places (plan v2, 2026-10-17, after the Opus review)
 
-Status now: 2a (tavern tiles) built on `feat/stage-tavern-tiles`; 2b (hosting) not built
+Status now: 2a (tavern tiles) and 2b (hosting) are built; 2a is merged (PR 530), 2b is on `feat/stage-town-hosting`
 
 STATUS: REVIEWED (Opus-High review 2026-10-17: FIX, all findings folded in below). May be built.
 
