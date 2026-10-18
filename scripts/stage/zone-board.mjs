@@ -7,7 +7,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { normalizeStage } from "./stage-core.mjs";
 import { boardContext } from "./zone-board-core.mjs";
-import { applyZoneDamage, findZoneFight, moveZone, toggleDefeated } from "./zone-fight.mjs";
+import { addFoe, applyZoneDamage, confirmEndZoneFight, findZoneFight, moveZone, toggleDefeated } from "./zone-fight.mjs";
 
 export { boardContext };
 
@@ -34,6 +34,11 @@ export function scheduleBoard() {
 async function onClick(ev) {
   const btn = ev.target?.closest?.("[data-action]");
   if (!btn || btn.disabled) return;
+  if (btn.dataset.action === "end") {
+    const fight = findZoneFight();
+    if (fight) await confirmEndZoneFight(fight).catch((err) => console.error(`${MODULE_ID} | zone fight end failed`, err));
+    return;
+  }
   const chip = btn.closest("[data-combatant-id]");
   const combatant = findZoneFight()?.combatants?.get?.(chip?.dataset?.combatantId);
   if (!combatant) return;
@@ -56,6 +61,35 @@ async function onClick(ev) {
     }
   } catch (err) {
     console.error(`${MODULE_ID} | zone board action failed`, err);
+    ui.notifications?.warn(L("SDE.stage.zone.boardFailed"));
+  }
+}
+
+const bandOf = (ev) => ev.target?.closest?.(".zb-band[data-zone]");
+
+// Foundry's drag payload is JSON in text/plain, unreadable until the drop, so a dragover can only see the type is there.
+function onDragOver(ev) {
+  const band = bandOf(ev);
+  if (!game.user?.isGM || !band || !Array.from(ev.dataTransfer?.types ?? []).includes("text/plain")) return;
+  ev.preventDefault();
+  band.classList.add("drop");
+}
+
+const clearDrops = (el) => el.querySelectorAll?.(".zb-band.drop")?.forEach?.((b) => b.classList.remove("drop"));
+
+async function onDrop(ev) {
+  const band = bandOf(ev);
+  clearDrops(ev.currentTarget ?? document.querySelector(`#${LAYER}`) ?? {});
+  if (!game.user?.isGM || !band) return;
+  ev.preventDefault();
+  const data = foundry.applications.ux.TextEditor.implementation.getDragEventData(ev);
+  if (data?.type !== "Actor" || !data.uuid) { ui.notifications?.warn(L("SDE.stage.zone.dropNotActor")); return; }
+  const combat = findZoneFight();
+  if (!combat) return;
+  try {
+    await addFoe(combat, { uuid: data.uuid, count: 1, zone: band.dataset.zone });
+  } catch (err) {
+    console.error(`${MODULE_ID} | zone board drop failed`, err);
     ui.notifications?.warn(L("SDE.stage.zone.boardFailed"));
   }
 }
@@ -103,6 +137,9 @@ async function drawBoard() {
     el.setAttribute("role", "region");
     el.setAttribute("aria-label", L("SDE.stage.zone.boardLabel"));
     el.addEventListener("click", onClick);
+    el.addEventListener("dragover", onDragOver);
+    el.addEventListener("dragleave", (ev) => bandOf(ev)?.classList.remove("drop"));
+    el.addEventListener("drop", onDrop);
     document.body.append(el);
   }
   // Same z-index as the picture, so document order decides: the board goes after it.
@@ -123,6 +160,8 @@ const inFight = (actor) => !!actor?.id && Array.from(findZoneFight()?.combatants
 export function registerZoneBoard() {
   Hooks.once("ready", scheduleBoard);
   for (const name of HOOKS) Hooks.on(name, () => scheduleBoard());
+  // The toolbar tool's lit state follows whether a fight exists.
+  for (const name of ["createCombat", "deleteCombat"]) Hooks.on(name, () => { if (game.user?.isGM) ui.controls?.render({ reset: true }); });
   Hooks.on("updateActor", (actor) => { if (inFight(actor)) scheduleBoard(); });
   for (const name of ["createActiveEffect", "updateActiveEffect", "deleteActiveEffect"]) {
     Hooks.on(name, (effect) => { if (inFight(effect?.parent)) scheduleBoard(); });

@@ -4,7 +4,7 @@
 // scene navigation (top), sidebar (right) and hotbar (bottom) that the board must stay clear of. Use --w=1200 --h=800 for 1280x800.
 //
 // State: gm | player | empty | long
-//   gm      6 combatants over the three bands: a turn highlight, a defeated, a hidden foe, status icons, a damage popover open
+//   gm      header with Round 3, the drop hint and End fight; 6 combatants over the three bands: a turn highlight, a defeated, a hidden foe, status icons, a damage popover open
 //   player  a player's view: foe HP is a bar only, controls only on the player's own PC, the hidden foe is gone
 //   empty   a fight with only the party
 //   long    very long names, 12 combatants
@@ -57,7 +57,7 @@ const STATES = {
 };
 
 function draw(s, backed) {
-  const ctx = boardContext({ combat: s.fight, user: { isGM: s.viewer === "gm" }, stage: backed ? null : { shown: true, place: "camp", image: "x" } });
+  const ctx = boardContext({ combat: { ...s.fight, round: 3 }, user: { isGM: s.viewer === "gm" }, stage: backed ? null : { shown: true, place: "camp", image: "x" } });
   let html = template(ctx);
   if (s.open) html = html.replace(new RegExp(`(data-combatant-id="${s.open}"[\\s\\S]*?<details class="zb-pop")`), "$1 open");
   const nav = "position:absolute;z-index:5;border:1px dashed #888;background:#3338;color:#ddd;font:11px sans-serif;display:grid;place-items:center";

@@ -6308,5 +6308,16 @@
   "SDE.stage.zone.hpLow": "Badly hurt",
   "SDE.stage.zone.hpCritical": "Near death",
   "SDE.stage.zone.hpDead": "Down",
-  "SDE.stage.zone.hpNumbers": "{value} of {max} hit points"
+  "SDE.stage.zone.hpNumbers": "{value} of {max} hit points",
+  "SDE.stage.zone.tool": "Zone fight",
+  "SDE.stage.zone.title": "Zone fight",
+  "SDE.stage.zone.round": "Round {round}",
+  "SDE.stage.zone.endFight": "End fight",
+  "SDE.stage.zone.endTitle": "End the zone fight",
+  "SDE.stage.zone.endQuestion": "This ends the combat. The copies of the foes made for this fight are deleted once loot is paid. Your own characters are not touched.",
+  "SDE.stage.zone.dropHint": "Drag an actor from the sidebar onto a band to add a foe",
+  "SDE.stage.zone.dropNotActor": "Only an actor can be dropped on the board.",
+  "SDE.stage.zone.encounterButton": "Zone fight",
+  "SDE.stage.zone.encounterHint": "Start a fight on the zone board with these foes, no battle map needed",
+  "SDE.stage.zone.encounterRunning": "A zone fight is already running."
 }

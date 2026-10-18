@@ -14,7 +14,15 @@
 }
 #sde-zone-board.zb-backed { background: var(--color-cool-5); }
 
-#sde-zone-board .zb-bands { display: flex; flex-direction: column; gap: 10px; height: 100%; min-height: 0; overflow-y: auto; }
+#sde-zone-board { display: flex; flex-direction: column; gap: 8px; }
+#sde-zone-board .zb-head { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+#sde-zone-board .zb-heading { margin: 0; padding: 2px 8px; border: 1px solid var(--ui-line); border-radius: 2px; background: var(--ui-panel); color: var(--ui-text); font: 600 12px/1.4 var(--ui-head); letter-spacing: .08em; text-transform: uppercase; }
+#sde-zone-board .zb-round { margin-left: 6px; color: var(--ui-muted); }
+#sde-zone-board .zb-hint { flex: 1 1 160px; min-width: 0; padding: 2px 8px; border-radius: 2px; background: var(--ui-panel); color: var(--ui-muted); font: 500 12px/1.4 var(--ui-font); }
+#sde-zone-board .zb-end { flex: none; background: var(--ui-panel); margin-left: auto; height: 28px; padding: 0 12px; font-size: 11px; }
+#sde-zone-board .zb-band.drop { outline: 2px dashed var(--ui-gold); outline-offset: -2px; background: var(--ui-panel); }
+
+#sde-zone-board .zb-bands { display: flex; flex-direction: column; gap: 10px; flex: 1 1 0; min-height: 0; overflow-y: auto; }
 #sde-zone-board .zb-band {
   flex: 1 0 auto; /* share the height while it fits; the stack scrolls when it does not, so an open popover is never clipped */
   display: flex;

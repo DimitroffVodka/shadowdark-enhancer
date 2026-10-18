@@ -11,7 +11,7 @@ import { worldActorFor } from "../shared/token-placement.mjs";
 import { lootSettled } from "../loot/loot-drops.mjs";
 import { Party } from "../party/party.mjs";
 import { registerZoneBoard } from "./zone-board.mjs";
-import { canMoveZone, cloneActorData, cloneNames, isZoneFight, normalizeZone, stepZone, zoneFightOf } from "./zone-core.mjs";
+import { canMoveZone, cloneActorData, cloneNames, foeZoneFor, isZoneFight, normalizeZone, stepZone, zoneFightOf } from "./zone-core.mjs";
 
 const L = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
 const notify = (level, key) => ui.notifications?.[level](L(key));
@@ -57,6 +57,15 @@ export async function startZoneFight({ foes = [], source = "" } = {}) {
   }
   for (const foe of foes) await addFoe(combat, foe);
   return combat;
+}
+
+/** The rolled encounter's creature, `count` clones of it in the band the distance roll gives (none: near). */
+export async function startZoneFightFromEncounter(card) {
+  if (refuseUnlessGM()) return null;
+  const source = card?.uuid ? await fromUuid(card.uuid) : null;
+  if (!source) { notify("warn", "SDE.stage.zone.noSource"); return null; }
+  const count = Math.max(1, Math.floor(Number(card.count)) || 1);
+  return startZoneFight({ foes: [{ uuid: card.uuid, count, zone: foeZoneFor(card.distanceRoll) }], source: "encounter" });
 }
 
 async function foeFolder() {
@@ -147,6 +156,18 @@ export async function endZoneFight(combat) {
   if (refuseUnlessGM()) return false;
   await combat.delete();
   return true;
+}
+
+/** Ask first (the safe answer is No), then end the fight. */
+export async function confirmEndZoneFight(combat) {
+  if (refuseUnlessGM()) return false;
+  const ok = await foundry.applications.api.DialogV2.confirm({
+    classes: ["sde-ui", "sde-dialog"],
+    window: { title: L("SDE.stage.zone.endTitle") },
+    content: `<p>${L("SDE.stage.zone.endQuestion")}</p>`,
+    rejectClose: false,
+  });
+  return ok ? endZoneFight(combat) : false;
 }
 
 /** Runs after the Combat is gone: wait for loot, then delete the recorded clones by exact id. */

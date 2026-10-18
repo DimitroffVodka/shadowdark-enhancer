@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 
 // loot-delivery reads `foundry` while it loads.
 globalThis.foundry = { applications: { handlebars: {} }, utils: {} };
-const { addFoe, applyZoneDamage, cleanZoneClones, endZoneFight, findZoneFight, moveZone, registerZoneFight, startZoneFight, toggleDefeated } = await import("../scripts/stage/zone-fight.mjs");
+const { startZoneFightFromEncounter, confirmEndZoneFight, addFoe, applyZoneDamage, cleanZoneClones, endZoneFight, findZoneFight, moveZone, registerZoneFight, startZoneFight, toggleDefeated } = await import("../scripts/stage/zone-fight.mjs");
+const { registerStage } = await import("../scripts/stage/stage.mjs");
 const { LootDrops, lootSettled } = await import("../scripts/loot/loot-drops.mjs");
 
 const M = "shadowdark-enhancer";
@@ -331,4 +332,87 @@ test("a task that throws outright does not block the queue", async () => {
   await assert.rejects(addFoe(c, { uuid: "Actor.g" }), /uuid/);
   globalThis.fromUuid = orig;
   assert.equal((await addFoe(c, { uuid: "Actor.g" })).actors.length, 1);
+});
+
+test("start from an encounter: count clones in the band from the distance roll (1 close, 2-4 near, 5-6 far, none near)", async () => {
+  for (const [roll, band] of [[1, "close"], [3, "near"], [6, "far"], [undefined, "near"]]) {
+    for (const k of [...globalThis.game?.combats ?? []]) k.delete?.();
+    const w = world();
+    w.src("Actor.w", "Wolf");
+    const c = await startZoneFightFromEncounter({ uuid: "Actor.w", count: 3, distanceRoll: roll });
+    assert.equal(c.flags[M].zoneFight.source, "encounter");
+    const foes = [...c.combatants].filter((r) => r.actor?.flags?.[M]?.zoneClone);
+    assert.deepEqual(foes.map((r) => [r.actor.name, r.flags[M].zone]), ["Wolf 1", "Wolf 2", "Wolf 3"].map((n) => [n, band]), String(roll));
+  }
+});
+
+test("start from an encounter: a creature that cannot be found shows noSource and starts nothing; a player cannot", async () => {
+  const w = world();
+  assert.equal(await startZoneFightFromEncounter({ uuid: "Actor.gone", count: 2 }), null);
+  assert.deepEqual(w.log.notes.at(-1), ["warn", "SDE.stage.zone.noSource"]);
+  assert.equal(await startZoneFightFromEncounter({ count: 2 }), null);
+  assert.equal(w.log.calls.filter((x) => x[0] === "Combat.create").length, 0);
+  const p = world({ isGM: false });
+  p.src("Actor.w", "Wolf");
+  assert.equal(await startZoneFightFromEncounter({ uuid: "Actor.w", count: 1 }), null);
+  assert.equal(p.log.calls.filter((x) => x[0] === "Combat.create").length, 0);
+});
+
+test("confirmEndZoneFight: declining deletes nothing; confirming deletes the Combat once; a player is refused before any dialog", async () => {
+  const w = world();
+  const asked = [];
+  let answer = false;
+  globalThis.foundry.applications = { handlebars: {}, api: { DialogV2: { confirm: async (o) => { asked.push(o); return answer; } } } };
+  const c = w.mkCombat({ flags: { [M]: {} } });
+  assert.equal(await confirmEndZoneFight(c), false);
+  assert.equal(w.log.deletes.length, 0);
+  answer = true;
+  assert.equal(await confirmEndZoneFight(c), true);
+  assert.deepEqual(w.log.deletes.filter((d) => d[0] === "combat"), [["combat", c.id]]);
+  assert.equal(asked.length, 2);
+  const p = world({ isGM: false });
+  globalThis.foundry.applications = { handlebars: {}, api: { DialogV2: { confirm: async () => { throw new Error("asked"); } } } };
+  assert.equal(await confirmEndZoneFight(p.mkCombat({ flags: { [M]: {} } })), false);
+});
+
+/** The toolbar tool as a GM's or a player's controls build it. */
+function toolOf(w) {
+  w.log.hooks.getSceneControlButtons = [];
+  Object.assign(globalThis.game.settings, { register() {}, get: () => null });
+  registerStage();
+  const controls = { tokens: { tools: {} } };
+  w.log.hooks.getSceneControlButtons.forEach((f) => f(controls));
+  return controls.tokens.tools.sdeZoneFight;
+}
+
+test("the toolbar tool: no fight starts an empty one (PCs at close); a fight asks first and a No ends nothing", async () => {
+  const w = world();
+  globalThis.ui.controls = { render() {} };
+  const a = w.mkActor({ name: "Ann", type: "Player" });
+  w.users.set("u1", { id: "u1", active: true, character: a });
+  const asked = [];
+  globalThis.foundry.applications = { handlebars: {}, api: { DialogV2: { confirm: async (o) => { asked.push(o); return false; } } } };
+  const tool = toolOf(w);
+  assert.deepEqual([tool.toggle, tool.order, tool.active], [true, 93, false]);
+  await tool.onChange();
+  const c = findZoneFight();
+  assert.ok(c, "an empty fight was started");
+  assert.deepEqual([...c.combatants].map((r) => [r.actorId, r.flags[M].zone]), [[a.id, "close"]]);
+  assert.equal(asked.length, 0, "nothing to confirm while starting");
+  await tool.onChange();
+  assert.equal(asked.length, 1);
+  assert.equal(w.log.deletes.filter((d) => d[0] === "combat").length, 0, "declined: the fight stays");
+  assert.equal(findZoneFight(), c);
+});
+
+test("the toolbar tool: a failing import or service notices and logs, never throws", async () => {
+  const w = world();
+  globalThis.ui.controls = { render() {} };
+  const tool = toolOf(w);
+  globalThis.Combat.create = async () => { throw new Error("boom"); };
+  const errors = [], orig = console.error;
+  console.error = (...x) => errors.push(x);
+  try { await tool.onChange(); } finally { console.error = orig; }
+  assert.deepEqual(w.log.notes.at(-1), ["error", "SDE.stage.zone.boardFailed"]);
+  assert.match(String(errors[0][0]), /zone fight tool failed/);
 });

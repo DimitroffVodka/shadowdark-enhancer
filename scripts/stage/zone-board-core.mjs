@@ -74,6 +74,8 @@ export function boardContext({ combat, user, stage } = {}) {
     });
   const bands = layoutBands(chips);
   return {
+    isGM,
+    round: Number(combat?.round) || 0,
     backed: !(stage?.shown && stage?.place && stage?.image),
     bands: BAND_ORDER.map((zone) => ({
       zone,

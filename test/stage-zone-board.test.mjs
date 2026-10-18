@@ -39,7 +39,7 @@ test("the template has no literal text; every key it uses exists; aria-labels na
   assert.deepEqual(keys.filter((k) => !(k in en)), []);
   // A button's aria-label includes the combatant's name.
   for (const m of tpl.matchAll(/<button[^>]*aria-label="{{localize '([^']+)' name=name}}"/g)) assert.match(en[m[1]], /\{name\}/);
-  for (const b of tpl.matchAll(/<button[^>]*data-action="[^"]+"[^>]*>/g)) assert.match(b[0], /aria-label="{{localize '[^']+' name=name}}"/);
+  for (const b of tpl.matchAll(/<button[^>]*data-action="(?!end")[^"]+"[^>]*>/g)) assert.match(b[0], /aria-label="{{localize '[^']+' name=name}}"/);
   assert.match(tpl, /<button type="button"/);
   assert.doesNotMatch(tpl, /aria-hidden="true"[^>]*data-action/);
 });
@@ -299,4 +299,108 @@ test("the click listener: an empty or bad amount does nothing; a disabled button
   try { await k.click("closer"); } finally { console.error = orig; }
   assert.deepEqual(k.e.log.warn, ["SDE.stage.zone.boardFailed"]);
   assert.match(String(errors[0][0]), /shadowdark-enhancer/);
+});
+
+// --- End fight and drop a foe ------------------------------------------------------------------------
+
+test("the board header (End fight, the drop hint) is the GM's only; the End button is a danger button", () => {
+  const tpl = read("templates/stage/zone-board.hbs");
+  assert.match(tpl, /^{{#if isGM}}\s*<header class="zb-head">/);
+  assert.match(tpl, /class="ui-btn danger zb-end" data-action="end"/);
+  assert.ok(tpl.includes("SDE.stage.zone.dropHint") && tpl.includes("SDE.stage.zone.round"));
+  const ctx = boardContext({ combat: { ...fightOf([PC]), round: 4 }, user: { isGM: true } });
+  assert.deepEqual([ctx.isGM, ctx.round], [true, 4]);
+  assert.equal(boardContext({ combat: fightOf([PC]), user: { isGM: false } }).isGM, false);
+});
+
+/** A board over a fight that can really make clones, with a dialog whose answer is `answer`. */
+async function dropSetup({ gm = true, answer = true, drag = { type: "Actor", uuid: "Actor.g" } } = {}) {
+  const made = [], asked = [], embedded = [];
+  const fight = fightOf([]);
+  fight.createEmbeddedDocuments = async (_t, rows) => { embedded.push(...rows); return rows.map((r, i) => ({ id: `cb${embedded.length}${i}`, ...r })); };
+  fight.update = async (d) => { fight.flags[M].zoneFight = d[`flags.${M}.zoneFight`]; };
+  fight.delete = async () => { fight.deleted = (fight.deleted ?? 0) + 1; };
+  const e = setup({ gm, stage: stageUp, combats: [fight] });
+  const src = { id: "src", name: "Goblin", type: "NPC", toObject: () => ({ _id: "src", name: "Goblin", type: "NPC", flags: {}, ownership: { default: 2 } }) };
+  globalThis.fromUuid = async (u) => (u === "Actor.g" ? src : null);
+  globalThis.Folder = { create: async (d) => ({ id: "fold", ...d }) };
+  globalThis.Actor = { create: async (d) => { made.push(d); return { id: `a${made.length}`, ...d }; } };
+  Object.assign(globalThis.game, { actors: new Col(), folders: new Col() });
+  globalThis.foundry.applications.api = { DialogV2: { confirm: async (o) => { asked.push(o); return answer; } } };
+  globalThis.foundry.applications.ux = { TextEditor: { implementation: { getDragEventData: () => drag } } };
+  e.once.ready();
+  await tick();
+  const layer = e.body[0];
+  const band = (zone) => { const cls = new Set(); return { dataset: { zone }, cls, classList: { add: (c) => cls.add(c), remove: (c) => cls.delete(c) } }; };
+  const ev = (el, types = ["text/plain"]) => {
+    const r = { prevented: false, dataTransfer: { types }, target: { closest: (s) => (s === ".zb-band[data-zone]" ? el : null) }, preventDefault() { r.prevented = true; } };
+    return r;
+  };
+  return { e, layer, band, ev, made, asked, embedded, fight };
+}
+
+test("drop: a GM dropping an Actor on a band adds exactly one foe in that band", async () => {
+  const k = await dropSetup();
+  const ev = k.ev(k.band("far"));
+  await k.layer.listeners.drop(ev);
+  assert.equal(ev.prevented, true);
+  assert.equal(k.made.length, 1);
+  assert.equal(k.made[0].name, "Goblin 1");
+  assert.deepEqual(k.embedded.map((r) => r.flags[M].zone), ["far"]);
+  assert.deepEqual(k.e.log.warn, []);
+});
+
+test("drop: a non-GM does nothing; a non-Actor drop notices and adds nothing", async () => {
+  const p = await dropSetup({ gm: false });
+  const pev = p.ev(p.band("near"));
+  await p.layer.listeners.drop(pev);
+  assert.deepEqual([p.made.length, p.embedded.length, pev.prevented, p.e.log.warn.length], [0, 0, false, 0]);
+  const k = await dropSetup({ drag: { type: "Item", uuid: "Item.x" } });
+  await k.layer.listeners.drop(k.ev(k.band("near")));
+  assert.deepEqual([k.made.length, k.embedded.length], [0, 0]);
+  assert.deepEqual(k.e.log.warn, ["SDE.stage.zone.dropNotActor"]);
+});
+
+test("dragover: prevented only for a GM, only over a band, only for a text/plain (Foundry) drag; the band lights up", async () => {
+  const k = await dropSetup();
+  const b = k.band("near");
+  const ok = k.ev(b);
+  k.layer.listeners.dragover(ok);
+  assert.equal(ok.prevented, true);
+  assert.equal(b.cls.has("drop"), true);
+  const file = k.ev(k.band("near"), ["Files"]);
+  k.layer.listeners.dragover(file);
+  assert.equal(file.prevented, false);
+  const off = k.ev(null);
+  k.layer.listeners.dragover(off);
+  assert.equal(off.prevented, false);
+  const p = await dropSetup({ gm: false });
+  const pev = p.ev(p.band("near"));
+  p.layer.listeners.dragover(pev);
+  assert.equal(pev.prevented, false);
+});
+
+test("End fight asks first: declining does nothing, confirming ends the fight once", async () => {
+  const k = await dropSetup({ answer: false });
+  const click = () => k.layer.listeners.click({ target: { closest: (s) => (s === "[data-action]" ? { dataset: { action: "end" }, closest: () => null } : null) } });
+  await click();
+  assert.equal(k.asked.length, 1);
+  assert.deepEqual(k.asked[0].classes, ["sde-ui", "sde-dialog"]);
+  assert.equal(k.fight.deleted, undefined);
+  const y = await dropSetup({ answer: true });
+  await y.layer.listeners.click({ target: { closest: (s) => (s === "[data-action]" ? { dataset: { action: "end" }, closest: () => null } : null) } });
+  assert.equal(y.asked.length, 1);
+  assert.equal(y.fight.deleted, 1);
+});
+
+test("a created or deleted fight re-renders the toolbar for a GM, never for a player", async () => {
+  for (const gm of [true, false]) {
+    const e = setup({ gm, stage: stageUp });
+    const renders = [];
+    globalThis.ui.controls = { render: (o) => renders.push(o) };
+    fire(e, "createCombat", {});
+    fire(e, "deleteCombat", {});
+    assert.equal(renders.length, gm ? 2 : 0);
+    if (gm) assert.deepEqual(renders[0], { reset: true });
+  }
 });

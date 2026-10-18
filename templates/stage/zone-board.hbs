@@ -1,3 +1,10 @@
+{{#if isGM}}
+<header class="zb-head">
+  <h1 class="zb-heading">{{localize "SDE.stage.zone.title"}} <span class="zb-round">{{localize "SDE.stage.zone.round" round=round}}</span></h1>
+  <span class="zb-hint">{{localize "SDE.stage.zone.dropHint"}}</span>
+  <button type="button" class="ui-btn danger zb-end" data-action="end">{{localize "SDE.stage.zone.endFight"}}</button>
+</header>
+{{/if}}
 <div class="zb-bands">
   {{#each bands}}
   <section class="zb-band" data-zone="{{zone}}" aria-labelledby="sde-zb-title-{{zone}}">
