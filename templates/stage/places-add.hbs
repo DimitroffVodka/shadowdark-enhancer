@@ -1,0 +1,27 @@
+{{!-- Stage places, top part: heading and the Add form. Its own part so a list redraw never clears what the GM is typing. --}}
+<div class="sp-top">
+
+  <header class="ui-head">
+    <div class="ui-head-text">
+      <h2 class="ui-title">{{localize "SDE.stage.places.title"}}</h2>
+      <p class="ui-sub">{{localize "SDE.stage.places.note"}}</p>
+    </div>
+  </header>
+
+  <section class="ui-group sp-add-group">
+    <h3 class="ui-h">{{localize "SDE.stage.places.formHeading"}}</h3>
+    <div class="ui-card sp-add">
+      <div class="sp-add-fields">
+        <label class="ui-field"><span class="ui-label">{{localize "SDE.stage.places.fieldName"}}</span><input type="text" maxlength="60" data-add-name></label>
+        <label class="ui-field"><span class="ui-label">{{localize "SDE.stage.places.fieldKind"}}</span>
+          <select data-add-kind>{{#each kinds as |k|}}<option value="{{k.value}}">{{localize k.label}}</option>{{/each}}</select>
+        </label>
+        <label class="ui-field sp-add-file"><span class="ui-label">{{localize "SDE.stage.places.fieldPicture"}}</span><input type="file" accept="image/*" data-add-file></label>
+        <div class="sp-add-foot">
+          <span class="ui-row-sub" data-busy-note{{#unless busy}} hidden{{/unless}}>{{localize "SDE.stage.places.uploading"}}</span>
+          <button type="button" class="ui-btn primary" data-action="addPlace"{{#if busy}} disabled{{/if}}><i class="fa-solid fa-plus"></i> {{localize "SDE.stage.places.addButton"}}</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
