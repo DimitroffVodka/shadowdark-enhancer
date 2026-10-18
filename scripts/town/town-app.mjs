@@ -17,6 +17,8 @@ import { Quests } from "../quests/quests.mjs";
 import { DowntimeSession } from "../downtime/downtime-session.mjs";
 import { LANDING_FLAG, landingOf, normalizeLanding, restockAll } from "./town-core.mjs";
 import { buyerFor, characters, openPlace, redrawOnChange, switchTown } from "./town-live.mjs";
+import { normalizeStage } from "../stage/stage-core.mjs";
+import { isHostedPage } from "./town-host-core.mjs";
 import { placeTiles, purseText } from "./town-view.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -72,7 +74,7 @@ export class TownApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return Object.assign(context, {
       townName: this.townName, tagline: page.tagline, blurb: page.blurb, merchants,
       places: placeTiles(page.games.on ? [...page.places, "games"] : page.places, { isGM, hasParty: Party.list().length > 0, downtimeOpen: DowntimeSession.active, activeQuests, t }),
-      isGM, actorName: buyer?.name ?? "", purse: buyer ? purseText(buyer.system.coins) : "",
+      isGM, hideTitle: t(this.hosted ? "SDE.stage.hostHide" : "SDE.town.hide"), actorName: buyer?.name ?? "", purse: buyer ? purseText(buyer.system.coins) : "",
     });
   }
 
@@ -122,8 +124,13 @@ export class TownApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   _onOpenPlace(_event, target) { return openPlace(target.dataset.place, this.scene); }
 
-  /** Away for the whole table. */
-  _onHide() { return switchTown(this.scene, false); }
+  get hosted() { return isHostedPage(normalizeStage(game.settings.get(MODULE_ID, "stage")), this.scene?.id); }
+
+  /** Away for the whole table. A page the Stage hosts goes when the Stage drops (the entry points then close it). */
+  async _onHide() {
+    if (this.hosted) return (await import("../stage/stage.mjs")).hideStage();
+    return switchTown(this.scene, false);
+  }
 
   async _onLog() {
     const { TownLogApp } = await import("./town-log-app.mjs");
