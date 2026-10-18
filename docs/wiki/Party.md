@@ -109,8 +109,12 @@ the 3×3 grid, which remembers nine slots. Marching order is a dungeon thing, so
 it is a visible switch rather than a setting. Off, the party is "Moving freely"
 and the grid dims; on, the status names who leads. Click a portrait to make that
 member the leader; drag one onto another cell to arrange. Overflow members
-follow behind the grid. Following has no paused state: while the switch is on
-and the members are out, they follow every move the leader makes. A member who
+follow behind the grid. Marching order needs only the characters' tokens on the
+scene: put them there by hand, or with Place. The Crawl Strip shows the same 3x3
+order while the party marches, where it can be rearranged and switched on and
+off too. No party token is required and
+none is made. Following has no paused state: while the switch is on and the
+members are out, they follow every move the leader makes. A member who
 cannot take a step (a wall, a missing token) stays where they are and the rest
 carry on; the next move tries again. The formation holds while the party walks:
 each member goes to their slot around the square the leader stopped on. The
@@ -120,7 +124,9 @@ Hex maps keep the grid north-up. When a wall is in the way they walk round it
 (the search covers the whole scene) to the nearest square they can reach, so
 nobody gets stranded behind a door the leader went through. Nothing follows
 during combat, and the status line says so. The pin button beside the grid is
-**Place / Recall**. If two browser tabs are both the active GM (plain http over
+**Place / Recall**, which works from the party's token on the level you are
+viewing and is greyed out, with the reason as its tooltip, when there is none
+there (a token on another floor does not count). If two browser tabs are both the active GM (plain http over
 a LAN, where the browser has no tab locks), each runs the follower pass and
 every move is sent twice; the end positions are the same, only the animation
 and traffic double.
@@ -138,7 +144,16 @@ gathers eligible linked copies on that scene regardless of distance. Other
 scenes/unlinked tokens stay untouched. The Party token remains selectable.
 Existing token IDs/configurations are reused; repeat Export makes no duplicates.
 
-Placement puts each member in the grid slot around the party token, using
+**Place** lets you choose where each member goes. Press it with the party out of
+the way (not already placed) and the running message names each member in turn:
+click the map where that member should stand and the token lands on that square.
+Escape stops, and the members you already picked stay where you put them. A
+member who is already on the scene is left where they are and joins the march,
+so Place never drags a hand-placed token away. **Shift-click** Place for the old
+automatic placement round the party token. With the party out, the same button
+is **Recall**.
+
+Automatic placement (Shift-click, and the party token's HUD entry) puts each member in the grid slot around the party token, using
 Foundry's own wall test (a clear line from the party token to the slot, inside
 the scene), then the nearest such square, then stacking if cramped. A member
 with no square at all is named and left packed. Native leader

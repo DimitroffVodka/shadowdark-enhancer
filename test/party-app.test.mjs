@@ -215,7 +215,7 @@ test("Party header carries a Marching order switch, a leader/status line and a g
   const context = await new PartyApp(p)._prepareContext();
   assert.equal(context.hasLeader, true);
   assert.equal(context.leaderName, "pc");
-  assert.equal(context.march.mode, "notice", "a GM with no party token on the scene is told to place one");
+  assert.equal(context.march.mode, "leads", "a scene with no party token is no warning: marching needs only the characters' tokens");
   const empty = actor("n", "NPC", { [MOD]: { party: true, partyData: { members: [] } } });
   world([empty, pc], true);
   const bare = await new PartyApp(empty)._prepareContext();
@@ -237,7 +237,7 @@ test("Carousing labels unavailable tiers and disables commitment until tables ar
   assert.ok(template.includes('data-action="confirm" data-uuid="{{uuid}}" {{#if ../missingTables}}disabled{{/if}}'));
 });
 
-test("Party description edits inline and movement has no actionable dead ends without a token", async () => {
+test("Party description edits inline; without a party token only Place / Recall is off, and says why", async () => {
   const p = actor("p", "NPC", { [MOD]: { party: true, partyDescription: "Old" } });
   p.isOwner = true;
   world([p], true);
@@ -252,7 +252,7 @@ test("Party description edits inline and movement has no actionable dead ends wi
   const context = await app._prepareContext();
   assert.equal(context.movementDisabled, true);
   assert.equal(context.movementReason, "SDE.party.movement.noToken");
-  assert.equal(context.march.text, "SDE.party.movement.noToken");
+  assert.notEqual(context.march.text, "SDE.party.movement.noToken", "and the Marching order line does not repeat it");
 });
 
 test("Party and standalone quests do not replace an action button between blur and click", async () => {

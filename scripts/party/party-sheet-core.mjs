@@ -40,22 +40,20 @@ export function sheetView({ isGM = false, canEdit = false } = {}) {
  * The Marching order line under the switch.
  *   free     the switch is off: the party moves freely
  *   leads    marching, or nothing to report: "<leader> leads"
- *   notice   a reason it cannot work right now: no party token on the scene (managers only), or combat
+ *   notice   a reason it cannot work right now: combat
  *   none     marching with nobody to lead
  * `reason` is the movement status reason ("" when nothing is in the way).
  * @returns {{ mode: "free"|"leads"|"notice"|"none", reason?: string }}
  */
-export function marchState({ follow = true, hasToken = false, reason = "", manager = false, hasLeader = false } = {}) {
+export function marchState({ follow = true, reason = "", hasLeader = false } = {}) {
   const leads = { mode: hasLeader ? "leads" : "none" };
   if (!follow) return { mode: "free" };
-  if (!hasToken) return manager ? { mode: "notice", reason: "noToken" } : leads;
   return reason === "combat" ? { mode: "notice", reason } : leads;
 }
 
 /** Movement messages name their key with literals; a lookup table hides them from the i18n scan. */
 export function movementMessageKey(reason) {
   switch (reason) {
-    case "noToken": return "SDE.party.movement.noToken";
     case "combat": return "SDE.party.movement.combat";
     default: return "SDE.party.movement.unknown";
   }
