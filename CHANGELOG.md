@@ -12,6 +12,10 @@
 - **Backdrop: a full-screen camp picture for the whole table.** Every player sees one picture behind Foundry's windows and toolbar, the same on every scene, kept in a world setting so a reload or a late joiner still sees it. It shows the camp for the party's terrain, which is the module's existing Battle Maps camp art. It comes up by itself once when a camp begins, only when there is no party token (the party actor's own token on the GM's map; the characters' tokens do not count), so a camp in a dungeon or town is covered and the GM hides it from the tool, and drops when that camp ends or is cancelled. A GM hides or brings it back with the **Backdrop** tool in the Tokens group of the left toolbar; once hidden it stays down for that camp. **Show camp picture** in the Camping window raises it by hand, which is how you get it with the party token on the hex map. Bring the table on a battle map hides it first. Selected tokens are released while it is up.
 - **Origins has a dice button on Alignment, Background and Deity.** Each section header in the Character Builder's Origins tab rolls just that one pick, so you can re-roll a background without losing the alignment or deity you chose. The footer **Random** still rolls all three. The buttons are hidden when you edit an existing character, and the Deity roller is greyed out when your class fixes the deity.
 
+### Fixed
+
+- **The party token keeps its emblem when Foundry has logged the browser out.** The emblem picture is a world file, and Foundry's upload route refuses a browser whose one-day session has run out (the page keeps working, so the log-out is easy to miss) with "User [] does not have permission to upload files."; the token then kept the stock black-and-white hex. An emblem whose picture is already in the world is now used as it stands with no upload, an upload that is still refused says so and points at the reload that clears a logged-out browser rather than naming it as the cause, and the party's picture and every token of it are reconciled once the world is ready, so a flag written during the outage no longer stays stale.
+
 ## [0.19.0] — 2026-10-14
 
 ### Added
