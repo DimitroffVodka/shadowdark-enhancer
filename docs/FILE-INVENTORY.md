@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-2016 tracked files · ~259,300 lines of code/markup across scripts+templates+styles+test.
+2053 tracked files · ~262,400 lines of code/markup across scripts+templates+styles+test.
 `v0.19.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 1507 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 1510 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 172 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 271 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 | `scavenger/scavenger-core.mjs` | 171 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
@@ -194,7 +194,7 @@
 | `art-utils.mjs` | 164 | Portrait/token image resolution across world + compendium sources. |
 | `coins.mjs` | 109 | Pure Shadowdark currency math (10cp=1sp, 10sp=1gp). |
 | `esc.mjs` | 16 | HTML-escape helper for safe `innerHTML` interpolation. |
-| `chat-cards.mjs` | 80 | Markup builders for the module's chat cards (UI kit `ui-cc` parts). |
+| `chat-cards.mjs` | 85 | Markup builders for the module's chat cards (UI kit `ui-cc` parts). |
 | `file-route.mjs` | 16 | Routes a stored file path for fetching; leaves absolute upload URLs (The Forge, S3) untouched instead of handing them to getRoute. |
 | `gm-relay.mjs` | 405 | The one authenticated relay channel, both directions. Rides Foundry's user-query transport, where the SERVER stamps the sender from the authenticated socket, so an identity check can no longer be defeated by a payload naming a GM. Owns the shared ownership gate (`authorizeActorFor` / `authorizeActorRequest`), the GM-side entry guard (`refuseQuery`), the player-side `queryActiveGM` / `relayToGM`, and `notifyPlayers` for a GM→players push that the receiver can verify. A query the GM's build cannot answer is itself the stale-tab signal, so the old forgeable ping/pong handshake is gone while its wording (`evaluateHandshake` / `handshakeWarning`) is kept. |
 | `token-placement.mjs` | 238 | Click-to-place token placement over a QUEUE of different creatures — a pit-fight row can name two creatures with their own counts, so the loop walks a queue and the notification names what the next click will drop. `worldActorFor` imports a compendium actor once and reuses it by name+type (with a one-shot art repair on copies imported before a community-tokens mapping loaded), `tokenSourceFor` picks the best non-placeholder texture, and `placeTokensByClick` runs the cancellable capture-phase `pointerdown` loop, snapping to the grid. Every actor and texture is resolved BEFORE the first click, so no await sits between a click and its token. |
@@ -326,9 +326,11 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `merchant-shop.mjs` | 2793 | Two-mode shop system (compendium global or actor NPC inventory); GM opens for all players. |
+| `merchant-shop.mjs` | 2777 | Two-mode shop system (compendium global or actor NPC inventory); GM opens for all players. |
 | `merchant-defaults.mjs` | 209 | The two shipped merchant configs (Base, Western Reaches). |
 | `catalog-stock.mjs` | 37 | What the Catalog tab may sell: gear types with a list price, not loot-table props. |
+| `shop-core.mjs` | 108 | Shop price rules shared by both shops, and the town shop's per-character stock ledger (pure). |
+| `town-shop.mjs` | 118 | A town merchant's buy and sell on the player's own client, no GM needed. |
 
 ### 3.10 `scripts/party-xp/`
 
@@ -652,6 +654,23 @@ A place the party owns: the four types and twenty upgrades, built a week at a ti
 | `places-app.mjs` | 176 | The Stage Places window (GM only, AppV2, opened by the Backdrop places toolbar button): the list of the GM's places with a thumbnail, name and kind edits, Show/Hide, Replace picture and a confirmed Delete, plus the Add place form with its busy state. Edits go through the places.mjs services; the file is never deleted. |
 
 A full-screen picture every client shows behind Foundry's UI, kept in one world setting. Phase 1a raises a Camp place when a camp starts; phase 1b adds the GM's own places with uploaded pictures; phase 3 (zone combat) adds the zone board and fight.
+
+### 3.25 `scripts/town/`
+
+| File | Lines | Description |
+|---|---:|---|
+| `town-core.mjs` | 139 | A town's landing page flag: merchants as NPC references, restock revision, the games table, the table switch, the editor's form folded in (pure). |
+| `town-view.mjs` | 121 | What the Town window and the shopfront show: ware cards, sell rows, tiles, the buyer (pure). |
+| `town-live.mjs` | 47 | What the town windows share on the Foundry side: the buyer, redrawing on change, the table switch, the tiles' windows. |
+| `town-app.mjs` | 143 | The landing page menu over the scene's picture: merchants, tiles, the GM's pencil, sales log, restock and switch; clear of the sidebar and the Crawl Strip. |
+| `town-shop-app.mjs` | 184 | One merchant's shopfront: buy and sell as a chosen character with no GM, categories, search. |
+| `town-editor-app.mjs` | 132 | The GM's landing page editor window: town text, tiles, games table, merchants. |
+| `town-entry-points.mjs` | 88 | The Landing page toolbar button and Alt+T: one switch for the table, the page made on any scene, followed by every client. |
+| `games-core.mjs` | 96 | The town's four games of chance, the house's cut and the wager limits (pure). |
+| `town-games.mjs` | 94 | A game at a town table on the player's own client, no GM needed: roll, settle, coins, chat card. |
+| `town-games-app.mjs` | 123 | The games table window: wager, four games, the last result, as a chosen character. |
+| `town-log-core.mjs` | 76 | The town's sales log read from flagged chat cards: entries, filters, totals (pure). |
+| `town-log-app.mjs` | 86 | The GM's sales log window: what was bought, sold and played, filtered and totalled. |
 <!-- inventory:scripts:end -->
 ---
 

@@ -1,0 +1,98 @@
+<div class="ui-shell tl-shop {{#unless merchant.open}}closed{{/unless}}">
+  <header class="ui-head">
+    <div class="tl-plaque"><img src="{{merchant.img}}" alt=""></div>
+    <div class="ui-head-text">
+      <h2 class="ui-title">{{merchant.name}}</h2>
+      <div class="tl-shop-sub">
+        <span class="ui-tag">{{merchant.role}}</span>
+        {{#if priceNote}}<span class="ui-chip warn" data-tooltip="{{localize 'SDE.town.priceNoteTip'}}">{{priceNote}}</span>{{/if}}
+        {{#if merchant.open}}<span class="ui-chip">{{localize "SDE.town.buysBack" pct=sellRatio}}</span>{{/if}}
+      </div>
+      <p class="ui-sub"><em>{{merchant.pitch}}</em></p>
+    </div>
+    <div class="ui-stats">
+      <div class="ui-stat"><span class="ui-label">{{localize "SDE.town.purse"}}</span><span class="ui-value tl-purse"><i class="fa-solid fa-coins"></i> {{purse}}</span></div>
+    </div>
+  </header>
+
+  {{#if merchant.open}}
+  <nav class="ui-tabs">
+    {{#each tabs}}<button type="button" class="ui-tab {{#if active}}active{{/if}}" data-action="showTab" data-tab="{{id}}"><i class="fa-solid {{icon}}"></i> {{label}} <span class="ui-count">{{count}}</span></button>{{/each}}
+  </nav>
+
+  <div class="ui-body">
+    {{#if (eq tab "buy")}}
+    <div class="tl-cats">
+      {{#each categories}}<button type="button" class="ui-chip {{#if active}}on{{/if}}" data-action="category" data-category="{{id}}">{{label}}</button>{{/each}}
+      <div class="ui-search"><i class="fa-solid fa-magnifying-glass"></i><input type="text" name="search" placeholder="{{localize 'SDE.town.search'}}" value="" autocomplete="off"></div>
+    </div>
+    <div class="tl-wares">
+      {{#each wares}}
+      <article class="tl-ware {{#if poor}}poor{{/if}} {{#if out}}out{{/if}}" data-ware-id="{{id}}">
+        <div class="tl-ware-art"><img src="{{img}}" alt=""></div>
+        <div class="tl-ware-main">
+          <h4 class="tl-ware-name" title="{{name}}" data-action="toggleDesc" role="button" tabindex="0">{{name}}</h4>
+          <div class="ui-inline">
+            <span class="ui-tag">{{type}}{{#if perBundle}} · {{localize "SDE.town.perBundle" n=perBundle}}{{/if}}</span>
+            {{#if @root.isGM}}<button type="button" class="ui-icon {{#if unlimited}}on{{/if}}" data-action="toggleUnlimited" data-tooltip="{{localize 'SDE.town.unlimitedTip'}}" aria-label="{{localize 'SDE.town.unlimitedTip'}}" aria-pressed="{{#if unlimited}}true{{else}}false{{/if}}"><i class="fa-solid fa-infinity"></i></button>{{/if}}
+            {{#if more}}<button type="button" class="ui-icon {{#if open}}on{{/if}}" data-action="toggleDesc" data-tooltip="{{localize 'SDE.town.details'}}" aria-label="{{localize 'SDE.town.details'}}" aria-expanded="{{#if open}}true{{else}}false{{/if}}"><i class="fa-solid fa-circle-info"></i></button>{{/if}}
+          </div>
+          {{#if facts.length}}<div class="tl-facts">{{#each facts}}<span class="ui-chip">{{this}}</span>{{/each}}</div>{{/if}}
+          {{#unless open}}{{#if blurb}}<p class="tl-blurb">{{blurb}}</p>{{/if}}{{/unless}}
+        </div>
+        <div class="tl-price">{{#each price}}<span class="tl-coin"><b>{{n}}</b><i>{{u}}</i></span>{{/each}}</div>
+        <div class="tl-ware-foot">
+          {{#if out}}
+          <span class="ui-chip off">{{localize "SDE.town.soldOut"}}</span>
+          {{else}}
+          <span class="ui-chip {{#if low}}warn{{/if}}">{{stock}}</span>
+          <div class="tl-buy">
+            <div class="tl-step">
+              <button type="button" class="ui-icon" data-action="qtyDown" aria-label="{{localize 'SDE.town.less'}}"><i class="fa-solid fa-minus"></i></button>
+              <input type="number" value="1" min="1" max="99" aria-label="{{localize 'SDE.town.quantity'}}">
+              <button type="button" class="ui-icon" data-action="qtyUp" aria-label="{{localize 'SDE.town.more'}}"><i class="fa-solid fa-plus"></i></button>
+            </div>
+            <button type="button" class="ui-btn" data-action="buy" {{#if poor}}disabled data-tooltip="{{localize 'SDE.town.cannotAfford'}}"{{/if}}><i class="fa-solid fa-cart-plus"></i> {{localize "SDE.town.buy"}}</button>
+          </div>
+          {{/if}}
+        </div>
+        {{#if open}}{{#if desc}}<div class="tl-ware-more">
+          <p class="tl-ware-desc">{{desc}}</p>
+          {{#if rules.length}}<ul class="tl-rules">{{#each rules}}<li><b>{{name}}</b> {{text}}</li>{{/each}}</ul>{{/if}}
+        </div>{{else}}{{#if rules.length}}<div class="tl-ware-more"><ul class="tl-rules">{{#each rules}}<li><b>{{name}}</b> {{text}}</li>{{/each}}</ul></div>{{/if}}{{/if}}{{/if}}
+      </article>
+      {{/each}}
+    </div>
+    {{/if}}
+
+    {{#if (eq tab "sell")}}
+    <div class="ui-note info">{{localize "SDE.town.sellNote" name=merchant.name pct=sellRatio}}</div>
+    <div class="ui-list">
+      {{#each sellItems}}
+      <div class="ui-row">
+        <img src="{{img}}" alt="">
+        <div class="ui-row-main"><span class="ui-row-name">{{name}}</span><span class="ui-row-sub">{{localize "SDE.town.pays" price=pays}}</span></div>
+        <span class="ui-chip">{{localize "SDE.town.owned" n=qty}}</span>
+        <button type="button" class="ui-btn" data-action="sell" data-item-id="{{id}}"><i class="fa-solid fa-coins"></i> {{localize "SDE.town.sell"}}</button>
+        {{#if (gt qty 1)}}<button type="button" class="ui-btn ghost" data-action="sellAll" data-item-id="{{id}}" data-tooltip="{{localize 'SDE.town.sellAllTip'}}">{{localize "SDE.town.sellAll"}}</button>{{/if}}
+      </div>
+      {{/each}}
+    </div>
+    {{/if}}
+  </div>
+  {{else}}
+  <div class="ui-body">
+    <div class="ui-empty tl-shut"><i class="fa-solid fa-store-slash"></i><b>{{localize "SDE.town.shutTitle" name=merchant.name}}</b><span>{{localize "SDE.town.shutBody"}}</span></div>
+  </div>
+  {{/if}}
+
+  <footer class="ui-status tl-foot">
+    {{#if actors.length}}
+    <label class="ui-inline"><span class="ui-label">{{localize "SDE.town.buyingAs"}}</span>
+      <select name="buyer">{{#each actors}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select>
+    </label>
+    {{else}}<span class="ui-muted">{{localize "SDE.town.noCharacter"}}</span>{{/if}}
+    <span><i class="fa-solid fa-people-group"></i> {{localize "SDE.town.sharedStock"}}</span>
+    <div class="ui-right"><button type="button" class="ui-btn ghost" data-action="back"><i class="fa-solid fa-arrow-left"></i> {{localize "SDE.town.backToTown"}}</button></div>
+  </footer>
+</div>
