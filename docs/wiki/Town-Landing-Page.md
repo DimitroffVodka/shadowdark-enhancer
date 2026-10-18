@@ -213,6 +213,12 @@ the sales log reads them.
 
 ---
 
+## On a Backdrop
+
+A Town or Tavern place in Backdrop places can host this page over the full-screen
+picture for the whole table, kept across scene changes. See
+[A Town page on a place](Backdrop.md#a-town-page-on-a-place).
+
 ## Related
 
 [Merchant Shop](Merchant-Shop.md) (the GM-run shop for the whole table),

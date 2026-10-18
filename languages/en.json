@@ -6537,5 +6537,10 @@
   "SDE.stage.places.ariaShow": "Show {name}",
   "SDE.stage.places.ariaHide": "Hide {name}",
   "SDE.stage.places.ariaReplace": "Replace the picture of {name}",
-  "SDE.stage.places.ariaDelete": "Delete {name}"
+  "SDE.stage.places.ariaDelete": "Delete {name}",
+  "SDE.stage.places.ariaPage": "Page scene of {name}",
+  "SDE.stage.places.pageLabel": "Page scene",
+  "SDE.stage.places.pageNone": "None",
+  "SDE.stage.places.pageMissing": "Page missing",
+  "SDE.stage.places.pageHint": "Only scenes that already have a Town page are listed. Make one with the Town tool on that scene and edit it with the pencil. With no picture chosen, a Town or Tavern place uses that scene's background."
 }

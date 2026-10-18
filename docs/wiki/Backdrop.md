@@ -8,7 +8,7 @@ map without you having to move the table anywhere. It is kept in a world setting
 so it survives a reload and a player who joins late sees it too.
 
 The party's camp is the automatic place. You can also keep your own list of
-pictures, see [Backdrop places](#backdrop-places). Town and tavern pages are not here yet. A fight with no battle map is drawn over it as
+pictures, see [Backdrop places](#backdrop-places). A place can also carry a Town page, see [A Town page on a place](#a-town-page-on-a-place). A fight with no battle map is drawn over it as
 [Zone Combat](Zone-Combat.md).
 
 ---
@@ -35,8 +35,7 @@ players, so the arrow keys do not move tokens on the map underneath.
   or town with only the characters' tokens on the map is covered by the picture,
   and the GM hides it from the Backdrop tool.
 - A camp that begins does not replace a Town or Tavern place that is up. **Show
-  camp picture** in the Camping window switches to the camp by hand. A place can
-  later point at a page scene; that is not in this release and has no control yet.
+  camp picture** in the Camping window switches to the camp by hand.
 - Water terrain does not raise it by itself: the boat is the camp.
 - Camps run by Shadowdark Extras do not raise it.
 - **After a GM hides it, it stays down for that camp.** Task picks, token moves, a
@@ -121,8 +120,32 @@ your own.
 The list is its own hidden world setting, apart from the one that holds what is
 showing, so neither overwrites the other.
 
+## A Town page on a place
+
+A Town or Tavern place can open a Town page over the Backdrop for everyone.
+
+1. On a scene, press the Town tool to make its page, and edit it with the
+   pencil on the page ([Town Landing Page](Town-Landing-Page.md)).
+2. In Backdrop places, set the place's **Page scene** to that scene. Only scenes
+   that already have a page are listed. In the Add form you can leave the
+   picture empty: a Town or Tavern place then uses that scene's background as
+   its picture (a Custom place still needs one).
+3. Show the place. The picture goes up and the page opens over it for everyone.
+
+While it is up:
+
+- The page stays when the GM changes the canvas scene. A page on the new canvas
+  scene does not replace it, and when the Backdrop drops, the canvas scene's own
+  page comes back if it is shown.
+- The page's hide icon drops the Backdrop, and the page closes with it. It also
+  closes if the place changes, or the page or its scene is removed. If that
+  happens, the place keeps its Page scene and shows "Page missing" until you
+  pick another or None.
+- A camp that begins does not replace the place or its page.
+- Shopping works with no GM connected. Carousing needs a GM connected.
+
 ## What it does not do yet
 
-- No town or tavern pages.
+- No tavern page tiles yet; a Tavern place hosts the same Town page as a Town place.
 - No pictures for town or tavern come with the module.
 - It is not in the Settings list; the values sit in hidden world settings.

@@ -9,16 +9,18 @@ const art = (hue) => "data:image/svg+xml;utf8," + encodeURIComponent(
 const NAMES = ["Greybanner", "The Gilded Flagon", "Dunmere Market", "Old Mill", "Harbour at night", "River crossing", "Sablewood camp", "The Sunken Temple"];
 const LONG = "The Ever-Smoking Tavern of the Three Drowned Bells and Other Names Nobody Would Pick, Out by the Salt Road";
 
+const SCENES = [{ id: "s1", name: "Greybanner (town page)" }, { id: "s2", name: "The Gilded Flagon" }];
 const place = (i, shownIdx, name) => {
   const kind = KINDS[i % 4];
-  return { id: `p${i}`, name: name ?? `${NAMES[i % NAMES.length]}${i >= NAMES.length ? ` ${i}` : ""}`, image: art((i * 37) % 360), shown: i === shownIdx, kinds: KINDS.map((value) => ({ value, label: label(value), selected: value === kind })) };
+  const pageId = i === 2 || i === 4 ? "gone" : i === 0 ? "s1" : null; // busy: a row with a page, a row whose page is missing
+  return { id: `p${i}`, pageSceneId: pageId, pageNone: !pageId, pageMissing: pageId === "gone", pageScenes: SCENES.map((s) => ({ ...s, selected: s.id === pageId })), name: name ?? `${NAMES[i % NAMES.length]}${i >= NAMES.length ? ` ${i}` : ""}`, image: art((i * 37) % 360), shown: i === shownIdx, kinds: KINDS.map((value) => ({ value, label: label(value), selected: value === kind })) };
 };
 
 const build = (state) => {
   const places = state === "empty" ? [] : state === "shown" ? [place(0, 1), place(1, 1), place(2, 1)] : Array.from({ length: 24 }, (_, i) => place(i, 2, i === 1 ? LONG : undefined));
   const kinds = KINDS.map((value) => ({ value, label: label(value) }));
   return { strings: {}, parts: [
-    { id: "add", template: "templates/stage/places-add.hbs", context: { kinds, busy: state === "busy" } },
+    { id: "add", template: "templates/stage/places-add.hbs", context: { kinds, pageScenes: SCENES, busy: state === "busy" } },
     { id: "list", template: "templates/stage/places-list.hbs", context: { places } },
   ] };
 };

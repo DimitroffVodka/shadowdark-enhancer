@@ -52,9 +52,9 @@ function setup({ gm = true, places = [], stage = null, canUpload = true } = {}) 
 }
 
 /** A window with a fake DOM: just the elements the handlers read. */
-function windowWith({ name = "", kind = "tavern", file = { type: "image/png", name: "a.png", w: 10, h: 10 } } = {}) {
-  const el = { name: { value: name }, kind: { value: kind }, file: { files: file ? [file] : [], value: "x" }, add: { disabled: false }, note: { hidden: true } };
-  const map = { "[data-add-name]": el.name, "[data-add-kind]": el.kind, "[data-add-file]": el.file, "[data-action=addPlace]": el.add, "[data-busy-note]": el.note };
+function windowWith({ name = "", kind = "tavern", page = "", file = { type: "image/png", name: "a.png", w: 10, h: 10 } } = {}) {
+  const el = { name: { value: name }, kind: { value: kind }, page: { value: page }, file: { files: file ? [file] : [], value: "x" }, add: { disabled: false }, note: { hidden: true } };
+  const map = { "[data-add-name]": el.name, "[data-add-kind]": el.kind, "[data-add-page]": el.page, "[data-add-file]": el.file, "[data-action=addPlace]": el.add, "[data-busy-note]": el.note };
   const app = new StagePlacesApp();
   app.element = { querySelector: (s) => map[s] ?? null, querySelectorAll: () => [] };
   return { app, el };
@@ -403,4 +403,79 @@ test("a rejected Show, Hide or Replace write warns instead of rejecting", async 
     await app._onReplaceFile({});
   } finally { console.error = err; }
   assert.deepEqual(e.notes, ["SDE.stage.places.saveFailed", "SDE.stage.places.saveFailed", "SDE.stage.places.saveFailed"]);
+});
+
+// --- Page scene (phase 2b piece 2)
+const LAND = { flags: { "shadowdark-enhancer": { landing: { shown: true, title: "T" } } } };
+const scene = (id, name, extra = {}) => ({ id, name, ...extra });
+function withScenes(list) {
+  globalThis.game.scenes = { contents: list, get: (id) => list.find((s) => s.id === id) };
+}
+const bare = scene("s0", "Bare", { background: { src: "worlds/w/bare.webp" } });
+const paged = scene("s1", "Greybanner", { ...LAND, background: { src: "worlds/w/grey.webp" } });
+const paged2 = scene("s2", "Flagon", LAND);
+const field = (id, value) => ({ dataset: { placeField: "pageSceneId", placeId: id }, value });
+
+test("the Page scene select lists only scenes that have a Town page, per row and in Add", () => {
+  setup({ places: [PL("a")] });
+  withScenes([bare, paged, paged2]);
+  const ctx = new StagePlacesApp()._prepareContext();
+  assert.deepEqual(ctx.pageScenes.map((s) => s.id), ["s1", "s2"]);
+  assert.deepEqual(ctx.places[0].pageScenes.map((s) => s.id), ["s1", "s2"]);
+  assert.equal(ctx.places[0].pageNone, true);
+});
+
+test("changing the Page scene select writes pageSceneId, and None removes it", async () => {
+  const e = setup({ places: [PL("a")] });
+  withScenes([paged]);
+  const { app } = windowWith();
+  await app._onField(field("a", "s1"));
+  assert.equal(e.store.stagePlaces.places[0].pageSceneId, "s1");
+  assert.equal(new StagePlacesApp()._prepareContext().places[0].pageScenes[0].selected, true);
+  await app._onField(field("a", ""));
+  assert.equal("pageSceneId" in e.store.stagePlaces.places[0], false);
+});
+
+test("Add passes the chosen Page scene", async () => {
+  const e = setup();
+  withScenes([paged]);
+  const { app } = windowWith({ name: "Inn", page: "s1" });
+  await app._onAdd();
+  assert.equal(e.store.stagePlaces.places[0].pageSceneId, "s1");
+});
+
+test("a stored page whose scene lost its page shows Page missing and keeps the id", () => {
+  setup({ places: [{ ...PL("a"), pageSceneId: "s9" }, { ...PL("b"), pageSceneId: "s1" }] });
+  withScenes([bare, paged]);
+  const [a, b] = new StagePlacesApp()._prepareContext().places;
+  assert.deepEqual([a.pageMissing, a.pageNone, a.pageSceneId], [true, false, "s9"]);
+  assert.deepEqual([b.pageMissing, b.pageScenes[0].selected], [false, true]);
+  assert.match(tplList, /pageMissing\}\}<option value="\{\{p\.pageSceneId\}\}" selected>/);
+  for (const k of ["pageLabel", "pageNone", "pageMissing", "pageHint", "ariaPage"]) assert.ok(en[`SDE.stage.places.${k}`], k);
+  assert.match(tplList, /aria-label="\{\{localize 'SDE\.stage\.places\.ariaPage' name=p\.name\}\}"/);
+});
+
+test("default picture: a Town or Tavern place with a page and no picture uses the scene background; custom or a chosen picture does not", async () => {
+  for (const kind of ["town", "tavern"]) {
+    const e = setup();
+    withScenes([paged]);
+    const { app, el } = windowWith({ kind, page: "s1", file: null });
+    await app._onAdd();
+    assert.equal(e.store.stagePlaces.places[0].image, "worlds/w/grey.webp", kind);
+    assert.equal(e.uploads.length, 0);
+    assert.equal(el.add.disabled, false);
+  }
+  const c = setup();
+  withScenes([paged]);
+  await windowWith({ kind: "custom", page: "s1", file: null }).app._onAdd();
+  assert.deepEqual(c.store.stagePlaces.places, []);
+  assert.equal(c.notes.length, 1);
+  const w = setup();
+  withScenes([paged2]); // no background and no picture: the notice
+  await windowWith({ kind: "town", page: "s2", file: null }).app._onAdd();
+  assert.equal(w.notes.length, 1);
+  const f = setup();
+  withScenes([paged]);
+  await windowWith({ kind: "town", page: "s1" }).app._onAdd();
+  assert.match(f.store.stagePlaces.places[0].image, /^worlds\/w\/stage\/.+\.webp$/);
 });
