@@ -5,8 +5,8 @@
  * RETIRED flag keys, never to be reused for anything: `zoneFight`, `zone`, `zoneClone`, `zoneFoes`
  * (the old tokenless zone fight left them in live worlds).
  *
- * Units: the scene is gridless, S = the picture's short side = 160 ft on every look,
- * g = round(S / 32) px per 5-ft square, so 1 ft = g / 5 px. Positions are top-left token corners in map pixels.
+ * Units: the scene is gridless, S = the picture's short side, g = round(S / 32) px per 5-ft square, so 1 ft = g / 5 px;
+ * the rings tile is 32 g square (160 ft) centred on the picture, so its painted rings equal RING_FEET exactly. Positions are top-left token corners in map pixels.
  */
 import { getArenaMap } from "../pit-fighting/arena-maps.mjs";
 import { readyById } from "./places-core.mjs";
@@ -60,7 +60,7 @@ export function arenaGeometry(width, height) {
     rings[band] = RING_FEET[band] * g / 5;
     labels.push({ band, x: cx + rings[band] + g * 0.25, y: cy, fontSize: Math.round(0.9 * g) });
   }
-  return { S, g, cx, cy, rings, tile: { x: cx - S / 2, y: cy - S / 2, width: S, height: S }, labels };
+  return { S, g, cx, cy, rings, tile: { x: cx - 16 * g, y: cy - 16 * g, width: 32 * g, height: 32 * g }, labels };
 }
 
 const ROW_FEET = { close: 12.5, near: 37.5, far: 70 };

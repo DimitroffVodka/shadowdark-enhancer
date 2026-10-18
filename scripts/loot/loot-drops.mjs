@@ -18,7 +18,7 @@ export const LootDrops = {
     // A fight thrown away with the Crawl Bar's Delete Encounter drops nothing.
     Hooks.on("deleteCombat", (combat, options) => {
       if (options?.[MODULE_ID]?.discard) return;
-      this._onCombatEnd(combat);
+      void this._onCombatEnd(combat).catch(() => {});
     });
 
     // Per-NPC drop config: a GM-only Loot entry in the Actors directory's right-click

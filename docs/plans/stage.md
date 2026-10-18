@@ -38,7 +38,7 @@ His own split spec (Obsidian: Shadowdark Extras Split Plan - modules/ToM spec.md
 
 **Town and tavern places (phase 2).** A place points at a scene that already has a landing page: no landing data moves. The work is in `scripts/town/town-entry-points.mjs` (it follows `canvas.scene` and closes the page on `canvasDraw` when the new scene has none, `:83`). Needs PR 524 (and town-shop-upgrades) merged first.
 
-**Zones and combat (phase 3).** Close/Near/Far zones drawn on the backdrop, real actors (a cloned actor per foe, deleted by exact id at the end), one global Combat (`scene: null`), zone as a flag on the Combatant written through `replaceModuleFlag`. Watch: Bring the table makes an active scene combat (`encounter-battle.mjs:680`), so two active combats could exist; the Crawl Strip auto-enrols into new combats (`noAutoEnroll`, `:678-680`); XP, loot and recap read tokenless combatants (`:731-738`).
+**Zones and combat (phase 3).** Replaced: zone combat became the Arena fight (real tokens) in PR 533 and the zone plan doc is deleted; the text below is history. Close/Near/Far zones drawn on the backdrop, real actors (a cloned actor per foe, deleted by exact id at the end), one global Combat (`scene: null`), zone as a flag on the Combatant written through `replaceModuleFlag`. Watch: Bring the table makes an active scene combat (`encounter-battle.mjs:680`), so two active combats could exist; the Crawl Strip auto-enrols into new combats (`noAutoEnroll`, `:678-680`); XP, loot and recap read tokenless combatants (`:731-738`).
 
 **Images.** Camp pictures: use the 480 px `thumbs/` for any small preview. Custom pictures (1b): the picker uploads from the GM's computer (needs FILES_UPLOAD, GM always has it) to `worlds/<id>/stage`, never the module folder (the file picker refuses module folders, `file-picker.mjs:290-296`); downscale on upload (pattern: `hex-map-flow.mjs:430-453`; upload pattern: `uploadMapImage`, `adventure-scene.mjs:339-352`); route every path through `fileRoute` (`scripts/shared/file-route.mjs`) for The Forge and S3; test the first-time path with nothing uploaded. The decoded 4000x3000 camp pictures are about 48 MB each: measure on the Steam Deck before adding smaller copies.
 
@@ -47,7 +47,7 @@ His own split spec (Obsidian: Shadowdark Extras Split Plan - modules/ToM spec.md
 - **1a Camp backdrop (from `master` now):** the layer, the `stage` setting, a GM toolbar switch (the way `town-entry-points.mjs:46-54` adds its tool), the Camp picture by terrain, the Camp button, automatic raise and drop, Bring the table turns it off.
 - **1b Custom places:** `stagePlaces`, a small Places editor, upload with downscaling.
 - **2 Town and tavern places:** after PR 524 and town-shop-upgrades merge.
-- **3 Zone combat:** after 1a; does not need 524.
+- **3 Zone combat (replaced by the Arena fight, PR 533):** after 1a; does not need 524.
 
 ## Decided without asking Patrick (simple defaults)
 

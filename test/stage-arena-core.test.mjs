@@ -56,7 +56,10 @@ test("geometry per look", () => {
     assert.equal(G.S, S);
     assert.equal(G.g, Math.round(S / 32));
     for (const b of RING_BANDS) assert.ok(Math.abs(G.rings[b] * 5 / G.g - RING_FEET[b]) < 1e-9);
-    assert.deepEqual(G.tile, { x: l.width / 2 - S / 2, y: l.height / 2 - S / 2, width: S, height: S });
+    const T = G.tile;
+    assert.deepEqual(T, { x: l.width / 2 - 16 * G.g, y: l.height / 2 - 16 * G.g, width: 32 * G.g, height: 32 * G.g });
+    // the painted rings (fractions of the tile) land exactly on the layout radii
+    for (const [band, f] of [["close", 0.09375], ["near", 0.25], ["far", 0.4375]]) assert.ok(Math.abs(T.width * f - G.rings[band]) < 0.01, `${l.id} ${band} ring`);
     assert.equal(G.labels.length, 3);
     for (const lab of G.labels) {
       assert.ok(Math.abs(lab.x - (G.cx + G.rings[lab.band] + G.g * 0.25)) < 1e-9, "3 o'clock, beside its ring");

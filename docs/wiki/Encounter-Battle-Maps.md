@@ -67,8 +67,9 @@ system's Apply damage button is for the GM only, as everywhere.
 A monster you drag onto the arena joins the combat by itself.
 
 **Return** ends the fight, takes the tokens down (including monsters you
-dragged onto the arena), and puts the table and the
-Backdrop back as they were. Only a GM can start or end an Arena fight.
+dragged onto the arena), and puts the table back and shows again the
+ready or custom Backdrop place that was up (a camp picture is not brought back;
+use Show camp picture on the Camping window). Only a GM can start or end an Arena fight.
 
 ---
 

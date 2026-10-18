@@ -178,5 +178,5 @@ While it is up:
 
 ## What it does not do yet
 
-- The ready Tavern and Town show a picture only: a page for them is not made for you yet (give one a Page scene by hand, as for any place).
+- The ready Tavern and Town show a picture only: a ready place has no Page scene setting (its row is only Show and Hide); to give a picture a Town or Tavern page, add it as a custom place and set the Page scene there.
 - It is not in the Settings list; the values sit in hidden world settings.
