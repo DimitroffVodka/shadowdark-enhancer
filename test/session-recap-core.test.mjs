@@ -33,3 +33,28 @@ test("generateSessionName disambiguates same-day duplicates", () => {
     "2026.07.03 Session 3",
   );
 });
+
+import { classifyCombatant } from "../scripts/session-recap/session-recap-core.mjs";
+
+test("classifyCombatant: tokened combatants keep the token disposition rule", () => {
+  const owned = { hasPlayerOwner: true, type: "Player" };
+  assert.deepEqual(classifyCombatant({ actor: owned, token: { disposition: 1 } }), { friendly: true, participant: true });
+  assert.deepEqual(classifyCombatant({ actor: { hasPlayerOwner: false }, token: { document: { disposition: 1 } } }), { friendly: true, participant: false });
+  assert.deepEqual(classifyCombatant({ actor: owned, token: { disposition: -1 } }), { friendly: false, participant: false });
+});
+
+test("classifyCombatant: a tokenless combatant falls back to the actor", () => {
+  const pc = { actor: { type: "Player", hasPlayerOwner: true, prototypeToken: { disposition: 0 } } };
+  assert.deepEqual(classifyCombatant(pc), { friendly: true, participant: true });
+  const foe = { actor: { type: "NPC", hasPlayerOwner: false, prototypeToken: { disposition: -1 } } };
+  assert.deepEqual(classifyCombatant(foe), { friendly: false, participant: false });
+  assert.equal(classifyCombatant({ actor: { type: "NPC", prototypeToken: { disposition: 1 } } }).participant, false);
+  const npcOwned = classifyCombatant({ actor: { type: "NPC", hasPlayerOwner: true, prototypeToken: { disposition: -1 } } });
+  assert.deepEqual(npcOwned, { friendly: false, participant: false });
+});
+
+test("classifyCombatant: no actor is skipped without throwing", () => {
+  assert.equal(classifyCombatant({ token: { disposition: 1 } }), null);
+  assert.equal(classifyCombatant({}), null);
+  assert.equal(classifyCombatant(undefined), null);
+});

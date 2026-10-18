@@ -88,7 +88,7 @@ const actions = (html) => [...html.matchAll(/data-action="(\w+)"/g)].map((m) => 
 
 test("before a battle is set up, a creature offers Battle map and Choose map beside Post to chat", () => {
   const html = encounterPanel({ enc: wolves, cal: gregorian });
-  assert.deepEqual(actions(html).filter((a) => a !== "open"), ["postEncounter", "battleMap", "chooseBattleMap", "openRoller", "resume"]);
+  assert.deepEqual(actions(html).filter((a) => a !== "open"), ["postEncounter", "battleMap", "chooseBattleMap", "zoneFight", "openRoller", "resume"]);
   assert.ok(!html.includes("sde-hud-battle"), "no section until there is a battle");
 });
 
@@ -117,7 +117,7 @@ test("staged, not everyone ready: the map, a row each with its state and bar, an
   assert.ok(!bring.includes("sde-hud-ready"), "not green yet");
   assert.ok(html.includes("SDE.encounterMaps.preload.summary.pending") && html.includes("Bob, Cy, Di"), "who is being waited on, failed included");
   assert.deepEqual(actions(html).filter((a) => a !== "open"),
-    ["bringTable", "changeBattleMap", "keepBattle", "returnToTravel", "postEncounter", "openRoller", "resume"], "the section sits above the footer");
+    ["bringTable", "changeBattleMap", "keepBattle", "returnToTravel", "postEncounter", "zoneFight", "openRoller", "resume"], "the section sits above the footer");
   assert.ok(!html.includes('data-action="battleMap"') && !html.includes('data-action="chooseBattleMap"'), "one battle at a time");
 });
 
@@ -252,4 +252,21 @@ test("the Crawl Bar's battle item: its name and stage on a button that folds or 
   assert.ok(open.includes('data-action="keepBattle" checked>'), "the tick the clock bar kept");
   assert.ok(open.includes("Ann"), "the readout");
   assert.ok(!battleItem({ battle: battle({ label: "<i>x</i>" }), open: true }).includes("<i>x</i>"), "a map's name is text");
+});
+
+const zoneBtn = (html) => html.match(/<button[^>]*data-action="zoneFight"[^>]*>/)?.[0] ?? "";
+
+test("Zone fight sits in the footer for any creature, even with the battle maps off or a battle staged; not for a point of interest", () => {
+  assert.ok(zoneBtn(encounterPanel({ enc: wolves, cal: gregorian })) && !zoneBtn(encounterPanel({ enc: wolves, cal: gregorian })).includes("disabled"));
+  assert.ok(zoneBtn(encounterPanel({ enc: wolves, cal: gregorian, battleMaps: false })), "battle maps unavailable");
+  assert.ok(zoneBtn(encounterPanel({ enc: wolves, cal: gregorian, battle: battle() })), "a battle is staged");
+  assert.equal(zoneBtn(encounterPanel({ enc: { ...wolves, uuid: null }, cal: gregorian })), "", "no creature to put on the board");
+  for (const enc of [{ ...wolves, kind: "flavor", poi: true, text: "x", chain: [], also: [] }, { ...wolves, kind: "empty", chain: [], also: [] }]) {
+    assert.equal(zoneBtn(encounterPanel({ enc, cal: gregorian })), "", enc.kind);
+  }
+});
+
+test("Zone fight is disabled, with its hint, while a zone fight exists", () => {
+  const b = zoneBtn(encounterPanel({ enc: wolves, cal: gregorian, zoneFight: true }));
+  assert.ok(b.includes(" disabled") && b.includes("SDE.stage.zone.encounterRunning"));
 });

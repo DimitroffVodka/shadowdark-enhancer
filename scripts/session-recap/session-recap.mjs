@@ -23,7 +23,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import {
   DEFAULT_DATA, emptyPlayerStat, formatDuration, generateSessionName,
-  formatForDiscordFromData,
+  formatForDiscordFromData, classifyCombatant,
 } from "./session-recap-core.mjs";
 import { CarousingFeed } from "./carousing-feed.mjs";
 import { isActiveGM } from "../shared/gm-relay.mjs";
@@ -410,9 +410,8 @@ export const SessionRecap = {
   _snapshotEnemies(combat) {
     const enemies = [];
     for (const c of combat.combatants) {
-      if (!c.actor) continue;
-      const disp = c.token?.disposition ?? c.token?.document?.disposition;
-      if (disp === CONST.TOKEN_DISPOSITIONS.FRIENDLY) continue;
+      const side = classifyCombatant(c, CONST.TOKEN_DISPOSITIONS.FRIENDLY);
+      if (!side || side.friendly) continue;
       const hp = c.actor.system?.attributes?.hp;
       const defeated = c.defeated || (hp && hp.value <= 0);
       const tokenId = c.token?.id ?? c.token?.document?.id;
@@ -425,9 +424,7 @@ export const SessionRecap = {
   _openCombat(combat) {
     const participants = [];
     for (const c of combat.combatants) {
-      if (!c.actor || !c.token) continue;
-      const disp = c.token.disposition ?? c.token.document?.disposition;
-      if (disp === CONST.TOKEN_DISPOSITIONS.FRIENDLY && c.actor.hasPlayerOwner) {
+      if (classifyCombatant(c, CONST.TOKEN_DISPOSITIONS.FRIENDLY)?.participant) {
         participants.push({ name: c.actor.name, actorId: c.actor.id });
       }
     }

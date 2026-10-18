@@ -116,6 +116,24 @@ test("the toolbar tool is for a GM only, in the Tokens group, and toggles hide /
   assert.equal(g2.written.at(-1).partyId, "");
 });
 
+test("the zone fight tool: GM only, Tokens group, order 93, toggle, lit while a fight exists", () => {
+  const fight = { flags: { [M]: { zoneFight: { id: "f", clones: [] } } } };
+  const gm = setup();
+  globalThis.game.combats = [];
+  const c = { tokens: { tools: {} } };
+  gm.hooks.getSceneControlButtons(c);
+  const t = c.tokens.tools.sdeZoneFight;
+  assert.deepEqual([t.order, t.toggle, t.active, c.tokens.tools.sdeStage.order], [93, true, false, 91]);
+  globalThis.game.combats = [fight];
+  const c2 = { tokens: { tools: {} } };
+  gm.hooks.getSceneControlButtons(c2);
+  assert.equal(c2.tokens.tools.sdeZoneFight.active, true);
+  const p = setup({ gm: false });
+  const pc = { tokens: { tools: {} } };
+  p.hooks.getSceneControlButtons(pc);
+  assert.equal(pc.tokens.tools.sdeZoneFight, undefined);
+});
+
 test("hideStage is a no-op for players and when hidden, and keeps campId", async () => {
   const shown = { shown: true, place: "camp", image: "a.webp", campId: "c1", partyId: "p", kind: "", pageSceneId: "" };
   const p = setup({ gm: false, stage: shown });
