@@ -7,8 +7,9 @@ Foundry's windows and toolbar. It is the same on every scene, so it covers the
 map without you having to move the table anywhere. It is kept in a world setting,
 so it survives a reload and a player who joins late sees it too.
 
-This release has one place: the party's camp. Custom pictures, town and tavern
-places and zone combat are not here yet.
+This release has one place: the party's camp. Custom pictures and town and
+tavern places are not here yet. A fight with no battle map is drawn over it as
+[Zone Combat](Zone-Combat.md).
 
 ---
 
@@ -76,5 +77,5 @@ there shows Forest woods (camp).
 ## What it does not do yet
 
 - No custom pictures and no picture of your own choosing.
-- No town or tavern places, and no zone combat.
+- No town or tavern places.
 - It is not in the Settings list; the value sits in a hidden world setting.
