@@ -25,8 +25,8 @@ import { PRELOAD_STATE_KEYS } from "../encounter/battle-maps/encounter-preload-c
 import { L as t } from "../shared/i18n.mjs";
 
 const gold = (v) => `<span class="sde-hud-gold">${esc(v)}</span>`;
-const key = (action, label, { cls = "", hint = "" } = {}) =>
-  `<button type="button" class="sde-hud-key ${cls}" data-action="${action}"${hint ? ` data-tooltip="${esc(hint)}"` : ""}>${esc(label)}</button>`;
+const key = (action, label, { cls = "", hint = "", disabled = false } = {}) =>
+  `<button type="button" class="sde-hud-key ${cls}" data-action="${action}"${disabled ? " disabled" : ""}${hint ? ` data-tooltip="${esc(hint)}"${disabled ? ` title="${esc(hint)}"` : ""}` : ""}>${esc(label)}</button>`;
 /** The chevron that folds the panel (open) or unfolds the strip: the HUD's toggle of the encounter panel. */
 const chevron = (open) => {
   const label = t(open ? "SDE.clock.enc.fold" : "SDE.clock.enc.unfold");
@@ -167,12 +167,12 @@ export function encounterCard(enc) {
 
 /**
  * The panel, for a GM.
- * @param {{enc:object, cal:object, battle?:object|null, preload?:object|null, keep?:boolean, battleMaps?:boolean}} v
+ * @param {{enc:object, cal:object, battle?:object|null, preload?:object|null, keep?:boolean, battleMaps?:boolean, zoneFight?:boolean}} v
  *   enc: Overland's `encounter`; cal: the calendar; battle: the running battle (describeBattle's), null for none;
  *   preload: its readout (preloadSnapshot's); keep: the Keep this battle checkbox; battleMaps: false when the
  *   battle maps could not be loaded, so the panel has no battle buttons
  */
-export function encounterPanel({ enc, cal, battle = null, preload = null, keep = false, battleMaps = true }) {
+export function encounterPanel({ enc, cal, battle = null, preload = null, keep = false, battleMaps = true, zoneFight = false }) {
   const c = encounterCard(enc);
   const battling = battleMaps && canBattle(c);
   const check = t(enc.half === "night" ? "SDE.overland.check.night" : "SDE.overland.check.day", { time: dateParts(cal, enc.at).time });
@@ -211,6 +211,7 @@ export function encounterPanel({ enc, cal, battle = null, preload = null, keep =
       ${c.kind === "empty" ? "" : key("postEncounter", t("SDE.clock.enc.post"), { hint: t("SDE.clock.enc.postHint") })}
       ${battling && !battle ? key("battleMap", t("SDE.encounterMaps.hud.battleMap"), { hint: t("SDE.encounterMaps.hud.battleMapHint") })
         + key("chooseBattleMap", t("SDE.encounterMaps.hud.chooseMap"), { cls: "sde-hud-ghost", hint: t("SDE.encounterMaps.hud.chooseMapHint") }) : ""}
+      ${canBattle(c) ? key("zoneFight", t("SDE.stage.zone.encounterButton"), { cls: "sde-hud-ghost", hint: t(zoneFight ? "SDE.stage.zone.encounterRunning" : "SDE.stage.zone.encounterHint"), disabled: zoneFight }) : ""}
       ${key("openRoller", t("SDE.clock.enc.roller"), { cls: "sde-hud-ghost", hint: t("SDE.clock.enc.rollerHint") })}
       <span class="sde-hud-grow"></span>
       ${key("resume", t("SDE.overland.resume"), { cls: "sde-hud-primary", hint: t("SDE.overland.resumeHint") })}

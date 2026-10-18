@@ -8,8 +8,8 @@ map without you having to move the table anywhere. It is kept in a world setting
 so it survives a reload and a player who joins late sees it too.
 
 The party's camp is the automatic place. You can also keep your own list of
-pictures, see [Backdrop places](#backdrop-places). Town and tavern pages and zone
-combat are not here yet.
+pictures, see [Backdrop places](#backdrop-places). Town and tavern pages are not here yet. A fight with no battle map is drawn over it as
+[Zone Combat](Zone-Combat.md).
 
 ---
 
@@ -123,6 +123,6 @@ showing, so neither overwrites the other.
 
 ## What it does not do yet
 
-- No town or tavern pages, and no zone combat.
+- No town or tavern pages.
 - No pictures for town or tavern come with the module.
 - It is not in the Settings list; the values sit in hidden world settings.

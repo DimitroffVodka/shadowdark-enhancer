@@ -31,6 +31,7 @@ import { registerHexRules } from "./overland/hex-rules.mjs";
 import { Party } from "./party/party.mjs";
 import { registerCamping } from "./camping/camping.mjs";
 import { registerStage } from "./stage/stage.mjs";
+import { registerZoneFight } from "./stage/zone-fight.mjs";
 
 import { registerCarousing, carousingOpen, carousingOf, requestCarousing } from "./carousing/carousing.mjs";
 
@@ -154,7 +155,7 @@ const STYLESHEET_REV = "f0792b8bc0ee";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "76b08460d7d4";
+const BUILD_REV = "ed3e2284d301";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -453,6 +454,7 @@ Hooks.once("init", () => {
   registerPartyRoll();
   registerCamping();
   registerStage();
+  registerZoneFight();
   registerTempHp();
   registerCarousing();
 
