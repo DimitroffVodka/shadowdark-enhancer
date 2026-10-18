@@ -226,9 +226,11 @@ entries.
   night open; it then opens that party's Carousing tab. Until then the entry is
   greyed and says it opens when you start a night. Carousing needs a GM
   connected, so with none the entry stays greyed and says so (it updates when
-  the GM connects or leaves). A player confirms their own choice there only for
-  a character they own; seeing the party is enough to open the tab, not to
-  confirm for someone else.
+  the GM connects or leaves). Joining and confirming there also needs Owner on
+  the party actor: the Party sheet disables its controls for anyone who cannot
+  edit it, so a player who only observes the party sees the night and who has
+  confirmed, but cannot join or confirm. Give your players Owner on the party if
+  they should carouse from the tavern page.
 - **Rumors.** You get the usual Give rumors dialog. A player opens the Rumors
   Heard journal, which exists once any rumor has been given; until then the entry
   is greyed.
