@@ -7,7 +7,7 @@
  * leaving for one without a page closes it. A player can still close their own copy and bring it back with the same
  * button while it is up.
  *
- * Any scene can have a page. The first time the GM puts one up it is made, empty (the scene's name, every tile, no
+ * Any scene can have a page. The first time the GM puts one up it is made, empty (the scene's name, the four town tiles, no
  * merchants); its pencil opens the editor, where merchants are added.
  *
  * The windows are loaded when first asked for.

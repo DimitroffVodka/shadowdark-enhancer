@@ -33,10 +33,16 @@ test("a landing page always has every field, keeps the places in order, and drop
   assert.equal(page.title, "Hollowmere");
   assert.deepEqual(page.places, ["quests", "party"]);
   assert.deepEqual(page.merchants.map((m) => m.id), ["m1"]);     // the bad id, the repeated id and the repeated NPC are dropped
-  assert.deepEqual(normalizeLanding({ places: [] }).places, []);
+  assert.deepEqual(normalizeLanding({ places: [] }).places, []);   // a GM may turn every tile off
   assert.deepEqual(DEFAULT_PLACE_IDS, ["quests", "journals", "party", "downtime"]);   // a new page is a town, not a tavern
   assert.deepEqual(normalizeLanding({ places: ["rumors", "bogus", "carouse", "quests"] }).places, ["quests", "carouse", "rumors"]);
-  assert.ok(["carouse", "rumors"].every((id) => PLACE_IDS.includes(id)));         // the editor lists every allowed tile  // a GM may turn every tile off
+  assert.ok(["carouse", "rumors"].every((id) => PLACE_IDS.includes(id)));         // the editor lists every allowed tile
+});
+
+test("the editor's save keeps a ticked Carouse or Rumors tile and drops an unticked one", () => {
+  const saved = applyForm({}, { "place.quests": "on", "place.carouse": "on", "place.rumors": "on" });
+  assert.deepEqual(saved.places, ["quests", "carouse", "rumors"]);
+  assert.deepEqual(applyForm(saved, { "place.quests": "on", "place.rumors": "on" }).places, ["quests", "rumors"]);
 });
 
 test("the page is up for the table until the GM switches it off, and no other edit changes that", () => {

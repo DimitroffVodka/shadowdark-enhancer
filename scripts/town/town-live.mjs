@@ -12,7 +12,7 @@ import { pickBuyer } from "./town-view.mjs";
 /**
  * The GM's switch, for the whole table: the scene's page goes up or away on every client (town-entry-points.mjs
  * follows the change). Any scene can have a page: the first time the GM puts one up it is made, empty, with the
- * scene's own name and every tile on.
+ * scene's own name and the four town tiles on.
  */
 export async function switchTown(scene, shown) {
   await replaceModuleFlag(scene, LANDING_FLAG, setShown(landingOf(scene) ?? {}, shown));
@@ -34,7 +34,7 @@ export const buyerFor = (chosenId = null) => pickBuyer(buyerChoices(), {
  */
 export function redrawOnChange(app) {
   const redraw = foundry.utils.debounce(() => { if (app.rendered) app.render(); }, 120);
-  const hooks = ["updateScene", "updateActor", "createActor", "deleteActor", "createItem", "updateItem", "deleteItem", "createJournalEntry", "deleteJournalEntry"].map((name) => [name, Hooks.on(name, redraw)]);
+  const hooks = ["updateScene", "updateActor", "createActor", "deleteActor", "createItem", "updateItem", "deleteItem", "createJournalEntry", "deleteJournalEntry", "userConnected"].map((name) => [name, Hooks.on(name, redraw)]);
   return () => hooks.forEach(([name, id]) => Hooks.off(name, id));
 }
 
@@ -56,7 +56,9 @@ export async function openPlace(id, scene, deps = DEPS) {
   if (id === "party") return (await import("../party/party-app.mjs")).PartyApp.open();
   if (id === "downtime") return (await import("../downtime/downtime-app.mjs")).DowntimeApp.open();
   if (id === "carouse") {
-    const party = nightParty() ?? (game.user.isGM ? Party.selected() ?? Party.list().find(isNativeParty) : null);
+    // Only a native party can carouse (handleCarousing), so a legacy selected party is skipped.
+    const party = nightParty() ?? (game.user.isGM ? [Party.selected(), ...Party.list()].find(isNativeParty) : null);
+    if (!party && game.user.isGM) return ui.notifications.warn(game.i18n.localize("SDE.town.noParty"));
     return party ? (await deps.partyApp()).open(party, "carousing") : null;
   }
   if (id === "rumors") {

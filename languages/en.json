@@ -6326,6 +6326,7 @@
   "SDE.town.sub.downtime": "Train, carouse and recruit between adventures.",
   "SDE.town.sub.carouse": "Spend the night's coin on drink and company.",
   "SDE.town.sub.rumors": "What the regulars are saying.",
+  "SDE.town.noParty": "There is no party to carouse yet. Make one in the Party window first.",
   "SDE.town.hint.carouse": "Opens when the GM starts a night of carousing.",
   "SDE.town.hint.carouseGM": "The GM has to be connected to run the night.",
   "SDE.town.hint.rumors": "Nothing has been heard yet.",

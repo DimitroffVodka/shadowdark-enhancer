@@ -2,7 +2,7 @@
 // empty-gm. Built with the window's own view functions. The real window has no frame; the harness draws one, so the
 // fixture hides it. The painting is a SAMPLE drawn for the docs in the harness cache (never in the repo); the real one is the scene's own.
 import { placeTiles, purseText } from "../../../scripts/town/town-view.mjs";
-import { PLACE_IDS } from "../../../scripts/town/town-core.mjs";
+import { DEFAULT_PLACE_IDS, PLACE_IDS } from "../../../scripts/town/town-core.mjs";
 import { MERCHANTS, COINS, ACTOR, t } from "./_town.mjs";
 
 const TAVERN = ["quests", "party", "carouse", "rumors"];
@@ -30,7 +30,7 @@ const build = (state) => {
     context: {
       townName: "Hollowmere", tagline: "A market town at the edge of the Western Reach",
       blurb: "", merchants: empty ? [] : MERCHANTS.slice(0, 3).concat({ ...MERCHANTS[3], open: false }),
-      places: placeTiles(PLACE_IDS, { isGM, hasParty: true, downtimeOpen: false, activeQuests: 3, t }),
+      places: placeTiles(DEFAULT_PLACE_IDS, { isGM, hasParty: true, downtimeOpen: false, activeQuests: 3, t }),
       isGM, actorName: ACTOR, purse: purseText(COINS),
     },
   };

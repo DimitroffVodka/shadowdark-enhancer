@@ -219,12 +219,16 @@ Tick **Carouse** and **Rumors** in the page's settings (the pencil) and the same
 page becomes a tavern. A new page does not get these two; only the four town
 entries.
 
-- **Carouse.** You open the Carousing window on the party that has a night open,
-  or on the first party if none does, and start a night there. A player can open
-  it only while a party they can see has a night open; it then opens that party's
-  Carousing tab. Until then the entry is greyed and says it opens when you start
-  a night. Carousing needs a GM connected, so with none the entry stays greyed and
-  says so.
+- **Carouse.** You open the Carousing window on the party that has a night
+  open, else on the party you have selected if it is a native one, else on the
+  first native party, and start a night there. With no native party you get a
+  notice instead. A player can open it only while a party they can see has a
+  night open; it then opens that party's Carousing tab. Until then the entry is
+  greyed and says it opens when you start a night. Carousing needs a GM
+  connected, so with none the entry stays greyed and says so (it updates when
+  the GM connects or leaves). A player confirms their own choice there only for
+  a character they own; seeing the party is enough to open the tab, not to
+  confirm for someone else.
 - **Rumors.** You get the usual Give rumors dialog. A player opens the Rumors
   Heard journal, which exists once any rumor has been given; until then the entry
   is greyed.

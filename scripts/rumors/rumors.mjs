@@ -111,7 +111,7 @@ export const hasRumorsHeard = () => !!ledger();
 /** Open the "Rumors Heard" journal (players can read it); false when it does not exist yet. */
 export function openRumorsHeard() {
   const log = ledger();
-  if (!log) return false;
+  if (!log || log.visible === false) return false;
   log.sheet.render(true);
   return true;
 }
