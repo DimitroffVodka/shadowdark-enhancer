@@ -66,6 +66,11 @@ export function purchaseCard({ title, buyer, img, name, html }) {
     + `<span class="cc-name">${esc(name)}<small>${html}</small></span></div>`)}`);
 }
 
+/** A game at a town table; `html` is the escaped result lines. `tone` is "good" for a win, "bad" for a loss, "" for a tie. */
+export function gameCard({ title, who, icon = "dice", html, tone = "" }) {
+  return card(`${head(icon, title, `<span class="ui-chip">${esc(who)}</span>`)}${body(`<p class="cc-text">${html}</p>`)}`, tone);
+}
+
 /** One compact line: a picture (or an icon), the text and an optional second line. `html` is escaped markup. */
 export function compactCard({ img, icon, tone = "", html, aux = "", big = "" }) {
   const lead = big !== "" ? `<span class="cc-big">${esc(big)}</span>`

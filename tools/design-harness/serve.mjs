@@ -130,6 +130,7 @@ ${moduleStyles().map((s) => `@import url("/modules/${MODULE_ID}/${s}") layer(mod
 @layer modules{.application.shadowdark .window-header .window-title{font-size:inherit;font-family:inherit}}</style>
 ${w.css ? `<style>${w.css}</style><style>@layer reset{${w.css}}</style>` : ""}
 ${q.get("embed") ? "<style>#design-check{position:static;display:inline-block;margin:10px 0 0;max-width:none}</style>" : ""}
+${q.get("clean") ? "<style>.harness-toolbar,#design-check{display:none!important}</style>" : ""}
 <style>body{display:block;height:auto;min-height:100vh;padding:16px;background:#2b2b2b url("/ui/denim075.png")}
 .application{position:relative!important;inset:auto!important;margin:0 0 16px;width:${px(width)};height:${px(h)};max-height:calc(100vh - 80px)}
 .harness-toolbar{display:flex;gap:6px;align-items:center;margin:0 0 10px;font:12px sans-serif;color:#aaa}.harness-toolbar button{padding:3px 10px;border:1px solid #555;border-radius:4px;background:#222;color:#ddd;cursor:pointer}

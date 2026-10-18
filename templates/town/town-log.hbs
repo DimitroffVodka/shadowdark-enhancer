@@ -1,0 +1,46 @@
+<div class="ui-shell tl-log">
+  <header class="ui-head">
+    <div class="ui-art tl-log-art"><i class="fa-solid fa-receipt"></i></div>
+    <div class="ui-head-text">
+      <h2 class="ui-title">{{localize "SDE.town.log.title"}}</h2>
+      <p class="ui-sub">{{#if scopeTown}}{{townName}}{{else}}{{localize "SDE.town.log.everyTown"}}{{/if}}</p>
+    </div>
+    <div class="ui-stats">
+      <div class="ui-stat"><span class="ui-label">{{localize "SDE.town.log.paidIn"}}</span><span class="ui-value">{{paidIn}}</span></div>
+      <div class="ui-stat"><span class="ui-label">{{localize "SDE.town.log.paidOut"}}</span><span class="ui-value">{{paidOut}}</span></div>
+      <div class="ui-stat"><span class="ui-label">{{localize "SDE.town.log.kept"}}</span><span class="ui-value {{#if keptLoss}}tl-loss{{/if}}">{{kept}}</span></div>
+    </div>
+  </header>
+
+  <div class="ui-body">
+    <div class="tl-cats">
+      {{#each kinds}}<button type="button" class="ui-chip {{#if on}}on{{/if}}" data-action="kind" data-kind="{{id}}">{{label}}</button>{{/each}}
+      {{#if hasScene}}<button type="button" class="ui-chip {{#if scopeTown}}on{{/if}}" data-action="scope" aria-pressed="{{#if scopeTown}}true{{else}}false{{/if}}">{{localize "SDE.town.log.thisTown"}}</button>{{/if}}
+      {{#if places.length}}
+      <select name="place" aria-label="{{localize 'SDE.town.log.place'}}">
+        <option value="">{{localize "SDE.town.log.allPlaces"}}</option>
+        {{#each places}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}} ({{n}})</option>{{/each}}
+      </select>
+      {{/if}}
+    </div>
+
+    {{#if rows.length}}
+    <div class="ui-list">
+      {{#each rows}}
+      <div class="ui-row">
+        <span class="ui-art tl-log-kind"><i class="fa-solid {{icon}}"></i></span>
+        <div class="ui-row-main"><span class="ui-row-name">{{title}}</span><span class="ui-row-sub">{{sub}}</span></div>
+        <span class="ui-row-meta tl-amount {{#if gain}}gain{{/if}} {{#if loss}}loss{{/if}}">{{amount}}</span>
+      </div>
+      {{/each}}
+    </div>
+    {{else}}
+    <div class="ui-empty"><i class="fa-solid fa-receipt"></i><span>{{localize "SDE.town.log.empty"}}</span></div>
+    {{/if}}
+  </div>
+
+  <footer class="ui-status">
+    <span><i class="fa-solid fa-comments"></i> {{localize "SDE.town.log.note"}}</span>
+    <div class="ui-right"><span class="ui-muted">{{localize "SDE.town.log.count" n=count}}</span></div>
+  </footer>
+</div>

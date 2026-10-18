@@ -30,6 +30,8 @@ import { TravelBar } from "./overland/overland-bar.mjs";
 import { registerHexRules } from "./overland/hex-rules.mjs";
 import { Party } from "./party/party.mjs";
 import { registerCamping } from "./camping/camping.mjs";
+import { registerStage } from "./stage/stage.mjs";
+import { registerZoneFight } from "./stage/zone-fight.mjs";
 
 import { registerCarousing, carousingOpen, carousingOf, requestCarousing } from "./carousing/carousing.mjs";
 
@@ -116,6 +118,7 @@ import { registerQuestClock } from "./quests/quest-clock.mjs";
 import { registerQuestNotices } from "./quests/quest-notices.mjs";
 import { Troubles, registerTroubles } from "./troubles/troubles.mjs";
 import { Rumors, registerRumors } from "./rumors/rumors.mjs";
+import { registerTownEntryPoints } from "./town/town-entry-points.mjs";
 import { registerActorTypes, WARBAND_TYPE } from "./actors/register-actors.mjs";
 import { bastionApi } from "./bastion/register-bastion.mjs";
 import { registerTraps, trapsApi } from "./traps/traps.mjs";
@@ -140,7 +143,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "a4bd1b554f72";
+const STYLESHEET_REV = "3fa73fa97223";
 
 // The same problem for the SCRIPTS, which cannot be solved the same way: their
 // URLs come from the manifest, which Foundry validates as real package paths,
@@ -155,7 +158,7 @@ const STYLESHEET_REV = "a4bd1b554f72";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "b183957f8b13";
+const BUILD_REV = "e60fc096486c";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -391,6 +394,8 @@ Hooks.once("init", () => {
   installCompoundRollTable();
   // After the compound wrap: a GM's hand-rolled rumor is marked drawn (#190).
   registerRumors();
+  // Town landing page: the GM's "Landing page" entry in the Scenes directory menu.
+  registerTownEntryPoints();
 
   // Handlebars helpers
   Handlebars.registerHelper("includes", (arr, val) => {
@@ -457,6 +462,8 @@ Hooks.once("init", () => {
   registerPartyLight();
   registerPartyRoll();
   registerCamping();
+  registerStage();
+  registerZoneFight();
   registerTempHp();
   registerCarousing();
 

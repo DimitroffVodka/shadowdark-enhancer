@@ -14,6 +14,8 @@ export class CampingApp extends HandlebarsApplicationMixin(ApplicationV2) {
     declineFuel: function () { return this.change("fuel", { accept: false }); },
     night: function () { return this.change("night"); },
     acceptShortages: function () { return this.change("night", { acceptShortages: true }); },
+    // Lazy: stage.mjs imports camping.mjs. The Party sheet routes its embedded copy of this button here too (party-app activityAction).
+    showCampPicture: async function () { if (!game.user.isGM) return; return (await import("../stage/stage.mjs")).raiseByHand(this.party); },
   } };
   static PARTS = { body: { template: `modules/${MODULE_ID}/templates/camping/camping.hbs`, scrollable: [".sde-camping-body"] } };
   constructor(party, options = {}, host = null) { super(options); this.party = party; this.host = host; }
@@ -42,7 +44,7 @@ export class CampingApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
   async _prepareContext() {
     const camp = campOf(this.party), manager = Party.canManage(this.party);
-    if (!camp) return { title: this.party.name, embedded: !!this.host, manager, empty: true, error: this.error };
+    if (!camp) return { title: this.party.name, embedded: !!this.host, manager, isGM: game.user.isGM, empty: true, error: this.error };
     const setup = camp.phase === "setup", fuel = camp.phase === "fuel", plan = campTorchPlan(this.party, camp);
     const { campContext } = await import("../overland/overland.mjs");
     const context = campContext(), food = foodPreview(this.party, camp, camp.each ?? context.each, camp.day ?? context.day);

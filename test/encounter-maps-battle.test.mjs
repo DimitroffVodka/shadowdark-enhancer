@@ -377,6 +377,7 @@ function seedActors(w, { pcs = 3, wolf: wolfOptions = {} } = {}) {
   const wolf = w.addActor({ id: "wolf", type: "NPC", name: "Wolf", prototypeToken: { name: "Wolf", ...wolfOptions.prototypeToken } });
   const foeSource = sourceFor(wolfOptions.sourceName ?? "Wolf", wolfOptions.source);
   _deps.party = async () => party;
+  _deps.zoneFight = async () => null;
   _deps.foe = async (uuid) => (uuid === WOLF_UUID ? { actor: wolf, source: foeSource } : null);
   return { party, wolf };
 }
@@ -1370,6 +1371,39 @@ test("bringTable: activates the scene, makes the combat with noAutoEnroll and en
   assert.deepEqual(answer.battle, stored);
   assert.deepEqual(world.preload.log, [["stop", scene.id]], "the readout is over: the table is on the map");
   assert.deepEqual(scene.updates.map((u) => u.keys), [[`flags.${MOD}.battle`], [`flags.${MOD}.battle`]], "setUp's write and this one, both through the one flag");
+});
+
+test("bringTable: hides the Backdrop before the scene is activated, and when the scene is already active", async () => {
+  const { battle, scene } = await staged();
+  const log = [];
+  _deps.stage = async () => ({ hideStage: async () => { log.push(["hide", world.activated.length]); } });
+  await BattleMaps.bringTable(battle.id);
+  assert.deepEqual(log, [["hide", 0]], "hidden before scene.activate ran");
+  assert.deepEqual(world.activated, [scene.id]);
+  await BattleMaps.bringTable(battle.id);   // the scene is active now: nothing activates, the Backdrop is still cleared
+  assert.deepEqual(log, [["hide", 0], ["hide", 1]]);
+  assert.deepEqual(world.activated, [scene.id], "not activated twice");
+});
+
+test("bringTable: refused with a zone fight running, nothing activated or created", async () => {
+  const { battle, scene } = await staged();
+  _deps.zoneFight = async () => ({ id: "zone" });
+  const hid = [];
+  _deps.stage = async () => ({ hideStage: async () => { hid.push(1); } });
+  assert.equal(await BattleMaps.bringTable(battle.id), null);
+  assert.deepEqual(world.activated, []);
+  assert.equal(world.combatList.length, 0);
+  assert.deepEqual(hid, []);
+  assert.equal(scene.active, false);
+  assert.deepEqual(world.keys("warn").at(-1), "SDE.stage.zone.bringRefused");
+});
+
+test("bringTable: a Backdrop that cannot be hidden never blocks the battle", async () => {
+  const { battle, scene } = await staged();
+  _deps.stage = async () => { throw new Error("stage.mjs is broken"); };
+  const answer = await BattleMaps.bringTable(battle.id);
+  assert.equal(answer.scene, scene);
+  assert.equal(scene.active, true);
 });
 
 test("bringTable: pressed twice it makes one combat and enrols nobody twice; a token added since is enrolled", async () => {
