@@ -57,15 +57,12 @@ export function layoutBands(combatants) {
   return bands;
 }
 
-/**
- * Player-facing HP bar, no numbers. The Crawl Strip colours inline (five tiers
- * at 75/50/25 percent, no pure helper), so these cutoffs are this bar's own.
- */
+/** Player-facing HP bar, no numbers: the Crawl Strip's five tiers (dead, critical, low, mid, ok). */
 export function hpBand(hp, max) {
   const m = Number(max), h = Number(hp);
-  if (!(m > 0) || !Number.isFinite(h)) return { ratio: 0, tone: "down" };
+  if (!(m > 0) || !Number.isFinite(h)) return { ratio: 0, tone: "dead" };
   const ratio = Math.max(0, Math.min(1, h / m));
-  const tone = h <= 0 ? "down" : ratio > 0.66 ? "ok" : ratio > 0.33 ? "hurt" : "bad";
+  const tone = h <= 0 ? "dead" : h <= m * 0.25 ? "critical" : h <= m * 0.5 ? "low" : h <= m * 0.75 ? "mid" : "ok";
   return { ratio, tone };
 }
 

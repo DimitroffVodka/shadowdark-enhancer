@@ -492,7 +492,8 @@
     "3.24": [
       "scripts/stage/stage-core.mjs",
       "scripts/stage/stage.mjs",
-      "scripts/stage/zone-core.mjs"
+      "scripts/stage/zone-core.mjs",
+      "scripts/stage/zone-fight.mjs"
     ]
   },
   "descriptions": {
@@ -967,6 +968,7 @@
     "scripts/hex-map/bake-map.mjs": "Hex Data's Bake map, pure parts and the sequence: which baked scenes a map has, which one a new bake stands in for, what a bake over a played-on scene would not carry (tokens, recorded hexes), the new scene's name, and fill-keyed-ground / hex.bakeMap / remove-ground with the removal guaranteed.",
     "scripts/stage/stage-core.mjs": "Stage's Foundry-free half: `normalizeStage` (the only reader of the stage setting), `campArtFor` (a terrain's camp picture, null on water) and `campTransition` (the raise/drop table for the Camp place; one camp id raises once).",
     "scripts/stage/stage.mjs": "Stage's layer and switch: registers the world setting `stage` (every client redraws from its onChange and on ready), keeps one `div#sde-stage` behind Foundry's UI, adds the GM's Backdrop tool to the Tokens toolbar, watches party updates (`onPartyCamp`: raises the camp picture only on the write that begins a camp, drops it when the camp ends), and exports `raiseByHand`, `pickParty`, `partyTerrain`, `hideStage` and `onPartyCamp`.",
-    "scripts/stage/zone-core.mjs": "Zone fight's Foundry-free core: the Close/Near/Far bands (`normalizeZone`, `stepZone`, `foeZoneFor` via `distanceBand`), clone names and create data (`cloneNames`, `cloneActorData`), who may move a chip (`canMoveZone`), `layoutBands`, the player-facing `hpBand`, and the one definition of a zone fight (`isZoneFight`, `zoneFightOf`)."
+    "scripts/stage/zone-core.mjs": "Zone fight's Foundry-free core: the Close/Near/Far bands (`normalizeZone`, `stepZone`, `foeZoneFor` via `distanceBand`), clone names and create data (`cloneNames`, `cloneActorData`), who may move a chip (`canMoveZone`), `layoutBands`, the player-facing `hpBand` (the Crawl Strip's five tones), and the one definition of a zone fight (`isZoneFight`, `zoneFightOf`).",
+    "scripts/stage/zone-fight.mjs": "Zone fight's Foundry side: one global Combat of tokenless combatants (`startZoneFight`, `findZoneFight`, `addFoe` cloning the foe into the flagged \"Zone fight foes\" folder, `moveZone`, `applyZoneDamage` through `applyDamage`, `toggleDefeated`, `endZoneFight`), and the `deleteCombat` handler that waits for the loot drop (`lootSettled`) and deletes the recorded clones by exact id where `zoneClone` matches."
   }
 }

@@ -79,17 +79,19 @@ test("layoutBands groups by zone in input order and survives junk", () => {
   for (const j of [null, undefined, "x", {}]) assert.deepEqual(layoutBands(j), { close: [], near: [], far: [] });
 });
 
-test("hpBand gives a ratio and a tone, never numbers", () => {
+test("hpBand gives a ratio and the strip's five tones, never numbers", () => {
   assert.deepEqual(hpBand(10, 10), { ratio: 1, tone: "ok" });
-  assert.equal(hpBand(7, 10).tone, "ok");
-  assert.equal(hpBand(6, 10).tone, "hurt");
-  assert.equal(hpBand(4, 10).tone, "hurt");
-  assert.equal(hpBand(3, 10).tone, "bad");
-  assert.equal(hpBand(1, 10).tone, "bad");
-  assert.deepEqual(hpBand(0, 10), { ratio: 0, tone: "down" });
-  assert.deepEqual(hpBand(-4, 10), { ratio: 0, tone: "down" });
+  assert.equal(hpBand(8, 10).tone, "ok");
+  assert.equal(hpBand(7.5, 10).tone, "mid");
+  assert.equal(hpBand(6, 10).tone, "mid");
+  assert.equal(hpBand(5, 10).tone, "low");
+  assert.equal(hpBand(3, 10).tone, "low");
+  assert.equal(hpBand(2.5, 10).tone, "critical");
+  assert.equal(hpBand(1, 10).tone, "critical");
+  assert.deepEqual(hpBand(0, 10), { ratio: 0, tone: "dead" });
+  assert.deepEqual(hpBand(-4, 10), { ratio: 0, tone: "dead" });
   assert.equal(hpBand(20, 10).ratio, 1);
-  for (const [h, m] of [[5, 0], [5, -1], [5, "x"], [NaN, 5], [undefined, 5], [null, null]]) assert.deepEqual(hpBand(h, m), { ratio: 0, tone: "down" });
+  for (const [h, m] of [[5, 0], [5, -1], [5, "x"], [NaN, 5], [undefined, 5], [null, null]]) assert.deepEqual(hpBand(h, m), { ratio: 0, tone: "dead" });
 });
 
 test("isZoneFight and zoneFightOf read one flag", () => {

@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-1995 tracked files · ~256,200 lines of code/markup across scripts+templates+styles+test.
+1997 tracked files · ~256,600 lines of code/markup across scripts+templates+styles+test.
 `v0.19.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 1505 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 1507 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 172 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 271 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 | `scavenger/scavenger-core.mjs` | 171 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
@@ -297,7 +297,7 @@
 | `loot-generator-app.mjs` | 317 | Roll a loot table, work a running batch, whisper claimable cards. |
 | `loot-generator.mjs` | 234 | RollTable → structured loot batch (documents, coins, flavor). |
 | `loot-delivery.mjs` | 490 | Shared claimable chat card; first-claim-wins, GM-authoritative over an authenticated relay query. |
-| `loot-drops.mjs` | 195 | Auto-drop loot on NPC defeat at combat end. |
+| `loot-drops.mjs` | 205 | Auto-drop loot on NPC defeat at combat end. |
 | `loot-setup-app.mjs` | 238 | Browsable Loot & Treasure library; rows unlock from the GM's own PDF. |
 | `loot-value.mjs` | 68 | gp value → Shadowdark XP quality tiers. |
 | `loot-table-catalog.mjs` | 317 | Loot/treasure table catalog + classifier across Core, CS1–6, WR (metadata only). |
@@ -643,7 +643,8 @@ A place the party owns: the four types and twenty upgrades, built a week at a ti
 |---|---:|---|
 | `stage-core.mjs` | 67 | Stage's Foundry-free half: `normalizeStage` (the only reader of the stage setting), `campArtFor` (a terrain's camp picture, null on water) and `campTransition` (the raise/drop table for the Camp place; one camp id raises once). |
 | `stage.mjs` | 108 | Stage's layer and switch: registers the world setting `stage` (every client redraws from its onChange and on ready), keeps one `div#sde-stage` behind Foundry's UI, adds the GM's Backdrop tool to the Tokens toolbar, watches party updates (`onPartyCamp`: raises the camp picture only on the write that begins a camp, drops it when the camp ends), and exports `raiseByHand`, `pickParty`, `partyTerrain`, `hideStage` and `onPartyCamp`. |
-| `zone-core.mjs` | 80 | Zone fight's Foundry-free core: the Close/Near/Far bands (`normalizeZone`, `stepZone`, `foeZoneFor` via `distanceBand`), clone names and create data (`cloneNames`, `cloneActorData`), who may move a chip (`canMoveZone`), `layoutBands`, the player-facing `hpBand`, and the one definition of a zone fight (`isZoneFight`, `zoneFightOf`). |
+| `zone-core.mjs` | 77 | Zone fight's Foundry-free core: the Close/Near/Far bands (`normalizeZone`, `stepZone`, `foeZoneFor` via `distanceBand`), clone names and create data (`cloneNames`, `cloneActorData`), who may move a chip (`canMoveZone`), `layoutBands`, the player-facing `hpBand` (the Crawl Strip's five tones), and the one definition of a zone fight (`isZoneFight`, `zoneFightOf`). |
+| `zone-fight.mjs` | 159 | Zone fight's Foundry side: one global Combat of tokenless combatants (`startZoneFight`, `findZoneFight`, `addFoe` cloning the foe into the flagged "Zone fight foes" folder, `moveZone`, `applyZoneDamage` through `applyDamage`, `toggleDefeated`, `endZoneFight`), and the `deleteCombat` handler that waits for the loot drop (`lootSettled`) and deletes the recorded clones by exact id where `zoneClone` matches. |
 
 A full-screen picture every client shows behind Foundry's UI, kept in one world setting. Phase 1a raises a Camp place when a camp starts. Phase 3 (zone combat) adds its pure core, zone-core.mjs.
 <!-- inventory:scripts:end -->
