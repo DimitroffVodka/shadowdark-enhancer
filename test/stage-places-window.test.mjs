@@ -389,3 +389,18 @@ test("a rejected write warns and logs instead of throwing", async () => {
   assert.equal(logged.length, 2);
   assert.ok(en["SDE.stage.places.saveFailed"]);
 });
+
+test("a rejected Show, Hide or Replace write warns instead of rejecting", async () => {
+  const e = setup({ places: [PL("a")], stage: { shown: true, place: "a", image: "x.webp" } });
+  globalThis.game.settings.set = async () => { throw new Error("nope"); };
+  const err = console.error;
+  console.error = () => {};
+  try {
+    const app = new StagePlacesApp();
+    await app._onShow(null, { dataset: { placeId: "a" } });
+    await app._onHide();
+    app._replaceFile = async () => { throw new Error("nope"); };
+    await app._onReplaceFile({});
+  } finally { console.error = err; }
+  assert.deepEqual(e.notes, ["SDE.stage.places.saveFailed", "SDE.stage.places.saveFailed", "SDE.stage.places.saveFailed"]);
+});

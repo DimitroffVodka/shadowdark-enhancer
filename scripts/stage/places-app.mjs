@@ -112,16 +112,18 @@ export class StagePlacesApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return updatePlaceInList(id, { name });
   }
 
-  _onShow(event, target) { return showPlace(target.dataset.placeId); }
+  _onShow(event, target) { return safely(() => showPlace(target.dataset.placeId)); }
 
-  _onHide() { return hideStage(); }
+  _onHide() { return safely(() => hideStage()); }
 
   _onReplace(event, target) {
     const id = target.dataset.placeId;
     for (const el of this.element.querySelectorAll("[data-replace-file]")) if (el.dataset.replaceFile === id) el.click();
   }
 
-  async _onReplaceFile(el) {
+  _onReplaceFile(el) { return safely(() => this._replaceFile(el)); }
+
+  async _replaceFile(el) {
     const file = el.files?.[0];
     const id = el.dataset.replaceFile;
     if (!file) return;
