@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-2005 tracked files · ~257,800 lines of code/markup across scripts+templates+styles+test.
+2005 tracked files · ~257,900 lines of code/markup across scripts+templates+styles+test.
 `v0.19.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -238,7 +238,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `crawl-bar.mjs` | 827 | GM-only persistent bottom bar above the macro bar (mode toggles, tools, launchers, and a running battle map's item and panel, #485). |
+| `crawl-bar.mjs` | 832 | GM-only persistent bottom bar above the macro bar (mode toggles, tools, launchers, and a running battle map's item and panel, #485). |
 | `crawl-bar-core.mjs` | 138 | The crawl bar's Foundry-free half: which controls each mode shows, the overland badge text, and the Tools panel's sections. |
 
 ### 3.5 `scripts/encounter/` — the Encounter Roller
@@ -643,10 +643,10 @@ A place the party owns: the four types and twenty upgrades, built a week at a ti
 |---|---:|---|
 | `stage-core.mjs` | 67 | Stage's Foundry-free half: `normalizeStage` (the only reader of the stage setting), `campArtFor` (a terrain's camp picture, null on water) and `campTransition` (the raise/drop table for the Camp place; one camp id raises once). |
 | `stage.mjs` | 125 | Stage's layer and switch: registers the world setting `stage` (every client redraws from its onChange and on ready), keeps one `div#sde-stage` behind Foundry's UI, adds the GM's Backdrop tool to the Tokens toolbar, watches party updates (`onPartyCamp`: raises the camp picture only on the write that begins a camp, drops it when the camp ends), and exports `raiseByHand`, `pickParty`, `partyTerrain`, `hideStage` and `onPartyCamp`. |
-| `zone-board-core.mjs` | 87 | The zone board's Foundry-free half: `boardContext` turns a Combat, a viewer and the stage into three bands (Far, Near, Close) of chips, with the HP rule per viewer (numbers for the GM and for any PC, a bar only for a foe), marks, status icons, controls only where `canMoveZone` allows, and the opaque-backing flag. |
+| `zone-board-core.mjs` | 85 | The zone board's Foundry-free half: `boardContext` turns a Combat, a viewer and the stage into three bands (Far, Near, Close) of chips, with the HP rule per viewer (numbers for the GM and for any PC, a bar only for a foe), marks, status icons, controls only where `canMoveZone` allows, and the opaque-backing flag. |
 | `zone-board.mjs` | 171 | The zone board layer: `div#sde-zone-board` (region, z 0, after `#sde-stage`) drawn from `templates/stage/zone-board.hbs` whenever a zone fight exists, redrawn once per tick from the Combat, Combatant, Actor, effect and `stage` hooks (`registerZoneBoard`, called by `registerZoneFight`), one delegated click listener for closer, farther, damage, heal and defeated. |
 | `zone-core.mjs` | 77 | Zone fight's Foundry-free core: the Close/Near/Far bands (`normalizeZone`, `stepZone`, `foeZoneFor` via `distanceBand`), clone names and create data (`cloneNames`, `cloneActorData`), who may move a chip (`canMoveZone`), `layoutBands`, the player-facing `hpBand` (the Crawl Strip's five tones), and the one definition of a zone fight (`isZoneFight`, `zoneFightOf`). |
-| `zone-fight.mjs` | 195 | Zone fight's Foundry side: one global Combat of tokenless combatants (`startZoneFight`, `findZoneFight`, `addFoe` cloning the foe into the flagged "Zone fight foes" folder, `moveZone`, `applyZoneDamage` through `applyDamage`, `toggleDefeated`, `endZoneFight`), and the `deleteCombat` handler that waits for the loot drop (`lootSettled`) and deletes the recorded clones by exact id where `zoneClone` matches. |
+| `zone-fight.mjs` | 194 | Zone fight's Foundry side: one global Combat of tokenless combatants (`startZoneFight`, `findZoneFight`, `addFoe` cloning the foe into the flagged "Zone fight foes" folder, `moveZone`, `applyZoneDamage` through `applyDamage`, `toggleDefeated`, `endZoneFight`), and the `deleteCombat` handler that waits for the loot drop (`lootSettled`) and deletes the recorded clones by exact id where `zoneClone` matches. |
 
 A full-screen picture every client shows behind Foundry's UI, kept in one world setting. Phase 1a raises a Camp place when a camp starts. Phase 3 (zone combat) adds its pure core, zone-core.mjs.
 <!-- inventory:scripts:end -->

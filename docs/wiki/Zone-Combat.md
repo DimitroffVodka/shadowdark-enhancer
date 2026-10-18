@@ -80,6 +80,7 @@ There is no grid and no dragging between bands.
 - **Defeat.** A foe taken to 0 HP is marked **Defeated** and its turn is
   skipped. The GM also has a **Defeated** toggle on each chip for a foe that runs
   away or surrenders.
+- **Healing a defeated foe does not clear Defeated.** Use the Defeated toggle on its chip.
 - **Hidden foes.** A foe the GM has hidden in the tracker is not shown to
   players.
 
@@ -104,6 +105,8 @@ in **Zone fight foes**. Delete them by hand; nothing sweeps that folder for you.
   fight exists. The Battle map button itself still works.
 - **Start Combat** on the Crawl Bar is refused with a notice while a zone fight
   exists, because it would add every character on the scene a second time.
+- **Add Tokens** on the Crawl Bar is refused with a notice while a zone fight
+  exists, because a zone fight has no tokens.
 - **Parry and Taunt** need a token target and do not work in a zone fight.
 - **The system's own apply-damage buttons** in chat need a token and do nothing
   here. Use the HP popover.

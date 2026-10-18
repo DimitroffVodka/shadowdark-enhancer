@@ -21,13 +21,11 @@ function orderedCombatants(combat) {
   return [...turns.filter(Boolean), ...all.filter((c) => !seen.has(c.id))];
 }
 
-/** One of this fight's clones, or a hostile prototype. */
+/** A foe is a clone of THIS fight, nothing else: disposition says nothing (Player prototypes default hostile). */
 function isFoeOf(actor, fight) {
   if (!actor) return false;
   const flag = flagsOf(actor).zoneClone;
-  if (flag && (!fight || flag === fight.id)) return true;
-  if (fight?.clones.includes(actor.id)) return true;
-  return actor.prototypeToken?.disposition === (globalThis.CONST?.TOKEN_DISPOSITIONS?.HOSTILE ?? -1);
+  return !!flag && (!fight || flag === fight.id);
 }
 
 function statusIcons(actor) {

@@ -6,8 +6,10 @@
   pointer-events: auto;
   container-type: inline-size;
   box-sizing: border-box;
-  /* clear of the scene navigation (top), the sidebar (right) and the hotbar (bottom) */
-  padding: 64px calc(var(--sidebar-width, 300px) + 32px) 104px 16px;
+  /* Clear of Foundry's UI, measured live (1366x768 and 1280x800, sidebar open, 2-row hotbar, Crawl Strip up):
+     top 148 = Crawl Strip bottom 139 + 9; left 104 = scene controls right edge 88 + 16;
+     right 360 = open sidebar 348 + 12; bottom 192 = 2-row hotbar (128) + its offset (55) + 9. The stack scrolls when the bands do not fit. */
+  padding: 148px calc(var(--sidebar-width, 300px) + 60px) 192px 104px;
   background: none;
   border: 0;
   overflow: hidden;

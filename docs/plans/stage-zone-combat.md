@@ -1,6 +1,6 @@
 # Stage phase 3: zone combat on the Backdrop (plan v2, 2026-10-17, after the Opus review)
 
-Status now: built on `feat/stage-zone-combat`; lane-checked
+Status now: built on `feat/stage-zone-combat`; lane-checked 2026-10-18 with a real Player login: see the PR for what was and was not run live
 
 STATUS: REVIEWED (Opus-High review 2026-10-17: FIX, all findings folded in below). May be built after phase 1b.
 
@@ -23,7 +23,7 @@ A fight with no battle map: a board shows three bands, **Close / Near / Far**, o
 
 - **Zones** `close`, `near`, `far`, relative to the party's front line. PCs start `close`. A foe's starting zone comes from `distanceBand(roll)` in `scripts/encounter/battle-maps/encounter-battle-core.mjs:36-41` (1 close, 2-4 near, 5-6 far; no roll means near) or from the band the GM dropped it on.
 - **Movement is a step** (closer or farther by ONE band), advisory, never blocked: a visual ledger.
-- **Visibility**: respect core's `combatant.visible` (a GM can hide a foe). Players see a hostile foe's HP as a coloured bar only, no numbers, AC or movement (the Crawl Strip's rule, #163, `scripts/crawl-strip/crawl-strip.mjs:752-756`); for a tokenless foe read the disposition from `actor.prototypeToken`.
+- **Visibility**: respect core's `combatant.visible` (a GM can hide a foe). Players see a hostile foe's HP as a coloured bar only, no numbers, AC or movement (the Crawl Strip's rule, #163, `scripts/crawl-strip/crawl-strip.mjs:752-756`); a foe is only a clone of this fight (`zoneClone` flag), never read from disposition (Player prototypes default hostile).
 - **Defeat**: damage applied through the board's popover calls `actor.applyDamage(n)`, and the system marks a foe at 0 HP defeated (`ActorSD#applyDamage` calls `_setDefeated`, `ActorSD.mjs:124-137,221-260`, which sets `combatant.defeated = true` on every combat's combatant for that `actorId`, tokenless included, skipping only the status icon) and turn-skip already skips a 0-HP NPC's turn (`turn-skip-core.mjs:119-124`). The GM's defeated toggle is only for foes that flee or surrender. (The lane's "no defeat at 0 HP" came from a raw HP write, which is why damage must never be a raw write.)
 
 ## Data

@@ -1,7 +1,7 @@
 // The zone fight board (a body-level layer, not a window): templates/stage/zone-board.hbs with the context
 // scripts/stage/zone-board-core.mjs boardContext builds from plain stand-ins for a Combat, so the chips, the HP rule per viewer
-// and the controls per viewer are the real code. The layer sits in a box the size of the viewport with mock stand-ins for the
-// scene navigation (top), sidebar (right) and hotbar (bottom) that the board must stay clear of. Use --w=1200 --h=800 for 1280x800.
+// and the controls per viewer are the real code. The layer sits in a box the size of the viewport with mock stand-ins, sized from the lane (1366x768), for the
+// scene controls (left), Crawl Strip (top), open sidebar (right) and 2-row hotbar plus Crawl Bar (bottom) that the board must stay clear of. Use --w=1200 --h=800 for 1280x800.
 //
 // State: gm | player | empty | long
 //   gm      header with Round 3, the drop hint and End fight; 6 combatants over the three bands: a turn highlight, a defeated, a hidden foe, status icons, a damage popover open
@@ -65,10 +65,12 @@ function draw(s, backed) {
   const picture = backed ? "" : "background:linear-gradient(#27406b,#5e7a46 60%,#2d3b22)";
   return `<div style="position:relative;width:100%;height:calc(100vh - 32px);overflow:hidden;${picture}">
 <div id="sde-zone-board" class="sde-ui${backed ? " zb-backed" : ""}" role="region" aria-label="${en["SDE.stage.zone.boardLabel"]}" style="position:absolute;inset:0">${html}</div>
-<div style="${nav};left:30%;right:30%;top:8px;height:40px">scene navigation</div>
+<div style="${nav};left:16px;top:16px;width:72px;height:587px">scene controls</div>
+<div style="${nav};left:50%;transform:translateX(-50%);top:0;width:min(604px,60%);height:139px">crawl strip</div>
 <style>@media (max-width:760px){.zbm-side{display:none!important}}</style>
-<div class="zbm-side" style="${nav};right:0;top:0;bottom:0;width:300px">sidebar</div>
-<div style="${nav};left:50%;transform:translateX(-50%);width:min(578px,92%);bottom:16px;height:60px">hotbar</div></div>`;
+<div class="zbm-side" style="${nav};right:0;top:0;bottom:0;width:348px">sidebar open</div>
+<div style="${nav};left:50%;transform:translateX(-50%);width:min(424px,92%);bottom:55px;height:128px">hotbar, 2 rows</div>
+<div style="${nav};left:50%;transform:translateX(-50%);width:min(400px,92%);bottom:0;height:38px">crawl bar</div></div>`;
 }
 
 export default {

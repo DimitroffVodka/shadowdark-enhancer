@@ -66,7 +66,7 @@ const PC = unit("pc", "Creeg", "close", 7, 14, { own: true });
 const OTHER = unit("pc2", "Elbin", "near", 3, 11);
 const FOE = unit("f1", "Goblin 1", "near", 2, 4, { clone: true });
 const GHOST = unit("f2", "Goblin 2", "far", 4, 4, { clone: true, hidden: true, visible: false });
-const DEAD = unit("f3", "Ogre 1", "far", 0, 30, { hostile: true, defeated: true });
+const DEAD = unit("f3", "Ogre 1", "far", 0, 30, { clone: true, defeated: true });
 
 test("boardContext: bands run Far, Near, Close; chips follow the turn order inside a band", () => {
   const a = unit("a", "A", "near", 1, 4), b = unit("b", "B", "near", 1, 4), c = unit("c", "C", "far", 1, 4);
@@ -96,7 +96,18 @@ test("boardContext: foe HP is a bar only for a player, numbers for the GM; a PC'
   assert.equal(chip(p, "pc2").hp.numbers, true, "someone else's PC too");
   assert.equal(chip(p, "pc").hp.numbers, true);
   assert.deepEqual([chip(p, "f1").hp.tone, chip(p, "f1").hp.pct, chip(p, "f1").hp.word], ["low", 50, "SDE.stage.zone.hpLow"]);
-  assert.equal(chip(boardContext({ combat: fightOf([DEAD]), user: { isGM: false } }), "f3").hp.numbers, false, "a hostile prototype is a foe too");
+  assert.equal(chip(boardContext({ combat: fightOf([DEAD]), user: { isGM: false } }), "f3").hp.numbers, false, "a clone is a foe");
+});
+
+test("boardContext: disposition decides nothing; a hostile Player the viewer owns shows numbers and controls, a clone is a foe whatever its disposition", () => {
+  const mine = unit("mine", "Mine", "close", 5, 9, { own: true, hostile: true });
+  const clone = unit("cl", "Cl", "near", 2, 4, { clone: true });
+  clone.actor.prototypeToken.disposition = 1;
+  const other = unit("oth", "Oth", "near", 2, 4, { hostile: true });
+  const p = boardContext({ combat: fightOf([mine, clone, other]), user: { isGM: false } });
+  assert.deepEqual([chip(p, "mine").foe, chip(p, "mine").hp.numbers, chip(p, "mine").canAct], [false, true, true]);
+  assert.deepEqual([chip(p, "cl").foe, chip(p, "cl").hp.numbers, chip(p, "cl").canAct], [true, false, false]);
+  assert.deepEqual([chip(p, "oth").foe, chip(p, "oth").hp.numbers], [false, true], "an unowned hostile non-clone is not a foe");
 });
 
 test("boardContext: turn, defeated and hidden marks; status icons carry their names", () => {
@@ -120,7 +131,7 @@ test("boardContext: controls only where canMoveZone allows; the ends are disable
   assert.equal(all(g).every((c) => c.canDefeat), true);
   assert.deepEqual([chip(g, "pc").atClose, chip(g, "pc").atFar], [true, false]);
   assert.deepEqual([chip(g, "f3").atClose, chip(g, "f3").atFar], [false, true]);
-  const owned = unit("mine", "Mine", "near", 1, 1, { own: true, hostile: true });
+  const owned = unit("mine", "Mine", "near", 1, 1, { own: true, clone: true });
   assert.equal(chip(boardContext({ combat: fightOf([owned]), user: { isGM: false } }), "mine").canAct, false, "owning a foe does not allow moving it");
 });
 

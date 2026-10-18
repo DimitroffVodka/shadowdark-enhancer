@@ -167,16 +167,23 @@ test("moveZone: GM moves anyone; the write is a replaceModuleFlag with a fresh o
   assert.notEqual(w.optsSeen[0], w.optsSeen[1]);
 });
 
-test("moveZone: a player moves an owned PC only; a foe and a stranger are refused and write nothing", async () => {
+test("moveZone: a player moves an owned PC (hostile disposition or not) only; a clone and a stranger are refused and write nothing", async () => {
   const w = world({ isGM: false, userId: "p" });
-  const mine = w.mkActor({ name: "Mine", type: "Player" }); mine.isOwner = true;
+  const fight = w.mkCombat({ flags: { [M]: { zoneFight: { id: "fight1", clones: [] } } } });
+  const mine = w.mkActor({ name: "Mine", type: "Player" }); mine.isOwner = true; mine.prototypeToken = { disposition: -1 };
   const other = w.mkActor({ name: "Other", type: "Player" });
-  const foe = w.mkActor({ name: "G", type: "NPC", flags: { [M]: { zoneClone: "fight1" } } }); foe.isOwner = true;
-  const hostile = w.mkActor({ name: "H", type: "NPC" }); hostile.isOwner = true; hostile.prototypeToken = { disposition: -1 };
-  assert.equal(await moveZone(w.mkCombatant(mine), "farther"), "near");
-  for (const actor of [other, foe, hostile]) assert.equal(await moveZone(w.mkCombatant(actor), "farther"), null);
+  const foe = w.mkActor({ name: "G", type: "NPC", flags: { [M]: { zoneClone: "fight1" } } }); foe.isOwner = true; foe.prototypeToken = { disposition: 1 };
+  assert.equal(await moveZone(w.mkCombatant(mine, "close", fight), "farther"), "near");
+  for (const actor of [other, foe]) assert.equal(await moveZone(w.mkCombatant(actor, "close", fight), "farther"), null);
   assert.equal(w.log.updates.length, 1);
-  assert.deepEqual(w.log.notes.map((n) => n[1]), Array(3).fill("SDE.stage.zone.moveRefused"));
+  assert.deepEqual(w.log.notes.map((n) => n[1]), Array(2).fill("SDE.stage.zone.moveRefused"));
+  assert.equal(await applyZoneDamage(w.mkCombatant(foe, "close", fight), 1), null);
+  assert.equal(await applyZoneDamage(w.mkCombatant(mine, "close", fight), 1), 1);
+  const gm = world();
+  const gfight = gm.mkCombat({ flags: { [M]: { zoneFight: { id: "fight1", clones: [] } } } });
+  const gfoe = gm.mkActor({ name: "G", type: "NPC", flags: { [M]: { zoneClone: "fight1" } } });
+  assert.equal(await moveZone(gm.mkCombatant(gfoe, "near", gfight), "farther"), "far");
+  assert.equal(await applyZoneDamage(gm.mkCombatant(gfoe, "near", gfight), 2), 2);
 });
 
 test("applyZoneDamage goes through applyDamage and never writes HP; permissions follow moves", async () => {

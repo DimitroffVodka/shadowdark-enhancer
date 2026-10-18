@@ -25,11 +25,10 @@ function refuseUnlessGM() {
 
 const flagsOf = (doc) => doc?.flags?.[MODULE_ID] ?? {};
 
-/** A foe is one of this module's clones or a hostile prototype. */
+/** A foe is a clone made for THIS fight; no disposition fallback (Player prototypes default hostile). */
 function isFoe(combatant) {
-  const actor = combatant?.actor;
-  if (flagsOf(actor).zoneClone) return true;
-  return actor?.prototypeToken?.disposition === (globalThis.CONST?.TOKEN_DISPOSITIONS?.HOSTILE ?? -1);
+  const id = flagsOf(combatant?.actor).zoneClone;
+  return !!id && id === zoneFightOf(combatant?.parent)?.id;
 }
 
 export const findZoneFight = () => Array.from(game.combats ?? []).find(isZoneFight) ?? null;
