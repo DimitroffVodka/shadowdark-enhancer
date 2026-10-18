@@ -213,6 +213,27 @@ the sales log reads them.
 
 ---
 
+## A tavern page
+
+Tick **Carouse** and **Rumors** in the page's settings (the pencil) and the same
+page becomes a tavern. A new page does not get these two; only the four town
+entries.
+
+- **Carouse.** You open the Carousing window on the party that has a night open,
+  or on the first party if none does, and start a night there. A player can open
+  it only while a party they can see has a night open; it then opens that party's
+  Carousing tab. Until then the entry is greyed and says it opens when you start
+  a night. Carousing needs a GM connected, so with none the entry stays greyed and
+  says so.
+- **Rumors.** You get the usual Give rumors dialog. A player opens the Rumors
+  Heard journal, which exists once any rumor has been given; until then the entry
+  is greyed.
+
+The games table, the shop and the sales log close with the page, so nothing is left
+open when it goes away.
+
+---
+
 ## Related
 
 [Merchant Shop](Merchant-Shop.md) (the GM-run shop for the whole table),
