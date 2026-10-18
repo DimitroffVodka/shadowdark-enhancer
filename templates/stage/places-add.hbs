@@ -16,6 +16,10 @@
         <label class="ui-field"><span class="ui-label">{{localize "SDE.stage.places.fieldKind"}}</span>
           <select data-add-kind>{{#each kinds as |k|}}<option value="{{k.value}}">{{localize k.label}}</option>{{/each}}</select>
         </label>
+        <label class="ui-field sp-page"><span class="ui-label">{{localize "SDE.stage.places.pageLabel"}}</span>
+          <select class="sp-page" data-add-page><option value="">{{localize "SDE.stage.places.pageNone"}}</option>{{#each pageScenes as |s|}}<option value="{{s.id}}">{{s.name}}</option>{{/each}}</select>
+        </label>
+        <p class="ui-row-sub sp-add-hint">{{localize "SDE.stage.places.pageHint"}}</p>
         <label class="ui-field sp-add-file"><span class="ui-label">{{localize "SDE.stage.places.fieldPicture"}}</span><input type="file" accept="image/*" data-add-file></label>
         <div class="sp-add-foot">
           <span class="ui-row-sub" data-busy-note{{#unless busy}} hidden{{/unless}}>{{localize "SDE.stage.places.uploading"}}</span>

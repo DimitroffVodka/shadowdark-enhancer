@@ -30,6 +30,8 @@
 .sde-stage-places .sp-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
 .sde-stage-places .sp-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 9em); gap: 6px; }
 .sde-stage-places .sp-name { text-overflow: ellipsis; }
+.sde-stage-places .sp-page { grid-column: 1 / -1; }
+.sde-stage-places .sp-add-hint { grid-column: 1 / -1; margin: 0; }
 .sde-stage-places .sp-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .sde-stage-places .sp-actions .ui-btn { min-height: 24px; }
 .sde-stage-places .sp-add { gap: 6px; padding: 8px 10px; }
