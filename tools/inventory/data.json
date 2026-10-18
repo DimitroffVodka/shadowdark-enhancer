@@ -144,6 +144,12 @@
       "dir": "scripts/stage",
       "title": "`scripts/stage/` — Stage (Backdrop)",
       "note": "A full-screen picture every client shows behind Foundry's UI, kept in one world setting. Phase 1a raises a Camp place when a camp starts; phase 1b adds the GM's own places with uploaded pictures; phase 3 (zone combat) adds the zone board and fight."
+    },
+    {
+      "id": "3.25",
+      "dir": "scripts/town",
+      "title": "`scripts/town/`",
+      "note": ""
     }
   ],
   "order": {
@@ -274,7 +280,9 @@
     "3.9": [
       "scripts/merchant/merchant-shop.mjs",
       "scripts/merchant/merchant-defaults.mjs",
-      "scripts/merchant/catalog-stock.mjs"
+      "scripts/merchant/catalog-stock.mjs",
+      "scripts/merchant/shop-core.mjs",
+      "scripts/merchant/town-shop.mjs"
     ],
     "3.10": [
       "scripts/party-xp/party-xp.mjs",
@@ -498,6 +506,20 @@
       "scripts/stage/zone-board.mjs",
       "scripts/stage/zone-core.mjs",
       "scripts/stage/zone-fight.mjs"
+    ],
+    "3.25": [
+      "scripts/town/town-core.mjs",
+      "scripts/town/town-view.mjs",
+      "scripts/town/town-live.mjs",
+      "scripts/town/town-app.mjs",
+      "scripts/town/town-shop-app.mjs",
+      "scripts/town/town-editor-app.mjs",
+      "scripts/town/town-entry-points.mjs",
+      "scripts/town/games-core.mjs",
+      "scripts/town/town-games.mjs",
+      "scripts/town/town-games-app.mjs",
+      "scripts/town/town-log-core.mjs",
+      "scripts/town/town-log-app.mjs"
     ]
   },
   "descriptions": {
@@ -612,6 +634,15 @@
     "scripts/merchant/merchant-shop.mjs": "Two-mode shop system (compendium global or actor NPC inventory); GM opens for all players.",
     "scripts/merchant/merchant-defaults.mjs": "The two shipped merchant configs (Base, Western Reaches).",
     "scripts/merchant/catalog-stock.mjs": "What the Catalog tab may sell: gear types with a list price, not loot-table props.",
+    "scripts/merchant/shop-core.mjs": "Shop price rules shared by both shops, and the town shop's per-character stock ledger (pure).",
+    "scripts/merchant/town-shop.mjs": "A town merchant's buy and sell on the player's own client, no GM needed.",
+    "scripts/town/town-core.mjs": "A town's landing page flag: merchants as NPC references, restock revision, the games table, the table switch, the editor's form folded in (pure).",
+    "scripts/town/town-view.mjs": "What the Town window and the shopfront show: ware cards, sell rows, tiles, the buyer (pure).",
+    "scripts/town/town-live.mjs": "What the town windows share on the Foundry side: the buyer, redrawing on change, the table switch, the tiles' windows.",
+    "scripts/town/town-app.mjs": "The landing page menu over the scene's picture: merchants, tiles, the GM's pencil, sales log, restock and switch; clear of the sidebar and the Crawl Strip.",
+    "scripts/town/town-shop-app.mjs": "One merchant's shopfront: buy and sell as a chosen character with no GM, categories, search.",
+    "scripts/town/town-editor-app.mjs": "The GM's landing page editor window: town text, tiles, games table, merchants.",
+    "scripts/town/town-entry-points.mjs": "The Landing page toolbar button and Alt+T: one switch for the table, the page made on any scene, followed by every client.",
     "scripts/party-xp/party-xp.mjs": "Award XP to the whole party in one click (ApplicationV2 GM tool).",
     "scripts/party-xp/party-xp-core.mjs": "Pure XP math + item-XP resolution.",
     "scripts/session-recap/session-recap.mjs": "Session event tracker singleton (loot, sales, XP, combats, per-PC stats).",
@@ -971,6 +1002,11 @@
     "scripts/shared/scene-thumb.mjs": "Gives a scene a thumbnail when it has none: Foundry only makes one when a canvas is up at creation, so scenes built headless come out blank in the scene directory and Adventure compendium. Never throws.",
     "scripts/hex-map/hex-tile-chooser.mjs": "Hex Data's tile picker, pure parts and thin calls to Extras' hex API (getTilePool, repaintHexTiles): whether choosing is offered, which painted scene a change goes to, the picker's options with the hex's own marked, and the reshuffle / exact-tile repaint entries.",
     "scripts/hex-map/bake-map.mjs": "Hex Data's Bake map, pure parts and the sequence: which baked scenes a map has, which one a new bake stands in for, what a bake over a played-on scene would not carry (tokens, recorded hexes), the new scene's name, and fill-keyed-ground / hex.bakeMap / remove-ground with the removal guaranteed.",
+    "scripts/town/games-core.mjs": "The town's four games of chance, the house's cut and the wager limits (pure).",
+    "scripts/town/town-games.mjs": "A game at a town table on the player's own client, no GM needed: roll, settle, coins, chat card.",
+    "scripts/town/town-games-app.mjs": "The games table window: wager, four games, the last result, as a chosen character.",
+    "scripts/town/town-log-core.mjs": "The town's sales log read from flagged chat cards: entries, filters, totals (pure).",
+    "scripts/town/town-log-app.mjs": "The GM's sales log window: what was bought, sold and played, filtered and totalled.",
     "scripts/stage/stage-core.mjs": "Stage's Foundry-free half: `normalizeStage` (the only reader of the stage setting), `campArtFor` (a terrain's camp picture, null on water) and `campTransition` (the raise/drop table for the Camp place; one camp id raises once).",
     "scripts/stage/places-core.mjs": "Stage places, Foundry-free: `normalizePlaces` (the only reader of the list: bad ids, pictureless and duplicate places dropped, 24 at most), add/update/remove, `fitWithin` and `uploadName` for the picture upload, and `reshowTarget` (the custom place the toolbar switch raises again).",
     "scripts/stage/places.mjs": "Stage places, Foundry side: registers the world setting `stagePlaces`, `showPlace` (writes the `stage` value), `removePlaceAndHide`, GM-only list writes, `refreshPlacesWindow` (a setting change redraws the open Places window), and `uploadPlacePicture` (FILES_UPLOAD check, downscale to 2560 px WebP, world `stage` folder created first).",
