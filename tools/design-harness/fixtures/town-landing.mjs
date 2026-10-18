@@ -5,6 +5,7 @@ import { placeTiles, purseText } from "../../../scripts/town/town-view.mjs";
 import { PLACE_IDS } from "../../../scripts/town/town-core.mjs";
 import { MERCHANTS, COINS, ACTOR, t } from "./_town.mjs";
 
+const TAVERN = ["quests", "party", "carouse", "rumors"];
 const css = `
 html { background: #000 url(/cache/lp-sample-backdrop.jpg) 0 38% / cover no-repeat fixed !important; }
 body { background: none !important; }
@@ -13,8 +14,16 @@ body { background: none !important; }
 .sde-ui.sde-town .window-header { display: none; }
 .sde-ui.sde-town .window-content { padding: 0; background: none; overflow: visible; }
 `;
-const toolbar = `<span>State:</span>${["player", "gm", "empty", "empty-gm"].map((s) => `<button data-action="s" data-state="${s}">${s}</button>`).join("")}`;
+const toolbar = `<span>State:</span>${["player", "gm", "empty", "empty-gm", "tavern-gm", "tavern-player", "tavern-player-night"].map((s) => `<button data-action="s" data-state="${s}">${s}</button>`).join("")}`;
 const build = (state) => {
+  const tavern = state.startsWith("tavern"), night = state.endsWith("night");
+  if (tavern) {
+    return { toolbar, context: {
+      townName: "The Gilded Flagon", tagline: "Warm hearth, cold ale", blurb: "", merchants: [],
+      places: placeTiles(TAVERN, { isGM: state === "tavern-gm", hasParty: true, downtimeOpen: false, activeQuests: 1, nightOpen: night, gmOnline: true, rumorsHeard: night, t }),
+      isGM: state === "tavern-gm", actorName: ACTOR, purse: purseText(COINS),
+    } };
+  }
   const empty = state.startsWith("empty"), isGM = state === "gm" || state === "empty-gm";
   return {
     toolbar,

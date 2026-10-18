@@ -25,10 +25,12 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { STOCK_TYPES } from "../merchant/shop-core.mjs";
 
 export const LANDING_FLAG = "landing";
-/** The tiles of the Town window that open other windows, in the order they show. */
-export const PLACE_IDS = ["quests", "journals", "party", "downtime"];
+/** Every tile a page may carry, in the order they show (the editor lists these). Carouse and Rumors make a tavern. */
+export const PLACE_IDS = ["quests", "journals", "party", "downtime", "carouse", "rumors"];
+/** The tiles a page gets when it has no list yet: the town's four, never the tavern's. */
+export const DEFAULT_PLACE_IDS = ["quests", "journals", "party", "downtime"];
 /** `games` is an entry too, but a separate switch (the GM turns the table on), so it is not one of the tiles above. */
-export const PLACE_LABEL_KEYS = { quests: "SDE.town.place.quests", journals: "SDE.town.place.journals", party: "SDE.town.place.party", downtime: "SDE.town.place.downtime", games: "SDE.town.place.games" };
+export const PLACE_LABEL_KEYS = { quests: "SDE.town.place.quests", journals: "SDE.town.place.journals", party: "SDE.town.place.party", downtime: "SDE.town.place.downtime", carouse: "SDE.town.place.carouse", rumors: "SDE.town.place.rumors", games: "SDE.town.place.games" };
 export const LIMITS = { buyMultiplier: [10, 500], sellRatio: [0, 100], maxBet: [1, 1000], edge: [0, 50] };
 export const DEFAULTS = { open: true, rev: 0, buyMultiplier: 100, sellRatio: 50 };
 export const GAME_DEFAULTS = { on: false, maxBet: 10, edge: 5 };
@@ -75,7 +77,7 @@ export function normalizeLanding(raw) {
   }
   return {
     title: text(raw?.title, 80), tagline: text(raw?.tagline, 120), blurb: text(raw?.blurb, 600),
-    places: Array.isArray(raw?.places) ? PLACE_IDS.filter((p) => raw.places.includes(p)) : [...PLACE_IDS],
+    places: Array.isArray(raw?.places) ? PLACE_IDS.filter((p) => raw.places.includes(p)) : [...DEFAULT_PLACE_IDS],
     merchants,
     games: normalizeGames(raw?.games),
     shown: raw?.shown !== false,

@@ -5,6 +5,8 @@
  */
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { LANDING_FLAG, landingOf, setShown } from "./town-core.mjs";
+import { Party, isNativeParty } from "../party/party.mjs";
+import { carousingOf } from "../carousing/carousing.mjs";
 import { pickBuyer } from "./town-view.mjs";
 
 /**
@@ -32,16 +34,35 @@ export const buyerFor = (chosenId = null) => pickBuyer(buyerChoices(), {
  */
 export function redrawOnChange(app) {
   const redraw = foundry.utils.debounce(() => { if (app.rendered) app.render(); }, 120);
-  const hooks = ["updateScene", "updateActor", "createActor", "deleteActor", "createItem", "updateItem", "deleteItem"].map((name) => [name, Hooks.on(name, redraw)]);
+  const hooks = ["updateScene", "updateActor", "createActor", "deleteActor", "createItem", "updateItem", "deleteItem", "createJournalEntry", "deleteJournalEntry"].map((name) => [name, Hooks.on(name, redraw)]);
   return () => hooks.forEach(([name, id]) => Hooks.off(name, id));
 }
 
+/** The party this user can see that has a carousing night open, or null. */
+export const nightParty = () => Party.list().find((p) => {
+  const now = isNativeParty(p) && carousingOf(p).current;
+  return now && now.phase !== "complete";
+}) ?? null;
+
+const DEPS = {
+  partyApp: async () => (await import("../party/party-app.mjs")).PartyApp,
+  rumors: () => import("../rumors/rumors.mjs"),
+};
+
 /** The window a tile opens, for the town on `scene`. Each is loaded when first asked for. */
-export async function openPlace(id, scene) {
+export async function openPlace(id, scene, deps = DEPS) {
   if (id === "quests") return (await import("../quests/quests.mjs")).openQuestLog();
   if (id === "journals") { ui.sidebar?.expand?.(); return ui.sidebar?.changeTab("journal", "primary"); }
   if (id === "party") return (await import("../party/party-app.mjs")).PartyApp.open();
   if (id === "downtime") return (await import("../downtime/downtime-app.mjs")).DowntimeApp.open();
+  if (id === "carouse") {
+    const party = nightParty() ?? (game.user.isGM ? Party.selected() ?? Party.list().find(isNativeParty) : null);
+    return party ? (await deps.partyApp()).open(party, "carousing") : null;
+  }
+  if (id === "rumors") {
+    const rumors = await deps.rumors();
+    return game.user.isGM ? rumors.askAndGive() : rumors.openRumorsHeard();
+  }
   if (id === "games") return (await import("./town-games-app.mjs")).TownGamesApp.open(scene);
   return null;
 }

@@ -6,7 +6,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import {
-  PLACE_IDS, PLACE_LABEL_KEYS, GAME_DEFAULTS, normalizeGames, normalizeMerchant, normalizeLanding, landingOf, linkableNpcs, waresCount,
+  PLACE_IDS, DEFAULT_PLACE_IDS, PLACE_LABEL_KEYS, GAME_DEFAULTS, normalizeGames, normalizeMerchant, normalizeLanding, landingOf, linkableNpcs, waresCount,
   addMerchant, removeMerchant, restockMerchant, restockAll, applyForm, idOk, setShown,
 } from "../scripts/town/town-core.mjs";
 
@@ -28,12 +28,15 @@ test("a merchant needs a usable id and an NPC, and every value is kept in range"
 
 test("a landing page always has every field, keeps the places in order, and drops unusable merchants", () => {
   const empty = normalizeLanding(undefined);
-  assert.deepEqual(empty, { title: "", tagline: "", blurb: "", places: PLACE_IDS, merchants: [], games: { on: false, maxBet: 10, edge: 5 }, shown: true });
+  assert.deepEqual(empty, { title: "", tagline: "", blurb: "", places: DEFAULT_PLACE_IDS, merchants: [], games: { on: false, maxBet: 10, edge: 5 }, shown: true });
   const page = normalizeLanding({ title: " Hollowmere ", places: ["party", "bogus", "quests"], merchants: [{ id: "m1", actorId: "a1" }, { id: "bad.id", actorId: "a2" }, { id: "m1", actorId: "a3" }, { id: "m2", actorId: "a1" }] });
   assert.equal(page.title, "Hollowmere");
   assert.deepEqual(page.places, ["quests", "party"]);
   assert.deepEqual(page.merchants.map((m) => m.id), ["m1"]);     // the bad id, the repeated id and the repeated NPC are dropped
-  assert.deepEqual(normalizeLanding({ places: [] }).places, []);  // a GM may turn every tile off
+  assert.deepEqual(normalizeLanding({ places: [] }).places, []);
+  assert.deepEqual(DEFAULT_PLACE_IDS, ["quests", "journals", "party", "downtime"]);   // a new page is a town, not a tavern
+  assert.deepEqual(normalizeLanding({ places: ["rumors", "bogus", "carouse", "quests"] }).places, ["quests", "carouse", "rumors"]);
+  assert.ok(["carouse", "rumors"].every((id) => PLACE_IDS.includes(id)));         // the editor lists every allowed tile  // a GM may turn every tile off
 });
 
 test("the page is up for the table until the GM switches it off, and no other edit changes that", () => {

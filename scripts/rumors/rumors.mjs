@@ -105,6 +105,17 @@ function defaultHeardBy() {
 
 const ledger = () => game.journal.find((e) => e.getFlag(MODULE_ID, LEDGER_FLAG)) ?? null;
 
+/** Whether the "Rumors Heard" journal exists for this user. */
+export const hasRumorsHeard = () => !!ledger();
+
+/** Open the "Rumors Heard" journal (players can read it); false when it does not exist yet. */
+export function openRumorsHeard() {
+  const log = ledger();
+  if (!log) return false;
+  log.sheet.render(true);
+  return true;
+}
+
 const pageFlag = (page) => page.getFlag(MODULE_ID, PAGE_FLAG);
 const pageFor = (log, region) => log.pages.find((p) => {
   const f = pageFlag(p);

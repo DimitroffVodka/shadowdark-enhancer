@@ -15,8 +15,8 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { landingOf } from "./town-core.mjs";
 
-const WINDOWS = ["sde-town", "sde-town-shop"];
-const closeTown = () => { for (const id of WINDOWS) foundry.applications.instances.get(id)?.close(); };
+const WINDOWS = ["sde-town", "sde-town-shop", "sde-town-games", "sde-town-log"];
+export const closeTown = () => { for (const id of WINDOWS) foundry.applications.instances.get(id)?.close(); };
 
 async function openTown(scene = globalThis.canvas?.scene) {
   const { TownApp } = await import("./town-app.mjs");
