@@ -56,7 +56,7 @@ import {
 } from "../encounter/battle-maps/battle-actions.mjs";
 import { postEncounter } from "../encounter/encounter-draw.mjs";
 import { showNpcPreview, hideNpcPreview } from "../encounter/npc-preview.mjs";
-import { DIAL, clockShown, clockSteps, dateToTime, dialMarkup, dialModel, monthGrid, seasonHatch } from "./hud-core.mjs";
+import { DIAL, clockShown, clockSteps, dateToTime, dialMarkup, dialModel, dialSize, monthGrid, plateSize, seasonHatch } from "./hud-core.mjs";
 import { findParty, openPartySheet } from "./find-party.mjs";
 import { L as t } from "../shared/i18n.mjs";
 import { isPacedStep, moonEpoch, onShownTime, shownTime } from "../time/time.mjs";
@@ -388,7 +388,7 @@ export const TravelBar = {
     if (!gm) this._stack = null;
     if ((this._open === "time" && !gm) || (this._open === "travel" && !CrawlState.isOverland)) this._open = null;
     if (this._open === "encounter" && !(gm && overlandState().encounter)) this._open = null;
-    this._el.innerHTML = `<div class="sde-hud-col">${this._bar()}${this._stacks()}<div class="sde-hud-drop">${this._drop()}</div></div>`;
+    this._el.innerHTML = `<div class="sde-hud-col">${this._bar()}${this._stacks()}<div class="sde-hud-drop" style="--sde-dial-w:${dialSize().w}px">${this._drop()}</div></div>`;
   },
 
   /** Tell the Crawl Bar to redraw when what it draws for the battle (its item and panel) has changed. */
@@ -482,28 +482,33 @@ export const TravelBar = {
     const state = overlandState();
     const wx = weatherSwitch(weatherVisualsOn());
     const date = t("SDE.clock.date", { weekday: t(parts.weekday), day: parts.day, month: t(parts.month), year: parts.year });
-    let travel = "";
+    // The day's movement counter rides the left with the tools (how far the day reaches, at a glance, without stretching
+    // the bar); the party's buttons stay on the right.
+    let day = "";
+    let party = "";
     if (isHexMapScene()) {
       const plate = CrawlState.isOverland ? this._plate() : null;
-      const cell = plate
+      day = plate
         ? `<button type="button" class="sde-hud-plate sde-hud-count${plate.cls ? ` ${plate.cls}` : ""}" data-action="open" data-id="${gm && state.encounter ? "encounter" : "travel"}"${plate.tip ? ` data-tooltip="${esc(plate.tip)}" aria-label="${esc(plate.tip)}"` : ""}>${plate.html}</button>`
         : gm && CrawlState.mode === "off" ? `<button type="button" class="sde-hud-go" data-action="startTravel"><i class="fa-solid fa-hexagon"></i> ${esc(t("SDE.overland.startTravel"))}</button>` : "";
       // Finding the party and opening its sheet: for any viewer who can see a party.
-      const party = Party.list().length ? ib("findParty", "fa-location-crosshairs", t("SDE.clock.find.tip")) + ib("partySheet", "fa-shield-halved", t("SDE.clock.sheet.tip")) : "";
-      travel = `${cell}${party}${plate ? ib("open", "fa-users", t("SDE.clock.travel"), { id: "travel", pressed: this._open === "travel" }) : ""}`;
+      const people = Party.list().length ? ib("findParty", "fa-location-crosshairs", t("SDE.clock.find.tip")) + ib("partySheet", "fa-shield-halved", t("SDE.clock.sheet.tip")) : "";
+      party = people + (plate ? ib("open", "fa-users", t("SDE.clock.travel"), { id: "travel", pressed: this._open === "travel" }) : "");
     }
-    // Tools either side, the date in the middle; the sky toggle hangs off the date so it stays centred.
+    // Tools and the day's counter on the left, the date in the middle (the sky toggle hangs off it so it stays centred),
+    // the party's buttons on the right.
     return `<div class="sde-hud-bar sde-hud-bar-3">
       <div class="sde-hud-side">
         ${gm ? ib("stack", "fa-backward", t("SDE.clock.rewind"), { id: "rew", pressed: this._stack === "rew" }) : ""}
         ${ib("open", "fa-calendar-days", t("SDE.clock.month"), { id: "month", pressed: this._open === "month" })}
         ${ib("weather", wx.icon, t(wx.labelKey), { pressed: wx.on, cls: wx.cls })}
         ${gm ? ib("open", "fa-sliders", t("SDE.clock.time"), { id: "time", pressed: this._open === "time" }) : ""}
+        ${day}
       </div>
       <span class="sde-hud-date sde-hud-date-mid"><span class="sde-hud-d">${esc(date)}</span><span class="sde-hud-t">${esc(parts.time)}</span>
         ${ib("sky", this._sky ? "fa-chevron-up" : "fa-chevron-down", t(this._sky ? "SDE.clock.skyHide" : "SDE.clock.skyShow"), { pressed: this._sky, cls: "sde-hud-chev" })}</span>
       <div class="sde-hud-side sde-hud-side-r">
-        ${travel}
+        ${party}
         ${gm ? ib("stack", "fa-forward", t("SDE.clock.advance"), { id: "adv", pressed: this._stack === "adv" }) : ""}
       </div>
     </div>`;
@@ -550,19 +555,35 @@ export const TravelBar = {
     return strip + (this._sky ? `${this._seasonBand()}${this._dial()}` : "");
   },
 
+  /**
+   * The season plate: the season and today's weather on a trapezoid whose ends flare out, with the dial's own line for a
+   * border. The season hatch is drawn in the same SVG and clipped to the shape.
+   */
   _seasonBand() {
     const { now, cal } = this._now();
     const here = seasonAt(cal, now);
     const change = nextSeasonChange(cal, now);
     const name = here.name ? t(here.name) : "";
-    // Today's weather rides the band, to the right of the season, so the dial keeps its middle for the place.
     const w = weatherNow();
+    const p = plateSize();
+    const daysLeft = change === null ? null : Math.max(0, Math.ceil((change - now) / secondsPerDay(cal)));
+    const hatch = daysLeft === null ? 0 : seasonHatch(daysLeft);
+    const hatchW = Math.round((p.w * hatch) / 100);
+    // The border is the dial's white rim line, so the plate reads as a plate laid on the instrument rather than a stub
+    // feeding it; it is closed on all four sides, which is what separates the plate from the circle behind it.
+    const shape = `<svg class="sde-hud-season-shape" viewBox="0 0 ${p.w} ${p.h}" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <pattern id="sde-hud-season-hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="5" height="5" fill="#000"/><line x1="0" y1="0" x2="0" y2="5" stroke="#c9c9c9" stroke-width="1"/></pattern>
+        <clipPath id="sde-hud-season-clip"><path d="M0 0 H${p.w} L${p.w - p.flare} ${p.h} H${p.flare} Z"/></clipPath>
+      </defs>
+      <path class="sde-hud-season-fill" d="M0 0 H${p.w} L${p.w - p.flare} ${p.h} H${p.flare} Z"/>
+      ${hatchW ? `<g clip-path="url(#sde-hud-season-clip)" opacity="0.55"><rect x="${p.w - hatchW}" y="0" width="${hatchW}" height="${p.h}" fill="url(#sde-hud-season-hatch)"/></g>` : ""}
+      <path class="sde-hud-season-edge" stroke-width="${p.stroke}" d="M${p.stroke / 2} ${p.stroke / 2} H${p.w - p.stroke / 2} L${p.w - p.flare - p.stroke / 2} ${p.h - p.stroke / 2} H${p.flare + p.stroke / 2} Z"/>
+    </svg>`;
     const body = `<span>${esc(name)}</span><i class="sde-hud-wx-dot"></i><span class="sde-hud-wx">${esc(w ? weatherName(w) : t("SDE.clock.unrolled"))}</span>`;
-    if (change === null) return `<div class="sde-hud-season">${body}</div>`;
-    const daysLeft = Math.max(0, Math.ceil((change - now) / secondsPerDay(cal)));
-    const hatch = seasonHatch(daysLeft);
-    const tip = t(daysLeft === 1 ? "SDE.clock.seasonNextOne" : "SDE.clock.seasonNext", { season: t(seasonAt(cal, change).name ?? ""), n: daysLeft });
-    return `<div class="sde-hud-season" data-tooltip="${esc(tip)}">${body}${hatch ? `<span class="sde-hud-next" style="width:${hatch}%"></span>` : ""}</div>`;
+    const tip = daysLeft === null ? ""
+      : t(daysLeft === 1 ? "SDE.clock.seasonNextOne" : "SDE.clock.seasonNext", { season: t(seasonAt(cal, change).name ?? ""), n: daysLeft });
+    return `<div class="sde-hud-season" style="width:${p.w}px"${tip ? ` data-tooltip="${esc(tip)}"` : ""}>${shape}${body}</div>`;
   },
 
   /** The sky dial: a half disc (hud-core dialMarkup), driven by the time API. The weather is in the season band. */

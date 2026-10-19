@@ -38,7 +38,26 @@ export function clockSteps(cal, roundSeconds = 6) {
 
 // The dial's geometry, in its SVG's units (400 × 198). It is a half disc: the svg's top edge is the diameter, and sits
 // flush under the season band, so nothing is drawn above it. The disc turns inside an hour ring, the moon rides outside.
-export const DIAL = { w: 400, h: 198, cx: 200, cy: 0, disc: 136, ringIn: 138, ringMid: 150, ringOut: 162, moonTrack: 180, moonR: 13, frame: 194, twilight: 0.6 };
+// `scale` is the width it is DRAWN at against those units (0.7 → 280 px): the region name stays readable while the dial
+// stops covering the map. Change this one number to resize it; the season plate follows through dialSize() and plateSize().
+export const DIAL = { w: 400, h: 198, cx: 200, cy: 0, disc: 136, ringIn: 138, ringMid: 150, ringOut: 162, moonTrack: 180, moonR: 13, frame: 194, twilight: 0.6, scale: 0.7 };
+
+/** The dial's size on screen, in CSS pixels (the SVG keeps its 400 × 198 units as the viewBox). */
+export const dialSize = () => ({ w: Math.round(DIAL.w * DIAL.scale), h: Math.round(DIAL.h * DIAL.scale) });
+
+/** The season plate: its height, how far each end flares past its bottom edge, and how much wider it is than the dial's rim. */
+export const PLATE = { h: 26, flare: 8, grow: 1.25 };
+
+/**
+ * The season plate's size in CSS px. The plate is `grow` times the dial's white rim and flared `flare` wider at the top;
+ * `stroke` is the rim's own line (2 units in the dial's SVG), so the plate's border matches the circle's.
+ */
+export function plateSize() {
+  const rim = 2 * (DIAL.frame + 1) * DIAL.scale;
+  const bottom = Math.round(rim * PLATE.grow);
+  const flare = Math.round(PLATE.flare * PLATE.grow);
+  return { w: bottom + 2 * flare, h: PLATE.h, bottom, flare, stroke: +(2 * DIAL.scale).toFixed(2) };
+}
 
 const point = (deg, r) => {
   const a = (deg * Math.PI) / 180;
@@ -160,7 +179,8 @@ export function dialMarkup({ d, hoursPerDay = 24, region = "", terrain = "", lab
     at.terrain ? `<text x="${cx}" y="${at.terrain.y}" text-anchor="middle" class="sde-hud-sunline sde-hud-halo" style="font-size:${at.terrain.size}px">${esc(at.terrain.text)}</text>` : "",
   ].join("\n  ");
   const m = d.moon;
-  return `<svg class="sde-hud-dial" width="${DIAL.w}" height="${DIAL.h}" viewBox="0 0 ${DIAL.w} ${DIAL.h}" role="img" aria-label="${esc(label)}"${tip ? ` data-tooltip="${esc(tip)}"` : ""}>
+  const size = dialSize();
+  return `<svg class="sde-hud-dial" width="${size.w}" height="${size.h}" viewBox="0 0 ${DIAL.w} ${DIAL.h}" role="img" aria-label="${esc(label)}"${tip ? ` data-tooltip="${esc(tip)}"` : ""}>
   <defs>
     <pattern id="sde-hud-hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="5" height="5" fill="#0b0b0b"/><line x1="0" y1="0" x2="0" y2="5" stroke="#c9c9c9" stroke-width="1"/></pattern>
     <linearGradient id="sde-hud-dayg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f2f2f2"/><stop offset="1" stop-color="#b0b0b0"/></linearGradient>
@@ -181,7 +201,7 @@ export function dialMarkup({ d, hoursPerDay = 24, region = "", terrain = "", lab
   <g ${turn}>${ticks}${sunChip(true, d.rise, d.rotate, riseTip)}${sunChip(false, d.set, d.rotate, setTip)}</g>
   <circle cx="${cx}" cy="${cy}" r="${DIAL.frame - 4}" fill="none" stroke="#000" stroke-width="8"/>
   <circle cx="${cx}" cy="${cy}" r="${DIAL.frame}" fill="none" stroke="#c9c9c9" stroke-width="2"/>
-  <circle cx="${cx}" cy="${cy}" r="${DIAL.frame + 3}" fill="none" stroke="#555" stroke-width="1"/>
+  <circle cx="${cx}" cy="${cy}" r="${DIAL.frame + 5}" fill="none" stroke="#555" stroke-width="1"/>
   ${text}
   <path transform="translate(${cx} ${cy + DIAL.ringMid})"${nowTip ? ` data-tooltip="${esc(nowTip)}"` : ""} d="M0 -11 L2.6 -2.6 L11 0 L2.6 2.6 L0 11 L-2.6 2.6 L-11 0 L-2.6 -2.6 Z" fill="#ffffff" stroke="#000" stroke-width="1.5"/>
   <circle cx="${m.x}" cy="${m.y}" r="${m.r + 9}" fill="url(#sde-hud-moonglow)" opacity="${+(0.35 + 0.65 * Math.sin(Math.PI * m.p)).toFixed(2)}"/>
