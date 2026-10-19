@@ -331,6 +331,39 @@ export async function publishHexProjection(target) {
   }
   const value = { version: 1, sceneUuid: sceneUuid(scene), cells, parties };
   const publicJournal = recordJournal(scene, { publicOnly: true });
+  // A scene with nothing disclosed needs no projection journal; the first reveal creates one. An existing one is
+  // still refreshed, so a reset that clears every disclosure empties the players' view instead of stranding it.
+  if (!publicJournal && !Object.keys(cells).length && !Object.values(parties).some(party => Object.keys(party.cells).length)) return;
   if (publicJournal) await replaceModuleFlag(publicJournal, PUBLIC_FLAG, value);
   else await JournalEntry.create({ name: game.i18n.format("SDE.hexRecords.publicName", { scene: scene.name }), ownership: { default: 2 }, flags: { [MODULE_ID]: { [PUBLIC_FLAG]: value } } });
+}
+/**
+ * Projection journals are a data carrier for players' fog, never reading material: they hold no pages and are only
+ * read from their flag. Keep them, and the folder that holds nothing else, out of the Journals sidebar on every client.
+ */
+function hideProjectionJournals(_app, html) {
+  const root = html instanceof HTMLElement ? html : html?.[0];
+  if (!root) return;
+  const folders = new Set();
+  for (const row of root.querySelectorAll("[data-entry-id]")) {
+    const entry = game.journal.get(row.dataset.entryId);
+    if (!entry?.flags?.[MODULE_ID]?.[PUBLIC_FLAG]) continue;
+    if (entry.folder?.id) folders.add(entry.folder.id);
+    row.remove();
+  }
+  for (const id of folders) {
+    if ([...game.journal].some(entry => entry.folder?.id === id && !entry.flags?.[MODULE_ID]?.[PUBLIC_FLAG])) continue;
+    root.querySelector(`[data-folder-id="${id}"]`)?.remove();
+  }
+}
+/** A deleted scene takes its projection with it; the private store stays for the GM. Must run in `init`. */
+export function registerHexRecordProjections() {
+  Hooks.on("renderJournalDirectory", hideProjectionJournals);
+  Hooks.on("deleteScene", scene => {
+    if (!game.user?.isGM) return;
+    const uuid = sceneUuid(scene);
+    for (const journal of journals()) {
+      if (journal.flags?.[MODULE_ID]?.[PUBLIC_FLAG]?.sceneUuid === uuid) journal.delete().catch(console.error);
+    }
+  });
 }
