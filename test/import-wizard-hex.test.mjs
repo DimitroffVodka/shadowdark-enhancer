@@ -56,7 +56,7 @@ test("keyed hexes are imported before any hex map is set up, and each hex map is
   const d = deps();
   const r = await runWizardImport(ready(file("Cursed Scroll 1 - Diablerie V4-3.pdf"), file(HEX_FILES["hex-cs1"])), hooks(), d);
   assert.deepEqual(d.calls, ["keys:CS1", "hex:hex-cs1:0001"]);
-  assert.deepEqual(r.hex.map((h) => [h.id, h.status, h.legend, h.look]), [["hex-cs1", "ready", true, false]]);
+  assert.deepEqual(r.hex.map((h) => [h.id, h.status, h.legend, h.look]), [["hex-cs1", "ready", false, false]]);
   assert.equal(r.imported, 40 + 1);
 });
 
@@ -71,7 +71,7 @@ test("the Black River (both halves, in order) and Morzomotha are set up like any
   const d = deps({ hexMap: async (id, o) => { seen.push([id, o.firstNum]); return { status: "ready", sceneId: `s-${id}`, legend: true, pinned: 20 }; } });
   const r = await runWizardImport(ready(file(HEX_FILES["hex-cs4:north"]), file(HEX_FILES["hex-cs4:south"]), file(HEX_FILES["hex-cs5"])), hooks(), d);
   assert.deepEqual(seen, [["hex-cs4", "0001"], ["hex-cs5", "0001"]]);
-  assert.deepEqual(r.hex.map((h) => [h.id, h.status, h.legend]), [["hex-cs4", "ready", true], ["hex-cs5", "ready", true]]);
+  assert.deepEqual(r.hex.map((h) => [h.id, h.status, h.legend]), [["hex-cs4", "ready", false], ["hex-cs5", "ready", false]]);
   assert.deepEqual(r.needsYou, []);
 });
 
@@ -118,10 +118,7 @@ test("the Done page lists each hex map with its status and offers only what is l
   assert.deepEqual(done.hexMaps.map((h) => [h.id, !!h.legend, !!h.look]), [["hex-wr", true, false], ["hex-cs2", false, true], ["hex-cs4", false, false], ["hex-cs1", false, false]]);
   assert.match(done.hexMaps[0].line, /hexStatus\.ready.*"n":270/);
   assert.match(done.hexMaps[2].line, /hexStatus\.already/);
-  assert.equal(done.hexLegend, true);
-  // With no map left to name, the explanation of the Legend is not shown.
-  ctl.state.result.hex[0].legend = false;
-  assert.equal(ctl.viewModel().done.hexLegend, false);
+  assert.equal(done.hexBody, "SDE.importer.wizard.done.hexBody");
 });
 
 test("the measured grids are hexes, sit inside their print, and describe a field of the right shape", async () => {
