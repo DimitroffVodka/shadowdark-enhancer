@@ -82,5 +82,5 @@
   "url": "https://github.com/DimitroffVodka/shadowdark-enhancer",
   "manifest": "https://github.com/DimitroffVodka/shadowdark-enhancer/releases/latest/download/module.json",
   "download": "https://github.com/DimitroffVodka/shadowdark-enhancer/releases/latest/download/module.zip",
-  "flags": { "buildRev": "a6212677681f" }
+  "flags": { "buildRev": "e238b0055dd8" }
 }

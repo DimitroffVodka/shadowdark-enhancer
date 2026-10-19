@@ -18,9 +18,10 @@ choice applies as it is made. A party that has chosen nothing wears the lantern
 in amber. It is stored on the Party actor (`flags.shadowdark-enhancer.partyEmblem`,
 `{ icon, color }`), so it survives reloads and is the same for everyone. The icons
 are bundled with the module (credited in CREDITS.md); the picker does not need the
-Game-icons.net module. The pick also dresses the Party: its portrait, its
-prototype token and every Party token already on a scene wear the emblem as a
-hex-shaped picture (one file per emblem, kept in the world's `party-tokens` folder).
+Game-icons.net module. The pick also dresses the Party: the actor's portrait wears
+the emblem as a hex-shaped tile, and every Party token wears it as a **standard** —
+a pennant on a pole, planted on a stone base, the icon on the cloth (one file per
+emblem and picture, kept in the world's `party-tokens` folder).
 
 Under the header, a thin status bar shows up to three readouts, and each one is
 left out when its data is not available (with none, the bar is hidden):
@@ -89,10 +90,13 @@ travels on a hex map, and the one Deploy, Recall and the HUD act on.
   never picks the first or makes another; choose one. When exactly one
   Shadowdark Extras party exists, its token is used and no native Party is made.
 - **What it looks like.** A friendly, linked token. On a hex map, Start travel
-  gives it the party's emblem hex (the lantern in amber until one is picked; the stock hex only if that picture cannot be made), one
-  cell wide with no ring and no rotation. The picture is the emblem everywhere: the
-  actor's portrait and prototype token wear it too. A larger token shrinks onto the
-  hex under its old centre. A token already wearing the hex is left alone.
+  gives it the party's standard: the pennant on its pole, in the emblem's colour
+  with the emblem's icon on the cloth (the lantern in amber until one is picked;
+  the stock black hex only if that picture cannot be made), drawn at 85 % of the
+  cell so the map shows around it, one cell wide with no ring and no rotation. The
+  actor's portrait keeps the emblem tile; the standard is the token's picture only.
+  A larger token shrinks onto the hex under its old centre, and a token dressed at
+  an older picture or size is re-dressed when travel starts.
 - **Linked only.** Deploy and Recall need a *linked* Party token on the scene.
   Without one they say so rather than guess; drag the Party actor onto the scene.
 - **HUD.** Selecting it shows **Open Party** (for anyone with that Party)

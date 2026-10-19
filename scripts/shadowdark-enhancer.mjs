@@ -11,6 +11,7 @@ import { registerHexCoordinates } from "./hex-map/coordinate-overlay.mjs";
 import { registerMapNetwork } from "./hex-map/map-network.mjs";
 import { registerHexMapControls } from "./hex-map/hex-map-controls.mjs";
 import { HexExplorer, registerHexExplorer, ownsHexData } from "./hex-map/hex-explorer.mjs";
+import { registerHexHud } from "./hex-map/hex-hud.mjs";
 import { HexRecords, isHexAdopted } from "./hex-map/hex-records.mjs";
 import { adoptHexScene, registerHexAdoption } from "./hex-map/hex-adoption.mjs";
 import { HexFog, ownsHexFog, registerHexFog } from "./hex-map/hex-fog.mjs";
@@ -158,7 +159,7 @@ const STYLESHEET_REV = "e42c59841fff";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "a6212677681f";
+const BUILD_REV = "e238b0055dd8";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -375,6 +376,8 @@ Hooks.once("init", () => {
   registerMapNetwork();
   registerHexMapControls();
   registerHexExplorer();
+  // Hex Data from the token standing in the hex, since a token hides the bare hex from the pointer.
+  registerHexHud();
   registerHexAdoption();
   // The route and click-to-travel on the hex map (#257).
   registerRoute();

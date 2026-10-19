@@ -29,7 +29,11 @@ the name of a keyed location, marked "not found yet"); a player's
 short click keeps the small card with permitted links. The GM gets no pinned
 card or Edit button: a double click opens Hex Data, which saves terrain,
 line features, rich locations, notes and discovery; travel prices update
-immediately. The header's **To enter** stat prices the hex from the terrain table
+immediately. A token standing in a hex hides the bare hex from the pointer, so
+on a hex map a GM's token HUD carries a **hexagon** button, **Hex Data for this
+hex**, that opens the same window for the cell the token is in — the party's own
+standard is always on the hex you are looking at. It appears on any token where
+Hex Data could open at all; players never see it. The header's **To enter** stat prices the hex from the terrain table
 of that scene's own Rules data ruleset — Normal, Difficult or Impassable with its
 cost, the number travel charges to enter that hex from the same base terrain
 table. It reads that table only, so weather, storms, paths and boats can change
