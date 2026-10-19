@@ -231,6 +231,7 @@ See [Crawl Strip and Crawl Bar](Crawl-Strip-and-Crawl-Bar.md#overland-travel).
 | **Roll Encounters as GM-only** | on | Whispers encounter rolls and roller cards to GM only. |
 | **Pause game on encounter** | on | Automatically pauses game when an encounter check hits. |
 | **Auto-roll active table on hit** | on | Draws from active encounter table automatically on a hit. |
+| **Chance a non-keyed hex is a point of interest** | `5` | On entering a hex that is not a keyed location, this chance in percent finds a point of interest — from the hex's own table, else its region's printed list. `0` turns it off. Each party rolls it once per hex. |
 
 > **The encounter threshold and check frequency are set on the Crawl Bar.**
 > Open **Tools** and press the options button beside **Encounter** (or right-click

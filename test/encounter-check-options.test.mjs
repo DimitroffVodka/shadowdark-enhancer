@@ -7,8 +7,12 @@ import assert from "node:assert/strict";
 
 const cards = [];
 const renderTemplate = async (path, data) => { cards.push(data); return "<div>card</div>"; };
+// A flavour row is enriched at draw time (encounter-draw's flavorHtml). Without a
+// real promise here the stub's own `then` would swallow the await: the proxied
+// function is a thenable that never settles, so the draw would hang, not fail.
+const enrichHTML = async (text) => text;
 const deep = new Proxy(function () {}, {
-  get: (t, k) => (k === Symbol.toPrimitive ? () => "" : k === "prototype" ? {} : k === "renderTemplate" ? renderTemplate : deep),
+  get: (t, k) => (k === Symbol.toPrimitive ? () => "" : k === "prototype" ? {} : k === "renderTemplate" ? renderTemplate : k === "enrichHTML" ? enrichHTML : deep),
   construct: () => deep, apply: () => deep,
 });
 // A pack table's short uuid gains its document type, as v14's parseUuid does.
@@ -94,7 +98,7 @@ test("a quiet check posts nothing and opens nothing; a hit draws its encounter a
     const hit = await EncounterCheck.check({ threshold: 1, quiet: true, travel: true, label: "Day check, 10:00", clockLabel: "Day check, 10:00" });
     assert.equal(hit.hit, true);
     assert.deepEqual(hit.encounter, {
-      kind: "flavor", text: "Three wolves howl", via: null, also: [],
+      kind: "flavor", text: "Three wolves howl", html: "Three wolves howl", via: null, also: [],
       chain: [{ name: "Wandering Beasts", formula: "1d6", roll: 3 }],
     });
     assert.equal(cards.length, 0, "no check card");

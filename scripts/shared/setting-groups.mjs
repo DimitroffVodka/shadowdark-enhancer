@@ -142,7 +142,7 @@ export const SETTING_GROUPS = [
   {
     key: "encountersMenu",
     icon: "fa-solid fa-dice-d20",
-    sections: [{ entries: ["encounterRollGMOnly", "pauseOnEncounter", "autoRollActiveTable"] }],
+    sections: [{ entries: ["encounterRollGMOnly", "pauseOnEncounter", "autoRollActiveTable", "poiArrivalChance"] }],
   },
   {
     key: "lootXpMenu",

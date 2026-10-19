@@ -25,6 +25,59 @@ export function escapeRegex(s) {
 }
 
 /**
+ * A two-part inverted bestiary name the way the books print it: "Frog, Giant"
+ * → "Giant Frog", "Hag, Sea" → "Sea Hag". The system files every variant under
+ * its family, while the GM Guide's encounter rows read in natural order ("giant
+ * frogs", "gt. frog", "sea hag"), so the index needs both spellings or those
+ * rows never link. Three-part names are left alone: "Elemental, Fire (Lesser)"
+ * has more than one plausible order and a wrong guess is worse than no link.
+ *
+ * @param {string} name
+ * @returns {string|null} the natural-order name, or null when not inverted
+ */
+export function naturalOrderName(name) {
+  const m = /^([^,()]+),\s*([^,()]+)$/.exec(String(name ?? "").trim());
+  return m ? `${m[2].trim()} ${m[1].trim()}` : null;
+}
+
+/** The books' abbreviation for Giant ("2d4 gt. frog", GMWR p86; CS2 p39). */
+const GIANT_ABBREVIATION = /\bgt\.(?=\s|$)/gi;
+
+/**
+ * Spellings the books print that the bestiary files differently. The rows are
+ * set from the book's own text — "willowisp", not "Will-o'-Wisp" — so a row can
+ * name a creature that exists in the world and still link nothing.
+ *
+ * This is a NAME, never content: each entry only lets the index find a creature
+ * the world already ships. The printed form is lower-case (matches are
+ * case-blind) and its plural is built from it as usual ("willowisps").
+ */
+const PRINTED_ALIASES = {
+  "willowisp": "Will-o'-Wisp",
+  "faerie": "Fairy",
+  // The plural falls on the first word, which the plural rule cannot reach, so
+  // both printed forms are listed. Phrase only: "a nervous librarian" (University
+  // District) is ordinary folk, not the lvl 6 monster.
+  "librarian of leng": "Librarian of Leng",
+  "librarians of leng": "Librarian of Leng",
+  // Irregular plural (-man -> -men). A general rule is wrong: it would stop
+  // "shamans" matching Goblin, Shaman / Stone Shaman.
+  "beastmen": "Beastman",
+  // Reversed order, plural on the last word: the plural rule appends its "s"
+  // there, so the one printed form covers "piranha swarm" and "piranha swarms".
+  "piranha swarm": "Piranha, Swarm",
+  // The book's spelling; the bestiary's is American.
+  "grey ooze": "Gray Ooze",
+  // One word in the bestiary; eight other rows already print it that way.
+  "mushroom folk": "Mushroomfolk",
+  // The row prints the specific half; "cobra statue" still wins as the longer name.
+  "cobra": "Snake, Cobra",
+  // The hosts of one adventure row ("…platters of cave crabs to Librarians");
+  // the phrase alias above still wins where the full name is printed.
+  "librarians": "Librarian of Leng",
+};
+
+/**
  * Wrap bare dice tokens ("2d20") in an inline roll ("[[/r 2d20]]"). Leaves
  * already-wrapped rolls and lone die sizes ("d6" with no count) alone.
  *
@@ -37,10 +90,31 @@ export function escapeRegex(s) {
 export const convertDice = enrichDice;
 
 /**
+ * A bestiary name as a regex source that also matches its plural. Most names
+ * take an "s", but the books' rows print the English plural — "giant leeches",
+ * "winter wolves", "dwarves", "mummies", "harpies", "pegasi" — so the suffix is
+ * chosen from the name's ending rather than assumed to be "s". The label keeps
+ * what the row printed, so "mummies" stays "mummies".
+ * @param {string} name
+ * @returns {string} regex source, without the word boundaries
+ */
+export function pluralPattern(name) {
+  const src = escapeRegex(name);
+  if (/[^aeiou]y$/i.test(name)) return `${src.slice(0, -1)}(?:y|ies)`;   // mummy -> mummies
+  if (/fe$/i.test(name)) return `${src.slice(0, -2)}(?:fe|ves)`;          // knife -> knives
+  if (/ff$/i.test(name)) return `${src}(?:|s)`;                           // mastiff -> mastiffs, not mastives
+  if (/f$/i.test(name)) return `${src.slice(0, -1)}(?:f|ves)`;            // wolf -> wolves, dwarf -> dwarves
+  if (/us$/i.test(name)) return `${src.slice(0, -2)}(?:us|i)`;            // pegasus -> pegasi
+  if (/(?:s|x|z|ch|sh)$/i.test(name)) return `${src}(?:|es)`;             // leech -> leeches
+  return `${src}(?:|s)`;
+}
+
+/**
  * Embed `@UUID` links for every index name found in the text. Matches whole
- * words, case-insensitively, optional trailing plural "s", longest names first,
- * non-overlapping; links the FIRST occurrence of each name. The link label
- * keeps the text's own casing/plural (so "goblins" stays "goblins").
+ * words, case-insensitively, in the singular or plural form the row prints,
+ * longest names first, non-overlapping; links the FIRST occurrence of each
+ * name. The link label keeps the text's own casing/plural (so "goblins" stays
+ * "goblins").
  *
  * @param {string} text
  * @param {Array<{name:string, uuid:string}>} index  longest-name-first
@@ -64,7 +138,7 @@ export function embedLinks(text, index) {
   const matches = [];
   for (const e of [...index, ...bare].sort((a, b) => (b.name?.length ?? 0) - (a.name?.length ?? 0))) {
     if (!e?.name) continue;
-    const re = new RegExp(`\\b(${escapeRegex(e.name)})(s?)\\b`, e.bare ? "" : "i");
+    const re = new RegExp(`\\b(${pluralPattern(e.name)})\\b`, e.bare ? "" : "i");
     const m = re.exec(src);
     if (!m) continue;
     const start = m.index;
@@ -80,7 +154,37 @@ export function embedLinks(text, index) {
   for (const mt of matches) {
     out = out.slice(0, mt.start) + `@UUID[${mt.uuid}]{${mt.label}}` + out.slice(mt.end);
   }
-  return out;
+  if (matches.length) return out;
+  return embedLoneCreature(out, index);
+}
+
+/**
+ * A row that is nothing but a creature's name — "Cubi", "Imp", "[[/r 1d6]] cobra",
+ * "[[/r 2d4]] seraphs" — where the bestiary files that creature as an inverted
+ * variant whose family the row never prints. The specific half is tried only for
+ * rows with no other words, and only when exactly one inverted name owns it, so
+ * "Cubi" reaches "Devil, Cubi" while a sentence that happens to contain
+ * "desert" cannot reach "Dragon, Desert".
+ * @param {string} text
+ * @param {Array<{name:string, uuid:string}>} index
+ * @returns {string} the text, linked when it is a lone creature name
+ */
+export function embedLoneCreature(text, index) {
+  const bare = String(text ?? "").replace(/\[\[[^\]]*\]\]/g, " ").replace(/@UUID\[[^\]]*\]\{[^}]*\}/g, " ").trim();
+  const word = /^([A-Za-z][A-Za-z'-]*?)[*†¹²³\d\s)]*$/.exec(bare)?.[1];
+  if (!word) return text;
+  const owners = new Map();
+  for (const e of index) {
+    const m = /^([^,()]+),\s*([^,()]+)$/.exec(e?.name ?? "");
+    if (!m) continue;
+    const key = m[2].trim().toLowerCase();
+    owners.set(key, owners.has(key) ? null : e);       // null: two families share it, so it names nothing
+  }
+  const forms = [word, word.replace(/s$/i, ""), word.replace(/ies$/i, "y"), word.replace(/ves$/i, "f")];
+  const hit = forms.map((f) => owners.get(f.toLowerCase())).find(Boolean);
+  if (!hit) return text;
+  const start = text.lastIndexOf(word);
+  return `${text.slice(0, start)}@UUID[${hit.uuid}]{${word}}${text.slice(start + word.length)}`;
 }
 
 /**
@@ -97,9 +201,12 @@ export function embedLinks(text, index) {
 export function enrichEncounterText(text, index, options) {
   const hasContext = options != null
     && Object.prototype.hasOwnProperty.call(options, "context");
+  // "gt." is the books' Giant, expanded before matching so "gt. frog" reaches
+  // the index's "Giant Frog" (the natural-order alias below).
+  const expanded = String(text ?? "").replace(GIANT_ABBREVIATION, "Giant");
   const enriched = hasContext
-    ? enrichContextualText(text, { context: options.context })
-    : convertDice(text);
+    ? enrichContextualText(expanded, { context: options.context })
+    : convertDice(expanded);
   return embedLinks(enriched, index);
 }
 
@@ -125,6 +232,19 @@ export const MonsterLinker = {
     const byName = new Map();
     await this._indexPack(game.packs.get(MONSTER_PACK), byName);             // Core first
     await this._indexPack(this._importedMonsterPack(), byName);             // imports fill gaps
+    // The natural-order spelling too, so a row that prints "giant frogs" or
+    // "gt. frog" reaches "Frog, Giant" (#262's zone tables are full of them).
+    for (const e of [...byName.values()]) {
+      const natural = naturalOrderName(e.name);
+      const key = natural?.toLowerCase();
+      if (key && !byName.has(key)) byName.set(key, { ...e, name: natural, naturalOrder: true });
+    }
+    // And the spellings the books print (PRINTED_ALIASES), which only resolve
+    // against a creature the world already has.
+    for (const [printed, name] of Object.entries(PRINTED_ALIASES)) {
+      const target = byName.get(name.toLowerCase());
+      if (target && !byName.has(printed)) byName.set(printed, { ...target, name: printed, printedAlias: true });
+    }
     this._index = [...byName.values()].sort((a, b) => b.name.length - a.name.length);
     return this._index;
   },

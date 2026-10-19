@@ -67,6 +67,16 @@
       </div>
     </section>
 
+    <section class="ui-card" data-drop="poi">
+      <h3 class="ui-h">{{localize "SDE.hexExplorer.poiTitle"}}</h3>
+      <label class="ui-field"><span class="ui-label">{{localize "SDE.hexExplorer.poi.table"}}</span><input name="poiTable" value="{{poiTable}}" placeholder="{{localize 'SDE.hexExplorer.poi.drop'}}"></label>
+      <div class="ui-row hx-poi">
+        <div class="ui-row-main"><span>{{#if poi}}{{poi.name}}{{else}}{{localize "SDE.hexExplorer.poi.none"}}{{/if}}</span>{{#if poi}}<span class="ui-row-sub">{{poi.left}}</span>{{/if}}</div>
+        <button type="button" class="ui-btn" data-action="rollPoi" {{#unless poi}}disabled{{/unless}}><i class="fa-solid fa-dice"></i> {{localize "SDE.hexExplorer.poi.roll"}}</button>
+        <button type="button" class="ui-icon" data-action="openEncounterTable" data-uuid="{{#if poi}}{{poi.uuid}}{{/if}}" {{#unless poi}}disabled{{/unless}} title="{{localize 'SDE.hexExplorer.poi.open'}}" aria-label="{{localize 'SDE.hexExplorer.poi.open'}}"><i class="fa-solid fa-table-list"></i></button>
+      </div>
+    </section>
+
     <section class="ui-card" data-drop="arrival">
       <h3 class="ui-h">{{localize "SDE.hexExplorer.arrival"}}</h3>
       <label class="ui-field"><span class="ui-label">{{localize "SDE.hexExplorer.arrivalTable"}}</span><input name="rollTable" value="{{rollTable}}" placeholder="{{localize 'SDE.hexExplorer.arrivalDrop'}}"></label>

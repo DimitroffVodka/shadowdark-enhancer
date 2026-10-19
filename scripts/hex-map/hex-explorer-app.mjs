@@ -6,6 +6,7 @@ import { effectiveDiscovery } from "./hex-fog-core.mjs";
 import { FEATURES, decodeTags } from "./tag-store.mjs";
 import { terrainOptions, OTHER } from "./tag-overlay.mjs";
 import { tableForCheck, pickTable, hexZonesFor, onHexZonesForgotten, TERRAIN_TABLES } from "../encounter/encounter-terrain.mjs";
+import { drawPointOfInterest, poiRemaining, poiTableFor, flavorHtml, postEncounter } from "../encounter/encounter-draw.mjs";
 import { rulesFrom } from "../rules-data/rules-data-core.mjs";
 import { storedRulesFor } from "../rules-data/rules-data-scope.mjs";
 import { Quests } from "../quests/quests.mjs";
@@ -40,8 +41,20 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       // Quest links are the quest's own flag, written at once: they are not part of this window's Save.
       linkQuest: function () { return this._setQuestHex(this.element.querySelector('[name="questPick"]')?.value, this.record.num); },
       unlinkQuest: function (_event, el) { return this._setQuestHex(el.dataset.uuid, null); },
+      // A point of interest on demand: the hex's own table, or the region's d20 list,
+      // drawn from the rows the party has not found yet (encounter-draw's
+      // drawPointOfInterest), and posted to the GMs like an encounter's card.
+      rollPoi: async function () {
+        const doc = this.poiUuid ? await fromUuid(this.poiUuid).catch(() => null) : null;
+        if (!doc) return;
+        const picked = await drawPointOfInterest(doc);
+        if (!picked) return;
+        const text = (picked.result.description || picked.result.name || "").trim();
+        await postEncounter({ kind: "flavor", heading: t("SDE.hexExplorer.poiTitle"), text, html: await flavorHtml(text), via: doc.name });
+        return this.render();
+      },
       openQuest: function (_event, el) { return fromUuid(el.dataset.uuid).then(doc => doc?.sheet?.render(true)); },
-      openEncounterTable: async function () { (await fromUuid(this.encounterUuid))?.sheet?.render(true); },
+      openEncounterTable: async function (_event, el) { (await fromUuid(el?.dataset?.uuid || this.encounterUuid))?.sheet?.render(true); },
       openPage: async function (_event, el) {
         const doc = await fromUuid(el.dataset.uuid);
         if (doc?.documentName === "JournalEntryPage") doc.parent.sheet?.render(true, { pageId: doc.id });
@@ -77,7 +90,7 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       lines: FEATURES.filter(type => record.features?.some(f => f.type === type)),
       features: (record.features ?? []).map((f, index) => ({ ...f, index })).filter(f => !FEATURES.includes(f.type)),
       notes: (record.notes ?? []).map((n, index) => ({ ...n, index })), links: (record.links ?? []).map((l, index) => ({ ...l, index })),
-      rollTable: record.rollTable ?? "", rollTableChance: record.rollTableChance ?? 100, rollTableFirstOnly: !!record.rollTableFirstOnly,
+      rollTable: record.rollTable ?? "", rollTableChance: record.rollTableChance ?? 100, rollTableFirstOnly: !!record.rollTableFirstOnly, poiTable: record.poiTable ?? "",
       revealed: !!seen.revealed, visited: !!seen.visited,
       location: seen.locationRevealed === undefined ? "auto" : seen.locationRevealed ? "show" : "hide",
     };
@@ -93,6 +106,16 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const enc = encounterReadout(res, res.uuid ? (await fromUuid(res.uuid).catch(() => null))?.name ?? "" : "", game.settings.get(MODULE_ID, "encounterTableUuid"),
       pickTable(game.settings.get(MODULE_ID, TERRAIN_TABLES), hex.terrain));
     this.encounterUuid = enc.uuid;
+    // The points of interest this hex rolls: the table dropped on the hex, else
+    // the region's printed list — the same one a travel hit uses, minus the rows
+    // the party already found.
+    const ownPoi = d.poiTable ? await fromUuid(d.poiTable).catch(() => null) : null;
+    const poiDoc = (ownPoi?.documentName === "RollTable" ? ownPoi : null) ?? await poiTableFor(region?.zone ?? "");
+    this.poiUuid = poiDoc?.uuid ?? null;
+    const poiLeft = poiDoc ? poiRemaining(poiDoc) : null;
+    const poi = poiDoc
+      ? { uuid: poiDoc.uuid, name: poiDoc.name, ...poiLeft, left: game.i18n.format("SDE.hexExplorer.poi.left", { n: poiLeft.remaining, total: poiLeft.total }) }
+      : null;
     // Quests tie to a hex by its printed number, so an unnumbered hex has no quest section.
     const numbered = Number.isInteger(record.num), all = numbered ? Quests.list() : [];
     const here = questsAtHex(all, { num: record.num, sceneUuid: this.scene.uuid });
@@ -115,7 +138,7 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       questSection: numbered, quests: here.map(row),
       // A quest already tied to another hex says so, so moving it is a choice and not a surprise.
       questChoices: all.filter(q => !here.includes(q)).map(q => ({ ...row(q), where: q.hex === null ? "" : ` → ${pad(q.hex)}` })),
-      rootId: this.id, encounter: { ...enc, note: game.i18n.format(ENCOUNTER_NOTES[enc.state], enc) }, isGM: true, saving: this.saving, sceneName: this.scene.name,
+      rootId: this.id, encounter: { ...enc, note: game.i18n.format(ENCOUNTER_NOTES[enc.state], enc) }, poi, isGM: true, saving: this.saving, sceneName: this.scene.name,
       // "Difficult (2)": the type's word and its cost of hexes; the word alone for impassable; blank when the rules say neither.
       enter: !enter ? "" : enter.cost === null ? t(`SDE.rulesData.type.${enter.type}`)
         : game.i18n.format("SDE.hexExplorer.enterCost", { type: t(`SDE.rulesData.type.${enter.type}`), cost: enter.cost }),
@@ -311,6 +334,7 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     };
     zone('[data-drop="links"]', event => this._dropLink(this._dropped(event)));
     zone('[data-drop="arrival"]', event => this._dropTable(this._dropped(event)));
+    zone('[data-drop="poi"]', event => this._dropTable(this._dropped(event), "poiTable"));
     // Ticking Disclosed decides whether the "players cannot open it" warning applies: draw again, keeping the draft.
     for (const box of this.element.querySelectorAll('[data-row="link"] input[data-field="visible"]')) box.addEventListener("change", () => { this._capture(); this.render(); });
   }
@@ -324,10 +348,10 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!row) { ui.notifications?.warn(game.i18n.localize("SDE.hexExplorer.dropRefused")); return; }
     this._capture(); this.draft.links.push(row); this.render();
   }
-  async _dropTable(data) {
+  async _dropTable(data, field = "rollTable") {
     const doc = data?.uuid ? await fromUuid(data.uuid).catch(() => null) : null;
     if (doc?.documentName !== "RollTable") { ui.notifications?.warn(game.i18n.localize("SDE.hexExplorer.dropTableRefused")); return; }
-    this._capture(); this.draft.rollTable = doc.uuid; this.render();
+    this._capture(); this.draft[field] = doc.uuid; this.render();
   }
   _capture() {
     if (!this.element || !this.draft) return;
@@ -340,7 +364,7 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
         return [key, field.type === "checkbox" ? field.checked : field.value];
       })) };
     });
-    this.draft = { terrain: value("terrain") === OTHER ? value("terrainOther") : value("terrain"), title: value("title"), lines: FEATURES.filter(type => checked(type)),
+    this.draft = { terrain: value("terrain") === OTHER ? value("terrainOther") : value("terrain"), title: value("title"), poiTable: value("poiTable"), lines: FEATURES.filter(type => checked(type)),
       features: collection("feature", ["type", "name", "uuid", "discovered"]), notes: collection("note", ["text", "visible", "location"]), links: collection("link", ["uuid", "label", "visible", "share"]),
       rollTable: value("rollTable").trim(), rollTableChance: value("rollTableChance"), rollTableFirstOnly: checked("rollTableFirstOnly"),
       revealed: checked("revealed"), visited: checked("visited"), location: value("location") };

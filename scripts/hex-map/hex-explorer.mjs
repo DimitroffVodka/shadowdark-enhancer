@@ -72,7 +72,7 @@ export function planExplorerEdit(record, input, flag, partyId = null) {
   const discovery = partyId ? withPartyDiscovery(record.discovery, partyId, seen) : { ...record.discovery, ...seen };
   if (!partyId && seen.locationRevealed === undefined) delete discovery.locationRevealed;
   return { tags, verdicts, patch: { ...(!numbered ? { terrain } : {}), title: String(input.title ?? ""), features,
-    notes: rows(record.notes, input.notes, ["text", "visible", "location"]), links: rows(record.links, input.links, ["uuid", "label", "visible"]), discovery, ...arrivalFields(input) } };
+    notes: rows(record.notes, input.notes, ["text", "visible", "location"]), links: rows(record.links, input.links, ["uuid", "label", "visible"]), discovery, ...arrivalFields(input), ...poiFields(input) } };
 }
 /** Ownership levels as the window reads them: a document carries numbers, a compendium's policy may carry names. */
 const OWNERSHIP = { INHERIT: -1, NONE: 0, LIMITED: 1, OBSERVER: 2, OWNER: 3 };
@@ -123,6 +123,16 @@ export function arrivalFields(input = {}) {
   if (!rollTable) return { rollTable: undefined, rollTableChance: undefined, rollTableFirstOnly: undefined };
   const raw = String(input.rollTableChance ?? "").trim(), chance = raw === "" ? NaN : Number(raw);
   return { rollTable, rollTableChance: Number.isFinite(chance) ? Math.max(0, Math.min(100, Math.round(chance))) : 100, rollTableFirstOnly: !!input.rollTableFirstOnly };
+}
+/**
+ * The hex's own points-of-interest table, when the window carries the field. An
+ * empty box writes explicit `undefined`, which the save's merge deletes, so the
+ * hex falls back to its region's printed list; no field at all leaves it alone.
+ */
+export function poiFields(input = {}) {
+  if (!Object.hasOwn(input, "poiTable")) return {};
+  const poiTable = String(input.poiTable ?? "").trim();
+  return { poiTable: poiTable || undefined };
 }
 /** The stored cell after a save's patch: a field the patch sets to `undefined` is removed, not written. */
 export function mergedCell(previous, patch) {

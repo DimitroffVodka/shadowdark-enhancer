@@ -91,7 +91,7 @@ function encounterOf(v) {
     poi: v.poi === true,
     noTable: v.noTable === true,
     interrupts: v.interrupts === true,
-    uuid: str(v.uuid), name: str(v.name), img: str(v.img), text: str(v.text), via: str(v.via),
+    uuid: str(v.uuid), name: str(v.name), img: str(v.img), text: str(v.text), html: str(v.html), via: str(v.via),
     count: num(v.count), countFormula: str(v.countFormula),
     distanceRoll: num(v.distanceRoll), activityRoll: num(v.activityRoll), reactionRoll: num(v.reactionRoll),
     chain: Array.isArray(v.chain) ? v.chain.map(linkOf).filter(Boolean) : [],
