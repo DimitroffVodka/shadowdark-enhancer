@@ -926,8 +926,10 @@ deletes an actor, token, item or history.
 `followLeader` and fixed `formation.slots` in `partyData`. Mounts never take a
 formation slot or follow the leader; a saved `includeMounts` is ignored. The
 sheet's emblem is the Party actor's `flags.shadowdark-enhancer.partyEmblem`
-(`{ icon, color }`, an icon from `icons/game-icons/party/` and six hex digits);
-a missing or unknown value draws the amber lantern.
+(`{ icon, color, iconColor }`, an icon from `icons/game-icons/party/` and six hex
+digits); a missing or unknown value draws the amber lantern. Whoever owns the
+Party may write it, as for the roster: a player's pick is dressed onto the Party's
+portrait and tokens by the active GM, because Foundry refuses a player an upload.
 `party.movement(ref, action)` accepts `deploy`, `gather`, `toggle` or `resume`;
 owners automatically use the authenticated active-GM relay for scene-token writes.
 Actions refuse combat and a mismatched authority scene rather than testing the

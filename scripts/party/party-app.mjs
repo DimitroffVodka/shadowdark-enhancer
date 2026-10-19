@@ -313,7 +313,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
     else if (!reply?.ok && reply?.error) ui.notifications.warn(reply.error);
     this.render();
   }
-  /** One emblem pick (an icon, a tile colour or an icon colour; a colour may be any hex), written as one flag. The GM's alone. */
+  /** One emblem pick (an icon, a tile colour or an icon colour; a colour may be any hex), written as one flag. Whoever may manage the party (a GM or its owners). */
   _pickEmblem(pick) {
     if (!sheetView({ isGM: !!game.user?.isGM, canEdit: Party.canManage(this.actor) }).emblemEdit) return;
     const next = pickEmblem(this.actor.flags?.[MODULE_ID]?.[EMBLEM_FLAG], pick);
