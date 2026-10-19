@@ -225,7 +225,7 @@ export function mergeKeyedPages(pins = [], book = []) {
   return out;
 }
 /** Patch fields a raw cell write may touch; the archive and arrival history stay out of reach. */
-const WRITABLE_CELL_FIELDS = new Set(["title", "features", "notes", "links", "terrain", "rollTable", "rollTableChance", "rollTableFirstOnly"]);
+const WRITABLE_CELL_FIELDS = new Set(["title", "features", "notes", "links", "adventures", "terrain", "rollTable", "rollTableChance", "rollTableFirstOnly"]);
 /** The parties whose fog this player sees: those with a character they own on the roster, or the only party there is. */
 function playerPartyIds(projection, pass) {
   if (!projection) return [];

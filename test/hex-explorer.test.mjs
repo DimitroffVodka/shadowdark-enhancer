@@ -34,6 +34,16 @@ test("one cell edits authoritative terrain/lines while rich metadata and other r
   assert.equal(plan.patch.discovery.arrivalRolled, true); assert.equal(plan.patch.discovery.locationRevealed, false);
   assert.equal(plan.patch.links[0].uuid, "RollTable.a");
 });
+test("a region correction rides the plan beside the cell, and adventure rows save only when the window carries them", () => {
+  const plan = planExplorerEdit(record, { ...input, region: "  Myre Swamp " }, flag);
+  assert.equal(plan.region, "Myre Swamp");
+  assert.ok(!Object.hasOwn(plan.patch, "region"));
+  assert.equal(planExplorerEdit(record, { ...input, region: "" }, flag).region, "");
+  assert.equal(planExplorerEdit(record, input, flag).region, undefined);
+  const rows = [{ index: 0, uuid: "Compendium.world.sde-adventures.Adventure.a", label: "Army Ants" }];
+  assert.deepEqual(planExplorerEdit(record, { ...input, adventures: rows }, flag).patch.adventures, [{ uuid: "Compendium.world.sde-adventures.Adventure.a", label: "Army Ants" }]);
+  assert.ok(!Object.hasOwn(planExplorerEdit(record, input, flag).patch, "adventures"));
+});
 test("automatic location disclosure clears explicit override without clearing visit/history", () => {
   const plan = planExplorerEdit({ ...record, discovery: { revealed: true, visited: true, locationRevealed: false, arrivalRolled: true } }, { ...input, location: "auto" }, flag);
   assert.ok(!Object.hasOwn(plan.patch.discovery, "locationRevealed")); assert.equal(plan.patch.discovery.arrivalRolled, true);
