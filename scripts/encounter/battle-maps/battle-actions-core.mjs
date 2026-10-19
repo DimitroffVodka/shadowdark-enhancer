@@ -100,7 +100,7 @@ export function readStash(stash) {
 export function battleControls(battle) {
   if (!battle) return { start: true, bring: false, change: false, back: false };
   const staged = battle.status === BATTLE_STATUS.staged;
-  return { start: false, bring: staged, change: staged, back: true };
+  return { start: false, bring: staged, change: staged && !battle.arena, back: true };
 }
 
 // The readout is worded by the preload part (encounter-preload-core.mjs describeSnapshot), so "ready" and

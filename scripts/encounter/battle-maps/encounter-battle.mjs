@@ -36,12 +36,14 @@
 import { MODULE_ID } from "../../shared/module-id.mjs";
 import { L } from "../../shared/i18n.mjs";
 import { replaceModuleFlag } from "../../shared/module-flags.mjs";
+import { isActiveGM } from "../../shared/gm-relay.mjs";
 import { tokenSourceFor, worldActorFor } from "../../shared/token-placement.mjs";
 import { Party, isLegacyParty, isNativeParty } from "../../party/party.mjs";
 import { makeQueue } from "../../quests/quest-core.mjs";
+import { arenaGeometry, arenaLayout, arenaLookById, fightView, isArenaLook } from "../../stage/arena-core.mjs";
 import { BATTLE_STATUS, FLAGS, GRID_PX, SETTINGS } from "./constants.mjs";
 import {
-  battleTokens, centralZone, dealPictures, foePlan, layoutMixed, newBattleRecord, numberedNames, rectOf, resolveVariant,
+  battleTokens, centralZone, dealPictures, distanceBand, foePlan, layoutMixed, newBattleRecord, numberedNames, rectOf, resolveVariant,
   tokensToRemove, variantName,
 } from "./encounter-battle-core.mjs";
 
@@ -103,7 +105,6 @@ export const _deps = {
   scenes: () => import("./encounter-scene.mjs"),
   preload: () => import("./encounter-preload.mjs"),
   stage: () => import("../../stage/stage.mjs"),
-  zoneFight: async () => (await import("../../stage/zone-fight.mjs")).findZoneFight(),
   foe: loadFoe,
   party: loadParty,
 };
@@ -146,6 +147,57 @@ function readBattle(scene) {
 
 /** What the public answers hand out: a copy, so a caller's edit cannot reach the scene's stored flag. A flag is JSON. */
 const copy = (battle) => (battle ? JSON.parse(JSON.stringify(battle)) : battle);
+
+/**
+ * createToken (the active GM only): a token dropped on a scene with a live Arena fight joins that fight. It is flagged for
+ * the battle, listed in the record (Return then takes it down by that exact id) and put in the battle's Combat. The
+ * engine's own tokens are never taken twice: they are listed in the record or carry the battle flag, and are made while
+ * the record is still staged.
+ */
+export function enrolArenaToken(token) {
+  if (!isActiveGM()) return Promise.resolve();
+  return serialize(() => guarded(async () => {
+    const scene = token?.parent;
+    const battle = scene && readBattle(scene);
+    if (!battle?.arena || battle.status !== BATTLE_STATUS.live || !battle.combatId) return;
+    if (battle.tokenIds.includes(token.id) || !scene.tokens.get(token.id)) return;
+    // A dropped light source (a Light actor) or a loot/coin pile (flagged NPC) is scenery, not a combatant.
+    const actor = token.actor;
+    const mod = actor?.flags?.[MODULE_ID];
+    if (!["NPC", "Player"].includes(actor?.type) || mod?.droppedItem || mod?.droppedCoins) return;
+    const combat = game.combats?.get(battle.combatId);
+    if (!combat) return;
+    await replaceModuleFlag(token, FLAGS.token, battle.id);
+    if (!(await writeBattle(scene, { ...battle, tokenIds: [...battle.tokenIds, token.id] }))) return;
+    if (!combat.combatants.some((c) => c.tokenId === token.id)) await TokenDocument.implementation.createCombatants([token], { combat });
+  }));
+}
+
+/**
+ * updateScene (every client): reframe an arena scene's first view. Why: v14 applies `initial` only when the client has no
+ * cached view position, and clears that cache itself only for the scene it is on (scene.mjs _onUpdate), so a client
+ * elsewhere would reopen the arena where it left it.
+ */
+export function resetArenaView(scene, changed) {
+  if (!changed?.initial || scene === canvas?.scene || !isArenaLook(scene?.flags?.[MODULE_ID]?.[FLAGS.scene])) return;
+  scene._viewPosition = { level: scene._viewPosition?.level };
+}
+
+let hooked = false;
+/** Wire the createToken hook once (D1 calls this at `ready`). */
+export function registerArenaTokenHook() {
+  if (hooked) return;
+  hooked = true;
+  Hooks.on("createToken", (token) => enrolArenaToken(token));
+}
+
+let viewHooked = false;
+/** Wire the arena view reset once, on every client (D1 calls this at `ready`). */
+export function registerArenaViewHook() {
+  if (viewHooked) return;
+  viewHooked = true;
+  Hooks.on("updateScene", resetArenaView);
+}
 
 /** Every scene with a battle record: [{battle, scene}]. */
 function scan() {
@@ -222,7 +274,7 @@ async function startReadout(scene) {
 export async function resumeBattleReadout() {
   if (!game.user?.isGM) return;
   for (const { battle, scene } of open()) {
-    if (battle.status === BATTLE_STATUS.staged && battle.gmId === game.user.id) await startReadout(scene);
+    if (battle.status === BATTLE_STATUS.staged && !battle.arena && battle.gmId === game.user.id) await startReadout(scene);
   }
 }
 
@@ -237,6 +289,9 @@ async function stopReadout(sceneId) {
 
 // ─── Which map, and where ───────────────────────────────────────────────────
 
+/** An Arena look as the map the scene builder takes: `arena` marks it (gridless, rings, its own name). */
+const arenaMap = (look) => ({ id: look.id, labelKey: look.labelKey, image: look.image, width: look.width, height: look.height, arena: look.id });
+
 /**
  * Which scene a battle is to be on, decided without touching anything: a world scene as it stands (sceneId), or a
  * library map (mapId, else the terrain's default) in the look the table is in. `scene` is the scene that exists for it
@@ -244,7 +299,13 @@ async function stopReadout(sceneId) {
  * already holds a battle must be refused before either. Null, with the GM told why, when there is nothing to choose.
  * @returns {Promise<{scene:Scene|null, map:object|null, camp:boolean, night:boolean}|null>}
  */
-async function choose({ mapId, sceneId, terrain, night, camping }) {
+async function choose({ mapId, sceneId, terrain, night, camping, arena = null }) {
+  if (arena) {
+    const look = arenaLookById(arena);
+    if (!look) { notify("warn", "SDE.encounterMaps.notify.unknownMap", { id: arena }); return null; }
+    const map = arenaMap(look);
+    return { scene: (await _deps.scenes()).findEncounterScene(look.id, map), map, camp: false, night: false };
+  }
   if (sceneId) {
     const scene = game.scenes.get(sceneId);
     if (!scene) { notify("warn", "SDE.encounterMaps.notify.unknownScene"); return null; }
@@ -296,6 +357,15 @@ const footprint = (width, height) => Math.max(Number(width) || 1, Number(height)
 function rectsOnScene(scene, grid) {
   const { sceneX, sceneY } = scene.dimensions;
   return scene.tokens.contents.map((t) => ({ x: t.x - sceneX, y: t.y - sceneY, width: t.width * grid, height: t.height * grid }));
+}
+
+/** The tokens already on a scene as `{ x, y, s }` centres in map px, `s` the footprint in squares (what arenaLayout takes). */
+function centresOnScene(scene, grid) {
+  const { sceneX, sceneY } = scene.dimensions;
+  return scene.tokens.contents.map((t) => {
+    const s = footprint(t.width, t.height);
+    return { x: t.x - sceneX + s * grid / 2, y: t.y - sceneY + s * grid / 2, s };
+  });
 }
 
 /**
@@ -474,11 +544,11 @@ async function abandon(scene, record) {
 
 async function setUpBattle({
   encounter = null, terrain = null, mapId = null, sceneId = null, variant = null, night = false, camping = false,
-  originSceneId = globalThis.canvas?.scene?.id ?? null, hex = null, view = true, travelling = false,
+  originSceneId = globalThis.canvas?.scene?.id ?? null, hex = null, view = true, travelling = false, arena = null,
 } = {}) {
   if (!gmOnly()) return null;
   return guarded(async () => {
-    const choice = await choose({ mapId, sceneId, terrain, ...resolveVariant({ variant, night, camping }) });
+    const choice = await choose({ mapId, sceneId, terrain, arena, ...resolveVariant({ variant, night, camping }) });
     if (!choice) return null;
 
     // One battle per scene. Asked before the scene is made or its light is touched, so a battle in progress is left
@@ -513,16 +583,35 @@ async function setUpBattle({
 
     const count = foe ? Math.max(1, Math.floor(Number(encounter.count)) || 1) : 0;
     const foeSize = foe ? footprint(foe.source.width, foe.source.height) : 1;
-    const spots = placementsFor({
-      scene,
-      partyArea: await partyAreaOf(scene, map),
-      foesZone: map?.foes,
-      pcSizes: pcs.map((p) => footprint(p.source.width, p.source.height)),
-      foeSizes: Array(count).fill(foeSize),
-      distanceRoll: encounter?.distanceRoll,
-    });
+    const pcSizes = pcs.map((p) => footprint(p.source.width, p.source.height));
+    const foeSizes = Array(count).fill(foeSize);
+    // An Arena fight stands the party at the centre and the foes on the rolled ring; a battle map has its zones.
+    const spots = arena
+      ? arenaLayout({ geometry: arenaGeometry(map.width, map.height), pcSizes, foeSizes, band: distanceBand(encounter?.distanceRoll),
+        occupied: centresOnScene(scene, scene.grid?.size ?? GRID_PX),
+      })
+      : placementsFor({
+        scene,
+        partyArea: await partyAreaOf(scene, map),
+        foesZone: map?.foes,
+        pcSizes,
+        foeSizes,
+        distanceRoll: encounter?.distanceRoll,
+      });
+
+    // The scene's first view frames this fight's party and foes (new or reused scene alike); only the initial view changes.
+    if (arena) {
+      const first = fightView({
+        geometry: arenaGeometry(map.width, map.height),
+        placements: { pcs: spots.pcs.map((p, i) => ({ ...p, s: pcSizes[i] })), foes: spots.foes.map((p, i) => ({ ...p, s: foeSizes[i] })) },
+      });
+      const { sceneX, sceneY } = scene.dimensions;
+      try { await scene.update({ "initial.x": Math.round(sceneX + first.x), "initial.y": Math.round(sceneY + first.y), "initial.scale": first.scale }); }
+      catch (err) { console.warn(`${MODULE_ID} | encounter battle: the arena's first view could not be set`, err); }
+    }
 
     const record = newBattleRecord({
+      arena: arena ? map.arena : null,
       encounter, terrain, map, variant: variantName({ camp: choice.camp, night: choice.night }), originSceneId, hex,
       sceneId: scene.id, presentTokenIds: present, gmId: game.user.id, travelling,
     });
@@ -544,7 +633,7 @@ async function setUpBattle({
       return null;
     }
 
-    await startReadout(scene);
+    if (!arena) await startReadout(scene);   // an Arena picture is small: nothing to preload
     if (view) await scene.view();
     return { battle: copy(readBattle(scene)), scene, map, created };
   });
@@ -557,6 +646,7 @@ async function changeBattleMap(battleId, { mapId = null, sceneId = null, variant
     if (!found) { notify("warn", "SDE.encounterMaps.notify.noBattle"); return null; }
     const { battle, scene: from } = found;
     if (battle.status !== BATTLE_STATUS.staged) { notify("warn", "SDE.encounterMaps.notify.notStaged"); return null; }
+    if (battle.arena) { notify("warn", "SDE.encounterMaps.notify.notStaged"); return null; }   // an Arena fight has no other map
 
     // The look the battle has, unless the GM chose another.
     const fromDark = (from.environment?.darknessLevel ?? 0) > 0;
@@ -651,8 +741,6 @@ async function changeBattleMap(battleId, { mapId = null, sceneId = null, variant
 
 async function bringBattleTable(battleId) {
   if (!gmOnly()) return null;
-  // An active scene combat would sit next to the global zone fight.
-  if (await _deps.zoneFight()) { notify("warn", "SDE.stage.zone.bringRefused"); return null; }
   return guarded(async () => {
     const found = get(battleId);
     if (!found) { notify("warn", "SDE.encounterMaps.notify.noBattle"); return null; }
@@ -663,8 +751,9 @@ async function bringBattleTable(battleId) {
     await syncPartyLight(scene, battle);
 
     // A Backdrop would cover the battle map; scene.activate() fires no hook for it, and an already-active scene is not activated at all.
+    let hidden = null;
     try {
-      await (await _deps.stage()).hideStage();
+      hidden = await (await _deps.stage()).hideStage();
     } catch (err) {
       console.warn(`${MODULE_ID} | the Backdrop could not be hidden`, err);
     }
@@ -696,7 +785,9 @@ async function bringBattleTable(battleId) {
       if (!combat) { notify("error", "SDE.encounterMaps.notify.combatFailed"); return null; }
     }
     if (battle.combatId !== combat.id || battle.status !== BATTLE_STATUS.live) {
-      if (!(await writeBattle(scene, { ...battle, status: BATTLE_STATUS.live, combatId: combat.id }))) {
+      // An Arena fight remembers the Backdrop place it covered, for Return to show again; the camp's own hook owns the camp picture.
+      const live = { ...battle, status: BATTLE_STATUS.live, combatId: combat.id, ...(battle.arena && hidden && hidden !== "camp" ? { backdrop: hidden } : {}) };
+      if (!(await writeBattle(scene, live))) {
         // The record does not know this combat, so nothing would ever end it: end the ones that carry this battle's tag.
         for (const stray of battleCombats(battle).filter((c) => c.id !== battle.combatId)) {
           try { await stray.delete(); } catch (err) { console.warn(`${MODULE_ID} | the unrecorded combat could not be deleted`, err); }
@@ -785,6 +876,14 @@ async function finishReturn({ battle, scene, saved, takeTokens }) {
     console.warn(`${MODULE_ID} | the origin scene could not be shown`, err);
     notify("warn", "SDE.encounterMaps.notify.activateFailed", { scene: origin?.name ?? "" });
   }
+  // An Arena fight covered the Backdrop; it comes back only if the GM has not switched place meanwhile.
+  if (battle.arena && battle.backdrop) {
+    try {
+      await (await _deps.stage()).reshowStage(battle.backdrop);
+    } catch (err) {
+      console.warn(`${MODULE_ID} | the Backdrop could not be shown again`, err);
+    }
+  }
   return { battle: done, scene, saved };
 }
 
@@ -838,6 +937,9 @@ export const BattleMaps = {
    * @param {string|null} [opts.originSceneId]  the scene Return to travel goes back to (default: the viewed one)
    * @param {*} [opts.hex]                      the hex the party was in, kept in the record
    * @param {boolean} [opts.view]               look at the scene afterwards (default true)
+   * @param {string|null} [opts.arena]          an Arena look id (`arena-pit`, ...): the fight is on that look's gridless scene,
+   *   the party at its centre and the foes on the ring the distance roll names, with no preload readout (mapId, sceneId and
+   *   the variant are ignored). The record carries `arena`; bringTable then hides the Backdrop and Return shows it again
    * @returns {Promise<{battle:object, scene:Scene, map:object|null, created:boolean, existing?:true}|null>} null when refused
    */
   setUp: (opts) => serialize(() => setUpBattle(opts)),

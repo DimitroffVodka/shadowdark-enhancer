@@ -1,0 +1,31 @@
+{{!-- Stage places, first part: heading and the ready places that ship with the module (Show / Hide only). Redrawn with the list so the shown row follows the stage. --}}
+<div class="sp-top">
+
+  <header class="ui-head">
+    <div class="ui-head-text">
+      <h2 class="ui-title">{{localize "SDE.stage.places.title"}}</h2>
+      <p class="ui-sub">{{localize "SDE.stage.places.note"}}</p>
+    </div>
+  </header>
+
+  <section class="ui-group sp-ready-group">
+    <h3 class="ui-h">{{localize "SDE.stage.places.readyHeading"}}</h3>
+    <div class="ui-list sp-list sp-ready">
+      {{#each ready as |p|}}
+      <div class="ui-row sp-row{{#if p.shown}} sel{{/if}}" data-place-id="{{p.id}}">
+        <img class="sp-thumb" src="{{p.image}}" alt="" loading="lazy" decoding="async">
+        <div class="sp-main">
+          <div class="sp-ready-name">{{localize p.nameKey}}</div>
+          <div class="sp-actions">
+            {{#if p.shown}}
+            <button type="button" class="ui-btn" data-action="hidePlace" data-place-id="{{p.id}}" aria-label="{{localize 'SDE.stage.places.ariaHide' name=(localize p.nameKey)}}"><i class="fa-solid fa-eye-slash"></i> {{localize "SDE.stage.places.hideButton"}}</button>
+            {{else}}
+            <button type="button" class="ui-btn primary" data-action="showPlace" data-place-id="{{p.id}}" aria-label="{{localize 'SDE.stage.places.ariaShow' name=(localize p.nameKey)}}"><i class="fa-solid fa-eye"></i> {{localize "SDE.stage.places.showButton"}}</button>
+            {{/if}}
+          </div>
+        </div>
+      </div>
+      {{/each}}
+    </div>
+  </section>
+</div>

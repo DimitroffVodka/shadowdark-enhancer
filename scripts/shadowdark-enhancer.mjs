@@ -31,7 +31,6 @@ import { registerHexRules } from "./overland/hex-rules.mjs";
 import { Party } from "./party/party.mjs";
 import { registerCamping } from "./camping/camping.mjs";
 import { registerStage } from "./stage/stage.mjs";
-import { registerZoneFight } from "./stage/zone-fight.mjs";
 
 import { registerCarousing, carousingOpen, carousingOf, requestCarousing } from "./carousing/carousing.mjs";
 
@@ -159,7 +158,7 @@ const STYLESHEET_REV = "e42c59841fff";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "a6f01536fe46";
+const BUILD_REV = "a6212677681f";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -465,7 +464,6 @@ Hooks.once("init", () => {
   registerPartyRoll();
   registerCamping();
   registerStage();
-  registerZoneFight();
   registerTempHp();
   registerCarousing();
 
@@ -1234,6 +1232,10 @@ Hooks.once("ready", () => {
   wireBattleMaps("registerBattleChatButtons", () => import("./encounter/battle-maps/battle-actions.mjs"));
   // A GM who reloads with a battle staged gets the players' readout back: it lived in the page they just reloaded.
   if (game.user.isGM) wireBattleMaps("resumeBattleReadout", () => import("./encounter/battle-maps/encounter-battle.mjs"));
+  // Every client reframes an Arena scene's first view when the GM sets it.
+  wireBattleMaps("registerArenaViewHook", () => import("./encounter/battle-maps/encounter-battle.mjs"));
+  // A monster dragged onto a live Arena fight joins its combat (the active GM's client does it).
+  if (game.user.isGM) wireBattleMaps("registerArenaTokenHook", () => import("./encounter/battle-maps/encounter-battle.mjs"));
   // If the GM enabled the monster compendium-art overlay, inject it now so every
   // monster drag carries the referenced art (all clients; GM-only settings write).
   MonsterTokenArt.initCompendiumArt();

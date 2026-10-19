@@ -12,7 +12,8 @@ const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
 const en = JSON.parse(read("languages/en.json"));
 const tplAdd = read("templates/stage/places-add.hbs");
 const tplList = read("templates/stage/places-list.hbs");
-const tpl = `${tplAdd}\n${tplList}`;
+const tplReady = read("templates/stage/places-ready.hbs");
+const tpl = `${tplReady}\n${tplAdd}\n${tplList}`;
 const css = read("styles/stage.css").replace(/\/\*[\s\S]*?\*\//g, "");
 
 class ApplicationV2 {
@@ -68,7 +69,7 @@ test("window options: id, classes, title and icon, one template that exists, GM-
   assert.equal(o.window.resizable, true);
   assert.equal(o.position.width, 560);
   assert.equal(o.position.height, 680);
-  assert.deepEqual(Object.keys(StagePlacesApp.PARTS), ["add", "list"]); // the Add form comes first and is not redrawn with the list
+  assert.deepEqual(Object.keys(StagePlacesApp.PARTS), ["ready", "add", "list"]); // the ready places come first; the Add form is not redrawn with the list
   for (const part of Object.values(StagePlacesApp.PARTS)) assert.ok(existsSync(new URL(`../${part.template.replace(/^modules\/shadowdark-enhancer\//, "")}`, import.meta.url)));
   for (const fn of Object.values(o.actions)) assert.equal(typeof fn, "function");
 });
@@ -138,7 +139,7 @@ test("open() is null for a non-GM; a GM gets one window, redrawn and raised each
   assert.equal(a, b);
   assert.equal(a.renders, 2);
   assert.equal(a.fronted, 2);
-  assert.deepEqual(a.renderArgs, [{ force: true }, { parts: ["list"] }]); // a second open keeps the Add form: only the list is redrawn
+  assert.deepEqual(a.renderArgs, [{ force: true }, { parts: ["ready", "list"] }]); // a second open keeps the Add form: only the list is redrawn
   StagePlacesApp._current = null;
 });
 
@@ -297,10 +298,10 @@ test("redraw wiring: both settings redraw only the list of the open window, and 
   const app = await StagePlacesApp.open();
   app.renderArgs.length = 0;
   e.registered.stage.onChange(); // a camp raising the stage
-  assert.deepEqual(app.renderArgs, [{ parts: ["list"] }]);
+  assert.deepEqual(app.renderArgs, [{ parts: ["ready", "list"] }]);
   app.renderArgs.length = 0;
   e.registered.stagePlaces.onChange(); // another GM renaming a place
-  assert.deepEqual(app.renderArgs, [{ parts: ["list"] }]);
+  assert.deepEqual(app.renderArgs, [{ parts: ["ready", "list"] }]);
   await app.close();
   app.renderArgs.length = 0;
   e.registered.stagePlaces.onChange();
@@ -508,7 +509,7 @@ test("the open Places window redraws its list when a scene gains or loses its pa
   e.hooks.createScene({});
   e.hooks.deleteScene({});
   assert.equal(renders.length, 5);
-  assert.ok(renders.every((o) => o.parts.length === 1 && o.parts[0] === "list"));
+  assert.ok(renders.every((o) => o.parts.join() === "ready,list"));
   e.hooks.updateScene({}, { flags: { [MODKEY]: { other: 1 } } });
   e.hooks.updateScene({}, { name: "x" });
   e.hooks.updateScene({}, undefined);

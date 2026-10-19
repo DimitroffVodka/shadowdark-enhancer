@@ -46,14 +46,13 @@ import { barModel, itemTouchesBar, redrawStamp, hhmm, weatherSwitch } from "./ov
 import { WEATHER_VISUALS, weatherVisualsOn } from "./sky.mjs";
 import { travelPanel } from "./travel-panel.mjs";
 import { campOf } from "../camping/camping.mjs";
-import { isZoneFight } from "../stage/zone-core.mjs";
 import { encounterCard, encounterPanel, encounterStrip } from "./encounter-panel.mjs";
 import { BATTLE_STATUS, FLAGS } from "../encounter/battle-maps/constants.mjs";
 import {
   makePreloadWatch, panelAfter, panelOnScene, readoutKey, readoutShown, touchesBattle,
 } from "../encounter/battle-maps/battle-actions-core.mjs";
 import {
-  bringTheTable, changeBattleMap, describeBattle, loadBattleParts, openBattleMap, partyContext, returnToTravel,
+  bringTheTable, changeBattleMap, describeBattle, loadBattleParts, openArenaFight, openBattleMap, partyContext, returnToTravel,
 } from "../encounter/battle-maps/battle-actions.mjs";
 import { postEncounter } from "../encounter/encounter-draw.mjs";
 import { showNpcPreview, hideNpcPreview } from "../encounter/npc-preview.mjs";
@@ -412,7 +411,7 @@ export const TravelBar = {
 
   /**
    * One battle control, from the Encounter panel here or the Crawl Bar's item and panel.
-   * @param {"battle"|"battleMap"|"chooseBattleMap"|"bringTable"|"changeBattleMap"|"returnToTravel"|"keepBattle"} action
+   * @param {"battle"|"battleMap"|"arenaFight"|"chooseBattleMap"|"bringTable"|"changeBattleMap"|"returnToTravel"|"keepBattle"} action
    *   battle folds or opens the panel; keepBattle ticks Keep
    * @param {{keep?:boolean}} [opts]  keep: the Keep checkbox as the GM sees it (Return takes it; the tick sets it)
    */
@@ -425,6 +424,10 @@ export const TravelBar = {
       case "chooseBattleMap": {
         const { terrain, hexNum, originSceneId } = partyContext();
         return this._act(() => openBattleMap({ enc: overlandState().encounter, terrain, hex: hexNum, originSceneId, choose: action === "chooseBattleMap" }, this._io));
+      }
+      case "arenaFight": {
+        const { terrain, hexNum, originSceneId } = partyContext();
+        return this._act(() => openArenaFight({ enc: overlandState().encounter, terrain, hex: hexNum, originSceneId }, this._io));
       }
       case "bringTable": return this._act(() => bringTheTable({ battle, preload: battle && this._parts?.preloadSnapshot(battle.sceneId) }, this._io));
       case "changeBattleMap": return this._act(() => changeBattleMap({ battle }, this._io));
@@ -537,7 +540,7 @@ export const TravelBar = {
   _drop() {
     const enc = overlandState().encounter;
     if (this._open === "encounter") {
-      return encounterPanel({ enc, cal: game.time.calendar, battle: this._view, preload: this._preload, keep: this._keep, battleMaps: !!this._parts, zoneFight: Array.from(game.combats ?? []).some(isZoneFight) });
+      return encounterPanel({ enc, cal: game.time.calendar, battle: this._view, preload: this._preload, keep: this._keep, battleMaps: !!this._parts });
     }
     // Folded, a held encounter rides under the bar as a strip, above whatever else is open (#257).
     const strip = game.user.isGM && enc && CrawlState.isOverland ? encounterStrip({ enc, cal: game.time.calendar, battle: this._view }) : "";
@@ -944,10 +947,6 @@ export const TravelBar = {
       case "resume": return warn(await resume());
       // The panel's Post is the GM's decision to show it: to everyone, whatever the roller's GM-only setting.
       case "postEncounter": return postEncounter(encounterCard(overlandState().encounter), { gmOnly: false });
-      case "zoneFight": {
-        const { startZoneFightFromEncounter } = await import("../stage/zone-fight.mjs");
-        return startZoneFightFromEncounter(encounterCard(overlandState().encounter));
-      }
       case "openRoller": {
         // The roller opens on the held encounter, for CHA and renown on the reaction, and its tokens.
         const app = await game.shadowdarkEnhancer.encounter.openRoller("tables");
@@ -957,6 +956,7 @@ export const TravelBar = {
       }
       // The battle map (docs/plans/encounter-battle-maps.md): set it up, bring the table, change it, return to travel.
       case "battleMap":
+      case "arenaFight":
       case "chooseBattleMap":
       case "bringTable":
       case "changeBattleMap":

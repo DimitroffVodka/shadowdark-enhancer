@@ -24,7 +24,6 @@ import { crawlFree } from "./crawl-free.mjs";
 import { marchOf, stripParty } from "../party/party-movement.mjs";
 import { Party, isParty } from "../party/party.mjs";
 import { marchGridHTML, marchButtonHTML, bindMarchControls } from "./march-controls.mjs";
-import { isZoneClone } from "../stage/zone-core.mjs";
 import { combatantEntry, isHiddenFromStrip, isTurnless, commanderCombatant } from "./turn-skip-core.mjs";
 import { showOocReset } from "./crawl-tracker-core.mjs";
 import { dyingState, badgeHTML as dyingBadgeHTML, openMenu as openDyingMenu } from "../dying/dying.mjs";
@@ -758,7 +757,7 @@ export const CrawlStrip = {
       const concealStats = !game.user.isGM && m.type === "npc"
         && (concealToken
           ? concealToken.disposition <= CONST.TOKEN_DISPOSITIONS.HOSTILE
-          : isZoneClone(actor) || actor?.prototypeToken?.disposition <= CONST.TOKEN_DISPOSITIONS.HOSTILE);
+          : actor?.flags?.[MODULE_ID]?.zoneClone || actor?.prototypeToken?.disposition <= CONST.TOKEN_DISPOSITIONS.HOSTILE);
 
       // Visibility:
       //   - Players NEVER see a hidden token/combatant — it stays off their

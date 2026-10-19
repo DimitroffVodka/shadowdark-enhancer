@@ -1,4 +1,5 @@
 // The Stage Places window with invented places and tinted stand-in pictures, rendered through the real template.
+// The ready places come first, as in the real window; the list below is the GM's own.
 // state = busy (24 places, a very long name, all four kinds, one shown, an upload running) | empty | shown (a few places, one on show)
 const KINDS = ["town", "tavern", "camp", "custom"];
 const label = (k) => `SDE.stage.places.kind${k[0].toUpperCase()}${k.slice(1)}`;
@@ -16,10 +17,14 @@ const place = (i, shownIdx, name) => {
   return { id: `p${i}`, pageSceneId: pageId, pageNone: !pageId, pageMissing: pageId === "gone", pageScenes: SCENES.map((s) => ({ ...s, selected: s.id === pageId })), name: name ?? `${NAMES[i % NAMES.length]}${i >= NAMES.length ? ` ${i}` : ""}`, image: art((i * 37) % 360), shown: i === shownIdx, kinds: KINDS.map((value) => ({ value, label: label(value), selected: value === kind })) };
 };
 
+const READY = [["SDE.stage.ready.tavern", 20], ["SDE.stage.ready.town", 140], ["SDE.stage.ready.market", 260]];
+const ready = (shownIdx) => READY.map(([nameKey, hue], i) => ({ id: `ready-${i}`, nameKey, image: art(hue), shown: i === shownIdx }));
+
 const build = (state) => {
   const places = state === "empty" ? [] : state === "shown" ? [place(0, 1), place(1, 1), place(2, 1)] : Array.from({ length: 24 }, (_, i) => place(i, 2, i === 1 ? LONG : undefined));
   const kinds = KINDS.map((value) => ({ value, label: label(value) }));
   return { strings: {}, parts: [
+    { id: "ready", template: "templates/stage/places-ready.hbs", context: { ready: ready(state === "shown" ? 0 : -1) } },
     { id: "add", template: "templates/stage/places-add.hbs", context: { kinds, pageScenes: SCENES, busy: state === "busy" } },
     { id: "list", template: "templates/stage/places-list.hbs", context: { places } },
   ] };

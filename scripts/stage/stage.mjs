@@ -8,7 +8,6 @@ import { isNativeParty } from "../party/party.mjs";
 import { campOf } from "../camping/camping.mjs";
 import { fileRoute } from "../shared/file-route.mjs";
 import { isActiveGM } from "../shared/gm-relay.mjs";
-import { isZoneFight } from "./zone-core.mjs";
 import { registerPlaces, readPlaces, refreshPlacesWindow, showPlace } from "./places.mjs";
 import { reshowTarget } from "./places-core.mjs";
 import { campArtFor, campTransition, normalizeStage, showCamp } from "./stage-core.mjs";
@@ -63,11 +62,20 @@ export async function raiseByHand(party) {
   return write(showCamp(party ? campOf(party) : null, { partyId: party?.id ?? "", image: art.image }));
 }
 
-/** Bring the table calls this. campId stays so the camp cannot re-raise itself. */
+/** Bring the table calls this. campId stays so the camp cannot re-raise itself. Answers the place it hid, else null. */
 export async function hideStage() {
   const stage = read();
-  if (!game.user?.isGM || !stage.shown) return;
+  if (!game.user?.isGM || !stage.shown) return null;
   await write({ ...stage, shown: false });
+  return stage.place || null;
+}
+
+/** Return from an Arena fight: show `place` again, but only if the (hidden) Backdrop still holds that same place. */
+export async function reshowStage(place) {
+  const stage = read();
+  if (!game.user?.isGM || !place || stage.shown || stage.place !== place) return false;
+  await write({ ...stage, shown: true });
+  return true;
 }
 
 /** updateActor on a party: raise the camp picture when a camp BEGINS, drop it when the camp ends. Active GM only. */
@@ -133,22 +141,6 @@ export function registerStage() {
         if (read().shown) return hideStage();
         const again = reshowTarget(read(), readPlaces());
         return again ? showPlace(again.id) : raiseByHand(pickParty());
-      },
-    };
-    controls.tokens.tools.sdeZoneFight = {
-      name: "sdeZoneFight", title: "SDE.stage.zone.tool", icon: "fa-solid fa-swords", order: 93, toggle: true,
-      active: Array.from(game.combats ?? []).some(isZoneFight),
-      onChange: async () => {
-        try {
-          const { findZoneFight, startZoneFight, confirmEndZoneFight } = await import("./zone-fight.mjs");
-          const fight = findZoneFight();
-          if (fight) await confirmEndZoneFight(fight);
-          else await startZoneFight();
-        } catch (err) {
-          console.error(`${MODULE_ID} | zone fight tool failed`, err);
-          ui.notifications?.error(game.i18n.localize("SDE.stage.zone.boardFailed"));
-        }
-        ui.controls?.render({ reset: true }); // a declined End must put the toggle back
       },
     };
   });

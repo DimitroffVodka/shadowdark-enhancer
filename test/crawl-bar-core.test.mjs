@@ -95,7 +95,7 @@ test("Tools: sections in order, 'This travel day' only while travelling", () => 
 
 test("Tools: the table, between-sessions and set-up entries", () => {
   const [table, between, setup] = toolsSections({ mode: "off" });
-  assert.deepEqual(table.entries.map((e) => e.action), ["encounter", "battleMap", "rollTables", "lootGen", "magicForge", "merchant"]);
+  assert.deepEqual(table.entries.map((e) => e.action), ["encounter", "battleMap", "arenaFight", "rollTables", "lootGen", "magicForge", "merchant"]);
   assert.deepEqual(between.entries.map((e) => e.action), ["partyXp", "downtime", "carousing", "training", "renown", "rumors", "recap", "pitFighting"]);
   assert.deepEqual(setup.entries.map((e) => e.action), ["importer"]);
 });

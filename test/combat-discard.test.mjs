@@ -36,7 +36,7 @@ SessionRecap._initCombatHooks();
 /** Delete a combat through the hooks; report which rewards ran. */
 async function deleteCombat(options) {
   const ran = { hunter: false, loot: false, recap: false };
-  LootDrops._onCombatEnd = () => { ran.loot = true; };
+  LootDrops._onCombatEnd = async () => { ran.loot = true; };
   SessionRecap.logCombat = async () => { ran.recap = true; };
   const combat = {
     id: "c1",
