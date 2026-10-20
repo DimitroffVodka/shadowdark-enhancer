@@ -4,7 +4,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { planFolders, bookFolderName, RECORDS_FOLDER } from "../scripts/importer/world-folders.mjs";
+import { planFolders, bookFolderName, bookFolderDocId, emptyBookFolders, RECORDS_FOLDER } from "../scripts/importer/world-folders.mjs";
 
 const M = "shadowdark-enhancer";
 const j = (id, flags, folder = null) => ({ id, folder, flags: { [M]: flags } });
@@ -51,4 +51,25 @@ test("book folder names read the way the sidebar should", () => {
   assert.equal(bookFolderName("GMWR"), "Western Reaches");
   assert.equal(bookFolderName("MINI ADVENTURE: HOUSE OF ROGUES"), "Western Reaches Mini Adventures");
   assert.equal(bookFolderName("nonsense"), null);
+});
+
+test("a book folder's id is fixed, a valid document id, and differs by type and book", () => {
+  const id = bookFolderDocId("JournalEntry", "Cursed Scroll 1: Diablerie");
+  assert.match(id, /^[a-zA-Z0-9]{16}$/);
+  assert.equal(bookFolderDocId("JournalEntry", "Cursed Scroll 1: Diablerie"), id, "made again, the same id");
+  assert.notEqual(bookFolderDocId("Scene", "Cursed Scroll 1: Diablerie"), id);
+  assert.notEqual(bookFolderDocId("JournalEntry", "Cursed Scroll 2: Red Sands"), id);
+});
+
+test("only the module's own top-level folders that hold nothing are pruned", () => {
+  const f = (id, name, over = {}) => ({ id, name, type: "JournalEntry", top: true, used: false, ...over });
+  assert.deepEqual(emptyBookFolders([
+    f("empty", "Cursed Scroll 1: Diablerie"),
+    f("records", RECORDS_FOLDER),
+    f("scene", "Western Reaches", { type: "Scene" }),
+    f("full", "Cursed Scroll 2: Red Sands", { used: true }),
+    f("nested", "Cursed Scroll 3: Midnight Sun", { top: false }),
+    f("gm", "My Notes"),
+    f("items", "Western Reaches", { type: "Item" }),
+  ]), ["empty", "records", "scene"]);
 });

@@ -61,6 +61,50 @@ export function planFolders({ journals = [], scenes = [] }) {
 }
 
 /**
+ * Pure: the fixed id of a book folder. Packing an adventure takes its documents out of the world and the emptied folder is
+ * removed, so the folder made for the book's next adventure must carry the same id: importing the Adventures back then
+ * makes one folder per book, not one per adventure.
+ */
+export function bookFolderDocId(type, name) {
+  const key = `${type}|${name}`;
+  const hash = (seed) => {
+    let h = seed;
+    for (const c of key) h = Math.imul(h ^ c.codePointAt(0), 16777619) >>> 0;
+    return h.toString(36).padStart(7, "0");
+  };
+  return `sde${hash(2166136261)}${hash(5381)}`.slice(0, 16);
+}
+
+/** A book's world folder of a type: the one with its fixed id, else a top-level one of its name, else made with the fixed id. */
+async function bookFolder(type, name) {
+  const id = bookFolderDocId(type, name);
+  const folder = game.folders.get(id) ?? game.folders.find((f) => f.type === type && f.name === name && !f.folder);
+  return { folder: folder ?? await Folder.create({ _id: id, name, type, sorting: "a" }, { keepId: true }), made: !folder };
+}
+
+/** The folder names this module makes in the world. */
+const OWN_NAMES = new Set([...Object.values(BOOKS), RECORDS_FOLDER]);
+
+/**
+ * Pure: the ids of this module's world folders that hold nothing: top level, one of its own names, no documents, no subfolders.
+ * @param {Array<{id:string, name:string, type:string, top:boolean, used:boolean}>} folders
+ */
+export function emptyBookFolders(folders) {
+  const types = new Set(["JournalEntry", "Scene", "Actor"]);
+  return folders.filter((f) => f.top && !f.used && types.has(f.type) && OWN_NAMES.has(f.name)).map((f) => f.id);
+}
+
+/** Remove the book folders an import left empty (its documents went into the Adventures pack). GM only. */
+export async function pruneEmptyBookFolders() {
+  if (!game.user?.isGM) return 0;
+  const used = new Set(game.folders.map((f) => f.folder?.id));
+  for (const c of [game.journal, game.scenes, game.actors]) for (const d of c) used.add(d.folder?.id);
+  const ids = emptyBookFolders(game.folders.map((f) => ({ id: f.id, name: f.name, type: f.type, top: !f.folder, used: used.has(f.id) })));
+  if (ids.length) await Folder.deleteDocuments(ids);
+  return ids.length;
+}
+
+/**
  * File this world's imported journals and scenes into their folders. GM only.
  * @returns {Promise<{made:number, moved:number}>}
  */
@@ -69,13 +113,12 @@ export async function organizeWorld() {
   const row = (d) => ({ id: d.id, folder: d.folder?.id ?? d.folder ?? null, flags: d.flags });
   const plan = planFolders({ journals: game.journal.contents.map(row), scenes: game.scenes.contents.map(row) });
   if (!plan.moves.length) return { made: 0, moved: 0 };
-  const have = (type, name) => game.folders.find((f) => f.type === type && f.name === name && !f.folder);
   const ids = new Map();
   let made = 0;
   for (const { type, name } of plan.make) {
-    let folder = have(type, name);
-    if (!folder) { folder = await Folder.create({ name, type, sorting: "a" }); made++; }
-    ids.set(`${type}|${name}`, folder.id);
+    const got = await bookFolder(type, name);
+    if (got.made) made++;
+    ids.set(`${type}|${name}`, got.folder.id);
   }
   const by = (type) => plan.moves.filter((m) => m.type === type).map((m) => ({ _id: m.id, folder: ids.get(`${type}|${m.name}`) }));
   const journals = by("JournalEntry"), scenes = by("Scene");
@@ -88,7 +131,5 @@ export async function organizeWorld() {
 export async function bookFolderId(type, siteId) {
   const name = bookFolderName(findSite(siteId)?.src);
   if (!name || !game.user?.isGM) return null;
-  const folder = game.folders.find((f) => f.type === type && f.name === name && !f.folder)
-    ?? await Folder.create({ name, type, sorting: "a" });
-  return folder.id;
+  return (await bookFolder(type, name)).folder.id;
 }
