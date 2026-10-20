@@ -1,5 +1,5 @@
 <div class="sde-ui ui-cc">
-  <header class="cc-head"><i class="fa-solid fa-coins"></i><h4 class="cc-title">{{#if source}}{{localize "SDE.loot.card.headingSource" source=source tier=tier}}{{else}}{{localize "SDE.loot.card.heading" tier=tier}}{{/if}}</h4></header>
+  <header class="cc-head"><i class="fa-solid fa-coins"></i><h4 class="cc-title">{{#if source}}{{#if tier}}{{localize "SDE.loot.card.headingSource" source=source tier=tier}}{{else}}{{localize "SDE.loot.card.headingCarried" source=source}}{{/if}}{{else}}{{localize "SDE.loot.card.heading" tier=tier}}{{/if}}</h4></header>
   {{#if items.length}}
   <ul class="cc-list">
     {{#each items as |it|}}

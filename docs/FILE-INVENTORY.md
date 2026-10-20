@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-2158 tracked files · ~273,300 lines of code/markup across scripts+templates+styles+test.
+2163 tracked files · ~274,000 lines of code/markup across scripts+templates+styles+test.
 `v0.19.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 1545 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 1547 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 172 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 271 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 | `scavenger/scavenger-core.mjs` | 171 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
@@ -126,6 +126,8 @@
 | `modes-of-play/pulp.mjs` | 293 | Pulp Mode (#185): session luck on the sessionStart hook (1d4, set), and the Luck: critical hit / force a reroll chat buttons. Both relay to the active GM (PULP_QUERY), which checks the requester, spends the token and edits the card. |
 | `mounted/mounted-core.mjs` | 131 | Riding a mount on the map (#326), pure: the rider's corner square, the carried path, carry movement ids (`isCarryMovement`, read by the movement tracker), the snap-to-corner reconcile after a carry, picking the mount in reach, the 2x2 size a mount grows to. |
 | `mounted/mounted-tokens.mjs` | 193 | Riding a mount on the map (#326), Foundry glue: the Mount/Dismount Token HUD button, the rider following its mount (one carry at a time per rider, then a reconcile; also when the mount is resized or reverted with Ctrl+Z, in the tab that moved it), the 2x2 grow on mounting, the GM relay for a carry the mover cannot make, and a pasted rider riding nothing. Its writes stay out of the token undo history. |
+| `npc-inventory/npc-inventory-core.mjs` | 60 | What an NPC carries, pure: the physical item types, the purse, the sheet rows, and the loot-card batch that carries each item as its own data. |
+| `npc-inventory/npc-inventory.mjs` | 257 | An Inventory tab on the system's NPC sheet (it has none): carried gear with quantities, a gp/sp/cp purse in a flag, Drop as loot, and a Token HUD button; every drop is done by the active GM, one NPC at a time, and posts exactly what came off; stands down (and drops use Extras' purse) when Shadowdark Extras' NPC Inventory is on. |
 | `overland/encounter-panel.mjs` | 241 | The clock HUD's Encounter panel (#257): a quiet travel check's hit as the GMs see it until Continue: the check (step 6 or 8, its hour and chance), the chain of tables it went through as chips (zone and its roll, category, the region's table and its roll), the creature with its art and number appearing, the distance, activity and reaction rolls in words, a second category's draw, and Post to chat and Continue; encounterCard gives the chat card's data at CHA +0. A battle map's panel and battleItem, the Crawl Bar's item that folds and opens it (#485). |
 | `overland/find-party.mjs` | 38 | The clock HUD's two party buttons: Find pans to the party token, pulses on it (this client only) and selects it when the viewer can, naming another scene if that is where it is; the other opens the party sheet. |
 | `overland/hex-rules.mjs` | 179 | Hex rules on hex maps (#257): at init, the Token class never lights a hex-rules scene (a tagged print or an Extras hexcrawl) and the visibility group gives it no token vision, at runtime with no data written; the Enhancer party actor (flag party) placed as a hex token when travel starts with no party on the map; the travel token made to wear the party's standard at 85% of the cell, re-dressed when an older version left it on another picture or size (icons/party-hex.svg when the standard cannot be made). |
@@ -306,7 +308,7 @@
 | `loot-generator-app.mjs` | 317 | Roll a loot table, work a running batch, whisper claimable cards. |
 | `loot-generator.mjs` | 234 | RollTable → structured loot batch (documents, coins, flavor). |
 | `loot-delivery.mjs` | 490 | Shared claimable chat card; first-claim-wins, GM-authoritative over an authenticated relay query. |
-| `loot-drops.mjs` | 196 | Auto-drop loot on NPC defeat at combat end. |
+| `loot-drops.mjs` | 202 | Auto-drop loot on NPC defeat at combat end. |
 | `loot-setup-app.mjs` | 238 | Browsable Loot & Treasure library; rows unlock from the GM's own PDF. |
 | `loot-value.mjs` | 68 | gp value → Shadowdark XP quality tiers. |
 | `loot-table-catalog.mjs` | 317 | Loot/treasure table catalog + classifier across Core, CS1–6, WR (metadata only). |

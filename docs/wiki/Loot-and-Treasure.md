@@ -330,6 +330,37 @@ generating a chat card.
 
 ---
 
+## What an NPC carries
+
+The Shadowdark system's NPC sheet has no inventory: a sword or a potion dropped
+on an NPC is kept but never shown. The module adds an **Inventory** tab to the
+NPC sheet (the GM sees it; players do not).
+
+- **Gear.** Drop weapons, armour, potions, scrolls, wands, gems or ordinary gear
+  on the NPC sheet as usual and they appear on the tab. Change a quantity in
+  place, click a name to open the item, or the bin to remove it. The NPC's
+  attacks, features and spells stay on their own tabs.
+- **Purse.** Type the gp, sp and cp the NPC carries.
+- **Drop as loot.** The button at the bottom posts everything on the tab, coins
+  included, as a loot card headed with the NPC's name, and empties the tab.
+  Players claim from the card the usual way. The same button sits on the token's
+  right-click HUD (a hand holding coins) while the NPC carries anything.
+- **When a fight ends**, with **Loot drops on combat end** on, every defeated NPC
+  drops what it carries as its own card, before (and whatever) its loot table rolls.
+- **With Shadowdark Extras' NPC Inventory on**, Extras draws its own Inventory
+  tab, so this one is not added; the HUD button and the end-of-fight drop still
+  work and take the coins typed on Extras' tab. With that Extras feature off,
+  this tab is added as usual.
+- **One GM does every drop.** Whoever clicks, the active GM's Foundry takes the
+  gear and coins off the NPC and posts the card, one NPC at a time, so two
+  clicks never post the same loot twice. If the card cannot be posted, the gear
+  and coins go back on the NPC and the GM is told. One exception: if the active
+  GM has the world open in two tabs (over plain http, where the browser cannot
+  tell them apart), or the active GM changes while a drop runs, an NPC's coins
+  can go on two cards. Its gear never does.
+- **Containers.** A Shadowdark Extras container goes on the card as one row;
+  what is packed in it comes with it when it is claimed.
+
 ## Treasure XP
 
 Generated treasure carries a suggested XP value (nothing is awarded on its own;

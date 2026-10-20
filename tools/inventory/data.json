@@ -649,6 +649,8 @@
     "scripts/loot/loot-generator-app.mjs": "Roll a loot table, work a running batch, whisper claimable cards.",
     "scripts/loot/loot-generator.mjs": "RollTable → structured loot batch (documents, coins, flavor).",
     "scripts/loot/loot-delivery.mjs": "Shared claimable chat card; first-claim-wins, GM-authoritative over an authenticated relay query.",
+    "scripts/npc-inventory/npc-inventory.mjs": "An Inventory tab on the system's NPC sheet (it has none): carried gear with quantities, a gp/sp/cp purse in a flag, Drop as loot, and a Token HUD button; every drop is done by the active GM, one NPC at a time, and posts exactly what came off; stands down (and drops use Extras' purse) when Shadowdark Extras' NPC Inventory is on.",
+    "scripts/npc-inventory/npc-inventory-core.mjs": "What an NPC carries, pure: the physical item types, the purse, the sheet rows, and the loot-card batch that carries each item as its own data.",
     "scripts/loot/loot-drops.mjs": "Auto-drop loot on NPC defeat at combat end.",
     "scripts/loot/monster-loot-review-app.mjs": "Monster Loot Overrides window: every world NPC with its loot table and drop chance, edited inline via LootDrops.setOverrides. Opened from the Loot & XP settings pop-out.",
     "scripts/loot/loot-setup-app.mjs": "Browsable Loot & Treasure library; rows unlock from the GM's own PDF.",

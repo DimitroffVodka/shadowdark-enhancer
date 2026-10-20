@@ -1,0 +1,22 @@
+<div class="sde-npc-inv">
+  <p class="sde-npc-inv-hint">{{localize "SDE.npcInv.hint"}}</p>
+  <ul class="sde-npc-inv-list">
+    {{#each rows}}
+    <li data-item-id="{{id}}">
+      <img src="{{img}}" width="28" height="28" alt="">
+      <a class="sde-npc-inv-name" data-action="open" role="button">{{name}}</a>
+      <input type="number" class="sde-npc-inv-qty" min="1" step="1" value="{{qty}}" aria-label="{{localize 'SDE.npcInv.quantity'}}">
+      <a class="sde-npc-inv-del" data-action="delete" role="button" title="{{localize 'SDE.npcInv.remove'}}" aria-label="{{localize 'SDE.npcInv.remove'}}"><i class="fa-solid fa-trash"></i></a>
+    </li>
+    {{else}}
+    <li class="sde-npc-inv-empty">{{localize "SDE.npcInv.empty"}}</li>
+    {{/each}}
+  </ul>
+  <div class="sde-npc-inv-purse">
+    <span>{{localize "SDE.npcInv.coins"}}</span>
+    <label>{{localize "SDE.loot.coins.gp"}} <input type="number" class="sde-npc-inv-coin" name="gp" min="0" step="1" value="{{coins.gp}}"></label>
+    <label>{{localize "SDE.loot.coins.sp"}} <input type="number" class="sde-npc-inv-coin" name="sp" min="0" step="1" value="{{coins.sp}}"></label>
+    <label>{{localize "SDE.loot.coins.cp"}} <input type="number" class="sde-npc-inv-coin" name="cp" min="0" step="1" value="{{coins.cp}}"></label>
+  </div>
+  {{#if canDrop}}<button type="button" class="sde-npc-inv-drop" data-action="drop"><i class="fa-solid fa-hand-holding-dollar"></i> {{localize "SDE.npcInv.drop"}}</button>{{/if}}
+</div>
