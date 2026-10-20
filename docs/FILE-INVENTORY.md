@@ -26,7 +26,7 @@
 | `LICENSE` | MIT. |
 | `.gitattributes`, `.gitignore` | Line-ending rules; ignore list (see §9). |
 | `.github/workflows/ci.yml` | Lint + `node --test` on push/PR. |
-| `.github/workflows/release.yml` | Tag → build module.zip (allowlist: module.json, README, LICENSE, CHANGELOG, CREDITS, docs/API.md, assets, icons, languages, scripts, styles, templates) + attach manifest to the GitHub release. `test/` and the rest of `docs/` never ship. |
+| `.github/workflows/release.yml` | Tag → stamp the version and the `manifest` update URL into module.json (master carries no manifest, so Foundry's Update All never empties a git checkout), build module.zip (allowlist: module.json, README, LICENSE, CHANGELOG, CREDITS, docs/API.md, assets, icons, languages, scripts, styles, templates) + attach manifest to the GitHub release. `test/` and the rest of `docs/` never ship. |
 
 ## 2. Repo root (NOT shipped — see §9)
 
