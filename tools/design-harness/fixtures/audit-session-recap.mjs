@@ -7,7 +7,7 @@ const build = (state) => ({ context: {
   sessionStats: ["3h 42m", "4 combats", "17 enemies defeated", "9 loot found", "320 XP"].map((label) => ({ label })),
   hasEncounterChecks: true, encounterSummary: "6 encounter checks: 2 encounters, 4 quiet",
   hasPlayerSummaries: true, playerSummaries: P.map((name, i) => ({ name, kills: 3 + i, damageDealt: 40 + i * 11, damageTaken: 12 + i * 3, totalXp: 60 + i })),
-  hasDamageLog: false, hasCombats: true,
+  hasCombats: true,
   combats: [0, 1, 2, 3].map((i) => ({ index: i, expanded: i < 2, label: ["The Chapel Door", "Flooded Crypt", "The Drowned Bishop and his Choir", "Rat Swarm"][i], rounds: 3 + i, duration: "4m", totalDefeated: 3 + i, totalEnemies: 4 + i,
     enemies: ["Drowned Acolyte", "Drowned Acolyte", "Choir Wraith", "Bishop Orrin, the Drowned", "Giant Crab", "Giant Crab"].map((name, k) => ({ name, defeated: k < 4, killedBy: k < 4 ? P[k] : "" })) })),
   hasPlayerStats: true, playerStatsTable: P.map((name, i) => ({ name, hitRate: (60 + i * 5) + "%", nat20s: i, nat1s: 2 - (i % 3), avgD20: (9.5 + i / 4).toFixed(1), saveRate: (7 + i) + "/" + (10 + i), damageDealt: 40 + i * 11, damageTaken: 12 + i * 3, kills: 3 + i })),

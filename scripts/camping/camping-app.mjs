@@ -3,6 +3,7 @@ import { Party } from "../party/party.mjs";
 import { requestCamp, campOf, campTorchPlan } from "./camping.mjs";
 import { CAMP_LABELS } from "./camping-core.mjs";
 import { foodPreview, campEaters } from "./camping-nutrition.mjs";
+import { campPictureUp } from "../stage/stage-core.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const t = (key) => game.i18n.localize(key);
@@ -15,7 +16,7 @@ export class CampingApp extends HandlebarsApplicationMixin(ApplicationV2) {
     night: function () { return this.change("night"); },
     acceptShortages: function () { return this.change("night", { acceptShortages: true }); },
     // Lazy: stage.mjs imports camping.mjs. The Party sheet routes its embedded copy of this button here too (party-app activityAction).
-    showCampPicture: async function () { if (!game.user.isGM) return; return (await import("../stage/stage.mjs")).raiseByHand(this.party); },
+    campPicture: async function () { if (!game.user.isGM) return; return (await import("../stage/stage.mjs")).toggleCampPicture(this.party); },
   } };
   static PARTS = { body: { template: `modules/${MODULE_ID}/templates/camping/camping.hbs`, scrollable: [".sde-camping-body"] } };
   constructor(party, options = {}, host = null) { super(options); this.party = party; this.host = host; }
@@ -44,14 +45,14 @@ export class CampingApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
   async _prepareContext() {
     const camp = campOf(this.party), manager = Party.canManage(this.party);
-    if (!camp) return { title: this.party.name, embedded: !!this.host, manager, isGM: game.user.isGM, empty: true, error: this.error };
+    if (!camp) return { title: this.party.name, embedded: !!this.host, manager, isGM: game.user.isGM, empty: true, error: this.error, campPictureUp: campPictureUp(game.settings.get(MODULE_ID, "stage")) };
     const setup = camp.phase === "setup", fuel = camp.phase === "fuel", plan = campTorchPlan(this.party, camp);
     const { campContext } = await import("../overland/overland.mjs");
     const context = campContext(), food = foodPreview(this.party, camp, camp.each ?? context.each, camp.day ?? context.day);
     this.fuelPreview = plan.deductions;
     const unfed = campEaters(camp).filter(p => !food.find(f => f.actorId === p.actorId)?.fed)
       .map(p => game.actors.contents.find(a => a.uuid === p.uuid)?.name ?? t("SDE.party.missing"));
-    return { title: this.party.name, embedded: !!this.host, manager, setup, fuel, isGM: game.user.isGM, error: this.error,
+    return { title: this.party.name, embedded: !!this.host, manager, setup, fuel, isGM: game.user.isGM, error: this.error, campPictureUp: campPictureUp(game.settings.get(MODULE_ID, "stage")),
       phase: t(CAMP_LABELS.phase[camp.phase]), fire: t(camp.fire?.lit ? "SDE.camping.fireLit" : "SDE.camping.noFire"), hasResults: Object.keys(camp.results).length > 0,
       awaitingRest: camp.phase === "awaitingRest", complete: camp.phase === "complete", shortageWarning: camp.shortageWarning, unfedNames: unfed.length ? game.i18n.format("SDE.camping.shortageNames", { names: unfed.join(", ") }) : null,
       canNight: manager && camp.phase === "awaitingRest", canResolve: manager && setup, canResume: manager && (camp.phase === "complete" ? !game.messages.has(camp.reportId) : !setup && !fuel && camp.phase !== "awaitingRest"),

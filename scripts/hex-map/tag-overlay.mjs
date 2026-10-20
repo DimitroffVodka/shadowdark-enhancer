@@ -10,7 +10,8 @@
  * Hovering a cell names it; clicking one edits its tags in place through the
  * same store write the tagger uses.
  *
- * Everything is ONE PIXI.Graphics in the interface group — 4768 Drawing
+ * Terrain fills on a plain print go into a MULTIPLY Graphics in the primary group, over the background and
+ * under Tiles and Tokens (see _multiplyLayer). Everything else is ONE PIXI.Graphics in the interface group — 4768 Drawing
  * documents would be a different kind of mistake. Cell centres come from
  * sceneCells and cellNumber on the scene's stored anchor, so no image is read
  * and the overlay works without the tagger open. zIndex 1 keeps it above the
@@ -21,6 +22,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { sceneCells } from "./sampler.mjs";
+import { isBakedMap } from "./baked-map-core.mjs";
 import { cellNumber, foundryOffsetToCube, originFromFlag } from "./geometry.mjs";
 import { decodeTags, encodeTags, applySheet, strandedRiver, readCell, paletteTags, WRITER_OPTION, FEATURES, OTHER } from "./tag-store.mjs";
 export { OTHER };
@@ -34,28 +36,31 @@ import { L as t } from "../shared/i18n.mjs";
 const TAGS_FLAG = "hexTags";
 
 /**
- * Fill colour per dataset terrain tag (the values of TERRAIN_TAGS). Every one of
- * them has to be visibly tinted against the print's own paper: on the Western
- * Reaches render a near-white arctic_sea or salt_flat made a tagged hex look
- * untagged, which is the one thing this overlay must not do.
+ * Fill colour per dataset terrain tag (the values of TERRAIN_TAGS).
+ *
+ * The fourteen the printed legend shows are sampled from its own swatches (the
+ * Western Reaches GM Map A1, colour edition), so a tag drawn over the print is the
+ * print's colour: a right tag melts into the map and a wrong one stands out.
+ * Patrick: "use this for terrain type color matching". coast, path and
+ * deep_tunnels are not in the legend and keep their own colours.
  */
 export const TERRAIN_COLORS = {
-  arctic_sea: 0x8fd4e8,
-  ocean: 0x1f5f9e,
-  lake: 0x4aa3d9,
+  arctic_sea: 0xd9ebf9,
+  ocean: 0x9ec5e0,
+  lake: 0xb4dce8,
   coast: 0xe8c877,
-  river: 0x3f93cf,
-  mountain: 0x8b7d6b,
-  volcano: 0x6e2f22,
-  lava: 0xd9531e,
-  canyon: 0xb3763f,
-  forest: 0x2f7d4f,
-  jungle: 0x186b3a,
-  grassland: 0x9ec46a,
-  swamp: 0x5b6b39,
-  desert: 0xe7cd84,
-  salt_flat: 0xd2c9a0,
-  deep_tunnels: 0x584a6b,
+  river: 0xccd6eb,
+  mountain: 0xc7b8ab,
+  volcano: 0xe8bb9d,
+  lava: 0xfabe96,
+  canyon: 0xf2bdaa,
+  forest: 0xbad3af,
+  jungle: 0xacd5c0,
+  grassland: 0xe4eebf,
+  swamp: 0xc3c8c8,
+  desert: 0xffe8ba,
+  salt_flat: 0xf5ebd9,
+  deep_tunnels: 0xc9bfd9,
   path: 0xc9a05f,
 };
 
@@ -224,9 +229,10 @@ export const FEATURE_LABELS = { river: "SDE.hexMap.feature.river", path: "SDE.he
 /** Outline on unsure automatic cells; the margin is the scene's (tag-corrections.mjs). */
 export const REVIEW_COLOR = 0xffc400;
 
-/** How much of the print shows through a fill. The right value depends on the map's
- * own ink, so it is an argument to showTags({ alpha }) rather than one more thing in
- * the settings window. */
+/** How much of the print shows through a fill (region and encounter pictures, and terrain on a
+ * scene with Tiles). The right value depends on the map's own ink, so it is an argument to
+ * showTags({ alpha }) rather than one more thing in the settings window. Terrain on a plain
+ * print does not use it: those fills multiply into the print at full strength. */
 const FILL_ALPHA = 0.45;
 /** The review ring sits inside the cell: at a third of the map flagged, rings on the cell
  * edge merge with the neighbours' into a mesh and stop meaning anything. */
@@ -240,6 +246,16 @@ export function terrainColor(terrain) {
   let h = 0;
   for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
   return SPARE_COLORS[h % SPARE_COLORS.length];
+}
+
+/**
+ * The icon colour that reads on a 0xRRGGBB fill: white on dark ones, near-black on light ones
+ * (whichever has the higher WCAG contrast; the legend's pastel fills lose white icons).
+ */
+export function readableInk(color) {
+  const lin = (c) => { const v = c / 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+  const L = 0.2126 * lin((color >> 16) & 255) + 0.7152 * lin((color >> 8) & 255) + 0.0722 * lin(color & 255);
+  return 1.05 / (L + 0.05) >= (L + 0.05) / (0.0116 + 0.05) ? "#fff" : "#1d1d1d";
 }
 
 /**
@@ -396,6 +412,8 @@ export class HexTagOverlay {
     this.state = decodeTags(scene.getFlag(MODULE_ID, TAGS_FLAG));
     this.reviewMargin = decodeFixes(scene.getFlag(MODULE_ID, FIXES_FLAG)).margin;
     this._hooks = [];
+    /** @type {PIXI.Graphics|null} the multiply layer terrain fills are drawn into (see _multiplyLayer) */
+    this.fills = null;
     this._down = null;
     this._writing = 0;
     this._writerId = foundry.utils.randomID();
@@ -460,6 +478,10 @@ export class HexTagOverlay {
       // Mid-write the scene is about to change again under this overlay's own write: read it when that settles.
       if (this._writing) this._heard = true; else this._takeInScene();
     })]);
+    // A Tile added or removed changes which layer the terrain colours belong in.
+    const tileChanged = (tile) => { if (tile.parent?.id === this.scene.id && this.mode === "terrain") this.draw(); };
+    this._hooks.push(["createTile", Hooks.on("createTile", tileChanged)]);
+    this._hooks.push(["deleteTile", Hooks.on("deleteTile", tileChanged)]);
     this._hooks.push(["canvasTearDown", Hooks.on("canvasTearDown", () => this.hide())]);
     // Dusk, dawn and a new or full moon change which column a hex rolls on, and
     // nothing else the clock does: a clock module ticking every second must not
@@ -488,6 +510,8 @@ export class HexTagOverlay {
     this._hooks = [];
     this.container?.destroy({ children: true });
     this.container = null;
+    if (this.fills && !this.fills.destroyed) this.fills.destroy();
+    this.fills = null;
     if (HexTagOverlay.current === this) HexTagOverlay.current = null;
     Hooks.callAll(TOOLS_HOOK);
   }
@@ -527,6 +551,38 @@ export class HexTagOverlay {
     return cell?.terrain ? terrainColor(cell.terrain) : null;
   }
 
+  /**
+   * The graphics terrain fills are drawn into, or null when this picture is the translucent wash.
+   *
+   * The print is greyscale, so a fill multiplied into it takes the fill's own colour on white paper and
+   * leaves the ink black: the picture is the colour map, which a wash at 0.45 never was. It has to sit in
+   * the primary group, under the tokens: multiply in the interface group has nothing beneath it and paints
+   * the whole canvas black. A scene with Tiles keeps the wash, since the Tiles, or a baked map's painted ground, would cover a layer down here.
+   * @param {boolean} on
+   */
+  _multiplyLayer(on) {
+    if (!on) {
+      if (this.fills && !this.fills.destroyed) this.fills.destroy();
+      this.fills = null;
+      return null;
+    }
+    if (!this.fills || this.fills.destroyed) {
+      this.fills = new PIXI.Graphics();
+      this.fills.blendMode = PIXI.BLEND_MODES.MULTIPLY;
+      this.fills.eventMode = "none";
+      this.fills.elevation = canvas.primary.background?.elevation ?? 0;
+      this.fills.sort = 5;
+      this.fills.zIndex = 5;
+      canvas.primary.addChild(this.fills);
+      canvas.primary.sortChildren();
+    }
+    this.fills.clear();
+    return this.fills;
+  }
+
+  /** Tiles or a baked map's painted ground already sit over the print, so the colours stay a see-through wash. */
+  _covered() { return !!canvas.scene?.tiles?.size || isBakedMap(canvas.scene); }
+
   draw() {
     const g = this.graphics;
     if (!g || g.destroyed) return;
@@ -535,14 +591,16 @@ export class HexTagOverlay {
     const shape = grid.getShape();
     const dot = Math.min(grid.sizeX, grid.sizeY) * 0.09;
     const clock = this.mode === "encounter" ? worldClock() : null;
+    const layer = this._multiplyLayer(this.mode === "terrain" && !this._covered());
     for (const [num, at] of this.cells) {
       const cell = this.state.cells.get(String(num));
       const fill = this.fillFor(num, clock);
       if (fill === null) continue;
       g.lineStyle({ width: 0, alpha: 0 });
-      g.beginFill(fill, HexTagOverlay.fillAlpha);
-      g.drawPolygon(shape.map((p) => new PIXI.Point(p.x + at.x, p.y + at.y)));
-      g.endFill();
+      const paint = layer ?? g;
+      paint.beginFill(fill, layer ? 1 : HexTagOverlay.fillAlpha);
+      paint.drawPolygon(shape.map((p) => new PIXI.Point(p.x + at.x, p.y + at.y)));
+      paint.endFill();
       if (this.mode !== "terrain") {
         if (this.inferredByNum.has(num) && !this.regionByNum.has(num)) {
           g.lineStyle({ width: Math.max(1.5, dot * 0.4), color: REVIEW_COLOR, alpha: 0.7 });

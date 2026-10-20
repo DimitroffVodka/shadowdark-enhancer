@@ -181,7 +181,11 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
         },
       });
       // What the run made (journals, scenes) goes into folders for its books, so the sidebar can be read.
-      try { await (await import("../world-folders.mjs")).organizeWorld(); } catch (err) { console.warn(`${MODULE_ID} | wizard: filing into folders failed`, err); }
+      try {
+        const folders = await import("../world-folders.mjs");
+        await folders.organizeWorld();
+        await folders.pruneEmptyBookFolders();   // what went into the Adventures pack left its book folders empty
+      } catch (err) { console.warn(`${MODULE_ID} | wizard: filing into folders failed`, err); }
       if (!result.stopped) await recordRun(state.check.ready.filter((id) => id.startsWith("book:")).map((id) => id.slice(5)));
       return result;
     } finally {

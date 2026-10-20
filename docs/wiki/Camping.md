@@ -6,9 +6,8 @@ Open Camp from the native Party or Overland. A Party owner starts/resumes;
 every PC takes part, and each PC owner chooses at most one optional task.
 Hirelings and mounts have no PC task slots; listed mounts still need food.
 
-The GM also gets **Show camp picture**, which covers the map for everyone with the
-camp's [Backdrop](Backdrop.md). A camp that begins with no party token (the party actor's own
-token) on the viewed map raises it by itself, and it drops when the camp ends.
+The GM also gets **Show camp picture** (see [Camp picture](#camp-picture)), which
+covers the map for everyone with a picture of the camp.
 
 ## Setup and fire
 
@@ -69,3 +68,19 @@ already-pending Extras camp retains its saved provider path; it is not
 rerouted into native tasks or rest. This is executor selection, not a global
 Extras camping-disable setting or a claimed external ownership guard.
 Enhancer does not change Extras settings. See [Hex Maps](Hex-Maps.md).
+
+## Camp picture
+
+**Show camp picture** (GM only, in the Camping window and in the Party sheet's
+copy of it) covers the map for every player with a full-screen picture of the
+camp: the camp version of the battle map for the party's terrain (Forest woods
+when the terrain is unknown, water, or has no camp picture of its own). While it
+is up, selected tokens are released so the arrow keys do not move tokens on the
+hidden map. A reload or a late joiner sees it too.
+
+A camp never raises it by itself. The button then reads **Hide camp picture**
+and takes it down. It also goes when:
+
+- the camp it was raised for ends or is cancelled (a picture raised with no camp
+  running stays until you hide it, unless a camp for that party begins while it is up), or
+- you [bring the table](Encounter-Battle-Maps.md#bring-the-table) to a battle map.

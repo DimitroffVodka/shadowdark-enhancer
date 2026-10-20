@@ -24,7 +24,8 @@ class Actor {
     hp.value = Math.min(Math.max(hp.value - amount, 0), hp.max);
     if (hp.value === 0 && multiplier === 1) this.defeated = true;
   }
-  async update(data) {
+  async update(data, options) {
+    this.updateOptions = options;
     for (const [path, value] of Object.entries(data)) {
       if (path === "system.attributes.hp.value") this.system.attributes.hp.value = value;
       else if (path.startsWith(`flags.${MOD}.`)) {
@@ -117,4 +118,11 @@ test("the sheet field hooks both sheet generations; the Shadowdark player sheet 
   hooked.length = 0;
   init();
   assert.deepEqual(hooked.sort(), ["renderActorSheet", "renderActorSheetV2"]);
+});
+
+test("a hit the pool soaks is reported in the pool write's options, for the session recap", async () => {
+  const a = new Actor({ hp: 3, max: 3, flags: pool(5) });
+  await a.applyDamage(8);
+  assert.deepEqual(a.updateOptions, { [MOD]: { tempHpSpent: 5 } });
+  assert.equal(a.system.attributes.hp.value, 0);
 });

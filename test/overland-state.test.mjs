@@ -339,7 +339,7 @@ test("the standing pace: today's too until the party moves or forages, the next 
 
 test("a quiet check's encounter is held as plain data until Continue or a new day (#257)", () => {
   const drawn = {
-    at: 36000, half: "day", chance: 1, kind: "monster", uuid: "Actor.wolf", name: "Wolf", img: "wolf.webp",
+    id: "enc1", at: 36000, half: "day", chance: 1, kind: "monster", uuid: "Actor.wolf", name: "Wolf", img: "wolf.webp",
     count: 3, countFormula: "1d6", distanceRoll: 4, activityRoll: 7, reactionRoll: 9, via: null,
     chain: [{ name: "Sablewood Encounter Zone: Forest", formula: "1d8", roll: 5 }, { category: "Beast" }, { name: "Sablewood Beasts", formula: "1d12", roll: 7 }],
     also: [{ name: "Sablewood Horrors", formula: "1d8", roll: 2, text: "A lone ghoul" }],
@@ -350,6 +350,8 @@ test("a quiet check's encounter is held as plain data until Continue or a new da
   const kept = { ...drawn, poi: false, noTable: false, interrupts: false, text: null, html: null };
   delete kept.extra;
   assert.deepEqual(state.encounter, kept, "the draw survives, unknown fields don't");
+  // The draw's id is kept, so a show and then a battle map of it are one codex line; a draw from before ids has none.
+  assert.equal(setEncounter({ ...defaultOverlandState(), day: 0 }, { ...drawn, id: undefined }).state.encounter.id, null);
   // A flavour row's enriched text (its own dice as roll links) is held with it.
   const flavour = setEncounter({ ...defaultOverlandState(), day: 0 },
     { at: 36000, half: "day", kind: "flavor", text: "[[/r 1d4]] cobras", html: "<p>cobras</p>" }).state.encounter;
