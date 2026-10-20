@@ -102,10 +102,10 @@ own steps and jumps.
 
 ## Encounters while travelling (GM)
 
-Travel's encounter checks roll quietly: nothing goes to chat, the game isn't
-paused and no window opens. When one hits, the **Encounter** panel drops from
-the bar for every GM, and the travel plate says **Encounter** until it's done.
-The panel shows:
+Travel's encounter checks roll quietly: nothing goes to chat and no window
+opens. When one hits, the game pauses (unless **Pause game on encounter** is
+off), the **Encounter** panel drops from the bar for every GM, and the travel
+plate says **Encounter** until it's done. The panel shows:
 
 - the check: its step (6 by day, 8 at night), its hour and its chance;
 - the tables it went through, each with its roll: the region's encounter zone,
