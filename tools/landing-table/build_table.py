@@ -7,7 +7,8 @@ A candle-lit wooden table seen from a seat at it, with the props that are the pa
 coin chest, the dice cup, the goblets, the framed map, the sealed letter, the hourglass, the journal, the recap
 scrolls, the session title card and the day dial. The chest, the goblets, the candlesticks, the compass on the map
 and the table's wood and leather are CC0 assets from Poly Haven (fetch_assets.py downloads them into $LT_ART, default
-~/git/.demo/landing-art); everything else is modelled here. Writes to tools/landing-table/out/:
+~/git/.demo/landing-art); the map's picture is drawn by make_map.py (run it first); everything else is modelled here.
+Writes to tools/landing-table/out/:
 
     beauty.png        the table as it rests (chest closed)
     ids.png           every prop in its own flat colour, for the per-prop masks
@@ -172,26 +173,24 @@ def tinted(mat, name, hue, sat=1.0, value=1.0):
 
 
 def map_paper():
-    """Parchment with land in sepia ink: noise thresholded into coastlines, a second noise for its stains."""
-    def build(nt, b):
-        n = nt.nodes
-        coord = n.new("ShaderNodeTexCoord")
-        land = n.new("ShaderNodeTexNoise")
-        land.inputs["Scale"].default_value = 3.2
-        land.inputs["Detail"].default_value = 8.0
-        nt.links.new(coord.outputs["Object"], land.inputs["Vector"])
-        ramp = n.new("ShaderNodeValToRGB")
-        ramp.color_ramp.interpolation = "CONSTANT"
-        e = ramp.color_ramp.elements
-        e[0].position, e[0].color = 0.0, (0.55, 0.55, 0.47, 1)       # sea
-        e[1].position, e[1].color = 0.50, (0.12, 0.07, 0.03, 1)      # the ink coastline
-        mid = e.new(0.525)
-        mid.color = (0.78, 0.64, 0.40, 1)                             # land
-        nt.links.new(land.outputs["Fac"], ramp.inputs["Fac"])
-        b.inputs["Roughness"].default_value = 0.8
-        nt.links.new(stained(nt, ramp.outputs["Color"], strength=0.5), b.inputs["Base Color"])
-    return material("MapPaper", build)
+    """The hand-inked map make_map.py drew, laid over the whole top of the map's paper."""
+    path = os.path.join(OUT, "map.png")
+    if not os.path.exists(path):
+        raise SystemExit(f"{path} is missing: run tools/landing-table/make_map.py first")
 
+    def build(nt, b):
+        coord, tex = nt.nodes.new("ShaderNodeTexCoord"), nt.nodes.new("ShaderNodeTexImage")
+        tex.image = bpy.data.images.load(path)
+        tex.interpolation = "Cubic"
+        nt.links.new(coord.outputs["Generated"], tex.inputs["Vector"])
+        # The candles and the fill light wash pale paper out to white: the parchment goes in darker, so the ink keeps
+        # its contrast in the render.
+        dim = nt.nodes.new("ShaderNodeHueSaturation")
+        dim.inputs["Saturation"].default_value, dim.inputs["Value"].default_value = 1.2, 0.62
+        nt.links.new(tex.outputs["Color"], dim.inputs["Color"])
+        nt.links.new(dim.outputs["Color"], b.inputs["Base Color"])
+        b.inputs["Roughness"].default_value = 0.85
+    return material("MapPaper", build)
 
 M = {
     "wood": noisy("TableWood", (0.04, 0.016, 0.006), (0.30, 0.15, 0.06), scale=4.0, detail=9.0, grain=(0.22, 16, 1), bump=0.35),
@@ -382,7 +381,39 @@ def chest():
     for i in range(6):
         coins.append(cyl(f"Stack{i}", 0.022, 0.006, (0.24, -0.15, 0.003 + i * 0.0062), M["gold"], p, bevel=0.001))
     group("Coins", coins, (0.5, 0.0, 0), -12)
+    oak_and_brass(bpy.data.materials["treasure_chest"])
     return root
+
+
+def oak_and_brass(mat):
+    """Poly Haven's chest reads almost black by candle-light: its wood lifted to a warm oak, its iron fittings (the
+    metal map) turned to brass that catches the flames."""
+    nt = mat.node_tree
+    b = nt.nodes["Principled BSDF"]
+    diff = next(l.from_socket for l in nt.links if l.to_socket == b.inputs["Base Color"])
+    metal = next(l.from_socket for l in nt.links if l.to_socket == b.inputs["Metallic"])
+    rough = next(l.from_socket for l in nt.links if l.to_socket == b.inputs["Roughness"])
+    oak = nt.nodes.new("ShaderNodeHueSaturation")
+    oak.inputs["Hue"].default_value, oak.inputs["Saturation"].default_value, oak.inputs["Value"].default_value = 0.51, 1.15, 2.6
+    nt.links.new(diff, oak.inputs["Color"])
+    brass = nt.nodes.new("ShaderNodeMix")
+    brass.data_type, brass.blend_type = "RGBA", "MULTIPLY"
+    socket(brass, "B_Color").default_value = (1.0, 0.68, 0.26, 1)
+    nt.links.new(diff, socket(brass, "A_Color"))
+    brass.inputs[0].default_value = 1.0
+    lift = nt.nodes.new("ShaderNodeHueSaturation")
+    lift.inputs["Value"].default_value = 3.0
+    nt.links.new(socket(brass, "Result_Color", True), lift.inputs["Color"])
+    pick = nt.nodes.new("ShaderNodeMix")
+    pick.data_type = "RGBA"
+    nt.links.new(metal, pick.inputs[0])
+    nt.links.new(oak.outputs["Color"], socket(pick, "A_Color"))
+    nt.links.new(lift.outputs["Color"], socket(pick, "B_Color"))
+    nt.links.new(socket(pick, "Result_Color", True), b.inputs["Base Color"])
+    shine = nt.nodes.new("ShaderNodeMath")
+    shine.operation, shine.inputs[1].default_value = "MULTIPLY", 0.6
+    nt.links.new(rough, shine.inputs[0])
+    nt.links.new(shine.outputs[0], b.inputs["Roughness"])
 
 
 def dice():
@@ -413,7 +444,7 @@ def framed_map():
     for i, (sx, sy, x, y) in enumerate([(0.72, 0.035, 0, 0.237), (0.72, 0.035, 0, -0.237), (0.035, 0.5, 0.358, 0), (0.035, 0.5, -0.358, 0)]):
         parts.append(box(f"MapFrame{i}", (sx, sy, 0.025), (x, y, 0.0125), M["darkwood"], p, bevel=0.005))
     g = group("Map", parts, (-0.02, 0.5, 0), -3)
-    ph_place("Compass", ph_objects("seadogs_compass", ["seadogs_compass", "seadogs_compass_lid", "seadogs_compass_needle"]), (0.16, 0.56, 0.014), 1.3, 20, p)
+    ph_place("Compass", ph_objects("seadogs_compass", ["seadogs_compass", "seadogs_compass_lid", "seadogs_compass_needle"]), (-0.24, 0.62, 0.014), 1.3, 20, p)
     return g
 
 
@@ -559,6 +590,18 @@ fill.energy, fill.size, fill.color = 14, 2.0, (1.0, 0.72, 0.45)
 bpy.ops.object.light_add(type="SPOT", location=(-1.2, 2.4, 1.4), rotation=(math.radians(-60), 0, math.radians(-150)))
 rim = bpy.context.object.data
 rim.energy, rim.color, rim.spot_size = 60, (0.55, 0.65, 1.0), math.radians(60)
+
+# The chest's own light: a warm key from the front left, as from the near candle, and a rim from behind so its lid
+# and corners stand off the dark.
+bpy.context.view_layer.update()
+key_at = chest_root.matrix_world @ Vector((-0.9, -1.2, 1.4))
+bpy.ops.object.light_add(type="POINT", location=key_at)
+key = bpy.context.object.data
+key.energy, key.color, key.shadow_soft_size = 7, (1.0, 0.62, 0.3), 0.15
+bpy.ops.object.light_add(type="SPOT", location=chest_root.matrix_world @ Vector((0.3, 1.6, 1.3)))
+back = bpy.context.object
+back.rotation_euler = (chest_root.location - back.location).to_track_quat("-Z", "Y").to_euler()
+back.data.energy, back.data.color, back.data.spot_size, back.data.spot_blend = 18, (1.0, 0.7, 0.4), math.radians(25), 0.6
 
 world = bpy.data.worlds.new("World")
 scene.world = world
