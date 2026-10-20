@@ -161,7 +161,7 @@ const STYLESHEET_REV = "aa9d310fe07c";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "06bfe735487e";
+const BUILD_REV = "b74c93be685a";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -1268,9 +1268,6 @@ Hooks.once("ready", () => {
   // Seed the two shipped default merchants (Base / Western Reaches). GM-only,
   // idempotent; fills in the WR merchant once its item pack is present.
   if (game.user.isGM) MerchantShop.seedDefaultMerchants();
-  // Book folders an import emptied (its adventures went into the compendium) are removed; importing one brings its folder back.
-  if (game.users.activeGM === game.user) import("./importer/world-folders.mjs").then((m) => m.pruneEmptyBookFolders())
-    .catch((err) => console.warn(`${MODULE_ID} | removing empty book folders failed`, err));
   SessionRecap.init();
   // Downtime sessions: sync listener, GM query handler, announcement-card
   // wiring. Runs on EVERY client (players included) — players need the listener

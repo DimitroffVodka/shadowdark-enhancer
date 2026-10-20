@@ -4,7 +4,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { planFolders, bookFolderName, bookFolderDocId, emptyBookFolders, RECORDS_FOLDER } from "../scripts/importer/world-folders.mjs";
+import { planFolders, bookFolderName, bookFolderDocId, emptyBookFolders, pruneEmptyBookFolders, RECORDS_FOLDER } from "../scripts/importer/world-folders.mjs";
 
 const M = "shadowdark-enhancer";
 const j = (id, flags, folder = null) => ({ id, folder, flags: { [M]: flags } });
@@ -61,15 +61,67 @@ test("a book folder's id is fixed, a valid document id, and differs by type and 
   assert.notEqual(bookFolderDocId("JournalEntry", "Cursed Scroll 2: Red Sands"), id);
 });
 
-test("only the module's own top-level folders that hold nothing are pruned", () => {
-  const f = (id, name, over = {}) => ({ id, name, type: "JournalEntry", top: true, used: false, ...over });
+const own = (type, name) => bookFolderDocId(type, name);
+
+test("only top-level folders with the module's fixed id that hold nothing are pruned", () => {
+  const f = (name, type, over = {}) => ({ id: own(type, name), name, type, top: true, used: false, ...over });
   assert.deepEqual(emptyBookFolders([
-    f("empty", "Cursed Scroll 1: Diablerie"),
-    f("records", RECORDS_FOLDER),
-    f("scene", "Western Reaches", { type: "Scene" }),
-    f("full", "Cursed Scroll 2: Red Sands", { used: true }),
-    f("nested", "Cursed Scroll 3: Midnight Sun", { top: false }),
-    f("gm", "My Notes"),
-    f("items", "Western Reaches", { type: "Item" }),
-  ]), ["empty", "records", "scene"]);
+    f("Cursed Scroll 1: Diablerie", "JournalEntry"),
+    f(RECORDS_FOLDER, "JournalEntry"),
+    f("Western Reaches", "Scene"),
+    f("Cursed Scroll 2: Red Sands", "Scene", { used: true }),
+    f("Cursed Scroll 3: Midnight Sun", "Scene", { top: false }),
+    { ...f("Western Reaches", "Actor"), id: "gmWRactors000001" },   // same name, a GM's own folder
+    f("Western Reaches", "Item"),
+  ]), [own("JournalEntry", "Cursed Scroll 1: Diablerie"), own("JournalEntry", RECORDS_FOLDER), own("Scene", "Western Reaches")]);
+});
+
+// A stub world: documents' `folder` resolves to the parent Folder document, as on the v14 client.
+function stubWorld() {
+  class Coll extends Array { get(id) { return this.find((d) => d.id === id); } }
+  const w = { folders: new Coll(), journal: new Coll(), scenes: new Coll(), actors: new Coll() };
+  w.folder = (id, name, type, parent = null) => {
+    const f = { id, name, type, get folder() { return w.folders.get(parent) ?? null; }, async delete() { w.folders.splice(w.folders.indexOf(f), 1); } };
+    w.folders.push(f);
+    return f;
+  };
+  w.doc = (coll, id, folderId) => { w[coll].push({ id, get folder() { return w.folders.get(folderId) ?? null; } }); };
+  return w;
+}
+
+test("pruneEmptyBookFolders deletes an empty fixed-id folder and keeps every other", async () => {
+  const w = stubWorld();
+  const had = globalThis.game;
+  globalThis.game = { user: { isGM: true }, ...w };
+  try {
+    const book = (t, n) => w.folder(own(t, n), n, t);
+    book("JournalEntry", "Cursed Scroll 1: Diablerie");                       // empty: goes
+    book("Scene", "Cursed Scroll 2: Red Sands");                              // holds a scene
+    w.doc("scenes", "s1", own("Scene", "Cursed Scroll 2: Red Sands"));
+    book("Actor", "Western Reaches");                                         // holds an actor
+    w.doc("actors", "a1", own("Actor", "Western Reaches"));
+    book("JournalEntry", "Western Reaches");                                  // holds a journal
+    w.doc("journal", "j1", own("JournalEntry", "Western Reaches"));
+    w.folder("parent00000000x1", "Cursed Scroll 3: Midnight Sun", "Scene");   // random id, same name as a book
+    w.folder(own("Scene", "Western Reaches"), "Western Reaches", "Scene");    // holds only a subfolder
+    w.folder("child000000000x1", "Maps", "Scene", own("Scene", "Western Reaches"));
+    w.folder("gmWRactors00000x", "Western Reaches", "Actor");                 // a GM's own, same name as the book, another id
+    assert.equal(await pruneEmptyBookFolders(), 1);
+    assert.deepEqual(w.folders.map((f) => f.id).includes(own("JournalEntry", "Cursed Scroll 1: Diablerie")), false);
+    assert.equal(w.folders.length, 7);
+    globalThis.game.user.isGM = false;
+    assert.equal(await pruneEmptyBookFolders(), 0);
+  } finally { globalThis.game = had; }
+});
+
+test("pruneEmptyBookFolders ignores a folder another tab already removed", async () => {
+  const w = stubWorld();
+  const had = globalThis.game;
+  globalThis.game = { user: { isGM: true }, ...w };
+  try {
+    w.folder(own("Scene", "Western Reaches"), "Western Reaches", "Scene");
+    w.folder(own("Actor", "Western Reaches"), "Western Reaches", "Actor");
+    await Promise.all([pruneEmptyBookFolders(), pruneEmptyBookFolders()]);
+    assert.equal(w.folders.length, 0);
+  } finally { globalThis.game = had; }
 });

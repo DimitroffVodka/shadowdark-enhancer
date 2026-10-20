@@ -6,7 +6,9 @@
  * Cursed Scroll 4, the Western Reaches, the Western Reaches mini adventures), and the hex records into one of their own.
  *
  * Only documents this module made are touched (the flags say so), and only ones that are not in a folder yet: a GM who
- * files one somewhere else keeps it there. Running it again does nothing it has not already done.
+ * files one somewhere else keeps it there. Filing again does nothing it has not already done. The one folder it deletes is a
+ * book folder it made itself (recognised by its fixed id, never by its name) that holds nothing, and only the importer wizard
+ * asks for that, at the end of its own run.
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
@@ -82,16 +84,15 @@ async function bookFolder(type, name) {
   return { folder: folder ?? await Folder.create({ _id: id, name, type, sorting: "a" }, { keepId: true }), made: !folder };
 }
 
-/** The folder names this module makes in the world. */
-const OWN_NAMES = new Set([...Object.values(BOOKS), RECORDS_FOLDER]);
-
 /**
- * Pure: the ids of this module's world folders that hold nothing: top level, one of its own names, no documents, no subfolders.
+ * Pure: the ids of the book folders this module made that hold nothing: top level, no documents, no subfolders, and the
+ * fixed id `bookFolderDocId` gives its type and name. A folder of a GM's own, or one an older version made (random id, which
+ * packed Adventures still carry), never has that id.
  * @param {Array<{id:string, name:string, type:string, top:boolean, used:boolean}>} folders
  */
 export function emptyBookFolders(folders) {
   const types = new Set(["JournalEntry", "Scene", "Actor"]);
-  return folders.filter((f) => f.top && !f.used && types.has(f.type) && OWN_NAMES.has(f.name)).map((f) => f.id);
+  return folders.filter((f) => f.top && !f.used && types.has(f.type) && f.id === bookFolderDocId(f.type, f.name)).map((f) => f.id);
 }
 
 /** Remove the book folders an import left empty (its documents went into the Adventures pack). GM only. */
@@ -100,7 +101,8 @@ export async function pruneEmptyBookFolders() {
   const used = new Set(game.folders.map((f) => f.folder?.id));
   for (const c of [game.journal, game.scenes, game.actors]) for (const d of c) used.add(d.folder?.id);
   const ids = emptyBookFolders(game.folders.map((f) => ({ id: f.id, name: f.name, type: f.type, top: !f.folder, used: used.has(f.id) })));
-  if (ids.length) await Folder.deleteDocuments(ids);
+  // One at a time: a folder another tab already removed must not fail the rest.
+  for (const id of ids) await game.folders.get(id)?.delete().catch(() => {});
   return ids.length;
 }
 
