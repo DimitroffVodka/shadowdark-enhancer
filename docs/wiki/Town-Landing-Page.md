@@ -17,16 +17,46 @@ they are, so changing an NPC's items or a price changes the shop.
 
 ---
 
-## Putting it up
+## Making a page
 
 Press the **Landing page** button (a landmark icon, in the Token Controls on the
-left of the screen) or **Alt+T**. The first time on a scene it makes an empty
-page: the scene's name, the four entries and no merchants. Then:
+left of the screen). It opens the **Landing pages** window. At the top,
+**Make a landing page** asks four things, each already filled in:
 
-- **It is up for everyone on the scene, you included.** The button is lit while
-  it is up.
-- **Press it again** and it goes away for everyone. The page is kept, merchants
-  and all; press again to bring it back. The eye icon on the page does the same.
+| Question | Already set to |
+|---|---|
+| **Name** | Market |
+| **Settlement size** | Town (Village, Town, City or City-State) |
+| **Picture** | Town. In the Western Reaches, the Player's Map once the import has made it (see [Western Reaches](#western-reaches)) |
+| **Games of chance** | All ten ticked; untick any |
+
+Press **Make it and go there**. It makes the scene with that picture, one
+merchant stocked for the settlement's size (see
+[Generating a merchant](#generating-a-merchant)), and the page with Quests,
+Journals, Party and Map on (Downtime too in a Town or bigger; Carouse and
+Rumors are there to tick later). Then it takes everyone there. Nothing else to
+set up: change anything afterwards with the pencil on the page.
+
+The new scenes go in a Scenes folder called "Landing pages" and stay out of the
+navigation bar; the Landing pages window is how you reach them.
+
+---
+
+## Moving the table
+
+- **Take everyone there.** Every page is listed in the Landing pages window,
+  with the one the table is on marked. One click takes everyone to that page,
+  and puts the page up if it was taken away. It is Foundry's own scene change,
+  so the party's tokens stay where they were on the map they left, and travel
+  on a hex map waits for you.
+- **Return.** The page remembers the scene the table came from. You see
+  **Return everyone to** that scene at the top of the menu; one click takes
+  everyone back. Going from one page straight to another keeps the way back to
+  where the table was before the first page.
+- **Taking it away.** The eye icon on the page, or **Alt+T**, takes the page
+  away for everyone on the scene; Alt+T or **Show it to everyone** in the
+  Landing pages window brings it back. On a scene with no page, Alt+T makes an
+  empty one there (the scene's name, the four town entries, no merchants).
 - **Moving between scenes** follows the page. Arriving in a scene whose page is
   up opens it; arriving in one without a page, or with its page taken away,
   closes it.
@@ -60,8 +90,8 @@ list (see [Generating a merchant](#generating-a-merchant)).
 | Field | What it does |
 |---|---|
 | **Name, Tagline, Welcome text** | The heading, the italic line and the paragraph under it. Name defaults to the scene's name |
-| **Around town** | Which entries players see: Quest Log, Journals, Party, Downtime, Carouse, Rumors (the last two are off on a new page; see A tavern page) |
-| **Open a games table** | Adds **Games of chance** to the menu (see Games of chance). Off until you turn it on |
+| **Around town** | Which entries players see: Quest Log, Journals, Party, Map, Downtime, Carouse, Rumors (the last two are off on a new page; see A tavern page) |
+| **Games of chance** | A tick box per game: the games this place offers. Tick none and the menu has no **Games of chance** (see Games of chance) |
 | **Largest bet (gp)** | The most one wager may stake, 1 to 1000 gp (10 by default) |
 | **House keeps (% of winnings)** | The share of every win the town keeps, 0 to 50 (5 by default) |
 | **Role, One-line pitch** | The line under the merchant's name and the hover text |
@@ -83,18 +113,32 @@ stock in each. Removing a merchant and adding the NPC again starts it fresh.
 - **The merchants** are listed by name with their role. Pressing one opens its
   shop. A merchant you closed shows as closed.
 - **The other entries** open the [Quest Log](Quest-Log.md), the Journal sidebar,
-  the [Party](Party.md) and [Downtime](Downtime.md), plus Carouse and Rumors if
+  the [Party](Party.md), the [Map](#the-map), and [Downtime](Downtime.md), plus Carouse and Rumors if
   you ticked them (see A tavern page below). An entry that cannot open is
   greyed and says why: Party until the player can see a party (the
   [Party](Party.md) needs at least Observer), Downtime until you start a
   downtime session, Carouse until you start a night of carousing (or while no GM
-  is connected), Rumors until a rumor has been given.
+  is connected), Rumors until a rumor has been given, Map while the world has
+  neither an overland map nor the Player's Map.
 - **The foot** says which character the player is, and their purse.
 - **Their own copy.** While you have the page up, a player can close it for
   themselves and bring it back with the same button or Alt+T. When you take it
   away they have neither.
 
 Change the key under *Configure Controls*.
+
+---
+
+## The Map
+
+The **Map** entry shows the player who pressed it, alone, the real overland map
+(the hex map the party travels on) with what their party has explored; the rest
+of the table stays on the page. The unexplored hexes are black as usual, and
+the player sees their own party's hexes even with no token of theirs on the
+map. A **Back to** button above the hotbar takes them back to the page.
+
+A world with no overland map opens the Western Reaches Player's Map picture
+instead, to zoom around in. With neither, the entry is greyed out.
 
 ---
 
@@ -193,8 +237,9 @@ call it "(bought back)".
 
 ![The games table](images/town-games.png)
 
-Turn on **Open a games table** in the settings and **Games of chance** joins the
-menu. A player picks their character, sets a **wager** in silver (quick buttons
+Tick the games this place offers in the settings (a page made with
+**Make a landing page** starts with all ten) and **Games of chance** joins the
+menu, listing only those games. A player picks their character, sets a **wager** in silver (quick buttons
 for 1 sp, 1 gp, 5 gp, 10 gp... and the table's limit) and plays one of ten
 games. Four settle on one roll. The other six open a table of their own,
 because there is something to decide. A result card is posted to the chat for
@@ -408,13 +453,19 @@ and every open shop updates as others buy.
   catches up when they next load the world.
 - **Changing an NPC's quantity** changes the shelf at once: raise it to add
   stock without a restock.
+- **A fresh roll.** A merchant the module made (Make a landing page, or
+  Generate merchant) gets its goods rolled again at every restock, by hand or
+  by the day count, so the shelves change between sessions (see
+  [Generating a merchant](#generating-a-merchant)). Items you added to its NPC
+  by hand stay. An NPC you stocked yourself keeps its items and only gets its
+  quantities back.
 
 ---
 
 ## Generating a merchant
 
 Under the merchants list the editor has a **Generate merchant** row. Pick a
-**kind of shop** and a **town size** and press the button.
+**kind of shop** and a **settlement size** and press the button.
 
 | Kind | Sells |
 |---|---|
@@ -423,19 +474,62 @@ Under the merchants list the editor has a **Generate merchant** row. Pick a
 | Armorer | Armor |
 | Outfitter | Basic gear, weapons and armor |
 
-| Town size | Different wares | Dearest single item | Most of one ware |
-|---|---|---|---|
-| Village | 6 | 20 gp | 3 bundles |
-| Town | 12 | 70 gp | 5 bundles |
-| City | 20 | no limit | 8 bundles |
+Every ware the shop could carry is rolled once against the chance for its
+rarity at that settlement size. Common goods are always in stock, so a player
+can always buy torches and rations; rare goods turn up now and then even in a
+village ("a bandit sold it there").
 
-Weapons and armor get half as many bundles of each ware (at least 1). Only ordinary gear is
+| | Village | Town | City | City-State |
+|---|---|---|---|---|
+| Common | always | always | always | always |
+| Uncommon | 30% | 75% | 95% | always |
+| Rare | 5% | 20% | 50% | 80% |
+| Very rare | 1% | 3% | 10% | 30% |
+
+| Rarity | Gear | Weapons | Armor |
+|---|---|---|---|
+| Common | Torch, Rations, Rope 60', Flask, Bottle, Oil flask, Flint and Steel, Backpack, Pole, Crowbar, Iron Spikes, Arrows, Crossbow Bolts | Club, Dagger, Staff, Spear, Sling, Handaxe, Javelin, Shortbow | Leather Armor, Shield |
+| Uncommon | Lantern, Grappling Hook, Caltrops, Crawling Kit, Mirror | Mace, Morningstar, Scimitar, Shortsword, Longsword, Longbow, Crossbow | Chainmail, Round Shield |
+| Rare | | Greatsword, Bastard Sword, Greataxe, Warhammer, Pike, Whip, the obsidian Club, Dagger and Spear, Boomerang, Blowgun, Bolas, Shuriken, Spear-thrower, Stave, Razor Chain | Plate Mail |
+| Very rare | | | Mithral Chainmail, Mithral Plate Mail |
+
+An item from another compendium or your world (the importer's gear, for
+example) takes its rarity from its price: 1 gp or less is common, up to 10 gp
+uncommon, up to 100 gp rare, more very rare. Never stocked: the Light spell
+entries, the Basilisk Egg, the five potions, and the Holy Symbol and Thieves'
+Tools (the system gives them no price).
+
+How many: common goods come in plenty, more in a bigger place (up to 3 bundles
+in a village, 5 in a town, 8 in a city, 12 in a city-state); uncommon goods 2
+or 3; rare and very rare one.
+
+Weapons and armor get half as many bundles of a common ware (at least 1). Only ordinary gear is
 picked, the same priced gear the Merchant Shop's Catalog lists, never magic
 items. The button makes an NPC named after the kind and the scene (for example
 "Armorer, Hollowmere") in an Actor folder called "Hollowmere merchants", gives it
 the wares, and adds it to the page with the kind as its role. Edit its items on
 the NPC afterwards like any merchant's. The NPC is made at once: if you cancel
 the editor it stays in its folder.
+
+---
+
+## Western Reaches
+
+When you import the Western Reaches **Player's Guide**, the importer also cuts
+the **Player's Map** out of your own PDF (pages 2 and 3, the two halves joined)
+and saves it in your world. It has no printed names on it, so it makes a clean
+background, and it becomes the first picture in Make a landing page. A world
+imported before this version shows a **Make the Player's Map** button in the
+Landing pages window while your Player's Guide is linked; one click makes it.
+The map is never part of the module: it comes from your own book, into your own
+world.
+
+**One page per place.** Once your hex map is imported, the Landing pages window
+lists every settlement on it, biggest first, with its size. The first time you
+open one, its page is made at that settlement's size, with the Player's Map
+behind the menu and the place's name on it, and everyone is taken there. After
+that the same button takes everyone back to it. Nothing is made for a place you
+never open.
 
 ---
 

@@ -3,6 +3,17 @@
 ## [Unreleased]
 
 ### Added
+- **Make a landing page in one click.** The toolbar's Landing page button opens a Landing pages window. Make a landing page asks a name, the settlement size, a picture and the games (all already filled in), then makes the scene, one merchant stocked for that size and the page (Quests, Journals, Party and Map on, Downtime in a town or bigger), and takes everyone there.
+- **Take everyone there, and Return.** The window lists every landing page; one click moves the whole table to it. The page remembers where the table came from, and its Return button takes everyone back. Travel on a hex map waits while the table is in town.
+- **Map on the landing page.** Shows the player who presses it, alone, the overland map with what their party has explored, with a Back button; the rest of the table stays on the page. A world with no overland map shows the Player's Map picture instead.
+- **Western Reaches: one page per place.** Every settlement on the imported hex map is listed; its page is made the first time you open it, at its own size, with the Player's Map behind the menu.
+- **The Player's Map, from your own Player's Guide.** The import cuts it out of pages 2 and 3 of your PDF and saves it in your world as a landing page picture. A world imported before gets a Make the Player's Map button. Never shipped with the module.
+
+### Changed
+- **Merchants stock by rarity.** Generated merchants now roll every ware against its rarity for a Village, Town, City or City-State: common goods always, rare goods now and then, even in a village. A restock rolls the shelf again; items you added by hand stay.
+- **Games are chosen one by one.** The landing page settings have a tick box per game instead of one games switch; a page that had the switch on keeps all ten.
+
+### Added
 
 - **Auto travel: a far destination is one click, not one day's walk.** The Travel panel has an **Auto** switch for the travelling party's sheet owner or a GM, and the clock bar carries a compact **Auto On / Auto Off** button so the standing mode is visible — and one click away — with the panel closed. With it on, clicking a destination on the hex map walks the party there over as many days as it takes: when the day's movement is spent the party camps, the dawn opens the next day by itself, and the route is picked up again from where the party stands. It stops for an encounter (and carries on when **Resume clock** clears it) and never moves the party while the game is paused. The GM no longer presses Start day every morning, and a player who can move the party can click the destination once Auto is switched on. A player with the party sheet's Owner permission can now switch Auto on or off from either place; a player without it gets the same named refusal as any other party move.
 - **The GM is told why an automatic journey stopped.** When a player's auto travel stops — an encounter, a camp decision, a pause, a blocked hex, a missing route, or a moved token — the active GMs get a whispered chat notice naming the party, the hex and the reason, instead of the stop being visible only on the player's screen.

@@ -226,7 +226,7 @@
 | File | Lines | Description |
 |---|---:|---|
 | `crawl-strip.mjs` | 1762 | The core feature: the top strip. Plain DOM (`#shadowdark-enhancer-strip`), not ApplicationV2. |
-| `crawl-state.mjs` | 515 | Foundry-coupled state singleton — persistence, sockets, hook emission. |
+| `crawl-state.mjs` | 516 | Foundry-coupled state singleton — persistence, sockets, hook emission. |
 | `crawl-state-core.mjs` | 428 | Pure reducer/normalizer behind crawl-state. Node-testable. |
 | `crawl-lights-core.mjs` | 93 | Pure light-source logic for the strip's flame badges. |
 | `crawl-tracker.mjs` | 347 | The out-of-combat tracker as a real sidebar tab (`AbstractSidebarTab`), registered into `Sidebar.TABS` + `CONFIG.ui` beside Combat. Hidden unless a crawl is running; carries the roll-all / advance / reset controls. |
