@@ -2,72 +2,75 @@
 
 [← Wiki home](index.md)
 
-A front door for a town. The scene's own picture fills the screen and a menu
-runs down the right: the town's name, a line for each merchant, and the Quest
-Log, the Journals, the Party and Downtime. Players shop with their own
-characters, and they can do it between sessions with you not connected. A table of games of
-chance and a sales log for the GM can be added to the same page.
+The landing page is a table the party sits at between adventures: a candle-lit
+wooden table seen from a seat at it, with the party's portraits standing in
+frames along the far edge. The things on the table are the buttons. Players
+shop with their own characters, and they can do it between sessions with you
+not connected.
 
-![The landing page: a scene's picture with the menu down the right](images/town-landing.jpg)
+![The landing table: the coin chest lit under the pointer, the party's portraits standing on the far edge](images/town-landing.jpg)
 
-*The picture here is a sample. On your table it is the scene's own picture.*
-
-Any scene can have one. Everything on it is read from your NPCs and the scene as
-they are, so changing an NPC's items or a price changes the shop.
+Try it in your browser, no Foundry needed: the
+[landing table demo](demo/landing-table/).
 
 ---
 
-## Making a page
+## Bringing the table up
 
 Press the **Landing page** button (a landmark icon, in the Token Controls on the
-left of the screen). It opens the **Landing pages** window. At the top,
-**Make a landing page** asks four things, each already filled in:
+left of the screen). Everyone is taken to the table. Press it again, or
+**Return everyone to ...** in the bar under the table, and everyone goes back to
+the scene they came from. It is Foundry's own scene change, so the party's
+tokens stay where they were and travel on a hex map waits for you.
 
-| Question | Already set to |
+The first press makes the table: a scene called "The Table", one merchant whose
+goods are rolled for the settlement the party is in, and the page with Quests,
+Journals, Session recaps, Party, Map and Carouse on (Downtime too in a Town or
+bigger), every game offered. Nothing to upload or wire. Change anything
+afterwards with the pencil.
+
+**The settlement.** When the party's travel token stands on a village, town,
+city or city-state hex of your hex map, the market is stocked for that size each
+time you bring the table up (its goods are rolled again when the size changes).
+In open country, or with no hex map, it stays as it was (a Town at first). You
+can change it any time with **Settlement size** in the bar under the table.
+
+While the table is up it is the whole screen: the scene tools, the scene list,
+the hotbar and the module's crawl bar step aside, and the sidebar folds to its
+tabs. They come back when the table goes away. Only you see the small bar under
+the table: who you are buying as, Return, the settlement size, the pencil, the
+sales log, Restock all and the eye that takes the page away for everyone (Alt+T
+brings it back).
+
+## What is on the table
+
+| On the table | Opens |
 |---|---|
-| **Name** | Market |
-| **Settlement size** | Town (Village, Town, City or City-State) |
-| **Picture** | Town. In the Western Reaches, the Player's Map once the import has made it (see [Western Reaches](#western-reaches)) |
-| **Games of chance** | All ten ticked; untick any |
+| The quest tome | The [Quest Log](Quest-Log.md). Its pages list the active quests and their steps with tick boxes, over both pages |
+| The coin chest | The market's shop (it opens to its gold first). The number on it is the party's coin |
+| The dice cup | [Games of chance](#games-of-chance) |
+| The goblets | Carouse (see [A tavern page](#a-tavern-page)) |
+| The framed map | [The Map](#the-map) |
+| The sealed letter | Rumors, when you tick it |
+| The hourglass | [Downtime](Downtime.md) (a Town or bigger) |
+| The journal | The Journal sidebar |
+| The tied scrolls | The [Session Recap](Session-Recap.md) |
+| A portrait frame | That character's sheet (players: their own). Hover for name, level, class, hit points and purse |
+| The Party sign | The [Party](Party.md) |
+| The title card | Nothing: you click it and type the session's title ("Session 14: ...") |
+| The dial | Nothing: it shows the time of day from the world's clock |
 
-Press **Make it and go there**. It makes the scene with that picture, one
-merchant stocked for the settlement's size (see
-[Generating a merchant](#generating-a-merchant)), and the page with Quests,
-Journals, Party and Map on (Downtime too in a Town or bigger; Carouse and
-Rumors are there to tick later). Then it takes everyone there. Nothing else to
-set up: change anything afterwards with the pencil on the page.
+At rest the table is dim; the thing under the pointer comes up in warm light with
+its name. Text on the table (quest lines, the title, the names) shrinks to fit
+whatever you write. Something that cannot open now is greyed and says why when
+you point at it: Party until the player can see a party, Downtime until you start
+a downtime session, Carouse until you start a night (or while no GM is
+connected), Rumors until a rumor has been given, the Map while the world has no
+overland map.
 
-The new scenes go in a Scenes folder called "Landing pages" and stay out of the
-navigation bar; the Landing pages window is how you reach them.
-
----
-
-## Moving the table
-
-- **Take everyone there.** Every page is listed in the Landing pages window,
-  with the one the table is on marked. One click takes everyone to that page,
-  and puts the page up if it was taken away. It is Foundry's own scene change,
-  so the party's tokens stay where they were on the map they left, and travel
-  on a hex map waits for you.
-- **Return.** The page remembers the scene the table came from. You see
-  **Return everyone to** that scene at the top of the menu; one click takes
-  everyone back. Going from one page straight to another keeps the way back to
-  where the table was before the first page.
-- **Taking it away.** The eye icon on the page, or **Alt+T**, takes the page
-  away for everyone on the scene; Alt+T or **Show it to everyone** in the
-  Landing pages window brings it back. On a scene with no page, Alt+T makes an
-  empty one there (the scene's name, the four town entries, no merchants).
-- **Moving between scenes** follows the page. Arriving in a scene whose page is
-  up opens it; arriving in one without a page, or with its page taken away,
-  closes it.
-
-The picture is the scene's own. Choose it, and where the camera starts, in the
-scene's settings (the editor has a **Scene settings** button for it). The menu
-fades dark on the right, so keep that side of the picture quiet. Players can
-still pan and zoom the scene as usual.
-
-When Foundry's sidebar is open the menu moves left of it, and if the Crawl Strip
-is up and would cover the town's name, the menu sits just below it.
+The table is the module's own picture, rendered in Blender
+(`tools/landing-table/`); see [CREDITS](https://github.com/DimitroffVodka/shadowdark-enhancer/blob/master/CREDITS.md)
+for the CC0 pieces in it.
 
 ---
 
@@ -77,9 +80,9 @@ is up and would cover the town's name, the menu sits just below it.
    **Weapon** or **Armor**. Those items are the stock: an item's quantity is how
    many the merchant has, and its price is what it charges. Other item types
    are not sold.
-2. **Press the pencil** on the page (the GM sees four icons at the top: the
-   pencil for the settings, the receipt for the [sales log](#the-sales-log), a
-   button that restocks every shop, and the eye that takes the page away).
+2. **Press the pencil** in the bar under the table (next to it: the receipt for
+   the [sales log](#the-sales-log), a button that restocks every shop, and the
+   eye that takes the page away).
 3. **Fill in the town**, then pick an NPC under **Merchants** and press **Add
    merchant**. Set each merchant's fields (below).
 4. **Save.** Every open page updates at once.
@@ -108,37 +111,14 @@ stock in each. Removing a merchant and adding the NPC again starts it fresh.
 
 ---
 
-## What players see
-
-- **The merchants** are listed by name with their role. Pressing one opens its
-  shop. A merchant you closed shows as closed.
-- **The other entries** open the [Quest Log](Quest-Log.md), the Journal sidebar,
-  the [Party](Party.md), the [Map](#the-map), and [Downtime](Downtime.md), plus Carouse and Rumors if
-  you ticked them (see A tavern page below). An entry that cannot open is
-  greyed and says why: Party until the player can see a party (the
-  [Party](Party.md) needs at least Observer), Downtime until you start a
-  downtime session, Carouse until you start a night of carousing (or while no GM
-  is connected), Rumors until a rumor has been given, Map while the world has
-  neither an overland map nor the Player's Map.
-- **The foot** says which character the player is, and their purse.
-- **Their own copy.** While you have the page up, a player can close it for
-  themselves and bring it back with the same button or Alt+T. When you take it
-  away they have neither.
-
-Change the key under *Configure Controls*.
-
----
-
 ## The Map
 
-The **Map** entry shows the player who pressed it, alone, the real overland map
+The **framed map** shows the player who pressed it, alone, the real overland map
 (the hex map the party travels on) with what their party has explored; the rest
-of the table stays on the page. The unexplored hexes are black as usual, and
+of the table stays at the table. The unexplored hexes are black as usual, and
 the player sees their own party's hexes even with no token of theirs on the
-map. A **Back to** button above the hotbar takes them back to the page.
-
-A world with no overland map opens the Western Reaches Player's Map picture
-instead, to zoom around in. With neither, the entry is greyed out.
+map. A **Back to** button takes them back to the table. A world with no overland
+map greys the map out.
 
 ---
 
@@ -238,7 +218,7 @@ call it "(bought back)".
 ![The games table](images/town-games.png)
 
 Tick the games this place offers in the settings (a page made with
-**Make a landing page** starts with all ten) and **Games of chance** joins the
+the table starts with all ten) and **Games of chance** joins the
 menu, listing only those games. A player picks their character, sets a **wager** in silver (quick buttons
 for 1 sp, 1 gp, 5 gp, 10 gp... and the table's limit) and plays one of ten
 games. Four settle on one roll. The other six open a table of their own,
@@ -453,7 +433,7 @@ and every open shop updates as others buy.
   catches up when they next load the world.
 - **Changing an NPC's quantity** changes the shelf at once: raise it to add
   stock without a restock.
-- **A fresh roll.** A merchant the module made (Make a landing page, or
+- **A fresh roll.** A merchant the module made (the table's own, or
   Generate merchant) gets its goods rolled again at every restock, by hand or
   by the day count, so the shelves change between sessions (see
   [Generating a merchant](#generating-a-merchant)). Items you added to its NPC
@@ -513,26 +493,6 @@ the editor it stays in its folder.
 
 ---
 
-## Western Reaches
-
-When you import the Western Reaches **Player's Guide**, the importer also cuts
-the **Player's Map** out of your own PDF (pages 2 and 3, the two halves joined)
-and saves it in your world. It has no printed names on it, so it makes a clean
-background, and it becomes the first picture in Make a landing page. A world
-imported before this version shows a **Make the Player's Map** button in the
-Landing pages window while your Player's Guide is linked; one click makes it.
-The map is never part of the module: it comes from your own book, into your own
-world.
-
-**One page per place.** Once your hex map is imported, the Landing pages window
-lists every settlement on it, biggest first, with its size. The first time you
-open one, its page is made at that settlement's size, with the Player's Map
-behind the menu and the place's name on it, and everyone is taken there. After
-that the same button takes everyone back to it. Nothing is made for a place you
-never open.
-
----
-
 ## Without the GM
 
 A player's purchase only changes their own character: coins out, the item in,
@@ -569,9 +529,8 @@ the sales log reads them.
 
 ## A tavern page
 
-Tick **Carouse** and **Rumors** in the page's settings (the pencil) and the same
-page becomes a tavern. A new page does not get these two; only the four town
-entries.
+Carouse (the goblets) is on at the table; tick **Rumors** in the page's
+settings (the pencil) and the sealed letter on the table gives rumors too.
 
 - **Carouse.** You open the Carousing window on the party that has a night
   open, else on the party you have selected if it is a native one, else on the
@@ -597,4 +556,5 @@ open when it goes away.
 ## Related
 
 [Merchant Shop](Merchant-Shop.md) (the GM-run shop for the whole table),
-[Quest Log](Quest-Log.md), [Party](Party.md), [Downtime](Downtime.md).
+[Quest Log](Quest-Log.md), [Party](Party.md), [Downtime](Downtime.md),
+[Session Recap](Session-Recap.md), the [landing table demo](demo/landing-table/).

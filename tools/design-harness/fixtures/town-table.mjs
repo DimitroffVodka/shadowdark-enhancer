@@ -1,7 +1,7 @@
 // The landing page: the table you sit at (a real template, built with the window's own table functions). state = gm |
 // player | hover (the chest lit). The real window has no frame and fills the screen; the harness draws one, so the
 // fixture hides it and sets the picture's scale (the window measures it at run time).
-import { TABLE, homography, propSrc, seatsFor, tableProps, tomePages, dialAngle } from "../../../scripts/town/landing-table-core.mjs";
+import { TABLE, homography, propSrc, framesFor, tableProps, tomePages, dialAngle } from "../../../scripts/town/landing-table-core.mjs";
 import { placeTiles, purseText } from "../../../scripts/town/town-view.mjs";
 import { COINS, ACTOR, t } from "./_town.mjs";
 
@@ -24,7 +24,7 @@ const build = (state) => {
   const tiles = placeTiles([...page.places, "games"], { isGM, hasParty: true, downtimeOpen: false, activeQuests: 2, t });
   const labels = Object.fromEntries(tiles.map((p) => [p.id, { name: p.label, sub: p.tag || p.sub, disabled: p.disabled, hint: p.hint }]));
   labels.market = { name: t("SDE.town.table.market"), sub: "Outfitter, The Table" };
-  const [left, right] = tomePages(quests, 5);
+  const [left, right] = tomePages(quests);
   const props = tableProps(page, { hasMerchant: true, labels }).map((p) => ({ ...p, hot: state === "hover" && p.id === "market" }));
   return {
     toolbar,
@@ -40,8 +40,8 @@ const build = (state) => {
       ],
       title: { text: "Session 14: Ash Above the Styx", transform: homography(700, 150, L.title), box: [700, 150] },
       dial: { angle: dialAngle(20.5), transform: homography(400, 400, L.dial), box: [400, 400], ticks: Array.from({ length: 24 }, (_, i) => ({ deg: i * 15, len: i % 6 ? 20 : 30 })) },
-      seats: seatsFor(members.length).map((at, i) => ({ ...at, id: `a${i}`, name: members[i][0], img: "icons/svg/mystery-man.svg", mine: i === 0, level: members[i][1], cls: members[i][2], hp: members[i][3], purse: purseText(COINS) })),
-      party: { x: (L.seats[0][0] + L.seats[3][0]) / 2, y: L.seats[0][1] + 92 },
+      seats: framesFor(members.length).map((f, i) => ({ ...f, seat: `seat${i}`, transform: homography(120, 160, f.face), box: [120, 160], id: `a${i}`, name: members[i][0], img: "icons/svg/mystery-man.svg", mine: i === 0, level: members[i][1], cls: members[i][2], hp: members[i][3], purse: purseText(COINS) })),
+      party: { x: TABLE.width / 2, y: Math.max(20, Math.min(...L.frames.map((f) => f.y)) - 110) },
     },
   };
 };

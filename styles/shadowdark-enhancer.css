@@ -6143,8 +6143,12 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
    glow. Kept dark whatever the theme. */
 .sde-ui.sde-town.lt-root { position: fixed; inset: 0 var(--sde-town-side, 42px) 0 0; z-index: 25; margin: 0; padding: 0; border: 0; box-shadow: none; background: #050403; display: block; pointer-events: auto;
   --ui-page: #000; --ui-panel: #0d0d0d; --ui-raised: #1a1a1a; --ui-hover: #161616; --ui-text: #fff; --ui-body: #ececec; --ui-muted: #b9ae9f; --ui-line: #443c3c; --ui-frame: #c9c9c9; --ui-gold: #e7bf62; }
-.sde-town .lt-stage { position: absolute; inset: 4px 4px var(--sde-town-bottom, 0px) var(--sde-town-left, 0px); display: grid; place-items: center; overflow: hidden; }
-.sde-town .lt-frame { position: relative; width: calc(2560px * var(--lt-k, .5)); height: calc(1440px * var(--lt-k, .5)); }
+/* While the table is up it is the whole screen: Foundry's edge furniture and the module's bars step aside (the
+   sidebar keeps its tabs; town-app.mjs folds it). The GM keeps the small bar under the table. */
+body.sde-table-up #ui-left, body.sde-table-up #ui-bottom, body.sde-table-up #shadowdark-enhancer-bar,
+body.sde-table-up #shadowdark-enhancer-strip, body.sde-table-up #shadowdark-enhancer-travel { display: none !important; }
+.sde-town .lt-stage { position: absolute; inset: 0; overflow: hidden; }
+.sde-town .lt-frame { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: calc(2560px * var(--lt-k, .5)); height: calc(1440px * var(--lt-k, .5)); }
 .sde-town .lt-pic { position: absolute; left: 0; top: 0; transform: scale(var(--lt-k, .5)); transform-origin: 0 0; user-select: none; }
 .sde-town .lt-img { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; filter: brightness(.55) saturate(.55); pointer-events: none; }
 .sde-town .lt-pic[data-hot]:not([data-hot=""]) .lt-img { filter: brightness(.42) saturate(.45); transition: filter .25s; }
@@ -6153,23 +6157,29 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-town .lt-lit { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; transition: opacity .22s, filter .22s; pointer-events: none; }
 .sde-town .lt-prop.hot .lt-lit, .sde-town .lt-prop:focus-visible .lt-lit { opacity: 1; filter: brightness(1.12) drop-shadow(0 0 14px rgb(255 168 70 / 85%)) drop-shadow(0 0 40px rgb(255 140 40 / 45%)); }
 .sde-town .lt-prop:focus-visible { outline: none; }
+.sde-town .lt-prop.hot { z-index: 3; }
 .sde-town .lt-prop.off.hot .lt-lit { filter: brightness(.8) saturate(.5); }
-.sde-town .lt-label { position: absolute; left: 50%; bottom: calc(100% + 6px); transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 22px 8px; white-space: nowrap;
+/* A label sits inside its object's box, top centre, and shrinks to fit it (town-app.mjs fitText). */
+.sde-town .lt-label { position: absolute; left: 50%; top: 8px; transform: translateX(-50%); width: max-content; max-width: calc(100% - 16px); max-height: calc(100% - 12px); overflow: hidden; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 18px 8px;
   background: rgb(10 7 4 / 88%); border: 2px solid rgb(231 191 98 / 70%); border-radius: 999px; color: #fff; opacity: 0; transition: opacity .18s; pointer-events: none; }
 .sde-town .lt-prop.hot .lt-label, .sde-town .lt-prop:focus-visible .lt-label { opacity: 1; }
-.sde-town .lt-label b { font: 400 46px/1.05 var(--ui-title); letter-spacing: .02em; }
-.sde-town .lt-label small { font-size: 22px; color: var(--ui-muted); }
+.sde-town .lt-label b { font: 400 2.1em/1.05 var(--ui-title); letter-spacing: .02em; white-space: nowrap; }
+.sde-town .lt-label small { font-size: 1em; color: var(--ui-muted); white-space: normal; text-align: center; }
+.sde-town .lt-label { font-size: 22px; }
+.sde-town .lt-label.tight small { display: none; }
+/* the tome is written on: its label sits under the pages */
+.sde-town .lt-prop[data-prop="quests"] .lt-label { top: auto; bottom: 8px; }
 
 /* Overlays laid onto their props in perspective (matrix3d from landing-table-core homography). */
-.sde-town .lt-quad { position: absolute; left: 0; top: 0; transform-origin: 0 0; pointer-events: none; }
-.sde-town .lt-page { padding: 34px 26px; font: 600 28px/1.2 var(--ui-font); color: #24160a; filter: brightness(.7); transition: filter .25s; }
+.sde-town .lt-quad { position: absolute; left: 0; top: 0; transform-origin: 0 0; pointer-events: none; z-index: 4; }
+.sde-town .lt-page { padding: 30px 24px; overflow: hidden; font: 600 28px/1.2 var(--ui-font); color: #24160a; filter: brightness(.7); transition: filter .25s; }
 .sde-town .lt-pic[data-hot="quests"] .lt-page { filter: none; }
 .sde-town .lt-page ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .sde-town .lt-page li { display: flex; align-items: flex-start; gap: 10px; }
-.sde-town .lt-line { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
-.sde-town .lt-page li.quest { font: 400 36px/1.05 var(--ui-title); margin-top: 6px; }
+.sde-town .lt-line { overflow-wrap: anywhere; }
+.sde-town .lt-page li.quest { font: 400 1.3em/1.05 var(--ui-title); margin-top: .2em; }
 .sde-town .lt-page li.step { padding-left: 8px; }
-.sde-town .lt-tick { flex: 0 0 auto; width: 22px; height: 22px; margin-top: 4px; border: 3px solid #3b2410; border-radius: 3px; }
+.sde-town .lt-tick { flex: 0 0 auto; width: .8em; height: .8em; margin-top: .15em; border: 3px solid #3b2410; border-radius: 3px; }
 .sde-town .lt-page li.quest .lt-tick { display: none; }
 .sde-town .lt-page li.done { color: #6b5333; text-decoration: line-through; }
 .sde-town .lt-page li.done .lt-tick { background: radial-gradient(circle, #3b2410 38%, transparent 42%); }
@@ -6183,10 +6193,10 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-town.opening-market .lt-prop[data-prop="market"] .lt-lit, .sde-town.opening-market .lt-prop[data-prop="market"] .lt-label { opacity: 0; transition: opacity .25s; }
 @keyframes lt-open { 0% { opacity: 0; filter: brightness(1.1) drop-shadow(0 0 0 rgb(255 190 80 / 0%)); } 25% { opacity: 1; filter: brightness(1.2) drop-shadow(0 0 50px rgb(255 190 80 / 90%)); } 80% { opacity: 1; } 100% { opacity: 0; } }
 
-.sde-town .lt-title-card { display: grid; place-items: center; padding: 8px 40px; filter: brightness(.85); }
-.sde-town .lt-title-text { pointer-events: auto; max-width: 100%; font: 400 72px/1.05 var(--ui-title); color: #1e1208; text-align: center; white-space: nowrap; overflow: hidden; outline: none; cursor: default; }
+.sde-town .lt-title-card { display: grid; place-items: center; padding: 8px 40px; overflow: hidden; font-size: 72px; filter: brightness(.85); }
+.sde-town .lt-title-text { pointer-events: auto; font: 400 1em/1.05 var(--ui-title); color: #1e1208; text-align: center; white-space: nowrap; outline: none; cursor: default; }
 .sde-town .lt-title-text[contenteditable] { cursor: text; min-width: 300px; }
-.sde-town .lt-title-text[contenteditable]:empty::before { content: attr(data-placeholder); color: #4a3418; font-size: 60px; }
+.sde-town .lt-title-text[contenteditable]:empty::before { content: attr(data-placeholder); color: #4a3418; }
 .sde-town .lt-title-text[contenteditable]:focus { background: rgb(255 240 200 / 45%); border-radius: 8px; }
 
 .sde-town .lt-dial { pointer-events: auto; filter: brightness(.75); }
@@ -6198,17 +6208,22 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-town .lt-dial .lt-hand { stroke: #2a1a0c; stroke-width: 6; stroke-linecap: round; }
 .sde-town .lt-dial .lt-hub { fill: #8a6420; }
 
-.sde-town .lt-coin { position: absolute; transform: translate(-50%, 0); padding: 4px 18px; background: rgb(10 7 4 / 82%); border: 2px solid rgb(231 191 98 / 55%); border-radius: 999px; font: 600 30px/1.2 var(--ui-font); color: var(--ui-gold); white-space: nowrap; pointer-events: none; }
+.sde-town .lt-coin { z-index: 4; position: absolute; transform: translate(-50%, 0); padding: 4px 18px; background: rgb(10 7 4 / 82%); border: 2px solid rgb(231 191 98 / 55%); border-radius: 999px; font: 600 30px/1.2 var(--ui-font); color: var(--ui-gold); white-space: nowrap; pointer-events: none; }
 
-.sde-town .lt-seat { position: absolute; width: 150px; height: 150px; margin: 0; padding: 0; transform: translate(-50%, -50%); border: 5px solid rgb(231 191 98 / 75%); border-radius: 50%; background: #1a1410; box-shadow: 0 6px 24px rgb(0 0 0 / 80%); cursor: default; filter: saturate(.55) brightness(.75); transition: filter .2s, border-color .2s; overflow: visible; }
-.sde-town .lt-seat.mine { cursor: pointer; }
-.sde-town .lt-seat:hover, .sde-town .lt-seat:focus-visible { filter: none; border-color: var(--ui-gold); outline: none; box-shadow: 0 0 34px rgb(255 168 70 / 70%); z-index: 2; }
-.sde-town .lt-seat > img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 0; pointer-events: none; }
-.sde-town .lt-seat-card { position: absolute; left: 50%; top: calc(100% + 12px); transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 300px; padding: 12px 22px;
+/* A member's portrait frame standing on the table (its own cut-out) with their picture on its face; dim with the table at
+   rest, lit with a warm glow on hover like every prop. */
+.sde-town .lt-seat { position: absolute; margin: 0; padding: 0; min-width: 0; height: auto; border: 0; border-radius: 0; background: none; box-shadow: none; pointer-events: none; overflow: visible; }
+.sde-town .lt-seat .lt-frame-img { opacity: 1; filter: brightness(.55) saturate(.55); }
+.sde-town .lt-portrait { filter: brightness(.6) saturate(.6); transition: filter .22s; }
+.sde-town .lt-portrait img { display: block; width: 100%; height: 100%; object-fit: cover; border: 0; }
+.sde-town .lt-seat.hot .lt-frame-img, .sde-town .lt-seat:focus-visible .lt-frame-img { filter: brightness(1.12) drop-shadow(0 0 14px rgb(255 168 70 / 85%)); }
+.sde-town .lt-seat.hot .lt-portrait, .sde-town .lt-seat:focus-visible .lt-portrait { filter: none; }
+.sde-town .lt-seat:focus-visible { outline: none; }
+.sde-town .lt-seat-card { position: absolute; left: 50%; top: calc(100% + 12px); transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 300px; padding: 12px 22px; z-index: 3;
   background: rgb(10 7 4 / 92%); border: 2px solid rgb(231 191 98 / 65%); border-radius: 12px; color: var(--ui-body); font: 26px/1.3 var(--ui-font); white-space: nowrap; opacity: 0; transition: opacity .18s; pointer-events: none; }
 .sde-town .lt-seat-card b { font: 400 40px/1.1 var(--ui-title); color: #fff; }
 .sde-town .lt-seat-card .lt-purse { color: var(--ui-gold); }
-.sde-town .lt-seat:hover .lt-seat-card, .sde-town .lt-seat:focus-visible .lt-seat-card { opacity: 1; }
+.sde-town .lt-seat.hot .lt-seat-card, .sde-town .lt-seat:focus-visible .lt-seat-card { opacity: 1; }
 .sde-town .lt-party { position: absolute; transform: translate(-50%, 0); margin: 0; padding: 6px 26px; height: auto; background: rgb(10 7 4 / 82%); border: 2px solid rgb(231 191 98 / 55%); border-radius: 999px; font: 400 40px/1.1 var(--ui-title); color: #fff; cursor: pointer; }
 .sde-town .lt-party:hover, .sde-town .lt-party:focus-visible { border-color: var(--ui-gold); box-shadow: 0 0 24px rgb(255 168 70 / 55%); outline: none; }
 

@@ -3,14 +3,17 @@
 ## [Unreleased]
 
 ### Added
-- **Make a landing page in one click.** The toolbar's Landing page button opens a Landing pages window. Make a landing page asks a name, the settlement size, a picture and the games (all already filled in), then makes the scene, one merchant stocked for that size and the page (Quests, Journals, Party and Map on, Downtime in a town or bigger), and takes everyone there.
-- **Take everyone there, and Return.** The window lists every landing page; one click moves the whole table to it. The page remembers where the table came from, and its Return button takes everyone back. Travel on a hex map waits while the table is in town.
-- **Map on the landing page.** Shows the player who presses it, alone, the overland map with what their party has explored, with a Back button; the rest of the table stays on the page. A world with no overland map shows the Player's Map picture instead.
-- **Western Reaches: one page per place.** Every settlement on the imported hex map is listed; its page is made the first time you open it, at its own size, with the Player's Map behind the menu.
-- **The Player's Map, from your own Player's Guide.** The import cuts it out of pages 2 and 3 of your PDF and saves it in your world as a landing page picture. A world imported before gets a Make the Player's Map button. Never shipped with the module.
+- **The landing page is a table you sit at.** One page for everything: a candle-lit table, rendered for the module, seen from a seat at it. The things on it are the buttons: the quest tome (its pages list the active quests with tick boxes), the coin chest (the party's coin; it opens to the market), the dice cup (games), the goblets (carousing), the framed map, the sealed letter (rumors), the hourglass (downtime), the journal and the tied scrolls (session recaps). The thing under the pointer comes up in warm light with its name.
+- **The party at the table.** Each member's portrait stands in a frame on the table; hover for name, level, class, hit points and purse, click for the sheet (players: their own).
+- **A session title and a day dial.** The GM types the session's title on the card on the table; the dial follows the world's clock.
+- **One click there and back.** The toolbar's Landing page button takes everyone to the table (made the first time, with nothing to set up) and back to where they were; travel on a hex map waits. While the table is up it fills the screen and Foundry's bars step aside; the GM keeps a small bar under it.
+- **The market follows the settlement.** Standing on a village, town, city or city-state hex, the table's market is stocked for that size; the GM can change it under the table.
+- **The framed map** shows the player who presses it, alone, the overland map with what their party has explored, with a Back button.
+- **A demo you can share.** The manual has a playable demo of the table: [the landing table demo](https://dimitroffvodka.github.io/shadowdark-enhancer/demo/landing-table/).
 
 ### Changed
 - **Merchants stock by rarity.** Generated merchants now roll every ware against its rarity for a Village, Town, City or City-State: common goods always, rare goods now and then, even in a village. A restock rolls the shelf again; items you added by hand stay.
+- **No loot on shop shelves.** Adventure treasure (a golden rose, a gold charm necklace) is never stock in any shop, and the rolled market leaves out siege engines.
 - **Games are chosen one by one.** The landing page settings have a tick box per game instead of one games switch; a page that had the switch on keeps all ten.
 
 ### Added

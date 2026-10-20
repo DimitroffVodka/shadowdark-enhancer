@@ -5,7 +5,8 @@
  * on it are the buttons: the quest tome (Quests), the coin chest (Market), the dice cup (Games), the tankard (Carouse),
  * the framed map (Map), the sealed letter (Rumors), the hourglass (Downtime), the journal (Journals), the tied scrolls
  * (Session recaps). The session
- * title card and the day dial are read-outs. The party's portraits sit round the table's far side. Everything is laid
+ * title card and the day dial are read-outs. The party's portraits stand in frames along the table's far edge, one frame per
+ * member (the frames are cut out of their own render, so a party of three shows three). Everything is laid
  * out in the picture's own pixels (landing-table-layout.mjs, written with the render), and the window scales the
  * whole picture as one, so props, seats and overlays stay together at any screen size.
  */
@@ -18,13 +19,14 @@ export const TABLE = { src: `${DIR}/table.webp${REV}`, hit: `${DIR}/hit.webp${RE
 export const propSrc = (id) => `${DIR}/props/${id}.webp${REV}`;
 
 /** The props that are buttons, in the order the hit map numbers them (1-based): the same order the render uses. */
-export const HIT_ORDER = ["quests", "market", "games", "carouse", "map", "rumors", "downtime", "journals", "title", "dial", "recaps"];
+export const HIT_ORDER = ["quests", "market", "games", "carouse", "map", "rumors", "downtime", "journals", "title", "dial", "recaps",
+  "seat0", "seat1", "seat2", "seat3", "seat4", "seat5"];
 /** Props that open something; the title card and the dial only show. */
 export const BUTTON_PROPS = ["quests", "market", "games", "carouse", "map", "rumors", "downtime", "journals", "recaps"];
 export const SEATS_MAX = 6;
 
-/** The prop under a hit-map value (the map stores 20 per step so a lossy pixel still rounds right), or null. */
-export const propAtHit = (value) => HIT_ORDER[Math.round(value / 20) - 1] ?? null;
+/** The prop (or seat, `seat<n>`) under a hit-map value: the map stores `hitStep` grey levels per entry, so a pixel off by a few still rounds right. */
+export const propAtHit = (value, step = LAYOUT.hitStep ?? 20) => HIT_ORDER[Math.round(value / step) - 1] ?? null;
 
 /**
  * The props this page shows as buttons: the market when it has a merchant, games when it offers any, and every tile
@@ -35,8 +37,11 @@ export function tableProps(page, { hasMerchant, labels = {}, layout = LAYOUT }) 
   return BUTTON_PROPS.filter((id) => on.has(id) && layout.props[id]).map((id) => ({ id, ...layout.props[id], src: propSrc(id), ...(labels[id] ?? {}) }));
 }
 
-/** Where the first `n` party portraits sit (at most six): `[{ x, y }]` in picture pixels, the far side first. */
-export const seatsFor = (n, layout = LAYOUT) => layout.seats.slice(0, Math.min(n, SEATS_MAX)).map(([x, y]) => ({ x, y }));
+/**
+ * The frames the first `n` party members stand in (at most six), middle of the far edge first: `[{ index, x, y, w, h, face,
+ * src }]`, the frame's box and its picture face (four corners) in picture pixels, and its cut-out.
+ */
+export const framesFor = (n, layout = LAYOUT) => layout.frames.slice(0, Math.min(n, SEATS_MAX)).map((f, index) => ({ index, ...f, src: propSrc(`seat${index}`) }));
 
 /**
  * The CSS matrix3d that lays a `w` x `h` box (origin top left) onto `quad`, four picture points in the order top left,
@@ -72,16 +77,16 @@ export function homography(w, h, quad) {
 export const sizeOfGround = (terrain) => (["village", "town", "city", "city_state"].includes(terrain) ? terrain : null);
 
 /**
- * The quest tome's two pages: each active quest's name and its steps with a tick box, filled left page first.
- * `quests` are Quest Log summaries (a player's already without what they may not see); a page holds `perPage` lines.
+ * The quest tome's two pages: each active quest's name and its steps with a tick box. The quests are shared out over
+ * both pages (the first half on the left, the rest on the right, in order), and a page holds `perPage` lines at most;
+ * the window shrinks the writing to fit what a page holds. `quests` are Quest Log summaries (a player's already
+ * without what they may not see).
  */
-export function tomePages(quests, perPage = 7) {
-  const lines = [];
-  for (const q of quests) {
-    lines.push({ kind: "quest", text: q.name, done: q.status === "completed" });
-    for (const o of (q.objectives ?? []).filter((x) => !x.parent && !x.secret)) lines.push({ kind: "step", text: o.text, done: o.done });
-  }
-  return [lines.slice(0, perPage), lines.slice(perPage, perPage * 2)];
+export function tomePages(quests, perPage = 8) {
+  const block = (q) => [{ kind: "quest", text: q.name, done: q.status === "completed" },
+    ...(q.objectives ?? []).filter((x) => !x.parent && !x.secret).map((o) => ({ kind: "step", text: o.text, done: o.done }))];
+  const half = Math.ceil(quests.length / 2);
+  return [quests.slice(0, half).flatMap(block).slice(0, perPage), quests.slice(half).flatMap(block).slice(0, perPage)];
 }
 
 /** The day dial's hand, in degrees clockwise from noon at the top (the sun's half), for a time of day in hours. */

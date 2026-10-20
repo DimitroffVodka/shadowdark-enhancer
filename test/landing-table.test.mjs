@@ -1,13 +1,14 @@
 /** The landing table's pure parts: which props show, the click map, the seats, the perspective quads, the tome, the dial. */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { BUTTON_PROPS, HIT_ORDER, SEATS_MAX, TABLE, dialAngle, homography, propAtHit, seatsFor, sizeOfGround, tableProps, tomePages } from "../scripts/town/landing-table-core.mjs";
+import { BUTTON_PROPS, HIT_ORDER, SEATS_MAX, TABLE, dialAngle, framesFor, homography, propAtHit, sizeOfGround, tableProps, tomePages } from "../scripts/town/landing-table-core.mjs";
 
 const page = (over = {}) => ({ places: ["quests", "journals", "recaps", "party", "map", "carouse"], games: { on: true }, ...over });
 
 test("every button prop has a box in the render's layout", () => {
   for (const id of BUTTON_PROPS) assert.ok(TABLE.layout.props[id], id);
-  assert.ok(TABLE.layout.seats.length >= SEATS_MAX);
+  assert.equal(TABLE.layout.frames.length, SEATS_MAX);
+  for (const f of TABLE.layout.frames) assert.equal(f.face.length, 4);
 });
 
 test("the props shown: the tiles left on, games when offered, the market when it has a merchant", () => {
@@ -18,19 +19,24 @@ test("the props shown: the tiles left on, games when offered, the market when it
   assert.ok(/\/props\/quests\.webp\?v=\w+$/.test(p.src) && Number.isFinite(p.x) && Number.isFinite(p.w));
 });
 
-test("the click map names the prop under a pixel, 20 grey levels a prop, and a lossy pixel still rounds right", () => {
+test("the click map names the prop or portrait frame under a pixel, a few grey levels off still rounding right", () => {
+  const step = TABLE.layout.hitStep;
+  assert.ok(step * HIT_ORDER.length <= 255, "every entry fits a grey level");
   assert.equal(propAtHit(0), null);
-  assert.equal(propAtHit(20), HIT_ORDER[0]);
-  assert.equal(propAtHit(41), HIT_ORDER[1]);
-  assert.equal(propAtHit(199), HIT_ORDER[9]);
-  assert.equal(propAtHit(220), "recaps");
-  assert.equal(propAtHit(240), null);
+  assert.equal(propAtHit(step), HIT_ORDER[0]);
+  assert.equal(propAtHit(2 * step + 2), HIT_ORDER[1]);
+  assert.equal(propAtHit(11 * step), "recaps");
+  assert.equal(propAtHit(12 * step - 3), "seat0");
+  assert.equal(propAtHit(17 * step), "seat5");
+  assert.equal(propAtHit(18 * step), null);
 });
 
-test("the party's seats: the far side first, six at most", () => {
-  assert.equal(seatsFor(0).length, 0);
-  assert.equal(seatsFor(9).length, SEATS_MAX);
-  assert.deepEqual(seatsFor(1)[0], { x: TABLE.layout.seats[0][0], y: TABLE.layout.seats[0][1] });
+test("the party's portrait frames: one per member, six at most, each with its own cut-out and face", () => {
+  assert.equal(framesFor(0).length, 0);
+  assert.equal(framesFor(9).length, SEATS_MAX);
+  const [first] = framesFor(1);
+  assert.equal(first.index, 0);
+  assert.ok(/\/props\/seat0\.webp\?v=\w+$/.test(first.src) && first.face.length === 4 && first.w > 0);
 });
 
 test("the perspective matrix lays a box's corners exactly on the quad", () => {
@@ -43,15 +49,19 @@ test("the perspective matrix lays a box's corners exactly on the quad", () => {
   }
 });
 
-test("the tome: each quest's name, then its visible steps with their ticks, left page first", () => {
+test("the tome: each quest's name, then its visible steps with their ticks, shared out over both pages", () => {
   const quests = [
     { name: "Rats", status: "active", objectives: [{ text: "Find the nest", done: true }, { text: "Hidden", secret: true }, { text: "Sub", parent: "x" }, { text: "Burn it", done: false }] },
     { name: "Ghost", status: "active", objectives: [] },
   ];
-  const [left, right] = tomePages(quests, 3);
+  const [left, right] = tomePages(quests);
   assert.deepEqual(left.map((l) => [l.kind, l.text, l.done]), [["quest", "Rats", false], ["step", "Find the nest", true], ["step", "Burn it", false]]);
   assert.deepEqual(right.map((l) => l.text), ["Ghost"]);
   assert.deepEqual(tomePages([]), [[], []]);
+  const many = Array.from({ length: 5 }, (_, i) => ({ name: `Q${i}`, objectives: [{ text: "a" }, { text: "b" }] }));
+  const [l5, r5] = tomePages(many, 8);
+  assert.equal(l5.length, 8, "a page holds what it can");
+  assert.deepEqual(r5.filter((x) => x.kind === "quest").map((x) => x.text), ["Q3", "Q4"]);
 });
 
 test("the dial: noon at the top, midnight at the bottom, a quarter turn every six hours", () => {

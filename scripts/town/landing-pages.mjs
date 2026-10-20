@@ -38,6 +38,9 @@ export async function sizeHere() {
   }
 }
 
+/** Where the party stands, as the table reads it (tests replace it). */
+export const tableIo = { sizeHere };
+
 /** The settlement's size on the page: the market's goods are rolled again for it (landing-pages-core resized). */
 export function resize(scene, size) {
   if (!game.user.isGM || !scene) return null;
@@ -62,7 +65,7 @@ export async function makeTable(size = "town") {
 export async function goToPage(scene) {
   if (!game.user.isGM || !scene) return null;
   const from = game.scenes.active, back = returnFor(scene, from, landingOf);
-  const here = from?.id === scene.id ? null : await sizeHere();
+  const here = from?.id === scene.id ? null : await tableIo.sizeHere();
   await updateLanding(scene, (page) => {
     const up = { ...setShown(page ?? {}, true), returnTo: back };
     return here ? resized(up, here) : up;
@@ -84,6 +87,6 @@ export async function toggleTable() {
   if (!game.user.isGM) return null;
   const table = tableScene();
   if (table && game.scenes.active?.id === table.id) return returnFromPage(table);
-  const scene = table ?? await makeTable((await sizeHere()) ?? "town");
+  const scene = table ?? await makeTable((await tableIo.sizeHere()) ?? "town");
   return scene ? goToPage(scene) : null;
 }

@@ -38,8 +38,10 @@
       {{#if props}}<span class="lt-coin" style="left: {{coin.x}}px; top: {{coin.y}}px;">{{coin.text}}</span>{{/if}}
 
       {{#each seats}}
-      <button type="button" class="lt-seat {{#if mine}}mine{{/if}}" data-action="seat" data-actor-id="{{id}}" style="left: {{x}}px; top: {{y}}px;" aria-label="{{name}}">
-        <img src="{{img}}" alt="" draggable="false">
+      <button type="button" class="lt-seat {{#if mine}}mine{{/if}}" data-action="seat" data-seat="{{seat}}" data-actor-id="{{id}}" aria-label="{{name}}"
+        style="left: {{x}}px; top: {{y}}px; width: {{w}}px; height: {{h}}px;">
+        <img class="lt-lit lt-frame-img" src="{{src}}" alt="" draggable="false">
+        <span class="lt-quad lt-portrait" style="width: {{box.[0]}}px; height: {{box.[1]}}px; transform: translate(-{{x}}px, -{{y}}px) {{transform}};"><img src="{{img}}" alt="" draggable="false"></span>
         <span class="lt-seat-card"><b>{{name}}</b>{{#if level}}<span>{{localize "SDE.town.table.level" n=level}}{{#if cls}} {{cls}}{{/if}}</span>{{/if}}{{#if hp}}<span>{{localize "SDE.town.table.hp" hp=hp}}</span>{{/if}}<span class="lt-purse">{{purse}}</span></span>
       </button>
       {{/each}}
@@ -47,9 +49,9 @@
     </div>
   </div>
 
+  {{#if isGM}}
   <aside class="lt-side">
     <p class="lt-foot">{{#if actorName}}{{localize "SDE.town.playingAs" name=actorName}} &nbsp; <b>{{purse}}</b>{{else}}{{localize "SDE.town.noCharacter"}}{{/if}}</p>
-    {{#if isGM}}
     <div class="lt-gm">
       {{#if returnName}}<button type="button" class="ui-btn" data-action="returnTable"><i class="fa-solid fa-arrow-rotate-left"></i> {{localize "SDE.town.make.return" scene=returnName}}</button>{{/if}}
       <label class="lt-size" data-tooltip="{{localize 'SDE.town.table.sizeTip'}}"><span>{{localize "SDE.town.editor.generateSize"}}</span>
@@ -61,6 +63,6 @@
         <button type="button" class="ui-icon" data-action="hideTown" data-tooltip="{{localize 'SDE.town.hide'}}" aria-label="{{localize 'SDE.town.hide'}}"><i class="fa-solid fa-eye-slash"></i></button>
       </div>
     </div>
-    {{/if}}
   </aside>
+  {{/if}}
 </div>

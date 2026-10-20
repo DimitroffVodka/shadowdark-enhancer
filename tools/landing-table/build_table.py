@@ -32,9 +32,11 @@ os.makedirs(OUT, exist_ok=True)
 W, H = 2560, 1440
 
 # The flat colour each prop gets in ids.png (make_assets.py reads the same table).
-PROPS = ["quests", "market", "games", "carouse", "map", "rumors", "downtime", "journals", "title", "dial", "recaps"]
+PROPS = ["quests", "market", "games", "carouse", "map", "rumors", "downtime", "journals", "title", "dial", "recaps",
+         "seat0", "seat1", "seat2", "seat3", "seat4", "seat5"]
 ID_COLOURS = {p: c for p, c in zip(PROPS, [
     (1, 0, 0), (0, 1, 0), (0, 0, 1), (1, 1, 0), (1, 0, 1), (0, 1, 1), (1, .5, 0), (.5, 0, 1), (0, .5, 1), (1, 0, .5), (.5, 1, 0),
+    (.5, .5, 0), (0, .5, .5), (.5, 0, .5), (1, 1, 1), (1, .5, .5), (.5, .5, 1),
 ])}
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -109,6 +111,66 @@ def noisy(name, dark, light, scale=8.0, rough=0.55, metal=0.0, detail=6.0, bump=
     return material(name, build)
 
 
+def socket(node, ident, outputs=False):
+    return next(x for x in (node.outputs if outputs else node.inputs) if x.identifier == ident)
+
+
+def stained(nt, colour_out, scale=2.4, strength=0.55, speckle=0.25):
+    """Multiply blotchy stains and a fine speckle over `colour_out`: parchment and leather that have been handled for years."""
+    n = nt.nodes
+    coord = n.new("ShaderNodeTexCoord")
+    out = colour_out
+    for sc, cut, amt in ((scale, 0.55, strength), (60.0, 0.62, speckle)):
+        tex = n.new("ShaderNodeTexNoise")
+        tex.inputs["Scale"].default_value = sc
+        tex.inputs["Detail"].default_value = 6.0
+        nt.links.new(coord.outputs["Object"], tex.inputs["Vector"])
+        ramp = n.new("ShaderNodeValToRGB")
+        e = ramp.color_ramp.elements
+        e[0].position, e[0].color = cut - 0.08, (1, 1, 1, 1)
+        e[1].position, e[1].color = cut + 0.12, (0.32, 0.19, 0.08, 1)
+        nt.links.new(tex.outputs["Fac"], ramp.inputs["Fac"])
+        mix = n.new("ShaderNodeMix")
+        mix.data_type, mix.blend_type = "RGBA", "MULTIPLY"
+        mix.inputs[0].default_value = amt
+        nt.links.new(out, socket(mix, "A_Color"))
+        nt.links.new(ramp.outputs["Color"], socket(mix, "B_Color"))
+        out = socket(mix, "Result_Color", True)
+    return out
+
+
+def aged(mat, strength=0.55):
+    """Stain an existing material: whatever feeds its Base Color goes through stained()."""
+    nt = mat.node_tree
+    b = nt.nodes["Principled BSDF"]
+    link = next((l for l in nt.links if l.to_socket == b.inputs["Base Color"]), None)
+    if link:
+        src = link.from_socket
+        nt.links.remove(link)
+    else:
+        rgb = nt.nodes.new("ShaderNodeRGB")
+        rgb.outputs[0].default_value = b.inputs["Base Color"].default_value[:]
+        src = rgb.outputs[0]
+    nt.links.new(stained(nt, src, strength=strength), b.inputs["Base Color"])
+    return mat
+
+
+def tinted(mat, name, hue, sat=1.0, value=1.0):
+    """A copy of `mat` with its colour turned (a green leather from a red one)."""
+    m = mat.copy()
+    m.name = name
+    nt = m.node_tree
+    b = nt.nodes["Principled BSDF"]
+    link = next((l for l in nt.links if l.to_socket == b.inputs["Base Color"]), None)
+    if link:
+        hs = nt.nodes.new("ShaderNodeHueSaturation")
+        hs.inputs["Hue"].default_value, hs.inputs["Saturation"].default_value, hs.inputs["Value"].default_value = hue, sat, value
+        nt.links.new(link.from_socket, hs.inputs["Color"])
+        nt.links.remove(link)
+        nt.links.new(hs.outputs["Color"], b.inputs["Base Color"])
+    return m
+
+
 def map_paper():
     """Parchment with land in sepia ink: noise thresholded into coastlines, a second noise for its stains."""
     def build(nt, b):
@@ -127,7 +189,7 @@ def map_paper():
         mid.color = (0.78, 0.64, 0.40, 1)                             # land
         nt.links.new(land.outputs["Fac"], ramp.inputs["Fac"])
         b.inputs["Roughness"].default_value = 0.8
-        nt.links.new(ramp.outputs["Color"], b.inputs["Base Color"])
+        nt.links.new(stained(nt, ramp.outputs["Color"], strength=0.5), b.inputs["Base Color"])
     return material("MapPaper", build)
 
 
@@ -137,7 +199,7 @@ M = {
     "wall": noisy("Wall", (0.015, 0.012, 0.01), (0.05, 0.035, 0.025), scale=4, bump=0.4),
     "leather": noisy("Leather", (0.12, 0.03, 0.02), (0.30, 0.09, 0.05), scale=40, rough=0.55),
     "green": noisy("GreenLeather", (0.02, 0.06, 0.04), (0.06, 0.16, 0.10), scale=40, rough=0.5),
-    "paper": noisy("Parchment", (0.62, 0.50, 0.32), (0.88, 0.78, 0.58), scale=6, rough=0.85, bump=0.05),
+    "paper": noisy("Parchment", (0.52, 0.40, 0.24), (0.80, 0.68, 0.47), scale=6, rough=0.85, bump=0.08),
     "brass": noisy("Brass", (0.55, 0.38, 0.12), (0.85, 0.65, 0.28), scale=25, rough=0.3, metal=1.0, bump=0.02),
     "gold": flat("Gold", (1.0, 0.72, 0.28), rough=0.25, metal=1.0),
     "iron": flat("Iron", (0.12, 0.11, 0.10), rough=0.45, metal=1.0),
@@ -151,7 +213,12 @@ M = {
     "sand": flat("Sand", (0.75, 0.55, 0.30), rough=0.9),
     "foam": flat("Foam", (0.92, 0.88, 0.78), rough=0.9),
     "map": map_paper(),
+    "ink": flat("Ink", (0.02, 0.02, 0.03), rough=0.1),
+    "feather": flat("Feather", (0.82, 0.78, 0.7), rough=0.7),
+    "crumb": flat("Crumb", (0.55, 0.36, 0.16), rough=0.9),
 }
+aged(M["paper"], 0.9)
+aged(M["wax"], 0.15)
 M["glass"].node_tree.nodes["Principled BSDF"].inputs["Alpha"].default_value = 0.25
 
 
@@ -275,7 +342,8 @@ def ph_place(name, objs, loc, scale, rot_z=0.0, prop=None):
 
 
 M["wood"] = ph_material("wood_table_001", 0.6, math.radians(90))
-M["leather"] = ph_material("leather_red_02", 3.0)
+M["leather"] = aged(ph_material("leather_red_02", 3.0), 0.35)
+M["green"] = aged(tinted(M["leather"], "GreenLeather", 0.83, 0.7, 0.8), 0.3)
 
 # ── the room and the table ───────────────────────────────────────────────────────────────────────────────────────
 
@@ -412,7 +480,11 @@ def candle(name, loc, height, holder=0.8):
     ph_place(f"{name}Stick", ph_objects("wooden_candlestick", ["wooden_candlestick"]), loc, holder)
     top = 0.22 * holder
     parts = [cyl(f"{name}Wax", 0.02, height, (0, 0, top + height / 2), M["wax"]),
-             sphere(f"{name}Flame", 0.01, (0, 0, top + height + 0.022), M["flame"], scale=(1, 1, 2.2))]
+             sphere(f"{name}Flame", 0.01, (0, 0, top + height + 0.022), M["flame"], scale=(1, 1, 2.2)),
+             cyl(f"{name}Puddle", 0.03, 0.006, (0, 0, top + 0.003), M["wax"], bevel=0.002)]
+    for k, (a, drop) in enumerate([(0.4, 0.55), (2.1, 0.35), (3.6, 0.75), (5.0, 0.45)]):
+        # Drips run from the rim down the side, each a stretched bead.
+        parts.append(sphere(f"{name}Drip{k}", 0.006, (math.cos(a) * 0.02, math.sin(a) * 0.02, top + height * (1 - drop / 2)), M["wax"], scale=(1, 1, height * drop / 0.012)))
     g = group(name, parts, loc)
     bpy.ops.object.light_add(type="POINT", location=(loc[0], loc[1], top + height + 0.06))
     light = bpy.context.object.data
@@ -420,8 +492,53 @@ def candle(name, loc, height, holder=0.8):
     return g
 
 
+def clutter():
+    """What a table that has been sat at looks like: an inkwell and quill, a pipe, crumbs, loose coins. Nothing here is a button."""
+    ink = [cyl("Inkwell", 0.03, 0.04, (0, 0, 0.02), M["ink"], bevel=0.004), cyl("InkNeck", 0.014, 0.014, (0, 0, 0.047), M["ink"]),
+           cyl("InkLip", 0.017, 0.004, (0, 0, 0.055), M["brass"])]
+    quill = sphere("Quill", 0.01, (0.03, 0.02, 0.12), M["feather"], scale=(1.2, 9.0, 0.25))
+    quill.rotation_euler = Euler((math.radians(62), 0, math.radians(-25)))
+    shaft = cyl("QuillShaft", 0.0025, 0.12, (0.006, 0.004, 0.06), M["wax"], rot=(math.radians(28), 0, math.radians(-25)))
+    group("Ink", ink + [quill, shaft], (0.6, -0.5, 0), 0)
+    pipe = [cyl("PipeBowl", 0.016, 0.034, (0, 0, 0.017), M["darkwood"], bevel=0.003), cyl("PipeAsh", 0.013, 0.002, (0, 0, 0.033), M["iron"]),
+            cyl("PipeStem", 0.004, 0.14, (0.075, 0, 0.012), M["darkwood"], rot=(0, math.radians(84), 0))]
+    group("Pipe", pipe, (-0.6, -0.58, 0), 15)
+    crumbs = [sphere(f"Crumb{i}", 0.004 + (i % 3) * 0.002, (0.82 + math.cos(i * 2.3) * 0.06 * (i % 4) / 3, 0.02 + math.sin(i * 1.7) * 0.05, 0.003), M["crumb"], scale=(1, 1, 0.6)) for i in range(14)]
+    group("Crumbs", crumbs)
+    loose = [cyl(f"Loose{i}", 0.022, 0.006, (x, y, 0.003), M["gold"], rot=(math.radians(t), 0, 0), bevel=0.001)
+             for i, (x, y, t) in enumerate([(0.18, -0.25, 0), (0.21, -0.29, 8), (-0.38, -0.1, 0), (-0.95, -0.22, 0), (0.9, -0.42, 0)])]
+    group("LooseCoins", loose)
+
+
+SEAT_X = [-0.2, 0.2, -0.62, 0.86, -1.02, 1.16]
+FRAMES = []
+
+
+def frames():
+    """Six standing portrait frames along the far edge of the table, one per seat; only as many as the party shows."""
+    for i, x in enumerate(SEAT_X):
+        p = f"seat{i}"
+        w, h, t = 0.15, 0.19, 0.016
+        parts = [box(f"Frame{i}Back", (w, 0.012, h), (0, 0.004, h / 2), M["darkwood"], p, bevel=0.003),
+                 box(f"Frame{i}Face", (w - 2 * t, 0.002, h - 2 * t), (0, -0.003, h / 2), M["paper"], p, bevel=0)]
+        for j, (sx, sz, lx, lz) in enumerate([(w, t, 0, h - t / 2), (w, t, 0, t / 2), (t, h, -w / 2 + t / 2, h / 2), (t, h, w / 2 - t / 2, h / 2)]):
+            parts.append(box(f"Frame{i}Side{j}", (sx, 0.02, sz), (lx, -0.002, lz), M["brass"] if j < 2 else M["darkwood"], p, bevel=0.002))
+        parts.append(box(f"Frame{i}Stand", (0.03, 0.08, 0.008), (0, 0.04, 0.004), M["darkwood"], p, bevel=0.002))
+        g = group(f"Frame{i}", parts, (x, 0.86, 0), 0)
+        g.rotation_euler = Euler((math.radians(-12), 0, math.radians(-x * 6)))
+        FRAMES.append(g)
+
+
+def show_frames(on):
+    for g in FRAMES:
+        for o in [g, *g.children_recursive]:
+            o.hide_render = not on
+
+
 tome()
 chest_root = chest()
+clutter()
+frames()
 dice()
 goblets()
 framed_map()
@@ -471,9 +588,16 @@ def quad(obj_name, hx, hy, z):
     return [px(m @ Vector(c)) for c in ((-hx, hy, z), (hx, hy, z), (hx, -hy, z), (-hx, -hy, z))]
 
 
+def quad_xz(obj_name, hx, hz):
+    """The corners of an upright face (in its object's x-z plane) as seen: top left, top right, bottom right, bottom left."""
+    o = bpy.data.objects[obj_name]
+    bpy.context.view_layer.update()
+    m = o.matrix_world
+    return [px(m @ Vector(c)) for c in ((-hx, -0.002, hz), (hx, -0.002, hz), (hx, -0.002, -hz), (-hx, -0.002, -hz))]
+
+
 def write_projection():
     bpy.context.view_layer.update()
-    seats = [(-0.66, 0.98), (-0.22, 0.98), (0.22, 0.98), (0.66, 0.98), (-1.16, 0.45), (1.16, 0.45), (-1.2, -0.05), (1.2, -0.05)]
     data = {
         "size": [W, H],
         "tomeLeft": quad("TomePage-1", 0.12, 0.165, 0.015),
@@ -481,7 +605,7 @@ def write_projection():
         "title": quad("TitleCard", 0.22, 0.055, 0.002),
         "dial": quad("DialFace", 0.095, 0.095, 0.002),
         "chestFront": px(bpy.data.objects["treasure_chest_lock"].matrix_world @ Vector((0, 0, -0.32))),
-        "seats": [px((x, y, 0.32)) for x, y in seats],
+        "frames": [quad_xz(f"Frame{i}Face", 0.059, 0.079) for i in range(len(SEAT_X))],
     }
     with open(os.path.join(OUT, "projection.json"), "w") as f:
         json.dump(data, f, indent=1)
@@ -529,9 +653,15 @@ def id_pass(path):
 write_projection()
 if not PREVIEW:
     bpy.ops.wm.save_as_mainfile(filepath=os.path.join(HERE, "table.blend"), compress=True)
+show_frames(False)
 render("beauty.png")
+show_frames(True)
+if PREVIEW:
+    render("beauty-frames.png")
 if not PREVIEW:
+    render("beauty-frames.png")
     id_pass("ids.png")
+    show_frames(False)
 if not PREVIEW:
     # The chest, open: its lid up and gold heaped inside.
     bpy.data.objects["treasure_chest_lid"].rotation_euler = Euler((math.radians(-100), 0, 0))

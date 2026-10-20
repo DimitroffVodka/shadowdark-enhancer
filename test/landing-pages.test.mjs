@@ -102,6 +102,28 @@ test("the toolbar: the first press makes the table and takes everyone there; on 
   assert.deepEqual(warned, ["SDE.town.editor.generateEmpty"], "no gear packs in this world: the table is made without a shop, and says so");
 });
 
+test("the market follows the settlement the party stands in: made at its size, rolled again when the party moves on", async () => {
+  const { make, created } = world({ active: "D" });
+  make("D");
+  const lp = await import("../scripts/town/landing-pages.mjs");
+  const sizeHere = lp.tableIo.sizeHere;
+  try {
+    lp.tableIo.sizeHere = async () => "city";
+    await lp.toggleTable();
+    const table = lp.tableScene();
+    assert.equal(created.at(-1).flags["shadowdark-enhancer"].landing.size, "city");
+    assert.equal(landingOf(table).size, "city");
+    await lp.toggleTable();                                  // back to the map
+    lp.tableIo.sizeHere = async () => "village";            // the party walked to a village
+    await lp.toggleTable();
+    assert.equal(landingOf(table).size, "village");
+    assert.equal(landingOf(table).places.includes("downtime"), false);
+    lp.tableIo.sizeHere = async () => null;                  // open country: the size stays as the GM left it
+    await lp.toggleTable(); await lp.toggleTable();
+    assert.equal(landingOf(table).size, "village");
+  } finally { lp.tableIo.sizeHere = sizeHere; }
+});
+
 test("Return says so when it does not know where the table came from, and only the GM moves the table", async () => {
   const { make, warned } = world({ active: "P" });
   const dungeon = make("D"), page = make("P", { landing: { title: "T", returnTo: "D" } }), lost = make("Q", { landing: { title: "L" } });

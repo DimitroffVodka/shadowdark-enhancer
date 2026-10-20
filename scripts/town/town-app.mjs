@@ -20,12 +20,27 @@ import { SIZES } from "../merchant/stock-generator.mjs";
 import { landingOf, normalizeLanding, restockAll } from "./town-core.mjs";
 import { buyerFor, characters, nightParty, openPlace, redrawOnChange, switchTown, today, updateLanding } from "./town-live.mjs";
 import { placeTiles, purseText } from "./town-view.mjs";
-import { TABLE, dialAngle, homography, propAtHit, propSrc, seatsFor, tableProps, tomePages } from "./landing-table-core.mjs";
+import { TABLE, dialAngle, framesFor, homography, propAtHit, propSrc, tableProps, tomePages } from "./landing-table-core.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 /** The boxes the overlays are drawn in before they are laid onto their props (picture pixels at the prop's own scale). */
-const PAGE_BOX = [300, 410], TITLE_BOX = [700, 150], DIAL_BOX = [400, 400];
+const PAGE_BOX = [300, 410], TITLE_BOX = [700, 150], DIAL_BOX = [400, 400], FACE_BOX = [120, 160];
+/** While the table is up the page is the whole screen: Foundry's edge furniture is hidden (styles: body.sde-table-up). */
+const TABLE_UP = "sde-table-up";
+
+/**
+ * Shrink `el`'s font, a pixel at a time down to `min`, until its content fits its box both ways (`inner`, when given, is
+ * the one line that must fit across): text never runs out of its prop.
+ */
+function fitText(el, min = 10, inner = null) {
+  if (!el) return;
+  el.style.fontSize = "";
+  const cs = getComputedStyle(el), room = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  const over = () => (inner ? inner.scrollWidth > room + 1 : el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1);
+  let size = parseFloat(cs.fontSize);
+  while (size > min && over()) el.style.fontSize = `${--size}px`;
+}
 
 /** The click map, read once: which prop is under each quarter-size pixel of the picture. */
 let hitMap = null;
@@ -106,7 +121,7 @@ export class TownApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const members = party ? Party.members(party).map((uuid) => fromUuidSync(uuid)).filter(Boolean) : [];
     const buyer = buyerFor();
     const L = TABLE.layout;
-    const [left, right] = tomePages(active, 5);
+    const [left, right] = tomePages(active);
     const clock = game.time.components ?? {};
     return Object.assign(context, {
       isGM, townName: this.townName, table: TABLE,
@@ -125,19 +140,20 @@ export class TownApp extends HandlebarsApplicationMixin(ApplicationV2) {
         angle: dialAngle((Number(clock.hour) || 0) + (Number(clock.minute) || 0) / 60), transform: homography(...DIAL_BOX, L.dial), box: DIAL_BOX,
         ticks: Array.from({ length: 24 }, (_, i) => ({ deg: i * 15, len: i % 6 ? 20 : 30 })),
       },
-      seats: seatsFor(members.length).map((at, i) => this._seat(members[i], at)),
-      // The Party plaque sits under the far side's portraits, centred on them.
-      party: party && page.places.includes("party") ? { x: (L.seats[0][0] + L.seats[Math.min(3, Math.max(0, members.length - 1))][0]) / 2, y: L.seats[0][1] + 92 } : null,
+      seats: framesFor(members.length).map((f) => this._seat(members[f.index], f)),
+      // The Party plaque hangs on the wall above the portrait frames, centred on the table.
+      party: party && page.places.includes("party") ? { x: TABLE.width / 2, y: Math.max(20, Math.min(...L.frames.map((f) => f.y)) - 110) } : null,
     });
   }
 
-  /** A portrait round the table and its card: name, level, class, hit points and purse. */
-  _seat(actor, at) {
+  /** A member's frame on the table, their portrait laid on its face, and their card: name, level, class, hit points and purse. */
+  _seat(actor, frame) {
     const sys = actor.system ?? {}, hp = sys.attributes?.hp ?? {};
     let cls = "";
     try { cls = sys.class ? fromUuidSync(sys.class)?.name ?? "" : ""; } catch { cls = ""; }
     return {
-      ...at, id: actor.id, name: actor.name, img: actor.img || "icons/svg/mystery-man.svg", mine: actor.isOwner,
+      ...frame, seat: `seat${frame.index}`, transform: homography(...FACE_BOX, frame.face), box: FACE_BOX,
+      id: actor.id, name: actor.name, img: actor.img || "icons/svg/mystery-man.svg", mine: actor.isOwner,
       level: sys.level?.value ?? "", cls, hp: hp.max ? `${hp.value ?? 0} / ${hp.max}` : "", purse: purseText(sys.coins ?? {}),
     };
   }
@@ -147,8 +163,13 @@ export class TownApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._stop = redrawOnChange(this);
     this._fit = () => this._fitToScreen();
     this._watch = new ResizeObserver(this._fit);
-    for (const id of ["sidebar", "scene-controls", "hotbar"]) { const el = document.getElementById(id); if (el) this._watch.observe(el); }
+    const sidebar = document.getElementById("sidebar");
+    if (sidebar) this._watch.observe(sidebar);
     window.addEventListener("resize", this._fit);
+    // The whole screen is the table: the edge furniture goes and the sidebar folds to its tabs (both come back on close).
+    document.body.classList.add(TABLE_UP);
+    this._sidebarWasOpen = !!ui.sidebar?.expanded;
+    if (this._sidebarWasOpen) ui.sidebar.collapse?.();
     // The clock ticks every second under real-time light tracking: only the dial's hand moves, the page is not redrawn.
     this._clock = Hooks.on("updateWorldTime", () => this._turnHand());
   }
@@ -160,6 +181,8 @@ export class TownApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._watch = null;
     window.removeEventListener("resize", this._fit);
     Hooks.off("updateWorldTime", this._clock);
+    document.body.classList.remove(TABLE_UP);
+    if (this._sidebarWasOpen) ui.sidebar?.expand?.();
     super._onClose?.(options);
   }
 
@@ -173,31 +196,42 @@ export class TownApp extends HandlebarsApplicationMixin(ApplicationV2) {
     pic?.addEventListener("pointermove", (event) => this._hover(event, pic));
     pic?.addEventListener("pointerleave", () => this._light(pic, null));
     pic?.addEventListener("click", (event) => {
-      if (event.target.closest("button, [contenteditable], select, .lt-seat")) return;
+      if (event.target.closest("[contenteditable], select, .lt-party, .lt-side")) return;
       const id = pic.dataset.hot;
+      if (id?.startsWith("seat")) return this._onSeat(event, pic.querySelector(`.lt-seat[data-seat="${id}"]`));
       if (id) this._onProp(event, pic.querySelector(`.lt-prop[data-prop="${id}"]`));
     });
-    const title = this.element.querySelector(".lt-title-text[contenteditable]");
+    const title = this.element.querySelector(".lt-title-text");
     title?.addEventListener("keydown", (event) => { if (event.key === "Enter") { event.preventDefault(); title.blur(); } });
+    title?.addEventListener("input", () => fitText(title.parentElement, 18, title));
+    // Nothing runs out of its prop: the tome's pages, the title card and every label shrink to fit (again once the
+    // table's fonts have loaded, since a fallback font measures differently).
+    const fitAll = () => {
+      for (const page of this.element?.querySelectorAll(".lt-page") ?? []) fitText(page, 12);
+      fitText(title?.parentElement, 18, title);
+      for (const label of this.element?.querySelectorAll(".lt-label") ?? []) {
+        label.classList.remove("tight");
+        fitText(label, 14);
+        // A small object keeps only its name.
+        if (label.scrollHeight > label.clientHeight + 1 || label.scrollWidth > label.clientWidth + 1) { label.classList.add("tight"); fitText(label, 12); }
+      }
+    };
+    fitAll();
+    document.fonts?.ready.then(fitAll);
     title?.addEventListener("blur", () => this._saveTitle(title.textContent));
     this.element.querySelector("select[name=size]")?.addEventListener("change", (event) => this._setSize(event.target.value));
   }
 
   /**
-   * The table fills the screen left of Foundry's sidebar, and the picture fits between the scene tools (left) and the
-   * hotbar (below); it is drawn at its own 2560 x 1440 and scaled as one (--lt-k).
+   * The table fills the whole screen left of the sidebar's tabs, with no margins: it is drawn at its own 2560 x 1440,
+   * scaled as one (--lt-k) to cover the room and centred, so a screen of another shape trims a little off two edges.
    */
   _fitToScreen() {
     const root = this.element;
     if (!root) return;
     const side = document.getElementById("sidebar")?.offsetWidth ?? 42;
-    const left = Math.ceil(document.getElementById("scene-controls")?.getBoundingClientRect().right ?? 0) + 6;
-    const hotbar = document.getElementById("hotbar")?.getBoundingClientRect();
-    const bottom = hotbar?.height ? Math.ceil(window.innerHeight - hotbar.top) + 6 : 0;
-    const k = Math.min((window.innerWidth - side - left - 8) / TABLE.width, (window.innerHeight - bottom - 8) / TABLE.height);
+    const k = Math.max((window.innerWidth - side) / TABLE.width, window.innerHeight / TABLE.height);
     root.style.setProperty("--sde-town-side", `${side}px`);
-    root.style.setProperty("--sde-town-left", `${left}px`);
-    root.style.setProperty("--sde-town-bottom", `${bottom}px`);
     root.style.setProperty("--lt-k", String(Math.max(0.1, k)));
   }
 
@@ -207,17 +241,18 @@ export class TownApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const r = pic.getBoundingClientRect();
     const x = Math.floor(((event.clientX - r.left) / r.width) * map.w), y = Math.floor(((event.clientY - r.top) / r.height) * map.h);
     const id = x >= 0 && y >= 0 && x < map.w && y < map.h ? propAtHit(map.data[(y * map.w + x) * 4]) : null;
-    this._light(pic, event.target.closest(".lt-seat, .lt-gm, .lt-party, [contenteditable]") ? null : id);
+    this._light(pic, event.target.closest(".lt-side, .lt-party, [contenteditable]") ? null : id);
   }
 
-  /** Light one prop (or none): only a prop this page shows. */
+  /** Light one prop or portrait frame (or none): only one this page shows. */
   _light(pic, id) {
-    const button = id && pic.querySelector(`.lt-prop[data-prop="${id}"]`);
+    const button = id && (pic.querySelector(`.lt-prop[data-prop="${id}"]`) ?? pic.querySelector(`.lt-seat[data-seat="${id}"]`));
     const hot = button ? id : "";
     this._hot = hot;
     if (pic.dataset.hot === hot) return;
     pic.dataset.hot = hot;
     for (const b of pic.querySelectorAll(".lt-prop")) b.classList.toggle("hot", b.dataset.prop === hot);
+    for (const b of pic.querySelectorAll(".lt-seat")) b.classList.toggle("hot", b.dataset.seat === hot);
     pic.style.cursor = button && button.getAttribute("aria-disabled") !== "true" ? "pointer" : "";
   }
 
@@ -248,7 +283,7 @@ export class TownApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   /** A portrait: its sheet, for its owner (a GM: any). */
   _onSeat(_event, target) {
-    const actor = game.actors.get(target.dataset.actorId);
+    const actor = game.actors.get(target?.dataset.actorId ?? "");
     if (!actor?.isOwner) return null;
     return actor.sheet?.render(true);
   }

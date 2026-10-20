@@ -25,8 +25,12 @@ LAYOUT = os.path.join(ROOT, "scripts", "town", "landing-table-layout.mjs")
 os.makedirs(PROPS_DIR, exist_ok=True)
 
 # Same order and colours as build_table.py.
-PROPS = ["quests", "market", "games", "carouse", "map", "rumors", "downtime", "journals", "title", "dial", "recaps"]
-COLOURS = [(1, 0, 0), (0, 1, 0), (0, 0, 1), (1, 1, 0), (1, 0, 1), (0, 1, 1), (1, .5, 0), (.5, 0, 1), (0, .5, 1), (1, 0, .5), (.5, 1, 0)]
+PROPS = ["quests", "market", "games", "carouse", "map", "rumors", "downtime", "journals", "title", "dial", "recaps",
+         "seat0", "seat1", "seat2", "seat3", "seat4", "seat5"]
+COLOURS = [(1, 0, 0), (0, 1, 0), (0, 0, 1), (1, 1, 0), (1, 0, 1), (0, 1, 1), (1, .5, 0), (.5, 0, 1), (0, .5, 1), (1, 0, .5), (.5, 1, 0),
+           (.5, .5, 0), (0, .5, .5), (.5, 0, .5), (1, 1, 1), (1, .5, .5), (.5, .5, 1)]
+# The click map's grey step per prop (1-based, in PROPS order); 17 entries fit under 255.
+HIT_STEP = 14
 PAD = 14
 
 
@@ -61,20 +65,27 @@ W, H = beauty.size
 beauty.save(os.path.join(ASSETS, "table.webp"), "WEBP", quality=84, method=6)
 proj = json.load(open(os.path.join(OUT, "projection.json")))
 
-layout = {"width": W, "height": H, "props": {}}
+layout = {"width": W, "height": H, "hitStep": HIT_STEP, "props": {}, "frames": []}
+framed = Image.open(os.path.join(OUT, "beauty-frames.png")).convert("RGB")
 for prop, mask in masks(os.path.join(OUT, "ids.png")).items():
     box = bbox(mask, W, H)
     if not box:
         continue
-    cutout(beauty, mask, box, prop)
-    layout["props"][prop] = {"x": box[0], "y": box[1], "w": box[2] - box[0], "h": box[3] - box[1]}
+    seat = prop.startswith("seat")
+    # The portrait frames are cut from the render that has them (the table's own picture leaves them out).
+    cutout(framed if seat else beauty, mask, box, prop)
+    entry = {"x": box[0], "y": box[1], "w": box[2] - box[0], "h": box[3] - box[1]}
+    if seat:
+        layout["frames"].append({**entry, "face": proj["frames"][int(prop[4:])]})
+    else:
+        layout["props"][prop] = entry
 
-# The click map: a quarter-size picture whose grey level says which prop a pixel belongs to (20 per prop, 1-based,
+# The click map: a quarter-size picture whose grey level says which prop a pixel belongs to (HIT_STEP per prop, 1-based,
 # in PROPS order), so the page lights and clicks exactly the prop under the pointer, not its box.
 hit = np.zeros((H // 4, W // 4), dtype=np.uint8)
 for i, (prop, mask) in enumerate(masks(os.path.join(OUT, "ids.png")).items()):
     small = np.asarray(mask.resize((W // 4, H // 4), Image.BILINEAR)) > 100
-    hit[small] = (i + 1) * 20
+    hit[small] = (i + 1) * HIT_STEP
 Image.fromarray(hit, "L").save(os.path.join(ASSETS, "hit.webp"), "WEBP", lossless=True)
 
 opened = Image.open(os.path.join(OUT, "beauty-open.png")).convert("RGB")
@@ -86,7 +97,7 @@ layout["marketOpen"] = {"x": ob[0], "y": ob[1], "w": ob[2] - ob[0], "h": ob[3] -
 for key in ("tomeLeft", "tomeRight", "title", "dial"):
     layout[key] = proj[key]
 layout["chestFront"] = proj["chestFront"]
-layout["seats"] = [s for s in proj["seats"] if 0 <= s[0] <= W and 0 <= s[1] <= H]
+
 
 # A stamp of this render, added to the pictures' addresses so a browser never shows a cached older table.
 import hashlib
