@@ -45,11 +45,12 @@ test("a new settlement size rolls the market again for it; Downtime goes in a Vi
   assert.deepEqual([hand.merchants[0].rev, hand.merchants[0].stock], [0, null]);   // a hand-stocked NPC is left alone
 });
 
-test("Return goes to the scene the table came from; from another page, to where that page returns", () => {
-  const dungeon = sceneOf("D"), a = sceneOf("A", { title: "A", returnTo: "D" }), b = sceneOf("B", { title: "B", returnTo: "old" });
+test("Return goes to the scene the table came from; from a landing page the table keeps its own way back", () => {
+  const dungeon = sceneOf("D"), a = sceneOf("A", { title: "A", returnTo: "D" }), b = sceneOf("B", { title: "B", returnTo: "old" }), c = sceneOf("C", { title: "C" });
   assert.equal(returnFor(b, dungeon, landingOf), "D");
-  assert.equal(returnFor(b, a, landingOf), "D");
-  assert.equal(returnFor(b, b, landingOf), "old");
+  assert.equal(returnFor(b, a, landingOf), "old", "from another page: its own way back stays");
+  assert.equal(returnFor(c, a, landingOf), "D", "a page with none takes the other page's");
+  assert.equal(returnFor(b, b, landingOf), "old", "pressed on the table itself");
   assert.equal(returnFor(b, null, landingOf), "old");
 });
 
@@ -124,12 +125,52 @@ test("the market follows the settlement the party stands in: made at its size, r
   } finally { lp.tableIo.sizeHere = sizeHere; }
 });
 
-test("Return says so when it does not know where the table came from, and only the GM moves the table", async () => {
-  const { make, warned } = world({ active: "P" });
-  const dungeon = make("D"), page = make("P", { landing: { title: "T", returnTo: "D" } }), lost = make("Q", { landing: { title: "L" } });
+test("Return is never a dead end: where the table came from, else the party's hex map, else the first scene in the bar", async () => {
+  const { make, warned, scenes } = world({ active: "T" });
+  const lp = await import("../scripts/town/landing-pages.mjs");
+  const table = make("T", { landing: { title: "T", returnTo: "D" }, [TABLE_FLAG]: true });
+  const other = make("P", { landing: { title: "Old page" } });
+  const dungeon = make("D"), hex = make("H"), first = make("N1"), second = make("N2");
+  Object.assign(other, { navigation: true, navOrder: 0 });
+  Object.assign(first, { navigation: true, navOrder: 1 }, {}); Object.assign(second, { navigation: true, navOrder: 2 });
+  globalThis.game.settings.get = (_m, key) => (key === "overlandState" ? { tokenUuid: "Scene.H.Token.t" } : {});
+  globalThis.fromUuidSync = (uuid) => (uuid === "Scene.H.Token.t" ? { parent: hex } : null);
+  assert.equal(lp.returnScene(table), dungeon, "the scene it came from");
+  scenes.delete("D");
+  assert.equal(lp.returnScene(table), hex, "that scene was deleted: the party's hex map");
+  globalThis.fromUuidSync = () => null;
+  assert.equal(lp.returnScene(table), first, "no party token: the first scene in the bar that is not a page");
+  table.flags[MOD].landing.returnTo = "T";
+  assert.equal(lp.returnScene(table), first, "a way back that names the table itself is skipped");
+  for (const id of ["H", "N1", "N2"]) scenes.delete(id);
+  assert.equal(lp.returnScene(table), null);
+  assert.equal(await lp.returnFromPage(table), null);
+  assert.deepEqual(warned, ["SDE.town.make.noReturn"], "only a world with no other scene says so");
+});
+
+test("the table made active by hand still finds the way back: every other scene that goes active is remembered", async () => {
+  const { make } = world({ active: "D" });
+  const lp = await import("../scripts/town/landing-pages.mjs");
+  const table = make("T", { landing: { title: "T" }, [TABLE_FLAG]: true });
+  const dungeon = make("D"), page = make("P", { landing: { title: "Old page" } });
+  await lp.rememberScene(page);
+  assert.equal(landingOf(table).returnTo, null, "a landing page is not a way back");
+  await lp.rememberScene(dungeon);
+  assert.equal(landingOf(table).returnTo, "D");
+  await table.activate();                                     // Foundry's scene navigation, not the toolbar
+  await lp.toggleTable();
+  assert.equal(dungeon.activated, 1, "the toolbar on the table takes everyone back");
+  await lp.toggleTable();                                     // to the table through the toolbar, and pressed again on it
+  await lp.goToPage(table);
+  assert.equal(landingOf(table).returnTo, "D", "going to the table while on it keeps the way back");
+  globalThis.game.user.isGM = false;
+  assert.equal(await lp.rememberScene(make("X")), null, "only the GM writes");
+});
+
+test("Return is the GM's alone", async () => {
+  const { make } = world({ active: "P" });
+  const dungeon = make("D"), page = make("P", { landing: { title: "T", returnTo: "D" } });
   const { returnFromPage, toggleTable } = await import("../scripts/town/landing-pages.mjs");
-  assert.equal(await returnFromPage(lost), null);
-  assert.equal(warned.length, 1);
   globalThis.game.user.isGM = false;
   assert.equal(await returnFromPage(page), null);
   assert.equal(await toggleTable(), null);

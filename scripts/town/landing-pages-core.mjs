@@ -39,12 +39,12 @@ export function madeSceneData({ name, src, width, height, landing, folder = null
 }
 
 /**
- * Where Return goes once everyone moves from `from` (the active scene) to `to`: the scene they were on, or, when they
- * were already on a landing page, where that page returns to. Going to the page they are already on keeps its own.
+ * Where Return goes once everyone moves from `from` (the active scene) to `to`: the scene they were on. Coming from a
+ * landing page (this one or another) keeps the page's own, else takes where that page returns to.
  */
 export function returnFor(to, from, landingOfScene) {
-  if (!from || from.id === to.id) return landingOfScene(to)?.returnTo ?? null;
-  return landingOfScene(from) ? landingOfScene(from).returnTo ?? null : from.id;
+  if (from && from.id !== to.id && !landingOfScene(from)) return from.id;
+  return landingOfScene(to)?.returnTo ?? (from ? landingOfScene(from)?.returnTo : null) ?? null;
 }
 
 /**

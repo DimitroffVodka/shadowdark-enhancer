@@ -21,7 +21,10 @@ Press the **Landing page** button (a landmark icon, in the Token Controls on the
 left of the screen). Everyone is taken to the table. Press it again, or
 **Return everyone to ...** in the bar under the table, and everyone goes back to
 the scene they came from. It is Foundry's own scene change, so the party's
-tokens stay where they were and travel on a hex map waits for you.
+tokens stay where they were and travel on a hex map waits for you. If you
+brought the table up some other way (from Foundry's scene list, say), it goes
+back to the last scene that was active, else to the party's hex map, else to the
+first scene in the navigation bar.
 
 The first press makes the table: a scene called "The Table", one merchant whose
 goods are rolled for the settlement the party is in, and the page with Quests,

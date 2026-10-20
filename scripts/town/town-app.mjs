@@ -20,6 +20,7 @@ import { SIZES } from "../merchant/stock-generator.mjs";
 import { landingOf, normalizeLanding, restockAll } from "./town-core.mjs";
 import { buyerFor, characters, nightParty, openPlace, redrawOnChange, switchTown, today, updateLanding } from "./town-live.mjs";
 import { placeTiles, purseText } from "./town-view.mjs";
+import { returnScene } from "./landing-pages.mjs";
 import { TABLE, dialAngle, framesFor, homography, propAtHit, propSrc, tableProps, tomePages } from "./landing-table-core.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -126,7 +127,7 @@ export class TownApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return Object.assign(context, {
       isGM, townName: this.townName, table: TABLE,
       sizes: SIZES.map((z) => ({ id: z.id, label: t(z.labelKey), selected: z.id === (page.size ?? "town") })),
-      returnName: isGM && page.returnTo !== this.scene?.id ? game.scenes.get(page.returnTo ?? "")?.name ?? "" : "",
+      returnName: isGM ? returnScene(this.scene)?.name ?? "" : "",
       actorName: buyer?.name ?? "", purse: buyer ? purseText(buyer.system.coins) : "",
       props: tableProps(page, { hasMerchant: !!market, labels }),
       chestOpen: L.marketOpen ? { ...L.marketOpen, src: propSrc("market-open") } : null,

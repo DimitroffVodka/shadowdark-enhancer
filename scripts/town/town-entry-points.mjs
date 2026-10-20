@@ -39,8 +39,8 @@ async function gmTable() {
   return (await import("./landing-pages.mjs")).toggleTable();
 }
 
-/** The window seam (tests replace it). */
-export const townIo = { open: openTown, close: closeTown, closeOthers };
+/** The window seam, and the table's memory of the way back (tests replace them). */
+export const townIo = { open: openTown, close: closeTown, closeOthers, remember: async (scene) => (await import("./landing-pages.mjs")).rememberScene(scene) };
 
 let shownId = null; // the scene the singleton window was last pointed at
 /** Point the window at `sceneId`'s page; the old page's other windows (its shop) would link back to the old scene. */
@@ -91,6 +91,10 @@ export function registerTownEntryPoints() {
     if (page?.shown) showPage(scene.id); else if (!page) closePage();
   };
   Hooks.on("updateScene", (scene, changed) => {
+    // Whatever scene goes active (Foundry's own navigation included), the table remembers it as the way back.
+    if (changed?.active === true && !landingOf(scene) && game.users.activeGM?.id === game.user.id) {
+      townIo.remember(scene).catch((err) => console.warn("Shadowdark Enhancer | landing page: way back not kept", err));
+    }
     // The toolbar and the windows follow the scene's page. The diff names the key with an operator when it was
     // replaced or removed ("==landing", "-=landing").
     if (!Object.keys(changed?.flags?.[MODULE_ID] ?? {}).some((k) => k.replace(/^(==|-=)/, "") === "landing")) return;

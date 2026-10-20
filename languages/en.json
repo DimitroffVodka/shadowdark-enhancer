@@ -6589,7 +6589,7 @@
   "SDE.town.table.sizeTip": "The settlement the party is in. The market's goods are rolled again for its size.",
   "SDE.town.table.name": "The Table",
   "SDE.town.make.merchantRole": "Goods from all over town",
-  "SDE.town.make.noReturn": "This page does not know where the table came from.",
+  "SDE.town.make.noReturn": "There is no other scene to go back to.",
   "SDE.town.make.return": "Return everyone to {scene}",
   "SDE.town.map.back": "Back to {page}",
   "SDE.town.map.none": "This world has no overland map yet.",

@@ -74,12 +74,39 @@ export async function goToPage(scene) {
   return scene;
 }
 
-/** Take everyone back from `scene`'s page to the scene they came from. */
+/** The scene the party's travel token stands on (the hex map they travel), or null. */
+function partyScene() {
+  const uuid = game.settings.get(MODULE_ID, "overlandState")?.tokenUuid;
+  try { return uuid ? fromUuidSync(uuid)?.parent ?? null : null; } catch { return null; }
+}
+
+/**
+ * Where Return takes everyone from `scene`'s page, never a dead end: the scene the page came from (or the last other
+ * scene that was active, see rememberScene), else the party's hex map, else the first scene in the navigation bar.
+ * Landing pages and deleted scenes are skipped. Null only in a world with no other scene at all.
+ */
+export function returnScene(scene) {
+  const usable = (s) => !!s && s.id !== scene?.id && !landingOf(s);
+  const nav = game.scenes.contents.filter((s) => s.navigation && usable(s)).sort((a, b) => (a.navOrder ?? 0) - (b.navOrder ?? 0));
+  return [game.scenes.get(landingOf(scene)?.returnTo ?? ""), partyScene(), nav[0]].find(usable) ?? null;
+}
+
+/** Take everyone back from `scene`'s page to the scene they came from (returnScene). */
 export async function returnFromPage(scene) {
   if (!game.user.isGM) return null;
-  const to = game.scenes.get(landingOf(scene)?.returnTo ?? "");
+  const to = returnScene(scene);
   if (!to) { ui.notifications.warn(t("SDE.town.make.noReturn")); return null; }
   return to.activate();
+}
+
+/**
+ * A scene other than a landing page went active: the table remembers it as where Return goes, so a table that was
+ * made active by hand (Foundry's own scene navigation) still knows the way back.
+ */
+export function rememberScene(scene) {
+  const table = tableScene();
+  if (!game.user.isGM || !table || !scene || landingOf(scene) || landingOf(table)?.returnTo === scene.id) return null;
+  return updateLanding(table, (page) => page && { ...page, returnTo: scene.id });
 }
 
 /** The toolbar's button: on the table, everyone goes back; anywhere else, everyone comes to the table (made the first time). */

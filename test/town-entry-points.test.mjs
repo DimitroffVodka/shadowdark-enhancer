@@ -137,3 +137,17 @@ test("switching the page off leaves a games window seated at Liar's dice open (c
   e.entry.closeTown();
   assert.equal(shut.filter((id) => id === "sde-town-games").length, 1);
 });
+
+test("every scene that goes active is remembered as the table's way back, by the one active GM, never a landing page", async () => {
+  const e = await setup({ gm: true, scenes: [scene("C", { shown: false }), scene("D", null)] });
+  const kept = [];
+  e.entry.townIo.remember = async (s) => { kept.push(s.id); };
+  globalThis.game.user.id = "g1";
+  globalThis.game.users = { activeGM: { id: "g1" } };
+  e.hooks.updateScene(e.byId.get("D"), { active: true });
+  e.hooks.updateScene(e.byId.get("C"), { active: true });       // a landing page
+  e.hooks.updateScene(e.byId.get("D"), { navigation: true });   // not an activation
+  globalThis.game.users.activeGM = { id: "g2" };
+  e.hooks.updateScene(e.byId.get("D"), { active: true });       // another GM's client writes it
+  assert.deepEqual(kept, ["D"]);
+});
