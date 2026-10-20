@@ -99,3 +99,19 @@ test("the hex keeps its own table, and an empty box hands it back to the region"
   assert.deepEqual(poiFields({}), {});
   assert.equal(Object.hasOwn(poiFields({ poiTable: "" }), "poiTable"), true);
 });
+
+test("a linked item or journal with dice before it is not a creature to place", () => {
+  const mixed = row("[[/r 1d4]] @UUID[Compendium.x.Item.p]{healing potions} lie by [[/r 2d6]] @UUID[Compendium.x.Actor.a]{beastmen} and @UUID[JournalEntry.j]{the merchant}", 8);
+  assert.deepEqual(rowCreatures(mixed).map((c) => [c.uuid, c.countFormula]), [["Compendium.x.Actor.a", "2d6"]]);
+});
+
+test("a row weighs by the faces it covers, not by its weight on top of them", async () => {
+  const wide = { ...row("Two faces", 1), range: [1, 2], weight: 2 };
+  const narrow = row("One face", 3);
+  const world = worldSettings();
+  const random = Math.random;
+  Math.random = () => 0.7; // 70% of three faces lands on the third; counting the weight again would land on the first
+  try {
+    assert.equal((await drawPointOfInterest(table([wide, narrow]))).result.id, narrow.id);
+  } finally { Math.random = random; world.restore(); }
+});

@@ -120,6 +120,12 @@ region's printed column for the terrain, else the table mapped to the terrain,
 else the active table), with **Roll** and an open-the-table button. It reads the
 saved cell, so save a terrain change first. Players never see it.
 
+Its **Points of interest** card names the list this hex finds a point of interest
+on: a roll table dropped on the card (or its UUID pasted), else its region's printed
+*Points of Interest* list. It says how many of that list's places are still to be
+found; **Roll** draws one of those and posts it to the GMs, and the button beside
+it opens the table. An emptied box hands the hex back to its region's list, on Save.
+
 Its **Rolls when the party arrives** card sets what a committed entry rolls in
 this hex: drag a roll table in (or paste its UUID), a chance per cent, and
 **First entry only**. It writes the per-hex fields the arrival check already

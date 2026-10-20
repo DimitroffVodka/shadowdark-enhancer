@@ -142,7 +142,9 @@ async function monsterOf(result) {
  */
 export function rowCreatures(result) {
   const text = resultBody(result);
+  // Creatures only: a row can also link an item or a journal ("1d4 @UUID[…Item…]{potions}"), which is no foe to place.
   const links = [...text.matchAll(/@UUID\[([^\]]+)\]\{([^}]*)\}/g)]
+    .filter((m) => /(?:^|\.)Actor\.[^.]+$/.test(m[1]))
     .map((m) => ({ uuid: m[1], label: m[2], start: m.index, end: m.index + m[0].length }));
   const groups = [];
   for (const link of links) {
@@ -221,7 +223,8 @@ export async function drawPointOfInterest(table) {
     pool = [...all];
     restarted = true;
   }
-  const weight = (r) => ((r.range?.[1] ?? 0) - (r.range?.[0] ?? 0) + 1) * (r.weight ?? 1);
+  // The faces a row covers, as Foundry's own draw counts them (a row's weight only sets its range).
+  const weight = (r) => (r.range?.[1] ?? 0) - (r.range?.[0] ?? 0) + 1;
   let ticket = Math.random() * pool.reduce((sum, r) => sum + weight(r), 0);
   let pick = pool[pool.length - 1];
   for (const r of pool) {

@@ -11,9 +11,8 @@ import { adoptHexScene, withHexLock } from "./hex-adoption.mjs";
 import { disclosure, effectiveDiscovery, withPartyDiscovery, revealRadius, revealCells, arrivalDue, planFogReset, RESET_FIELDS } from "./hex-fog-core.mjs";
 import { hexZonesFor } from "../encounter/encounter-terrain.mjs";
 import { drawPointOfInterest, poiTableFor, flavorHtml, postEncounter } from "../encounter/encounter-draw.mjs";
+import { NOT_GROUND } from "./tag-store.mjs";
 
-/** The tagger's own keyed-location terrain (hex-tagger-app's KEYED_TERRAIN): not a plain hex. */
-const KEYED_TERRAIN = "keyed_location";
 
 let overlay = null;
 /** The GM sees the unexplored hexes through a 60% veil; this draws them as a player does, solid black. Kept per browser. */
@@ -180,7 +179,8 @@ export async function revealParty(token, { path = null, weather = null, committe
       // A hex that is not a keyed location can turn out to be a point of interest:
       // the book's 1-in-20, rolled once per party per hex whatever the outcome, so
       // walking in and out of a plain hex cannot farm the list.
-      if (poiChance > 0 && cell.terrain !== KEYED_TERRAIN && !(cell.poiRolledBy ?? []).includes(party.id)) {
+      // The record's terrain, not the stored cell's: a numbered hex keeps its terrain in the map's tags.
+      if (poiChance > 0 && !NOT_GROUND.has(records.get(key)?.terrain) && !(cell.poiRolledBy ?? []).includes(party.id)) {
         cell.poiRolledBy = [...new Set([...(cell.poiRolledBy ?? []), party.id])];
         if (Math.random() * 100 < poiChance) {
           const num = records.get(key)?.num;
