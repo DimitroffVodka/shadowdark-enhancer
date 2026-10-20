@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-2083 tracked files · ~266,600 lines of code/markup across scripts+templates+styles+test.
+2107 tracked files · ~266,600 lines of code/markup across scripts+templates+styles+test.
 `v0.19.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -143,7 +143,7 @@
 | `party/party-app.mjs` | 615 | Native ApplicationV2 Party actor sheet and directory/token-HUD entry points, preserving detailed member cards with inline activities, scoped quests/payouts and description editing. |
 | `party/party-core.mjs` | 32 | Pure versioned roster validation, membership permissions, groups and quest scoping. |
 | `party/party-create-option.mjs` | 15 | Adds the Enhancer's Party entry to the Create Actor type list and drops Extras' duplicate Party entry. |
-| `party/party-emblem-core.mjs` | 110 | Pure party emblem: the curated icon and colour sets, the default, the safe read of the stored flag and the picker's choices. |
+| `party/party-emblem-core.mjs` | 119 | Pure party emblem: the curated icon and colour sets, the default, the safe read of the stored flag and the picker's choices. |
 | `party/party-hud.mjs` | 21 | Single combat-gated Import/Export Members Party token HUD action. |
 | `party/party-item-picker.mjs` | 80 | The Party sheet's Add item > From compendium window: an ApplicationV2 that reads every Item compendium's index once, filters it by name as the GM types (searchItemIndex), and hands the picked entry to the sheet to copy onto the party actor. |
 | `party/party-light.mjs` | 49 | Runtime-only dungeon Party light mirror without duplicated fuel items; hex lights and stored vision unchanged. |
@@ -151,7 +151,7 @@
 | `party/party-movement.mjs` | 265 | Authenticated Party-owner gather/deploy relay, linked token configuration preservation and native marching: followers keep the formation, turned to the leader's heading, and never pause. |
 | `party/party-roll.mjs` | 138 | Request roll from the Party sheet's GM bar: posts one chat card with a Roll link per character asked; the owner's click runs the system's ability check against the DC and posts pass or fail. |
 | `party/party-sheet-core.mjs` | 486 | Pure Party sheet decisions: the tab row and view flags (GM vs player), the Marching order status line, Gems, the linked Bastion and its last month, and the Today / Light / Rations status bar. |
-| `party/party-token.mjs` | 72 | Uploads the party emblem as a hex-shaped token picture and keeps the party actor, its prototype token and scene tokens wearing it. |
+| `party/party-token.mjs` | 76 | Uploads the party emblem as a hex-shaped token picture and keeps the party actor, its prototype token and scene tokens wearing it. |
 | `party/party.mjs` | 131 | Explicit native Party provider, safe in-place NPC adoption and owner-scoped membership writes; the active GM re-checks every roster a player writes and takes off a member that player could not have added. |
 | `rules-data/rules-data-app.mjs` | 423 | The GM-only Rules data window (AppV2, Configure Settings menu): shows and edits every rules table, staged until Save. Its import (importFromBooks, also the Importer Hub step's importAndSave) runs table-shapes RULES_TABLES over the GM's own linked GM Guide and Player's Guide PDFs (lazy-loaded), canonicalises region names through hex-region knownRegions, and previews every filled value it would replace. |
 | `rules-data/rules-data-core.mjs` | 471 | Rules data (#195), pure: the Western Reaches lookup tables (terrain cost and elevation, terrain types, hexes per day, hex visibility, climate by region and season, carousing and recruiting limits) as one sparse world setting laid over an empty structure, the game.shadowdarkEnhancer.rules lookups over it, the readers that turn the importer's `reference` rows into those tables, and the overwrite preview and merge for an import. Ships structure only (tagger terrain words, travel methods, conditions, seasons, settlement kinds), never a value. |

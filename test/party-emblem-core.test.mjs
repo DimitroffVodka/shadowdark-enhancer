@@ -23,9 +23,9 @@ test("any six-digit hex is a valid tile and icon colour, not only the presets", 
   assert.equal(emblemOf({ icon: "owl", color: "12a4b8f" }).color, "c8892b", "seven digits is not a colour");
 });
 
-test("the picker offers 24 icons, 8 tile colours and 8 icon colours, every icon is vendored, and a pick changes one part", () => {
-  assert.equal(EMBLEM_ICONS.length, 24);
-  assert.equal(new Set(EMBLEM_ICONS).size, 24);
+test("the picker offers 48 icons, 8 tile colours and 8 icon colours, every icon is vendored, and a pick changes one part", () => {
+  assert.equal(EMBLEM_ICONS.length, 48);
+  assert.equal(new Set(EMBLEM_ICONS).size, 48);
   assert.equal(EMBLEM_COLORS.length, 8);
   assert.equal(EMBLEM_ICON_COLORS.length, 8);
   assert.deepEqual(EMBLEM_ICON_COLORS.slice(0, 2), ["ffffff", "000000"]);
@@ -69,7 +69,7 @@ test("every vendored emblem icon is credited to its artist in CREDITS.md", async
   const section = credits.slice(credits.indexOf("## Party emblem icons"));
   assert.ok(section.startsWith("## Party emblem icons"));
   for (const icon of EMBLEM_ICONS) assert.ok(section.includes(`\`${icon}.svg\``), icon);
-  for (const artist of ["Lorc", "Delapouite", "DarkZaitzev"]) assert.ok(section.includes(artist), artist);
+  for (const artist of ["Lorc", "Delapouite", "DarkZaitzev", "Caro Asercion"]) assert.ok(section.includes(artist), artist);
   assert.ok(section.includes("CC BY 3.0"));
 });
 
