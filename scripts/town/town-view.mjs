@@ -106,11 +106,12 @@ export function lotRows(lots, { coins, facts = () => [], blurb = () => "", t }) 
 }
 
 /** The tiles that open other windows, for the places the GM left on. */
-export function placeTiles(places, { isGM, hasParty, downtimeOpen, activeQuests, nightOpen = false, gmOnline = true, rumorsHeard = false, t }) {
+export function placeTiles(places, { isGM, hasParty, downtimeOpen, activeQuests, nightOpen = false, gmOnline = true, rumorsHeard = false, hasMap = true, t }) {
   return places.map((id) => {
     const tile = { id, icon: PLACE_ICONS[id], label: t(PLACE_LABEL_KEYS[id]), sub: t(PLACE_SUB_KEYS[id]), tag: "", disabled: false, hint: "" };
     if (id === "quests" && activeQuests) tile.tag = t("SDE.town.activeQuests", { n: activeQuests });
     if (id === "party" && !hasParty) Object.assign(tile, { disabled: true, hint: t("SDE.town.hint.party") });
+    if (id === "map" && !hasMap) Object.assign(tile, { disabled: true, hint: t("SDE.town.hint.map") });
     if (id === "downtime" && !isGM && !downtimeOpen) Object.assign(tile, { disabled: true, hint: t("SDE.town.hint.downtime") });
     if (id === "carouse" && !isGM && !nightOpen) Object.assign(tile, { disabled: true, hint: t("SDE.town.hint.carouse") });
     if (id === "carouse" && !isGM && nightOpen && !gmOnline) Object.assign(tile, { disabled: true, hint: t("SDE.town.hint.carouseGM") });

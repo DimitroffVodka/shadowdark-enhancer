@@ -82,6 +82,7 @@ export async function openPlace(id, scene, deps = DEPS) {
   if (id === "quests") return (await import("../quests/quests.mjs")).openQuestLog();
   if (id === "journals") { ui.sidebar?.expand?.(); return ui.sidebar?.changeTab("journal", "primary"); }
   if (id === "party") return (await import("../party/party-app.mjs")).PartyApp.open();
+  if (id === "map") return (await import("./landing-map.mjs")).openMap(scene);
   if (id === "downtime") return (await import("../downtime/downtime-app.mjs")).DowntimeApp.open();
   if (id === "carouse") {
     // Only a native party can carouse (handleCarousing), so a legacy selected party is skipped.

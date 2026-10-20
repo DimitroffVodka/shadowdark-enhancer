@@ -70,9 +70,10 @@ export class TownApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const activeQuests = Quests.list({ status: "active" }).length;
     const buyer = buyerFor();
     const { hasRumorsHeard } = await import("../rumors/rumors.mjs");
+    const hasMap = page.places.includes("map") ? await (await import("./landing-map.mjs")).hasMap() : false;
     return Object.assign(context, {
       townName: this.townName, tagline: page.tagline, blurb: page.blurb, merchants,
-      places: placeTiles(page.games.on ? [...page.places, "games"] : page.places, { isGM, hasParty: Party.list().length > 0, downtimeOpen: DowntimeSession.active, activeQuests, nightOpen: !!nightParty(), gmOnline: !!game.users.activeGM, rumorsHeard: hasRumorsHeard(), t }),
+      places: placeTiles(page.games.on ? [...page.places, "games"] : page.places, { isGM, hasParty: Party.list().length > 0, downtimeOpen: DowntimeSession.active, activeQuests, nightOpen: !!nightParty(), gmOnline: !!game.users.activeGM, rumorsHeard: hasRumorsHeard(), hasMap, t }),
       isGM, returnName: isGM && page.returnTo !== this.scene?.id ? game.scenes.get(page.returnTo ?? "")?.name ?? "" : "",
       actorName: buyer?.name ?? "", purse: buyer ? purseText(buyer.system.coins) : "",
     });
@@ -124,11 +125,11 @@ export class TownApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   _onOpenPlace(_event, target) { return openPlace(target.dataset.place, this.scene); }
 
-  /** Away for the whole table. */
-  _onHide() { return switchTown(this.scene, false); }
   /** Everyone back to the scene they came from. */
   async _onReturn() { return (await import("./landing-pages.mjs")).returnFromPage(this.scene); }
 
+  /** Away for the whole table. */
+  _onHide() { return switchTown(this.scene, false); }
 
   async _onLog() {
     const { TownLogApp } = await import("./town-log-app.mjs");
