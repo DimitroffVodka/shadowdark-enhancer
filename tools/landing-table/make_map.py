@@ -147,7 +147,7 @@ towns, tries = [], 0
 while len(towns) < 6 and tries < 4000:
     tries += 1
     x, y = rng.uniform(W * 0.25, W * 0.95), rng.uniform(H * 0.15, H * 0.9)
-    if on_land(x, y, 34) and all(math.hypot(x - a, y - b) > 260 for a, b in towns) and all(math.hypot(x - a, y - b) > 80 for a, b in peaks):
+    if on_land(x, y, 34) and all(math.hypot(x - a, y - b) > 260 for a, b in towns) and all(not (abs(x - a) < 100 and b - 80 * SY - 30 < y < b + 40) for a, b in peaks):   # clear of the tall peaks
         towns.append((x, y))
 links, joined = [], {0}
 while len(joined) < len(towns):                           # each town joins the nearest town already on the roads
@@ -169,7 +169,7 @@ for i, (x, y) in enumerate(towns):
         d.ellipse([x - 11, y - 11 * SY, x + 11, y + 11 * SY], fill=(150, 40, 25))
 
 # ── a compass rose out in the south-west sea ─────────────────────────────────────────────────────────────────────
-cx, cy, R = W * 0.14, H * 0.62, 150
+cx, cy, R = W * 0.14, H * 0.8, 130
 d.ellipse([cx - R * 0.72, cy - R * 0.72 * SY, cx + R * 0.72, cy + R * 0.72 * SY], outline=INK, width=8)
 d.ellipse([cx - R * 0.6, cy - R * 0.6 * SY, cx + R * 0.6, cy + R * 0.6 * SY], outline=INK, width=4)
 for k in range(8):

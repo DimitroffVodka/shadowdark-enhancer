@@ -444,7 +444,7 @@ def framed_map():
     for i, (sx, sy, x, y) in enumerate([(0.72, 0.035, 0, 0.237), (0.72, 0.035, 0, -0.237), (0.035, 0.5, 0.358, 0), (0.035, 0.5, -0.358, 0)]):
         parts.append(box(f"MapFrame{i}", (sx, sy, 0.025), (x, y, 0.0125), M["darkwood"], p, bevel=0.005))
     g = group("Map", parts, (-0.02, 0.5, 0), -3)
-    ph_place("Compass", ph_objects("seadogs_compass", ["seadogs_compass", "seadogs_compass_lid", "seadogs_compass_needle"]), (-0.24, 0.62, 0.014), 1.3, 20, p)
+    ph_place("Compass", ph_objects("seadogs_compass", ["seadogs_compass", "seadogs_compass_lid", "seadogs_compass_needle"]), (-0.275, 0.47, 0.014), 1.3, 20, p)
     return g
 
 
