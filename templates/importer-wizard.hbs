@@ -127,19 +127,26 @@
       <input type="radio" name="choice" value="custom" data-action="setChoice" {{#unless everything}}checked{{/unless}}>
       <span><strong>{{localize "SDE.importer.wizard.ready.custom"}}</strong><small>{{localize "SDE.importer.wizard.ready.customHelp"}}</small></span>
     </label>
-    {{#if ready.adventureMaps}}
-    <h3 class="ui-h">{{localize "SDE.importer.wizard.ready.placement.title"}}</h3>
-    <label class="ui-card sde-wiz-opt{{#if placementWorld}} sel{{/if}}">
-      <input type="radio" name="placement" value="world" data-action="setPlacement" {{#if placementWorld}}checked{{/if}}>
-      <span><strong>{{localize "SDE.importer.wizard.ready.placement.world"}}</strong><small>{{localize "SDE.importer.wizard.ready.placement.worldHelp"}}</small></span>
-    </label>
-    <label class="ui-card sde-wiz-opt{{#unless placementWorld}} sel{{/unless}}">
-      <input type="radio" name="placement" value="compendium" data-action="setPlacement" {{#unless placementWorld}}checked{{/unless}}>
-      <span><strong>{{localize "SDE.importer.wizard.ready.placement.compendium"}}</strong><small>{{localize "SDE.importer.wizard.ready.placement.compendiumHelp"}}</small></span>
-    </label>
+    {{#if everything}}
+    {{#if ready.maps.length}}
+    <h3 class="ui-h">{{localize "SDE.importer.wizard.ready.maps.title"}}</h3>
+    <p class="ui-muted">{{localize "SDE.importer.wizard.ready.maps.help"}}</p>
+    {{#each ready.maps as |g|}}
+    <p class="ui-label sde-wiz-map-group">{{g.title}}</p>
+    <div class="ui-list">
+      {{#each g.rows as |r|}}
+      <label class="ui-row sde-wiz-map-pick{{#if r.world}} sel{{/if}}">
+        <input type="checkbox" data-action="toggleWorldMap" data-id="{{r.id}}" {{#if r.world}}checked{{/if}}>
+        <span class="ui-row-main"><span class="ui-row-name">{{r.title}}</span><span class="ui-row-sub">{{r.kind}}</span></span>
+        <span class="sde-wiz-size">{{#if r.world}}{{localize "SDE.importer.wizard.ready.maps.inWorld"}}{{else}}{{localize "SDE.importer.wizard.ready.maps.inCompendium"}}{{/if}}</span>
+      </label>
+      {{/each}}
+    </div>
+    {{/each}}
     {{/if}}
     {{#if ready.hexNote}}
-    <div class="ui-note"><p><i class="fas fa-map"></i> {{#if ready.hexDrawnOnly}}{{localize "SDE.importer.wizard.hex.readyDrawn"}}{{else}}{{localize "SDE.importer.wizard.hex.ready"}}{{/if}}</p></div>
+    <div class="ui-note"><p><i class="fas fa-map"></i> {{ready.hexNote}}</p></div>
+    {{/if}}
     {{/if}}
     {{/if}}
 
@@ -238,7 +245,7 @@
     {{#if done.hexMaps.length}}
     <section class="ui-group">
       <h3 class="ui-h">{{localize "SDE.importer.wizard.done.hexTitle"}}</h3>
-      {{#if done.hexLegend}}<p class="ui-muted">{{localize "SDE.importer.wizard.done.hexBody"}}</p>{{else if done.hexLegendOptional}}<p class="ui-muted">{{localize "SDE.importer.wizard.done.hexBodyOptional"}}</p>{{/if}}
+      {{#if done.hexBody}}<p class="ui-muted">{{done.hexBody}}</p>{{/if}}
       <ul class="ui-list">
         {{#each done.hexMaps}}
         <li class="ui-row sde-wiz-hex">

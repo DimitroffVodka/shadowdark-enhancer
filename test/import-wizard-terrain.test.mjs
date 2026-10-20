@@ -80,7 +80,7 @@ test("Apply names the map and moves to the next one; the last one ends on Done w
   const done = ctl.viewModel().done;
   assert.deepEqual(done.hexMaps.map((h) => [h.id, !!h.legend]), [["hex-cs1", false], ["hex-cs2", false]]);
   assert.match(done.hexMaps[0].line, /hexStatus\.named/);
-  assert.equal(done.hexLegend, false, "nothing is left to name, so the Done page does not say to");
+  assert.equal(done.hexMaps.every((h) => !h.legend), true, "nothing is left to name, so no row offers it");
 });
 
 test("a card still in question, or a refusal, keeps the page and its answers; a second Apply can go through", async () => {
@@ -102,7 +102,7 @@ test("Skip leaves a map's terrain for the Hex Tagger: Done still offers it", asy
   assert.equal(ctl.state.page, "done");
   const done = ctl.viewModel().done;
   assert.deepEqual(done.hexMaps.map((h) => !!h.legend), [true, true]);
-  assert.equal(done.hexLegend, true);
+  assert.match(done.hexBody, /hexBody/);
 });
 
 test("a map that cannot be read says so, offers Continue only, and does not stop the others", async () => {

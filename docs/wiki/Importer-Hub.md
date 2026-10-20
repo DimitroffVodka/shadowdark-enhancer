@@ -30,24 +30,20 @@ guide instead of the hub. You add your files once and it does the rest.
    limit (Forge) names any file that is too big and offers use-once for it.
 3. **Check.** The guide opens each file, tells you which book it is and whether
    it can be read, and lists what it cannot do and why. Nothing is imported yet.
-4. **Import.** One button. The guide imports the library, the adventures, each
+4. **Pick the maps for this world.** The **Ready** page lists every map you
+   added, under its book: the adventures' maps and the hex maps. Nothing is
+   ticked to begin with. Tick the maps you want in this world now (the Western
+   Reaches maps, say, and none of the others); every map left unticked waits in
+   the *Adventures* compendium until you run it.
+5. **Import.** One button. The guide imports the library, the adventures, each
    book's key locations, the site maps and the hex maps, with a progress bar.
    The guide drives the hub for you, out of sight.
-5. **Name the terrain.** For the Western Reaches' A0, the **Terrain** page shows the
-   map's printed pictures sorted into cards. Name each card once (forest,
-   mountains, swamp) and **Apply** names every hex. A card that mixes terrains
-   can be opened ("these are not all the same") to name its hexes one by one.
-   **Skip this map** leaves it for later. Closing the window here asks first when maps are still
-   unnamed; they can be named later in the [Hex Tagger](Hex-Maps.md)'s Legend step.
-   The other five hex maps are drawings with a grid laid over them, so the same
-   land looks different from hex to hex and their cards come out mixed. They are
-   set up, numbered and pinned, but their terrain is optional: no Terrain page,
-   just a **Name the terrain** button on their row on the Done page.
 
 The last page (**Done**) lists what was set up, what was already there, and
-anything that needs you. Each hex map has its own row there: **Name the terrain** for one whose terrain
-is still to name, and **Set it up** for one the guide could not set up on its own. The other things that
-need you are plain notes saying what to do.
+anything that needs you. Each hex map has its own row there, saying whether it
+is in this world or in the compendium, with **Set it up** for one the guide could
+not set up on its own. The other things that need you are plain notes saying what
+to do.
 
 If monsters were imported and you have token art installed (see
 [Monster Token Art](Monster-Token-Art.md) for the sources), Done also has a **Monster art**
@@ -55,19 +51,19 @@ card naming what it found. **Apply monster art** does what the manager's Apply d
 art is replaced, tokens you picked yourself are not, and nothing is copied. It is yours to
 click; the guide never applies art on its own.
 
-**Where the adventures go.** When you have added adventure maps, the Ready page asks where the
-adventures should end up. **Load them into this world** (the default) builds each adventure's scene,
-journal and creatures in the world, ready to open. **Keep them in the compendium** builds each one the
-same way, then packs it into the *Adventures* compendium (under Shadowdark Enhancer) and takes the
-world copies away, so the world stays light: fewer documents to load on every join, which matters
-most on a weak device. An adventure waits there until you run it; open it and press **Import**, or run
-the guide again with the world option and it imports it for you. Importing only creates what is
-missing: a creature the world already has, or one you edited, is left as it is. The map pictures are
-not in the compendium, only their place in this world's folder, so an Adventure works in the world
-that holds the pictures. Hex maps are always built in the world, because naming their terrain needs
-the scene.
+**Where the maps go.** A ticked map is built in the world, ready to open. An
+unticked one is built the same way, then packed into the *Adventures* compendium
+(under Shadowdark Enhancer) and its world copies are taken away, so the world
+stays light: fewer documents to load on every join, which matters most on a weak
+device. That covers an adventure's scene, journal and creatures, and a hex map's
+numbered scene with the key-location journals its pins open. A map waits there
+until you run it; open it and press **Import**, or run the guide again with it
+ticked and it imports it for you. Importing only creates what is missing: a
+creature the world already has, or one you edited, is left as it is. The map
+pictures are not in the compendium, only their place in this world's folder, so
+an Adventure works in the world that holds the pictures.
 
-**Hex maps need nothing from you but the terrain.** All six hex maps are set up
+**Hex maps need nothing from you.** All six hex maps are set up
 on their own: the Western Reaches A0 and the Cursed Scroll maps (the Gloaming,
 the Djurum, the Isles of Andrik, the Black River, Morzomotha). The guide builds
 the scene, numbers the hexes the way the book prints them, and pins the book's
@@ -76,12 +72,15 @@ joins them. A map it does not recognise (a different size than the print it
 knows) is marked *needs a look*, and a map that could not be built says so; either way its
 row on the Done page has **Set it up**, which opens the [Hex map from image](Hex-Maps.md)
 window with the grid step. The A0 is a 14043 px picture, so reading it needs a graphics card
-whose texture limit is at least that. See [Hex Maps](Hex-Maps.md) for the numbering and the Legend.
+whose texture limit is at least that. The guide does not name their terrain: once
+a map is in the world, name it in the [Hex Tagger](Hex-Maps.md)'s Legend step when you
+are ready (on the Western Reaches A0, **Make this map playable** does the whole pass).
+See [Hex Maps](Hex-Maps.md) for the numbering and the Legend.
 
 **Run it again whenever you like.** The guide is safe to repeat: what is already
 imported is counted as *already had* and left alone (a room or hex page you
 edited after the first import stays as you left it), a hex map found by its
-id is reused, and a map whose terrain you already named is not asked again. A
+id is reused, and one already packed in the compendium is left alone. A
 full first import of every book takes a long time (the library stage alone can run
 to half an hour); leave the window open.
 
