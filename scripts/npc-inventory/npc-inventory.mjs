@@ -141,6 +141,8 @@ export const NpcInventory = {
   async _putBack(actor, items, scope, key, taken) {
     const results = await Promise.allSettled([
       hasCoins(taken) && (async () => {
+        // ponytail: a purse write another client sent but this one has not yet received is overwritten
+        // (no compare-and-set on a flag); only a write that already arrived is kept.
         const now = purse(actor.getFlag(scope, key));
         const value = { gp: now.gp + taken.gp, sp: now.sp + taken.sp, cp: now.cp + taken.cp };
         if (scope === MODULE_ID) await replaceModuleFlag(actor, key, value);
