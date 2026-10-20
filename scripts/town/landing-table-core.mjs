@@ -13,8 +13,9 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import LAYOUT from "./landing-table-layout.mjs";
 
 const DIR = `modules/${MODULE_ID}/assets/landing-table`;
-export const TABLE = { src: `${DIR}/table.webp`, hit: `${DIR}/hit.webp`, width: LAYOUT.width, height: LAYOUT.height, layout: LAYOUT };
-export const propSrc = (id) => `${DIR}/props/${id}.webp`;
+const REV = LAYOUT.rev ? `?v=${LAYOUT.rev}` : "";   // a new render gets new addresses, so no browser shows an old table
+export const TABLE = { src: `${DIR}/table.webp${REV}`, hit: `${DIR}/hit.webp${REV}`, width: LAYOUT.width, height: LAYOUT.height, layout: LAYOUT };
+export const propSrc = (id) => `${DIR}/props/${id}.webp${REV}`;
 
 /** The props that are buttons, in the order the hit map numbers them (1-based): the same order the render uses. */
 export const HIT_ORDER = ["quests", "market", "games", "carouse", "map", "rumors", "downtime", "journals", "title", "dial", "recaps"];

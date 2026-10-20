@@ -4,8 +4,10 @@ Shadowdark Enhancer: the landing page's table, built and rendered in Blender (th
     nice -n 19 blender --background --factory-startup --python tools/landing-table/build_table.py
 
 A candle-lit wooden table seen from a seat at it, with the props that are the page's buttons: the quest tome, the
-coin chest, the dice cup, the tankard, the framed map, the sealed letter, the hourglass, the journal, the session
-title card and the day dial. Writes to tools/landing-table/out/:
+coin chest, the dice cup, the goblets, the framed map, the sealed letter, the hourglass, the journal, the recap
+scrolls, the session title card and the day dial. The chest, the goblets, the candlesticks, the compass on the map
+and the table's wood and leather are CC0 assets from Poly Haven (fetch_assets.py downloads them into $LT_ART, default
+~/git/.demo/landing-art); everything else is modelled here. Writes to tools/landing-table/out/:
 
     beauty.png        the table as it rests (chest closed)
     ids.png           every prop in its own flat colour, for the per-prop masks
@@ -13,7 +15,7 @@ title card and the day dial. Writes to tools/landing-table/out/:
     ids-open.png      its masks
     projection.json   where the overlay quads (tome pages, title card, dial) and the party's seats land, in pixels
 
-make_assets.py turns those into the module's assets. Everything is procedural: no textures, nothing imported.
+make_assets.py turns those into the module's assets; only those rendered pictures ship, never the Poly Haven files.
 """
 import json
 import math
@@ -24,6 +26,7 @@ from bpy_extras.object_utils import world_to_camera_view
 from mathutils import Euler, Vector
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+ART = os.path.expanduser(os.environ.get("LT_ART", "~/git/.demo/landing-art"))
 OUT = os.path.join(HERE, "out")
 os.makedirs(OUT, exist_ok=True)
 W, H = 2560, 1440
@@ -222,6 +225,58 @@ def group(name, parts, loc=(0, 0, 0), rot_z=0.0):
     return e
 
 
+# ── Poly Haven assets (CC0) ──────────────────────────────────────────────────────────────────────────────────────
+
+def ph_path(asset):
+    path = os.path.join(ART, asset, f"{asset}.blend")
+    if not os.path.exists(path):
+        raise SystemExit(f"{path} is missing: run tools/landing-table/fetch_assets.py first")
+    return path
+
+
+def ph_objects(asset, names):
+    """Append the named objects of a Poly Haven asset into the scene (its textures stay in the art folder)."""
+    with bpy.data.libraries.load(ph_path(asset), link=False) as (src, dst):
+        dst.objects = [n for n in src.objects if n in names]
+    objs = [o for o in dst.objects if o]
+    for o in objs:
+        scene.collection.objects.link(o)
+    return objs
+
+
+def ph_material(asset, scale, rot_z=0.0):
+    """A Poly Haven surface laid on by object coordinates (so any box takes it), `scale` repeats per metre."""
+    with bpy.data.libraries.load(ph_path(asset), link=False) as (src, dst):
+        dst.materials = [asset]
+    mat = dst.materials[0]
+    nt = mat.node_tree
+    coord, mapping = nt.nodes.new("ShaderNodeTexCoord"), nt.nodes.new("ShaderNodeMapping")
+    mapping.inputs["Scale"].default_value = (scale, scale, scale)
+    mapping.inputs["Rotation"].default_value = (0, 0, rot_z)
+    nt.links.new(coord.outputs["Object"], mapping.inputs["Vector"])
+    for node in nt.nodes:
+        if node.type == "TEX_IMAGE":
+            nt.links.new(mapping.outputs["Vector"], node.inputs["Vector"])
+    return mat
+
+
+def ph_place(name, objs, loc, scale, rot_z=0.0, prop=None):
+    """Parent appended objects to an empty at `loc`, scaled and turned as one, tagged with their prop."""
+    bpy.ops.object.empty_add(location=(0, 0, 0))
+    e = bpy.context.object
+    e.name = name
+    for o in objs:
+        if not o.parent:
+            o.parent = e
+        tag(o, prop)
+    tag(e, prop)
+    e.location, e.scale, e.rotation_euler = loc, (scale, scale, scale), Euler((0, 0, math.radians(rot_z)))
+    return e
+
+
+M["wood"] = ph_material("wood_table_001", 0.6, math.radians(90))
+M["leather"] = ph_material("leather_red_02", 3.0)
+
 # ── the room and the table ───────────────────────────────────────────────────────────────────────────────────────
 
 for i in range(5):   # five boards running across, with thin gaps between
@@ -245,27 +300,21 @@ def tome():
     return group("Tome", parts, (-0.05, 0.0, 0), 4)
 
 
+CHEST_SCALE = 0.36
+
+
 def chest():
+    """Poly Haven's treasure chest (its lid hinges on its own back edge), with a few coins spilled in front."""
     p = "market"
-    parts = [box("ChestBody", (0.34, 0.22, 0.13), (0, 0, 0.065), M["darkwood"], p, bevel=0.01)]
-    for x in (-0.14, 0.14):
-        parts.append(box(f"ChestBand{x}", (0.025, 0.226, 0.135), (x, 0, 0.066), M["iron"], p, bevel=0.003))
-    parts.append(box("ChestLock", (0.05, 0.012, 0.05), (0, -0.115, 0.11), M["brass"], p, bevel=0.004))
-    # The lid hinges on the back edge.
-    bpy.ops.object.empty_add(location=(0, 0.11, 0.13))
-    hinge = bpy.context.object
-    hinge.name = "ChestHinge"
-    lid = box("ChestLid", (0.345, 0.225, 0.06), (0, -0.112, 0.03), M["darkwood"], p, bevel=0.012)
-    band = box("ChestLidBand", (0.35, 0.03, 0.065), (0, -0.112, 0.031), M["iron"], p, bevel=0.004)
-    lid.parent = band.parent = hinge
-    hinge["prop"] = p
-    parts.append(hinge)
-    # A few coins spilled in front, and a stack.
+    root = ph_place("Chest", ph_objects("treasure_chest", ["treasure_chest_bottom", "treasure_chest_lid", "treasure_chest_lock", "treasure_chest_handle_left", "treasure_chest_handle_right"]),
+                    (0.5, 0.02, 0), CHEST_SCALE, -12, p)
+    coins = []
     for i, (x, y) in enumerate([(-0.20, -0.17), (-0.15, -0.21), (0.05, -0.19), (0.11, -0.16), (-0.03, -0.24)]):
-        parts.append(cyl(f"Coin{i}", 0.022, 0.006, (x, y, 0.003), M["gold"], p, bevel=0.001))
+        coins.append(cyl(f"Coin{i}", 0.022, 0.006, (x, y, 0.003), M["gold"], p, bevel=0.001))
     for i in range(6):
-        parts.append(cyl(f"Stack{i}", 0.022, 0.006, (0.24, -0.15, 0.003 + i * 0.0062), M["gold"], p, bevel=0.001))
-    return group("Chest", parts, (0.5, 0.0, 0), -12)
+        coins.append(cyl(f"Stack{i}", 0.022, 0.006, (0.24, -0.15, 0.003 + i * 0.0062), M["gold"], p, bevel=0.001))
+    group("Coins", coins, (0.5, 0.0, 0), -12)
+    return root
 
 
 def dice():
@@ -283,14 +332,11 @@ def dice():
     return group("Dice", parts, (-0.62, 0.02, 0), 0)
 
 
-def tankard():
+def goblets():
+    """Two of Poly Haven's brass goblets, one a little behind the other."""
     p = "carouse"
-    parts = [cyl("TankardBody", 0.065, 0.17, (0, 0, 0.085), M["pewter"], p, bevel=0.004),
-             cyl("TankardFoam", 0.06, 0.02, (0, 0, 0.17), M["foam"], p),
-             torus("TankardHandle", 0.05, 0.011, (0.075, 0, 0.09), M["pewter"], p, rot=(math.radians(90), 0, 0))]
-    for z in (0.03, 0.14):
-        parts.append(torus(f"TankardBand{z}", 0.066, 0.005, (0, 0, z), M["darkwood"], p))
-    return group("Tankard", parts, (0.92, 0.2, 0), 200)
+    ph_place("Goblet1", ph_objects("brass_goblets", ["brass_goblet_01"]), (0.9, 0.22, 0), 0.62, 0, p)
+    ph_place("Goblet3", ph_objects("brass_goblets", ["brass_goblet_03"]), (1.02, 0.36, 0), 0.62, 30, p)
 
 
 def framed_map():
@@ -298,8 +344,9 @@ def framed_map():
     parts = [box("MapPaper", (0.66, 0.44, 0.004), (0, 0, 0.012), M["map"], p, bevel=0.0)]
     for i, (sx, sy, x, y) in enumerate([(0.72, 0.035, 0, 0.237), (0.72, 0.035, 0, -0.237), (0.035, 0.5, 0.358, 0), (0.035, 0.5, -0.358, 0)]):
         parts.append(box(f"MapFrame{i}", (sx, sy, 0.025), (x, y, 0.0125), M["darkwood"], p, bevel=0.005))
-    parts.append(torus("MapCompass", 0.035, 0.004, (0.26, 0.15, 0.016), M["brass"], p))
-    return group("Map", parts, (-0.02, 0.5, 0), -3)
+    g = group("Map", parts, (-0.02, 0.5, 0), -3)
+    ph_place("Compass", ph_objects("seadogs_compass", ["seadogs_compass", "seadogs_compass_lid", "seadogs_compass_needle"]), (0.16, 0.56, 0.014), 1.3, 20, p)
+    return g
 
 
 def letter():
@@ -360,12 +407,14 @@ def dial():
     return group("Dial", parts, (-0.5, -0.34, 0), 0)
 
 
-def candle(name, loc, height):
-    parts = [cyl(f"{name}Holder", 0.06, 0.012, (0, 0, 0.006), M["brass"], bevel=0.003),
-             cyl(f"{name}Wax", 0.025, height, (0, 0, 0.012 + height / 2), M["wax"]),
-             sphere(f"{name}Flame", 0.01, (0, 0, 0.012 + height + 0.022), M["flame"], scale=(1, 1, 2.2))]
+def candle(name, loc, height, holder=0.8):
+    """A wax candle on Poly Haven's wooden candlestick (`holder` scales it; it is 0.22 m tall at 1)."""
+    ph_place(f"{name}Stick", ph_objects("wooden_candlestick", ["wooden_candlestick"]), loc, holder)
+    top = 0.22 * holder
+    parts = [cyl(f"{name}Wax", 0.02, height, (0, 0, top + height / 2), M["wax"]),
+             sphere(f"{name}Flame", 0.01, (0, 0, top + height + 0.022), M["flame"], scale=(1, 1, 2.2))]
     g = group(name, parts, loc)
-    bpy.ops.object.light_add(type="POINT", location=(loc[0], loc[1], 0.012 + height + 0.06))
+    bpy.ops.object.light_add(type="POINT", location=(loc[0], loc[1], top + height + 0.06))
     light = bpy.context.object.data
     light.energy, light.color, light.shadow_soft_size = 30, (1.0, 0.52, 0.2), 0.03
     return g
@@ -374,7 +423,7 @@ def candle(name, loc, height):
 tome()
 chest_root = chest()
 dice()
-tankard()
+goblets()
 framed_map()
 letter()
 hourglass()
@@ -382,9 +431,9 @@ journal()
 title_card()
 dial()
 recap_scrolls()
-candle("CandleL", (-0.42, 0.62, 0), 0.22)
-candle("CandleR", (0.66, 0.6, 0), 0.15)
-candle("CandleF", (-0.86, 0.14, 0), 0.1)
+candle("CandleL", (-0.42, 0.66, 0), 0.12, 1.0)
+candle("CandleR", (0.66, 0.62, 0), 0.08, 0.85)
+candle("CandleF", (-0.86, 0.14, 0), 0.06, 0.6)
 
 # A dim warm fill from above and a faint cool rim from behind, so the table reads without flattening the candles.
 bpy.ops.object.light_add(type="AREA", location=(0, 0.1, 1.6))
@@ -431,7 +480,7 @@ def write_projection():
         "tomeRight": quad("TomePage1", 0.12, 0.165, 0.015),
         "title": quad("TitleCard", 0.22, 0.055, 0.002),
         "dial": quad("DialFace", 0.095, 0.095, 0.002),
-        "chestFront": px(bpy.data.objects["ChestLock"].matrix_world.translation + Vector((0, 0, -0.06))),
+        "chestFront": px(bpy.data.objects["treasure_chest_lock"].matrix_world @ Vector((0, 0, -0.32))),
         "seats": [px((x, y, 0.32)) for x, y in seats],
     }
     with open(os.path.join(OUT, "projection.json"), "w") as f:
@@ -485,12 +534,20 @@ if not PREVIEW:
     id_pass("ids.png")
 if not PREVIEW:
     # The chest, open: its lid up and gold heaped inside.
-    bpy.data.objects["ChestHinge"].rotation_euler = Euler((math.radians(-105), 0, 0))
-    for i in range(18):
-        a = i * 2.4
-        local = Vector((math.cos(a) * 0.045 * (i % 3), math.sin(a) * 0.03 * (i % 4), 0.124 + (i % 3) * 0.007))
-        g = cyl(f"ChestGold{i}", 0.022, 0.006, (0, 0, 0), M["gold"], "market", rot=(math.radians(i * 7), math.radians(i * 11), 0))
-        g.location = chest_root.matrix_world @ local
+    bpy.data.objects["treasure_chest_lid"].rotation_euler = Euler((math.radians(-100), 0, 0))
+    bpy.context.view_layer.update()
+    # A heap of small coins: a mound in the chest's own frame (its interior spans x +-0.42, y +-0.22 before scaling).
+    shine = flat("GoldShine", (0.95, 0.58, 0.1), rough=0.28, metal=1.0, emit=(1.0, 0.55, 0.1), strength=0.35)
+    for i in range(90):
+        a, r = i * 2.39996, 0.4 * math.sqrt((i + 0.5) / 90)
+        x, y = math.cos(a) * r * 0.95, math.sin(a) * r * 0.5
+        z = 0.30 + 0.16 * (1 - (x / 0.42) ** 2 - (y / 0.22) ** 2) ** 0.5 if abs(x) < 0.42 and abs(y) < 0.22 else 0.30
+        g = cyl(f"ChestGold{i}", 0.012, 0.003, (0, 0, 0), shine, "market", rot=(math.radians((i * 37) % 50 - 25), math.radians((i * 53) % 50 - 25), 0), verts=24)
+        g.location = chest_root.matrix_world @ Vector((x, y, z))
+    # The treasure catches the light as the lid comes up.
+    bpy.ops.object.light_add(type="POINT", location=chest_root.matrix_world @ Vector((0, 0, 0.75)))
+    glow = bpy.context.object.data
+    glow.energy, glow.color, glow.shadow_soft_size = 6, (1.0, 0.75, 0.35), 0.05
     render("beauty-open.png")
     id_pass("ids-open.png")
 print("LANDING_TABLE_DONE")

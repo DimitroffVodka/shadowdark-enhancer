@@ -15,7 +15,7 @@ test("the props shown: the tiles left on, games when offered, the market when it
   assert.deepEqual(tableProps(page({ games: { on: false }, places: ["quests"] }), { hasMerchant: false }).map((p) => p.id), ["quests"]);
   const p = tableProps(page(), { hasMerchant: true, labels: { quests: { name: "Quest Log", disabled: false } } })[0];
   assert.equal(p.name, "Quest Log");
-  assert.ok(p.src.endsWith("/props/quests.webp") && Number.isFinite(p.x) && Number.isFinite(p.w));
+  assert.ok(/\/props\/quests\.webp\?v=\w+$/.test(p.src) && Number.isFinite(p.x) && Number.isFinite(p.w));
 });
 
 test("the click map names the prop under a pixel, 20 grey levels a prop, and a lossy pixel still rounds right", () => {
