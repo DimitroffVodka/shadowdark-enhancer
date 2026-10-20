@@ -67,6 +67,7 @@ import { registerTurnSkip } from "./crawl-strip/turn-skip.mjs";
 import { MovementTracker } from "./crawl-strip/movement-tracker.mjs";
 import { registerMountedTokens } from "./mounted/mounted-tokens.mjs";
 import { EncounterCheck } from "./encounter/encounter-check.mjs";
+import { openCodex, registerCodex } from "./encounter/encounter-codex.mjs";
 import { tableForHex } from "./encounter/encounter-terrain.mjs";
 import { migrateEncounterSources } from "./encounter/encounter-sources.mjs";
 import { MonsterCreator } from "./monster-creator/encounter-creator.mjs";
@@ -83,6 +84,7 @@ import { LootCatalog } from "./loot/loot-catalog.mjs";
 import { LootGenerator } from "./loot/loot-generator.mjs";
 import { LootDelivery } from "./loot/loot-delivery.mjs";
 import { LootDrops } from "./loot/loot-drops.mjs";
+import { NpcInventory } from "./npc-inventory/npc-inventory.mjs";
 import { ItemDrops } from "./loot/item-drops.mjs";
 import { LootTableTag } from "./loot/loot-table-tag.mjs";
 import { TableRegistry } from "./importer/tables/table-registry.mjs";
@@ -146,7 +148,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "d599bd6af27d";
+const STYLESHEET_REV = "a28efdb66f88";
 
 // The same problem for the SCRIPTS, which cannot be solved the same way: their
 // URLs come from the manifest, which Foundry validates as real package paths,
@@ -161,7 +163,7 @@ const STYLESHEET_REV = "d599bd6af27d";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "fab88a619ae6";
+const BUILD_REV = "0511f0e4b305";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -475,6 +477,7 @@ Hooks.once("init", () => {
   registerStage();
   registerTempHp();
   registerCarousing();
+  registerCodex();
 
   // "Character Builder" launch button in the Actors sidebar header — the single
   // entry point for a fresh build. It opens the builder with no actor (it creates a fresh one on
@@ -558,6 +561,7 @@ Hooks.once("init", () => {
     // 1.31.0 — additive: owns("hex.baked", scene), a map baked with Extras that the Enhancer draws itself.
     // 1.32.0 — additive: quest steps gain parent and secret, quests gain reveal; a non-GM gets the player view.
     //          Also giver, rewards.notes, startsAt, deadline, autoFail and the questLine chat flag (see docs/API.md).
+    // 1.33.0 — additive: encounter.openCodex, the players' Encounters Met journal.
     // 1.34.0 — additive: overland.setAutoTravel, the standing automatic journey; the travel state gains auto.
     // 1.35.0 — additive: the automatic journey's saved destination (overland.autoGoal) and Travel > Resume auto.
     // 1.36.0 — additive: overland.travelBlocked, why the party cannot enter a destination today.
@@ -682,6 +686,9 @@ Hooks.once("init", () => {
       // terrain's table, else the active table. Every encounter check uses it,
       // so Shadowdark Extras' hex fog can roll the same one. { hour } overrides the clock.
       tableForHex: (hex, opts) => tableForHex(hex, opts),
+      // The players' own log of what they have met: a journal entry, a page a
+      // region, written when an encounter is shown to them. false when none yet.
+      openCodex: () => openCodex(),
     },
     // Battle maps for encounters (docs/plans/encounter-battle-maps.md). GM-only, except pick(),
     // which only asks. Each part loads on first use; all five return promises.
@@ -1260,14 +1267,11 @@ Hooks.once("ready", () => {
   wireBattleMaps("registerBattleChatButtons", () => import("./encounter/battle-maps/battle-actions.mjs"));
   // A GM who reloads with a battle staged gets the players' readout back: it lived in the page they just reloaded.
   if (game.user.isGM) wireBattleMaps("resumeBattleReadout", () => import("./encounter/battle-maps/encounter-battle.mjs"));
-  // Every client reframes an Arena scene's first view when the GM sets it.
-  wireBattleMaps("registerArenaViewHook", () => import("./encounter/battle-maps/encounter-battle.mjs"));
-  // A monster dragged onto a live Arena fight joins its combat (the active GM's client does it).
-  if (game.user.isGM) wireBattleMaps("registerArenaTokenHook", () => import("./encounter/battle-maps/encounter-battle.mjs"));
   // If the GM enabled the monster compendium-art overlay, inject it now so every
   // monster drag carries the referenced art (all clients; GM-only settings write).
   MonsterTokenArt.initCompendiumArt();
   LootDrops.init();
+  NpcInventory.init();
   ItemDrops.init();
   // Token HUD "adjust monster level" button (GM-only, NPC tokens).
   registerQuickAdjustHUD();

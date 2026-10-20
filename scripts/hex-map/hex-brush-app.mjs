@@ -26,7 +26,7 @@
 
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { decodeTags, FEATURES } from "./tag-store.mjs";
-import { HexTagOverlay, OTHER, FEATURE_LABELS, terrainColor, TOOLS_HOOK } from "./tag-overlay.mjs";
+import { HexTagOverlay, OTHER, FEATURE_LABELS, terrainColor, readableInk, TOOLS_HOOK } from "./tag-overlay.mjs";
 import { HexTaggerApp } from "./hex-tagger-app.mjs";
 import { cellNumber, originFromFlag } from "./geometry.mjs";
 import { brushTerrains, exemplarCandidates, chooseExemplar, edgeInk, glyphRunsIntoNumber, TERRAIN_ICONS, MAP_ICON } from "./hex-picture.mjs";
@@ -235,15 +235,15 @@ export class HexBrushApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // A brush on a word the palette lacks is the Other tile (nothing re-renders the window while painting, but be exact).
     const otherSelected = !!brush?.terrain && !terrains.some((o) => o.value === brush.terrain);
     const tiles = [
-      ...terrains.map((o) => ({ ...o, img: pictures.get(o.value) ?? "", color: cssColor(terrainColor(o.value)), icon: TERRAIN_ICONS[o.value] ?? MAP_ICON, selected: o.value === brush?.terrain })),
-      { value: OTHER, label: t("SDE.hexMap.label.otherOption"), img: "", color: "#6f6f6f", icon: "fa-pen", selected: otherSelected },
+      ...terrains.map((o) => ({ ...o, img: pictures.get(o.value) ?? "", color: cssColor(terrainColor(o.value)), ink: readableInk(terrainColor(o.value)), icon: TERRAIN_ICONS[o.value] ?? MAP_ICON, selected: o.value === brush?.terrain })),
+      { value: OTHER, label: t("SDE.hexMap.label.otherOption"), img: "", color: "#6f6f6f", ink: "#fff", icon: "fa-pen", selected: otherSelected },
     ];
     // One tab stop: the picked tile, else the first.
     const stop = tiles.find((o) => o.selected) ?? tiles[0];
     for (const o of tiles) o.tab = o === stop ? 0 : -1;
     return {
       tiles,
-      current: tiles.find((o) => o.selected) ?? { label: t("SDE.hexMap.label.none"), color: "#6f6f6f", icon: MAP_ICON, img: "" },
+      current: tiles.find((o) => o.selected) ?? { label: t("SDE.hexMap.label.none"), color: "#6f6f6f", ink: "#fff", icon: MAP_ICON, img: "" },
       otherSelected,
       otherWord: otherSelected ? brush.terrain.replace(/_/g, " ") : "",
       features: FEATURES.map((o) => ({ value: o, label: t(FEATURE_LABELS[o]), icon: FEATURE_ICONS[o], checked: !!brush?.features?.includes(o) })),

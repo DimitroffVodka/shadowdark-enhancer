@@ -54,7 +54,7 @@ import {
   makePreloadWatch, panelAfter, panelOnScene, readoutKey, readoutShown, touchesBattle,
 } from "../encounter/battle-maps/battle-actions-core.mjs";
 import {
-  bringTheTable, changeBattleMap, describeBattle, loadBattleParts, openArenaFight, openBattleMap, partyContext, returnToTravel,
+  bringTheTable, changeBattleMap, describeBattle, loadBattleParts, openBattleMap, partyContext, returnToTravel,
 } from "../encounter/battle-maps/battle-actions.mjs";
 import { postEncounter } from "../encounter/encounter-draw.mjs";
 import { showNpcPreview, hideNpcPreview } from "../encounter/npc-preview.mjs";
@@ -427,7 +427,7 @@ export const TravelBar = {
 
   /**
    * One battle control, from the Encounter panel here or the Crawl Bar's item and panel.
-   * @param {"battle"|"battleMap"|"arenaFight"|"chooseBattleMap"|"bringTable"|"changeBattleMap"|"returnToTravel"|"keepBattle"} action
+   * @param {"battle"|"battleMap"|"chooseBattleMap"|"bringTable"|"changeBattleMap"|"returnToTravel"|"keepBattle"} action
    *   battle folds or opens the panel; keepBattle ticks Keep
    * @param {{keep?:boolean}} [opts]  keep: the Keep checkbox as the GM sees it (Return takes it; the tick sets it)
    */
@@ -440,10 +440,6 @@ export const TravelBar = {
       case "chooseBattleMap": {
         const { terrain, hexNum, originSceneId } = partyContext();
         return this._act(() => openBattleMap({ enc: overlandState().encounter, terrain, hex: hexNum, originSceneId, choose: action === "chooseBattleMap" }, this._io));
-      }
-      case "arenaFight": {
-        const { terrain, hexNum, originSceneId } = partyContext();
-        return this._act(() => openArenaFight({ enc: overlandState().encounter, terrain, hex: hexNum, originSceneId }, this._io));
       }
       case "bringTable": return this._act(() => bringTheTable({ battle, preload: battle && this._parts?.preloadSnapshot(battle.sceneId) }, this._io));
       case "changeBattleMap": return this._act(() => changeBattleMap({ battle }, this._io));
@@ -1011,7 +1007,6 @@ export const TravelBar = {
       }
       // The battle map (docs/plans/encounter-battle-maps.md): set it up, bring the table, change it, return to travel.
       case "battleMap":
-      case "arenaFight":
       case "chooseBattleMap":
       case "bringTable":
       case "changeBattleMap":

@@ -24,7 +24,7 @@ const settings = {
 };
 const pauses = [];
 Object.assign(globalThis, {
-  foundry: new Proxy(deep, { get: (t, k) => (k === "utils" ? new Proxy({ parseUuid }, { get: (u, n) => u[n] ?? deep }) : deep[k]) }), CONFIG: {}, CONST: { DICE_ROLL_MODES: { PRIVATE: "gmroll", PUBLIC: "publicroll" } },
+  foundry: new Proxy(deep, { get: (t, k) => (k === "utils" ? new Proxy({ parseUuid, randomID: () => "enc1" }, { get: (u, n) => u[n] ?? deep }) : deep[k]) }), CONFIG: {}, CONST: { DICE_ROLL_MODES: { PRIVATE: "gmroll", PUBLIC: "publicroll" } },
   Hooks: { on() {}, once() {}, callAll() {} }, ui: { notifications: { warn() {} } }, canvas: null,
   ChatMessage: { getWhisperRecipients: () => [] },
   Roll: class {
@@ -104,7 +104,7 @@ test("a quiet check posts nothing and opens nothing; a hit draws its encounter a
     const hit = await EncounterCheck.check({ threshold: 1, quiet: true, travel: true, label: "Day check, 10:00", clockLabel: "Day check, 10:00" });
     assert.equal(hit.hit, true);
     assert.deepEqual(hit.encounter, {
-      kind: "flavor", text: "Three wolves howl", html: "Three wolves howl", via: null, also: [],
+      id: "enc1", kind: "flavor", text: "Three wolves howl", html: "Three wolves howl", via: null, also: [],
       chain: [{ name: "Wandering Beasts", formula: "1d6", roll: 3 }],
     });
     assert.equal(cards.length, 0, "no check card");

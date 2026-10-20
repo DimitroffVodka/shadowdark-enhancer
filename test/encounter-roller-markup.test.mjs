@@ -55,3 +55,11 @@ test("a table row and a built slot with a creature each carry a map button, and 
   assert.match(app, /previewBattleMap:\s+EncounterRollerApp\.prototype\._onPreviewBattleMap/);
   assert.match(app, /buildBattleMapSlot:\s+EncounterRollerApp\.prototype\._onBuildBattleMapSlot/);
 });
+
+test("a Build tab slot result carries an id, so posting it and then fighting it files one codex line", async () => {
+  const app = await read("scripts/encounter/encounter-roller-app.mjs");
+  const body = app.slice(app.indexOf("async _buildResultFromSlot"), app.indexOf("async _buildResultFromSlot") + 1800);
+  assert.match(body, /kind: "monster"/);
+  assert.equal((body.match(/id: foundry\.utils\.randomID\(\)/g) ?? []).length, 2, "the monster and the flavor result");
+  assert.match(app, /\{ id: entry\.id, kind: entry\.kind, text: entry\.text/, "a drawn flavor result keeps its id");
+});

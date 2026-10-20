@@ -88,7 +88,7 @@ const actions = (html) => [...html.matchAll(/data-action="(\w+)"/g)].map((m) => 
 
 test("before a battle is set up, a creature offers Battle map and Choose map beside Post to chat", () => {
   const html = encounterPanel({ enc: wolves, cal: gregorian });
-  assert.deepEqual(actions(html).filter((a) => a !== "open"), ["postEncounter", "battleMap", "arenaFight", "chooseBattleMap", "openRoller", "resume"]);
+  assert.deepEqual(actions(html).filter((a) => a !== "open"), ["postEncounter", "battleMap", "chooseBattleMap", "openRoller", "resume"]);
   assert.ok(!html.includes("sde-hud-battle"), "no section until there is a battle");
 });
 
@@ -98,7 +98,7 @@ test("only a creature gets battle buttons: a point of interest, an empty draw, o
   for (const enc of [flavor, empty]) {
     for (const withBattle of [null, battle()]) {
       const html = encounterPanel({ enc, cal: gregorian, battle: withBattle, preload: snapshot(row("Ann", "ready")) });
-      assert.ok(!/data-action="(battleMap|arenaFight|chooseBattleMap|bringTable|changeBattleMap|returnToTravel)"/.test(html) && !html.includes("sde-hud-battle"), enc.kind);
+      assert.ok(!/data-action="(battleMap|chooseBattleMap|bringTable|changeBattleMap|returnToTravel)"/.test(html) && !html.includes("sde-hud-battle"), enc.kind);
     }
   }
   const off = encounterPanel({ enc: wolves, cal: gregorian, battleMaps: false, battle: battle() });
@@ -118,7 +118,7 @@ test("staged, not everyone ready: the map, a row each with its state and bar, an
   assert.ok(html.includes("SDE.encounterMaps.preload.summary.pending") && html.includes("Bob, Cy, Di"), "who is being waited on, failed included");
   assert.deepEqual(actions(html).filter((a) => a !== "open"),
     ["bringTable", "changeBattleMap", "keepBattle", "returnToTravel", "postEncounter", "openRoller", "resume"], "the section sits above the footer");
-  assert.ok(!html.includes('data-action="battleMap"') && !html.includes('data-action="arenaFight"') && !html.includes('data-action="chooseBattleMap"'), "one battle at a time");
+  assert.ok(!html.includes('data-action="battleMap"') && !html.includes('data-action="chooseBattleMap"'), "one battle at a time");
 });
 
 test("staged, everyone ready: Bring the table turns green and the summary says so", () => {
@@ -252,12 +252,4 @@ test("the Crawl Bar's battle item: its name and stage on a button that folds or 
   assert.ok(open.includes('data-action="keepBattle" checked>'), "the tick the clock bar kept");
   assert.ok(open.includes("Ann"), "the readout");
   assert.ok(!battleItem({ battle: battle({ label: "<i>x</i>" }), open: true }).includes("<i>x</i>"), "a map's name is text");
-});
-
-test("Arena fight sits beside Battle map before a fight, and a point of interest has none", () => {
-  const html = encounterPanel({ enc: wolves, cal: gregorian });
-  const btn = html.match(/<button[^>]*data-action="arenaFight"[^>]*>/)?.[0] ?? "";
-  assert.ok(btn.includes("SDE.stage.arena.encounterHint") || html.includes("SDE.stage.arena.encounterButton"));
-  const flavor = { ...wolves, kind: "flavor", poi: true, text: "A ruined watchtower", chain: [], also: [] };
-  assert.ok(!encounterPanel({ enc: flavor, cal: gregorian }).includes('data-action="arenaFight"'));
 });

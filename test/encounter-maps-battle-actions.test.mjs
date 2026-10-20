@@ -27,7 +27,7 @@ globalThis.canvas = { scene: { id: "viewed" } };
 globalThis.foundry = { applications: { handlebars: { renderTemplate: async (template, data) => JSON.stringify({ template, battleMap: !!data.battleMap }) } } };
 
 const actions = await import("../scripts/encounter/battle-maps/battle-actions.mjs");
-const { openArenaFight, openPartyArenaFight, openBattleMap, openPartyBattleMap, changeBattleMap, bringTheTable, returnToTravel, continueTravel, describeBattle, loadBattleParts, partyContext, wireBattleCard, registerBattleChatButtons } = actions;
+const { openBattleMap, openPartyBattleMap, changeBattleMap, bringTheTable, returnToTravel, continueTravel, describeBattle, loadBattleParts, partyContext, wireBattleCard, registerBattleChatButtons } = actions;
 const { postEncounter } = await import("../scripts/encounter/encounter-draw.mjs");
 
 const wolves = { kind: "monster", uuid: "Actor.wolf", name: "Wolf", count: 3, distanceRoll: 4, activityRoll: 8, reactionRoll: 7, img: "wolf.webp", chain: [{ name: "x" }] };
@@ -85,6 +85,7 @@ test("setUp's arguments: the trimmed encounter, the terrain and the table's look
   assert.deepEqual([picked.mapId, picked.variant, picked.night, picked.camping], ["forest-woods", "night", true, false]);
   assert.equal(setUpArgs({ enc: null, terrain: "forest" }).encounter, null, "Tools > Battle map: the party alone");
   assert.deepEqual(cardEncounter({ uuid: "Actor.rat", name: "Rat" }), { kind: "monster", uuid: "Actor.rat", name: "Rat", count: 1, distanceRoll: null, activityRoll: null, reactionRoll: null, img: null }, "one, when no count was rolled");
+  assert.equal(cardEncounter({ id: "enc1", uuid: "Actor.rat" }).id, "enc1", "the draw's id rides along, so the codex files a post and its battle as one line");
 });
 
 test("Change map opens the picker on the battle's terrain and the look it has", () => {
@@ -104,7 +105,6 @@ test("a card keeps only what its button needs, and an older or creature-less car
 test("which controls a battle offers: none yet, staged, live", () => {
   assert.deepEqual(battleControls(null), { start: true, bring: false, change: false, back: false });
   assert.deepEqual(battleControls({ status: "staged" }), { start: false, bring: true, change: true, back: true });
-  assert.deepEqual(battleControls({ status: "staged", arena: "arena-pit" }), { start: false, bring: true, change: false, back: true });
   assert.deepEqual(battleControls({ status: "live" }), { start: false, bring: false, change: false, back: true });
 });
 
@@ -775,71 +775,4 @@ test("the reaction words on the Encounter panel use the HUD's own colours as wel
     const [ink, panel] = [declared[name], declared["sd-panel"]];
     assert.ok(ink && panel && contrast(ink, panel) >= 4.5, `${reaction}: ${ink} on ${panel} is ${ink && panel ? contrast(ink, panel).toFixed(2) : "?"}:1`);
   }
-});
-
-// ─── Arena fight ────────────────────────────────────────────────────────────
-
-const arenaFakes = (opts) => {
-  const f = fakes(opts);
-  (async () => { const b = await f.io.battle(); b.setUp = async (args) => { f.calls.push(["setUp", args]); return { id: "b1", status: "staged" }; }; })();
-  return f;
-};
-
-test("Arena fight: one click is setUp with the arena look and view:false, then bringTable, nothing else", async () => {
-  const { calls, io } = arenaFakes({ night: true });
-  await new Promise((r) => setImmediate(r));
-  await openArenaFight({ enc: wolves, terrain: "forest", hex: 7, originSceneId: "hexes" }, io);
-  assert.deepEqual(names(calls), ["setUp", "bringTable"]);
-  const sent = calls[0][1];
-  assert.equal(sent.arena, "arena-pit");
-  assert.equal(sent.view, false);
-  assert.equal(sent.encounter.name, "Wolf");
-  assert.deepEqual([sent.terrain, sent.hex, sent.originSceneId, sent.night], ["forest", 7, "hexes", true]);
-  assert.deepEqual(calls[1], ["bringTable", "b1"]);
-});
-
-test("Arena fight: the default look follows the Backdrop's ready place, and a picked look wins", async () => {
-  const settings = game.settings;
-  try {
-    game.settings = { get: () => ({ shown: true, place: "ready-tavern" }) };
-    let f = arenaFakes();
-    await new Promise((r) => setImmediate(r));
-    await openArenaFight({ enc: wolves }, f.io);
-    assert.equal(f.calls[0][1].arena, "arena-tavern");
-    f = arenaFakes();
-    await new Promise((r) => setImmediate(r));
-    await openArenaFight({ enc: wolves, look: "arena-ring" }, f.io);
-    assert.equal(f.calls[0][1].arena, "arena-ring");
-    game.settings = { get: () => ({ shown: false, place: "ready-tavern" }) };
-    f = arenaFakes();
-    await new Promise((r) => setImmediate(r));
-    await openArenaFight({ enc: wolves }, f.io);
-    assert.equal(f.calls[0][1].arena, "arena-pit", "a hidden Backdrop is no place");
-  } finally {
-    game.settings = settings;
-  }
-});
-
-test("Arena fight is refused while a battle runs, and for a player or a non-creature", async () => {
-  const busy = arenaFakes({ current: { id: "b1", status: "live" } });
-  warned.length = 0;
-  assert.equal(await openArenaFight({ enc: wolves }, busy.io), null);
-  assert.deepEqual([names(busy.calls), warned], [[], ["SDE.encounterMaps.hud.running"]]);
-  assert.equal(await openArenaFight({ enc: { kind: "flavor", text: "x" } }, arenaFakes().io), null);
-  game.user.isGM = false;
-  const player = arenaFakes();
-  assert.equal(await openArenaFight({ enc: wolves }, player.io), null);
-  game.user.isGM = true;
-  assert.deepEqual(player.calls, []);
-});
-
-test("Tools > Arena fight: the picked look, the party alone; a cancelled picker does nothing", async () => {
-  const { calls, io } = arenaFakes();
-  await new Promise((r) => setImmediate(r));
-  await openPartyArenaFight({ ...io, pickLook: async () => "arena-market" });
-  assert.deepEqual(names(calls), ["setUp", "bringTable"]);
-  assert.deepEqual([calls[0][1].encounter, calls[0][1].arena, calls[0][1].view], [null, "arena-market", false]);
-  const closed = arenaFakes();
-  assert.equal(await openPartyArenaFight({ ...closed.io, pickLook: async () => null }), null);
-  assert.deepEqual(closed.calls, []);
 });

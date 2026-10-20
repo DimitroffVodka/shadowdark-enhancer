@@ -32,8 +32,6 @@ const brokenRepairMissing = (camp) => camp.participants.some((p) => {
 });
 export const campOf = party => structuredClone(flag(party, "camping"));
 const save = (party, camp, options) => replaceModuleFlag(party, "camping", camp, {}, options);
-// The Stage raises its camp picture only on the write that creates a camp; update hooks on every client read this.
-const begin = () => ({ [MODULE_ID]: { campBegin: true } });
 /**
  * A camp's participants are fixed when the camp starts, but the roster can change before it resolves: a PC added
  * mid-day must not be frozen out of tonight's camp (no task, no roll, no rations). While the camp is still being
@@ -186,7 +184,7 @@ async function perform(party, action, data, user) {
     const participants = Party.members(party, { charactersOnly: true }).map(uuid => ({ uuid, actorId: actorOf(uuid).id, confirmed: true, participate: true, task: "", ability: null, craft: "torch", watchHalf: "first" }));
     const mounts = Party.members(party).filter(uuid => isMount(actorOf(uuid))).map(uuid => ({ uuid, actorId: actorOf(uuid).id }));
     for (const p of mounts) await adoptMountScores(actorOf(p.uuid));
-    camp = carryOver({ id: foundry.utils.randomID(), phase: "setup", participants, mounts, tasks: definitions(party), fuel: "none", anchor: anchor(party, participants), results: {}, effects: {}, day: null }, camp); await save(party, camp, data.preview ? {} : begin()); return camp;
+    camp = carryOver({ id: foundry.utils.randomID(), phase: "setup", participants, mounts, tasks: definitions(party), fuel: "none", anchor: anchor(party, participants), results: {}, effects: {}, day: null }, camp); await save(party, camp); return camp;
   }
   // Camp choices can be set before the party stops: they are the next automatic camp's settings, editable and
   // without results, so every night repeats them until someone changes them.

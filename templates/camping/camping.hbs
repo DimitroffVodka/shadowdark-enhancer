@@ -9,7 +9,7 @@
   {{#if empty}}
     <div class="ui-empty"><span>{{localize "SDE.camping.rules"}}</span>
       {{#if manager}}<button type="button" class="ui-btn primary" data-action="begin">{{localize "SDE.camping.begin"}}</button>{{/if}}
-      {{#if isGM}}<button type="button" class="ui-btn" data-action="showCampPicture" data-tooltip="{{localize 'SDE.stage.hintCampPicture'}}">{{localize "SDE.stage.campPicture"}}</button>{{/if}}</div>
+      {{#if isGM}}<button type="button" class="ui-btn" data-action="campPicture" data-tooltip="{{localize 'SDE.stage.hintCampPicture'}}">{{#if campPictureUp}}{{localize "SDE.stage.hideCampPicture"}}{{else}}{{localize "SDE.stage.campPicture"}}{{/if}}</button>{{/if}}</div>
   {{/if}}
 
   <details class="cp-more cp-rules"><summary>{{localize "SDE.camping.rules"}}</summary><p>{{localize "SDE.camping.foodRule"}}</p><p>{{localize "SDE.camping.fireRule"}}</p></details>
@@ -84,7 +84,7 @@
     <div class="ui-actions">
       {{#if canCancel}}<button type="button" class="ui-btn ghost" data-action="cancel">{{localize "SDE.camping.cancel"}}</button>{{/if}}
       <div class="ui-right">
-        {{#if isGM}}<button type="button" class="ui-btn" data-action="showCampPicture" data-tooltip="{{localize 'SDE.stage.hintCampPicture'}}">{{localize "SDE.stage.campPicture"}}</button>{{/if}}
+        {{#if isGM}}<button type="button" class="ui-btn" data-action="campPicture" data-tooltip="{{localize 'SDE.stage.hintCampPicture'}}">{{#if campPictureUp}}{{localize "SDE.stage.hideCampPicture"}}{{else}}{{localize "SDE.stage.campPicture"}}{{/if}}</button>{{/if}}
         {{#if canResolve}}<button type="button" class="ui-btn primary" data-action="resolve">{{localize "SDE.camping.resolve"}}</button>{{/if}}
         {{#if canResume}}<button type="button" class="ui-btn primary" data-action="resume">{{localize "SDE.camping.resume"}}</button>{{/if}}
         {{#if canNight}}{{#if shortageWarning}}<button type="button" class="ui-btn primary" data-action="acceptShortages">{{localize "SDE.camping.continueHungry"}}</button>{{else}}<button type="button" class="ui-btn primary" data-action="night">{{#if interrupted}}{{localize "SDE.overland.resume"}}{{else}}{{localize "SDE.camping.passNight"}}{{/if}}</button>{{/if}}{{/if}}

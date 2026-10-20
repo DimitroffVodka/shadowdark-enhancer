@@ -55,8 +55,6 @@ const TOOL_OPENERS = {
   bastions:    (api) => api.bastion.openPanel(),
   battleMap:   () => import("../encounter/battle-maps/battle-actions.mjs").then(({ openPartyBattleMap }) => openPartyBattleMap())
     .catch((err) => console.error("shadowdark-enhancer | battle map", err)),
-  arenaFight:  () => import("../encounter/battle-maps/battle-actions.mjs").then(({ openPartyArenaFight }) => openPartyArenaFight())
-    .catch((err) => console.error("shadowdark-enhancer | arena fight", err)),
   // A dialog: the Tools panel is closed before it opens.
   rumors:      () => import("../rumors/rumors.mjs").then(({ askAndGive }) => askAndGive())
     .catch((err) => console.error("shadowdark-enhancer | give rumors", err)),

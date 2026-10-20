@@ -213,7 +213,6 @@ export function encounterPanel({ enc, cal, battle = null, preload = null, keep =
     <div class="sde-hud-pf">
       ${c.kind === "empty" ? "" : key("postEncounter", t("SDE.clock.enc.post"), { cls: c.kind === "flavor" ? "sde-hud-primary" : "", hint: t("SDE.clock.enc.postHint") })}
       ${battling && !battle ? key("battleMap", t("SDE.encounterMaps.hud.battleMap"), { cls: "sde-hud-primary", hint: t("SDE.encounterMaps.hud.battleMapHint") })
-        + key("arenaFight", t("SDE.stage.arena.encounterButton"), { hint: t("SDE.stage.arena.encounterHint") })
         + key("chooseBattleMap", t("SDE.encounterMaps.hud.chooseMap"), { cls: "sde-hud-ghost", hint: t("SDE.encounterMaps.hud.chooseMapHint") }) : ""}
       ${key("openRoller", t("SDE.clock.enc.roller"), { cls: "sde-hud-ghost", hint: t("SDE.clock.enc.rollerHint") })}
       <span class="sde-hud-grow"></span>

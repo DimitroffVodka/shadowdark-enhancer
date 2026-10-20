@@ -4,6 +4,7 @@ import { requestCamp, campOf, campTorchPlan, syncParticipants } from "./camping.
 import { AUTO_BLOCKED, CAMP_LABELS } from "./camping-core.mjs";
 import { foodPreview, campEaters } from "./camping-nutrition.mjs";
 import { dateParts } from "../time/time-core.mjs";
+import { campPictureUp } from "../stage/stage-core.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const t = (key) => game.i18n.localize(key);
@@ -16,7 +17,7 @@ export class CampingApp extends HandlebarsApplicationMixin(ApplicationV2) {
     night: function () { return this.change("night"); },
     acceptShortages: function () { return this.change("night", { acceptShortages: true }); },
     // Lazy: stage.mjs imports camping.mjs. The Party sheet routes its embedded copy of this button here too (party-app activityAction).
-    showCampPicture: async function () { if (!game.user.isGM) return; return (await import("../stage/stage.mjs")).raiseByHand(this.party); },
+    campPicture: async function () { if (!game.user.isGM) return; return (await import("../stage/stage.mjs")).toggleCampPicture(this.party); },
   } };
   static PARTS = { body: { template: `modules/${MODULE_ID}/templates/camping/camping.hbs`, scrollable: [".sde-camping-body"] } };
   constructor(party, options = {}, host = null) { super(options); this.party = party; this.host = host; }
@@ -45,7 +46,7 @@ export class CampingApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
   async _prepareContext() {
     const camp = syncParticipants(this.party, campOf(this.party)), manager = Party.canManage(this.party);
-    if (!camp) return { title: this.party.name, embedded: !!this.host, manager, isGM: game.user.isGM, empty: true, error: this.error };
+    if (!camp) return { title: this.party.name, embedded: !!this.host, manager, isGM: game.user.isGM, empty: true, error: this.error, campPictureUp: campPictureUp(game.settings.get(MODULE_ID, "stage")) };
     const setup = camp.phase === "setup", fuel = camp.phase === "fuel", plan = campTorchPlan(this.party, camp);
     const planning = setup && camp.preview === true;
     const stormHunt = !!(camp.stormy && camp.harsh);
@@ -61,6 +62,7 @@ export class CampingApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const unfed = campEaters(camp).filter(p => !food.find(f => f.actorId === p.actorId)?.fed)
       .map(p => game.actors.contents.find(a => a.uuid === p.uuid)?.name ?? t("SDE.party.missing"));
     return { title: this.party.name, embedded: !!this.host, manager, setup, fuel, planning, isGM: game.user.isGM, error: this.error, interrupted,
+      campPictureUp: campPictureUp(game.settings.get(MODULE_ID, "stage")),
       autoBlockedNote: AUTO_BLOCKED[camp.autoBlocked] ? t(AUTO_BLOCKED[camp.autoBlocked]) : null,
       stormHuntNote: stormHunt ? t("SDE.camping.stormHuntNote") : null,
       phase: t(CAMP_LABELS.phase[camp.phase]), fire: t(camp.fire?.lit ? "SDE.camping.fireLit" : "SDE.camping.noFire"), hasResults: Object.keys(camp.results).length > 0,

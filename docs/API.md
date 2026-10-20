@@ -316,6 +316,7 @@ await api.encounter.check();          // run an encounter check
 await api.encounter.check({ threshold: 2, hex, scene, label, clockLabel }); // 1.17.0: the chance, hex, map and labels given
 await api.encounter.check({ hex, scene, travel: true }); // 1.21.0: the party is travelling
 api.encounter.openRoller();           // roller window
+api.encounter.openCodex();            // 1.33.0: the players' Encounters Met journal; false before the first line
 api.encounter.setActiveTable(uuid);   // bind the active encounter table
 api.encounter.getThreshold(); api.encounter.setThreshold(3);
 api.encounter.getCheckFrequency(); api.encounter.setCheckFrequency(3); // automatic crawl-round check: every 3 rounds, counted from the last check
@@ -343,6 +344,17 @@ the check. Default `false`.
 
 Overland's travel checks use these; its moves pass `travel: true`, its camps
 and Start day don't.
+
+### `encounter.openCodex()`
+
+Added in 1.33.0. Opens the **Encounters Met** journal — the players' own log of what the table
+has seen. A line is filed when an encounter is shown to them: posted to chat
+(`postEncounter` with a public post) or brought to the table as a battle map.
+A GM-only post is not filed. One page a region (and one for what was met off
+the map), newest first, each line the day and hour, the hex and terrain, and
+the creature with its art, count and facets — or the row's text for a point of
+interest. Returns `false` when nothing has been met yet. Entries live on each
+page's `encounterCodexPage` flag and the page's text is rebuilt from them.
 
 ### `encounter.tableForHex(hex, { hour?, moon?, scene? })`
 
@@ -2504,6 +2516,7 @@ scene's choice changes, and once on load.
 - `1.36.0` adds `overland.travelBlocked({ i, j })`, why the party cannot enter a destination today (`"storm"`, `"weather"`, `"terrain"` or `null`); the automatic journey's day-walking. `"weather"` is worth retrying at dawn; `"terrain"` is permanent and stops the journey.
 - `1.35.0` remembers the automatic journey's destination as `autoGoal` and adds `overland.setAutoGoal` / `overland.resumeAutoTravel`, so a stop at a keyed location or another interruption can be picked up with Travel > Resume auto.
 - `1.34.0` adds `overland.setAutoTravel`, the standing automatic-journey switch; the travel state gains `auto`.
+- `1.33.0` adds `encounter.openCodex()`, the players' Encounters Met journal.
 - `1.27.0` adds the `bastion` namespace (the Bastion actor type and its sheet).
 - `1.4.0` adds the shared `forgeLoot.open()` preview shell. Generator rules and
   document writes remain behind the later NPC/Rival adapter implementations.
