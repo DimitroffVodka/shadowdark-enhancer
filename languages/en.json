@@ -4319,6 +4319,8 @@
   "SDE.clock.seasonNext": "{season} in {n} days",
   "SDE.clock.seasonNextOne": "{season} tomorrow",
   "SDE.clock.unrolled": "Unrolled",
+  "SDE.clock.supplies.torches": "{n} fresh torches in the party's packs (unlit, unspent)",
+  "SDE.clock.supplies.rations": "{n} rations in the party's packs, mounts counted",
   "SDE.clock.sunSets": "sun sets {time}",
   "SDE.clock.sunRises": "sun rises {time}",
   "SDE.clock.dialNow": "Now: {time}",
