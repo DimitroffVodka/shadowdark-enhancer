@@ -1,5 +1,7 @@
 # Stage phase 1b: custom places (design, 2026-10-18)
 
+Status 2026-10-20: removed with the Backdrop (places window, ready places, `stagePlaces` setting). The three ready pictures in `assets/scenes/places/` are kept, unused, for a later landing-page plan. The rest of this plan is history.
+
 Status now: built on `feat/stage-places`. Piece D: places carry an optional `pageSceneId` (data only, no window control yet) and a camp that begins no longer replaces a shown Town or Tavern place.
 
 Source of truth for the work: `PLAN.md` (v2) and `HANDOFF.md` in this folder; phase 1a is merged (PR 527, master fa0152a5). Patrick asked for ALL remaining phases (1b, 3, 2) to be built; the orchestrator picked the safe defaults below instead of asking. Everything from the 1a rules still holds: nothing copied from Extras' ToM, no video overlays, no fake tokens, the module stands alone, never touch port 30000 or write into the module folder, no AI attribution, every string from `languages/en.json` (written out in full, no key a prefix of another), Foundry v14 only, flags only through `replaceModuleFlag`.

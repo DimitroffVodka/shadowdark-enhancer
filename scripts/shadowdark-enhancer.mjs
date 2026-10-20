@@ -161,7 +161,7 @@ const STYLESHEET_REV = "aa9d310fe07c";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "b74c93be685a";
+const BUILD_REV = "1b8e27846fd6";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -1253,10 +1253,6 @@ Hooks.once("ready", () => {
   wireBattleMaps("registerBattleChatButtons", () => import("./encounter/battle-maps/battle-actions.mjs"));
   // A GM who reloads with a battle staged gets the players' readout back: it lived in the page they just reloaded.
   if (game.user.isGM) wireBattleMaps("resumeBattleReadout", () => import("./encounter/battle-maps/encounter-battle.mjs"));
-  // Every client reframes an Arena scene's first view when the GM sets it.
-  wireBattleMaps("registerArenaViewHook", () => import("./encounter/battle-maps/encounter-battle.mjs"));
-  // A monster dragged onto a live Arena fight joins its combat (the active GM's client does it).
-  if (game.user.isGM) wireBattleMaps("registerArenaTokenHook", () => import("./encounter/battle-maps/encounter-battle.mjs"));
   // If the GM enabled the monster compendium-art overlay, inject it now so every
   // monster drag carries the referenced art (all clients; GM-only settings write).
   MonsterTokenArt.initCompendiumArt();

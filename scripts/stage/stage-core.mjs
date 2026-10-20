@@ -1,40 +1,34 @@
 /**
- * Stage (player name "Backdrop"), the Foundry-free half: reading the stored
- * value, choosing a camp's picture, and the table that raises and drops the
- * Camp place. No Foundry globals here.
+ * Camp picture, the Foundry-free half: reading the stored value, choosing a
+ * camp's picture, and when a camp's end drops it. No Foundry globals here.
  */
 
 import { ENCOUNTER_MAPS, campVariantOf, mapsForTerrain } from "../encounter/battle-maps/encounter-maps.mjs";
 import { terrainKeyOf } from "../encounter/battle-maps/battle-map-picker-core.mjs";
 
-/** The built-in automatic place. Ready places (places-core READY_PLACES) and custom places are stored by id and accepted by `normalizeStage` too (any PLACE_ID). */
-export const STAGE_PLACES = ["camp"];
-
-/** Raise the camp backdrop even when a party token is on the viewed map. Patrick: "use a button". */
-export const RAISE_WITH_PARTY_TOKEN = false;
-
 const FALLBACK_CAMP_ID = "forest-woods-camp";
-
-/** A custom place's id as stored on the stage. */
-export const PLACE_ID = /^[A-Za-z0-9_-]{1,40}$/;
-
-/** What a place is; town and tavern places are protected from a camp raise (campTransition). */
-export const PLACE_KINDS = ["town", "tavern", "camp", "custom"];
 
 const str = (v) => (typeof v === "string" ? v : "");
 
-/** The only reader of the stage setting: junk becomes the defaults, field by field. Never throws. */
+/**
+ * The only reader of the stage setting: junk becomes the defaults, field by field. Never throws. The camp is the only
+ * place; a world that still stores an old Backdrop place reads as nothing up.
+ */
 export function normalizeStage(raw) {
   const o = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
   return {
     shown: o.shown === true,
-    place: STAGE_PLACES.includes(o.place) || (typeof o.place === "string" && PLACE_ID.test(o.place)) ? o.place : "",
+    place: o.place === "camp" ? "camp" : "",
     image: str(o.image),
     partyId: str(o.partyId),
     campId: str(o.campId),
-    kind: PLACE_KINDS.includes(o.kind) ? o.kind : "",
-    pageSceneId: PLACE_ID.test(str(o.pageSceneId)) ? o.pageSceneId : "",
   };
+}
+
+/** Is the camp picture up for everyone? */
+export function campPictureUp(raw) {
+  const stage = normalizeStage(raw);
+  return stage.shown && stage.place === "camp" && stage.image !== "";
 }
 
 /** The camp picture for a terrain as {id, image}, or null on water (the boat is the camp). */
@@ -47,31 +41,28 @@ export function campArtFor(terrain) {
 }
 
 /**
- * What to write to the stage when a party's camp record changes: null (nothing)
- * or the complete next stage value.
+ * What to write to the stage when a party's camp record changes: null (nothing), or the hidden stage when that
+ * party's camp ended (complete, or the record gone) while its picture was up. A camp never raises the picture; it only adopts one its party raised by hand.
  *
  * @param {*} prev  the stored stage
  * @param {{id: string, phase: string}|null} camp  the party's camp record
- * @param {{partyId: string, image: string|null, partyTokenOnMap: boolean}} state
+ * @param {{partyId: string}} state
  */
-export function campTransition(prev, camp, state, { raiseWithToken = RAISE_WITH_PARTY_TOKEN } = {}) {
+export function campTransition(prev, camp, state) {
   const stage = normalizeStage(prev);
-  if (camp?.phase === "setup") {
-    if (!camp.id || camp.id === stage.campId || !state?.image) return null;
-    if (state.partyTokenOnMap && !raiseWithToken) return null;
-    // A camp that begins never replaces a town or tavern place that is up.
-    if (stage.shown && (stage.kind === "town" || stage.kind === "tavern")) return null;
-    return { shown: true, place: "camp", image: state.image, partyId: str(state.partyId), campId: str(camp.id), kind: "", pageSceneId: "" };
+  if (camp && camp.phase !== "complete") {
+    // A picture raised by hand before this party's camp began is adopted by it, so the camp's end drops it.
+    const adopt = camp.id && stage.shown && stage.place === "camp" && stage.campId === "" && stage.partyId === str(state?.partyId);
+    return adopt ? { ...stage, campId: str(camp.id) } : null;
   }
-  if (camp && camp.phase !== "complete") return null;
   // Only the party whose camp this is may drop it; several parties share the one stage.
   const mine = stage.partyId === str(state?.partyId) && (camp ? stage.campId === camp.id : stage.campId !== "");
   if (!stage.shown || stage.place !== "camp" || !mine) return null;
   return { ...stage, shown: false };
 }
 
-/** What the toolbar switch and the Camping window's button write to raise the camp picture by hand. */
+/** What the Camping window's button writes to raise the camp picture. */
 export function showCamp(camp, { partyId, image }) {
   const running = camp && camp.phase !== "complete";
-  return { shown: true, place: "camp", image, partyId: str(partyId), campId: running ? str(camp.id) : "", kind: "", pageSceneId: "" };
+  return { shown: true, place: "camp", image, partyId: str(partyId), campId: running ? str(camp.id) : "" };
 }
