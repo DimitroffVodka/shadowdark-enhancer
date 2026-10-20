@@ -448,8 +448,8 @@ it takes, without anyone pressing Start day or Make camp.
   journey up again from where the party stands.
 - **Weather and ground.** A storm on harsh ground, or ground closed today, ends
   the day early and the party waits it out, up to fourteen days. Ground that is
-  never passable stops the journey. A river or pass the party cannot cross is
-  walked around when there is another way.
+  never passable stops the journey and drops its destination. A river or pass
+  the party cannot cross is walked around when there is another way.
 - **Entertain.** An automatic camp turns an Entertain aimed at a character
   whose luck is full to the next one who can still gain it. In Pulp mode the
   setting **Pulp luck token max** (default 4) says when a character is full.

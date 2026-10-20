@@ -161,7 +161,7 @@ const STYLESHEET_REV = "d599bd6af27d";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "0bce95503f83";
+const BUILD_REV = "69cd88cc6bff";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -558,10 +558,10 @@ Hooks.once("init", () => {
     // 1.31.0 — additive: owns("hex.baked", scene), a map baked with Extras that the Enhancer draws itself.
     // 1.32.0 — additive: quest steps gain parent and secret, quests gain reveal; a non-GM gets the player view.
     //          Also giver, rewards.notes, startsAt, deadline, autoFail and the questLine chat flag (see docs/API.md).
-    // 1.33.0 — additive: overland.setAutoTravel, the standing automatic journey; the travel state gains auto.
-    // 1.34.0 — additive: the automatic journey's saved destination (overland.autoGoal) and Travel > Resume auto.
-    // 1.35.0 — additive: overland.travelBlocked, why the party cannot enter a destination today.
-    apiVersion: "1.35.0",
+    // 1.34.0 — additive: overland.setAutoTravel, the standing automatic journey; the travel state gains auto.
+    // 1.35.0 — additive: the automatic journey's saved destination (overland.autoGoal) and Travel > Resume auto.
+    // 1.36.0 — additive: overland.travelBlocked, why the party cannot enter a destination today.
+    apiVersion: "1.36.0",
     // The one travel state per world (scripts/overland/overland.mjs): a copy
     // with hexes left, climate, storm, harshness and night derived; whether
     // travel is on; today's weather roll, the travel day's start, Continue

@@ -32,8 +32,9 @@ let _tip = null;
 let _hovered = null;
 let _armed = null;
 let _press = null;
+/** This tab's one walk, or a journey getting ready to walk (claimWalk): while set, nothing else starts one. */
 let _walking = false;
-/** The automatic journey this client is running: its token, destination and the clock a Continue must reach. */
+/** The automatic journey this client is running: its token, destination and the clock Resume clock must reach. */
 let _journey = null;
 let _journeyTimer = null;
 /** This tab's journey, kept so a reload during an encounter or a camp can pick it up again. */
@@ -41,7 +42,10 @@ const JOURNEY_KEY = `${MODULE_ID}.autoJourney`;
 
 function rememberJourney() {
   try {
-    if (_journey) sessionStorage.setItem(JOURNEY_KEY, JSON.stringify({ ..._journey, world: game.world.id, user: game.user.id }));
+    if (_journey) {
+      const { tokenUuid, goal, waitUntil } = _journey;
+      sessionStorage.setItem(JOURNEY_KEY, JSON.stringify({ tokenUuid, goal, waitUntil, world: game.world.id, user: game.user.id }));
+    }
     else sessionStorage.removeItem(JOURNEY_KEY);
   } catch { /* storage can be disabled; the world's autoGoal still offers Resume auto */ }
 }
@@ -339,10 +343,17 @@ function onUp(event) {
   // go: the automatic journey walks the days out. A plain walk has nothing to give it but the refusal.
   // Nothing to go to at all (a hex off the numbered map): the tooltip said why already.
   if (!(going?.length > 1)) return;
-  if (auto) {
+  const costs = route.costs ?? going.slice(1).map(() => 1);
+  if (!auto) { void walk(token, { ...route, path: going, costs }, false); return; }
+  void claimWalk(async () => {
+    // Ground that never opens is said at once; a storm or today's weather is waited out by the walk.
+    if (route.blocked && (await travelBlocked(going.at(-1))) === "terrain") {
+      ui.notifications?.warn(t("SDE.route.autoPermanent"));
+      return null;
+    }
     ui.notifications?.info(t("SDE.route.autoStart", { hexes: going.length - 1 }));
-  }
-  void walk(token, { ...route, path: going, costs: route.costs ?? going.slice(1).map(() => 1) }, auto);
+    return { walk: { token, route: { ...route, path: going, costs } } };
+  });
 }
 
 /**
@@ -390,8 +401,8 @@ function notifyGmAutoStop(reason, token) {
     _lastAutoStop = key;
     const gms = game.users?.filter((u) => u.isGM && u.active).map((u) => u.id) ?? [];
     if (!gms.length) return;
-    const party = token?.actor?.name ?? "The party";
-    const place = where ? [where.region, String(where.terrain ?? "").replace(/_/g, " ")].filter(Boolean).join(" · ") : "the hex map";
+    const party = token?.actor?.name ?? t("SDE.route.gmStopParty");
+    const place = (where ? [where.region, String(where.terrain ?? "").replace(/_/g, " ")].filter(Boolean).join(" · ") : "") || t("SDE.route.gmStopWhere");
     const reasonText = t(STOP_REASON[reason] ?? STOP_REASON.stopped);
     const content = `<p>${esc(t("SDE.route.gmStop", { party, reason: reasonText, where: place }))}</p>`;
     void ChatMessage.create({ content, whisper: gms, speaker: ChatMessage.getSpeaker({ alias: t("SDE.route.autoTravel") }) })
@@ -405,10 +416,12 @@ function notifyGmAutoStop(reason, token) {
  * moving the party. With `auto`, the journey crosses days: when the day cannot
  * pay for the next hex the party camps, the dawn opens the next day, and the
  * route is drawn again from where it stands; it stops for an encounter and
- * picks the journey up again when Continue clears it. The party never moves
+ * picks the journey up again when Resume clock clears it. The party never moves
  * while the game is paused.
  */
 async function walk(token, route, auto = false) {
+  // One walk per tab: a second start (a resume racing a click, two hooks at once) is not a second walk.
+  if (_walking) return;
   _walking = true;
   clear();
   if (!auto) forgetJourney();
@@ -514,7 +527,8 @@ async function walk(token, route, auto = false) {
       if (offsetKey(grid.getOffset(doc.getCenterPoint(doc._source))) !== offsetKey(path[n - 1])) { stopReason = "moved"; break; }
       const { x, y } = grid.getTopLeftPoint(path[n]);
       // Resolves once the move is saved; the token is still sliding into the hex.
-      if (!(await doc.move({ x, y }))) {
+      // The journey's own moves are tagged, so only they skip the bounce banner a drag gets (overland.onPreMoveToken).
+      if (!(await doc.move({ x, y }, auto ? { [MODULE_ID]: { auto: true } } : undefined))) {
         // A bounced move is how a day whose budget is spent looks before the camp: camp and try the hex again.
         const state = overlandState();
         if (auto && state.day !== null && state.hexesLeft < (costs?.[n - 1] ?? 1)) {
@@ -531,26 +545,9 @@ async function walk(token, route, auto = false) {
           }
         } else if (auto && state.day !== null) {
           // The day could pay, so the hex itself was refused: a river without a boat, a closed pass.
-          // Route around it once; only a destination that cannot be entered ends the walk here.
-          const attempted = path[n];
-          if (attempted && offsetKey(attempted) === offsetKey(goal)) { stopReason = "blocked"; break; }
-          if (attempted) {
-            avoid.add(offsetKey(attempted));
-            const reroute = routeTo(token, goal, avoid);
-            if (reroute?.path && reroute.path.length >= 2) {
-              path = reroute.path; costs = reroute.costs; n = 0; continue;
-            }
-          }
-          // Ground that cannot be entered today looks the same from here: end the days until it opens.
-          const blocked = await travelBlocked(goal);
-          if (blocked) {
-            const days = await waitOutDays(token, goal, blocked);
-            if (!days) { stopReason = "blocked"; keep = true; break; }
-            const next = routeTo(token, goal, avoid);
-            if (!next?.path) { ui.notifications?.warn(t("SDE.route.autoNoRoute")); stopReason = "noRoute"; break; }
-            if (next.path.length < 2) { stopReason = "noRoute"; break; }
-            path = next.path; costs = next.costs; n = 0; continue;
-          }
+          const way = await refusedHex(token, goal, path[n], avoid);
+          if (way.route) { path = way.route.path; costs = way.route.costs; n = 0; continue; }
+          stopReason = way.stop ?? "blocked"; keep = !!way.keep;
         }
         stopReason ??= "blocked";
         break;
@@ -559,7 +556,7 @@ async function walk(token, route, auto = false) {
       slideEnd = Math.max(slideEnd, performance.now()) + (doc.object ? doc.movement?.animation?.duration ?? 0 : 0);
       // After the active GM has priced, charged and clocked this hex, and rolled its checks.
       await travelSettled();
-      if (auto && game.paused) { keep = true; break; }
+      if (auto && game.paused) { stopReason = "paused"; keep = true; break; }
       const state = overlandState();
       // An encounter: one that holds the clock, or one that hit at the step's very end.
       if (state.pending || state.encounter || hits() > before) {
@@ -583,24 +580,9 @@ async function walk(token, route, auto = false) {
             keep = camp.keep;
           }
         } else if (state.day !== null) {
-          const attempted = path[n];
-          if (attempted && offsetKey(attempted) === offsetKey(goal)) { stopReason = "blocked"; break; }
-          if (attempted) {
-            avoid.add(offsetKey(attempted));
-            const reroute = routeTo(token, goal, avoid);
-            if (reroute?.path && reroute.path.length >= 2) {
-              path = reroute.path; costs = reroute.costs; n = 0; continue;
-            }
-          }
-          const blocked = await travelBlocked(goal);
-          if (blocked) {
-            const days = await waitOutDays(token, goal, blocked);
-            if (!days) { stopReason = "blocked"; keep = true; break; }
-            const next = routeTo(token, goal, avoid);
-            if (!next?.path) { ui.notifications?.warn(t("SDE.route.autoNoRoute")); stopReason = "noRoute"; break; }
-            if (next.path.length < 2) { stopReason = "noRoute"; break; }
-            path = next.path; costs = next.costs; n = 0; continue;
-          }
+          const way = await refusedHex(token, goal, path[n], avoid);
+          if (way.route) { path = way.route.path; costs = way.route.costs; n = 0; continue; }
+          stopReason = way.stop ?? "moved"; keep = !!way.keep;
         }
         stopReason ??= "moved";
         break;
@@ -638,6 +620,34 @@ async function walk(token, route, auto = false) {
     }
     if (doc.parent === canvas.scene) token.control?.({ releaseOthers: true });
   }
+}
+
+/**
+ * A hex the walk was refused on although the day could pay (a river without a boat, a closed pass, a closed
+ * destination). A hex on the way is routed round once. A destination that cannot be entered is asked about
+ * first: ground that never opens ends the journey and drops its destination; a storm or today's weather is
+ * waited out, a day at a time, and the walk goes on when it opens.
+ * @returns {Promise<{route?:object, stop?:string, keep?:boolean}>} a new route to walk, or why the walk stops
+ *   (no `stop`: the caller's own reason)
+ */
+async function refusedHex(token, goal, attempted, avoid) {
+  if (attempted && offsetKey(attempted) !== offsetKey(goal)) {
+    avoid.add(offsetKey(attempted));
+    const reroute = routeTo(token, goal, avoid);
+    if (reroute?.path && reroute.path.length >= 2) return { route: reroute };
+  }
+  const blocked = await travelBlocked(goal);
+  if (blocked === "terrain") {
+    ui.notifications?.warn(t("SDE.route.autoPermanent"));
+    try { await setAutoGoal(null); } catch (err) { console.warn(`${MODULE_ID} | the automatic journey's goal was not cleared`, err); }
+    return { stop: "blocked" };
+  }
+  if (!blocked) return attempted && offsetKey(attempted) === offsetKey(goal) ? { stop: "blocked" } : {};
+  if (!(await waitOutDays(token, goal, blocked))) return { stop: "blocked", keep: true };
+  const next = routeTo(token, goal, avoid);
+  if (!next?.path) { ui.notifications?.warn(t("SDE.route.autoNoRoute")); return { stop: "noRoute" }; }
+  if (next.path.length < 2) return { stop: "noRoute" };
+  return { route: next };
 }
 
 /**
@@ -716,12 +726,13 @@ function campStopNotice() {
 /**
  * One automatic camp, then its dawn.
  * @returns {Promise<{go:boolean, keep:boolean, notice?:string}>} `go`: a new day is open and the journey can move;
- *   `keep`: an encounter stopped it, so the journey waits for Continue
+ *   `keep`: an encounter stopped it, so the journey waits for Resume clock
  */
 async function campForJourney() {
   if (game.paused) { ui.notifications?.info(t("SDE.route.autoPaused")); return { go: false, keep: true }; }
   const reply = await makeCamp();
-  if (!reply?.ok) { if (reply?.error) ui.notifications?.warn(reply.error); return { go: false, keep: false, notice: reply?.error }; }
+  // The caller shows the notice, once.
+  if (!reply?.ok) return { go: false, keep: false, notice: reply?.error };
   // The camp opened its window for a decision (rations, torches, a task with no target): stop here,
   // and say which decision instead of the old generic "the camp needs a decision".
   if (reply.setup) return { go: false, keep: false, notice: campStopNotice() };
@@ -738,81 +749,100 @@ async function campForJourney() {
 /** Pick the journey up after its encounter, camp or scene settles; never while the game is paused. */
 function maybeResumeJourney() {
   _journeyTimer = null;
-  // A journey begun on a closed way has no step to walk yet: its walk starts here, as the timer fires.
-  if (_journey?.next) {
-    const { token, path } = _journey.next;
-    delete _journey.next;
-    rememberJourney();
-    void walk(token, { path, costs: [1] }, true);
-    return;
-  }
-  // Any failure is said out loud: a journey that stops silently is worse than one that says why.
-  runJourneyStep().catch((err) => {
-    console.error(`${MODULE_ID} | the automatic journey's resume`, err);
-    ui.notifications?.warn(String(err?.message ?? err));
-  });
+  void runJourneyStep();
 }
 
 /** One attempt at the journey, with nothing thrown out of it: an error stops this tab's journey and says so. */
 function runJourneyStep() {
   return journeyStep().catch((err) => {
     console.error(`${MODULE_ID} | the automatic journey`, err);
-    ui.notifications?.warn(t("SDE.route.autoDays", { days: 0, reason: String(err?.message ?? err) }));
+    ui.notifications?.warn(t("SDE.route.autoError", { reason: String(err?.message ?? err) }));
     forgetJourney();
   });
 }
 
-async function journeyStep() {
-  if (!_journey || _walking) return;
+/**
+ * Hold this tab's one walk across the awaits before it starts (a day to open, a camp to finish, a closed
+ * destination to ask about), so a second resume, hook or click meanwhile is refused rather than starting a
+ * second walk. `work` answers with `{ walk: { token, route } }` to start the journey's walk, or with a reply.
+ * @returns {Promise<{ok:boolean, error?:string}>}
+ */
+async function claimWalk(work) {
+  if (_walking) return { ok: false, error: t("SDE.route.autoBusy") };
+  _walking = true;
+  let reply;
+  try { reply = await work(); } finally { _walking = false; }
+  // Nothing awaits between the release and the walk's own claim, so nothing can start in between.
+  if (reply?.walk) { void walk(reply.walk.token, reply.walk.route, true); return { ok: true }; }
+  return reply ?? { ok: false };
+}
+
+function journeyStep() {
+  if (!_journey || _walking) return Promise.resolve();
+  return claimWalk(journeyStart);
+}
+
+/** What the journey does next on this tab, inside claimWalk: a walk to start, or nothing yet. */
+async function journeyStart() {
+  if (!_journey) return null;
   const state = overlandState();
-  if (!state.auto) { forgetJourney(); return; }
-  if (!CrawlState.isOverland || game.paused || state.pending || state.encounter || state.camp) return;
-  if (_journey.waitUntil !== null && game.time.worldTime < _journey.waitUntil) { scheduleJourneyResume(); return; }
+  if (!state.auto) { forgetJourney(); return null; }
+  if (!CrawlState.isOverland || game.paused || state.pending || state.encounter || state.camp) return null;
+  // Rescheduled once this claim is released, or the timer would find this tab still busy.
+  if (_journey.waitUntil !== null && game.time.worldTime < _journey.waitUntil) { setTimeout(scheduleJourneyResume, 0); return null; }
   const token = canvas?.tokens?.placeables?.find((p) => p.document.uuid === _journey.tokenUuid);
   if (!token) {
     // A scene change (an encounter, a battle map) leaves the token in its own scene: wait for that
     // canvas rather than dropping the journey. Only a token that no longer exists ends it.
     let doc = null;
     try { doc = fromUuidSync(_journey.tokenUuid); } catch { /* not a document */ }
-    if (doc) return;
+    if (doc) return null;
     forgetJourney();
-    return;
+    return null;
   }
-  if (token.document.parent !== canvas.scene) return;
+  if (token.document.parent !== canvas.scene) return null;
   // The way may be open and the day closed (a storm walked out, a day ended by a stop): the day comes first.
   if (overlandState().day === null) {
     const started = await autoStartDay();
-    if (!started?.ok) { ui.notifications?.warn(started?.error ?? t("SDE.route.autoNoRoute")); return; }
+    if (!started?.ok) { ui.notifications?.warn(started?.error ?? t("SDE.route.autoNoRoute")); return null; }
+    // Auto turned off, or the journey dropped, while the day opened.
+    if (!_journey) return null;
   }
-  const route = routeTo(token, _journey.goal);
+  const goal = _journey.goal;
+  const route = routeTo(token, goal);
   if (route?.path) {
     if (route.path.length < 2) {
       void setAutoGoal(null);
       ui.notifications?.info(t("SDE.route.autoArrived"));
       forgetJourney();
-      return;
+      return null;
     }
     _journey.waitUntil = null;
     rememberJourney();
-    void walk(token, route, true);
-    return;
+    return { walk: { token, route } };
   }
-  // No route is not always the end: a storm, or ground that cannot be entered today, is a day that has
-  // to end and come round again. The walk ends those days; a destination with no way there stays saved.
-  const waiting = route?.blocked ? await travelBlocked(_journey.goal) : null;
+  // No route is not always the end: a storm, or the weather closing the destination today, is a day that has
+  // to end and come round again. The walk ends those days. Ground that never opens ends the journey.
+  const waiting = route?.blocked ? await travelBlocked(goal) : null;
+  if (!_journey) return null;
+  if (waiting === "terrain") {
+    ui.notifications?.warn(t("SDE.route.autoPermanent"));
+    void setAutoGoal(null);
+    forgetJourney();
+    return null;
+  }
   if (!waiting) {
     ui.notifications?.warn(t("SDE.route.autoNoRoute"));
     forgetJourney();
-    return;
+    return null;
   }
   _journey.waitUntil = null;
-  // The token's own hex leads so the walk has a step to take; the goal is all it is going to.
-  const path = [canvas.grid.getOffset(token.center), _journey.goal];
-  _journey.next = { token, path };
   rememberJourney();
+  // The token's own hex leads so the walk has a step to take; the goal is all it is going to.
+  return { walk: { token, route: { path: [canvas.grid.getOffset(token.center), goal], costs: [1] } } };
 }
 
-/** Resume a stopped journey after this client's state settles (a Continue's clock runs first). */
+/** Resume a stopped journey after this client's state settles (Resume clock's advance runs first). */
 function scheduleJourneyResume() {
   if (_walking) return;
   if (!_journey) restoreJourney();
@@ -850,13 +880,18 @@ async function jump(token, path) {
  * @returns {Promise<{ok:boolean, error?:string}>}
  */
 export async function resumeAutoTravel() {
-  let state = overlandState();
+  const state = overlandState();
   if (!state.auto) return { ok: false, error: t("SDE.overland.notify.autoOff") };
   if (!state.autoGoal) return { ok: false, error: t("SDE.overland.notify.autoNoGoal") };
   if (!CrawlState.isOverland) return { ok: false, error: t("SDE.overland.notify.notTravelling") };
   if (_walking) return { ok: false, error: t("SDE.route.autoBusy") };
   if (game.paused) { ui.notifications?.info(t("SDE.route.autoPaused")); return { ok: false, error: t("SDE.route.autoPaused") }; }
   if (state.pending || state.encounter) return { ok: false, error: t("SDE.overland.notify.pending") };
+  return claimWalk(() => resumeStart(state));
+}
+
+/** Resume auto's checks and its day, inside claimWalk: the walk to start, or why not. */
+async function resumeStart(state) {
   // A camp left for its Night is not a choice: finish it here, exactly as an automatic camp does.
   // A camp with a real choice opens its window and returns that choice's own message.
   if (state.camp) {
@@ -876,22 +911,32 @@ export async function resumeAutoTravel() {
     const started = await autoStartDay();
     if (!started?.ok) return { ok: false, error: started?.error ?? t("SDE.overland.notify.notTravelling") };
   }
-  const route = routeTo(token, state.autoGoal);
+  const goal = overlandState().autoGoal ?? state.autoGoal;
+  const route = routeTo(token, goal);
   if (!route?.path) {
-    // A storm, or ground that cannot be entered today, is not a dead end: the walk ends those days and tries
-    // each dawn until the way opens. A destination with no way there at all is the one that stays saved.
-    const waiting = route?.blocked ? await travelBlocked(state.autoGoal) : null;
+    // A storm, or the weather closing the destination today, is not a dead end: the walk ends those days and
+    // tries each dawn until the way opens. Ground that never opens drops the destination; one with no way
+    // there at all stays saved.
+    const waiting = route?.blocked ? await travelBlocked(goal) : null;
+    if (waiting === "terrain") {
+      void setAutoGoal(null);
+      return { ok: false, error: t("SDE.route.autoPermanent") };
+    }
     if (!waiting) return { ok: false, error: t("SDE.route.autoNoRoute") };
-    void walk(token, { path: [canvas.grid.getOffset(token.center), state.autoGoal], costs: [1] }, true);
-    return { ok: true };
+    return { walk: { token, route: { path: [canvas.grid.getOffset(token.center), goal], costs: [1] } } };
   }
   if (route.path.length < 2) {
     void setAutoGoal(null);
     ui.notifications?.info(t("SDE.route.autoArrived"));
     return { ok: true };
   }
-  void walk(token, route, true);
-  return { ok: true };
+  return { walk: { token, route } };
+}
+
+/** Whether this user has the Resume auto button: a GM, or an owner of the travel token's actor. */
+function mayResume(state) {
+  if (game.user.isGM) return true;
+  try { return !!fromUuidSync(state.tokenUuid ?? "")?.actor?.testUserPermission(game.user, "OWNER"); } catch { return false; }
 }
 
 /** The route layer and its pointer listeners, on each canvas. Call in init. */
@@ -934,7 +979,7 @@ export function registerRoute() {
     // A journey wins the pause; without one, say where a saved journey is picked up.
     restoreJourney();
     const state = overlandState();
-    if (!_journey && state.auto && state.autoGoal && !state.pending && !state.encounter && !state.camp) {
+    if (!_journey && state.auto && state.autoGoal && !state.pending && !state.encounter && !state.camp && mayResume(state)) {
       ui.notifications?.info(t("SDE.route.autoResumeHint"));
     }
     scheduleJourneyResume();

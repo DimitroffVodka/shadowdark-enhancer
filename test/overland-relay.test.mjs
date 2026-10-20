@@ -452,7 +452,8 @@ test("a move across a check hour rolls it at its hour; a hit stops the clock the
     { cost: 1, blocked: null, steps: [{ hex: { num: 10 } }] });
   assert.equal(refused, false);
   assert.equal(globalThis.game.time.worldTime, at(1301, 6, 21, 14));
-  assert.equal((await applyAction({ action: "resume" }, { id: "player1", isGM: false })).ok, false, "a player can't continue");
+  assert.deepEqual(await applyAction({ action: "resume" }, { id: "player1", isGM: false }),
+    { ok: false, error: "SDE.overland.notify.encounterGm" }, "a player can't continue, and is told it is the GM's, not that they do not own a party");
 
   const res = await applyAction({ action: "resume" }, gm);
   assert.equal(res.ok, true);
@@ -1725,4 +1726,47 @@ test("Automatic foraging off: the day's first move forages no one, and Forage st
   } finally {
     delete stored.overlandAutoForage;
   }
+});
+
+test("Auto travel's day start is refused, GM side, while an encounter is held, exactly as Resume clock is (#551 review)", async () => {
+  travellingDay();
+  stored.overlandState = { ...stored.overlandState, auto: true, day: null,
+    encounter: { at: 1, half: "day", chance: 1, kind: "monster", name: "Wolf", chain: [], also: [] } };
+  registerOverland();
+  assert.deepEqual(await applyAction({ action: "autoDay" }, gm), { ok: false, error: "SDE.overland.notify.pending" });
+  assert.deepEqual([overlandState().day, overlandState().encounter?.name], [null, "Wolf"], "no day opened, the encounter still held");
+});
+
+test("bounce banners: quiet only for the automatic walk's own tagged moves, never for a drag while Auto is on (#551 review)", async () => {
+  travellingDay();
+  dice.push(3);
+  await applyAction({ action: "startDay", method: "walking" }, gm);
+  stored.overlandState = { ...stored.overlandState, auto: true };
+  registerOverland();
+  const warned = [], warn = globalThis.ui.notifications.warn;
+  globalThis.ui.notifications.warn = (m) => warned.push(m);
+  try {
+    const doc = { id: "t", parent: null, update: async () => {} };
+    const tooDear = { cost: 9, blocked: null, steps: [{ hex: { num: 7 } }] };
+    assert.equal(await recordMove(doc, { x: 0, y: 0 }, { x: 100, y: 0 }, tooDear), false);
+    assert.deepEqual(warned, ["SDE.overland.notify.bounce"], "a drag is told why");
+    assert.equal(await recordMove(doc, { x: 0, y: 500 }, { x: 100, y: 500 }, tooDear, undefined, undefined, true), false);
+    assert.equal(warned.length, 1, "the walk explains its own stop");
+  } finally { globalThis.ui.notifications.warn = warn; }
+});
+
+test("a socket notice shows only the fixed forage key, never another string or its data (#551 review)", () => {
+  travelling(["mine"]);
+  let handler = null;
+  const socket = globalThis.game.socket, user = globalThis.game.user;
+  globalThis.game.socket = { emit() {}, on: (name, fn) => { handler = fn; } };
+  registerOverland();
+  const warned = [], warn = globalThis.ui.notifications.warn;
+  globalThis.ui.notifications.warn = (m) => warned.push(m);
+  globalThis.game.user = { id: "player1", isGM: false };
+  try {
+    handler({ type: "notice", key: "SDE.overland.notify.notPartyOwner", data: { name: "the GM" } });
+    handler({ type: "notice", key: "SDE.overland.notify.forageImpossible", data: { x: 1 } });
+    assert.deepEqual(warned, ["SDE.overland.notify.forageImpossible"]);
+  } finally { globalThis.ui.notifications.warn = warn; globalThis.game.socket = socket; globalThis.game.user = user; }
 });

@@ -44,8 +44,8 @@ export function defaultOverlandState() {
     pointSeconds: 0,      // clock seconds per point, fixed at dawn (#231)
     weather: null,        // {kind, roll, rule, until, advantageNext, advantage, days} (#230)
     checks: [],           // the day's encounter checks, {half, at, chance, rolled, hit} (#232)
-    pending: null,        // {until, reason}: an advance stopped by a hit, waiting for Continue (#232)
-    encounter: null,      // what a quiet check that hit drew, for the GMs' panel until Continue (#257)
+    pending: null,        // {until, reason}: an advance stopped by a hit, waiting for Resume clock (#232)
+    encounter: null,      // what a quiet check that hit drew, for the GMs' panel until Resume clock (#257)
     camp: null,           // tonight's camp (#257): {party, interrupted, ate, until, lightsOut}: the uuid of the Extras party actor keeping its rest for the dawn, or null; when a creature woke it; the rations were eaten at camp; when it breaks; its lights are out
     foraged: [],          // actor ids that foraged today (#233)
     hex: null,            // {num, terrain, region, features}: the travel token's last hex
@@ -251,7 +251,7 @@ export function markCheck(state, index, hit, chance) {
   return { state: normalizeOverlandState({ ...state, checks }), changed: true };
 }
 
-/** An advance stopped by a hit waits here for Continue; null clears it. */
+/** An advance stopped by a hit waits here for Resume clock; null clears it. */
 export function setPending(state, pending) {
   const next = normalizeOverlandState({ ...state, pending });
   return { state: next, changed: JSON.stringify(next.pending) !== JSON.stringify(state.pending) };
@@ -296,7 +296,7 @@ export function interruptRest(state, at) {
   return { state: normalizeOverlandState({ ...state, camp: { ...camp, interrupted: at } }), changed: true };
 }
 
-/** What a quiet check that hit drew waits here for the GMs; null clears it (Continue, a new day). */
+/** What a quiet check that hit drew waits here for the GMs; null clears it (Resume clock, a new day). */
 export function setEncounter(state, encounter) {
   const next = normalizeOverlandState({ ...state, encounter });
   return { state: next, changed: JSON.stringify(next.encounter) !== JSON.stringify(state.encounter) };
@@ -492,7 +492,7 @@ export const WALK_MS_PER_HEX = 400;
 export const WALK_SLICE_MS = 150;
 
 /**
- * A camp's or Continue's time-lapse in real ms: a beat and a share of the span, long enough to watch
+ * A camp's or Resume clock's time-lapse in real ms: a beat and a share of the span, long enough to watch
  * the dusk fall and the dawn lift, so a 12-hour night takes about 8 s and a few minutes just over one
  * (0: no clock to move).
  * @param {number} seconds  the clock the advance covers
@@ -533,7 +533,7 @@ export function walkSlices(seconds, ms, sliceMs = WALK_SLICE_MS) {
 export function moveVerdict(state, { cost, blocked }) {
   if (cost === 0 && !blocked) return null;   // displaced, or within one hex
   if (state.day === null) return "noDay";
-  // An encounter stopped the clock, or hit just as it reached its target: Continue first.
+  // An encounter stopped the clock, or hit just as it reached its target: Resume clock first.
   if (state.pending || state.encounter) return "pending";
   if (blocked) return "impassable";
   return cost > state.budget - state.spent ? "bounce" : null;

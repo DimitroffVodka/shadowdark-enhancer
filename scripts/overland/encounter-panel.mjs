@@ -5,8 +5,8 @@
  * reaches chat, and what it drew is held in Overland's `encounter` for the GMs.
  * This panel shows it: the check, the chain of tables it went through, the
  * creature and how many, and the distance, activity and reaction rolls. Post
- * to chat shows the players; Continue runs the rest of the clock. The chevron
- * folds the panel into a strip under the bar, which keeps Continue at hand.
+ * to chat shows the players; Resume clock runs the rest of the clock. The chevron
+ * folds the panel into a strip under the bar, which keeps Resume clock at hand.
  * The buttons are the clock HUD's (overland-bar.mjs handles their data-action;
  * the chevrons are its panel toggle, "open" "encounter").
  *
@@ -225,7 +225,7 @@ export function encounterPanel({ enc, cal, battle = null, preload = null, keep =
 /**
  * The panel folded (#257): a strip under the bar, for a GM, while the
  * encounter is held. "Encounter · 14:00 · 3 Wolf" (or the point of interest's
- * text, shortened), the chevron that opens the panel again, and Continue. A
+ * text, shortened), the chevron that opens the panel again, and Resume clock. A
  * running battle map is marked.
  * @param {{enc:object, cal:object, battle?:object|null}} v  enc: Overland's `encounter`; cal: the calendar
  */
