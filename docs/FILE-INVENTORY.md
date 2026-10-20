@@ -537,8 +537,8 @@
 | File | Lines | Description |
 |---|---:|---|
 | `imported-monster-art.mjs` | 829 | N6's exact source-aware curated art map and F4's Foundry-free pick-state planner; missing rows stay available to Browse. |
-| `monster-token-art.mjs` | 727 | Applies licensed art to monsters **by path reference**, never bundled. |
-| `token-art-catalog.mjs` | 1163 | Name→art matching catalog. |
+| `monster-token-art.mjs` | 728 | Applies licensed art to monsters **by path reference**, never bundled. |
+| `token-art-catalog.mjs` | 1162 | Name→art matching catalog. |
 | `token-art-manager-app.mjs` | 715 | GM window to review/apply matches. |
 | `token-art-manager-state.mjs` | 79 | Normalizes the persistent Token Art Manager state and named Browse folders. |
 
