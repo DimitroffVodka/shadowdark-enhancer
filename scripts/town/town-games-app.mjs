@@ -1,17 +1,19 @@
 /**
  * Shadowdark Enhancer — a town's games table (ApplicationV2), opened from the landing page when the GM has turned it on.
  *
- * The player picks a character, sets a wager (in silver, up to the town's limit) and plays one of eight games; the
- * game is rolled and settled on this client by town-games.mjs, with no GM connected (Bluff, Brag, the death roll and the roulette open a table of their own). The last result stays on the
+ * The player picks a character, sets a wager (in silver, up to the town's limit) and plays one of nine games; the
+ * game is rolled and settled on this client by town-games.mjs, with no GM connected (Bluff, Brag, the death roll, the roulette and blackjack open a table of their own). The last result stays on the
  * window. The wager is never taken until a game is played, and a game that cannot be saved is not played.
  */
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { L as t } from "../shared/i18n.mjs";
 import { formatPrice, fromCopper } from "../shared/coins.mjs";
-import { GAME_ICONS, GAME_IDS, GAME_KEYS, HAND_GAMES, SIDES, SIDE_KEYS, SIT_GAMES, wagerFromSp } from "./games-core.mjs";
+import { GAME_ICONS, GAME_IDS, GAME_KEYS, SIDES, SIDE_KEYS, SIT_GAMES, wagerFromSp } from "./games-core.mjs";
 import { landingOf } from "./town-core.mjs";
 import { buyerChoices, buyerFor, redrawOnChange } from "./town-live.mjs";
 import { playGame, liveIo } from "./town-games.mjs";
+import { TownBlackjackApp } from "./town-blackjack-app.mjs";
+import { startBlackjack } from "./town-blackjack.mjs";
 import { TownDeathApp } from "./town-death-app.mjs";
 import { startDeath } from "./town-death.mjs";
 import { TownHandApp } from "./town-hand-app.mjs";
@@ -23,6 +25,11 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 /** The quick wagers, in silver. */
 const CHIPS = [{ sp: 1, label: "1 sp" }, { sp: 10, label: "1 gp" }, { sp: 50, label: "5 gp" }, { sp: 100, label: "10 gp" }, { sp: 500, label: "50 gp" }];
+
+/** The games that deal a hand or a round at a window of their own: that window, and what puts the wager on the table. */
+const DEALT = {
+  bluff: [TownHandApp, startHand], brag: [TownHandApp, startHand], death: [TownDeathApp, startDeath], blackjack: [TownBlackjackApp, startBlackjack],
+};
 
 export class TownGamesApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
@@ -125,7 +132,7 @@ export class TownGamesApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /**
-   * Sit down at a game with a table of its own. A hand or a round of the death roll takes its wager now and opens on the
+   * Sit down at a game with a table of its own. A hand, a round of the death roll or a deal of blackjack takes its wager now and opens on the
    * dealt game; the roulette takes nothing until it spins, and opens on an empty board with the wager as the chip.
    */
   async _sit(player, game) {
@@ -134,11 +141,11 @@ export class TownGamesApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this.last = null;
       return TownRouletteApp.open({ scene: this.scene, player, table: { game, bets: {}, chip: Math.max(wager, 10), last: null, settled: true } });
     }
-    const app = HAND_GAMES.includes(game) ? TownHandApp : TownDeathApp;
+    const [app, deal] = DEALT[game];
     if (app.inProgress()) return ui.notifications.warn(t("SDE.town.hand.inProgress"));
     // The house plays from the dice's own random source, like the games' dice.
     const io = { random: () => CONFIG.Dice.randomUniform(), ...this._io };
-    const r = HAND_GAMES.includes(game) ? await startHand({ player, game, wager, town }, io) : await startDeath({ player, wager, town }, io);
+    const r = await deal({ player, game, wager, town }, io);
     if (!r.ok) return ui.notifications.warn(r.error);
     this.last = null;
     app.open({ scene: this.scene, player, table: r.table });

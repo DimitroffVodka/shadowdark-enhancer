@@ -690,6 +690,10 @@ A full-screen picture every client shows behind Foundry's UI, kept in one world 
 | `roulette-view.mjs` | 45 | What the roulette board looks like, pure: the chat card's lines and the window's spots, chip stacks, chip sizes within the table limit and the last spin. |
 | `town-roulette.mjs` | 38 | A spin of the roulette on the player's own client: the board checked against the limit and the purse, one d20, one change to the purse and one card. |
 | `town-roulette-app.mjs` | 78 | The roulette window: pick a chip size, click spots to lay chips and the stack to take one off, then spin; nothing is taken until the spin. |
+| `blackjack-core.mjs` | 143 | Blackjack, pure: a freshly shuffled deck of 52 for every hand, the dealer drawing to 17 and standing on every 17, hit, stand, double down and one split, a natural at 3 to 2, and what a finished hand pays with the town's cut taken from winnings only. |
+| `blackjack-view.mjs` | 89 | What a hand of blackjack looks like, pure: the chat card's lines and the window's dealer and player hands (the hole card face down until the hand is over), totals, tags and controls. |
+| `town-blackjack.mjs` | 73 | A hand of blackjack at a town table on the player's own client: the wager, a double or split puts one more on the table, each move checked against the rules and the purse, settling and the card. |
+| `town-blackjack-app.mjs` | 71 | The blackjack window: the dealer's cards and yours, hit, stand, double down and split; closing it in the middle of a hand walks away. |
 | `town-table.mjs` | 30 | What every sit-down game does when it ends: pay the player what came back and post the one card the chat and the sales log read. |
 | `town-table-app.mjs` | 71 | What the sit-down games' windows share: one window of a kind, the chosen character, the town's table settings, redraw on change and leaving the table on close. |
 | `town-log-app.mjs` | 86 | The GM's sales log window: what was bought, sold and played, filtered and totalled. |

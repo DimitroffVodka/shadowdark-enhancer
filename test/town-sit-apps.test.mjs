@@ -26,6 +26,7 @@ const character = { id: "c1", name: "Creeg", type: "Player", isOwner: true, syst
 globalThis.game = { actors: [character], user: { isGM: false, character } };
 const { TownGamesApp } = await import("../scripts/town/town-games-app.mjs");
 const { TownHandApp } = await import("../scripts/town/town-hand-app.mjs");
+const { TownBlackjackApp } = await import("../scripts/town/town-blackjack-app.mjs");
 
 const SCENE = { id: "s1", name: "Hollowmere", flags: { "shadowdark-enhancer": { landing: { title: "Hollowmere", games: { on: true, maxBet: 10, edge: 5 } } } } };
 
@@ -46,11 +47,11 @@ const fresh = () => { instances.clear(); warnings.length = 0; character.system.c
 const gamesWindow = (io) => Object.assign(new TownGamesApp(), { buyerId: "c1", wagerSp: 10, scene: SCENE, element: { querySelector: () => null }, _io: io });
 const sit = (app, game) => app._onPlay(null, { dataset: { game } });
 
-test("the games window lists the four one-roll games and the four that open a table, and each table opens on the right game", async () => {
+test("the games window lists the four one-roll games and the five that open a table, and each table opens on the right game", async () => {
   fresh();
   const io = makeIo({ dice: [[10, 9, 8, 2], [5, 5, 5, 5], [1, 2, 3], [4, 5, 6]] });
   const games = gamesWindow(io);
-  assert.deepEqual((await games._prepareContext({})).games.map((g) => g.id), ["coin", "duel", "wheel", "cards", "bluff", "brag", "death", "roulette"]);
+  assert.deepEqual((await games._prepareContext({})).games.map((g) => g.id), ["coin", "duel", "wheel", "cards", "bluff", "brag", "death", "roulette", "blackjack"]);
 
   await sit(games, "bluff");
   const hand = instances.get("sde-town-hand");
@@ -68,6 +69,47 @@ test("the games window lists the four one-roll games and the four that open a ta
   const wheel = instances.get("sde-town-roulette");
   assert.deepEqual([wheel.table.game, wheel.table.bets, wheel.table.chip, wheel.table.settled], ["roulette", {}, 100, true]);
   assert.equal(toCopper(character.system.coins), 300);                     // nothing is taken until the wheel spins
+
+  await sit(games, "blackjack");                                           // the house's source never swaps, so the deck is in order: a natural, paid on the spot
+  const cards = instances.get("sde-town-blackjack");
+  assert.deepEqual([cards.table.game, cards.table.settled, cards.table.round.result.hands[0].outcome, toCopper(character.system.coins)], ["blackjack", true, "blackjack", 300 - 100 + 242]);
+  assert.equal(TownBlackjackApp.inProgress(), false);
+});
+
+test("the blackjack window: hit and stand send the move, a refused move warns, and leaving the table takes the wager", async () => {
+  fresh();
+  const io = makeIo({ nerve: 0.3 });                                       // deals the player a 4 and a king against a dealer's ace and 3
+  await sit(gamesWindow(io), "blackjack");
+  const table = instances.get("sde-town-blackjack");
+  table._io = io;
+  assert.deepEqual([table.table.settled, table.table.round.hands[0].cards.length, toCopper(character.system.coins), TownBlackjackApp.inProgress()], [false, 2, 400, true]);
+  await table._onMove(null, { dataset: { move: "split" } });               // not a pair
+  assert.equal(warnings.at(-1), "SDE.town.hand.notNow");
+  assert.equal(table.table.round.hands[0].cards.length, 2);
+  await table._onMove(null, { dataset: { move: "hit" } });
+  assert.equal(table.table.round.hands[0].cards.length, 3);
+  assert.equal((await table._prepareContext({})).hands[0].cards.length, 3);
+  await table.close();                                                     // leaving in the middle of a hand
+  await new Promise((r) => setTimeout(r, 0));
+  assert.equal(io.log.chat.length, 1);
+  assert.match(io.log.chat[0].content, /ui-cc bad/);
+  assert.equal(toCopper(character.system.coins), 400);                     // the wager is the house's
+  assert.equal(TownBlackjackApp.inProgress(), false);
+});
+
+test("the blackjack window: another hand deals again at the same wager once the last is settled", async () => {
+  fresh();
+  const io = makeIo({ nerve: 0.3 });
+  await sit(gamesWindow(io), "blackjack");
+  const table = instances.get("sde-town-blackjack");
+  table._io = io;
+  await table._onAgain();                                                  // not settled yet: nothing happens
+  assert.deepEqual([toCopper(character.system.coins), io.log.chat.length], [400, 0]);
+  await table._onMove(null, { dataset: { move: "stand" } });               // 14 against the dealer's soft 14 and whatever the stacked deck gives
+  assert.equal(table.table.settled, true);
+  const after = toCopper(character.system.coins);
+  await table._onAgain();
+  assert.deepEqual([table.table.settled, table.table.wager, toCopper(character.system.coins)], [false, 100, after - 100]);
 });
 
 test("a hand: picking a die to show or dice to reroll, then the move, and leaving the table walks away from the hand", async () => {

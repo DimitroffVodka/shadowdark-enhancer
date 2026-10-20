@@ -195,8 +195,8 @@ call it "(bought back)".
 
 Turn on **Open a games table** in the settings and **Games of chance** joins the
 menu. A player picks their character, sets a **wager** in silver (quick buttons
-for 1 sp, 1 gp, 5 gp, 10 gp... and the table's limit) and plays one of eight
-games. Four settle on one roll. The other four open a table of their own,
+for 1 sp, 1 gp, 5 gp, 10 gp... and the table's limit) and plays one of nine
+games. Four settle on one roll. The other five open a table of their own,
 because there is something to decide. A result card is posted to the chat for
 everyone to see.
 
@@ -261,6 +261,25 @@ a number pays 19 to 1. Nothing is taken until the spin, so closing the window
 costs nothing, and the layout stays so you can bet it again. The whole board
 may not stake more than the table's limit.
 
+### Blackjack
+
+![A hand of blackjack](images/town-blackjack.png)
+
+You and the dealer get two cards, one of the dealer's face down; every hand is
+dealt from a freshly shuffled deck of 52, so counting cards earns nothing. Cards
+count their pips, faces ten, an ace eleven or one. **Hit** for another card,
+**Stand**, **Double down** (one more card and no more, for a second wager, on a
+hand of two cards) or **Split** a pair of the same value into two hands with a
+second wager (once; split aces take one card each, and 21 on a split hand pays 1
+to 1). Over 21 loses at once. The dealer draws to 17 and stands on every 17, soft
+ones too, and does not draw at all when you have bust. A natural 21 on your first
+two cards pays **3 to 2**; the dealer has looked at its hole card by then, so if it
+has a natural too the hand is a push, and if only it has one you lose the wager
+before you can put more on the table. Insurance and surrender are not offered.
+The dealer has no choices to make, so there is no house skill to set: with the
+rules above a player who plays the book loses a fraction of a percent to the
+deck, and the town's cut comes on top of that.
+
 ### What the house keeps
 
 The **house keeps** a share of every *win*: at 5%, a 100 cp wager that wins pays
@@ -270,13 +289,14 @@ touched by it, and the winnings round down. With no cut the coin, the duel, the
 cards and roulette are exactly fair, and the wheel returns 99.5% of what is
 staked, so the cut is what makes the house win over a night. The **largest
 bet** is the table's limit on one wager (a hand puts in up to 7 wagers in Bluff
-and 5 in Brag, a round of the death roll up to 8, a roulette board up to the
-limit in all), and the house has no purse to run dry, so the limit is what
+and 5 in Brag, a round of the death roll up to 8, a hand of blackjack up to 4
+when both split hands are doubled, a roulette board up to the limit in all), and the house has no purse to run dry, so the limit is what
 bounds a lucky streak.
 
 Like a purchase, a game only changes the player's own character, so it works
 with no GM connected. Dice are rolled with Foundry's own dice and show in Dice So
-Nice when it is installed.
+Nice when it is installed; the blackjack deck is shuffled from Foundry's random
+source, so it shows no dice.
 
 ---
 

@@ -11,8 +11,8 @@
  *   cards   one card each from a deck     higher wins at 1 to 1, the same rank gives the wager back
  *
  * The games that are played over several choices open a table of their own (`SIT_GAMES`): Bluff and Brag are hands of
- * betting over hidden dice (hand-core.mjs), the death roll has a doubling stake (death-core.mjs) and the roulette a board
- * of chips (roulette-core.mjs). This file keeps what they share: the wager limits, `settle`, the strings and the odds
+ * betting over hidden dice (hand-core.mjs), the death roll has a doubling stake (death-core.mjs), the roulette a board
+ * of chips (roulette-core.mjs) and blackjack hits, doubles and splits over a shuffled deck (blackjack-core.mjs). This file keeps what they share: the wager limits, `settle`, the strings and the odds
  * of a single roulette bet.
  *
  * With no house cut the coin, duel and cards are exactly fair and the wheel returns 99.5%; the town's cut is what
@@ -24,10 +24,10 @@ export const GAME_IDS = ["coin", "duel", "wheel", "cards"];
 /** The games played as a hand of betting (hand-core.mjs). */
 export const HAND_GAMES = ["bluff", "brag"];
 /** The games that open a table of their own instead of settling on one roll, in the order the window lists them. */
-export const SIT_GAMES = [...HAND_GAMES, "death", "roulette"];
+export const SIT_GAMES = [...HAND_GAMES, "death", "roulette", "blackjack"];
 export const GAME_ICONS = {
   coin: "fa-coins", duel: "fa-dice", wheel: "fa-dharmachakra", cards: "fa-heart",
-  death: "fa-skull", roulette: "fa-bullseye", brag: "fa-dice-three", bluff: "fa-eye",
+  death: "fa-skull", roulette: "fa-bullseye", brag: "fa-dice-three", bluff: "fa-eye", blackjack: "fa-diamond",
 };
 export const SIDES = ["heads", "tails"];
 /** The roulette bets that are not a number; a number bet is "1" to "20". */
@@ -46,6 +46,7 @@ export const GAME_KEYS = {
   roulette: { name: "SDE.town.games.roulette.name", rules: "SDE.town.games.roulette.rules", odds: "SDE.town.games.roulette.odds" },
   brag: { name: "SDE.town.games.brag.name", rules: "SDE.town.games.brag.rules", odds: "SDE.town.games.brag.odds" },
   bluff: { name: "SDE.town.games.bluff.name", rules: "SDE.town.games.bluff.rules", odds: "SDE.town.games.bluff.odds" },
+  blackjack: { name: "SDE.town.games.blackjack.name", rules: "SDE.town.games.blackjack.rules", odds: "SDE.town.games.blackjack.odds" },
 };
 export const SIDE_KEYS = { heads: "SDE.town.games.side.heads", tails: "SDE.town.games.side.tails" };
 export const BET_KEYS = {
