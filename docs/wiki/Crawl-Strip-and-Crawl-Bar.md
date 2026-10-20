@@ -351,7 +351,8 @@ the party token travels.
 
 - **Forage** looks for food. At a normal pace it happens by itself: the day's
   first move rolls it for every traveller, with no one asked to stop. The
-  button is for anyone it missed.
+  button is for anyone it missed. With the **Automatic foraging** setting off,
+  nobody forages until they press the button.
   - The INT roll is DC 12, or 18 in a harsh climate. The automatic roll is made
     for the character; a button forage is rolled by the character's player, or
     by you when they aren't connected.
