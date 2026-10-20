@@ -4,7 +4,8 @@ Shadowdark Enhancer: copy the landing table's pictures and layout next to the pu
 
     python3 tools/landing-table/make_demo.py
 
-Run after make_assets.py. The demo page is plain HTML and needs no Foundry.
+Run after make_assets.py. The demo page is plain HTML and needs no Foundry; its Liar's dice is the module's own
+liars-dice-core.mjs, copied next to it.
 """
 import os
 import re
@@ -22,4 +23,6 @@ layout = open(os.path.join(ROOT, "scripts", "town", "landing-table-layout.mjs"))
 body = re.search(r"export default (\{.*\});", layout, re.S).group(1)
 with open(os.path.join(DEMO, "layout.js"), "w") as f:
     f.write("// Copied from scripts/town/landing-table-layout.mjs by tools/landing-table/make_demo.py.\nexport default " + body + ";\n")
+# The demo plays the module's own Liar's dice rules (pure, no Foundry), copied as they are.
+shutil.copyfile(os.path.join(ROOT, "scripts", "town", "liars-dice-core.mjs"), os.path.join(DEMO, "liars-dice-core.js"))
 print("demo assets:", sorted(os.listdir(OUT)))

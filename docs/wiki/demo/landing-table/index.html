@@ -74,13 +74,58 @@
   footer { max-width: 980px; margin: 0 auto; padding: 0 16px 32px; color: var(--muted); font-size: 13px; text-align: center; }
   footer a, .note a { color: var(--gold); }
   @media (max-width: 640px) { .hint { font-size: 14px; } }
+
+  /* The mini windows: what each object opens, with sample data. */
+  .veil { position: fixed; inset: 0; background: rgb(0 0 0 / 55%); display: none; z-index: 20; }
+  .veil.show { display: block; }
+  .win { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(560px, 94vw); max-height: min(78vh, 720px); display: none; flex-direction: column; z-index: 21;
+    background: #120d08; border: 1px solid rgb(231 191 98 / 55%); border-radius: 12px; box-shadow: 0 20px 60px rgb(0 0 0 / 80%); color: var(--body); }
+  .win.show { display: flex; }
+  .win header { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid rgb(231 191 98 / 25%); }
+  .win header h2 { flex: 1 1 auto; margin: 0; font: 400 30px/1.05 var(--title); color: var(--text); }
+  .win header small { display: block; font: 13px var(--font); color: var(--muted); }
+  .win .x { width: 34px; height: 34px; border: 1px solid rgb(231 191 98 / 35%); border-radius: 8px; background: none; color: var(--body); font-size: 20px; cursor: pointer; }
+  .win .x:hover, .win .x:focus-visible { border-color: var(--gold); color: var(--text); outline: none; }
+  .win .body { padding: 12px 16px 16px; overflow-y: auto; }
+  .win .foot { padding: 10px 16px; border-top: 1px solid rgb(231 191 98 / 25%); display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+  .win .foot b { color: var(--gold); }
+  .win select, .win button.btn { font: 600 13px var(--font); color: var(--text); background: #221810; border: 1px solid rgb(231 191 98 / 45%); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+  .win button.btn:hover:not(:disabled), .win button.btn:focus-visible { border-color: var(--gold); background: #2e2014; outline: none; }
+  .win button.btn.primary { background: #c69a3e; color: #1a1006; border-color: #c69a3e; }
+  .win button.btn:disabled { opacity: .45; cursor: not-allowed; }
+  .rows { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+  .row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid rgb(231 191 98 / 15%); border-radius: 8px; background: #17110b; }
+  .row .main { flex: 1 1 auto; min-width: 0; }
+  .row .main b { color: var(--text); font-weight: 600; }
+  .row .main small { display: block; color: var(--muted); font-size: 12px; }
+  .chip { display: inline-block; padding: 1px 8px; border: 1px solid rgb(231 191 98 / 40%); border-radius: 999px; font-size: 11px; color: var(--muted); }
+  .chip.uncommon { color: #9fd18b; border-color: #5d8a4c; } .chip.rare { color: #8bb8e8; border-color: #4a6f99; } .chip.very-rare { color: #d9a2f0; border-color: #8a5aa3; }
+  .price { color: var(--gold); font-weight: 600; white-space: nowrap; }
+  .step { display: flex; align-items: center; gap: 10px; padding: 4px 0 4px 6px; cursor: pointer; }
+  .step input { width: 18px; height: 18px; accent-color: #c69a3e; }
+  .step.done span { text-decoration: line-through; color: var(--muted); }
+  .quest h3 { margin: 10px 0 2px; font: 400 26px/1.1 var(--title); color: var(--text); }
+  .quest p { margin: 0 0 4px; font-size: 13px; color: var(--muted); }
+  .play { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 10px 0; }
+  .dice { font-size: 46px; line-height: 1; color: var(--text); letter-spacing: 4px; }
+  .result { min-height: 24px; margin: 8px 0 0; font-weight: 600; }
+  .result.good { color: #9fd18b; } .result.bad { color: #e88a7a; }
+  .game { padding: 10px 12px; border: 1px solid rgb(231 191 98 / 18%); border-radius: 10px; margin-bottom: 10px; }
+  .game h3 { margin: 0 0 4px; font: 400 26px/1.1 var(--title); color: var(--text); }
+  .game p { margin: 0; font-size: 13px; color: var(--muted); }
+  .hexmap { width: 100%; height: auto; display: block; border-radius: 8px; background: #050403; }
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin: 8px 0; }
+  .stat { padding: 8px; border: 1px solid rgb(231 191 98 / 18%); border-radius: 8px; text-align: center; }
+  .stat b { display: block; font: 400 26px/1 var(--title); color: var(--text); }
+  .stat small { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+  .handout { padding: 12px 14px; border-radius: 8px; background: #e6d6ad; color: #2a1a0c; font: 15px/1.5 Georgia, serif; }
 </style>
 </head>
 <body>
 <header class="intro">
   <h1>The Landing Table</h1>
   <p>In Shadowdark Enhancer for Foundry VTT, the landing page is a table the party sits at between adventures. The things on it are the buttons: the GM presses one button to bring the whole table here, and one to send everyone back to the adventure.</p>
-  <p class="hint">Move over the table. Click the chest, the tome, a portrait. Write on the title card.</p>
+  <p class="hint">Move over the table and click anything: buy from the chest, tick a quest, play the dice, open a portrait. Write on the title card.</p>
 </header>
 
 <div class="stage" id="stage"><div class="pic" id="pic" data-hot=""></div></div>
@@ -96,24 +141,47 @@
   <br><a href="https://github.com/DimitroffVodka/shadowdark-enhancer">Shadowdark Enhancer on GitHub</a> · <a href="../../">The manual</a>
 </footer>
 
+<div class="veil" id="veil"></div>
+<div class="win" id="win" role="dialog" aria-modal="true" aria-labelledby="win-title">
+  <header><h2 id="win-title"></h2><button type="button" class="x" id="win-x" aria-label="Close">×</button></header>
+  <div class="body" id="win-body"></div>
+  <div class="foot" id="win-foot"></div>
+</div>
+
 <script type="module">
 import L from "./layout.js";
+import * as LD from "./liars-dice-core.js";
 const A = (p) => `./assets/${p}?v=${L.rev ?? ""}`;
-const pic = document.getElementById("pic"), stage = document.getElementById("stage"), toast = document.getElementById("toast");
+const $ = (id) => document.getElementById(id);
+const pic = $("pic"), stage = $("stage"), toast = $("toast");
 
-const PROPS = {
-  quests: ["Quest Log", "2 active", "The tome lists the party's active quests and ticks off their steps. Click it and it opens the Quest Log."],
-  market: ["Market", "Outfitter, The Table", "Opens the market. Players buy and sell with their own characters, haggle, and fill a cart, with or without a GM online."],
-  games: ["Games of chance", "Dice, cards and a wheel", "Ten games played with the characters' own coin: coin toss, dice duel, fortune wheel, card draw, Beholder's Bluff, three-dice brag, death roll, dice roulette, blackjack and Liar's dice."],
-  carouse: ["Carouse", "Spend the night's coin", "Opens a night of carousing: everyone stakes coin, rolls, and lives with the results."],
-  map: ["Map", "The lands your party has explored", "Shows the player who clicks it, alone, the overland hex map with their own party's explored hexes. A Back button returns them to the table."],
-  downtime: ["Downtime", "Train, carouse and recruit", "Opens the Downtime window for the days between adventures."],
-  journals: ["Journals", "Handouts and your own notes", "Opens the Journal sidebar."],
-  recaps: ["Session recaps", "Loot, fights, rolls and coin", "Opens the Session Recap: every session's loot, fights, rolls and coin, kept for the whole campaign."],
+// ── sample data (invented for the demo; in Foundry it is your world's own) ──────────────────────────────────
+const LABELS = {
+  quests: ["Quest Log", "the party's quests"], market: ["Market", "Outfitter, The Table"], games: ["Games of chance", "played with your own coin"],
+  carouse: ["Carouse", "spend the night's coin"], map: ["Map", "the lands your party has explored"], downtime: ["Downtime", "train, recruit, earn"],
+  journals: ["Journals", "handouts and notes"], recaps: ["Session recaps", "loot, fights, rolls and coin"],
 };
-const QUESTS = [["The Drowned Bell", [["Find the bell-ringer", true], ["Dive the old chapel", false]]], ["Rats in the Cellar", [["Clear the cellar", false]]]];
-const PARTY = [["Denin", 1, "Kyzian Archer", "7 / 7", "40 gp"], ["Malchor", 2, "Wizard", "5 / 9", "12 gp 4 sp"], ["Romas", 1, "Fighter", "11 / 11", "61 gp"]];
+const state = {
+  buyer: 0,
+  party: [
+    { name: "Denin", level: 1, cls: "Kyzian Archer", hp: [7, 7], ac: 13, cp: 4000, stats: "STR 10 · DEX 16 · CON 12 · INT 9 · WIS 13 · CHA 8" },
+    { name: "Malchor", level: 2, cls: "Wizard", hp: [5, 9], ac: 11, cp: 1240, stats: "STR 8 · DEX 12 · CON 10 · INT 17 · WIS 11 · CHA 12" },
+    { name: "Romas", level: 1, cls: "Fighter", hp: [11, 11], ac: 16, cp: 6100, stats: "STR 16 · DEX 11 · CON 14 · INT 8 · WIS 10 · CHA 11" },
+  ],
+  quests: [
+    { name: "The Drowned Bell", from: "Old Ilse, the bell-ringer's widow", steps: [{ text: "Find the bell-ringer", done: true }, { text: "Dive the old chapel", done: false }, { text: "Bring the bell's tongue home", done: false }] },
+    { name: "Rats in the Cellar", from: "The Table's landlord", steps: [{ text: "Clear the cellar", done: false }, { text: "Find where they get in", done: false }] },
+  ],
+  shelf: [
+    ["Torch", "common", 5, 5], ["Rations (3)", "common", 50, 5], ["Rope, 60'", "common", 100, 3], ["Backpack", "common", 200, 3], ["Crowbar", "common", 50, 2],
+    ["Dagger", "common", 100, 3], ["Shortbow", "common", 600, 2], ["Arrows (20)", "common", 100, 4], ["Leather Armor", "common", 1000, 2], ["Shield", "common", 1000, 2],
+    ["Lantern", "uncommon", 500, 2], ["Longsword", "uncommon", 900, 2], ["Chainmail", "uncommon", 6000, 1], ["Greatsword", "rare", 1200, 1],
+  ].map(([name, rarity, cp, stock]) => ({ name, rarity, cp, stock })),
+};
+const coins = (cp) => { const g = Math.floor(cp / 100), s = Math.floor((cp % 100) / 10), c = cp % 10; return [g && `${g} gp`, s && `${s} sp`, c && `${c} cp`].filter(Boolean).join(" ") || "0 cp"; };
+const buyer = () => state.party[state.buyer];
 
+// ── the table ────────────────────────────────────────────────────────────────────────────────────────────────
 function homography(w, h, quad) {
   const src = [[0, 0], [w, 0], [w, h], [0, h]], M = [], b = [];
   for (let i = 0; i < 4; i++) { const [x, y] = src[i], [u, v] = quad[i]; M.push([x, y, 1, 0, 0, 0, -u * x, -u * y]); b.push(u); M.push([0, 0, 0, x, y, 1, -v * x, -v * y]); b.push(v); }
@@ -127,9 +195,10 @@ function homography(w, h, quad) {
 }
 const el = (tag, cls, html) => { const n = document.createElement(tag); if (cls) n.className = cls; if (html != null) n.innerHTML = html; return n; };
 const box = (n, { x, y, w, h }) => Object.assign(n.style, { left: `${x}px`, top: `${y}px`, width: `${w}px`, height: `${h}px` });
+const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
 const base = el("img", "base"); base.src = A("table.webp"); base.alt = "A candle-lit wooden table with a quest tome, a coin chest, dice, goblets, a framed map and more."; pic.append(base);
-for (const [id, [name, sub]] of Object.entries(PROPS)) {
+for (const [id, [name, sub]] of Object.entries(LABELS)) {
   if (!L.props[id]) continue;
   const p = el("div", "prop"); p.dataset.prop = id; box(p, L.props[id]);
   const img = el("img"); img.src = A(`props/${id}.webp`); img.alt = "";
@@ -137,29 +206,38 @@ for (const [id, [name, sub]] of Object.entries(PROPS)) {
 }
 const open = el("img", "chest-open"); open.src = A("props/market-open.webp"); open.alt = ""; box(open, L.marketOpen); pic.append(open);
 
-const lines = QUESTS.flatMap(([q, steps]) => [`<li class="quest"><span class="tick"></span>${q}</li>`, ...steps.map(([s, done]) => `<li class="step ${done ? "done" : ""}"><span class="tick"></span>${s}</li>`)]);
-for (const [quad, flip] of [[L.tomeLeft, false], [L.tomeRight, true]]) {
-  const q = el("div", "quad page", (flip ? `<div class="flip"></div>` : "") + `<ul>${flip ? "" : lines.join("")}</ul>`);
+const pages = [L.tomeLeft, L.tomeRight].map((quad, i) => {
+  const q = el("div", "quad page", i ? `<div class="flip"></div><ul></ul>` : "<ul></ul>");
   Object.assign(q.style, { width: "300px", height: "410px", transform: homography(300, 410, quad) }); pic.append(q);
+  return q.querySelector("ul");
+});
+function drawTome() {
+  const lines = state.quests.flatMap((q) => [`<li class="quest"><span class="tick"></span>${esc(q.name)}</li>`, ...q.steps.map((s) => `<li class="step ${s.done ? "done" : ""}"><span class="tick"></span>${esc(s.text)}</li>`)]);
+  pages[0].innerHTML = lines.slice(0, 5).join(""); pages[1].innerHTML = lines.slice(5, 10).join("");
 }
 const title = el("div", "quad title-card", `<span class="title-text" contenteditable="plaintext-only" spellcheck="false">Session 14: Ash Above the Styx</span>`);
 Object.assign(title.style, { width: "700px", height: "150px", transform: homography(700, 150, L.title) }); pic.append(title);
 const ticks = Array.from({ length: 24 }, (_, i) => `<line x1="100" y1="12" x2="100" y2="${i % 6 ? 20 : 30}" stroke="#3b2410" stroke-width="3" transform="rotate(${i * 15} 100 100)"/>`).join("");
 const dial = el("div", "quad dial", `<svg viewBox="0 0 200 200"><path d="M100 100 L10 100 A90 90 0 0 1 190 100 Z" fill="#d9b45a" opacity=".55"/><path d="M100 100 L190 100 A90 90 0 0 1 10 100 Z" fill="#22304a" opacity=".7"/>${ticks}<circle cx="100" cy="42" r="10" fill="#f5c542"/><circle cx="100" cy="158" r="9" fill="#dfe6f0"/><line id="hand" x1="100" y1="100" x2="100" y2="22" stroke="#2a1a0c" stroke-width="6" stroke-linecap="round"/><circle cx="100" cy="100" r="7" fill="#8a6420"/></svg>`);
 Object.assign(dial.style, { width: "400px", height: "400px", transform: homography(400, 400, L.dial) }); pic.append(dial);
-const coin = el("span", "coin", "113 gp"); Object.assign(coin.style, { left: `${L.chestFront[0]}px`, top: `${L.chestFront[1]}px` }); pic.append(coin);
-PARTY.forEach(([name, lvl, cls, hp, purse], i) => {
+const coinTag = el("span", "coin"); Object.assign(coinTag.style, { left: `${L.chestFront[0]}px`, top: `${L.chestFront[1]}px` }); pic.append(coinTag);
+const seats = state.party.map((m, i) => {
   const [x, y] = L.seats[i];
-  const s = el("button", "seat", `${name[0]}<span class="card"><b>${name}</b><span>Level ${lvl} ${cls}</span><span>HP ${hp}</span><span class="purse">${purse}</span></span>`);
-  s.type = "button"; s.setAttribute("aria-label", name); Object.assign(s.style, { left: `${x}px`, top: `${y}px` });
-  s.addEventListener("click", () => say(name, "Opens this character's sheet: in Foundry each player opens their own."));
-  pic.append(s);
+  const s = el("button", "seat"); s.type = "button"; s.setAttribute("aria-label", m.name); Object.assign(s.style, { left: `${x}px`, top: `${y}px` });
+  s.addEventListener("click", () => openWin("sheet", i));
+  pic.append(s); return s;
 });
-const plaque = el("div", "plaque", "Party"); Object.assign(plaque.style, { left: `${(L.seats[0][0] + L.seats[2][0]) / 2}px`, top: `${L.seats[0][1] + 92}px` }); pic.append(plaque);
+const plaque = el("button", "plaque", "Party"); plaque.type = "button"; plaque.style.cursor = "pointer"; Object.assign(plaque.style, { left: `${(L.seats[0][0] + L.seats[2][0]) / 2}px`, top: `${L.seats[0][1] + 92}px` });
+plaque.addEventListener("click", () => openWin("party")); pic.append(plaque);
+function drawTable() {
+  drawTome();
+  coinTag.textContent = coins(state.party.reduce((n, m) => n + m.cp, 0));
+  state.party.forEach((m, i) => { seats[i].innerHTML = `${m.name[0]}<span class="card"><b>${m.name}</b><span>Level ${m.level} ${m.cls}</span><span>HP ${m.hp[0]} / ${m.hp[1]}</span><span class="purse">${coins(m.cp)}</span></span>`; });
+}
+drawTable();
 
 // The dial runs a whole day in a minute here; in Foundry it follows the world's clock.
-let hour = 20; setInterval(() => { hour = (hour + 0.1) % 24; document.getElementById("hand").setAttribute("transform", `rotate(${((hour + 12) % 24) * 15} 100 100)`); }, 250);
-
+let hour = 20; setInterval(() => { hour = (hour + 0.1) % 24; $("hand").setAttribute("transform", `rotate(${((hour + 12) % 24) * 15} 100 100)`); }, 250);
 function fit() { pic.style.transform = `scale(${stage.clientWidth / 2560})`; }
 addEventListener("resize", fit); fit();
 
@@ -171,7 +249,7 @@ function propAt(ev) {
   const r = pic.getBoundingClientRect(), x = Math.floor(((ev.clientX - r.left) / r.width) * hit.w), y = Math.floor(((ev.clientY - r.top) / r.height) * hit.h);
   if (x < 0 || y < 0 || x >= hit.w || y >= hit.h) return null;
   const id = ORDER[Math.round(hit.d[(y * hit.w + x) * 4] / 20) - 1] ?? null;
-  return PROPS[id] && L.props[id] ? id : null;
+  return LABELS[id] && L.props[id] ? id : null;
 }
 function light(id) {
   if (pic.dataset.hot === (id ?? "")) return;
@@ -179,18 +257,224 @@ function light(id) {
   for (const p of pic.querySelectorAll(".prop")) p.classList.toggle("hot", p.dataset.prop === id);
   pic.style.cursor = id ? "pointer" : "";
 }
-pic.addEventListener("pointermove", (ev) => light(ev.target.closest(".seat, .title-text") ? null : propAt(ev)));
+pic.addEventListener("pointermove", (ev) => light(ev.target.closest(".seat, .plaque, .title-text") ? null : propAt(ev)));
 pic.addEventListener("pointerleave", () => light(null));
 pic.addEventListener("click", (ev) => {
-  if (ev.target.closest(".seat, .title-text")) return;
+  if (ev.target.closest(".seat, .plaque, .title-text")) return;
   const id = propAt(ev);
   if (!id) return;
   light(id);
-  if (id === "market" || id === "quests") { stage.classList.remove("opening-market", "opening-quests"); void stage.offsetWidth; stage.classList.add(`opening-${id}`); setTimeout(() => stage.classList.remove(`opening-${id}`), 2300); }
-  say(PROPS[id][0], PROPS[id][2]);
+  if (id === "market" || id === "quests") {
+    stage.classList.remove("opening-market", "opening-quests"); void stage.offsetWidth; stage.classList.add(`opening-${id}`);
+    setTimeout(() => stage.classList.remove(`opening-${id}`), 2300);
+    setTimeout(() => openWin(id), 650);
+  } else openWin(id === "games" && liars && !liars.game.winner ? "liars" : id);
 });
 let timer = null;
-function say(head, text) { toast.innerHTML = `<b>${head}</b>${text}`; toast.classList.add("show"); clearTimeout(timer); timer = setTimeout(() => toast.classList.remove("show"), 4200); }
+function say(text) { toast.innerHTML = text; toast.classList.add("show"); clearTimeout(timer); timer = setTimeout(() => toast.classList.remove("show"), 2600); }
+
+// ── the mini windows ─────────────────────────────────────────────────────────────────────────────────────────
+let current = null, opener = null;
+function openWin(kind, arg) {
+  opener = document.activeElement; current = [kind, arg];
+  renderWin();
+  $("veil").classList.add("show"); $("win").classList.add("show"); $("win-x").focus();
+}
+function closeWin() { $("veil").classList.remove("show"); $("win").classList.remove("show"); current = null; opener?.focus?.(); }
+$("win-x").addEventListener("click", closeWin);
+$("veil").addEventListener("click", closeWin);
+addEventListener("keydown", (ev) => { if (ev.key === "Escape" && current) closeWin(); });
+const playing = () => `Playing as <select id="who">${state.party.map((m, i) => `<option value="${i}" ${i === state.buyer ? "selected" : ""}>${m.name}</option>`).join("")}</select> <b>${coins(buyer().cp)}</b>`;
+function renderWin() {
+  const [kind, arg] = current, W = WINDOWS[kind](arg);
+  $("win-title").innerHTML = W.title; $("win-body").innerHTML = W.body; $("win-foot").innerHTML = W.foot ?? "";
+  $("win-foot").style.display = W.foot ? "" : "none";
+  $("who")?.addEventListener("change", (e) => { state.buyer = Number(e.target.value); renderWin(); });
+  W.bind?.($("win-body"));
+}
+const rerender = () => { drawTable(); if (current) renderWin(); };
+
+const OUTCOMES = [
+  "You wake in a hayloft with a borrowed hat and no memory of the bet.", "A merchant swears you saved his life. He owes you a favour.",
+  "You sang. Loudly. The whole street now knows your name.", "You lost an arm-wrestle to a halfling and won her respect.",
+  "Someone paid your tab. Someone wants something.", "You made a friend in the city watch.",
+  "You won a deed to a goat. The goat is real.", "The night was a legend. The room is spinning, but you learned something.",
+];
+const HANDOUTS = [
+  ["A letter from Old Ilse", "My husband rang the bell every dusk for forty years. The night it stopped, the river rose. Find him, or find the bell. — I."],
+  ["Scrap found in the cellar", "A smudged map of tunnels under the inn, with a cross marked under the third barrel and the word 'dry'."],
+  ["Party notes", "Romas owes Malchor 3 gp. The landlord pays 10 gp a rat-nest. Do not drink the blue ale."],
+];
+const DOWNTIME = [["Train", "Practice with a trainer for a week to learn a new skill."], ["Work for coin", "Hire out your trade; earn coin by the day."], ["Recruit", "Find a hireling to join the party."], ["Research", "Dig through records to learn about a place or foe."], ["Carouse", "Spend coin on a night out and see what comes of it."]];
+
+// Liar's dice against the house's players, with the module's own rules and their own play (liars-dice-core).
+const BOTS = ["Brannoch", "Mags", "Quill", "Tolliver", "Sedge"];
+let liars = null, botTimer = null;
+const FACE = (n) => "⚀⚁⚂⚃⚄⚅"[n - 1];
+function lastCall(g) { for (let i = g.log.length - 1; i >= 0; i--) if (g.log[i].t === "call") return g.log[i]; return null; }
+function settleLiars() {
+  if (!liars?.game.winner || liars.paid) return;
+  liars.paid = true;
+  if (liars.game.winner === "you") { buyer().cp += liars.pot * 100; say(`<b>${buyer().name}</b> takes the pot: ${liars.pot} gp.`); }
+  drawTable();
+}
+function runBots() {
+  clearTimeout(botTimer);
+  if (!liars || liars.game.winner) { settleLiars(); if (current?.[0] === "liars") renderWin(); return; }
+  const seat = LD.seatOf(liars.game, liars.game.turn);
+  if (current?.[0] === "liars") renderWin();
+  if (!seat?.ai) return;
+  botTimer = setTimeout(() => {
+    const before = liars.game.log.length, next = LD.aiStep(liars.game, Math.random);
+    if (next) { liars.game = next; const c = next.log.slice(before).find((e) => e.t === "call"); if (c) liars.shown = c; }
+    runBots();
+  }, 900);
+}
+
+const WINDOWS = {
+  liars() {
+    const g = liars.game, you = LD.seatOf(g, "you"), call = liars.shown, myTurn = g.turn === "you" && !g.winner;
+    const seats = g.seats.map((x) => {
+      const hand = x.id === "you" ? x.hand.map(FACE).join("") : x.dice ? "▪".repeat(x.dice) : "out";
+      const shownHand = call?.hands?.[x.id]?.length ? ` <small>showed ${call.hands[x.id].map(FACE).join("")}</small>` : "";
+      return `<li class="row" style="${g.turn === x.id && !g.winner ? "border-color:var(--gold)" : ""}"><div class="main"><b>${esc(x.name)}${x.id === "you" ? " (you)" : ""}</b><small>${x.dice} ${x.dice === 1 ? "die" : "dice"}${g.turn === x.id && !g.winner ? " · to bid" : ""}${shownHand}</small></div><span class="dice" style="font-size:${x.id === "you" ? 34 : 18}px">${hand}</span></li>`;
+    }).join("");
+    const bid = g.bid ? `${esc(LD.seatOf(g, g.bid.by).name)} bids <b>${g.bid.qty} × ${FACE(g.bid.face)}</b> (${g.bid.qty} ${g.bid.face}s, ones wild)` : "No bid yet: the round opens.";
+    const min = LD.minRaise(g), total = LD.totalDice(g);
+    const qtyOpts = Array.from({ length: total }, (_, i) => i + 1).filter((q) => !g.bid || q >= g.bid.qty).map((q) => `<option ${min && q === min.qty ? "selected" : ""}>${q}</option>`).join("");
+    const faceOpts = LD.FACES.map((f) => `<option value="${f}" ${min && f === min.face ? "selected" : ""}>${FACE(f)} ${f}</option>`).join("");
+    const callLine = call ? `<div class="result ${call.loser === "you" ? "bad" : "good"}">${esc(LD.seatOf(g, call.caller).name)} called ${esc(LD.seatOf(g, call.bid.by).name)}'s ${call.bid.qty} × ${FACE(call.bid.face)}: there were ${call.count}. The bid ${call.held ? "held" : "was a lie"}; ${esc(LD.seatOf(g, call.loser).name)} loses a die.</div>` : "";
+    const end = g.winner ? `<div class="result ${g.winner === "you" ? "good" : "bad"}">${g.winner === "you" ? `You win the pot: ${liars.pot} gp.` : `${esc(LD.seatOf(g, g.winner).name)} wins the pot. Your ante is gone.`}</div><div class="play"><button class="btn primary" id="again">Back to the games</button></div>` : "";
+    const controls = myTurn && you.dice ? `<div class="play">Bid <select id="bq">${qtyOpts}</select> of <select id="bf">${faceOpts}</select><button class="btn primary" id="bid">Bid</button>${g.bid ? `<button class="btn" id="call">Call it a lie</button>` : ""}</div><div class="result" id="berr"></div>` : !g.winner ? `<p style="color:var(--muted)">${you.dice ? "Waiting for the others to bid..." : "You are out of dice; the others play on."}</p>` : "";
+    return {
+      title: `Liar's dice<small>Round ${g.round} · pot ${liars.pot} gp · ones are wild</small>`,
+      body: `<ul class="rows">${seats}</ul><p style="margin:10px 0 4px">${bid}</p>${callLine}${controls}${end}`,
+      foot: playing(),
+      bind: () => {
+        $("bid")?.addEventListener("click", () => {
+          const next = LD.placeBid(liars.game, "you", Number($("bq").value), Number($("bf").value));
+          if (!next) { $("berr").className = "result bad"; $("berr").textContent = "That bid must beat the last: more dice, or the same count on a higher face."; return; }
+          liars.game = next; liars.shown = null; runBots();
+        });
+        $("call")?.addEventListener("click", () => { const before = liars.game.log.length; liars.game = LD.callLiar(liars.game, Math.random) ?? liars.game; liars.shown = liars.game.log.slice(before).find((e) => e.t === "call") ?? null; runBots(); });
+        $("again")?.addEventListener("click", () => { liars = null; openWin("games"); });
+      },
+    };
+  },
+  market() {
+    const rows = state.shelf.map((w, i) => `<li class="row"><div class="main"><b>${w.name}</b> <span class="chip ${w.rarity.replace(" ", "-")}">${w.rarity}</span><small>${w.stock ? `${w.stock} on the shelf` : "Sold out until the next restock"}</small></div><span class="price">${coins(w.cp)}</span><button class="btn" data-buy="${i}" ${!w.stock || buyer().cp < w.cp ? "disabled" : ""}>Buy</button></li>`).join("");
+    return {
+      title: `Outfitter, The Table<small>A Town market: common goods always, rarer goods by chance. Players buy with no GM needed.</small>`,
+      body: `<ul class="rows">${rows}</ul>`, foot: playing(),
+      bind: (b) => b.querySelectorAll("[data-buy]").forEach((x) => x.addEventListener("click", () => {
+        const w = state.shelf[Number(x.dataset.buy)];
+        if (!w.stock || buyer().cp < w.cp) return;
+        w.stock -= 1; buyer().cp -= w.cp; say(`<b>${buyer().name}</b> bought ${w.name} for ${coins(w.cp)}.`); rerender();
+      })),
+    };
+  },
+  quests() {
+    const qs = state.quests.map((q, qi) => `<div class="quest"><h3>${esc(q.name)}</h3><p>From ${esc(q.from)}</p>${q.steps.map((s, si) => `<label class="step ${s.done ? "done" : ""}"><input type="checkbox" data-q="${qi}" data-s="${si}" ${s.done ? "checked" : ""}><span>${esc(s.text)}</span></label>`).join("")}</div>`).join("");
+    return {
+      title: `Quest Log<small>Tick a step: the tome on the table follows.</small>`, body: qs,
+      bind: (b) => b.querySelectorAll("input[data-q]").forEach((x) => x.addEventListener("change", () => { state.quests[x.dataset.q].steps[x.dataset.s].done = x.checked; rerender(); })),
+    };
+  },
+  games() {
+    return {
+      title: `Games of chance<small>Two of the ten games, played with your own coin.</small>`,
+      body: `<div class="game"><h3>Coin toss</h3><p>Call it. Win and the house pays you your wager.</p><div class="play">Wager <select id="w1"><option>1</option><option>5</option><option>10</option></select> gp <button class="btn" data-call="heads">Heads</button><button class="btn" data-call="tails">Tails</button></div><div class="result" id="r1"></div></div>
+        <div class="game"><h3>Liar's dice</h3><p>Five dice under each cup. Bid how many of a face lie under all the cups, or call the last bid a lie. Ones are wild. Lose a call, lose a die; the last with dice takes the pot.</p><div class="play">Opponents <select id="lo"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select> Ante <select id="la"><option>1</option><option selected>5</option><option>10</option></select> gp <button class="btn primary" id="liars">Sit down</button></div></div>
+        <div class="game"><h3>Dice duel</h3><p>Two dice each, highest wins. A tie is a push.</p><div class="play">Wager <select id="w2"><option>1</option><option>5</option><option>10</option></select> gp <button class="btn primary" id="duel">Roll</button></div><div class="dice" id="dd"></div><div class="result" id="r2"></div></div>`,
+      foot: playing(),
+      bind: (b) => {
+        const settle = (gp, won, out, text) => { if (won === null) { out.className = "result"; out.textContent = text; return; } buyer().cp += (won ? 1 : -1) * gp * 100; out.className = `result ${won ? "good" : "bad"}`; out.textContent = text; drawTable(); $("win-foot").innerHTML = playing(); $("who").addEventListener("change", (e) => { state.buyer = Number(e.target.value); renderWin(); }); };
+        b.querySelectorAll("[data-call]").forEach((x) => x.addEventListener("click", () => {
+          const gp = Number($("w1").value); if (buyer().cp < gp * 100) return say("Not enough coin for that wager.");
+          const side = Math.random() < 0.5 ? "heads" : "tails", won = side === x.dataset.call;
+          settle(gp, won, $("r1"), `It lands ${side}. ${won ? `${buyer().name} wins ${gp} gp.` : `${buyer().name} loses ${gp} gp.`}`);
+        }));
+        $("liars").addEventListener("click", () => {
+          const ante = Number($("la").value), n = Number($("lo").value);
+          if (buyer().cp < ante * 100) return say("Not enough coin for that ante.");
+          buyer().cp -= ante * 100; drawTable();
+          const defs = [{ id: "you", name: buyer().name }, ...BOTS.slice(0, n).map((name, i) => ({ id: `ai${i}`, name, ai: true, style: i }))];
+          liars = { ante, pot: ante * (n + 1), game: LD.newMatch(defs, Math.random), shown: null, paid: false };
+          openWin("liars"); runBots();
+        });
+        $("duel").addEventListener("click", () => {
+          const gp = Number($("w2").value); if (buyer().cp < gp * 100) return say("Not enough coin for that wager.");
+          const d = () => 1 + Math.floor(Math.random() * 6), face = (n) => "⚀⚁⚂⚃⚄⚅"[n - 1], you = [d(), d()], house = [d(), d()];
+          const a = you[0] + you[1], h = house[0] + house[1];
+          $("dd").textContent = `${face(you[0])}${face(you[1])}  vs  ${face(house[0])}${face(house[1])}`;
+          settle(gp, a === h ? null : a > h, $("r2"), a === h ? `${a} to ${h}: a push, the wager comes back.` : `${a} to ${h}. ${a > h ? `${buyer().name} wins ${gp} gp.` : `${buyer().name} loses ${gp} gp.`}`);
+        });
+      },
+    };
+  },
+  carouse() {
+    return {
+      title: `Carouse<small>Stake coin on a night out and see what comes of it.</small>`,
+      body: `<div class="play"><button class="btn" data-stake="30">A modest night (30 gp)</button><button class="btn" data-stake="100">A big night (100 gp)</button></div><div class="result" id="cr"></div>`,
+      foot: playing(),
+      bind: (b) => b.querySelectorAll("[data-stake]").forEach((x) => x.addEventListener("click", () => {
+        const gp = Number(x.dataset.stake); if (buyer().cp < gp * 100) return say("Not enough coin for that night.");
+        buyer().cp -= gp * 100; const roll = 1 + Math.floor(Math.random() * 8), xp = Math.round(gp / 30) * (1 + (roll > 5));
+        $("cr").className = "result good"; $("cr").innerHTML = `${buyer().name} rolls ${roll}: ${OUTCOMES[roll - 1]} <br><span style="color:var(--gold)">+${xp} XP</span>`;
+        drawTable(); $("win-foot").innerHTML = playing(); $("who").addEventListener("change", (e) => { state.buyer = Number(e.target.value); renderWin(); });
+      })),
+    };
+  },
+  map() {
+    // A small hex map drawn here; only the hexes your party has explored show their ground.
+    const cols = 13, rows = 8, r = 26, w = Math.sqrt(3) * r, ground = ["#3f6b3a", "#6f8f45", "#a8945a", "#7d6a52", "#8d8f93", "#2f5f86"], names = ["Forest", "Grassland", "Plains", "Hills", "Mountains", "Lake"];
+    const seen = new Set(["3,3", "4,3", "4,4", "5,3", "5,4", "6,4", "6,3", "4,2", "5,2", "3,4", "6,5", "7,4", "7,3", "5,5", "3,2", "7,5", "8,4"]);
+    let svg = ""; const pick = (c, q) => (c * 7 + q * 13 + c * q) % 6;
+    for (let q = 0; q < rows; q++) for (let c = 0; c < cols; c++) {
+      const cx = 30 + c * w + (q % 2) * w / 2, cy = 30 + q * r * 1.5, pts = Array.from({ length: 6 }, (_, k) => { const a = Math.PI / 180 * (60 * k - 30); return `${(cx + r * Math.cos(a)).toFixed(1)},${(cy + r * Math.sin(a)).toFixed(1)}`; }).join(" ");
+      const known = seen.has(`${c},${q}`);
+      svg += `<polygon points="${pts}" fill="${known ? ground[pick(c, q)] : "#0b0908"}" stroke="${known ? "#2a2015" : "#16110c"}" stroke-width="1.5"><title>${known ? names[pick(c, q)] : "Unexplored"}</title></polygon>`;
+    }
+    const px = 30 + 5 * w + (4 % 2) * w / 2, py = 30 + 4 * r * 1.5;
+    svg += `<circle cx="${px}" cy="${py}" r="11" fill="#e7bf62" stroke="#1a1006" stroke-width="3"/><text x="${px}" y="${py + 4}" text-anchor="middle" font-size="11" font-weight="700" fill="#1a1006">P</text>`;
+    return { title: `Map<small>Only the hexes your party has explored show; the rest is dark. In Foundry this is your real overland hex map, for you alone.</small>`, body: `<svg class="hexmap" viewBox="0 0 ${(cols + 1) * w} ${30 + rows * r * 1.5 + 10}">${svg}</svg>` };
+  },
+  downtime() {
+    return {
+      title: `Downtime<small>What each character does between adventures.</small>`,
+      body: `<ul class="rows">${DOWNTIME.map(([n, t], i) => `<li class="row"><div class="main"><b>${n}</b><small>${t}</small></div><button class="btn" data-dt="${i}">Choose</button></li>`).join("")}</ul><div class="result good" id="dr"></div>`,
+      foot: playing(),
+      bind: (b) => b.querySelectorAll("[data-dt]").forEach((x) => x.addEventListener("click", () => { $("dr").textContent = `${buyer().name} will spend the next days on: ${DOWNTIME[x.dataset.dt][0]}. The GM sees it in the Downtime window.`; })),
+    };
+  },
+  journals() {
+    return {
+      title: `Journals<small>Handouts the GM has shared, and your own notes.</small>`,
+      body: `<ul class="rows">${HANDOUTS.map(([n], i) => `<li class="row"><div class="main"><b>${n}</b></div><button class="btn" data-h="${i}">Read</button></li>`).join("")}</ul><div id="hd" style="margin-top:10px"></div>`,
+      bind: (b) => b.querySelectorAll("[data-h]").forEach((x) => x.addEventListener("click", () => { $("hd").innerHTML = `<div class="handout"><b>${HANDOUTS[x.dataset.h][0]}</b><br>${HANDOUTS[x.dataset.h][1]}</div>`; })),
+    };
+  },
+  recaps() {
+    return {
+      title: `Session recaps<small>Kept for the whole campaign, written by the module as you play.</small>`,
+      body: `<h3 style="margin:0;font:400 26px var(--title);color:var(--text)">Session 13: The Cellar Door</h3><div class="stat-grid"><div class="stat"><b>3h 40m</b><small>Played</small></div><div class="stat"><b>2</b><small>Fights</small></div><div class="stat"><b>12</b><small>XP each</small></div><div class="stat"><b>34 gp</b><small>Loot</small></div></div>
+        <ul class="rows"><li class="row"><div class="main"><b>Fights</b><small>Giant rats (6), won in 4 rounds · A cellar ooze, won in 3 rounds</small></div></li><li class="row"><div class="main"><b>Loot</b><small>A silver dagger, a ring of brass keys, 34 gp</small></div></li><li class="row"><div class="main"><b>Rolls</b><small>Romas: natural 20 on the ooze · Malchor: two natural 1s</small></div></li><li class="row"><div class="main"><b>Market</b><small>Denin bought a lantern and 20 arrows (6 gp)</small></div></li></ul>`,
+    };
+  },
+  sheet(i) {
+    const m = state.party[i];
+    return {
+      title: `${m.name}<small>Level ${m.level} ${m.cls}</small>`,
+      body: `<div class="stat-grid"><div class="stat"><b>${m.hp[0]} / ${m.hp[1]}</b><small>HP</small></div><div class="stat"><b>${m.ac}</b><small>AC</small></div><div class="stat"><b>${coins(m.cp)}</b><small>Purse</small></div></div><p style="margin:6px 0 0;color:var(--muted)">${m.stats}</p><p style="margin:10px 0 0">In Foundry this is the character sheet; each player opens their own.</p>`,
+    };
+  },
+  party() {
+    return {
+      title: `The party<small>Marching order, light and rations.</small>`,
+      body: `<ul class="rows">${state.party.map((m, i) => `<li class="row"><div class="main"><b>${i + 1}. ${m.name}</b><small>Level ${m.level} ${m.cls} · HP ${m.hp[0]} / ${m.hp[1]} · ${coins(m.cp)}</small></div></li>`).join("")}</ul><p style="margin:10px 0 0;color:var(--muted)">Torches: 2 lit, 41 minutes left on the first. Rations: 9 days.</p>`,
+    };
+  },
+};
 </script>
 </body>
 </html>
