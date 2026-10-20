@@ -318,45 +318,57 @@ function settleLiars() {
   if (liars.game.winner === "you") { buyer().cp += liars.pot * 100; say(`<b>${buyer().name}</b> takes the pot: ${liars.pot} gp.`); }
   drawTable();
 }
+/** After a move: a call stops the game on its reveal until the player presses Next round; otherwise the house moves on. */
+function afterMove(before) {
+  const c = liars.game.log.slice(before).find((e) => e.t === "call");
+  if (c) { liars.shown = c; liars.waiting = !liars.game.winner; }
+  runBots();
+}
 function runBots() {
   clearTimeout(botTimer);
   if (!liars || liars.game.winner) { settleLiars(); if (current?.[0] === "liars") renderWin(); return; }
-  const seat = LD.seatOf(liars.game, liars.game.turn);
   if (current?.[0] === "liars") renderWin();
-  if (!seat?.ai) return;
+  const seat = LD.seatOf(liars.game, liars.game.turn);
+  if (liars.waiting || !seat?.ai) return;
   botTimer = setTimeout(() => {
     const before = liars.game.log.length, next = LD.aiStep(liars.game, Math.random);
-    if (next) { liars.game = next; const c = next.log.slice(before).find((e) => e.t === "call"); if (c) liars.shown = c; }
-    runBots();
-  }, 900);
+    if (next) liars.game = next;
+    afterMove(before);
+  }, 1100);
 }
 
 const WINDOWS = {
   liars() {
     const g = liars.game, you = LD.seatOf(g, "you"), call = liars.shown, myTurn = g.turn === "you" && !g.winner;
+    const name = (id) => esc(LD.seatOf(g, id).name);
+    const reveal = liars.waiting || g.winner;
     const seats = g.seats.map((x) => {
-      const hand = x.id === "you" ? x.hand.map(FACE).join("") : x.dice ? "▪".repeat(x.dice) : "out";
-      const shownHand = call?.hands?.[x.id]?.length ? ` <small>showed ${call.hands[x.id].map(FACE).join("")}</small>` : "";
-      return `<li class="row" style="${g.turn === x.id && !g.winner ? "border-color:var(--gold)" : ""}"><div class="main"><b>${esc(x.name)}${x.id === "you" ? " (you)" : ""}</b><small>${x.dice} ${x.dice === 1 ? "die" : "dice"}${g.turn === x.id && !g.winner ? " · to bid" : ""}${shownHand}</small></div><span class="dice" style="font-size:${x.id === "you" ? 34 : 18}px">${hand}</span></li>`;
+      // During a reveal every cup is lifted: the dice that round was played with.
+      const hand = reveal && call?.hands?.[x.id]?.length ? call.hands[x.id].map(FACE).join("") : x.id === "you" ? x.hand.map(FACE).join("") : x.dice ? "▪".repeat(x.dice) : "out";
+      const shownHand = reveal && call?.loser === x.id ? ` <small style="color:#e88a7a">loses a die</small>` : "";
+      return `<li class="row" style="${g.turn === x.id && !g.winner ? "border-color:var(--gold)" : ""}"><div class="main"><b>${esc(x.name)}${x.id === "you" ? " (you)" : ""}</b><small>${x.dice} ${x.dice === 1 ? "die" : "dice"}${g.turn === x.id && !g.winner ? " · to bid" : ""}${shownHand}</small></div><span class="dice" style="font-size:${x.id === "you" || (reveal && call) ? 30 : 18}px">${hand}</span></li>`;
     }).join("");
-    const bid = g.bid ? `${esc(LD.seatOf(g, g.bid.by).name)} bids <b>${g.bid.qty} × ${FACE(g.bid.face)}</b> (${g.bid.qty} ${g.bid.face}s, ones wild)` : "No bid yet: the round opens.";
+    const bid = liars.waiting ? "" : g.bid ? `${esc(LD.seatOf(g, g.bid.by).name)} bids <b>${g.bid.qty} × ${FACE(g.bid.face)}</b> (${g.bid.qty} ${g.bid.face}s, ones wild)` : "No bid yet: the round opens.";
     const min = LD.minRaise(g), total = LD.totalDice(g);
     const qtyOpts = Array.from({ length: total }, (_, i) => i + 1).filter((q) => !g.bid || q >= g.bid.qty).map((q) => `<option ${min && q === min.qty ? "selected" : ""}>${q}</option>`).join("");
     const faceOpts = LD.FACES.map((f) => `<option value="${f}" ${min && f === min.face ? "selected" : ""}>${FACE(f)} ${f}</option>`).join("");
-    const callLine = call ? `<div class="result ${call.loser === "you" ? "bad" : "good"}">${esc(LD.seatOf(g, call.caller).name)} called ${esc(LD.seatOf(g, call.bid.by).name)}'s ${call.bid.qty} × ${FACE(call.bid.face)}: there were ${call.count}. The bid ${call.held ? "held" : "was a lie"}; ${esc(LD.seatOf(g, call.loser).name)} loses a die.</div>` : "";
+    const callLine = call && reveal ? `<div class="result ${call.loser === "you" ? "bad" : "good"}">Round ${call.round}: ${name(call.caller)} called ${name(call.bid.by)}'s ${call.bid.qty} × ${FACE(call.bid.face)}. Cups up: there were ${call.count} (ones count as any face). The bid ${call.held ? "held" : "was a lie"}, so ${name(call.loser)} loses a die.</div>${g.winner ? "" : `<div class="play"><button class="btn primary" id="nextround">Next round</button></div>`}` : "";
+    const rounds = g.log.filter((e) => e.t === "call").map((e) => `<li>Round ${e.round}: ${name(e.bid.by)} bid ${e.bid.qty} × ${FACE(e.bid.face)}, ${name(e.caller)} called, ${e.count} showing, <b>${name(e.loser)}</b> lost a die</li>`).join("");
+    const history = rounds ? `<details style="margin-top:10px"><summary style="cursor:pointer;color:var(--muted)">Rounds so far</summary><ol style="margin:6px 0 0;padding-left:20px;font-size:13px">${rounds}</ol></details>` : "";
     const end = g.winner ? `<div class="result ${g.winner === "you" ? "good" : "bad"}">${g.winner === "you" ? `You win the pot: ${liars.pot} gp.` : `${esc(LD.seatOf(g, g.winner).name)} wins the pot. Your ante is gone.`}</div><div class="play"><button class="btn primary" id="again">Back to the games</button></div>` : "";
-    const controls = myTurn && you.dice ? `<div class="play">Bid <select id="bq">${qtyOpts}</select> of <select id="bf">${faceOpts}</select><button class="btn primary" id="bid">Bid</button>${g.bid ? `<button class="btn" id="call">Call it a lie</button>` : ""}</div><div class="result" id="berr"></div>` : !g.winner ? `<p style="color:var(--muted)">${you.dice ? "Waiting for the others to bid..." : "You are out of dice; the others play on."}</p>` : "";
+    const controls = liars.waiting ? "" : myTurn && you.dice ? `<div class="play">Bid <select id="bq">${qtyOpts}</select> of <select id="bf">${faceOpts}</select><button class="btn primary" id="bid">Bid</button>${g.bid ? `<button class="btn" id="call">Call it a lie</button>` : ""}</div><div class="result" id="berr"></div>` : !g.winner ? `<p style="color:var(--muted)">${you.dice ? "Waiting for the others to bid..." : "You are out of dice; the others play on."}</p>` : "";
     return {
       title: `Liar's dice<small>Round ${g.round} · pot ${liars.pot} gp · ones are wild</small>`,
-      body: `<ul class="rows">${seats}</ul><p style="margin:10px 0 4px">${bid}</p>${callLine}${controls}${end}`,
+      body: `<ul class="rows">${seats}</ul><p style="margin:10px 0 4px">${bid}</p>${callLine}${controls}${end}${history}`,
       foot: playing(),
       bind: () => {
         $("bid")?.addEventListener("click", () => {
           const next = LD.placeBid(liars.game, "you", Number($("bq").value), Number($("bf").value));
           if (!next) { $("berr").className = "result bad"; $("berr").textContent = "That bid must beat the last: more dice, or the same count on a higher face."; return; }
-          liars.game = next; liars.shown = null; runBots();
+          liars.game = next; runBots();
         });
-        $("call")?.addEventListener("click", () => { const before = liars.game.log.length; liars.game = LD.callLiar(liars.game, Math.random) ?? liars.game; liars.shown = liars.game.log.slice(before).find((e) => e.t === "call") ?? null; runBots(); });
+        $("call")?.addEventListener("click", () => { const before = liars.game.log.length; liars.game = LD.callLiar(liars.game, Math.random) ?? liars.game; afterMove(before); });
+        $("nextround")?.addEventListener("click", () => { liars.waiting = false; liars.shown = null; runBots(); });
         $("again")?.addEventListener("click", () => { liars = null; openWin("games"); });
       },
     };
@@ -399,7 +411,7 @@ const WINDOWS = {
           if (buyer().cp < ante * 100) return say("Not enough coin for that ante.");
           buyer().cp -= ante * 100; drawTable();
           const defs = [{ id: "you", name: buyer().name }, ...BOTS.slice(0, n).map((name, i) => ({ id: `ai${i}`, name, ai: true, style: i }))];
-          liars = { ante, pot: ante * (n + 1), game: LD.newMatch(defs, Math.random), shown: null, paid: false };
+          liars = { ante, pot: ante * (n + 1), game: LD.newMatch(defs, Math.random), shown: null, waiting: false, paid: false };
           openWin("liars"); runBots();
         });
         $("duel").addEventListener("click", () => {
