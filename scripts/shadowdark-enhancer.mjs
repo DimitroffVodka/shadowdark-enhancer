@@ -1165,6 +1165,18 @@ const preloadSocket = import("./encounter/battle-maps/encounter-preload.mjs");
 preloadSocket.catch(() => {}); // not an unhandled rejection: wireBattleMaps logs it when `setup` awaits it
 Hooks.once("setup", () => wireBattleMaps("registerPreloadSocket", () => preloadSocket));
 
+// Liar's Dice tables talk over the module's socket channel, and a person may open one while another is still loading, so
+// the listener goes in at `setup` for the same reason as the preload one above. It reads nothing but the message; the
+// file that acts on it (and holds the table logic) is loaded only when a message arrives or the games window is used.
+Hooks.once("setup", () => {
+  game.socket.on(`module.${MODULE_ID}`, (msg, senderId) => {
+    if (msg?.action === "liars") import("./town/liars-dice-live.mjs").then((m) => m.onLiarsMessage(msg, senderId)).catch((err) => console.error(`${MODULE_ID} | liar's dice`, err));
+  });
+  Hooks.on("userConnected", (user, active) => {
+    if (!active) import("./town/liars-dice-live.mjs").then((m) => m.onUserGone(user.id)).catch(() => {});
+  });
+});
+
 Hooks.once("ready", () => {
   console.log(`${MODULE_ID} | ready`);
   // Renown's level-up watcher. GM clients only; the award itself is gated to

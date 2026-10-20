@@ -11,6 +11,189 @@
   </header>
 
   {{#if open}}
+  {{#if isScreen.rules}}
+  <div class="ui-body">
+    <section class="ui-group ld-rules">
+      <h3 class="ui-h"><span>{{localize "SDE.town.games.liars.how.title"}}</span></h3>
+      <div class="ld-rule"><h4>{{localize "SDE.town.games.liars.how.ideaH"}}</h4><p>{{localize "SDE.town.games.liars.how.idea"}}</p></div>
+      <div class="ld-rule">
+        <h4>{{localize "SDE.town.games.liars.how.turnH"}}</h4>
+        <p>{{localize "SDE.town.games.liars.how.turn"}}</p>
+        <ul>
+          <li><b>{{localize "SDE.town.games.liars.how.bidLabel"}}</b> {{localize "SDE.town.games.liars.how.bid"}}</li>
+          <li><b>{{localize "SDE.town.games.liars.how.callLabel"}}</b> {{localize "SDE.town.games.liars.how.call"}}</li>
+        </ul>
+      </div>
+      <div class="ld-rule"><h4>{{localize "SDE.town.games.liars.how.wildH"}}</h4><p>{{localize "SDE.town.games.liars.how.wild"}}</p></div>
+      <div class="ld-rule"><h4>{{localize "SDE.town.games.liars.how.revealH"}}</h4><p>{{localize "SDE.town.games.liars.how.reveal"}}</p></div>
+      <div class="ld-rule"><h4>{{localize "SDE.town.games.liars.how.nextH"}}</h4><p>{{localize "SDE.town.games.liars.how.next"}}</p></div>
+      <div class="ld-rule"><h4>{{localize "SDE.town.games.liars.how.tipsH"}}</h4><p>{{localize "SDE.town.games.liars.how.tips"}}</p></div>
+      <div class="ld-rule ld-example">
+        <h4>{{localize "SDE.town.games.liars.how.exampleH"}}</h4>
+        <p>{{localize "SDE.town.games.liars.how.exampleHand"}}</p>
+        <div class="ld-dice">
+          <span class="ld-die pips wild" data-face="1" role="img" aria-label="1"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+          <span class="ld-die pips" data-face="3" role="img" aria-label="3"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+          <span class="ld-die pips" data-face="5" role="img" aria-label="5"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+          <span class="ld-die pips" data-face="6" role="img" aria-label="6"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+          <span class="ld-die pips" data-face="6" role="img" aria-label="6"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+        </div>
+        <p>{{localize "SDE.town.games.liars.how.example"}}</p>
+      </div>
+      <div class="ld-rule"><h4>{{localize "SDE.town.games.liars.how.moneyH"}}</h4><p>{{localize "SDE.town.games.liars.how.money"}}</p></div>
+    </section>
+    <div class="ui-right"><button type="button" class="ui-btn primary" data-action="rules">{{localize "SDE.town.games.liars.how.back"}}</button></div>
+  </div>
+  {{else if isScreen.setup}}
+  <div class="ui-body">
+    <section class="ui-group ld-setup">
+      <h3 class="ui-h"><span>{{localize "SDE.town.games.liars.setupTitle"}}</span><small>{{localize "SDE.town.games.liars.wild"}} <button type="button" class="ui-icon ld-how" data-action="rules" aria-label="{{localize 'SDE.town.games.liars.howBtn'}}" data-tooltip="{{localize 'SDE.town.games.liars.howBtn'}}"><i class="fa-solid fa-circle-question"></i></button></small></h3>
+      <div class="ld-setup-row">
+        <span class="ui-label">{{localize "SDE.town.games.liars.setupAi"}}</span>
+        <div class="tl-step">
+          <button type="button" class="ui-icon" data-action="setupStep" data-what="ai" data-by="-1" aria-label="{{localize 'SDE.town.less'}}" {{#unless setup.canAiLess}}disabled{{/unless}}><i class="fa-solid fa-minus"></i></button>
+          <b class="ld-qty">{{setup.ai}}</b>
+          <button type="button" class="ui-icon" data-action="setupStep" data-what="ai" data-by="1" aria-label="{{localize 'SDE.town.more'}}" {{#unless setup.canAiMore}}disabled{{/unless}}><i class="fa-solid fa-plus"></i></button>
+        </div>
+      </div>
+      <div class="ld-setup-row">
+        <span class="ui-label">{{localize "SDE.town.games.liars.setupHumans"}}</span>
+        <div class="tl-step">
+          <button type="button" class="ui-icon" data-action="setupStep" data-what="humans" data-by="-1" aria-label="{{localize 'SDE.town.less'}}" {{#unless setup.canHumansLess}}disabled{{/unless}}><i class="fa-solid fa-minus"></i></button>
+          <b class="ld-qty">{{setup.humans}}</b>
+          <button type="button" class="ui-icon" data-action="setupStep" data-what="humans" data-by="1" aria-label="{{localize 'SDE.town.more'}}" {{#unless setup.canHumansMore}}disabled{{/unless}}><i class="fa-solid fa-plus"></i></button>
+        </div>
+      </div>
+      <p class="ui-muted ld-hint">{{setup.summary}}</p>
+      <div class="ld-actions">
+        <button type="button" class="ui-btn primary" data-action="sit" {{#unless hasPlayer}}disabled{{/unless}}>{{#if setup.open}}{{localize "SDE.town.games.liars.openTable"}}{{else}}{{localize "SDE.town.games.liars.sitDown"}}{{/if}}</button>
+        <button type="button" class="ui-btn ghost" data-action="cancelSetup">{{localize "SDE.town.games.liars.cancel"}}</button>
+      </div>
+    </section>
+  </div>
+  {{else if isScreen.joining}}
+  <div class="ui-body">
+    <div class="ui-empty"><i class="fa-solid fa-dice-five"></i><b>{{localize "SDE.town.games.liars.waitingJoin"}}</b>
+      <button type="button" class="ui-btn ghost" data-action="leaveTable">{{localize "SDE.town.games.liars.leaveTable"}}</button></div>
+  </div>
+  {{else if isScreen.lobby}}
+  <div class="ui-body">
+    <section class="ui-group ld-lobby">
+      <h3 class="ui-h"><span>{{localize "SDE.town.games.liars.lobbyTitle"}}</span><small>{{localize "SDE.town.games.liars.lobbySub" price=lobby.price pot=lobby.potText}} <button type="button" class="ui-icon ld-how" data-action="rules" aria-label="{{localize 'SDE.town.games.liars.howBtn'}}" data-tooltip="{{localize 'SDE.town.games.liars.howBtn'}}"><i class="fa-solid fa-circle-question"></i></button></small></h3>
+      <ul class="ld-slots">
+        {{#each lobby.slots}}
+        <li class="ld-slot {{kind}}"><i class="fa-solid {{#if isHuman}}fa-user{{else if isOpen}}fa-chair{{else}}fa-dice{{/if}}"></i><span>{{name}}</span>{{#if host}}<span class="ui-chip">{{localize "SDE.town.games.liars.hostTag"}}</span>{{/if}}{{#if you}}<span class="ui-chip sel">{{localize "SDE.town.games.liars.youTag"}}</span>{{/if}}</li>
+        {{/each}}
+      </ul>
+      <p class="ui-muted ld-hint">{{#if lobby.host}}{{localize "SDE.town.games.liars.hostNote"}}{{else}}{{localize "SDE.town.games.liars.guestNote" host=lobby.hostName}}{{/if}}</p>
+      <div class="ld-actions">
+        {{#if lobby.host}}
+        <button type="button" class="ui-btn primary" data-action="startTable">{{localize "SDE.town.games.liars.startNow"}}</button>
+        <button type="button" class="ui-btn ghost" data-action="leaveTable">{{localize "SDE.town.games.liars.callOff"}}</button>
+        {{else}}
+        <button type="button" class="ui-btn ghost" data-action="leaveTable">{{localize "SDE.town.games.liars.leaveTable"}}</button>
+        {{/if}}
+      </div>
+    </section>
+  </div>
+  {{else if isScreen.cancelled}}
+  <div class="ui-body">
+    <div class="ui-note warn" role="status"><span>{{localize "SDE.town.games.liars.cancelled"}}</span></div>
+    <div class="ui-right"><button type="button" class="ui-btn primary" data-action="done">{{localize "SDE.town.games.liars.done"}}</button></div>
+  </div>
+  {{else if isScreen.table}}
+  <div class="ui-body">
+    {{#unless match.over}}
+    <section class="ui-group ld-table">
+      <h3 class="ui-h"><span>{{localize "SDE.town.games.liars.name"}}</span><small><span class="ld-round">{{localize "SDE.town.games.liars.roundNo" round=match.round}}</span> · {{localize "SDE.town.games.liars.wild"}} · {{localize "SDE.town.games.liars.potChip" pot=match.potText}} <button type="button" class="ui-icon ld-how" data-action="rules" aria-label="{{localize 'SDE.town.games.liars.howBtn'}}" data-tooltip="{{localize 'SDE.town.games.liars.howBtn'}}"><i class="fa-solid fa-circle-question"></i></button></small></h3>
+
+      <div class="ld-felt">
+        {{#each match.others}}
+        <div class="ld-seat {{#if turn}}turn{{/if}} {{#if out}}out{{/if}}">
+          <span class="ui-label">{{name}}</span>
+          <div class="ld-dice" title="{{label}}">{{#each cups}}<span class="ld-die cup" aria-hidden="true">?</span>{{/each}}{{#if out}}<span class="ui-muted">{{localize "SDE.town.games.liars.out" who=name}}</span>{{/if}}</div>
+          {{#if bid}}<span class="ui-chip sel">{{bid}}</span>{{/if}}
+        </div>
+        {{/each}}
+
+        <div class="ld-bid">
+          {{#if match.bid}}
+          <span class="ui-label">{{localize "SDE.town.games.liars.onTable"}}</span>
+          <b class="ld-bid-text">{{match.bid.text}}</b>
+          <span class="ui-muted">{{localize "SDE.town.games.liars.bidBy" who=match.bid.by}}</span>
+          {{else}}
+          <span class="ui-muted">{{localize "SDE.town.games.liars.noBid"}}</span>
+          {{/if}}
+          {{#if match.trail}}<div class="ld-trail">{{#each match.trail}}<span class="ui-chip {{#if you}}sel{{/if}}">{{who}}: {{text}}</span>{{/each}}</div>{{/if}}
+          {{#if match.waiting}}<p class="ld-wait">{{#if match.waiting.ai}}{{localize "SDE.town.games.liars.thinking" name=match.waiting.name}}{{else}}{{localize "SDE.town.games.liars.waitingFor" name=match.waiting.name}}{{/if}}</p>{{/if}}
+        </div>
+
+        <div class="ld-seat ld-you {{#if match.you.out}}out{{/if}}">
+          <span class="ui-label">{{match.you.name}}</span>
+          <div class="ld-dice" title="{{localize 'SDE.town.games.liars.diceLeft' count=match.you.count}}">{{#each match.you.dice}}<span class="ld-die pips {{#if wild}}wild{{/if}}" data-face="{{face}}" role="img" aria-label="{{face}}"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>{{/each}}</div>
+        </div>
+      </div>
+
+      {{#if match.you.out}}
+      <p class="ui-muted ld-hint">{{#if match.host}}{{localize "SDE.town.games.liars.outHost"}}{{else}}{{localize "SDE.town.games.liars.outWatch"}}{{/if}}</p>
+      {{/if}}
+
+      {{#if match.mine}}
+      <div class="ld-panel">
+        <div class="ld-panel-head">
+          <span class="ui-label">{{localize "SDE.town.games.liars.yourBid"}}</span>
+          <b class="ld-bid-text">{{match.pickText}}</b>
+        </div>
+        <div class="ld-dial">
+          <div class="tl-step">
+            <button type="button" class="ui-icon" data-action="step" data-by="-1" aria-label="{{localize 'SDE.town.less'}}" {{#unless match.canLess}}disabled{{/unless}}><i class="fa-solid fa-minus"></i></button>
+            <b class="ld-qty">{{match.pick.qty}}</b>
+            <button type="button" class="ui-icon" data-action="step" data-by="1" aria-label="{{localize 'SDE.town.more'}}" {{#unless match.canMore}}disabled{{/unless}}><i class="fa-solid fa-plus"></i></button>
+          </div>
+          <span class="ui-muted">×</span>
+          <div class="ld-faces">{{#each match.faces}}<button type="button" class="ld-chip {{#if on}}on{{/if}}" data-action="face" data-face="{{face}}" aria-pressed="{{#if on}}true{{else}}false{{/if}}">{{localize "SDE.town.games.liars.faceChip" face=face}}</button>{{/each}}</div>
+        </div>
+        <div class="ld-actions">
+          <button type="button" class="ui-btn primary" data-action="bid" {{#unless match.canBid}}disabled{{/unless}}>{{localize "SDE.town.games.liars.bidBtn"}}</button>
+          <button type="button" class="ui-btn" data-action="call" {{#unless match.canCall}}disabled{{/unless}}><i class="fa-solid fa-hand"></i> {{localize "SDE.town.games.liars.callBtn"}}</button>
+        </div>
+      </div>
+      <p class="ld-turn">{{#if match.bid}}{{localize "SDE.town.games.liars.turnHint"}}{{else}}{{localize "SDE.town.games.liars.openHint"}}{{/if}}</p>
+      {{#if match.bid}}<p class="ui-muted ld-hint">{{localize "SDE.town.games.liars.beat"}}</p>{{/if}}
+      <p class="ui-muted ld-hint">{{localize "SDE.town.games.liars.stake"}}</p>
+      {{/if}}
+    </section>
+    {{/unless}}
+
+    {{#if match.reveal}}
+    <div class="ui-note ld-reveal" role="status">
+      <b>{{localize "SDE.town.games.liars.lastRound"}}</b>
+      <span>{{match.reveal.line}}</span>
+      <div class="ld-rows">
+        {{#each match.reveal.rows}}
+        <div class="ld-row"><span class="ui-label">{{name}}</span>{{#each dice}}<span class="ld-die pips {{#if wild}}wild{{/if}} {{#if hit}}hit{{else}}miss{{/if}}" data-face="{{face}}" role="img" aria-label="{{face}}"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>{{/each}}</div>
+        {{/each}}
+      </div>
+    </div>
+    {{/if}}
+
+    {{#if last}}
+    <div class="ui-note {{last.tone}} tg-result" role="status">
+      <b>{{last.game}}</b>
+      {{#each last.lines}}<span>{{this}}</span>{{/each}}
+    </div>
+    {{/if}}
+
+    {{#if match.earlier.length}}
+    <section class="ui-group">
+      <h3 class="ui-h"><span>{{localize "SDE.town.games.liars.earlier"}}</span></h3>
+      <ul class="ld-history">{{#each match.earlier}}<li>{{this}}</li>{{/each}}</ul>
+    </section>
+    {{/if}}
+
+    {{#if match.over}}<div class="ui-right"><button type="button" class="ui-btn primary" data-action="done">{{localize "SDE.town.games.liars.done"}}</button></div>{{/if}}
+  </div>
+  {{else}}
   <div class="ui-body">
     <section class="ui-group tg-stake">
       <h3 class="ui-h"><span>{{localize "SDE.town.games.wagerLabel"}}</span><small>{{localize "SDE.town.games.limit" max=maxBet edge=edge}}</small></h3>
@@ -33,6 +216,19 @@
     </div>
     {{/if}}
 
+    {{#if tables.length}}
+    <section class="ui-group ld-tables">
+      <h3 class="ui-h"><span>{{localize "SDE.town.games.liars.openTables"}}</span></h3>
+      {{#each tables}}
+      <div class="ld-tablerow">
+        <span class="ld-tname"><i class="fa-solid fa-dice-five"></i> {{hostName}}</span>
+        <span class="ui-chip">{{price}}</span><span class="ui-chip">{{freeText}}</span>
+        <button type="button" class="ui-btn" data-action="joinTable" data-table="{{id}}" {{#unless @root.hasPlayer}}disabled{{/unless}}>{{localize "SDE.town.games.liars.joinBtn"}}</button>
+      </div>
+      {{/each}}
+    </section>
+    {{/if}}
+
     <div class="tg-list">
       {{#each games}}
       <article class="tg-game" data-game="{{id}}">
@@ -46,6 +242,7 @@
           {{#if picks}}
           {{#each picks}}<button type="button" class="ui-btn" data-action="play" data-game="{{../id}}" data-pick="{{id}}" {{#unless @root.hasPlayer}}disabled{{/unless}}>{{label}}</button>{{/each}}
           {{else}}
+          {{#if rulesBtn}}<button type="button" class="ui-btn ghost" data-action="rules"><i class="fa-solid fa-circle-question"></i> {{localize "SDE.town.games.liars.howBtn"}}</button>{{/if}}
           <button type="button" class="ui-btn" data-action="play" data-game="{{id}}" {{#unless @root.hasPlayer}}disabled{{/unless}}><i class="fa-solid fa-dice"></i> {{localize "SDE.town.games.playBtn"}}</button>
           {{/if}}
         </div>
@@ -54,6 +251,7 @@
     </div>
 
   </div>
+  {{/if}}
   {{else}}
   <div class="ui-body">
     <div class="ui-empty"><i class="fa-solid fa-dice"></i><b>{{localize "SDE.town.games.closedTitle"}}</b><span>{{localize "SDE.town.games.closedBody"}}</span></div>
@@ -63,7 +261,7 @@
   <footer class="ui-status tl-foot">
     {{#if actors.length}}
     <label class="ui-inline"><span class="ui-label">{{localize "SDE.town.games.playingAs"}}</span>
-      <select name="player">{{#each actors}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select>
+      <select name="player" {{#if atTable}}disabled{{/if}}>{{#each actors}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select>
     </label>
     {{else}}<span class="ui-muted">{{localize "SDE.town.noCharacter"}}</span>{{/if}}
     <div class="ui-right"><button type="button" class="ui-btn ghost" data-action="back"><i class="fa-solid fa-arrow-left"></i> {{localize "SDE.town.backToTown"}}</button></div>

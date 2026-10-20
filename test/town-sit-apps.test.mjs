@@ -47,11 +47,11 @@ const fresh = () => { instances.clear(); warnings.length = 0; character.system.c
 const gamesWindow = (io) => Object.assign(new TownGamesApp(), { buyerId: "c1", wagerSp: 10, scene: SCENE, element: { querySelector: () => null }, _io: io });
 const sit = (app, game) => app._onPlay(null, { dataset: { game } });
 
-test("the games window lists the four one-roll games and the five that open a table, and each table opens on the right game", async () => {
+test("the games window lists the four one-roll games and the six that open a table, and each table opens on the right game", async () => {
   fresh();
   const io = makeIo({ dice: [[10, 9, 8, 2], [5, 5, 5, 5], [1, 2, 3], [4, 5, 6]] });
   const games = gamesWindow(io);
-  assert.deepEqual((await games._prepareContext({})).games.map((g) => g.id), ["coin", "duel", "wheel", "cards", "bluff", "brag", "death", "roulette", "blackjack"]);
+  assert.deepEqual((await games._prepareContext({})).games.map((g) => g.id), ["coin", "duel", "wheel", "cards", "bluff", "brag", "death", "roulette", "blackjack", "liars"]);
 
   await sit(games, "bluff");
   const hand = instances.get("sde-town-hand");

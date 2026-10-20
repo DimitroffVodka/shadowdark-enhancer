@@ -80,6 +80,8 @@ export async function liveIo() {
       const rolled = await new Roll(formula).evaluate({ allowInteractive: false });
       return { total: rolled.total, dice: rolled.dice.flatMap((d) => d.results.map((r) => r.result)), roll: rolled };
     },
+    /** The dice's own random source: 0 up to 1. */
+    random: () => CONFIG.Dice.randomUniform(),
     /** Two different places in a 52-card deck, from the dice's own random source. */
     deck() {
       const a = Math.floor(CONFIG.Dice.randomUniform() * 52);

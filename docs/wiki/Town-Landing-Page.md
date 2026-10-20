@@ -195,8 +195,8 @@ call it "(bought back)".
 
 Turn on **Open a games table** in the settings and **Games of chance** joins the
 menu. A player picks their character, sets a **wager** in silver (quick buttons
-for 1 sp, 1 gp, 5 gp, 10 gp... and the table's limit) and plays one of nine
-games. Four settle on one roll. The other five open a table of their own,
+for 1 sp, 1 gp, 5 gp, 10 gp... and the table's limit) and plays one of ten
+games. Four settle on one roll. The other six open a table of their own,
 because there is something to decide. A result card is posted to the chat for
 everyone to see.
 
@@ -208,6 +208,7 @@ everyone to see.
 | **Dice duel** | You and the house roll 2d6 each; higher wins, a tie gives the wager back | 1 to 1 |
 | **Fortune wheel** | A d100: 1-45 nothing back, 46-68 half back, 69-90 double, 91-98 triple, 99-100 the jackpot | Up to 10 to 1 |
 | **Card draw** | You and the dealer draw a card each, ace high; higher wins, the same rank gives the wager back | 1 to 1 |
+| **Liar's dice** | A match against the house: five dice each under cups, bid and call until one side is out of dice (see below) | 1 to 1 |
 
 **A table of its own.** There is no GM and no house purse, so these are played
 against the house, whose moves are made for it from only what a player at the
@@ -297,6 +298,72 @@ Like a purchase, a game only changes the player's own character, so it works
 with no GM connected. Dice are rolled with Foundry's own dice and show in Dice So
 Nice when it is installed; the blackjack deck is shuffled from Foundry's random
 source, so it shows no dice.
+
+### Liar's dice
+
+![The Liar's dice table](images/town-liars-dice.png)
+
+Liar's dice is played at a **table of two to six**: you, other players, and the
+**house's players** (each with its own name and way of playing, from careful to
+reckless). **Play** on Liar's dice opens a set-up screen with two steppers: how many
+of the house's players, and how many **seats for other people**.
+
+- With no seat for other people, **Sit down** starts the match at once, against the
+  house only. Nothing is sent to anyone.
+- With seats for other people, **Open the table** puts you in a lobby. The other
+  players see the table listed above the games (with its wager and free seats, and a
+  notice when it opens) and **Join** it. When you are ready, **Start now**: any seat
+  nobody took is played by the house. **Call the table off** gives everyone their
+  wager back.
+
+A **How to play** button on the Liar's dice card (and a **?** in the header of every
+Liar's dice screen) opens the rules in the game, with a worked example and a few tips,
+so nobody needs this page to learn it. The short version follows.
+
+Everyone starts with **five dice**, rolled under a cup the others cannot see; you see
+your own dice and only the cups of the others. The seats take turns round the table:
+
+- **Bid** how many dice of one face lie under *every* cup, for example "3 × 5s".
+  Dial the count with the minus and plus buttons and pick the face from the round
+  buttons; the box shows the bid you are about to place. Each bid must beat the
+  last: a higher count, or the same count on a higher face. Ones are **wild**: they
+  count as any face, and nobody bids on ones.
+- Or **call liar** on the last bid. Every die is shown. If the bid's count or more is
+  there, the bid held and **the caller** loses a die; if not, **the bidder** does.
+- The loser of a round opens the next (the seat after them if that was their last
+  die), and the new round's dice tumble on the table so you can see they were
+  rolled (the cups shake and the round label flashes; nothing moves for a player
+  whose system asks for less motion). The last seat with dice wins the **pot**.
+  Someone who is out can keep watching.
+
+**An example round.** Three at the table, five dice each. Your dice are 1, 3, 5, 6, 6.
+Elbin bids "four 5s". You hold a 5 and a wild 1, so two are already yours; only two
+more are needed among the ten hidden dice, which is likely, so you raise to "five 5s".
+Brannoch thinks that is too many and calls liar. The cups are lifted and the 5s and 1s
+come to six, so the bid was true: Brannoch, who called, loses a die and opens the next
+round. Had there been only four, you would have lost the die instead.
+
+**Money.** Each person puts the table's wager in **when they sit down**, from their
+own character, and only their own client moves their own coins, so it works with no GM
+connected. The pot is the wager of every seat; the house's players put theirs in out
+of the town's purse. A person who wins is paid their wager back and the other seats'
+wagers, less the town's cut of those winnings (against three of the house's players
+that pays 3 to 1); a house player that wins takes the pot. Someone who **walks away
+from a match** (closing the window, or Back to town) forfeits their wager and their
+dice go; someone who leaves the **lobby** gets their wager back. If the **host** calls
+the table off, or drops off the world, everyone else's wager goes back; a host who
+leaves a match in play loses their own, like anyone who walks away. Keep the window
+open if you are the host: it runs the table for everyone. Each person's result is
+posted to the chat (the host's card lists every round) and goes in the sales log.
+
+**Hidden dice.** The host's computer runs the table and sends each person only their
+own dice, so nobody is shown another seat's dice before a call. The house's players
+decide from their own dice, how many dice are hidden and the bids, and never from the
+dice under the other cups. (The tests check this: they swap every other seat's dice
+for different ones over hundreds of random tables and require the house's move never to
+change.) It is friends at a table: the person hosting could in
+principle look at everything their own computer holds, the same trust as the other
+town games.
 
 ---
 

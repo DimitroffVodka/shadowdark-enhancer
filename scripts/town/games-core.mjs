@@ -17,6 +17,9 @@
  *
  * With no house cut the coin, duel and cards are exactly fair and the wheel returns 99.5%; the town's cut is what
  * makes the house win over a night.
+ *
+ * A ninth, Liar's Dice, is a match of many rounds rather than one roll: its rules are in liars-dice-core.mjs, its wager
+ * is taken when the match begins and a win pays 1 to 1 through `settle` like the rest.
  */
 /** The smallest wager: 1 sp, in copper. */
 export const MIN_WAGER = 10;
@@ -25,9 +28,13 @@ export const GAME_IDS = ["coin", "duel", "wheel", "cards"];
 export const HAND_GAMES = ["bluff", "brag"];
 /** The games that open a table of their own instead of settling on one roll, in the order the window lists them. */
 export const SIT_GAMES = [...HAND_GAMES, "death", "roulette", "blackjack"];
+/** Liar's Dice: a match, not a roll, so it is not one of the `GAME_IDS` that `playGame` rolls. */
+export const LIARS = "liars";
+/** Everything on the table, in the order the window lists it. */
+export const TABLE_GAMES = [...GAME_IDS, ...SIT_GAMES, LIARS];
 export const GAME_ICONS = {
   coin: "fa-coins", duel: "fa-dice", wheel: "fa-dharmachakra", cards: "fa-heart",
-  death: "fa-skull", roulette: "fa-bullseye", brag: "fa-dice-three", bluff: "fa-eye", blackjack: "fa-diamond",
+  death: "fa-skull", roulette: "fa-bullseye", brag: "fa-dice-three", bluff: "fa-eye", liars: "fa-dice-five", blackjack: "fa-diamond",
 };
 export const SIDES = ["heads", "tails"];
 /** The roulette bets that are not a number; a number bet is "1" to "20". */
@@ -46,6 +53,7 @@ export const GAME_KEYS = {
   roulette: { name: "SDE.town.games.roulette.name", rules: "SDE.town.games.roulette.rules", odds: "SDE.town.games.roulette.odds" },
   brag: { name: "SDE.town.games.brag.name", rules: "SDE.town.games.brag.rules", odds: "SDE.town.games.brag.odds" },
   bluff: { name: "SDE.town.games.bluff.name", rules: "SDE.town.games.bluff.rules", odds: "SDE.town.games.bluff.odds" },
+  liars: { name: "SDE.town.games.liars.name", rules: "SDE.town.games.liars.rules", odds: "SDE.town.games.liars.odds" },
   blackjack: { name: "SDE.town.games.blackjack.name", rules: "SDE.town.games.blackjack.rules", odds: "SDE.town.games.blackjack.odds" },
 };
 export const SIDE_KEYS = { heads: "SDE.town.games.side.heads", tails: "SDE.town.games.side.tails" };
