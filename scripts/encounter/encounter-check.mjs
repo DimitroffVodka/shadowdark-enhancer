@@ -98,7 +98,7 @@ export const EncounterCheck = {
       // the game as the loud path below does: nothing on screen moves on until
       // the GM has read what the check drew.
       if (hit && game.settings.get(MODULE_ID, "pauseOnEncounter")) {
-        await game.togglePause(true, true);
+        await game.togglePause(true, { broadcast: true });
       }
 
       const doc = hit && table?.uuid ? await fromUuid(table.uuid).catch(() => null) : null;
@@ -112,7 +112,7 @@ export const EncounterCheck = {
 
     if (hit) {
       if (game.settings.get(MODULE_ID, "pauseOnEncounter")) {
-        game.togglePause(true, true);
+        game.togglePause(true, { broadcast: true });
       }
 
       // Open roller on tables tab
