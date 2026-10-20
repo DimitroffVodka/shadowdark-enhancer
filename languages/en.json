@@ -167,6 +167,7 @@
   "SDE.hexFog.found": "The party found something: {name}",
   "SDE.hexFog.foundSomething": "The party found something here.",
   "SDE.hexExplorer.title": "Hex Data",
+  "SDE.hexExplorer.hudButton": "Hex Data for this hex",
   "SDE.hexExplorer.offset": "Cell ({i}, {j})",
   "SDE.hexExplorer.invalidFeature": "Use the line-feature checkboxes for river, path and coast. Structured location features keep their own type and fields.",
   "SDE.hexExplorer.dropLink": "Drag a journal entry, journal page or roll table here to add a link.",

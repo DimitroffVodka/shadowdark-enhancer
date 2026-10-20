@@ -59,6 +59,21 @@ const hexOf = (value) => {
   return /^[0-9a-f]{6}$/.test(hex) ? hex : null;
 };
 
+/** A six-digit colour moved towards white (`amount` > 0) or black (`amount` < 0), as six digits. */
+const tint = (hex, amount) => [0, 2, 4].map((i) => {
+  const value = parseInt(hex.slice(i, i + 2), 16);
+  const moved = amount >= 0 ? value + (255 - value) * amount : value * (1 + amount);
+  return Math.round(moved).toString(16).padStart(2, "0");
+}).join("");
+
+/** How far the standard is lifted inside its picture, so the pole and base sit centred top to bottom. */
+const STANDARD_LIFT = 70;
+
+/** An icon's paths without its `<svg>` wrapper, white recoloured — fit to drop inside a picture of ours. */
+const iconCloth = (iconSvg, color) => String(iconSvg)
+  .replace(/^[\s\S]*?<svg[^>]*>/, "").replace(/<\/svg>\s*$/, "")
+  .replace(/#(?:fff|ffffff)\b/gi, `#${color}`);
+
 /**
  * A stored emblem made safe to draw: an icon outside the set, or a colour that is not six hex digits,
  * falls back to the default for that part alone, so a hand-edited or half-written flag never breaks the sheet.
@@ -108,12 +123,44 @@ export const pickEmblem = (current, pick) => emblemOf({
  * @param {string} iconSvg the text of the icon's file (white paths on a 512 viewBox)
  */
 export function emblemTokenSvg(emblem, iconSvg) {
-  const inner = String(iconSvg).replace(/^[\s\S]*?<svg[^>]*>/, "").replace(/<\/svg>\s*$/, "").replace(/#(?:fff|ffffff)\b/gi, `#${emblem.iconColor}`);
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1155 1000" width="1155" height="1000">`
     + `<polygon points="0,500 289,0 866,0 1155,500 866,1000 289,1000" fill="#${emblem.color}"/>`
     + `<polygon points="30,500 306,30 849,30 1125,500 849,970 306,970" fill="none" stroke="#000000" stroke-opacity="0.45" stroke-width="20" stroke-linejoin="round"/>`
-    + `<svg x="277" y="200" width="600" height="600" viewBox="0 0 512 512">${inner}</svg></svg>`;
+    + `<svg x="277" y="200" width="600" height="600" viewBox="0 0 512 512">${iconCloth(iconSvg, emblem.iconColor)}</svg></svg>`;
 }
 
 /** Where the token picture of an emblem lives in the world; one file per distinct emblem, so it is shared and never stale. */
 export const emblemTokenName = (e) => `${e.icon}-${e.color}-${e.iconColor}.svg`;
+
+/**
+ * The party standing on the map: a pennant on a pole, planted on a stone base, the cloth in the tile colour
+ * and the icon on it — a marker that stands in its hex instead of covering the cell it is in. The whole
+ * standard is lifted inside the picture so the pole and base sit centred top to bottom, the nameplate being
+ * drawn below the cell.
+ * @param {{ icon: string, color: string, iconColor: string }} emblem an emblemOf() result
+ * @param {string} iconSvg the text of the icon's file (white paths on a 512 viewBox)
+ */
+export function emblemStandardSvg(emblem, iconSvg) {
+  const cloth = "M430,214 H724 V690 L577,846 L430,690 Z";
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1155 1000" width="1155" height="1000">`
+    + `<g transform="translate(0 -${STANDARD_LIFT})">`
+    // the stone the pole stands on, shadow first so it reads as grounded
+    + `<ellipse cx="577" cy="944" rx="214" ry="32" fill="#000000" opacity="0.28"/>`
+    + `<ellipse cx="577" cy="928" rx="176" ry="44" fill="#57534c"/><ellipse cx="577" cy="920" rx="166" ry="40" fill="#7d786f"/>`
+    + `<ellipse cx="577" cy="912" rx="146" ry="30" fill="#938d81"/>`
+    // the pole, its shaded edge, the finial
+    + `<rect x="561" y="150" width="32" height="782" rx="6" fill="#6b4a2f"/>`
+    + `<rect x="581" y="150" width="12" height="782" fill="#4a3120" opacity="0.55"/>`
+    + `<circle cx="577" cy="150" r="27" fill="#b9b2a2"/><circle cx="577" cy="150" r="27" fill="none" stroke="#8c8577" stroke-width="6"/>`
+    // the crossbar the cloth hangs from
+    + `<rect x="386" y="196" width="382" height="26" rx="7" fill="#6b4a2f"/>`
+    + `<circle cx="386" cy="209" r="19" fill="#b9b2a2"/><circle cx="768" cy="209" r="19" fill="#b9b2a2"/>`
+    // the pennant: tile colour, an edge lifted a third of the way to white, then the icon
+    + `<path d="${cloth}" fill="#${emblem.color}" stroke="#${tint(emblem.color, 0.34)}" stroke-width="26" stroke-linejoin="round"/>`
+    + `<path d="${cloth}" fill="none" stroke="#000000" stroke-opacity="0.25" stroke-width="6" stroke-linejoin="round"/>`
+    + `<svg x="427" y="302" width="300" height="300" viewBox="0 0 512 512">${iconCloth(iconSvg, emblem.iconColor)}</svg>`
+    + `</g></svg>`;
+}
+
+/** Where the standard's picture lives in the world; one file per distinct emblem, so it is shared and never stale. */
+export const emblemStandardName = (e) => `${e.icon}-${e.color}-${e.iconColor}-standard.svg`;
