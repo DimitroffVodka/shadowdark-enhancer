@@ -175,7 +175,7 @@ async function arenaFrom({ enc = null, terrain = null, hex = null, originSceneId
     if (battle) {
       await BattleMaps.bringTable(battle.id);
       // Everyone is at the table: the codex keeps the encounter, posted to chat or not.
-      await recordEncounter(battle.encounter);
+      await recordEncounter(battle.encounter, { facets: false });
     }
     return answer ?? null;
   });
@@ -249,7 +249,7 @@ export async function bringTheTable({ battle, preload = null }, io = {}) {
     if (needsConfirm(preload) && !(await x.confirm(stillLoading(preload)))) return null;
     const out = await (await x.battle()).bringTable(battle.id);
     // Everyone is at the table: the codex keeps the encounter, posted to chat or not.
-    if (out) await recordEncounter(battle.encounter);
+    if (out) await recordEncounter(battle.encounter, { facets: false });
     return out;
   });
 }

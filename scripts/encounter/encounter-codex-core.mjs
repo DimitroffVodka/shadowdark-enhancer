@@ -32,11 +32,11 @@ export function newestFirst(entries) {
 
 /** One entry's HTML: the when, the where, and what was there. */
 function entryHtml(e, fmt) {
-  const head = `<h3>${esc(e.when ?? "")}${e.kind === "monster" && e.name ? ` — ${esc(String(e.count ?? 1))} × ${esc(e.name)}` : ""}</h3>`;
+  const head = `<h3>${esc(e.when ?? "")}${e.kind === "monster" && e.name ? ` — ${esc(fmt("SDE.codex.creature", { count: e.count ?? 1, name: e.name }))}` : ""}</h3>`;
   const where = e.where ? `<p class="sde-codex-where">${esc(e.where)}</p>` : "";
   if (e.kind === "monster") {
     const art = e.img ? `<img src="${esc(e.img)}" alt="" width="40" height="40">` : "";
-    return `<section class="sde-codex-entry">${head}${where}<p class="sde-codex-what">${art}<strong>${esc(String(e.count ?? 1))} × ${esc(e.name ?? "")}</strong></p>${
+    return `<section class="sde-codex-entry">${head}${where}<p class="sde-codex-what">${art}<strong>${esc(fmt("SDE.codex.creature", { count: e.count ?? 1, name: e.name ?? "" }))}</strong></p>${
       e.facets ? `<p class="sde-codex-facets">${esc(e.facets)}</p>` : ""}</section>`;
   }
   const label = e.heading || (e.poi ? fmt("SDE.codex.poi") : "");
@@ -46,7 +46,7 @@ function entryHtml(e, fmt) {
 /**
  * A page's whole content, rebuilt from its entries.
  * @param {object[]} entries
- * @param {(key:string)=>string} fmt
+ * @param {(key:string, data?:object)=>string} fmt
  * @returns {string}
  */
 export function codexHtml(entries, fmt) {

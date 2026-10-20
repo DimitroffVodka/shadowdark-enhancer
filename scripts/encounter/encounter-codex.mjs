@@ -10,7 +10,7 @@
  *
  * The page's entries live in its `encounterCodexPage` flag and its text is
  * rewritten from them, as the rumors ledger does (#190), so the same page can
- * always be rebuilt. One write at a time on this client.
+ * always be rebuilt. Only the active GM writes (a second GM's line is relayed to it), one write at a time.
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
@@ -19,10 +19,12 @@ import { dateParts } from "../time/time-core.mjs";
 import { regionKey } from "../rules-data/rules-data-core.mjs";
 import { partyHex } from "./encounter-terrain.mjs";
 import { facetWords } from "./encounter-result.mjs";
+import { isActiveGM, queryActiveGM, refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
 import { codexHtml, entryKey } from "./encounter-codex-core.mjs";
 
 const LEDGER_FLAG = "encounterCodex";
 const PAGE_FLAG = "encounterCodexPage";
+const QUERY = `${MODULE_ID}.encounterCodex`;
 /** A page stops growing here: the oldest lines go, as a codex full of one region's history still reads. */
 const MAX_ENTRIES = 300;
 
@@ -56,8 +58,9 @@ export function openCodex() {
 /** Where the party stands: Overland's travel hex, else the party's hex on the viewed map. */
 async function whereHex() {
   try {
-    const { overlandState } = await import("../overland/overland.mjs");
-    const hex = overlandState?.()?.hex;
+    const { overlandState, isOverland } = await import("../overland/overland.mjs");
+    // Overland keeps its last hex after End travel; it is the party's place only while travelling.
+    const hex = isOverland?.() ? overlandState?.()?.hex : null;
     if (hex) return hex;
   } catch { /* not travelling */ }
   try { return partyHex(); } catch { return null; }
@@ -90,38 +93,23 @@ function facetText(res) {
   return [words.distanceText, words.activityText, words.reactionText].filter(Boolean).join(" · ");
 }
 
-/**
- * File one encounter in the codex (GM). Only for an encounter the players have
- * seen: `postEncounter` calls it for a public post, the battle map for a fight
- * brought to the table. A second call for the same draw is a no-op.
- * @param {object} res  the drawn encounter (`drawEncounter`'s entry, or its card)
- * @param {{at?:number}} [opts]  at: the hour it happened (default: the draw's own, else now)
- * @returns {Promise<object|null>} the entry written, or null
- */
-export function recordEncounter(res, { at = null } = {}) {
-  // A battle record's encounter is a creature without a kind.
-  const kind = res?.kind ?? (res?.uuid || res?.name ? "monster" : "empty");
-  if (!game.user?.isGM || !res || kind === "empty") return Promise.resolve(null);
+/** A forwarded line, rebuilt from plain values only. */
+function cleanEntry(e) {
+  const str = (v) => (v == null ? null : String(v));
+  const kind = e?.kind === "monster" ? "monster" : "flavor";
+  const at = Number(e?.at);
+  if (!e?.key || !Number.isFinite(at)) return null;
+  return {
+    key: String(e.key), at, when: str(e.when) ?? "", where: str(e.where) ?? "", region: str(e.region), kind,
+    name: str(e.name), count: kind === "monster" ? Math.max(1, Math.floor(Number(e.count)) || 1) : null,
+    img: str(e.img), facets: str(e.facets), text: str(e.text), heading: str(e.heading), poi: !!e.poi,
+  };
+}
+
+/** Write one entry to its region's page (the active GM). */
+function writeEntry(entry) {
   return enqueue(async () => {
     try {
-      const when = Number.isFinite(Number(at ?? res.at)) ? Number(at ?? res.at) : game.time.worldTime;
-      const hex = await whereHex();
-      const entry = {
-        key: entryKey({ ...res, at: when }),
-        at: when,
-        when: whenText(when),
-        where: whereText(hex),
-        region: hex?.region ?? null,
-        kind,
-        name: kind === "monster" ? (res.name ?? null) : null,
-        count: kind === "monster" ? (res.count ?? 1) : null,
-        img: kind === "monster" ? (res.img ?? null) : null,
-        facets: kind === "monster" ? facetText(res) : null,
-        text: kind === "flavor" ? String(res.text ?? "").trim() : null,
-        heading: kind === "flavor" ? (res.heading ?? null) : null,
-        poi: !!res.poi,
-      };
-      if (!entry.text && entry.kind === "flavor") return null;
       const pageKey = regionKey(entry.region);
       const log = await ledgerFor();
       const page = log.pages.find((p) => pageFlag(p)?.key === pageKey) ?? null;
@@ -151,4 +139,60 @@ export function recordEncounter(res, { at = null } = {}) {
       return null;
     }
   });
+}
+
+/** The query handler: a GM's line, written here when this is the active GM. */
+export function handleCodexQuery(data, user) {
+  const refusal = refuseQuery(user, t("SDE.codex.relayLabel"));
+  if (refusal) return refusal;
+  if (!user.isGM) return { ok: false, error: t("SDE.shared.relay.notOwner") };
+  const entry = cleanEntry(data);
+  return entry ? writeEntry(entry).then(() => ({ ok: true })) : { ok: false, error: t("SDE.shared.relay.emptyReply") };
+}
+
+export function registerCodex() {
+  registerQuery(QUERY, (data, { user } = {}) => handleCodexQuery(data, user));
+}
+
+/**
+ * File one encounter in the codex (GM). Only for an encounter the players have
+ * seen: `postEncounter` calls it for a public post, the battle map for a fight
+ * brought to the table. A second call for the same draw is a no-op.
+ * @param {object} res  the drawn encounter (`drawEncounter`'s entry, or its card)
+ * @param {{at?:number, facets?:boolean}} [opts]  at: the hour it happened (default: the draw's own, else now);
+ *   facets: false for a fight brought to the table, whose private rolls the players never saw
+ * @returns {Promise<object|null>} the entry written, or null
+ */
+export async function recordEncounter(res, { at = null, facets = true } = {}) {
+  // A battle record's encounter is a creature without a kind.
+  const kind = res?.kind ?? (res?.uuid || res?.name ? "monster" : "empty");
+  if (!game.user?.isGM || !res || kind === "empty") return null;
+  try {
+    const when = Number.isFinite(Number(at ?? res.at)) ? Number(at ?? res.at) : game.time.worldTime;
+    const hex = await whereHex();
+    const text = kind === "flavor" ? String(res.text ?? "").replace(/<[^>]*>/g, "").trim() : null;
+    if (kind === "flavor" && !text) return null;
+    const entry = {
+      key: entryKey({ ...res, at: when }),
+      at: when,
+      when: whenText(when),
+      where: whereText(hex),
+      region: hex?.region ?? null,
+      kind,
+      name: kind === "monster" ? (res.name ?? null) : null,
+      count: kind === "monster" ? (res.count ?? 1) : null,
+      img: kind === "monster" ? (res.img ?? null) : null,
+      facets: kind === "monster" && facets ? facetText(res) : null,
+      text,
+      heading: kind === "flavor" ? (res.heading ?? null) : null,
+      poi: !!res.poi,
+    };
+    if (isActiveGM()) return await writeEntry(entry);
+    // Another GM writes it, so two GMs never race on one page (or make the journal twice).
+    const reply = await queryActiveGM(QUERY, entry, { label: t("SDE.codex.relayLabel") });
+    return reply?.ok ? entry : null;
+  } catch (err) {
+    console.warn(`${MODULE_ID} | the encounter codex could not be written`, err);
+    return null;
+  }
 }

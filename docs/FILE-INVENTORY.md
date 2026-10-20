@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-2180 tracked files · ~275,900 lines of code/markup across scripts+templates+styles+test.
+2181 tracked files · ~276,100 lines of code/markup across scripts+templates+styles+test.
 `v0.19.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 1548 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 1549 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 172 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 271 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 | `scavenger/scavenger-core.mjs` | 171 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
@@ -252,7 +252,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `encounter-roller-app.mjs` | 1442 | The Encounter Roller shell + tabs (Roll Tables / Build / Browse / Creator). |
+| `encounter-roller-app.mjs` | 1443 | The Encounter Roller shell + tabs (Roll Tables / Build / Browse / Creator). |
 | `encounter-check.mjs` | 169 | The d6 random-encounter check + chat post. Options (#232): a threshold, the travel hex (its region as the zone), a card label and the recap clock label, for Overland's travel checks. |
 | `encounter-result.mjs` | 69 | Distance / Activity / Reaction RAW lookups. |
 | `encounter-build.mjs` | 287 | Build-a-table data layer (slots, die formats, save to RollTable). |
@@ -273,7 +273,7 @@
 | `battle-maps/battle-actions-core.mjs` | 209 | The pure half of the buttons that put the feature in the GM's hands: which battle buttons the Encounter panel and the battle bar show for each state of a battle, the panel's open and fold rule (it opens while the battle is staged and folds when it goes live), the readout's wording, whether a posted card can offer a battle, and the terrain, night and camping a click starts from. No Foundry. |
 | `battle-maps/battle-actions.mjs` | 367 | The one flow behind every Battle map button (the clock HUD's Encounter panel, the posted encounter card, the Encounter Roller, and Tools > Battle map, which sets the party up alone with no encounter): pick the map when asked, set the battle up, one at a time. Also the GM-only wiring of the card's button and the actions behind Change map, Bring the table and Return to travel. |
 | `encounter-codex-core.mjs` | 56 | The codex's pure part: an entry's identity (the draw id, else hour and what it was) and a page's HTML rebuilt from its entries, newest first. |
-| `encounter-codex.mjs` | 154 | The Encounters Met codex: one players-readable journal, a page a region, filed when an encounter is shown to the table (posted to chat, or brought to it as a battle); entries on the page flag, one write at a time, a page keeps its latest 300. |
+| `encounter-codex.mjs` | 198 | The Encounters Met codex: one players-readable journal, a page a region, filed when an encounter is shown to the table (posted to chat, or brought to it as a battle); entries on the page flag, one write at a time, a page keeps its latest 300. |
 | `encounter-draw.mjs` | 366 | Drawing an encounter with no window, shared by the Encounter Roller and quiet travel checks (#257): the table's row, a zone table's category and the region's table for it (day or night, then Special), the travel draw's point of interest (#262, #273), the entry (the NPC, its art, number appearing with its formula, distance 1d6, activity 2d6, reaction 2d6), the chain of tables drawn for the panel, a second category kept out of chat when quiet, and postEncounter's chat card. |
 
 ### 3.6 `scripts/monster-creator/`

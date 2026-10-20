@@ -13,7 +13,7 @@ test("an entry is known by its draw's id; one from before ids by its hour and wh
 });
 
 test("a page reads newest first, escapes what it shows, and says when it is empty", () => {
-  const fmt = (k) => k;
+  const fmt = (k, d) => (d ? `${d.count} × ${d.name}` : k);
   assert.deepEqual(newestFirst([{ at: 1 }, { at: 3 }, { at: 2 }]).map((e) => e.at), [3, 2, 1]);
   assert.match(codexHtml([], fmt), /SDE\.codex\.empty/);
   const html = codexHtml([
@@ -23,5 +23,5 @@ test("a page reads newest first, escapes what it shows, and says when it is empt
   assert.ok(html.indexOf("Day 2") < html.indexOf("Day 1"), "newest first");
   assert.match(html, /3 × Wolf/);
   assert.match(html, /SDE\.codex\.poi/, "a point of interest is labelled");
-  assert.ok(!html.includes("<b>ruin</b>"), "row text is escaped");
+  assert.ok(!html.includes("<b>ruin</b>"), "a tag in row text is never live");
 });

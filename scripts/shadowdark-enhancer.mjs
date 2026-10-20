@@ -67,7 +67,7 @@ import { registerTurnSkip } from "./crawl-strip/turn-skip.mjs";
 import { MovementTracker } from "./crawl-strip/movement-tracker.mjs";
 import { registerMountedTokens } from "./mounted/mounted-tokens.mjs";
 import { EncounterCheck } from "./encounter/encounter-check.mjs";
-import { openCodex } from "./encounter/encounter-codex.mjs";
+import { openCodex, registerCodex } from "./encounter/encounter-codex.mjs";
 import { tableForHex } from "./encounter/encounter-terrain.mjs";
 import { migrateEncounterSources } from "./encounter/encounter-sources.mjs";
 import { MonsterCreator } from "./monster-creator/encounter-creator.mjs";
@@ -162,7 +162,7 @@ const STYLESHEET_REV = "bae321399183";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "cebf5be51033";
+const BUILD_REV = "fe010f57ca1c";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -476,6 +476,7 @@ Hooks.once("init", () => {
   registerStage();
   registerTempHp();
   registerCarousing();
+  registerCodex();
 
   // "Character Builder" launch button in the Actors sidebar header — the single
   // entry point for a fresh build. It opens the builder with no actor (it creates a fresh one on
@@ -559,8 +560,8 @@ Hooks.once("init", () => {
     // 1.31.0 — additive: owns("hex.baked", scene), a map baked with Extras that the Enhancer draws itself.
     // 1.32.0 — additive: quest steps gain parent and secret, quests gain reveal; a non-GM gets the player view.
     //          Also giver, rewards.notes, startsAt, deadline, autoFail and the questLine chat flag (see docs/API.md).
-    // 1.36.0 — additive: encounter.openCodex, the players' Encounters Met journal (1.33.0–1.35.0 are the automatic journey's).
-    apiVersion: "1.36.0",
+    // 1.33.0 — additive: encounter.openCodex, the players' Encounters Met journal.
+    apiVersion: "1.33.0",
     // The one travel state per world (scripts/overland/overland.mjs): a copy
     // with hexes left, climate, storm, harshness and night derived; whether
     // travel is on; today's weather roll, the travel day's start, Continue

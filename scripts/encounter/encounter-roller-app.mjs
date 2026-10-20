@@ -796,7 +796,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
   _setResult(entry, { via = null } = {}) {
     this._lastResult = entry.kind === "monster"
       ? { ...entry, chaMod: 0, ...this._freshRenownState() }
-      : { kind: entry.kind, text: entry.text, html: entry.html };
+      : { id: entry.id, kind: entry.kind, text: entry.text, html: entry.html, poi: entry.poi, heading: entry.heading };
     if (entry.kind === "monster") this._updateResultStrings();
     // Which table a category sent the roll to, shown on the card and in chat (#262).
     this._lastResult.via = via;
@@ -1415,6 +1415,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
         // placeholder by falling through to compendium-source art).
         const art = await _bestArtForActor(actor);
         this._lastResult = {
+          id: foundry.utils.randomID(),
           kind: "monster",
           uuid: slot.uuid,
           name: actor.name,
@@ -1432,7 +1433,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       }
     }
     if (slot.flavor && slot.name) {
-      this._lastResult = { kind: "flavor", text: slot.name };
+      this._lastResult = { id: foundry.utils.randomID(), kind: "flavor", text: slot.name };
       this.render();
       return;
     }

@@ -4397,6 +4397,8 @@
   "SDE.codex.empty": "Nothing met yet.",
   "SDE.codex.when": "{date} · {time}",
   "SDE.codex.poi": "Point of interest",
+  "SDE.codex.relayLabel": "encounter codex lines",
+  "SDE.codex.creature": "{count} × {name}",
   "SDE.calendar.solar.springEquinox": "Spring equinox",
   "SDE.calendar.solar.summerSolstice": "Summer solstice",
   "SDE.calendar.solar.autumnEquinox": "Autumn equinox",

@@ -488,6 +488,11 @@ test("newBattleRecord: a staged record with the plan's fields", () => {
   });
 });
 
+test("newBattleRecord: the encounter keeps its draw's id, so the codex files post and battle as one line", () => {
+  assert.equal(newBattleRecord({ encounter: { id: "e1", uuid: "Actor.x", name: "X" } }).encounter.id, "e1");
+  assert.ok(!("id" in newBattleRecord({ encounter: { uuid: "Actor.x", name: "X" } }).encounter));
+});
+
 test("newBattleRecord: it says whether the party was travelling, and not by default", () => {
   assert.equal(newBattleRecord({ travelling: true }).travelling, true);
   assert.equal(newBattleRecord().travelling, false);

@@ -351,7 +351,9 @@ the first time the GM shows an encounter, and every player can open and read it.
   written down, so the codex never gives away what the players have not seen.
 - **What a line says.** The day and hour, the hex and its terrain, then the
   creature with its picture, how many there were and how they were behaving
-  (close, hunting, hostile). A point of interest writes its own text instead.
+  (close, hunting, hostile) when the encounter was posted; a fight brought straight
+  to the table leaves out the GM's private rolls. A point of interest writes its
+  own text instead.
 - **How it is laid out.** One page for each region the party travelled
   through, newest first, and one page called **Elsewhere** for encounters met
   outside overland travel or where the region is not known. A page keeps its

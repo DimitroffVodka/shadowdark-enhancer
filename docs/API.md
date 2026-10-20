@@ -24,7 +24,7 @@ and Forge & Loot features.
 [`time`](#time--season-day-and-night-sun-moon-and-anchors) ·
 [`overland`](#overland--the-travel-state)
 
-**API version:** `1.36.0` (semver — additive changes bump the minor version,
+**API version:** `1.33.0` (semver — additive changes bump the minor version,
 breaking changes the major; check `apiVersion` before relying on newer keys).
 
 ## Discovery
@@ -316,7 +316,7 @@ await api.encounter.check();          // run an encounter check
 await api.encounter.check({ threshold: 2, hex, scene, label, clockLabel }); // 1.17.0: the chance, hex, map and labels given
 await api.encounter.check({ hex, scene, travel: true }); // 1.21.0: the party is travelling
 api.encounter.openRoller();           // roller window
-api.encounter.openCodex();            // 1.36.0: the players' Encounters Met journal; false before the first line
+api.encounter.openCodex();            // 1.33.0: the players' Encounters Met journal; false before the first line
 api.encounter.setActiveTable(uuid);   // bind the active encounter table
 api.encounter.getThreshold(); api.encounter.setThreshold(3);
 api.encounter.getCheckFrequency(); api.encounter.setCheckFrequency(3); // automatic crawl-round check: every 3 rounds, counted from the last check
@@ -347,7 +347,7 @@ and Start day don't.
 
 ### `encounter.openCodex()`
 
-Added in 1.36.0. Opens the **Encounters Met** journal — the players' own log of what the table
+Added in 1.33.0. Opens the **Encounters Met** journal — the players' own log of what the table
 has seen. A line is filed when an encounter is shown to them: posted to chat
 (`postEncounter` with a public post) or brought to the table as a battle map.
 A GM-only post is not filed. One page a region (and one for what was met off
@@ -2460,7 +2460,7 @@ scene's choice changes, and once on load.
   `overland.setPace`; `overland.startDay` reads the method and the pace when they're left out.
   `overland.makeCamp` makes the camp before the night (with Shadowdark Extras' `deferRest` and
   `camping.dawn`) and needs an open travel day, and the state gains `camp` and the held encounter `interrupts`.
-- `1.36.0` adds `encounter.openCodex()`, the players' Encounters Met journal.
+- `1.33.0` adds `encounter.openCodex()`, the players' Encounters Met journal.
 - `1.27.0` adds the `bastion` namespace (the Bastion actor type and its sheet).
 - `1.4.0` adds the shared `forgeLoot.open()` preview shell. Generator rules and
   document writes remain behind the later NPC/Rival adapter implementations.
