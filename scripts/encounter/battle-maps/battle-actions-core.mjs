@@ -69,6 +69,8 @@ export const pickerArgs = (battle, now) => ({ terrain: battle?.terrain ?? null, 
  * encounter may be gone by then and a card's was never held.
  */
 export const cardEncounter = (enc) => ({
+  // The draw's id, so the Encounters Met codex files a post and then a battle of it as one line.
+  ...(typeof enc?.id === "string" && enc.id ? { id: enc.id } : {}),
   kind: "monster",
   uuid: enc?.uuid ?? null,
   name: enc?.name ?? null,

@@ -374,7 +374,7 @@ function randomId(length = 16) {
  *   travel back if bringing the table turned it into a crawl (absent from older records: false)
  * @property {string|null} arena   the Arena look id (`arena-pit` ...) when this is an Arena fight, else null (absent from older records)
  * @property {string} [backdrop]   an Arena fight only, written when the table is brought: the Backdrop place it hid, so Return can show it again
- * @property {{name:string, uuid:string|null, count:number, distanceRoll:number|null, activityRoll?:number|null,
+ * @property {{id?:string|null, name:string, uuid:string|null, count:number, distanceRoll:number|null, activityRoll?:number|null,
  *   reactionRoll?:number|null, img?:string|null}} encounter  what the GM was told of the creatures: the last three are
  *   absent from records written before the battle's panel showed them, and the panel then says what it has
  */
@@ -411,6 +411,7 @@ export function newBattleRecord({
     travelling: !!travelling,
     arena: typeof arena === "string" && arena ? arena : null,
     encounter: {
+      ...(typeof encounter?.id === "string" && encounter.id ? { id: encounter.id } : {}),
       name: String(encounter?.name ?? ""),
       uuid,
       count: uuid ? Math.max(1, Math.floor(Number(encounter?.count)) || 1) : 0,

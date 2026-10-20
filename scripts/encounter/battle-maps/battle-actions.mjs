@@ -26,6 +26,7 @@ import { fileRoute } from "../../shared/file-route.mjs";
 import {
   canBattle, needsConfirm, needsPick, pickAnswer, pickerArgs, readStash, recordOf, setUpArgs, stillLoading,
 } from "./battle-actions-core.mjs";
+import { recordEncounter } from "../encounter-codex.mjs";
 
 /**
  * The table's conditions: night by the fixed hours the encounter tables use, whether Overland has tonight's camp made, and
@@ -171,7 +172,11 @@ async function arenaFrom({ enc = null, terrain = null, hex = null, originSceneId
     const now = await x.conditions();
     const answer = await BattleMaps.setUp({ ...setUpArgs({ enc, terrain: terrainKey(terrain) || null, hex, originSceneId, ...now }), arena, view: false });
     const battle = recordOf(answer);
-    if (battle) await BattleMaps.bringTable(battle.id);
+    if (battle) {
+      await BattleMaps.bringTable(battle.id);
+      // Everyone is at the table: the codex keeps the encounter, posted to chat or not.
+      await recordEncounter(battle.encounter);
+    }
     return answer ?? null;
   });
 }
@@ -242,7 +247,10 @@ export async function bringTheTable({ battle, preload = null }, io = {}) {
   if (!game.user?.isGM || !battle?.id) return null;
   return guarded(async () => {
     if (needsConfirm(preload) && !(await x.confirm(stillLoading(preload)))) return null;
-    return (await x.battle()).bringTable(battle.id);
+    const out = await (await x.battle()).bringTable(battle.id);
+    // Everyone is at the table: the codex keeps the encounter, posted to chat or not.
+    if (out) await recordEncounter(battle.encounter);
+    return out;
   });
 }
 

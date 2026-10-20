@@ -339,6 +339,26 @@ A full NPC authoring panel. See [Monster Creator](Monster-Creator.md).
 
 ---
 
+## Encounters Met: the party's codex
+
+Every encounter the players are shown is written into a journal called
+**Encounters Met**, in the Journal sidebar. Nobody has to keep it: it appears
+the first time the GM shows an encounter, and every player can open and read it.
+
+- **What counts as shown.** Posting the encounter to chat for everyone (the
+  Encounter Roller's card, or **Post to chat** on the clock bar's encounter panel), or
+  bringing the table to its battle map. A post whispered to the GM only is not
+  written down, so the codex never gives away what the players have not seen.
+- **What a line says.** The day and hour, the hex and its terrain, then the
+  creature with its picture, how many there were and how they were behaving
+  (close, hunting, hostile). A point of interest writes its own text instead.
+- **How it is laid out.** One page for each region of the map, newest first,
+  and one page for whatever was met off the map. A page keeps its latest 300
+  lines.
+- **Posting and then fighting the same encounter** writes one line, not two.
+- **Edits.** The page is rebuilt from what the module recorded, so editing the
+  text by hand does not stick; write your own notes on a page of your own.
+
 ## Where encounters draw NPCs from
 
 The `Encounter sources` setting controls which packs feed the browser and the

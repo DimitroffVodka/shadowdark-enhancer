@@ -84,6 +84,7 @@ const linkOf = (v) => {
 function encounterOf(v) {
   if (!obj(v) || !Number.isFinite(v.at)) return null;
   return {
+    id: str(v.id),
     at: v.at,
     half: v.half === "night" ? "night" : "day",
     chance: Math.min(6, int(v.chance, 1)),
