@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-2154 tracked files · ~272,600 lines of code/markup across scripts+templates+styles+test.
+2154 tracked files · ~272,500 lines of code/markup across scripts+templates+styles+test.
 `v0.19.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -65,7 +65,7 @@
 | `camping/camping-cook.mjs` | 14 | Post-eligible-rest Cook seam and active-benefit-scoped native damage/healing/expiry compatibility. |
 | `camping/camping-core.mjs` | 109 | Pure PC task choices, lock, exact shared-first torch cost and scoped Cook surplus/expiry rules. |
 | `camping/camping-nutrition.mjs` | 120 | Actor/day whole-meal accounting, personal-first then automatic Party rations, per-effect starvation and eligible normal-rest receipts across parties/reloads. |
-| `camping/camping.mjs` | 272 | Authenticated owner-choice camp task relay, persistent results/rewards, nearby-PC fire and deferred native nutrition/rest seams for Overland nights. |
+| `camping/camping.mjs` | 270 | Authenticated owner-choice camp task relay, persistent results/rewards, nearby-PC fire and deferred native nutrition/rest seams for Overland nights. |
 | `carousing/carousing-app.mjs` | 84 | Carousing controller hosted inline in Party Travel, with GM table/manual-place setup, each PC owner's own-spend choices, persistent results and independent history. |
 | `carousing/carousing-core.mjs` | 154 | Pure imported table adapters (basic outcome rows, and the expanded Mishaps / Benefits / % modifier / XP matrix with its d100 Benefit and Mishap rolls), owner choices/funds/holiday/cooldown preflight, supported effects, carousing-first table ordering and stable recap shaping. |
 | `carousing/carousing.mjs` | 205 | Authenticated native per-PC carousing authority, saved rolls/atomic costs and effect progress, off-duty time, independent history and recap upsert. |
