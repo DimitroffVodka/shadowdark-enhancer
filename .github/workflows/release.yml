@@ -29,6 +29,9 @@ jobs:
           const fs = require("fs");
           const m = JSON.parse(fs.readFileSync("module.json", "utf8"));
           m.version = process.env.VERSION;
+          // Only the release carries the update address: a git checkout in Data/modules
+          // has none, so Foundry's Update All never empties it over the developer's work.
+          m.manifest = "https://github.com/DimitroffVodka/shadowdark-enhancer/releases/latest/download/module.json";
           fs.writeFileSync("module.json", JSON.stringify(m, null, 2) + "\n");
           EOF
 

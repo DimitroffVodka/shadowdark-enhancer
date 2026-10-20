@@ -11,7 +11,7 @@ import { registerHexCoordinates } from "./hex-map/coordinate-overlay.mjs";
 import { registerMapNetwork } from "./hex-map/map-network.mjs";
 import { registerHexMapControls } from "./hex-map/hex-map-controls.mjs";
 import { HexExplorer, registerHexExplorer, ownsHexData } from "./hex-map/hex-explorer.mjs";
-import { HexRecords, isHexAdopted } from "./hex-map/hex-records.mjs";
+import { HexRecords, isHexAdopted, registerHexRecordProjections } from "./hex-map/hex-records.mjs";
 import { adoptHexScene, registerHexAdoption } from "./hex-map/hex-adoption.mjs";
 import { HexFog, ownsHexFog, registerHexFog } from "./hex-map/hex-fog.mjs";
 import { ownsBakedMap, registerBakedMaps } from "./hex-map/baked-map.mjs";
@@ -158,7 +158,7 @@ const STYLESHEET_REV = "e42c59841fff";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "c88afb58a212";
+const BUILD_REV = "6b6379068fcd";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -376,6 +376,8 @@ Hooks.once("init", () => {
   registerHexMapControls();
   registerHexExplorer();
   registerHexAdoption();
+  // Disclosed-hex projection journals carry player fog data; they are not reading material and stay out of the sidebar.
+  registerHexRecordProjections();
   // The route and click-to-travel on the hex map (#257).
   registerRoute();
   // Out-of-combat tracker as a sidebar tab, beside Combat. Must run in init:
