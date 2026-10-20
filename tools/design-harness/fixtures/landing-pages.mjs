@@ -11,7 +11,7 @@ const build = (state) => {
   const full = state === "full";
   return {
     context: {
-      defaultName: "Market", sizes, games,
+      defaultName: "Market", sizes, games, offerPlayerMap: !full,
       pictures: full ? [{ id: "playerMap", label: "Player's Map", thumb: `${PLACES}/thumbs/market.webp`, selected: true }, pic("town", "Town"), pic("market", "Market"), pic("tavern", "Tavern")] : [pic("town", "Town", true), pic("market", "Market"), pic("tavern", "Tavern")],
       pages: full ? [
         { sceneId: "s1", name: "Bone Choir", sizeLabel: "City", here: false, shown: true },

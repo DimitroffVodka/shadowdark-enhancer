@@ -23,6 +23,12 @@
           {{/each}}
         </div>
       </div>
+      {{#if offerPlayerMap}}
+      <div class="ui-note info lp-offer">
+        <span>{{localize "SDE.town.make.playerMapHint"}}</span>
+        <button type="button" class="ui-btn" data-action="playerMap"><i class="fa-solid fa-map"></i> {{localize "SDE.town.make.playerMap"}}</button>
+      </div>
+      {{/if}}
       <div class="ui-field">
         <span class="ui-label">{{localize "SDE.town.make.games"}}</span>
         <div class="ui-inline lp-games">

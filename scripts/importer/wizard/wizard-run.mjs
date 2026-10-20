@@ -22,6 +22,7 @@
  *   deps.keyBooks                                                       → the source keys whose key locations can be imported
  *   deps.keyLocations(src, { onRegion(region, i, n) })                  → { regions, hexes, created, failed:[{region, error}] }
  *   deps.holidays(src)                                                  → { status:"imported"|"already"|"failed", created? } (optional; the calendar's holidays (CS6) and holy days (WR) from that book)
+ *   deps.playerMap()                                                    → { status:"made"|"already"|"noBook"|"failed" } (optional; the Player's Guide's map, saved in the world for the landing pages)
  *   deps.hexMap(id, { title, firstNum, placement })                       → { status:"ready"|"packed"|"already"|"needsLook"|"failed", sceneId, legend, pinned, packed?, packFailed? }
  */
 import { bookRows, isHexMap, bookTitle, HEX_MAPS } from "./wizard-core.mjs";
@@ -105,6 +106,16 @@ export async function runWizardImport(state, hooks, deps) {
     if (made.status === "imported") result.imported += made.created ?? 1;
     else if (made.status === "already") result.already += 1;
     else result.needsYou.push({ title: t("SDE.importer.wizard.run.holidaysTitle"), why: t("SDE.importer.wizard.run.holidaysFailed") });
+  }
+
+  // 3c. The Player's Guide's map, the background of the Western Reaches' landing pages: cut from the GM's own book
+  if (deps.playerMap && books.some((b) => b.id === "WR")) {
+    if (stop()) return result;
+    hooks.onProgress(WEIGHTS.keys[1], t("SDE.importer.wizard.run.playerMap"));
+    const made = await deps.playerMap().catch(() => ({ status: "failed" }));
+    if (made.status === "made") result.imported += 1;
+    else if (made.status === "already") result.already += 1;
+    else if (made.status === "failed") result.needsYou.push({ title: t("SDE.importer.wizard.run.playerMapTitle"), why: t("SDE.importer.wizard.run.playerMapFailed") });
   }
 
   // 4. Adventure maps (the hex maps follow)

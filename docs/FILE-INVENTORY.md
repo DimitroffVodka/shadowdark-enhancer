@@ -684,6 +684,7 @@ The camp picture: a full-screen picture every client shows behind Foundry's UI, 
 | `landing-pages.mjs` | 95 | Make a landing page (scene, rolled merchant, page) and move the table: Take everyone there (remembers where they came from), Return, and a Western Reaches settlement's page made on first open. |
 | `landing-pages-app.mjs` | 115 | The GM's Landing pages window from the toolbar: the Make form, every page with Take everyone there, the hex-import settlements, and Make the Player's Map. |
 | `landing-map.mjs` | 59 | The landing page's Map tile: shows the clicker alone the overland map with their party's explored hexes, with a Back button; else the player map picture. |
+| `landing-player-map.mjs` | 79 | Cuts the Western Reaches Player's Map from pages 2 and 3 of the GM's own Player's Guide, joins the halves and saves it in the world (never shipped). |
 | `games-core.mjs` | 156 | The town's games of chance: the four that settle on one roll, the names and keys of the games that open a table (Liar's Dice among them), the house's cut and the wager limits (pure). |
 | `liars-dice-core.mjs` | 153 | Liar's Dice for two to six seats: the rules (bids, calls, ones wild, five dice each, forfeits) and the house's odds-based play (pure). |
 | `liars-dice-table.mjs` | 132 | A Liar's Dice table: lobby, seats, who may move, the house's turns, leaving, and the view each person may see (pure). |

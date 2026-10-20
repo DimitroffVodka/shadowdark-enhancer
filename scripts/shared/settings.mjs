@@ -1064,6 +1064,7 @@ export function registerSettings() {
   });
 
   // The Western Reaches Player's Map, cut from the GM's own Player's Guide at import and saved in the world
+  // (town/landing-player-map.mjs): its path, or "" before it is made. Book art never ships, so it is never a default.
   game.settings.register(MODULE_ID, "landingPlayerMap", {
     scope: "world",
     config: false,

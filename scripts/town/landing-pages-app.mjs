@@ -27,6 +27,7 @@ export class LandingPagesApp extends HandlebarsApplicationMixin(ApplicationV2) {
       go: LandingPagesApp.prototype._onGo,
       edit: LandingPagesApp.prototype._onEdit,
       settlement: LandingPagesApp.prototype._onSettlement,
+      playerMap: LandingPagesApp.prototype._onPlayerMap,
     },
   };
 
@@ -49,6 +50,7 @@ export class LandingPagesApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _prepareContext(options) {
     const context = await super._prepareContext(options);
     const pictures = pictureChoices(playerMapSrc());
+    const { canMakePlayerMap } = await import("./landing-player-map.mjs");
     this._places = await settlements().catch((err) => { console.error("Shadowdark Enhancer | landing pages: settlements", err); return []; });
     return Object.assign(context, {
       defaultName: t("SDE.town.make.defaultName"),
@@ -57,6 +59,7 @@ export class LandingPagesApp extends HandlebarsApplicationMixin(ApplicationV2) {
       games: TABLE_GAMES.map((id) => ({ id, label: t(GAME_KEYS[id].name) })),
       pages: pageRows(game.scenes.contents, game.scenes.active?.id, landingOf).map((r) => ({ ...r, sizeLabel: sizeLabel(r.size) })),
       places: this._places.map((r) => ({ ...r, sizeLabel: sizeLabel(r.size) })),
+      offerPlayerMap: !playerMapSrc() && await canMakePlayerMap().catch(() => false),
     });
   }
 
@@ -86,6 +89,16 @@ export class LandingPagesApp extends HandlebarsApplicationMixin(ApplicationV2) {
     for (const [k, v] of new FormData(this.element.querySelector("form"))) fields[k] = v;
     const asked = readMakeForm(fields, pictureChoices(playerMapSrc()), t("SDE.town.make.defaultName"));
     return this._once(target, () => makeLandingPage(asked));
+  }
+
+  /** Cut the Player's Map from the GM's linked Player's Guide (a world imported before the import made it). */
+  _onPlayerMap(_event, target) {
+    return this._once(target, async () => {
+      const { makePlayerMap } = await import("./landing-player-map.mjs");
+      const made = await makePlayerMap();
+      if (made.status === "made" || made.status === "already") ui.notifications.info(t("SDE.town.make.playerMapMade"));
+      else ui.notifications.warn(t("SDE.town.make.playerMapFailed"));
+    });
   }
 
   _onGo(_event, target) { return this._once(target, () => goToPage(game.scenes.get(target.dataset.sceneId))); }
