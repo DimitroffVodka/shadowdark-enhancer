@@ -31,6 +31,13 @@ test("the imported pack's spells, talents and classes are not stock even when th
   }
 });
 
+test("an adventure's treasure is found, not stocked: the system's treasure mark or the importer's flag", () => {
+  const rose = { type: "Basic", name: "Golden Rose", system: { cost: { gp: 80 }, treasure: true }, flags: {} };
+  assert.equal(isCatalogStock(rose), false);
+  assert.equal(isCatalogStock({ ...rose, system: { cost: { gp: 80 } }, flags: { "shadowdark-enhancer": { adventureTreasure: { site: "x" } } } }), false);
+  assert.equal(isCatalogStock({ ...rose, name: "Sai", type: "Weapon", system: { cost: { gp: 8 }, treasure: false } }), true);
+});
+
 test("loot-table props and generated treasure are found, not stocked", () => {
   const flagged = (own) => priced({ gp: 60 }, { flags: { [MODULE_ID]: own } });
   assert.equal(isCatalogStock(flagged({ fromTreasureTable: true })), false);

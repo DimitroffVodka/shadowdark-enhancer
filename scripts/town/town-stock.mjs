@@ -22,9 +22,9 @@ async function stockPool(kind) {
   for (const id of SHOP_PACKS) {
     const pack = game.packs.get(id);
     if (!pack) continue;
-    const index = await pack.getIndex({ fields: ["system.cost", "system.quantity", "system.magicItem", `flags.${MODULE_ID}.fromTreasureTable`, `flags.${MODULE_ID}.generated`] });
+    const index = await pack.getIndex({ fields: ["system.cost", "system.quantity", "system.magicItem", "system.treasure", `flags.${MODULE_ID}.fromTreasureTable`, `flags.${MODULE_ID}.adventureTreasure`, `flags.${MODULE_ID}.generated`, `flags.${MODULE_ID}.siegeWeapon`] });
     for (const entry of index.contents) {
-      if (kind.types.some((type) => inStock(entry, { type }))) pool.push({ uuid: entry.uuid, name: entry.name, type: entry.type, costCp: toCopper(entry.system.cost ?? {}) });
+      if (kind.types.some((type) => inStock(entry, { type }))) pool.push({ uuid: entry.uuid, name: entry.name, type: entry.type, costCp: toCopper(entry.system.cost ?? {}), siege: !!entry.flags?.[MODULE_ID]?.siegeWeapon });
     }
   }
   return pool;

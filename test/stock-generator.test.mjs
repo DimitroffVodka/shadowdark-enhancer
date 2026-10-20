@@ -68,7 +68,8 @@ test("every kind stocks only its own types, with no ware twice", () => {
   }
 });
 
-test("left out: free things, the Light spells, the Basilisk Egg, potions, Holy Symbol and Thieves' Tools", () => {
+test("left out: free things, the Light spells, the Basilisk Egg, potions, Holy Symbol, Thieves' Tools and siege gear", () => {
+  assert.deepEqual(pickStock([{ ...row("Catapult", "Weapon", 10000), siege: true }, row("Siege Weapon Ammunition", "Basic", 100), row("Torch", "Basic", 5)], { kind: "outfitter", size: "city_state" }).map((o) => o.uuid.split(".")[3]), ["Torch"]);
   const out = pickStock([row("Light Spell (Double Time)", "Basic", 100), row("Basilisk Egg", "Basic", 100), row("Thieves' Tools", "Basic", 100), row("Holy Symbol", "Basic", 100), row("Free", "Basic", 0), row("Torch", "Basic", 5)], { kind: "general", size: "city_state" });
   assert.deepEqual(names(out), ["Torch"]);
   assert.deepEqual(pickStock(gear, { kind: "nope", size: "town" }), []);

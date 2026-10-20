@@ -11,8 +11,10 @@
  *    items, carry cost 0; "no price" is not "free", it is "no list price", so
  *    they are not for sale here. A GM can still stock one by hand with a price
  *    of their own on the Manage tab.
- *  - Not generated treasure. Loot-table props (a cracked emerald, a bent tin
- *    fork) are things you find, not things a merchant stocks.
+ *  - Not treasure. Loot-table props (a cracked emerald, a bent tin fork) and an
+ *    adventure's treasure (a golden rose, a gold hummingbird charm necklace:
+ *    the system's own treasure mark, or the importer's adventureTreasure flag)
+ *    are things you find, not things a merchant stocks.
  */
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { toCopper } from "../shared/coins.mjs";
@@ -32,6 +34,7 @@ export function isShopType(entry) {
 export function isCatalogStock(entry) {
   if (!isShopType(entry)) return false;
   if (!(toCopper(entry.system?.cost ?? {}) > 0)) return false;
+  if (entry.system?.treasure === true) return false;
   const own = entry.flags?.[MODULE_ID];
-  return !(own?.fromTreasureTable || own?.generated === true);
+  return !(own?.fromTreasureTable || own?.adventureTreasure || own?.generated === true);
 }

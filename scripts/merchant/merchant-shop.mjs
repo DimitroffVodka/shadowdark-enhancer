@@ -2112,7 +2112,7 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
       if (!pack) continue;
 
       const index = await pack.getIndex({
-        fields: ["system.cost", "system.type", "system.range", "system.damage", "system.ac", "system.slots", "system.properties", "system.description", `flags.${MODULE_ID}.fromTreasureTable`, `flags.${MODULE_ID}.generated`],
+        fields: ["system.cost", "system.type", "system.range", "system.damage", "system.ac", "system.slots", "system.properties", "system.description", "system.treasure", `flags.${MODULE_ID}.fromTreasureTable`, `flags.${MODULE_ID}.adventureTreasure`, `flags.${MODULE_ID}.generated`],
       });
       const packLabel = pack.metadata.label;
 

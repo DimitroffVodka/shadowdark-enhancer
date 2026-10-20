@@ -30,7 +30,7 @@ export async function loadStock(shopId) {
   for (const id of SHOP_PACKS) {
     const pack = game.packs.get(id);
     if (!pack || !shop) continue;
-    const index = await pack.getIndex({ fields: ["system.cost", "system.quantity", "system.magicItem", "system.type", "system.range", "system.damage", "system.ac", "system.slots", "system.properties", "system.description", `flags.${MODULE_ID}.fromTreasureTable`, `flags.${MODULE_ID}.generated`] });
+    const index = await pack.getIndex({ fields: ["system.cost", "system.quantity", "system.magicItem", "system.type", "system.range", "system.damage", "system.ac", "system.slots", "system.properties", "system.description", "system.treasure", `flags.${MODULE_ID}.fromTreasureTable`, `flags.${MODULE_ID}.adventureTreasure`, `flags.${MODULE_ID}.generated`] });
     const wares = index.contents.filter((entry) => inStock(entry, shop));
     await loadPropertyNames(wares);
     for (const entry of wares) {

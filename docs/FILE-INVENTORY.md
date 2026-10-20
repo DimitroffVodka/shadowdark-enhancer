@@ -339,11 +339,11 @@
 |---|---:|---|
 | `merchant-shop.mjs` | 2791 | Two-mode shop system (compendium global or actor NPC inventory); GM opens for all players. |
 | `merchant-defaults.mjs` | 209 | The two shipped merchant configs (Base, Western Reaches). |
-| `catalog-stock.mjs` | 37 | What the Catalog tab may sell: gear types with a list price, not loot-table props. |
+| `catalog-stock.mjs` | 40 | What the Catalog tab may sell: gear types with a list price, not loot-table props. |
 | `shop-core.mjs` | 144 | Shop price rules shared by both shops, and the town shop's per-character stock ledger (pure). |
 | `property-names.mjs` | 30 | The names of weapon properties (Finesse, Thrown...) read from their compendium links and cached, and a ware's fact chips and short description for the shop windows. |
 | `town-shop.mjs` | 322 | A town merchant's buy and sell on the player's own client, no GM needed. |
-| `stock-generator.mjs` | 99 | A generated merchant's stock (pure): which ordinary gear a kind of shop carries and how much, by town size. |
+| `stock-generator.mjs` | 102 | A generated merchant's stock (pure): which ordinary gear a kind of shop carries and how much, by town size. |
 | `haggle-core.mjs` | 72 | The haggle ladder (d20 + CHA against a scale from a quarter off to a ban) and what a character has already tried (pure). |
 | `lots-core.mjs` | 32 | What a character sold to a town merchant, kept as lots so it can be bought back at the price it was paid (pure): the newest ten per merchant. |
 

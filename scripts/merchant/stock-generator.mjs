@@ -49,10 +49,13 @@ const RARITY_NAMES = {
 };
 const RARITY_BY_NAME = new Map(Object.entries(RARITY_NAMES).flatMap(([rarity, names]) => names.map((n) => [key(n), rarity])));
 
-/** Never stocked (Patrick's word): the Light spell entries, the Basilisk Egg, the five potions, and the two the system gives no price. */
+/**
+ * Never stocked (Patrick's word): the Light spell entries, the Basilisk Egg, the five potions, the two the system gives
+ * no price, and siege ammunition (the siege engines themselves are left out by their own flag, `siege` on a row).
+ */
 const LEFT_OUT = new Set([
   "Light Spell", "Light Spell (Double Range)", "Light Spell (Double Time)", "Basilisk Egg",
-  "Curative", "Foebane", "Restorative", "Salve", "Stimulant", "Holy Symbol", "Thieves' Tools",
+  "Curative", "Foebane", "Restorative", "Salve", "Stimulant", "Holy Symbol", "Thieves' Tools", "Siege Weapon Ammunition",
 ].map(key));
 
 /** A ware's rarity: the gear list's own, else from its price (1 gp or less common, to 10 gp uncommon, to 100 gp rare, above that very rare). */
@@ -79,7 +82,7 @@ export function stockItem(data, bundles) {
 }
 
 /**
- * Roll the stock. `pool` rows are `{ uuid, name, type, costCp }`; `rand` is a 0..1 source (Math.random in play).
+ * Roll the stock. `pool` rows are `{ uuid, name, type, costCp, siege }`; `rand` is a 0..1 source (Math.random in play).
  * Returns `[{ uuid, bundles, rarity }]`: no ware twice (the first row of a name wins, so the system's gear beats a copy),
  * nothing free or left out, each ware kept when its roll falls under its rarity's chance at this size.
  */
@@ -89,7 +92,7 @@ export function pickStock(pool, { kind, size }, rand = Math.random) {
   const seen = new Set(), out = [];
   for (const r of pool) {
     const name = key(r?.name ?? r?.uuid);
-    if (!r || seen.has(r.uuid) || seen.has(name) || !k.types.includes(r.type) || !(r.costCp > 0) || LEFT_OUT.has(name)) continue;
+    if (!r || r.siege || seen.has(r.uuid) || seen.has(name) || !k.types.includes(r.type) || !(r.costCp > 0) || LEFT_OUT.has(name)) continue;
     seen.add(r.uuid); seen.add(name);
     const rarity = rarityOf(r);
     if (rand() * 100 >= s.chance[rarity]) continue;
