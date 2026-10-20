@@ -4144,18 +4144,23 @@ body:has(.sdx-scene-nav-bar) #shadowdark-enhancer-travel { top: 72px; }
   position: relative;
   z-index: 2;
   height: 26px;
-  gap: 7px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 9px;
+  padding: 0 12px;
   line-height: 1;
   background: transparent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   font-family: "Montserrat-Bold", sans-serif;
   font-size: 11px;
   letter-spacing: 0.34em;
   text-transform: uppercase;
   color: var(--sd-text);
 }
+/* The season ends against the month button and the weather starts from it, so the button sits on the plate's centre
+   whatever the two words are worth; the season's trailing letter-space is taken back so its edge is flush. */
+.sde-hud-season > span:first-of-type { justify-self: end; text-align: right; margin-right: -0.34em; }
+.sde-hud-season > span:last-of-type { justify-self: start; text-align: left; }
 .sde-hud-season > span { position: relative; z-index: 1; }
 .sde-hud-season-shape { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .sde-hud-season-fill { fill: var(--sd-page); }
@@ -4165,7 +4170,7 @@ body:has(.sdx-scene-nav-bar) #shadowdark-enhancer-travel { top: 72px; }
 .sde-hud-sup i { font-size: 10px; }
 .sde-hud-sup b { color: var(--sd-text); font-weight: 400; }
 /* The month panel's button, on the season plate between the season and today's weather. */
-.sde-hud-plate-cal { width: 22px; height: 22px; font-size: 11px; letter-spacing: 0; color: var(--sd-text-muted); }
+.sde-hud-plate-cal { width: 22px; height: 22px; font-size: 11px; letter-spacing: 0; color: var(--sd-text-muted); transform: translateY(-1px); }
 .sde-hud-plate-cal:hover { background: transparent; color: var(--sd-text); }
 .sde-hud-plate-cal[aria-pressed="true"] { background: transparent; box-shadow: none; color: var(--sd-text); }
 .sde-hud-wx { font-family: "JSL Blackletter", serif; font-size: 18px; letter-spacing: 0; text-transform: none; padding-top: 2px; }
