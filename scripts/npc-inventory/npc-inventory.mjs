@@ -23,6 +23,9 @@ const TAB = "tab-sde-inventory";
 const EXTRAS_ID = "shadowdark-extras";
 const TEMPLATE = `modules/${MODULE_ID}/templates/npc-inventory.hbs`;
 
+/** Actors whose carried gear is being dropped right now: a second click, or the fight's end, must not post it twice. */
+const dropping = new Set();
+
 /** The carried item documents of an actor. */
 const carriedDocs = (actor) => actor.items.filter((i) => carriedRows([i]).length);
 
@@ -41,14 +44,20 @@ export const NpcInventory = {
    * @returns {Promise<boolean>} whether a card was posted
    */
   async dropCarried(actor) {
-    const docs = carriedDocs(actor);
-    const coins = this.coinsOf(actor);
-    if (!docs.length && !hasCoins(coins)) return false;
-    const card = await LootDelivery.postCard(lootBatch(actor.name, docs.map((d) => d.toObject()), coins));
-    if (!card) return false;
-    if (docs.length) await actor.deleteEmbeddedDocuments("Item", docs.map((d) => d.id));
-    await actor.unsetFlag(MODULE_ID, COINS_FLAG);
-    return true;
+    if (!actor || dropping.has(actor.uuid)) return false;
+    dropping.add(actor.uuid);
+    try {
+      const docs = carriedDocs(actor);
+      const coins = this.coinsOf(actor);
+      if (!docs.length && !hasCoins(coins)) return false;
+      const card = await LootDelivery.postCard(lootBatch(actor.name, docs.map((d) => d.toObject()), coins));
+      if (!card) return false;
+      if (docs.length) await actor.deleteEmbeddedDocuments("Item", docs.map((d) => d.id));
+      await actor.unsetFlag(MODULE_ID, COINS_FLAG);
+      return true;
+    } finally {
+      dropping.delete(actor.uuid);
+    }
   },
 
   async _inject(app, html) {
