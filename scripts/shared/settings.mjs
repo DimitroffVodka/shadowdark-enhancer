@@ -384,6 +384,18 @@ export function registerSettings() {
     onChange: clockBarChanged,
   });
 
+  // Overland's automatic forage (#233): the day's first move rolls every
+  // member's forage for them. Off, each member forages from the Travel panel.
+  game.settings.register(MODULE_ID, "overlandAutoForage", {
+    name: "SDE.settings.overlandAutoForage.name",
+    hint: "SDE.settings.overlandAutoForage.hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: true,
+    onChange: clockBarChanged,
+  });
+
   // The clock bar at the top (#253): who sees it. Everyone by default; nobody
   // during a combat whatever this says.
   game.settings.register(MODULE_ID, "clockBar", {

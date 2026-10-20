@@ -105,14 +105,36 @@ is a copy of the painted map, so it starts without the play on the scene it stan
 has recorded hexes or tokens the dialog says how many first. Bake before you start
 playing, or keep playing on the scene you have.
 
+**Region** (under Terrain, on a numbered hex) is the region the map puts this hex
+in, as the Regions picture and a wandering check read it: the scanned border, the
+nearest keyed hex when no border holds it, or a correction you made in the Tagger.
+**(as read off the map)** comes first, the names the map already has follow it, and
+**other…** takes a new one. **Save cell** writes the choice as the map's own
+correction on the scene that carries the region scan, so the header, the hover, the
+Regions picture and the encounter table agree; leaving the list alone writes nothing,
+and **(as read off the map)** withdraws a correction the hex carried. An adopted
+offset cell, which has no printed number, shows no region field.
+
 The window also has a **Quests here** card on a numbered hex: the quests tied to
-this hex, each with a button to open it and one to unlink it, and a picker of
-every other quest (one already tied to another hex shows that number, and
-linking it moves it). It writes the quest's own **Hex** at once, not with Save,
-and remembers the scene, so a book number that repeats on another map
-(0101 on each Cursed Scroll map) does not show the quest there and the quest's
-**Jump to pin** goes to this map's pin. A quest whose Hex was typed in the Quest
-Log has no scene and matches that number on any map.
+this hex, each with a button that opens it in the Quest Log and one to unlink it,
+and a picker of every other quest (one already tied to another hex shows that
+number, and linking it moves it). **New quest** makes a Hidden quest already tied to
+this hex and opens it in the Quest Log to name and fill, so the next time you open
+the log the **Hex** column points here. Linking writes the quest's own **Hex** at
+once, not with Save, and remembers the scene, so a book number that repeats on
+another map (0101 on each Cursed Scroll map) does not show the quest there and the
+quest's **Jump to pin** goes to this map's pin. A quest whose Hex was typed in the
+Quest Log has no scene and matches that number on any map.
+
+**Adventures** lists the Adventure documents linked to this hex. An adventure is the
+mechanical bundle behind a site — its scene, its journal and its creature actors —
+packed in a compendium (the module's own *Shadowdark Enhancer — Adventures*, or any
+other pack of Adventure documents) so it is imported only when the party gets there.
+The picker groups every Adventure in your compendiums by pack; **Link adventure**
+adds the chosen one to the card, its book button opens Foundry's import sheet where
+**Import** makes the scene and its documents in the world, and the bin unlinks it.
+The links save with Save cell and are yours alone: players never see them, on a
+found hex or any other.
 
 The GM's edit window also has a **Random encounters** card: the table a
 wandering check on this hex would roll now, the same one the check picks (its

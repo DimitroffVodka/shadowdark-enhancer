@@ -68,11 +68,16 @@ export function planExplorerEdit(record, input, flag, partyId = null) {
     const old = record.features?.find(f => f.type === type);
     features.push({ ...(old ?? {}), type, discovered: true });
   }
+  // A window with no adventure rows leaves the stored ones alone, the rule its sibling rows follow.
+  const adventures = Object.hasOwn(input, "adventures") ? rows(record.adventures, input.adventures, ["uuid", "label"]) : undefined;
   const seen = { revealed: !!input.revealed, visited: !!input.visited, locationRevealed: input.location === "auto" ? undefined : input.location === "show" };
   const discovery = partyId ? withPartyDiscovery(record.discovery, partyId, seen) : { ...record.discovery, ...seen };
   if (!partyId && seen.locationRevealed === undefined) delete discovery.locationRevealed;
-  return { tags, verdicts, patch: { ...(!numbered ? { terrain } : {}), title: String(input.title ?? ""), features,
-    notes: rows(record.notes, input.notes, ["text", "visible", "location"]), links: rows(record.links, input.links, ["uuid", "label", "visible"]), discovery, ...arrivalFields(input), ...poiFields(input) } };
+  // The GM's own region word, when the window carries the select; blank hands the hex back to the print's answer.
+  const region = Object.hasOwn(input, "region") ? String(input.region ?? "").trim() : undefined;
+  return { tags, verdicts, region, patch: { ...(!numbered ? { terrain } : {}), title: String(input.title ?? ""), features,
+    notes: rows(record.notes, input.notes, ["text", "visible", "location"]), links: rows(record.links, input.links, ["uuid", "label", "visible"]), discovery,
+    ...(adventures ? { adventures } : {}), ...arrivalFields(input), ...poiFields(input) } };
 }
 /** Ownership levels as the window reads them: a document carries numbers, a compendium's policy may carry names. */
 const OWNERSHIP = { INHERIT: -1, NONE: 0, LIMITED: 1, OBSERVER: 2, OWNER: 3 };
@@ -189,7 +194,8 @@ export const HexExplorer = {
       const journal = recordJournal(scene);
       if (!journal) throw new Error("SDE.hexRecords.unreadable");
       assertPrivateJournal(journal);
-      const plan = planExplorerEdit(HexRecords.read(offset, scene), input, scene.getFlag(MODULE_ID, "hexTags"), partyId);
+      const record = HexRecords.read(offset, scene);
+      const plan = planExplorerEdit(record, input, scene.getFlag(MODULE_ID, "hexTags"), partyId);
       const saved = structuredClone(journal.flags[MODULE_ID][RECORD_FLAG]);
       saved.cells[offsetKey(offset)] = mergedCell(saved.cells[offsetKey(offset)], plan.patch);
       await replaceModuleFlag(journal, RECORD_FLAG, saved);
@@ -197,6 +203,8 @@ export const HexExplorer = {
       const judged = recordEdits(log, plan.verdicts).judged;
       if (plan.tags) await replaceModuleFlag(scene, "hexTags", plan.tags);
       if (judged) await replaceModuleFlag(scene, FIXES_FLAG, encodeFixes(log));
+      // The region is the map's own authority, not this cell's: it is corrected on the scene carrying the scan.
+      if (plan.region !== undefined) { const { setRegionFix } = await import("./hex-region.mjs"); await setRegionFix(scene, record.num, plan.region); }
       await publishHexProjection(scene);
       await applyLinkShares(input.links);
       refreshHexExplorer();
