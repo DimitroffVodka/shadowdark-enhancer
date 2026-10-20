@@ -30,8 +30,8 @@ const build = (state) => {
     context: {
       townName: "Hollowmere", tagline: "A market town at the edge of the Western Reach",
       blurb: "", merchants: empty ? [] : MERCHANTS.slice(0, 3).concat({ ...MERCHANTS[3], open: false }),
-      places: placeTiles(DEFAULT_PLACE_IDS, { isGM, hasParty: true, downtimeOpen: false, activeQuests: 3, t }),
-      isGM, actorName: ACTOR, purse: purseText(COINS),
+      places: placeTiles([...DEFAULT_PLACE_IDS.slice(0, 3), "map", ...DEFAULT_PLACE_IDS.slice(3)], { isGM, hasParty: true, downtimeOpen: false, activeQuests: 3, t }),
+      isGM, returnName: isGM ? "The Fallen Keep" : "", actorName: ACTOR, purse: purseText(COINS),
     },
   };
 };

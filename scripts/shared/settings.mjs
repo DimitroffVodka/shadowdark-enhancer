@@ -1063,6 +1063,14 @@ export function registerSettings() {
     default: false,
   });
 
+  // The Western Reaches Player's Map, cut from the GM's own Player's Guide at import and saved in the world
+  game.settings.register(MODULE_ID, "landingPlayerMap", {
+    scope: "world",
+    config: false,
+    type: String,
+    default: "",
+  });
+
   // The GM's "see the fog as the players do" switch (hex-fog.mjs): this browser's, and kept over a reload.
   game.settings.register(MODULE_ID, "hexPlayerFogView", {
     scope: "client",

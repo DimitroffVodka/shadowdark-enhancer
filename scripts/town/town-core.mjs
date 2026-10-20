@@ -4,7 +4,10 @@
  * A landing page is a small flag on the scene the players arrive in. The scene's own picture is the page (set in the
  * scene's settings); the flag holds the menu drawn over it:
  *
- *   flags[MODULE_ID].landing = { title, tagline, blurb, places: [...], merchants: [...], games: {...}, shown }
+ *   flags[MODULE_ID].landing = { title, tagline, blurb, places: [...], merchants: [...], games: {...}, shown, size, returnTo }
+ *
+ * `size` is the settlement's size (a stock-generator SIZES id) for a page made by Make a landing page, else null.
+ * `returnTo` is the scene the table came from when the GM last took everyone here; the page's Return goes back to it.
  *
  * `games` is the town's table of games of chance: `{ on, list, maxBet, edge }` (`list` is the games this place offers,
  * ticked one by one, and `on` is true when it offers any; the largest bet in gp; the share of winnings the house keeps,
@@ -34,11 +37,11 @@ import { TABLE_GAMES } from "./games-core.mjs";
 
 export const LANDING_FLAG = "landing";
 /** Every tile a page may carry, in the order they show (the editor lists these). Carouse and Rumors make a tavern. */
-export const PLACE_IDS = ["quests", "journals", "party", "downtime", "carouse", "rumors"];
+export const PLACE_IDS = ["quests", "journals", "party", "map", "downtime", "carouse", "rumors"];
 /** The tiles a page gets when it has no list yet: the town's four, never the tavern's. */
 export const DEFAULT_PLACE_IDS = ["quests", "journals", "party", "downtime"];
 /** `games` is an entry too, but a separate switch (the GM turns the table on), so it is not one of the tiles above. */
-export const PLACE_LABEL_KEYS = { quests: "SDE.town.place.quests", journals: "SDE.town.place.journals", party: "SDE.town.place.party", downtime: "SDE.town.place.downtime", carouse: "SDE.town.place.carouse", rumors: "SDE.town.place.rumors", games: "SDE.town.place.games" };
+export const PLACE_LABEL_KEYS = { quests: "SDE.town.place.quests", journals: "SDE.town.place.journals", party: "SDE.town.place.party", map: "SDE.town.place.map", downtime: "SDE.town.place.downtime", carouse: "SDE.town.place.carouse", rumors: "SDE.town.place.rumors", games: "SDE.town.place.games" };
 export const LIMITS = { buyMultiplier: [10, 500], sellRatio: [0, 100], maxBet: [1, 1000], edge: [0, 50], restockDays: [0, 365] };
 export const DEFAULTS = { open: true, rev: 0, buyMultiplier: 100, sellRatio: 50, restockDays: 0, restockedDay: null, haggle: true };
 export const GAME_DEFAULTS = { on: false, list: [], maxBet: 10, edge: 5 };
@@ -99,6 +102,8 @@ export function normalizeLanding(raw) {
     merchants,
     games: normalizeGames(raw?.games),
     shown: raw?.shown !== false,
+    size: SIZES.some((z) => z.id === raw?.size) ? raw.size : null,
+    returnTo: typeof raw?.returnTo === "string" && raw.returnTo ? raw.returnTo : null,
   };
 }
 
@@ -176,7 +181,7 @@ export function applyForm(landing, fields) {
     : page.games;
   return normalizeLanding({
     title: fields.title ?? page.title, tagline: fields.tagline ?? page.tagline, blurb: fields.blurb ?? page.blurb,
-    places: PLACE_IDS.filter((p) => on(fields[`place.${p}`])), merchants, games, shown: page.shown,
+    places: PLACE_IDS.filter((p) => on(fields[`place.${p}`])), merchants, games, shown: page.shown, size: page.size, returnTo: page.returnTo,
   });
 }
 
@@ -186,7 +191,7 @@ export function applyForm(landing, fields) {
  * the world's current day. Per merchant the draft's revision INCREASE (a Restock pressed in the editor) is added to
  * the live revision. The restock clock is the live one unless the draft itself restocked, and it starts at `day` when
  * the interval is newly turned on (from 0) or the clock was never started, so the first automatic restock is
- * `restockDays` days from the save. `shown` is always the live switch.
+ * `restockDays` days from the save. `shown` and `returnTo` are always the live ones.
  */
 export function mergeSave(live, draft, opened, day) {
   const now = new Map(normalizeLanding(live).merchants.map((m) => [m.id, m]));
@@ -199,5 +204,5 @@ export function mergeSave(live, draft, opened, day) {
     if (out.restockDays > 0 && Number.isFinite(day) && (out.restockedDay === null || !before?.restockDays)) out.restockedDay = day;
     return out;
   });
-  return normalizeLanding({ ...page, merchants, shown: live ? normalizeLanding(live).shown : page.shown });
+  return normalizeLanding({ ...page, merchants, ...(live ? { shown: normalizeLanding(live).shown, returnTo: normalizeLanding(live).returnTo } : {}) });
 }

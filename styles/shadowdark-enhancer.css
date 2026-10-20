@@ -6131,3 +6131,19 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-npc-inv-purse span { flex: 1; font-weight: bold; }
 .sde-npc-inv-coin { width: 56px; text-align: center; }
 .sde-npc-inv-drop { margin-top: 10px; width: 100%; }
+
+/* Landing pages: the toolbar's list and Make a landing page (town/landing-pages-app.mjs). */
+.sde-ui.sde-landing-pages .lp-crest { display: grid; place-items: center; font-size: 22px; color: var(--ui-frame); }
+.sde-ui.sde-landing-pages .lp-pics { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; }
+.sde-ui.sde-landing-pages .lp-pic { position: relative; display: flex; flex-direction: column; gap: 4px; cursor: pointer; font-size: 12.5px; color: var(--ui-muted); text-align: center; }
+.sde-ui.sde-landing-pages .lp-pic input { position: absolute; opacity: 0; pointer-events: none; }
+.sde-ui.sde-landing-pages .lp-pic img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border: 2px solid var(--ui-line); border-radius: var(--ui-r); background: var(--ui-raised); }
+.sde-ui.sde-landing-pages .lp-pic input:checked + img { border-color: var(--ui-gold); box-shadow: 0 0 0 1px var(--ui-gold); }
+.sde-ui.sde-landing-pages .lp-pic input:checked ~ span { color: var(--ui-text); font-weight: 700; }
+.sde-ui.sde-landing-pages .lp-pic input:focus-visible + img { outline: 2px solid var(--ui-info); outline-offset: 1px; }
+.sde-ui.sde-landing-pages .lp-games { gap: 4px 16px; }
+.sde-ui.sde-landing-pages .lp-hint { margin: 0; font-size: 12.5px; line-height: 1.4; }
+.sde-ui.sde-landing-pages .lp-make { justify-content: flex-end; }
+.sde-ui.sde-landing-pages .ui-row .ui-btn { flex: 0 0 auto; }
+.sde-ui.sde-landing-pages .lp-places { max-height: 320px; overflow-y: auto; }
+.sde-town .tm-return { align-self: center; flex: 0 0 auto; margin: 0 0 10px; }

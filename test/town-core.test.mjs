@@ -41,7 +41,7 @@ test("a rolled merchant keeps its kind and settlement size; anything unknown is 
 
 test("a landing page always has every field, keeps the places in order, and drops unusable merchants", () => {
   const empty = normalizeLanding(undefined);
-  assert.deepEqual(empty, { title: "", tagline: "", blurb: "", places: DEFAULT_PLACE_IDS, merchants: [], games: { on: false, list: [], maxBet: 10, edge: 5 }, shown: true });
+  assert.deepEqual(empty, { title: "", tagline: "", blurb: "", places: DEFAULT_PLACE_IDS, merchants: [], games: { on: false, list: [], maxBet: 10, edge: 5 }, shown: true, size: null, returnTo: null });
   const page = normalizeLanding({ title: " Hollowmere ", places: ["party", "bogus", "quests"], merchants: [{ id: "m1", actorId: "a1" }, { id: "bad.id", actorId: "a2" }, { id: "m1", actorId: "a3" }, { id: "m2", actorId: "a1" }] });
   assert.equal(page.title, "Hollowmere");
   assert.deepEqual(page.places, ["quests", "party"]);

@@ -5,7 +5,7 @@
  * no window frame. Drawn from the scene's landing page (town-core.mjs) and the world as it is now: the merchants' own
  * NPCs, the player's character, the Quest Log. A merchant opens its shopfront; the other entries open the Quest Log,
  * the Journal sidebar, the Party and Downtime windows. The GM also gets a pencil (the landing page editor), a Restock
- * for every shop and a way to hide the menu. It opens by itself for a player arriving on a landing scene
+ * for every shop, a way to hide the menu, and Return, which takes everyone back to the scene they came from. It opens by itself for a player arriving on a landing scene
  * (town-entry-points.mjs).
  */
 import { MODULE_ID } from "../shared/module-id.mjs";
@@ -32,6 +32,7 @@ export class TownApp extends HandlebarsApplicationMixin(ApplicationV2) {
       openLog: TownApp.prototype._onLog,
       restockAll: TownApp.prototype._onRestockAll,
       hideTown: TownApp.prototype._onHide,
+      returnTable: TownApp.prototype._onReturn,
     },
   };
 
@@ -72,7 +73,8 @@ export class TownApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return Object.assign(context, {
       townName: this.townName, tagline: page.tagline, blurb: page.blurb, merchants,
       places: placeTiles(page.games.on ? [...page.places, "games"] : page.places, { isGM, hasParty: Party.list().length > 0, downtimeOpen: DowntimeSession.active, activeQuests, nightOpen: !!nightParty(), gmOnline: !!game.users.activeGM, rumorsHeard: hasRumorsHeard(), t }),
-      isGM, actorName: buyer?.name ?? "", purse: buyer ? purseText(buyer.system.coins) : "",
+      isGM, returnName: isGM && page.returnTo !== this.scene?.id ? game.scenes.get(page.returnTo ?? "")?.name ?? "" : "",
+      actorName: buyer?.name ?? "", purse: buyer ? purseText(buyer.system.coins) : "",
     });
   }
 
@@ -124,6 +126,9 @@ export class TownApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   /** Away for the whole table. */
   _onHide() { return switchTown(this.scene, false); }
+  /** Everyone back to the scene they came from. */
+  async _onReturn() { return (await import("./landing-pages.mjs")).returnFromPage(this.scene); }
+
 
   async _onLog() {
     const { TownLogApp } = await import("./town-log-app.mjs");

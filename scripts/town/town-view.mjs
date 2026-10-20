@@ -17,9 +17,9 @@ export const CATEGORIES = [
   { id: "gear", key: "SDE.town.cat.gear", types: ["Basic"] },
 ];
 export const TYPE_LABEL_KEYS = { Weapon: "SDE.town.type.weapon", Armor: "SDE.town.type.armor", Basic: "SDE.town.type.gear" };
-export const PLACE_ICONS = { quests: "fa-list-check", journals: "fa-book-open", party: "fa-people-group", downtime: "fa-hourglass-half", carouse: "fa-beer-mug-empty", rumors: "fa-comments", games: "fa-dice" };
+export const PLACE_ICONS = { quests: "fa-list-check", journals: "fa-book-open", party: "fa-people-group", map: "fa-map", downtime: "fa-hourglass-half", carouse: "fa-beer-mug-empty", rumors: "fa-comments", games: "fa-dice" };
 export const PLACE_SUB_KEYS = {
-  quests: "SDE.town.sub.quests", journals: "SDE.town.sub.journals", party: "SDE.town.sub.party", downtime: "SDE.town.sub.downtime", carouse: "SDE.town.sub.carouse", rumors: "SDE.town.sub.rumors", games: "SDE.town.sub.games",
+  quests: "SDE.town.sub.quests", journals: "SDE.town.sub.journals", party: "SDE.town.sub.party", map: "SDE.town.sub.map", downtime: "SDE.town.sub.downtime", carouse: "SDE.town.sub.carouse", rumors: "SDE.town.sub.rumors", games: "SDE.town.sub.games",
 };
 
 /** A price as the coins it is made of, for the card ("9 gp", "6 gp 5 sp"). A price of nothing has no parts. */

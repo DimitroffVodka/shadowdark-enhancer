@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-2168 tracked files · ~275,900 lines of code/markup across scripts+templates+styles+test.
+2177 tracked files · ~276,700 lines of code/markup across scripts+templates+styles+test.
 `v0.19.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -193,7 +193,7 @@
 | `curated-icon-maps/sea-wolf-plunder-icons.mjs` | 40 | The N3 §5.1/D4 Sea Wolf Plunder map: exactly 20 CS3 p68 source-qualified item phrases and reviewed native Foundry `icons/**.webp` paths, keyed without each row's terminal gp price. |
 | `curated-icon-maps/weapon-icons.mjs` | 47 | N3's 37 reviewed Foundry-native weapon icons, keyed by source-agnostic normalized final Item name and registered through the A4 discovery seam. |
 | `attack-card.mjs` | 107 | Reading a Shadowdark attack card — was it an attack at all (a targeted spell is not), did it land, who was it aimed at, who swung. Shared by Parry and Taunt so the two can never disagree about the target (they once did, silently). |
-| `settings.mjs` | 1113 | All `game.settings.register` calls + migration-safe defaults. |
+| `settings.mjs` | 1122 | All `game.settings.register` calls + migration-safe defaults. |
 | `icons.mjs` | 102 | Centralized icon registry — FontAwesome snippets and vendored SVG references. |
 | `i18n.mjs` | 19 | `L(key, data)`: one string from `languages/en.json`, localized, or formatted when there is data; the key itself before Foundry's i18n is mounted and in node tests. The one copy of the helper some 60 files used to define for themselves (as `L` or `t`). |
 | `compendium-suite.mjs` | 471 | Find-or-create layer for managed world packs, ownership, sidebar folders, and source folders. |
@@ -381,7 +381,7 @@
 | `bundle-io.mjs` | 411 | Whole-suite export/import as one JSON; validates, skips existing, never overwrites. |
 | `manage-tree.mjs` | 707 | Composes the folder/sub-folder unlock-review tree the Manage strip renders. |
 | `batch-import.mjs` | 263 | Pure batch planner: locked tree rows → deduped import jobs, routes, and the run report. |
-| `pdf-text-extract.mjs` | 1061 | Clean reading-ordered PDF text via Foundry's bundled PDF.js; column-aware gutter detection. |
+| `pdf-text-extract.mjs` | 1100 | Clean reading-ordered PDF text via Foundry's bundled PDF.js; column-aware gutter detection. |
 | `pdf-text-utils.mjs` | 161 | Shared PDF-text helpers + the HTML-safety contract. |
 | `source-pdf-registry.mjs` | 372 | Content source → the user's own uploaded PDF, for page deep-links. |
 | `source-pdf-viewer.mjs` | 66 | Singleton ApplicationV2 embedding Foundry's PDF.js viewer at a given page. |
@@ -467,12 +467,12 @@
 | `tables/cursed-scroll-tables.mjs` | 190 | The Cursed Scrolls' hexcrawl and adventure tables (rumors, region and site encounters, weather, points of interest, NPC rosters, d20 treasure lists): one entry per Manage row with its catalogue id, page cite and recipe, read by the shape registry, the Manage tree and the catalogue's names. The regions are named as the key-location entries are, so a CS hex finds its zone tables. Structure only. |
 | `tables/patron-items.mjs` | 223 | Patron Items for the imported WR boon tables (#167): find-or-create in `patrons-and-deities`, plus the ready-time rename/link backfill. |
 | `wizard/map-master.mjs` | 81 | Master list of the books' own maps: each map's measured pixel shape, which names a file must or must not carry to be it (not a GM's overlay, a later copy or a stitched whole), and which of two shipped copies to prefer. Pure data. |
-| `wizard/wizard-app.mjs` | 259 | Import wizard window: an ApplicationV2 around the controller that draws its pages, hands clicks and drops back, and supplies the Foundry parts (uploads, the PDF reader, the hub's quiet batch import, adventure scenes). Also wizardFirst(), which says whether a world still needs its first import. |
+| `wizard/wizard-app.mjs` | 260 | Import wizard window: an ApplicationV2 around the controller that draws its pages, hands clicks and drops back, and supplies the Foundry parts (uploads, the PDF reader, the hub's quiet batch import, adventure scenes). Also wizardFirst(), which says whether a world still needs its first import. |
 | `wizard/wizard-check.mjs` | 136 | Import wizard Check page: makes sure each picked book opens (and uploads, when kept) and each map opens, has the right shape and is uploaded; a problem carries a plain reason and its fixes. Foundry calls come in as env. |
 | `wizard/wizard-controller.mjs` | 478 | Import wizard controller: owns the state, answers clicks and file drops, and describes the current page as plain data for the template. The Foundry window and the browser preview both drive it. |
 | `wizard/wizard-core.mjs` | 280 | Import wizard brain, pure: the page flow and its guards, which book or map a picked file is (from the module's own manifests), and the catalogue of everything the wizard asks for. |
 | `wizard/wizard-dom.mjs` | 80 | Import wizard browser wiring: the file dialog, drop zones and click delegation, shared by the Foundry window and the preview. |
-| `wizard/wizard-run.mjs` | 151 | Import wizard Import page: runs the library, then each book's adventures, then each adventure map's scene, and reports what was imported, what was already there and what needs the GM. Foundry parts come in as deps, so Node tests the flow. |
+| `wizard/wizard-run.mjs` | 162 | Import wizard Import page: runs the library, then each book's adventures, then each adventure map's scene, and reports what was imported, what was already there and what needs the GM. Foundry parts come in as deps, so Node tests the flow. |
 | `wizard/zip-reader.mjs` | 103 | Reads a downloaded .zip in the browser with no library (the browser's own DecompressionStream): lists the files in it and inflates only the books and maps the wizard wants, so a new user never unzips anything. |
 | `world-folders.mjs` | 137 | Files what an import makes in the world (adventure and hex-crawl journals, their scenes, the hex records) into folders for their books, touching only the module's own documents that are not in a folder yet, and removing the book folders (fixed id) that the wizard's run left empty. |
 
@@ -671,15 +671,18 @@ The camp picture: a full-screen picture every client shows behind Foundry's UI, 
 
 | File | Lines | Description |
 |---|---:|---|
-| `town-core.mjs` | 203 | A town's landing page flag: merchants as NPC references, restock revision, the games table, the table switch, the editor's form folded in (pure). |
-| `town-view.mjs` | 173 | What the Town window and the shopfront show: ware cards, sell rows, tiles, the buyer (pure). |
-| `town-live.mjs` | 98 | What the town windows share on the Foundry side: the buyer, redrawing on change, the serialized page writer `updateLanding`, the table switch, the tiles' windows. |
-| `town-app.mjs` | 144 | The landing page menu over the scene's picture: merchants, tiles, the GM's pencil, sales log, restock and switch; clear of the sidebar and the Crawl Strip. |
+| `town-core.mjs` | 208 | A town's landing page flag: merchants as NPC references, restock revision, the games table, the table switch, the editor's form folded in (pure). |
+| `town-view.mjs` | 174 | What the Town window and the shopfront show: ware cards, sell rows, tiles, the buyer (pure). |
+| `town-live.mjs` | 99 | What the town windows share on the Foundry side: the buyer, redrawing on change, the serialized page writer `updateLanding`, the table switch, the tiles' windows. |
+| `town-app.mjs` | 150 | The landing page menu over the scene's picture: merchants, tiles, the GM's pencil, sales log, restock and switch; clear of the sidebar and the Crawl Strip. |
 | `town-shop-app.mjs` | 260 | One merchant's shopfront: buy and sell as a chosen character with no GM, categories, search. |
 | `town-editor-app.mjs` | 165 | The GM's landing page editor window: town text, tiles, games table, merchants. |
-| `town-entry-points.mjs` | 110 | The Landing page toolbar button and Alt+T: one switch for the table, the page made on any scene, followed by every client. |
+| `town-entry-points.mjs` | 118 | The Landing page toolbar button and Alt+T: one switch for the table, the page made on any scene, followed by every client. |
 | `town-restock.mjs` | 28 | Shelves that restock by themselves: on a new world day the active GM runs `autoRestock` over every scene's landing page (plus a catch-up on ready). |
 | `town-stock.mjs` | 89 | A made merchant's rolled shelf: builds the gear pool, rolls it by rarity for the settlement size (`pickStock`), makes the NPC, and rolls the shelf again when a restock raises its revision (rolled items only; the GM's own stay). |
+| `landing-pages-core.mjs` | 100 | Make a landing page, pure: the form's defaults, the tiles a made page has by settlement size, the made scene's data, where Return goes, and the toolbar list's rows (pages and hex-import settlements). |
+| `landing-pages.mjs` | 95 | Make a landing page (scene, rolled merchant, page) and move the table: Take everyone there (remembers where they came from), Return, and a Western Reaches settlement's page made on first open. |
+| `landing-pages-app.mjs` | 115 | The GM's Landing pages window from the toolbar: the Make form, every page with Take everyone there, the hex-import settlements, and Make the Player's Map. |
 | `games-core.mjs` | 156 | The town's games of chance: the four that settle on one roll, the names and keys of the games that open a table (Liar's Dice among them), the house's cut and the wager limits (pure). |
 | `liars-dice-core.mjs` | 153 | Liar's Dice for two to six seats: the rules (bids, calls, ones wild, five dice each, forfeits) and the house's odds-based play (pure). |
 | `liars-dice-table.mjs` | 132 | A Liar's Dice table: lobby, seats, who may move, the house's turns, leaving, and the view each person may see (pure). |

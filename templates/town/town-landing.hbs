@@ -6,6 +6,7 @@
     <button type="button" class="ui-icon" data-action="restockAll" data-tooltip="{{localize 'SDE.town.restock'}}" aria-label="{{localize 'SDE.town.restock'}}"><i class="fa-solid fa-boxes-packing"></i></button>
     <button type="button" class="ui-icon" data-action="hideTown" data-tooltip="{{localize 'SDE.town.hide'}}" aria-label="{{localize 'SDE.town.hide'}}"><i class="fa-solid fa-eye-slash"></i></button>
   </div>
+  {{#if returnName}}<button type="button" class="ui-btn tm-return" data-action="returnTable"><i class="fa-solid fa-arrow-rotate-left"></i> {{localize "SDE.town.make.return" scene=returnName}}</button>{{/if}}
   {{/if}}
 
   <div class="tm-crest"><i class="fa-solid fa-landmark"></i></div>

@@ -1,7 +1,10 @@
 /**
  * Shadowdark Enhancer — Town: the ways into the landing page.
  *
- * One switch for the whole table. The GM's "Landing page" button (scene toolbar, or Alt+T) puts the page up or away for
+ * The GM's "Landing page" button (scene toolbar) opens the Landing pages window: Make a landing page, and every page
+ * with a button that takes everyone there (landing-pages-app.mjs).
+ *
+ * One switch for the whole table. Alt+T (and the page's own eye button) puts the current scene's page up or away for
  * everyone on the scene: the switch is the page's own `shown` flag, so every client sees it change and follows it,
  * GM and players alike. A page is up until the GM switches it off. Arriving on a scene whose page is up opens it;
  * leaving for one without a page closes it. A player can still close their own copy and bring it back with the same
@@ -29,6 +32,11 @@ const closeOthers = () => closeWindows(WINDOWS.filter((id) => id !== "sde-town")
 async function openTown(scene = globalThis.canvas?.scene) {
   const { TownApp } = await import("./town-app.mjs");
   return TownApp.open(scene);
+}
+
+async function openPages() {
+  const { LandingPagesApp } = await import("./landing-pages-app.mjs");
+  return LandingPagesApp.open();
 }
 
 /** The window seam (tests replace it). */
@@ -61,15 +69,15 @@ export function registerTownEntryPoints() {
     onDown: () => { toggleTown(); return true; },
   });
 
-  // The toolbar button: the GM on every scene (lit while the page is up for the table), players on a scene whose
-  // page is up. The toolbar is rebuilt when the scene changes and when its page changes.
+  // The toolbar button: the GM on every scene (the Landing pages window), players on a scene whose page is up (their
+  // own copy of it). The toolbar is rebuilt when the scene changes and when its page changes.
   Hooks.on("getSceneControlButtons", (controls) => {
     const page = landingOf(globalThis.canvas?.scene);
     if (!game.user.isGM && !page?.shown) return;
     if (controls.tokens?.tools) controls.tokens.tools.sdeTown = {
       name: "sdeTown", title: "SDE.town.control", icon: "fa-solid fa-landmark", order: 90,
-      ...(game.user.isGM ? { toggle: true, active: !!page?.shown } : { button: true }),
-      onChange: () => toggleTown(),
+      button: true,
+      onChange: () => (game.user.isGM ? openPages() : toggleTown()),
     };
   });
   const refreshTools = () => ui.controls?.render({ reset: true });
