@@ -347,9 +347,13 @@ test("a quiet check's encounter is held as plain data until Continue or a new da
   };
   const { state, changed } = setEncounter({ ...defaultOverlandState(), day: 0 }, drawn);
   assert.equal(changed, true);
-  const kept = { ...drawn, poi: false, noTable: false, interrupts: false, text: null };
+  const kept = { ...drawn, poi: false, noTable: false, interrupts: false, text: null, html: null };
   delete kept.extra;
   assert.deepEqual(state.encounter, kept, "the draw survives, unknown fields don't");
+  // A flavour row's enriched text (its own dice as roll links) is held with it.
+  const flavour = setEncounter({ ...defaultOverlandState(), day: 0 },
+    { at: 36000, half: "day", kind: "flavor", text: "[[/r 1d4]] cobras", html: "<p>cobras</p>" }).state.encounter;
+  assert.equal(flavour.html, "<p>cobras</p>", "the panel shows the row's dice as links");
   assert.deepEqual(normalizeOverlandState(state), state, "normalizing is idempotent");
   assert.equal(normalizeOverlandState({ encounter: { kind: "monster" } }).encounter, null, "no hour, no encounter");
   assert.equal(normalizeOverlandState({ encounter: { at: 1, kind: "dragon", chain: "x" } }).encounter.kind, "empty");
