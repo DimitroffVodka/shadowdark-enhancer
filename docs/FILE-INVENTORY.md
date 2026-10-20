@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-2082 tracked files · ~266,100 lines of code/markup across scripts+templates+styles+test.
+2083 tracked files · ~266,600 lines of code/markup across scripts+templates+styles+test.
 `v0.19.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -83,11 +83,11 @@
 | `hex-map/geometry.mjs` | 221 | Hex numbering by cube difference from one anchor cell; printed offset ↔ cube under the map's column-shift rule. Pure. |
 | `hex-map/hex-adoption.mjs` | 186 | Read-once SDX record adoption with negative offset parsing, lossless original archives, existing-native conflict precedence, reports and automatic eligibility hooks. |
 | `hex-map/hex-brush-app.mjs` | 262 | The hex brush: a small window that sets one terrain (a picture tile per Legend terrain) plus features, so clicking or dragging across the tag overlay retags whole patches; a stroke is one scene write and Undo puts it back. |
-| `hex-map/hex-explorer-app.mjs` | 412 | Small scene-offset GM Hexplorer editor for terrain, line/structured features, public/private notes, document links and discovery; its header wears the hex's real tile, large (the bake's sprite, else the tile the painted map draws or its saved deal names, else the numbered tile) and opens it in Foundry's image pop-out, whose share action sends it to the players; a Tile card changes the hex's tile on the painted map. |
-| `hex-map/hex-explorer.mjs` | 412 | Player-safe Hexplorer canvas hover/select observer and GM writes over authoritative terrain tags and rich offset records; preserves discovery and imported metadata. |
+| `hex-map/hex-explorer-app.mjs` | 436 | Small scene-offset GM Hexplorer editor for terrain, line/structured features, public/private notes, document links and discovery; its header wears the hex's real tile, large (the bake's sprite, else the tile the painted map draws or its saved deal names, else the numbered tile) and opens it in Foundry's image pop-out, whose share action sends it to the players; a Tile card changes the hex's tile on the painted map. |
+| `hex-map/hex-explorer.mjs` | 422 | Player-safe Hexplorer canvas hover/select observer and GM writes over authoritative terrain tags and rich offset records; preserves discovery and imported metadata. |
 | `hex-map/hex-fog-core.mjs` | 144 | Pure shared terrain/location disclosure, lossless fog/history migration, native-grid sight, arrival/overlap decisions and the fog reset plan (resetCell, planFogReset). |
 | `hex-map/hex-fog-reset-dialog.mjs` | 76 | The GM's Reset fog window: whose map, which hexes (whole map or one region), first-entry tables roll again, a live count from the same plan the write uses, and undo of the last reset. |
-| `hex-map/hex-fog.mjs` | 237 | Adopted-scene native static fog overlay, GM disclosure, selected-party committed visits/arrival history, SDX ownership guard and the fog reset with its one-level undo. |
+| `hex-map/hex-fog.mjs` | 266 | Adopted-scene native static fog overlay, GM disclosure, selected-party committed visits/arrival history, SDX ownership guard and the fog reset with its one-level undo. |
 | `hex-map/hex-goto.mjs` | 46 | The hex-number links of the master Key Locations journal: one delegated click listener that pans the viewed scene to the hex (its own numbering, then the hex's map pin on any scene). |
 | `hex-map/hex-legend-session.mjs` | 88 | The Hex Tagger's Legend without its window: runs the tagger unshown as the engine (reads the map, builds the picture cards, applies the names) and hands a page just the cards and five calls, so the import wizard can show them on its Terrain page. Also legendNamed(scene). |
 | `hex-map/hex-map-controls.mjs` | 101 | The Hex map group on the left toolbar (GM, any scene with hex numbering): show terrain tags, regions and encounter zones, the paint brush, the most-likely-wrong review and the Hex Tagger, each calling what the tagger's own buttons call; refreshed through the hexTools hook when an overlay or the brush opens or closes. |
@@ -125,7 +125,7 @@
 | `modes-of-play/pulp.mjs` | 293 | Pulp Mode (#185): session luck on the sessionStart hook (1d4, set), and the Luck: critical hit / force a reroll chat buttons. Both relay to the active GM (PULP_QUERY), which checks the requester, spends the token and edits the card. |
 | `mounted/mounted-core.mjs` | 131 | Riding a mount on the map (#326), pure: the rider's corner square, the carried path, carry movement ids (`isCarryMovement`, read by the movement tracker), the snap-to-corner reconcile after a carry, picking the mount in reach, the 2x2 size a mount grows to. |
 | `mounted/mounted-tokens.mjs` | 193 | Riding a mount on the map (#326), Foundry glue: the Mount/Dismount Token HUD button, the rider following its mount (one carry at a time per rider, then a reconcile; also when the mount is resized or reverted with Ctrl+Z, in the tab that moved it), the 2x2 grow on mounting, the GM relay for a carry the mover cannot make, and a pasted rider riding nothing. Its writes stay out of the token undo history. |
-| `overland/encounter-panel.mjs` | 241 | The clock HUD's Encounter panel (#257): a quiet travel check's hit as the GMs see it until Continue: the check (step 6 or 8, its hour and chance), the chain of tables it went through as chips (zone and its roll, category, the region's table and its roll), the creature with its art and number appearing, the distance, activity and reaction rolls in words, a second category's draw, and Post to chat and Continue; encounterCard gives the chat card's data at CHA +0. An Arena fight button beside the battle-map one (shown while a battle can start and none runs) starts a real-token arena fight with the rolled foes. A battle map's panel and battleItem, the Crawl Bar's item that folds and opens it (#485). |
+| `overland/encounter-panel.mjs` | 242 | The clock HUD's Encounter panel (#257): a quiet travel check's hit as the GMs see it until Continue: the check (step 6 or 8, its hour and chance), the chain of tables it went through as chips (zone and its roll, category, the region's table and its roll), the creature with its art and number appearing, the distance, activity and reaction rolls in words, a second category's draw, and Post to chat and Continue; encounterCard gives the chat card's data at CHA +0. An Arena fight button beside the battle-map one (shown while a battle can start and none runs) starts a real-token arena fight with the rolled foes. A battle map's panel and battleItem, the Crawl Bar's item that folds and opens it (#485). |
 | `overland/find-party.mjs` | 38 | The clock HUD's two party buttons: Find pans to the party token, pulses on it (this client only) and selects it when the viewer can, naming another scene if that is where it is; the other opens the party sheet. |
 | `overland/hex-rules.mjs` | 167 | Hex rules on hex maps (#257): at init, the Token class never lights a hex-rules scene (a tagged print or an Extras hexcrawl) and the visibility group gives it no token vision, at runtime with no data written; the Enhancer party actor (flag party) placed as a hex token when travel starts with no party on the map; the travel token made to wear the party's emblem hex (icons/party-hex.svg when the emblem picture cannot be made). |
 | `overland/hud-core.mjs` | 364 | The clock HUD, pure (#253): who sees the bar, the GM's steps in the calendar's units, the sky dial as a half disc (its model: the disc turning 15 degrees an hour with now at the bottom, day and twilight sectors, an hour ring with sunrise and sunset badges, the moon on its track by phase; the region and terrain fitted to the disc; and its SVG), which party token Find picks, the season band's hatch, the month grid read back day by day from the calendar (moon quarters, today, holidays by a callback) and a typed date to a worldTime. |
@@ -188,7 +188,7 @@
 | `curated-icon-maps/sea-wolf-plunder-icons.mjs` | 40 | The N3 §5.1/D4 Sea Wolf Plunder map: exactly 20 CS3 p68 source-qualified item phrases and reviewed native Foundry `icons/**.webp` paths, keyed without each row's terminal gp price. |
 | `curated-icon-maps/weapon-icons.mjs` | 47 | N3's 37 reviewed Foundry-native weapon icons, keyed by source-agnostic normalized final Item name and registered through the A4 discovery seam. |
 | `attack-card.mjs` | 107 | Reading a Shadowdark attack card — was it an attack at all (a targeted spell is not), did it land, who was it aimed at, who swung. Shared by Parry and Taunt so the two can never disagree about the target (they once did, silently). |
-| `settings.mjs` | 1067 | All `game.settings.register` calls + migration-safe defaults. |
+| `settings.mjs` | 1088 | All `game.settings.register` calls + migration-safe defaults. |
 | `icons.mjs` | 102 | Centralized icon registry — FontAwesome snippets and vendored SVG references. |
 | `i18n.mjs` | 19 | `L(key, data)`: one string from `languages/en.json`, localized, or formatted when there is data; the key itself before Foundry's i18n is mounted and in node tests. The one copy of the helper some 60 files used to define for themselves (as `L` or `t`). |
 | `compendium-suite.mjs` | 471 | Find-or-create layer for managed world packs, ownership, sidebar folders, and source folders. |
@@ -249,7 +249,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `encounter-roller-app.mjs` | 1387 | The Encounter Roller shell + tabs (Roll Tables / Build / Browse / Creator). |
+| `encounter-roller-app.mjs` | 1442 | The Encounter Roller shell + tabs (Roll Tables / Build / Browse / Creator). |
 | `encounter-check.mjs` | 169 | The d6 random-encounter check + chat post. Options (#232): a threshold, the travel hex (its region as the zone), a card label and the recap clock label, for Overland's travel checks. |
 | `encounter-result.mjs` | 69 | Distance / Activity / Reaction RAW lookups. |
 | `encounter-build.mjs` | 287 | Build-a-table data layer (slots, die formats, save to RollTable). |
@@ -269,7 +269,7 @@
 | `battle-maps/battle-map-picker.mjs` | 279 | The battle map picker window: previews of the shipped maps and the world's own scenes with Day, Night and Camp toggles, select then confirm, and GM-only controls to pin a terrain's default, switch a map off or pick at random. `BattleMapPicker.pick` answers with the choice, or null when it is closed. Saves of the prefs are queued so quick clicks are not lost. |
 | `battle-maps/battle-actions-core.mjs` | 207 | The pure half of the buttons that put the feature in the GM's hands: which battle buttons the Encounter panel and the battle bar show for each state of a battle, the panel's open and fold rule (it opens while the battle is staged and folds when it goes live), the readout's wording, whether a posted card can offer a battle, and the terrain, night and camping a click starts from. No Foundry. |
 | `battle-maps/battle-actions.mjs` | 359 | The one flow behind every Battle map button (the clock HUD's Encounter panel, the posted encounter card, the Encounter Roller, and Tools > Battle map, which sets the party up alone with no encounter): pick the map when asked, set the battle up, one at a time. Also the GM-only wiring of the card's button and the actions behind Change map, Bring the table and Return to travel. |
-| `encounter-draw.mjs` | 211 | Drawing an encounter with no window, shared by the Encounter Roller and quiet travel checks (#257): the table's row, a zone table's category and the region's table for it (day or night, then Special), the travel draw's point of interest (#262, #273), the entry (the NPC, its art, number appearing with its formula, distance 1d6, activity 2d6, reaction 2d6), the chain of tables drawn for the panel, a second category kept out of chat when quiet, and postEncounter's chat card. |
+| `encounter-draw.mjs` | 361 | Drawing an encounter with no window, shared by the Encounter Roller and quiet travel checks (#257): the table's row, a zone table's category and the region's table for it (day or night, then Special), the travel draw's point of interest (#262, #273), the entry (the NPC, its art, number appearing with its formula, distance 1d6, activity 2d6, reaction 2d6), the chain of tables drawn for the panel, a second category kept out of chat when quiet, and postEncounter's chat card. |
 
 ### 3.6 `scripts/monster-creator/`
 
@@ -406,7 +406,7 @@
 | `monsters/creature-type-map-data.mjs` | 134 | N4 reviewed source/name-scoped creature taxonomy map for managed imported Actors. |
 | `monsters/creature-type-backfill.mjs` | 262 | E3 missing-only N4 creature-type flags over managed NPC/Mount Actors, with optional SDX runtime-map gap mirroring and outcome counts. |
 | `monsters/actor-migration.mjs` | 419 | World-side imported actors → the managed `sde-actors` pack. |
-| `monsters/monster-linker.mjs` | 157 | Table encounter text → clickable `@UUID` monster links. |
+| `monsters/monster-linker.mjs` | 277 | Table encounter text → clickable `@UUID` monster links. |
 | `monsters/monster-pack.mjs` | 48 | Shared pack-identity leaf so importer and linker agree. |
 | `items/item-parser.mjs` | 493 | Generic item recognizer (name/cost/slots). Pure. |
 | `items/gear-parser.mjs` | 576 | Real Weapon/Armor stat parser (WR letter codes, treasure flags). Pure. |

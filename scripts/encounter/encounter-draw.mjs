@@ -21,7 +21,9 @@ import { isNight, worldClock } from "./encounter-terrain.mjs";
 import { partyContext } from "./battle-maps/battle-actions.mjs";
 import { canBattle, cardStash } from "./battle-maps/battle-actions-core.mjs";
 
-const { renderTemplate } = foundry.applications.handlebars;
+// Read at call time, not import time: the module is imported by Node tests (and by
+// hex-fog, whose neighbours hex-explorer.mjs's tests load) where `foundry` is absent.
+const renderTemplate = (...args) => foundry.applications.handlebars.renderTemplate(...args);
 
 /**
  * A TableResult's body text across Foundry versions: v13 split `text` into
@@ -109,10 +111,11 @@ async function zoneRow(table, result, { travel, chain, also, quiet }) {
   const missing = { poi: true, missing: game.i18n.format("SDE.encounter.roller.poiMissing", { category, table: poi.name }) };
   if (!poi.found) return missing;
   const doc = await sibling(table, poi.found);
-  const draw = doc ? await doc.draw({ displayChat: false }) : null;
-  if (!draw?.results[0]) return missing;
-  chain.push(link(doc, draw));
-  return { poi: true, result: draw.results[0], via: game.i18n.format("SDE.encounter.roller.viaPoi", { category, table: poi.name }) };
+  const picked = doc ? await drawPointOfInterest(doc) : null;
+  if (!picked) return missing;
+  // The row's own face, not a d20: the pool skips the rows the party already found.
+  chain.push({ name: shortName(doc.name), formula: doc.formula || null, roll: picked.result.range?.[0] ?? null });
+  return { poi: true, result: picked.result, via: game.i18n.format("SDE.encounter.roller.viaPoi", { category, table: poi.name }) };
 }
 
 /** The NPC a row names: its linked document, or the first @UUID in its text. */
@@ -126,15 +129,160 @@ async function monsterOf(result) {
   return doc && doc instanceof Actor ? doc : null;
 }
 
-/** How many appear: the row's `appearing` flag (Build Table), else an inline [[/r X]], else 1. */
-async function countOf(result) {
+/**
+ * Every creature a row names that carries its own dice, in the order it names
+ * them: "2d4 beastmen close in a circle around 1d4 dwarf soldiers" gives two
+ * groups, while "2d6 beastmen thralls haul a troll to their aboleth overlord"
+ * gives one (the troll and the aboleth have no dice of their own, so they are
+ * the row's scene, not its foes). Links separated only by spaces are one group —
+ * "dwarf @UUID{soldiers}" is a group of soldiers — so the run's last link is the
+ * creature and the run's start is where its dice sit.
+ * @param {TableResult} result
+ * @returns {{uuid:string, label:string, countFormula:string|null}[]}
+ */
+export function rowCreatures(result) {
+  const text = resultBody(result);
+  // Creatures only: a row can also link an item or a journal ("1d4 @UUID[…Item…]{potions}"), which is no foe to place.
+  const links = [...text.matchAll(/@UUID\[([^\]]+)\]\{([^}]*)\}/g)]
+    .filter((m) => /(?:^|\.)Actor\.[^.]+$/.test(m[1]))
+    .map((m) => ({ uuid: m[1], label: m[2], start: m.index, end: m.index + m[0].length }));
+  const groups = [];
+  for (const link of links) {
+    const last = groups[groups.length - 1];
+    if (last && /^\s+$/.test(text.slice(last.head.end, link.start))) last.head = link;
+    else groups.push({ start: link.start, head: link });
+  }
+  return groups.map((g, i) => {
+    const from = i ? groups[i - 1].head.end : 0;
+    const formula = [...text.slice(from, g.start).matchAll(/\[\[\/r\s+([^\]]+)\]\]/g)].pop()?.[1] ?? null;
+    return { uuid: g.head.uuid, label: g.head.label, countFormula: formula };
+  });
+}
+
+/**
+ * What the encounter is made of, in the order the row names it: the row's
+ * counted groups, plus the creature the card names when the row gave it no dice
+ * ("The Wandering Merchant flees a group of 2d4 beastmen" is both of them), each
+ * with the count its OWN dice gave — a row's dice belong to the creature they
+ * sit before, never to whichever creature the row named first. The `appearing`
+ * flag (Build Table) overrides the card's creature's count.
+ * @param {TableResult} result
+ * @param {{uuid:string, name:string}} monster  the card's creature
+ * @returns {Promise<{uuid:string, label:string, countFormula:string|null, count:number}[]>}
+ */
+async function placementOf(result, monster) {
   const flag = result.getFlag?.(MODULE_ID, "appearing");
-  const formula = (flag ? String(flag) : null) ?? resultBody(result).match(/\[\[\/r\s+([^\]]+)\]\]/)?.[1] ?? null;
-  if (!formula) return { formula: null, total: 1 };
-  return { formula, total: (await new Roll(formula).evaluate()).total };
+  const named = rowCreatures(result);
+  const primaryNamed = named.find((c) => c.uuid === monster.uuid);
+  const primary = {
+    uuid: monster.uuid,
+    label: primaryNamed?.label ?? monster.name,
+    countFormula: (flag ? String(flag) : null) ?? primaryNamed?.countFormula ?? null,
+  };
+  // Walk the row in order so the map's groups come out in the order it named
+  // them; the card's creature sits where the row first named it.
+  const list = [];
+  let primaryAdded = false;
+  for (const c of named) {
+    if (c.uuid === monster.uuid) {
+      if (!primaryAdded) { list.push(primary); primaryAdded = true; }
+      continue;
+    }
+    if (c.countFormula) list.push(c);
+  }
+  if (!primaryAdded) list.unshift(primary);
+  const out = [];
+  for (const c of list) out.push({ ...c, count: c.countFormula ? await roll(c.countFormula) : 1 });
+  return out;
 }
 
 const roll = async (formula) => (await new Roll(formula).evaluate()).total;
+
+/** A table's rows, whether they come as a Collection (`.contents`) or a plain list. */
+const poiRows = (table) => [...(table?.results?.contents ?? table?.results ?? [])];
+
+/**
+ * A point of interest the party has not found yet. The books' tables are d20
+ * lists of one-off places, and a repeat wastes the hex, so the rows already
+ * drawn are kept in the `poiUsed` world setting and the next draw picks only
+ * from what is left, weighted by the faces each row covers (Foundry's own
+ * weighting). Once every row is found the list starts again: the book has
+ * nothing past the twentieth.
+ * @param {RollTable} table
+ * @returns {Promise<{result: TableResult, remaining: number, restarted: boolean}|null>}
+ */
+export async function drawPointOfInterest(table) {
+  const all = poiRows(table);
+  if (!all.length) return null;
+  const store = game.settings.get(MODULE_ID, "poiUsed") ?? {};
+  let used = Array.isArray(store[table.uuid]) ? store[table.uuid].filter((id) => all.some((r) => r.id === id)) : [];
+  let pool = all.filter((r) => !used.includes(r.id));
+  let restarted = false;
+  if (!pool.length) {
+    used = [];
+    pool = [...all];
+    restarted = true;
+  }
+  // The faces a row covers, as Foundry's own draw counts them (a row's weight only sets its range).
+  const weight = (r) => (r.range?.[1] ?? 0) - (r.range?.[0] ?? 0) + 1;
+  let ticket = Math.random() * pool.reduce((sum, r) => sum + weight(r), 0);
+  let pick = pool[pool.length - 1];
+  for (const r of pool) {
+    ticket -= weight(r);
+    if (ticket < 0) { pick = r; break; }
+  }
+  const next = { ...store, [table.uuid]: [...used, pick.id] };
+  await game.settings.set(MODULE_ID, "poiUsed", next);
+  return { result: pick, remaining: all.length - next[table.uuid].length, restarted };
+}
+
+/**
+ * The points-of-interest table a region's book prints, when it is imported: one
+ * d20 list per region ("Myre Swamp Points of Interest"), filed in the module's
+ * tables pack. A region the book files as several lists (Cursed Scroll 4's
+ * Location / Feature / Descriptor) has no single table and answers null.
+ * @param {string} regionName
+ * @returns {Promise<RollTable|null>}
+ */
+export async function poiTableFor(regionName) {
+  const want = String(regionName ?? "").trim();
+  if (!want) return null;
+  const suffix = `${want} Points of Interest`;
+  const world = game.tables.find((t) => t.name.endsWith(suffix));
+  if (world) return world;
+  for (const pack of game.packs) {
+    if (pack.documentName !== "RollTable") continue;
+    const entry = pack.index.find((e) => e.name.endsWith(suffix));
+    if (entry) return pack.getDocument(entry._id);
+  }
+  return null;
+}
+
+/** How many of a point-of-interest table's rows are still to be found, and its size. */
+export function poiRemaining(table) {
+  const store = game.settings.get(MODULE_ID, "poiUsed") ?? {};
+  const all = poiRows(table).map((r) => r.id);
+  const used = Array.isArray(store[table?.uuid]) ? store[table.uuid].filter((id) => all.includes(id)) : [];
+  return { remaining: all.length - used.length, total: all.length };
+}
+
+/**
+ * A flavor row's text as HTML, so a row's own dice ("[[/r 1d4]]", a check
+ * request) show as the rollable links they are instead of their source. The
+ * panel and the chat card show this where they have it, the plain text where
+ * they don't — a row that fails to enrich still reads.
+ * @param {string} text
+ * @returns {Promise<string|null>}
+ */
+export async function flavorHtml(text) {
+  try {
+    return await foundry.applications.ux.TextEditor.implementation.enrichHTML(text);
+  } catch (err) {
+    console.warn(`${MODULE_ID} | enriching a row's text failed`, err);
+    return null;
+  }
+}
+
 
 /**
  * The encounter a row gives. A creature: its name, art, how many, and the
@@ -147,14 +295,16 @@ export async function rollEntry(result) {
   const monster = await monsterOf(result);
   if (!monster) {
     const text = resultBody(result).trim();
-    return text ? { kind: "flavor", text } : { kind: "empty" };
+    return text ? { kind: "flavor", text, html: await flavorHtml(text) } : { kind: "empty" };
   }
   // A world copy of a compendium creature whose art is a placeholder shows the compendium's art.
   const art = await _bestArtForActor(monster);
-  const count = await countOf(result);
+  const creatures = await placementOf(result, monster);
+  const primary = creatures.find((c) => c.uuid === monster.uuid) ?? { count: 1, countFormula: null };
   return {
     kind: "monster", uuid: monster.uuid, name: monster.name, img: art.img || "icons/svg/mystery-man.svg",
-    count: count.total, countFormula: count.formula,
+    count: primary.count, countFormula: primary.countFormula,
+    creatures,
     distanceRoll: await roll("1d6"), activityRoll: await roll("2d6"), reactionRoll: await roll("2d6"),
   };
 }

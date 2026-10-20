@@ -714,6 +714,27 @@ export function registerSettings() {
     default: true,
   });
 
+  // Which rows of a region's points-of-interest table the party has already found,
+  // keyed by table uuid: a d20 list of one-off places should not repeat a find.
+  game.settings.register(MODULE_ID, "poiUsed", {
+    scope: "world",
+    config: false,
+    type: Object,
+    default: {},
+  });
+
+  // The book's 1-in-20: a hex that is not a keyed location can turn out to be a
+  // point of interest when the party enters it. 5 % = one face in twenty; 0 off.
+  game.settings.register(MODULE_ID, "poiArrivalChance", {
+    name: "SDE.settings.poiArrivalChance.name",
+    hint: "SDE.settings.poiArrivalChance.hint",
+    scope: "world",
+    config: false,
+    type: Number,
+    range: { min: 0, max: 100, step: 1 },
+    default: 5,
+  });
+
   game.settings.register(MODULE_ID, "pauseOnEncounter", {
     name: "SDE.settings.pauseOnEncounter.name",
     hint: "SDE.settings.pauseOnEncounter.hint",

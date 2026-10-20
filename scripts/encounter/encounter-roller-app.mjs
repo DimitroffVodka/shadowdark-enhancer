@@ -796,7 +796,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
   _setResult(entry, { via = null } = {}) {
     this._lastResult = entry.kind === "monster"
       ? { ...entry, chaMod: 0, ...this._freshRenownState() }
-      : { kind: entry.kind, text: entry.text };
+      : { kind: entry.kind, text: entry.text, html: entry.html };
     if (entry.kind === "monster") this._updateResultStrings();
     // Which table a category sent the roll to, shown on the card and in chat (#262).
     this._lastResult.via = via;
@@ -979,16 +979,156 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       ui.notifications.warn(game.i18n.localize("SDE.encounter.notify.noScene"));
       return;
     }
+    const e = this._lastResult;
+    const list = Array.isArray(e.creatures) && e.creatures.length ? e.creatures : [{ uuid: e.uuid, count: e.count ?? 1 }];
+    this._placeQueue = list.filter((c) => c?.uuid).map((c) => ({ uuid: c.uuid, total: Math.max(1, Number(c.count) || 1) }));
+    return this._placeNextCreature();
+  }
 
+  /** Drop the next queued creature's tokens, then move on to the one after it. */
+  async _placeNextCreature() {
+    const item = this._placeQueue?.shift();
+    if (!item) {
+      this._placeQueue = null;
+      return;
+    }
+    const prepared = await this._placeableFor(item.uuid);
+    if (!prepared) return this._placeNextCreature();
+    const placed = await this._placeTokensFor(prepared.actor, prepared.tokenSource, item.total);
+    if (placed) return this._placeNextCreature();
+  }
+
+  /**
+   * The cancellable click-to-place loop for one creature: each click drops one
+   * token at the cursor's snapped grid position, until its count is placed or
+   * the GM presses Escape, which ends the rest of the encounter too.
+   * @returns {Promise<boolean>} true when every token of this creature was placed
+   */
+  async _placeTokensFor(actor, tokenSource, total) {
+    return new Promise((resolve) => {
+      let remaining = total;
+      let active = true;
+
+      const updateNotif = () => {
+        ui.notifications.info(game.i18n.format("SDE.encounter.notify.placePrompt", {
+          n: total - remaining + 1, total, name: actor.name,
+        }));
+      };
+
+      const cleanup = () => {
+        if (!active) return;
+        active = false;
+        document.removeEventListener("pointerdown", onClick, true);
+        document.removeEventListener("keydown", onKey);
+        if (this._placeAbort === ctrl) this._placeAbort = null;
+      };
+
+      const onClick = async (ev) => {
+        if (!active || ev.button !== 0) return;
+        // Skip clicks outside the canvas area (UI sidebar, chat, our own
+        // popovers, etc.). v13's DOM wraps the canvas in #board.
+        const insideCanvas = ev.target?.closest?.("#board, #board-canvas, canvas, .scene")
+                          || ev.target?.tagName === "CANVAS";
+        if (!insideCanvas) return;
+        // Capture-phase + stopPropagation prevents Foundry's TokenLayer
+        // from acting on this click (no drag-select, no deselect).
+        ev.preventDefault();
+        ev.stopPropagation();
+        ev.stopImmediatePropagation();
+
+        // Use Foundry's continuously-tracked mouse position (world coords).
+        const pos = canvas.mousePosition;
+        if (!pos) return;
+        const snap = canvas.grid.getSnappedPoint(
+          { x: pos.x, y: pos.y },
+          { mode: CONST.GRID_SNAPPING_MODES.TOP_LEFT_VERTEX }
+        );
+
+        const td = { ...tokenSource, x: snap.x, y: snap.y, actorId: actor.id };
+        delete td._id; // Foundry assigns a fresh ID per token
+        await canvas.scene.createEmbeddedDocuments("Token", [td]);
+
+        remaining--;
+        if (remaining > 0) {
+          updateNotif();
+        } else {
+          cleanup();
+          ui.notifications.info(game.i18n.format("SDE.encounter.notify.placedAll", { total, name: actor.name }));
+          resolve(true);
+        }
+      };
+
+      const onKey = (ev) => {
+        if (ev.key !== "Escape") return;
+        cleanup();
+        // Escape ends the encounter, not just this creature.
+        this._placeQueue = null;
+        const placed = total - remaining;
+        ui.notifications.info(
+          placed > 0
+            ? game.i18n.format("SDE.encounter.notify.placeCancelledSome", { placed, total, name: actor.name })
+            : game.i18n.localize("SDE.encounter.notify.placeCancelledNone")
+        );
+        resolve(false);
+      };
+
+      const ctrl = { abort: () => { this._placeQueue = null; cleanup(); resolve(false); } };
+
+      // IMPORTANT ordering: close the window FIRST without `_placeAbort`
+      // set, so close()'s _cancelPlaceTokens is a no-op for the start-of-
+      // placement close. THEN register the listeners and the abort ref.
+      // (Previously: set _placeAbort, call close(), which triggered
+      // cleanup before any click handler was even registered. Result:
+      // active=false and clicks no-op'd forever.)
+      (async () => {
+        if (this.rendered) await this.close();
+        this._placeAbort = ctrl;
+        updateNotif();
+        // Listen on document with capture-phase: more reliable than
+        // canvas.app.view in v13/PIXI v7 where the canvas DOM element's
+        // pointer-events behavior depends on PIXI's event-manager config.
+        // Capture-phase + the #board check inside onClick keeps us in
+        // front of TokenLayer + filters non-canvas UI clicks out.
+        document.addEventListener("pointerdown", onClick, true);
+        document.addEventListener("keydown", onKey);
+      })();
+    });
+  }
+
+  /**
+   * The actor a token of `uuid` is placed for, and the token source to copy.
+   * The GM clicks anywhere on the canvas to drop it; the loop is in
+   * `_placeTokensFor`.
+   *
+   * Why DOM events instead of canvas.stage PIXI events: Foundry v13
+   * ships PIXI v7+ which changed the federated-event API. The old
+   * `event.data.getLocalPosition()` pattern is gone, and the new
+   * `event.getLocalPosition()` interacts with layered Canvas children
+   * unreliably (TokenLayer can capture clicks first). DOM-level
+   * pointerdown with capture:true gets us first dibs and uses
+   * Foundry's already-tracked `canvas.mousePosition` for world coords.
+   *
+   * Compendium actors are imported as world actors first (or an
+   * existing same-named world actor is reused) so the placed tokens
+   * have a valid `actorId` reference.
+   *
+   * Token texture fallback: some compendium NPCs have
+   * `prototypeToken.texture.src` set to the default mystery-man while
+   * `actor.img` holds the actual illustration. Detect that case and
+   * use `actor.img` instead so placed tokens display the right art.
+   * @param {string} uuid
+   * @returns {Promise<{actor: Actor, tokenSource: object}|null>}
+   */
+  async _placeableFor(uuid) {
     // Keep a reference to the original compendium actor (if any). We
     // also fetch any compendiumArtMappings registered for it — those
     // come from modules like shadowdark-community-tokens. The mapping
     // is applied at render time but NOT to `actor.img` reads, so we
     // need to look it up explicitly.
-    const compendiumActor = await fromUuid(this._lastResult.uuid);
+    const compendiumActor = await fromUuid(uuid);
     if (!compendiumActor) {
       ui.notifications.error(game.i18n.localize("SDE.encounter.notify.monsterNotFound"));
-      return;
+      return null;
     }
     const compendiumArt = _getCompendiumArtFor(compendiumActor);
 
@@ -1075,92 +1215,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     if (pick && pick !== tokenSource.texture?.src) {
       tokenSource.texture = { ...(tokenSource.texture ?? {}), src: pick };
     }
-
-    // Cancellable click-to-place loop. Each click drops one token at
-    // the cursor's snapped grid position. Window closes so the canvas
-    // is fully visible; ESC cancels remaining placements.
-    const total = this._lastResult.count;
-    let remaining = total;
-
-    let active = true;
-
-    const updateNotif = () => {
-      ui.notifications.info(game.i18n.format("SDE.encounter.notify.placePrompt", {
-        n: total - remaining + 1, total, name: actor.name,
-      }));
-    };
-
-    const cleanup = () => {
-      if (!active) return;
-      active = false;
-      document.removeEventListener("pointerdown", onClick, true);
-      document.removeEventListener("keydown", onKey);
-      if (this._placeAbort === ctrl) this._placeAbort = null;
-    };
-
-    const onClick = async (ev) => {
-      if (!active || ev.button !== 0) return;
-      // Skip clicks outside the canvas area (UI sidebar, chat, our own
-      // popovers, etc.). v13's DOM wraps the canvas in #board.
-      const insideCanvas = ev.target?.closest?.("#board, #board-canvas, canvas, .scene")
-                        || ev.target?.tagName === "CANVAS";
-      if (!insideCanvas) return;
-      // Capture-phase + stopPropagation prevents Foundry's TokenLayer
-      // from acting on this click (no drag-select, no deselect).
-      ev.preventDefault();
-      ev.stopPropagation();
-      ev.stopImmediatePropagation();
-
-      // Use Foundry's continuously-tracked mouse position (world coords).
-      const pos = canvas.mousePosition;
-      if (!pos) return;
-      const snap = canvas.grid.getSnappedPoint(
-        { x: pos.x, y: pos.y },
-        { mode: CONST.GRID_SNAPPING_MODES.TOP_LEFT_VERTEX }
-      );
-
-      const td = { ...tokenSource, x: snap.x, y: snap.y, actorId: actor.id };
-      delete td._id; // Foundry assigns a fresh ID per token
-      await canvas.scene.createEmbeddedDocuments("Token", [td]);
-
-      remaining--;
-      if (remaining > 0) {
-        updateNotif();
-      } else {
-        cleanup();
-        ui.notifications.info(game.i18n.format("SDE.encounter.notify.placedAll", { total, name: actor.name }));
-      }
-    };
-
-    const onKey = (ev) => {
-      if (ev.key !== "Escape") return;
-      cleanup();
-      const placed = total - remaining;
-      ui.notifications.info(
-        placed > 0
-          ? game.i18n.format("SDE.encounter.notify.placeCancelledSome", { placed, total, name: actor.name })
-          : game.i18n.localize("SDE.encounter.notify.placeCancelledNone")
-      );
-    };
-
-    const ctrl = { abort: cleanup };
-
-    // IMPORTANT ordering: close the window FIRST without `_placeAbort`
-    // set, so close()'s _cancelPlaceTokens is a no-op for the start-of-
-    // placement close. THEN register the listeners and the abort ref.
-    // (Previously: set _placeAbort, call close(), which triggered
-    // cleanup before any click handler was even registered. Result:
-    // active=false and clicks no-op'd forever.)
-    await this.close();
-    this._placeAbort = ctrl;
-    updateNotif();
-    // Listen on document with capture-phase: more reliable than
-    // canvas.app.view in v13/PIXI v7 where the canvas DOM element's
-    // pointer-events behavior depends on PIXI's event-manager config.
-    // Capture-phase + the #board check inside onClick keeps us in
-    // front of TokenLayer + filters non-canvas UI clicks out.
-    document.addEventListener("pointerdown", onClick, true);
-    document.addEventListener("keydown", onKey);
+    return { actor, tokenSource };
   }
 
   /** Aborts any in-flight click-to-place loop (called from close()). */
