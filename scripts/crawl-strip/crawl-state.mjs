@@ -146,7 +146,8 @@ export const CrawlState = {
     const followActiveScene = () => {
       if (!isActiveGM() || this._state.mode !== "overland") return;
       const scene = game.scenes?.active;
-      if (!scene || scene.grid?.isHexagonal) return;
+      // A landing page is a stop in town, not a dungeon: travel waits there and goes on when the table returns.
+      if (!scene || scene.grid?.isHexagonal || scene.flags?.[MODULE_ID]?.landing) return;
       void this.overlandToCrawl().catch((error) => console.error(`${MODULE_ID} | travel back to crawl`, error));
     };
     Hooks.on("canvasReady", followActiveScene);

@@ -6147,8 +6147,8 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-ui.sde-landing-pages .ui-row .ui-btn { flex: 0 0 auto; }
 .sde-ui.sde-landing-pages .lp-places { max-height: 320px; overflow-y: auto; }
 .sde-town .tm-return { align-self: center; flex: 0 0 auto; margin: 0 0 10px; }
-/* The Map tile's way back: one button over the overland map, top centre, while this client looks at it alone. */
-.sde-ui.sde-map-back { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 100; background: none; border: 0; }
+/* The Map tile's way back: one button over the overland map, bottom centre above the hotbar (the clock bar and sky dial hold the top), while this client looks at it alone. */
+.sde-ui.sde-map-back { position: fixed; bottom: 150px; left: 50%; transform: translateX(-50%); z-index: 100; background: none; border: 0; }
 .sde-ui.sde-map-back .ui-btn { box-shadow: 0 2px 10px rgb(0 0 0 / 45%); }
 .sde-ui.sde-landing-pages .lp-offer { display: flex; align-items: center; gap: 12px; font-size: 12.5px; line-height: 1.4; }
 .sde-ui.sde-landing-pages .lp-offer .ui-btn { flex: 0 0 auto; }
