@@ -55,7 +55,7 @@
 
 ### Removed
 
-- **The Backdrop and the Arena fight are gone; the camp picture stays as a button.** They were never in a release. What leaves the table: the Backdrop tool and the Backdrop places button in the left toolbar (with the Tavern, Town and Market places and your own place pictures), the camp picture coming up by itself when a camp begins, a landing page hosted over a Backdrop place, the **Arena fight** button beside Battle map on the Encounter panel, and **Tools > Arena fight** (as well as the tokenless zone fight it replaced earlier). The landing page with its Carouse and Rumors tiles works as before, and Battle map is unchanged. Nothing is deleted from a world: pictures you uploaded stay in the world's `stage` folder, and an arena scene made by an Arena fight stays in the Encounter maps folder for you to delete if you like.
+- **The Backdrop and the Arena fight are gone; the camp picture stays as a button.** They were never in a release. What leaves the table: the Backdrop tool and the Backdrop places button in the left toolbar (with the Tavern, Town and Market places and your own place pictures), the camp picture coming up by itself when a camp begins, a landing page hosted over a Backdrop place, the **Arena fight** button beside Battle map on the Encounter panel, and **Tools > Arena fight** (as well as the tokenless zone fight it replaced earlier). The landing page with its Carouse and Rumors tiles works as before, and Battle map is unchanged. Nothing is deleted from a world: pictures you uploaded stay in the world's `stage` folder, and an arena scene made by an Arena fight stays in the Encounter maps folder, without its rings, for you to delete by hand if you like.
 
 ## [0.19.0] — 2026-10-14
 

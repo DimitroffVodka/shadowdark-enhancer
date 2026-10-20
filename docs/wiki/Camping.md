@@ -82,5 +82,5 @@ A camp never raises it by itself. The button then reads **Hide camp picture**
 and takes it down. It also goes when:
 
 - the camp it was raised for ends or is cancelled (a picture raised with no camp
-  running stays until you hide it), or
+  running stays until you hide it, unless a camp for that party begins while it is up), or
 - you [bring the table](Encounter-Battle-Maps.md#bring-the-table) to a battle map.

@@ -129,3 +129,15 @@ test("a picture shown with no camp running stays when a later camp ends", () => 
   assert.equal(campTransition(byHand, { id: "c1", phase: "complete" }, { partyId: "p1" }), null);
   assert.equal(campTransition(byHand, null, { partyId: "p1" }), null, "nor when a camp record goes");
 });
+
+test("a picture shown by hand before Begin camp is adopted: the camp's end drops it; another party's camp does not adopt it", async () => {
+  const w = world();
+  await toggleCampPicture(w.party);
+  await w.begin({ id: "c1", phase: "setup" });
+  assert.equal(w.written.at(-1).campId, "c1");
+  await w.set({ id: "c1", phase: "complete" });
+  assert.equal(w.written.at(-1).shown, false);
+
+  const byHand = { ...raised, campId: "" };
+  assert.equal(campTransition(byHand, { id: "c2", phase: "setup" }, { partyId: "p2" }), null);
+});

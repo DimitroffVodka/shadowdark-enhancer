@@ -42,7 +42,7 @@ export function campArtFor(terrain) {
 
 /**
  * What to write to the stage when a party's camp record changes: null (nothing), or the hidden stage when that
- * party's camp ended (complete, or the record gone) while its picture was up. A camp never raises the picture.
+ * party's camp ended (complete, or the record gone) while its picture was up. A camp never raises the picture; it only adopts one its party raised by hand.
  *
  * @param {*} prev  the stored stage
  * @param {{id: string, phase: string}|null} camp  the party's camp record
@@ -50,7 +50,11 @@ export function campArtFor(terrain) {
  */
 export function campTransition(prev, camp, state) {
   const stage = normalizeStage(prev);
-  if (camp && camp.phase !== "complete") return null;
+  if (camp && camp.phase !== "complete") {
+    // A picture raised by hand before this party's camp began is adopted by it, so the camp's end drops it.
+    const adopt = camp.id && stage.shown && stage.place === "camp" && stage.campId === "" && stage.partyId === str(state?.partyId);
+    return adopt ? { ...stage, campId: str(camp.id) } : null;
+  }
   // Only the party whose camp this is may drop it; several parties share the one stage.
   const mine = stage.partyId === str(state?.partyId) && (camp ? stage.campId === camp.id : stage.campId !== "");
   if (!stage.shown || stage.place !== "camp" || !mine) return null;

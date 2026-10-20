@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-2154 tracked files · ~272,500 lines of code/markup across scripts+templates+styles+test.
+2154 tracked files · ~272,600 lines of code/markup across scripts+templates+styles+test.
 `v0.19.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -223,7 +223,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `crawl-strip.mjs` | 1761 | The core feature: the top strip. Plain DOM (`#shadowdark-enhancer-strip`), not ApplicationV2. |
+| `crawl-strip.mjs` | 1762 | The core feature: the top strip. Plain DOM (`#shadowdark-enhancer-strip`), not ApplicationV2. |
 | `crawl-state.mjs` | 515 | Foundry-coupled state singleton — persistence, sockets, hook emission. |
 | `crawl-state-core.mjs` | 428 | Pure reducer/normalizer behind crawl-state. Node-testable. |
 | `crawl-lights-core.mjs` | 93 | Pure light-source logic for the strip's flame badges. |
@@ -658,7 +658,7 @@ A place the party owns: the four types and twenty upgrades, built a week at a ti
 
 | File | Lines | Description |
 |---|---:|---|
-| `stage-core.mjs` | 64 | The camp picture's Foundry-free half: `normalizeStage` (the only reader of the stage setting; an old Backdrop place reads as nothing), `campPictureUp`, `campArtFor` (a terrain's camp picture, null on water), `campTransition` (drops the picture when the camp it was raised for ends; a camp never raises it) and `showCamp`. |
+| `stage-core.mjs` | 68 | The camp picture's Foundry-free half: `normalizeStage` (the only reader of the stage setting; an old Backdrop place reads as nothing), `campPictureUp`, `campArtFor` (a terrain's camp picture, null on water), `campTransition` (drops the picture when the camp it was raised for ends; a camp never raises it) and `showCamp`. |
 | `stage.mjs` | 102 | The camp picture's layer: registers the world setting `stage` (every client redraws from its onChange and on ready, and re-renders open windows with the camp picture button), keeps one `div#sde-stage` behind Foundry's UI, drops it when its camp ends (`onPartyCamp`), and exports `toggleCampPicture` (the Camping window's button), `raiseByHand`, `partyTerrain` and `hideStage` (Bring the table). |
 
 The camp picture: a full-screen picture every client shows behind Foundry's UI, kept in one world setting (`stage`), raised and hidden by the Camping window's button.
