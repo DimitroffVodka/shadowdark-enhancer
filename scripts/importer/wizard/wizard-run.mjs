@@ -7,7 +7,7 @@
  *   3. key locations each added book's keyed hexes (a hex map's pins come from these, so they go first)
  *   4. site maps     a scene for each added adventure map, with every pin the module knows already placed
  *   5. hex maps      a numbered, pinned scene for each added hex map, packed with the journals its pins open like the
- *                    adventures; its terrain Legend is named later, in the Hex Tagger, once the map is imported and run
+ *                    adventures; a map ticked into the world has its terrain named on the Terrain page after the run
  *
  * Nothing in this file touches Foundry. The pieces that do arrive as `deps` (wizard-app.mjs builds the real
  * ones), so a Node test runs the whole flow with stand-ins and checks the numbers it reports.
@@ -24,6 +24,7 @@
  *   deps.holidays(src)                                                  → { status:"imported"|"already"|"failed", created? } (optional; the calendar's holidays (CS6) and holy days (WR) from that book)
  *   deps.playerMap()                                                    → { status:"made"|"already"|"noBook"|"failed" } (optional; the Player's Guide's map, saved in the world for the landing pages)
  *   deps.hexMap(id, { title, firstNum, placement })                       → { status:"ready"|"packed"|"already"|"needsLook"|"failed", sceneId, legend, pinned, packed?, packFailed? }
+ *                                                                         legend: a map now in the world whose terrain is still to name (the Terrain page)
  */
 import { bookRows, isHexMap, bookTitle, HEX_MAPS } from "./wizard-core.mjs";
 import { hexPrint } from "../../hex-map/hex-prints.mjs";
@@ -141,7 +142,7 @@ export async function runWizardImport(state, hooks, deps) {
     }
   }
   // 5. Hex maps. Like the adventures, a map is a scene and the journals its pins open: packed with the compendium
-  // placement, built into the world with the world placement. Its terrain is named later, on the imported map.
+  // placement, built into the world with the world placement, and then its terrain is named on the Terrain page.
   // A map the wizard is unsure of is left for the Done page rather than asked about mid-run.
   // The GM ticks the maps they want in the world now (state.worldMaps); the rest wait in the compendium.
   const hexMaps = HEX_MAPS.filter((h) => ready.has(`map:${h.id}`));
@@ -155,7 +156,7 @@ export async function runWizardImport(state, hooks, deps) {
     else if (made.status === "already") result.already += 1;
     if (made.status === "packed" && made.packed) result.packed += 1;
     if (made.packFailed) result.needsYou.push({ title: h.title, why: t("SDE.importer.wizard.run.hexPackFailed") });
-    result.hex.push({ id: h.id, title: h.title, status: made.status, legend: false, look: made.status === "needsLook" || made.status === "failed", optional: !!print?.drawn, packed: !!made.packed, sceneId: made.sceneId, pinned: made.pinned ?? 0 });
+    result.hex.push({ id: h.id, title: h.title, status: made.status, legend: !!made.legend, look: made.status === "needsLook" || made.status === "failed", optional: !!print?.drawn, packed: !!made.packed, sceneId: made.sceneId, pinned: made.pinned ?? 0 });
   }
   hooks.onProgress(100, t("SDE.importer.wizard.run.finishing"));
   return result;

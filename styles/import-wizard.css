@@ -82,3 +82,12 @@ body.sde-wiz-batch #sde-class-importer, body.sde-wiz-batch #sde-spell-importer, 
 /* The wait of Apply, in the footer beside the buttons it is waiting on. */
 .sde-wiz-foot-status { flex: 1 1 auto; min-width: 0; margin-left: 12px; color: var(--ui-text); font-size: 12px; font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sde-wiz-foot-status i { color: var(--ui-muted); margin-right: 4px; }
+
+/* The Welcome page's way to Maps for this world, once the world has imported: the sentence and its button on one line. */
+.sde-wiz .sde-wiz-maps-link { flex-direction: row; align-items: center; gap: 12px; }
+.sde-wiz .sde-wiz-maps-link p { flex: 1 1 auto; margin: 0; }
+
+/* Maps for this world: one row per map, its one state or button kept whole at the right. */
+.sde-world-maps .ui-body { display: flex; flex-direction: column; gap: 14px; }
+.sde-world-maps .sde-maps-row > .ui-chip, .sde-world-maps .sde-maps-row > .ui-btn { flex: 0 0 auto; }
+.sde-world-maps ul.ui-list { margin: 0; padding: 0; list-style: none; }

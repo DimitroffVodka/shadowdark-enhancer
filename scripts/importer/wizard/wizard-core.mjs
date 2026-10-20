@@ -14,7 +14,7 @@ import { allSites } from "../adventure/adventure-manifest.mjs";
 import { normalizeName, siteForImage } from "../adventure/map-detect.mjs";
 import { nameAllowed, variantRank } from "./map-master.mjs";
 
-/** The pages, in order. "terrain" is kept for a run that leaves a hex map's terrain unnamed; the wizard's own import leaves every map for the Hex Tagger (wizard-run.mjs). */
+/** The pages, in order. "terrain" comes after an import that brought a hex map into the world, or alone when a hex map is imported from the compendium (wizard-controller.mjs startTerrain). */
 export const PAGES = ["welcome", "keep", "books", "maps", "check", "ready", "import", "terrain", "done"];
 
 /**
@@ -165,7 +165,7 @@ export const newState = () => ({
   worldMaps: new Set(),   // map ids the GM wants in this world now; every other map waits in the Adventures compendium
   progress: { pct: 0, phase: "" },
   result: null,
-  terrain: null,  // the Terrain page's queue; the wizard's own import names no map's terrain, leaving it to the Hex Tagger
+  terrain: null,  // the Terrain page's queue: { queue, i, stage, error, named }, one map at a time (wizard-controller.mjs)
   art: null,      // on Done, when installed art can skin the imported monsters: { sources, stage: offer | applying | done | failed, line }
   update: null,   // set by startUpdate(): the wizard opened because a release added content
 });

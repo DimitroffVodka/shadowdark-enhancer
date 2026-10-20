@@ -21,6 +21,8 @@ export function registerA0Prompt() {
     const tex = c?.primary?.background?.texture;
     // Cheap checks first: only the active GM asks, only on the print, only once.
     if (!isActiveGM() || !scene || !isA0(tex?.width, tex?.height)) return;
+    // The quick guide is setting this map up itself (its import, or its Terrain page): asking here would open the Hex Tagger over it.
+    if (foundry.applications.instances.get("sde-import-wizard")) return;
     if (scene.getFlag(MODULE_ID, "hexTags")?.origin || scene.getFlag(MODULE_ID, ASKED_FLAG)) return;
     await replaceModuleFlag(scene, ASKED_FLAG, true);
     const yes = await foundry.applications.api.DialogV2.confirm({

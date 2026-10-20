@@ -127,9 +127,16 @@ export const importMissingOnly = (data, actors = globalThis.game?.actors ?? []) 
 };
 
 /**
+ * The Adventures being imported by a caller that names a hex map's terrain itself (the wizard), so their import does not
+ * offer the quick guide. Kept here, not in the import options, because core saves those options in a world setting.
+ */
+const quietImports = new WeakSet();
+
+/**
  * `preImportAdventure` handler: an Adventure from the Adventures pack only ever creates, whichever way it is imported (the
  * wizard, or the Import button on the Adventure's own sheet, which calls Adventure#import with no preImport of its own).
- * Once it is in, its stairs and ladders to the adventure's other maps are joined (Adventure#import awaits postImport).
+ * Once it is in, its stairs and ladders to the adventure's other maps are joined (Adventure#import awaits postImport),
+ * and a hex map it brought in is offered the quick guide's terrain step.
  */
 export function onPreImportAdventure(adventure, options) {
   if (!adventure.getFlag?.(MODULE_ID, ADVENTURE_PACK_FLAG)) return;
@@ -141,7 +148,16 @@ export function onPreImportAdventure(adventure, options) {
     } catch (err) {
       console.error(`${MODULE_ID} | adventure pack: joining the imported stairs and ladders failed`, err);
     }
+    if (!quietImports.has(adventure) && result.created?.Scene?.length) offerTerrain(result.created.Scene);
   }];
+}
+
+/** A hex map among the imported scenes is offered the quick guide's terrain step. Not awaited: the import is done, the question waits for the GM. */
+function offerTerrain(scenes) {
+  import("../../hex-map/hex-map-flow.mjs").then(async ({ HEXMAP_FLAG }) => {
+    const hexes = scenes.filter((s) => s.getFlag?.(MODULE_ID, HEXMAP_FLAG));
+    if (hexes.length) await (await import("../wizard/wizard-app.mjs")).offerTerrainGuide(hexes);
+  }).catch((err) => console.error(`${MODULE_ID} | adventure pack: offering the terrain step failed`, err));
 }
 
 /** Hook the create-only import (once, at init). */
@@ -153,11 +169,15 @@ export function registerAdventurePackImport() {
  * Import a packed adventure into the world, creating what is missing and touching nothing that is already there
  * (the `preImportAdventure` hook makes it create-only).
  * @param {Adventure} adventure  the document in the Adventures pack
+ * @param {{offer?:boolean}} [opts]  offer: false when the caller names a hex map's terrain itself (the wizard)
  * @returns {Promise<{status:"imported"|"already"|"gmOnly", created:Record<string,number>}>}
  */
-export async function importPackedAdventure(adventure) {
+export async function importPackedAdventure(adventure, { offer = true } = {}) {
   if (!game.user?.isGM) return { status: "gmOnly", created: {} };
-  const result = await adventure.import({ dialog: false });
+  if (!offer) quietImports.add(adventure);
+  let result;
+  try { result = await adventure.import({ dialog: false }); }
+  finally { quietImports.delete(adventure); }
   const created = Object.fromEntries(Object.entries(result.created ?? {}).map(([name, docs]) => [name, docs.length]));
   const made = Object.values(created).reduce((n, c) => n + c, 0);
   return { status: made ? "imported" : "already", created };
