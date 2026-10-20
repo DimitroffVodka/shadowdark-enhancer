@@ -19,7 +19,7 @@
  *   the clock, and sends the token back if two quick moves overdrew the day.
  * - Every Overland clock advance rolls the day's encounter checks it passes
  *   (#232, §5.3). A hit stops the clock at the check's hour and waits for
- *   Continue (resume), which finishes the advance. A check rolls at the chance
+ *   Resume clock (resume), which finishes the advance. A check rolls at the chance
  *   of its moment, and a GM's Roll a check now rolls one more, at this hour (#257).
  * - Forage and Make camp end the day (#233, §5.4-5.6). The owner of each
  *   character rolls its checks through the stat-damage save prompt
@@ -50,7 +50,7 @@ import { rulesFrom, stormEffects } from "../rules-data/rules-data-core.mjs";
 import { storedRulesFor } from "../rules-data/rules-data-scope.mjs";
 import { tellMissing, openRulesStep } from "../rules-data/rules-data-notice.mjs";
 import {
-  defaultOverlandState, normalizeOverlandState, startTravel, setHex, recordForage,
+  defaultOverlandState, normalizeOverlandState, startTravel, setHex, setAutoGoal as setAutoGoalState, recordForage,
   pickTravelToken, forageRefusal, setWeather, weatherHolds, weatherAdvantage, weatherFormula,
   weatherFromRoll, harshToday, WEATHER_RULES, METHODS, openDay, spendMove, priceMove, moveVerdict, hexCost,
   dayChecks, dueChecks, markCheck, setPending, setEncounter, forageDC, closeDay, planRations, partyMethod, setPace,
@@ -60,7 +60,7 @@ import { PARTY_FLAG, extrasParties, joinExtras, placePartyToken, wearPartyHex } 
 import { Party, isNativeParty, isLegacyParty } from "../party/party.mjs";
 import { chooseParty } from "./party-choice.mjs";
 import { isPartyDeployed } from "../party/party-movement.mjs";
-import { prepareCampNight, finishCampNight, campOf } from "../camping/camping.mjs";
+import { prepareCampNight, autoCampNight, finishCampNight, campOf, requestCamp } from "../camping/camping.mjs";
 import { ownsHexFog, revealParty } from "../hex-map/hex-fog.mjs";
 import { weatherCard } from "../shared/chat-cards.mjs";
 import { L as t } from "../shared/i18n.mjs";
@@ -490,7 +490,7 @@ async function rollCheck(c, chance, travel) {
  * through encounter.check, on the travel hex, quietly: nothing reaches chat,
  * at the chance of that moment (the setting, one more on a pushed day). A hit
  * stops the clock there, holds what it drew as `encounter` for the GMs'
- * panel, and stores what is left as `pending`, for Continue (§5.3, Q4).
+ * panel, and stores what is left as `pending`, for Resume clock (§5.3, Q4).
  * @param {number} target  worldTime to reach
  * @param {string} reason  what the advance was for: "move", "day", later "camp"
  * @param {number} [ms]  a walk to keep pace with, real ms: the clock runs in slices over it, each check
@@ -526,7 +526,7 @@ async function travelTo(target, reason, ms) {
     await commit(next);
     if (hit) {
       logEncounter(held);
-      // Something is left for Continue when there's clock to run, checks
+      // Something is left for Resume clock when there's clock to run, checks
       // still due at this very moment (a second check at the same hour, or the
       // overdue checks of a late Start day), or a camp to finish: its dawn
       // step (rations, the day's close, the weather) comes after its last check.
@@ -542,7 +542,7 @@ async function travelTo(target, reason, ms) {
 }
 
 /**
- * The time-lapse of a camp or Continue up to `target`, real ms (lapseMs), while the party's scene
+ * The time-lapse of a camp or Resume clock up to `target`, real ms (lapseMs), while the party's scene
  * is the one on this screen; 0 otherwise, and the clock moves in one step as it did.
  */
 function lapseFor(target) {
@@ -613,6 +613,44 @@ export async function advanceClock(seconds, { to = null, calendar = false } = {}
 export async function resume(party = null) {
   const data = { action: "resume", partyId: party?.id };
   return isActiveGM() ? applyAction(data, game.user) : queryActiveGM(OVERLAND_QUERY, data, { label: t("SDE.overland.relayLabel") });
+}
+
+/**
+ * The buttons' resume, for a GM with an encounter waiting: it asks first,
+ * naming what will be cleared and what the clock does next, and "Keep the
+ * encounter" cancels and leaves it held. The encounter holds everything else
+ * (the clock, checks, camp), so an accidental press costs the encounter, the
+ * panel and the only place the players could have seen it — hence the ask.
+ * Anything else (no encounter, a player, no dialog) goes straight to resume,
+ * as does the battle map's return to travel, which resumes after a fight.
+ * @param {Actor|null} [party]  the travelling party, when the camp window asks
+ * @returns {Promise<{ok:true, cancelled?:true, stopped?:boolean}|{ok:false, error:string}>}
+ */
+export async function resumeHeld(party = null) {
+  const state = overlandState();
+  const enc = state.encounter;
+  if (!enc) return resume(party);
+  // The encounter is the GM's to clear: a player's bar must not dismiss what they cannot see.
+  if (!game.user?.isGM) return { ok: false, error: t("SDE.overland.notify.encounterGm") };
+  const Dialog = foundry.applications.api.DialogV2;
+  if (!Dialog?.confirm) return resume(party);
+  const text = String(enc.text ?? "").trim();
+  const short = text.length > 140 ? `${text.slice(0, 140).replace(/\s+\S*$/, "")}…` : text;
+  const what = enc.kind === "monster" && enc.name
+    ? `${enc.count ?? 1} × ${enc.name}`
+    : short || t(enc.noTable ? "SDE.clock.enc.stripNoTable" : "SDE.clock.enc.stripEmpty");
+  const body = !state.pending ? "SDE.clock.enc.resumeHeld"
+    : state.pending.reason === "camp" ? "SDE.clock.enc.resumeNight" : "SDE.clock.enc.resumeMove";
+  // Called on DialogV2 itself: confirm reads `this.wait`, so a detached reference throws.
+  const ok = await Dialog.confirm({
+    classes: ["sde-ui", "sde-dialog"],
+    window: { title: t("SDE.clock.enc.resumeTitle"), icon: "fa-solid fa-forward" },
+    content: `<p>${esc(t(body, { what }))}</p><p>${esc(t("SDE.clock.enc.resumeNote"))}</p>`,
+    yes: { label: t("SDE.clock.enc.resumeYes"), icon: "fa-solid fa-forward" },
+    no: { label: t("SDE.clock.enc.resumeNo"), icon: "fa-solid fa-xmark", default: true },
+    rejectClose: false,
+  });
+  return ok ? resume(party) : { ok: true, cancelled: true };
 }
 
 /**
@@ -707,6 +745,58 @@ export async function setTravelPace(pace) {
 }
 
 /**
+ * Turn auto travel on or off (the travelling party's sheet owner, or a GM): on, a clicked
+ * destination runs over as many days as it takes, camping at each day's end and opening the
+ * next day itself; off, travel stops where it is. The setting is a standing one, kept with
+ * the travel state until changed.
+ * @param {boolean} on
+ * @returns {Promise<{ok:boolean, auto?:boolean, error?:string}>}
+ */
+export async function setAutoTravel(on) {
+  if (!mayMoveParty(game.user)) return notPartyOwner(game.user);
+  const data = { action: "auto", on: on === true };
+  return isActiveGM() ? applyAction(data, game.user) : queryActiveGM(OVERLAND_QUERY, data, { label: t("SDE.overland.relayLabel") });
+}
+
+/**
+ * Remember (or clear) the destination of the standing automatic journey (GM, or an owner of the
+ * travelling party): the hex a Resume auto should walk to after a stop at a keyed location, a
+ * scene, a camp decision, or any other interruption that ends the in-memory walk.
+ * @param {{i:number, j:number}|null} goal
+ * @returns {Promise<{ok:boolean, autoGoal?:object|null, error?:string}>}
+ */
+export async function setAutoGoal(goal) {
+  const data = { action: "autoGoal", goal: goal ?? null };
+  return isActiveGM() ? applyAction(data, game.user) : queryActiveGM(OVERLAND_QUERY, data, { label: t("SDE.overland.relayLabel") });
+}
+
+/**
+ * Open a travel day for an automatic journey (active GM): the method and pace are read, the weather
+ * rolled when it no longer holds, nothing asked. Allowed for a GM or an owner of a travelling
+ * character, and only while auto travel is on.
+ * @returns {Promise<{ok:boolean, error?:string}>}
+ */
+export async function autoStartDay() {
+  const data = { action: "autoDay" };
+  return isActiveGM() ? applyAction(data, game.user) : queryActiveGM(OVERLAND_QUERY, data, { label: t("SDE.overland.relayLabel") });
+}
+
+/**
+ * Open the next camp's choices for a GM or an owner of the travelling native party: the tasks and
+ * fire chosen here repeat at every automatic camp until changed. A camp already in setup is reused.
+ * @returns {Promise<boolean>} whether its window opened here
+ */
+export async function openCampChoices() {
+  const party = travelParty();
+  if (!party || !isNativeParty(party)) return false;
+  const data = { action: "campPlan" };
+  const reply = isActiveGM() ? await applyAction(data, game.user) : await queryActiveGM(OVERLAND_QUERY, data, { label: t("SDE.overland.relayLabel") });
+  if (!reply?.ok) { if (reply?.error) ui.notifications?.warn(reply.error); return false; }
+  game.shadowdarkEnhancer.camping.open(party);
+  return true;
+}
+
+/**
  * The Start day dialog: the method, the push, and a boat when there are boat
  * actors. Resolves to startDay's options, or null when closed.
  */
@@ -747,6 +837,9 @@ export async function askDay() {
 
 // ── Moving the travel token (#231, §5.2) ────────────────────────────────────
 
+/** A move the automatic journey's walk sent (route.mjs tags them), not a drag or a plain click. */
+const isAutoMove = (options) => options?.[MODULE_ID]?.auto === true;
+
 /** Is this a move of the travel token that Overland prices? Not its own sending back. */
 const isTravelMove = (doc, options) => CrawlState.isOverland && !!_state.tokenUuid
   && doc?.uuid === _state.tokenUuid && !isPartyDeployed(doc)
@@ -778,6 +871,35 @@ export function moveSteps(doc, grid, origin, waypoints, read) {
 
 /** A step's cost today, (hex, from) → points, as a move of the travel token is priced. For the route preview. */
 export function travelStepCost() { return costToday(); }
+
+/**
+ * Why the party cannot enter `goal` from where it stands, if it cannot: "terrain" when its ground is
+ * impassable even in fair weather (checked first, and permanent), "storm" when a storm on harsh ground
+ * closes every hex, or "weather" when only today's weather closes the hex; "storm" and "weather" are
+ * worth retrying at dawn. Priced the way a move is, so the answer matches what a
+ * walk would be refused with.
+ * @param {{i:number, j:number}} goal  a grid offset on the travel token's scene
+ * @returns {Promise<"storm"|"weather"|"terrain"|null>}
+ */
+export function travelBlocked(goal) { return serialize(() => blockedToday(goal)); }
+
+function blockedToday(goal) {
+  const scene = travelScene();
+  const read = scene ? hexReader({ scene, grid: scene.grid }) : null;
+  if (!read || !goal) return null;
+  const hex = read(goal);
+  if (!hex) return null;
+  // Ground first: a river, lava or a closed pass is impassable in fair weather too, so waiting out
+  // a storm for it will never help.
+  // A terrain the rules don't know prices null, and a move pays 1 for it: so does this.
+  const calm = costToday({ stormy: false, harsh: false })(hex, _state.hex) ?? 1;
+  if (!Number.isFinite(calm)) return "terrain";
+  // A storm on harsh ground closes the whole map; otherwise a hex closed only by today's weather
+  // opens when the weather does.
+  const today = overlandState();
+  if (today.stormy && today.harsh) return "storm";
+  return Number.isFinite(costToday()(hex, _state.hex) ?? 1) ? null : "weather";
+}
 
 /**
  * Resolves once the active GM has run every travel action queued so far: the
@@ -866,7 +988,7 @@ function groundForgotten() {
   }
 }
 
-function costToday() {
+function costToday(opts = {}) {
   const s = overlandState();
   const terrainCost = game.shadowdarkEnhancer?.rules?.terrainCost;
   if (typeof terrainCost !== "function") return () => 1;
@@ -874,8 +996,8 @@ function costToday() {
   // One rules lookup per terrain: rules.terrainCost reads the whole rules setting
   // each call, and a route prices thousands of steps with the same day's options.
   const memo = new Map();
-  const byTerrain = (terrain, opts) => {
-    if (!memo.has(terrain)) memo.set(terrain, terrainCost(terrain, opts));
+  const byTerrain = (terrain, o) => {
+    if (!memo.has(terrain)) memo.set(terrain, terrainCost(terrain, o));
     return memo.get(terrain);
   };
   // A keyed or settlement hex, and the hex it was entered from, stand on their book row's ground: its terrain
@@ -886,7 +1008,12 @@ function costToday() {
   const stands = (hex) => (ground ? pricedGround(hex, ground.get(hex?.num), difficult) : { hex, atMost: null });
   return (hex, from) => {
     const { hex: here, atMost } = stands(hex);
-    return hexCost(byTerrain, here, { from: stands(from).hex, stormy: s.stormy, harsh: !!s.harsh, boat: s.method === "sailing", atMost });
+    return hexCost(byTerrain, here, {
+      from: stands(from).hex,
+      stormy: opts.stormy ?? s.stormy,
+      harsh: opts.harsh ?? !!s.harsh,
+      boat: s.method === "sailing", atMost,
+    });
   };
 }
 
@@ -910,14 +1037,22 @@ function refusalText(why, { cost, blocked }) {
 /** The mover's client: refuse a move the day can't pay for, before it happens. */
 function onPreMoveToken(doc, move, options) {
   if (!isTravelMove(doc, options)) return;
+  if (!game.user.isGM && !doc.actor?.testUserPermission(game.user, "OWNER")) {
+    ui.notifications?.warn(t("SDE.overland.notify.notPartyOwner", { name: game.user.name }));
+    return false;
+  }
   const priced = priceTravelMove(doc, move.origin, [...move.passed.waypoints, ...move.pending.waypoints]);
   const why = priced && moveVerdict(_state, priced);
   if (!why) {
     if (priced) slowWalk(doc, move, options, priced);
     return;
   }
-  ui.notifications?.warn(refusalText(why, priced));
-  return false;
+  if (why) {
+    // The automatic walk's own moves retry and camp around a bounced hex, and its stop notices explain anything
+    // it cannot resolve: no "Bounced" banner on each of them. A drag or a plain click still says why.
+    if (!isAutoMove(options)) ui.notifications?.warn(refusalText(why, priced));
+    return false;
+  }
 }
 
 /**
@@ -948,7 +1083,7 @@ function onMoveToken(doc, movement, operation) {
   // failed read prices as before.
   const priced = warm ? price() : async () => { await warmGround(scene); return price(); };
   // Even a move within one hex goes through: it may start from an unpaid spot.
-  if (priced) return recordMove(doc, origin, dest, priced, waypoints, performance.now()).catch((err) => console.error(`${MODULE_ID} | travel move`, err));
+  if (priced) return recordMove(doc, origin, dest, priced, waypoints, performance.now(), isAutoMove(operation)).catch((err) => console.error(`${MODULE_ID} | travel move`, err));
 }
 
 /**
@@ -980,8 +1115,9 @@ const posKey = (p) => `${Math.round(p.x)}:${Math.round(p.y)}:${p.elevation ?? 0}
  * @param {{x:number, y:number, elevation?:number}} origin  where this move started
  * @param {{x:number, y:number, elevation?:number}} dest    where it ended
  * @param {number} [movedAt]  performance.now() when the move came in, when its slide began
+ * @param {boolean} [auto]  the automatic journey's own move: a refusal is its walk's to explain, not a banner
  */
-export function recordMove(doc, origin, dest, priced, waypoints = [dest], movedAt = performance.now()) {
+export function recordMove(doc, origin, dest, priced, waypoints = [dest], movedAt = performance.now(), auto = false) {
   return serialize(async () => {
     // A function prices the move here, in the queue: its slot was claimed when the move came in.
     if (typeof priced === "function") priced = await priced();
@@ -991,7 +1127,7 @@ export function recordMove(doc, origin, dest, priced, waypoints = [dest], movedA
     if (why) {
       const to = back ?? origin;
       _unpaid.set(posKey(dest), to);
-      if (why !== "dependent") ui.notifications?.warn(refusalText(why, priced));
+      if (why !== "dependent" && !auto) ui.notifications?.warn(refusalText(why, priced));
       await doc.update({ x: to.x, y: to.y }, {
         movement: { [doc.id]: { waypoints: [{ x: to.x, y: to.y, elevation: to.elevation,
           action: "displace", snapped: false, explicit: false, checkpoint: true }] } },
@@ -1007,7 +1143,19 @@ export function recordMove(doc, origin, dest, priced, waypoints = [dest], movedA
     // The first move settles the day's pace (setPace), and a normal pace forages: everyone, with no one asked to stop.
     if (first && _state.spent > 0 && !_state.pushed && autoForageEnabled()) {
       await syncMembers();
-      for (const id of [..._state.members]) { const actor = game.actors.get(id); if (actor) await tryForage(actor, true); }
+      const refused = new Set();
+      for (const id of [..._state.members]) {
+        const actor = game.actors.get(id);
+        if (!actor) continue;
+        const result = await tryForage(actor, true);
+        if (!result.ok && result.why === "impossible") refused.add(result.error);
+      }
+      // The first move forages silently; a storm in a harsh climate must not leave the players wondering
+      // why nobody found food. Say it once on every client, not once per absent character.
+      for (const message of refused) {
+        ui.notifications?.warn(message);
+        game.socket?.emit(`module.${MODULE_ID}`, { type: "notice", key: "SDE.overland.notify.forageImpossible" });
+      }
     }
     // The walk is on this screen: the clock keeps pace with its slide, counted from when the move came in and
     // done a beat before it ends (chainLeadMs). Nothing to pace against when the token isn't drawn here.
@@ -1035,7 +1183,7 @@ async function tryForage(actor, auto = false) {
     foraged: _state.foraged.includes(actor.id) || (_state.day !== null && actor.flags?.[MODULE_ID]?.overlandForageDay === startOfDay(game.time.calendar, _state.day)),
     dayOpen: _state.day !== null, pushed: _state.pushed, stormy: s.stormy, harsh: !!s.harsh,
   });
-  if (why) return { ok: false, error: t(FORAGE_REFUSED[why], { name: actor.name }) };
+  if (why) return { ok: false, error: t(FORAGE_REFUSED[why], { name: actor.name }), why };
   await replaceModuleFlag(actor, "overlandForageDay", startOfDay(game.time.calendar, _state.day));
   await commit(recordForage(_state, actor.id).state);
   // The attempt is recorded; the roll waits on the player, so it runs
@@ -1095,14 +1243,16 @@ async function addRation(actor) {
  * Make camp (GM), on an open travel day: the tasks and rations, the carried
  * lights out (they keep their time), then the clock to when camp breaks,
  * rolling the day's remaining checks and the night's as they fall due. A hit
- * stops the night there, and Continue finishes it. At dawn the rest is
+ * stops the night there, and Resume clock finishes it. At dawn the rest is
  * finished and the next day's weather is rolled; the GM then starts the day.
  * On a camp already made it goes on from the step the camp reached.
  * @returns {Promise<{ok:true, stopped:boolean}|{ok:false, error:string}>}
  */
 export async function makeCamp(party = null, acceptShortages = false) {
   const data = { action: "camp", partyId: party?.id, acceptShortages };
-  const reply = await (isActiveGM() ? applyAction(data, game.user) : queryActiveGM(OVERLAND_QUERY, data, { label: t("SDE.overland.relayLabel") }));
+  // A camp that fails is a refusal to show, not an unhandled rejection from the bar's button or the journey.
+  const reply = await (isActiveGM() ? applyAction(data, game.user) : queryActiveGM(OVERLAND_QUERY, data, { label: t("SDE.overland.relayLabel") }))
+    .catch((err) => { console.error(`${MODULE_ID} | Make camp`, err); return { ok: false, error: t(String(err?.message).startsWith("SDE.") ? err.message : "SDE.overland.notify.campNotMade") }; });
   // The camp's window opens on the client that pressed, not the GM tab that answered; from inside the window (party given) it is already open.
   if (reply?.setup && !party) game.shadowdarkEnhancer.camping.open(travelParty());
   return reply;
@@ -1125,12 +1275,31 @@ function campEnd() {
   return campEndAt(end, night, nextSix);
 }
 
-/** The native or provider party the persisted travel token stands for, or null. */
-function travelParty() {
+/**
+ * The native or provider party the persisted travel token stands for, or null (route.mjs's day-walking
+ * and camp read it too).
+ */
+export function travelParty() {
   try {
     const actor = _state.tokenUuid ? fromUuidSync(_state.tokenUuid)?.actor : null;
     return actor && (isNativeParty(actor) || extrasParties().some((a) => a.id === actor.id)) ? actor : null;
   } catch { return null; }
+}
+
+/**
+ * The party sheet's owner may move the party; token ownership alone is not enough. The sheet is the
+ * travel token's actor, as the drag check reads it, so a lone character travelling is its owner's to move.
+ */
+function mayMoveParty(user) {
+  if (!user) return false;
+  if (user.isGM) return true;
+  try {
+    return !!(_state.tokenUuid && fromUuidSync(_state.tokenUuid)?.actor?.testUserPermission(user, "OWNER"));
+  } catch { return false; }
+}
+
+function notPartyOwner(user) {
+  return { ok: false, error: t("SDE.overland.notify.notPartyOwner", { name: user?.name ?? game.user?.name ?? "?" }) };
 }
 
 /** How much food a character carries: the quantity of their Rations stacks. */
@@ -1206,7 +1375,9 @@ async function pitchCamp(user, acceptShortages = false) {
   const { stormy, harsh, each, members } = campNeeds();
   const party = travelParty();
   if (isNativeParty(party)) {
-    const prepared = await prepareCampNight(party, campContext(), user, acceptShortages);
+    const prepared = _state.auto
+      ? await autoCampNight(party, campContext(), user, acceptShortages)
+      : await prepareCampNight(party, campContext(), user, acceptShortages);
     if (!prepared.ready) return false;
     const state = makeCampState(_state, party.uuid, campEnd()).state;
     state.camp = { ...state.camp, executor: "native", campId: prepared.camp.id, day: prepared.camp.day };
@@ -1255,7 +1426,7 @@ const campLine = (lines) => ChatMessage.create({ content: lines.map((l) => `<p>$
  * Without Extras the chat says when the rest was interrupted. Then the day
  * closes and the new day's weather is rolled. An Extras rest that was
  * canceled or failed, or that no Extras is here to finish (turned off, or one
- * without camping.dawn), leaves the camp pending, so Continue tries it again
+ * without camping.dawn), leaves the camp pending, so Resume clock tries it again
  * rather than a second night passing or the rest being dropped (#282 review).
  * The day closes as soon as the rest is done, before the chat line, so a
  * retry finds the camp over (#282 review).
@@ -1283,7 +1454,7 @@ async function finishCamp() {
     if (reply.nothingPending) ui.notifications?.warn(t("SDE.overland.notify.campRestGone"));
     rested = !reply.nothingPending;
   }
-  const lines = [t("SDE.overland.camp.dawn")];
+  const lines = [t(_state.auto && CrawlState.isOverland ? "SDE.overland.camp.dawnAuto" : "SDE.overland.camp.dawn")];
   // A camp made before this build ate nothing yet: it eats now, as it used to.
   if (!camp?.ate) {
     const { members, each } = campNeeds();
@@ -1298,6 +1469,13 @@ async function finishCamp() {
   await campLine(lines);
   await rollWeatherHere(false);
   _camps++;
+  // Auto travel opens the next day at the camp's dawn: the GM is not asked for Start day every morning.
+  if (_state.auto && CrawlState.isOverland) {
+    try {
+      const day = await beginDay({});
+      if (!day?.ok && day?.error) ui.notifications?.warn(day.error);
+    } catch (err) { console.error(`${MODULE_ID} | auto start day after camp`, err); }
+  }
   return true;
 }
 
@@ -1379,7 +1557,8 @@ async function beginDay(data) {
   await postDay(boat);
   // A check whose hour went by before the day started falls due at once (§5.1).
   await advanceTravel(now, "day");
-  return { ok: true };
+  // That catch-up check can draw a creature: it waits, it does not stop the next day from opening.
+  return { ok: true, encounter: !!_state.encounter || !!_state.pending };
 }
 
 /**
@@ -1403,6 +1582,20 @@ export function applyAction(data, user) {
         const { state, changed, today } = setPace(_state, data.pace);
         if (changed) await commit(state);
         return { ok: true, today, changed };
+      }
+      case "auto": {
+        if (!mayMoveParty(user)) return notPartyOwner(user);
+        const next = normalizeOverlandState({ ..._state, auto: data.on === true, autoGoal: data.on === true ? _state.autoGoal : null });
+        if (next.auto !== _state.auto || JSON.stringify(next.autoGoal) !== JSON.stringify(_state.autoGoal)) await commit(next);
+        return { ok: true, auto: next.auto };
+      }
+      case "autoGoal": {
+        if (!CrawlState.isOverland) return { ok: false, error: t("SDE.overland.notify.notTravelling") };
+        if (!mayMoveParty(user)) return notPartyOwner(user);
+        if (!_state.auto) return { ok: false, error: t("SDE.overland.notify.autoOff") };
+        const { state, changed } = setAutoGoalState(_state, data.goal ?? null);
+        if (changed) await commit(state);
+        return { ok: true, autoGoal: state.autoGoal };
       }
       case "start": {
         if (!user.isGM) return { ok: false, error: t("SDE.overland.notify.gmOnly") };
@@ -1431,6 +1624,16 @@ export function applyAction(data, user) {
         if (!CrawlState.isOverland) return { ok: false, error: t("SDE.overland.notify.notTravelling") };
         return beginDay(data);
       }
+      case "autoDay": {
+        if (!CrawlState.isOverland) return { ok: false, error: t("SDE.overland.notify.notTravelling") };
+        if (!_state.auto) return { ok: false, error: t("SDE.overland.notify.autoOff") };
+        if (game.paused) return { ok: false, error: t("SDE.route.autoPaused") };
+        if (!mayMoveParty(user)) return notPartyOwner(user);
+        if (_state.day !== null) return { ok: true };
+        // Opening a day clears what is held: an encounter is the GM's to clear, as with Resume clock.
+        if (_state.pending || _state.encounter) return { ok: false, error: t(user.isGM ? "SDE.overland.notify.pending" : "SDE.overland.notify.encounterGm") };
+        return beginDay({});
+      }
       case "clock": {
         if (!user.isGM) return { ok: false, error: t("SDE.clock.gmOnly") };
         const seconds = data.to != null ? Math.trunc(Number(data.to)) - game.time.worldTime : Math.trunc(Number(data.seconds));
@@ -1450,11 +1653,21 @@ export function applyAction(data, user) {
       }
       case "resume": {
         const party = _state.camp?.executor === "native" ? Party.get(_state.camp.party) : null;
-        if (!user.isGM && !party?.testUserPermission(user, "OWNER")) return { ok: false, error: t("SDE.overland.notify.dayGmOnly") };
+        // A held encounter is the GM's to clear, whatever route asked (the bar's own check, a macro, the API);
+        // so is a held move, which has no camp and so no party a player could own.
+        if (!user.isGM && (_state.encounter || (_state.pending && !party))) return { ok: false, error: t("SDE.overland.notify.encounterGm") };
+        if (!user.isGM && !party?.testUserPermission(user, "OWNER")) return notPartyOwner(user);
         if (data.partyId && party?.id !== data.partyId) return { ok: false, error: t("SDE.camping.travelParty") };
         const pending = _state.pending;
         // An encounter that hit as the clock reached its target holds nothing but its panel.
         if (!pending && !_state.encounter) return { ok: false, error: t("SDE.overland.notify.nothingPending") };
+        // Resume clock is the deliberate resume: unpause first, then let the clock move. A player cannot
+        // unpause the table; say who can instead of silently sending the same warning on every click.
+        if (game.paused) {
+          if (!user.isGM) return { ok: false, error: t("SDE.overland.notify.pausedGm") };
+          try { await game.togglePause(false, { broadcast: true }); }
+          catch (err) { console.error(`${MODULE_ID} | unpause for Resume clock`, err); return { ok: false, error: t("SDE.overland.notify.paused") }; }
+        }
         await commit(setEncounter(setPending(_state, null).state, null).state);
         if (!pending) return { ok: true };
         const { stopped } = await advanceTravel(pending.until, pending.reason, lapseFor(pending.until));
@@ -1480,12 +1693,23 @@ export function applyAction(data, user) {
         await syncMembers();
         return tryForage(auth.actor);
       }
+      case "campPlan": {
+        const party = travelParty();
+        if (!party || !isNativeParty(party)) return { ok: false, error: t("SDE.overland.notify.campChoicesNative") };
+        if (!CrawlState.isOverland) return { ok: false, error: t("SDE.overland.notify.notTravelling") };
+        // The camp chooses for the party: its owner or a GM. requestCamp runs as the active GM, so check here.
+        if (!user.isGM && !party.testUserPermission(user, "OWNER")) return notPartyOwner(user);
+        return requestCamp(party, "plan");
+      }
       case "camp": {
         const party = travelParty();
-        if (!user.isGM && !(isNativeParty(party) && party.testUserPermission(user, "OWNER"))) return { ok: false, error: t("SDE.overland.notify.dayGmOnly") };
+        if (!user.isGM && !party?.testUserPermission(user, "OWNER")) return notPartyOwner(user);
+        if (!user.isGM && !isNativeParty(party)) return { ok: false, error: t("SDE.overland.notify.campChoicesNative") };
         if (data.partyId && party?.id !== data.partyId) return { ok: false, error: t("SDE.camping.travelParty") };
         if (!CrawlState.isOverland) return { ok: false, error: t("SDE.overland.notify.notTravelling") };
-        // A player cannot see the held encounter or press Continue: the GM's instruction would send them to a bar they do not have.
+        // Camping runs the night's clock; a paused game holds it until the table is back.
+        if (game.paused) return { ok: false, error: t("SDE.overland.notify.paused") };
+        // A player cannot see the held encounter or press Resume clock: the GM's instruction would send them to a bar they do not have.
         if (_state.pending || _state.encounter) return { ok: false, error: t(user.isGM ? "SDE.overland.notify.pending" : "SDE.overland.notify.campPending") };
         // The dawn closes the day: pressed again after it, Make camp makes no second camp (#282 review).
         // A press queued behind a camp that has since finished is a double click: the next day it finds open is not its own.
@@ -1493,7 +1717,7 @@ export function applyAction(data, user) {
         // Each step is kept in the camp as it's done, so a camp already made (pressed again after
         // something failed, in this tab or after a reload) goes on from the next step (#282 review).
         // Tasks already rolled and the window closed: the bar's Make camp opens it again. Night inside it names the party and runs the night.
-        if (!_state.camp && !data.partyId && isNativeParty(party) && campOf(party)?.phase === "awaitingRest") return { ok: true, setup: true };
+        if (!_state.camp && !data.partyId && isNativeParty(party) && campOf(party)?.phase === "awaitingRest" && !_state.auto) return { ok: true, setup: true };
         if (!_state.camp) await syncMembers();
         if (!_state.camp) {
           if (!(await pitchCamp(user, data.acceptShortages === true))) return isNativeParty(party) ? { ok: true, setup: true } : { ok: false, error: t("SDE.overland.notify.campNotMade") };
@@ -1516,7 +1740,7 @@ export function applyAction(data, user) {
       case "fastTravel": {
         if (!user.isGM) return { ok: false, error: t("SDE.overland.notify.fastGmOnly") };
         if (!CrawlState.isOverland) return { ok: false, error: t("SDE.overland.notify.notTravelling") };
-        // An encounter still held would be left behind unanswered: Continue it first.
+        // An encounter still held would be left behind unanswered: press Resume clock first.
         if (_state.pending || _state.encounter) return { ok: false, error: t("SDE.overland.notify.pending") };
         const doc = _state.tokenUuid ? fromUuidSync(_state.tokenUuid) : null;
         const scene = doc?.parent;
@@ -1544,10 +1768,28 @@ export function applyAction(data, user) {
   });
 }
 
+/** The table notices another client may raise over the socket. */
+/** The most days an automatic journey waits for its way to open before it gives up. */
+export const AUTO_WAIT_DAYS = 14;
+const SOCKET_NOTICES = new Set(["SDE.overland.notify.forageImpossible"]);
+/** Why a walked-out day halted, as the "autoDays" socket message may say it. */
+const AUTO_HALTS = new Set([null, "storm", "terrain", "weather"]);
+
 export function registerOverland() {
   _state = normalizeOverlandState(game.settings.get(MODULE_ID, OVERLAND_SETTING));
   registerQuery(OVERLAND_QUERY, (data, { user } = {}) => applyAction(data, user));
-  game.socket.on(SOCKET, (msg) => { if (msg?.type === "overland") reread(); });
+  game.socket.on(SOCKET, (msg) => {
+    if (msg?.type === "overland") reread();
+    // The active GM's day of a journey it was walking out: every tab says which day, or why it cannot.
+    // Socket payloads are forgeable: a whole number of days and a known halt only.
+    if (msg?.type === "autoDays" && !isActiveGM() && AUTO_HALTS.has(msg.halted ?? null)) {
+      const days = Math.min(AUTO_WAIT_DAYS, Math.max(0, Math.trunc(Number(msg.days)) || 0));
+      ui.notifications?.info(t(msg.halted ? "SDE.route.autoNoWalk" : "SDE.route.autoDays", { days, reason: t(msg.halted === "storm" ? "SDE.route.autoStorm" : "SDE.route.autoTerrain") }));
+    }
+    // A shared table notice (for example, a storm forbids the day's automatic forage).
+    // Socket payloads are forgeable: only the fixed keys below are shown, and with no data.
+    if (msg?.type === "notice" && SOCKET_NOTICES.has(msg.key) && !isActiveGM()) ui.notifications?.warn(t(msg.key));
+  });
   Hooks.on("preMoveToken", onPreMoveToken);
   Hooks.on("moveToken", onMoveToken);
   // The ground under keyed hexes is read ahead of the first price: now, on each canvas, whenever the travel

@@ -22,7 +22,7 @@ export const TRAVEL_DAY_HOURS = 8;
 export const PUSH = 1.5;
 
 /** What a different party does not inherit from the one before it: the open day, its checks, camp and forage, its hex. */
-const NEW_PARTY_RESETS = ["day", "pushed", "base", "budget", "spent", "pointSeconds", "checks", "pending", "encounter", "camp", "foraged", "boatUuid", "hex"];
+const NEW_PARTY_RESETS = ["day", "pushed", "base", "budget", "spent", "pointSeconds", "checks", "pending", "encounter", "camp", "foraged", "boatUuid", "hex", "autoGoal"];
 
 /** @returns {object} a fresh travel state: no token, no day open */
 export function defaultOverlandState() {
@@ -36,14 +36,16 @@ export function defaultOverlandState() {
     boatUuid: null,       // aboard a boat actor, its speed is the budget
     pushed: false,        // today's pace: pushing or not, fixed at dawn from `pace`
     pace: "normal",       // the standing pace, "normal" or "push": holds every dawn until changed (#257)
+    auto: false,          // auto travel: a clicked route runs over days, camping and starting each dawn by itself (GM)
+    autoGoal: null,       // {i, j}: the destination the automatic journey is going to, kept so Travel > Resume auto can pick it up after a stop
     base: 0,              // today's hexes at a normal pace (the method's, or the boat's speed)
     budget: 0,            // the day's points, fixed at dawn
     spent: 0,             // points spent; hexes left = budget - spent
     pointSeconds: 0,      // clock seconds per point, fixed at dawn (#231)
     weather: null,        // {kind, roll, rule, until, advantageNext, advantage, days} (#230)
     checks: [],           // the day's encounter checks, {half, at, chance, rolled, hit} (#232)
-    pending: null,        // {until, reason}: an advance stopped by a hit, waiting for Continue (#232)
-    encounter: null,      // what a quiet check that hit drew, for the GMs' panel until Continue (#257)
+    pending: null,        // {until, reason}: an advance stopped by a hit, waiting for Resume clock (#232)
+    encounter: null,      // what a quiet check that hit drew, for the GMs' panel until Resume clock (#257)
     camp: null,           // tonight's camp (#257): {party, interrupted, ate, until, lightsOut}: the uuid of the Extras party actor keeping its rest for the dawn, or null; when a creature woke it; the rations were eaten at camp; when it breaks; its lights are out
     foraged: [],          // actor ids that foraged today (#233)
     hex: null,            // {num, terrain, region, features}: the travel token's last hex
@@ -54,6 +56,8 @@ const str = (v) => (typeof v === "string" && v ? v : null);
 const int = (v, min = 0) => (Number.isFinite(Number(v)) ? Math.max(min, Math.trunc(Number(v))) : min);
 const ids = (v) => [...new Set((Array.isArray(v) ? v : []).filter((id) => typeof id === "string" && id))];
 const obj = (v) => (v && typeof v === "object" && !Array.isArray(v) ? { ...v } : null);
+/** A grid offset, or null. The automatic journey's saved destination. */
+const offsetOf = (v) => (obj(v) && Number.isFinite(v.i) && Number.isFinite(v.j) ? { i: Math.trunc(v.i), j: Math.trunc(v.j) } : null);
 
 /** A stored encounter check, or null when it isn't one. Its chance is the one it rolled at: none until rolled (#257). */
 function checkOf(v) {
@@ -146,6 +150,8 @@ export function normalizeOverlandState(value) {
     boatUuid: str(value.boatUuid),
     pushed: value.pushed === true,
     pace: value.pace === "push" ? "push" : "normal",
+    auto: value.auto === true,
+    autoGoal: offsetOf(value.autoGoal),
     base: int(value.base),
     budget: int(value.budget),
     spent: int(value.spent),
@@ -189,6 +195,12 @@ export function startTravel(state, { tokenUuid, members, method, sameParty } = {
 export function setHex(state, hex) {
   const next = normalizeOverlandState({ ...state, hex });
   return { state: next, changed: JSON.stringify(next.hex) !== JSON.stringify(state.hex) };
+}
+
+/** Remember (or clear) the automatic journey's destination, for Travel > Resume auto after a stop. */
+export function setAutoGoal(state, goal) {
+  const next = normalizeOverlandState({ ...state, autoGoal: goal });
+  return { state: next, changed: JSON.stringify(next.autoGoal) !== JSON.stringify(state.autoGoal) };
 }
 
 /** Record that a member foraged today. The check itself is #233's. */
@@ -240,7 +252,7 @@ export function markCheck(state, index, hit, chance) {
   return { state: normalizeOverlandState({ ...state, checks }), changed: true };
 }
 
-/** An advance stopped by a hit waits here for Continue; null clears it. */
+/** An advance stopped by a hit waits here for Resume clock; null clears it. */
 export function setPending(state, pending) {
   const next = normalizeOverlandState({ ...state, pending });
   return { state: next, changed: JSON.stringify(next.pending) !== JSON.stringify(state.pending) };
@@ -285,7 +297,7 @@ export function interruptRest(state, at) {
   return { state: normalizeOverlandState({ ...state, camp: { ...camp, interrupted: at } }), changed: true };
 }
 
-/** What a quiet check that hit drew waits here for the GMs; null clears it (Continue, a new day). */
+/** What a quiet check that hit drew waits here for the GMs; null clears it (Resume clock, a new day). */
 export function setEncounter(state, encounter) {
   const next = normalizeOverlandState({ ...state, encounter });
   return { state: next, changed: JSON.stringify(next.encounter) !== JSON.stringify(state.encounter) };
@@ -481,7 +493,7 @@ export const WALK_MS_PER_HEX = 400;
 export const WALK_SLICE_MS = 150;
 
 /**
- * A camp's or Continue's time-lapse in real ms: a beat and a share of the span, long enough to watch
+ * A camp's or Resume clock's time-lapse in real ms: a beat and a share of the span, long enough to watch
  * the dusk fall and the dawn lift, so a 12-hour night takes about 8 s and a few minutes just over one
  * (0: no clock to move).
  * @param {number} seconds  the clock the advance covers
@@ -522,7 +534,7 @@ export function walkSlices(seconds, ms, sliceMs = WALK_SLICE_MS) {
 export function moveVerdict(state, { cost, blocked }) {
   if (cost === 0 && !blocked) return null;   // displaced, or within one hex
   if (state.day === null) return "noDay";
-  // An encounter stopped the clock, or hit just as it reached its target: Continue first.
+  // An encounter stopped the clock, or hit just as it reached its target: Resume clock first.
   if (state.pending || state.encounter) return "pending";
   if (blocked) return "impassable";
   return cost > state.budget - state.spent ? "bounce" : null;

@@ -11,7 +11,7 @@
  * module loads, with constants.mjs and encounter-preload-core.mjs under them. All four are pure at load, so only a
  * packaging error (one of them absent from the install) could stop the module loading over them.
  *
- * Returning from a fight also continues the travel, the way Continue does (see returnToTravel); set-up, bringing the
+ * Returning from a fight also continues the travel, the way Resume clock does (see returnToTravel); set-up, bringing the
  * table and changing the map leave Overland's held encounter and the clock alone.
  */
 
@@ -62,7 +62,7 @@ const live = {
  * Carry the travel on after a fight. Bringing the table activated a scene that is not a hex map, and where the module
  * follows the active scene that turned the travel into a crawl, which nothing turns back: the party was left on the hex
  * map with no travel, no time and no checks. A party that was travelling is put back (only from a crawl: travel the GM
- * ended is theirs). Then what the Continue button does: the encounter that stopped the clock is cleared and the advance it
+ * ended is theirs). Then what the Resume clock button does: the encounter that stopped the clock is cleared and the advance it
  * stopped is finished. Nothing held (a battle made from a posted card, an encounter already continued) is nothing to do.
  * @param {{travelling?:boolean}} [battle]  the battle's own record of whether the party was travelling
  * @param {{crawl?:object, overland?:object}} [modules]  the crawl state and Overland, instead of the real ones (tests)
@@ -200,7 +200,7 @@ const savedLabel = (battle) => (battle.encounter?.name
 /**
  * Return to travel, from a staged or a live battle: the origin scene again, this battle's tokens down, its combat
  * ended; `keep` first saves a copy with the tokens. From a battle whose table was brought (the fight is over) the
- * travel carries on as if the GM had pressed Continue: the held encounter stopped the clock, and until it is cleared
+ * travel carries on as if the GM had pressed Resume clock: the held encounter stopped the clock, and until it is cleared
  * the party moves on the hex map and no time passes. A battle that was only set up leaves the encounter held.
  */
 export async function returnToTravel({ battle, keep = false }, io = {}) {
@@ -209,7 +209,7 @@ export async function returnToTravel({ battle, keep = false }, io = {}) {
   return guarded(async () => {
     const done = await (await x.battle()).returnToTravel(battle.id, { keep: !!keep, label: keep ? savedLabel(battle) : undefined });
     if (done && battle.status === BATTLE_STATUS.live) {
-      // The battle is down either way: a travel that cannot be continued says so and leaves Continue to the GM.
+      // The battle is down either way: a travel that cannot be continued says so and leaves Resume clock to the GM.
       try {
         const result = await x.continueTravel({ travelling: !!battle.travelling });
         if (result?.ok === false) ui.notifications?.warn(result.error);

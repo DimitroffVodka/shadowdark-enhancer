@@ -1,8 +1,9 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { Party } from "../party/party.mjs";
-import { requestCamp, campOf, campTorchPlan } from "./camping.mjs";
-import { CAMP_LABELS } from "./camping-core.mjs";
+import { requestCamp, campOf, campTorchPlan, syncParticipants } from "./camping.mjs";
+import { AUTO_BLOCKED, CAMP_LABELS } from "./camping-core.mjs";
 import { foodPreview, campEaters } from "./camping-nutrition.mjs";
+import { dateParts } from "../time/time-core.mjs";
 import { campPictureUp } from "../stage/stage-core.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -33,7 +34,7 @@ export class CampingApp extends HandlebarsApplicationMixin(ApplicationV2) {
       if (fold) await fold.minimize();
       try {
         const overland = action === "night" ? await import("../overland/overland.mjs") : null;
-        const result = overland ? await (overland.overlandState().pending?.reason === "camp" ? overland.resume(this.party) : overland.makeCamp(this.party, data.acceptShortages === true)) : await requestCamp(this.party, action, data);
+        const result = overland ? await (overland.overlandState().pending?.reason === "camp" ? overland.resumeHeld(this.party) : overland.makeCamp(this.party, data.acceptShortages === true)) : await requestCamp(this.party, action, data);
         this.error = result.ok ? null : result.error;
         if (!result.ok && !this.host) ui.notifications.warn(result.error);
         return result;
@@ -44,18 +45,29 @@ export class CampingApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return run;
   }
   async _prepareContext() {
-    const camp = campOf(this.party), manager = Party.canManage(this.party);
+    const camp = syncParticipants(this.party, campOf(this.party)), manager = Party.canManage(this.party);
     if (!camp) return { title: this.party.name, embedded: !!this.host, manager, isGM: game.user.isGM, empty: true, error: this.error, campPictureUp: campPictureUp(game.settings.get(MODULE_ID, "stage")) };
     const setup = camp.phase === "setup", fuel = camp.phase === "fuel", plan = campTorchPlan(this.party, camp);
-    const { campContext } = await import("../overland/overland.mjs");
-    const context = campContext(), food = foodPreview(this.party, camp, camp.each ?? context.each, camp.day ?? context.day);
+    const planning = setup && camp.preview === true;
+    const stormHunt = !!(camp.stormy && camp.harsh);
+    const overland = await import("../overland/overland.mjs");
+    const context = overland.campContext(), food = foodPreview(this.party, camp, camp.each ?? context.each, camp.day ?? context.day);
+    // The night stopped by an encounter: the GM's panel is on the clock bar, but the camp window is where the GM is looking.
+    const state = game.user.isGM ? overland.overlandState() : null;
+    const held = state?.pending?.reason === "camp" && camp.phase === "awaitingRest" ? state.encounter : null;
+    const interrupted = held?.kind === "monster" && held.name
+      ? { what: `${held.count ?? 1} × ${held.name}`, time: dateParts(game.time.calendar, held.at).time }
+      : null;
     this.fuelPreview = plan.deductions;
     const unfed = campEaters(camp).filter(p => !food.find(f => f.actorId === p.actorId)?.fed)
       .map(p => game.actors.contents.find(a => a.uuid === p.uuid)?.name ?? t("SDE.party.missing"));
-    return { title: this.party.name, embedded: !!this.host, manager, setup, fuel, isGM: game.user.isGM, error: this.error, campPictureUp: campPictureUp(game.settings.get(MODULE_ID, "stage")),
+    return { title: this.party.name, embedded: !!this.host, manager, setup, fuel, planning, isGM: game.user.isGM, error: this.error, interrupted,
+      campPictureUp: campPictureUp(game.settings.get(MODULE_ID, "stage")),
+      autoBlockedNote: AUTO_BLOCKED[camp.autoBlocked] ? t(AUTO_BLOCKED[camp.autoBlocked]) : null,
+      stormHuntNote: stormHunt ? t("SDE.camping.stormHuntNote") : null,
       phase: t(CAMP_LABELS.phase[camp.phase]), fire: t(camp.fire?.lit ? "SDE.camping.fireLit" : "SDE.camping.noFire"), hasResults: Object.keys(camp.results).length > 0,
-      awaitingRest: camp.phase === "awaitingRest", complete: camp.phase === "complete", shortageWarning: camp.shortageWarning, unfedNames: unfed.length ? game.i18n.format("SDE.camping.shortageNames", { names: unfed.join(", ") }) : null,
-      canNight: manager && camp.phase === "awaitingRest", canResolve: manager && setup, canResume: manager && (camp.phase === "complete" ? !game.messages.has(camp.reportId) : !setup && !fuel && camp.phase !== "awaitingRest"),
+      awaitingRest: camp.phase === "awaitingRest", complete: camp.phase === "complete", shortageWarning: unfed.length > 0, unfedNames: unfed.length ? game.i18n.format("SDE.camping.shortageNames", { names: unfed.join(", ") }) : null,
+      canNight: manager && camp.phase === "awaitingRest", canResolve: manager && setup && !planning, canCancel: manager && setup, canResume: manager && (camp.phase === "complete" ? !game.messages.has(camp.reportId) : !setup && !fuel && camp.phase !== "awaitingRest"),
       torchShortage: camp.fuelShort !== undefined && !camp.fire?.lit ? game.i18n.format("SDE.camping.torchShortage", { available: camp.fuelShort }) : null,
       fuelChoices: ["none", "wood", "torches"].map(value => ({ value, label: t(CAMP_LABELS.fuel[value]), selected: camp.fuel === value })),
       available: plan.available, canFuel: manager && plan.ok,
@@ -71,7 +83,7 @@ export class CampingApp extends HandlebarsApplicationMixin(ApplicationV2) {
         return { ...p, meal,
           deathWarning: !meal.fed && meal.con <= (meal.saved ? 0 : 1),
           name: actor?.name ?? t("SDE.party.missing"), editable: setup && !!actor?.testUserPermission(game.user, "OWNER"),
-          tasks: [{ key: "", name: t("SDE.camping.noTask"), selected: !p.task }, ...camp.tasks.map(v => ({ key: v.key, name: v.name ?? t(v.label), selected: p.task === v.key }))],
+          tasks: [{ key: "", name: t("SDE.camping.noTask"), selected: !p.task }, ...camp.tasks.map(v => ({ key: v.key, name: v.name ?? t(v.label), selected: p.task === v.key, disabled: stormHunt && v.key === "hunt" }))],
           abilities: (task?.abilities ?? []).map(value => ({ value, label: value.toUpperCase(), selected: p.ability === value })),
           dc: task?.dc, taskName: task?.name ?? (task ? t(task.label) : t("SDE.camping.noTask")), description, campfire: !!task?.campfire,
           craftTask: p.task === "craft", entertainTask: p.task === "entertain", watchTask: p.task === "keepWatch", repair: p.craft === "repair",

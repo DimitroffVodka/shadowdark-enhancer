@@ -29,8 +29,9 @@ const SIGHT_PART = {
   excellent: "SDE.travel.sight.part.excellent", slight: "SDE.travel.sight.part.slight", high: "SDE.travel.sight.part.high",
 };
 
-const key = (action, label, { id = "", cls = "", hint = "" } = {}) =>
+const key = (action, label, { id = "", cls = "", hint = "", pressed = null } = {}) =>
   `<button type="button" class="sde-hud-key ${cls}" data-action="${action}"${id ? ` data-id="${esc(id)}"` : ""}${
+    pressed === null ? "" : ` aria-pressed="${pressed}"`}${
     hint ? ` data-tooltip="${esc(hint)}"` : ""}>${esc(label)}</button>`;
 const signed = (n) => `${n >= 0 ? "+" : "−"}${Math.abs(n)}`;
 const gold = (v) => `<span class="sde-hud-gold">${esc(v)}</span>`;
@@ -78,13 +79,23 @@ export function travelPanel(v) {
     if (n === shown) cls += " sde-hud-shown";
     return `<li class="${cls}"><button type="button" data-action="see" data-id="${n}"${n === now ? " data-now=\"1\"" : ""}${n === shown ? " aria-current=\"step\"" : ""}><span class="sde-hud-num">${n}</span>${esc(t(STEP_NAME[step]))}</button></li>`;
   }).join("");
+  const mayCamp = v.mayCamp ?? gm;
+  const mayAuto = gm || mayCamp;
+  const autoKey = mayAuto
+    ? key("auto", t("SDE.overland.auto"), { id: state.auto ? "0" : "1", cls: `sde-hud-sm ${state.auto ? "sde-hud-primary" : "sde-hud-ghost"}`, hint: t("SDE.overland.autoHint"), pressed: !!state.auto })
+    : "";
+  const canResumeAuto = !!state.auto && !!state.autoGoal && !state.pending && !state.encounter && !state.camp;
+  const resumeAuto = canResumeAuto
+    ? key("resumeAuto", t("SDE.overland.resumeAuto"), { cls: "sde-hud-sm", hint: t("SDE.overland.resumeAutoHint") }) : "";
   const foot = gm ? `<div class="sde-hud-pf">
       ${pending ? key("resume", t("SDE.overland.resume"), { cls: "sde-hud-primary", hint: t("SDE.overland.resumeHint") }) : ""}
       <span class="sde-hud-fl sde-hud-small">${esc(t("SDE.travel.gm"))}</span>
       ${key("startDay", t("SDE.travel.newDay"), { cls: "sde-hud-sm sde-hud-ghost", hint: t("SDE.overland.startDayHint") })}
+      ${autoKey}
+      ${resumeAuto}
       <span class="sde-hud-grow"></span>
       ${key("endTravel", t("SDE.overland.endTravel"), { cls: "sde-hud-sm sde-hud-ghost", hint: t("SDE.overland.endTravelHint") })}
-    </div>` : "";
+    </div>` : (mayAuto ? `<div class="sde-hud-pf">${autoKey}${resumeAuto}</div>` : "");
   return `<div class="sde-hud-panel sde-hud-travel">
     <div class="sde-hud-ph"><span class="sde-hud-ttl">${esc(t("SDE.clock.travel"))}</span><span class="sde-hud-cap">${esc(subtitle)}</span></div>
     <div class="sde-hud-tp"><ol class="sde-hud-steps">${list}</ol><div class="sde-hud-sb">${stepBody(shown, v, sight)}</div></div>
@@ -163,6 +174,7 @@ function stepBody(n, v, sight) {
           <span class="sde-hud-meter"><span style="width:${Math.round(m.leftShare * 100)}%"></span></span>
           <span class="sde-hud-cap"><b>${esc(t("SDE.travel.left", { left: m.hexesLeft, budget: m.budget }))}</b></span></div>`
         + fl("SDE.travel.move") + fl(why) + rows
+        + (state.auto ? fl("SDE.travel.autoOn") : "")
         + (mayCamp ? `<div class="sde-hud-trow">${key("makeCamp", t("SDE.overland.makeCamp"), { cls: "sde-hud-primary", hint: t("SDE.overland.makeCampHint") })}</div>` : "");
     }
     case 6: {
@@ -181,7 +193,7 @@ function stepBody(n, v, sight) {
     }
     case 7:
       return h3 + fl("SDE.travel.resting.about")
-        + (mayCamp && m.dayOpen ? `<div class="sde-hud-trow">${key("makeCamp", t("SDE.overland.makeCamp"), { cls: "sde-hud-primary", hint: t("SDE.overland.makeCampHint") })}</div>` : "");
+        + (mayCamp && m.dayOpen ? `<div class="sde-hud-trow">${key("makeCamp", t("SDE.overland.makeCamp"), { cls: "sde-hud-primary", hint: t("SDE.overland.makeCampHint") })}${key("campChoices", t("SDE.overland.campChoices"), { cls: "sde-hud-sm", hint: t("SDE.overland.campChoicesHint") })}</div>` : "");
     case 8:
       return h3 + fl("SDE.travel.night.about")
         + (gm && state.pending?.reason === "camp" ? res(t("SDE.travel.night.stopped")) : "")

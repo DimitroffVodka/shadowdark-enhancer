@@ -74,7 +74,7 @@ Object.assign(globalThis, {
     modules: { get: () => null },
   },
 });
-const { moveSteps, slowWalk, applyAction, registerOverland, overlandState, weatherNow, recordMove, advanceTravel, undergroundCheck, dawnWeather, checkNow, makeCamp, askDay } = await import("../scripts/overland/overland.mjs");
+const { moveSteps, slowWalk, applyAction, registerOverland, overlandState, weatherNow, recordMove, advanceTravel, undergroundCheck, dawnWeather, checkNow, makeCamp, askDay, travelBlocked } = await import("../scripts/overland/overland.mjs");
 const { BOAT_TYPE } = await import("../scripts/actors/register-actors.mjs");
 const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
 
@@ -452,7 +452,8 @@ test("a move across a check hour rolls it at its hour; a hit stops the clock the
     { cost: 1, blocked: null, steps: [{ hex: { num: 10 } }] });
   assert.equal(refused, false);
   assert.equal(globalThis.game.time.worldTime, at(1301, 6, 21, 14));
-  assert.equal((await applyAction({ action: "resume" }, { id: "player1", isGM: false })).ok, false, "a player can't continue");
+  assert.deepEqual(await applyAction({ action: "resume" }, { id: "player1", isGM: false }),
+    { ok: false, error: "SDE.overland.notify.encounterGm" }, "a player can't continue, and is told it is the GM's, not that they do not own a party");
 
   const res = await applyAction({ action: "resume" }, gm);
   assert.equal(res.ok, true);
@@ -1115,7 +1116,7 @@ test("Make camp pressed again after the night failed goes on from where the camp
   await assert.rejects(applyAction({ action: "camp" }, gm));
   assert.equal(globalThis.game.time.worldTime, at(1301, 6, 21, 8), "no clock passed");
   assert.deepEqual(await applyAction({ action: "camp" }, { id: "player1", isGM: false }),
-    { ok: false, error: "SDE.overland.notify.dayGmOnly" }, "a player can't press it on");
+    { ok: false, error: "SDE.overland.notify.notPartyOwner" }, "a player who does not own the party sheet can't press it on");
   dice.push(4);                                    // the new day's weather
   assert.deepEqual(await applyAction({ action: "camp" }, gm), { ok: true, stopped: false });
   lights.stop();
@@ -1618,6 +1619,22 @@ test("the bar's Make camp only reopens the window when the tasks are done; Night
   }
 });
 
+test("a held encounter is the GM's to clear: a Party owner's Resume clock is refused on every route, the GM's goes through", async () => {
+  travelling(["mine"]);
+  const party = { id: "native", uuid: "Actor.native", type: "NPC", flags: { "shadowdark-enhancer": { party: true } }, ...owner("player1") };
+  actors[party.uuid] = party;
+  stored.overlandState = { ...stored.overlandState, camp: { party: party.uuid, executor: "native" },
+    encounter: { at: 1, half: "night", chance: 1, kind: "monster", name: "Wolf", chain: [], also: [] } };
+  registerOverland();
+  try {
+    assert.deepEqual(await applyAction({ action: "resume" }, { id: "player1", isGM: false }),
+      { ok: false, error: "SDE.overland.notify.encounterGm" }, "a macro or the API cannot step past the bar's own check");
+    assert.equal(overlandState().encounter?.name, "Wolf", "the encounter is still held");
+    assert.deepEqual(await applyAction({ action: "resume" }, gm), { ok: true });
+    assert.equal(overlandState().encounter, null);
+  } finally { delete actors[party.uuid]; }
+});
+
 test("a throwing Extras never breaks the weather write (#307)", async () => {
   for (const api of [
     { revealFrom: () => { throw new Error("sync"); } },
@@ -1709,4 +1726,103 @@ test("Automatic foraging off: the day's first move forages no one, and Forage st
   } finally {
     delete stored.overlandAutoForage;
   }
+});
+
+test("Auto travel's day start is refused, GM side, while an encounter is held, exactly as Resume clock is (#551 review)", async () => {
+  travellingDay();
+  stored.overlandState = { ...stored.overlandState, auto: true, day: null,
+    encounter: { at: 1, half: "day", chance: 1, kind: "monster", name: "Wolf", chain: [], also: [] } };
+  registerOverland();
+  assert.deepEqual(await applyAction({ action: "autoDay" }, gm), { ok: false, error: "SDE.overland.notify.pending" });
+  assert.deepEqual([overlandState().day, overlandState().encounter?.name], [null, "Wolf"], "no day opened, the encounter still held");
+});
+
+test("bounce banners: quiet only for the automatic walk's own tagged moves, never for a drag while Auto is on (#551 review)", async () => {
+  travellingDay();
+  dice.push(3);
+  await applyAction({ action: "startDay", method: "walking" }, gm);
+  stored.overlandState = { ...stored.overlandState, auto: true };
+  registerOverland();
+  const warned = [], warn = globalThis.ui.notifications.warn;
+  globalThis.ui.notifications.warn = (m) => warned.push(m);
+  try {
+    const doc = { id: "t", parent: null, update: async () => {} };
+    const tooDear = { cost: 9, blocked: null, steps: [{ hex: { num: 7 } }] };
+    assert.equal(await recordMove(doc, { x: 0, y: 0 }, { x: 100, y: 0 }, tooDear), false);
+    assert.deepEqual(warned, ["SDE.overland.notify.bounce"], "a drag is told why");
+    assert.equal(await recordMove(doc, { x: 0, y: 500 }, { x: 100, y: 500 }, tooDear, undefined, undefined, true), false);
+    assert.equal(warned.length, 1, "the walk explains its own stop");
+  } finally { globalThis.ui.notifications.warn = warn; }
+});
+
+test("a socket notice shows only the fixed forage key, never another string or its data (#551 review)", () => {
+  travelling(["mine"]);
+  let handler = null;
+  const socket = globalThis.game.socket, user = globalThis.game.user;
+  globalThis.game.socket = { emit() {}, on: (name, fn) => { handler = fn; } };
+  registerOverland();
+  const warned = [], warn = globalThis.ui.notifications.warn;
+  globalThis.ui.notifications.warn = (m) => warned.push(m);
+  globalThis.game.user = { id: "player1", isGM: false };
+  try {
+    handler({ type: "notice", key: "SDE.overland.notify.notPartyOwner", data: { name: "the GM" } });
+    handler({ type: "notice", key: "SDE.overland.notify.forageImpossible", data: { x: 1 } });
+    assert.deepEqual(warned, ["SDE.overland.notify.forageImpossible"]);
+  } finally { globalThis.ui.notifications.warn = warn; globalThis.game.socket = socket; globalThis.game.user = user; }
+});
+
+test("an autoDays socket message shows only a whole number of days and a known halt (#551 review)", () => {
+  travelling(["mine"]);
+  let handler = null;
+  const socket = globalThis.game.socket, user = globalThis.game.user;
+  globalThis.game.socket = { emit() {}, on: (name, fn) => { handler = fn; } };
+  registerOverland();
+  const shown = [], info = globalThis.ui.notifications.info, format = globalThis.game.i18n.format;
+  globalThis.ui.notifications.info = (m) => shown.push(m);
+  globalThis.game.i18n.format = (k, d) => `${k} ${d?.days ?? ""}`;
+  globalThis.game.user = { id: "player1", isGM: false };
+  try {
+    handler({ type: "autoDays", days: "9999 <b>days</b>", halted: null });
+    handler({ type: "autoDays", days: 2.7, halted: "the GM says" });
+    handler({ type: "autoDays", days: 3, halted: "storm" });
+    handler({ type: "autoDays", days: "1e400", halted: null });
+    assert.deepEqual(shown, ["SDE.route.autoDays 0", "SDE.route.autoNoWalk 3", "SDE.route.autoDays 14"]);
+  } finally {
+    globalThis.ui.notifications.info = info; globalThis.game.i18n.format = format;
+    globalThis.game.socket = socket; globalThis.game.user = user;
+  }
+});
+
+test("a destination that never opens reads as its ground, not as the storm, in a harsh storm (#551 review)", async () => {
+  campWorld({ climate: { harsh: "storm" } });
+  dice.push(1, 12, 12, 12, 12);                    // a stormy dawn, in a climate harsh in storms
+  await applyAction({ action: "startDay", method: "walking" }, gm);
+  assert.equal(stored.overlandState.weather.kind, "stormy");
+  const scene = { id: "s", grid: { isHexagonal: true, getCenterPoint: () => ({ x: 0, y: 0 }) }, getFlag: () => null };
+  stored.overlandState = { ...stored.overlandState, tokenUuid: "Scene.s.Token.t" };
+  registerOverland();
+  globalThis.fromUuidSync = (uuid) => (uuid === "Scene.s.Token.t" ? { parent: scene } : null);
+  const journal = globalThis.game.journal;
+  globalThis.game.journal = { getName: () => ({ flags: { "shadowdark-extras": { hexData: { s: { "3_0": { terrain: "lake" }, "4_0": { terrain: "plains" } } } } } }) };
+  globalThis.game.shadowdarkEnhancer.rules.terrainCost = (terrain) => (terrain === "lake" ? Infinity : 1);
+  try {
+    assert.equal(await travelBlocked({ i: 3, j: 0 }), "terrain");
+    assert.equal(await travelBlocked({ i: 4, j: 0 }), "storm");
+  } finally { globalThis.game.journal = journal; }
+});
+
+test("a destination whose terrain the rules do not know is walkable, as a move prices it (#551 review)", async () => {
+  campWorld({ climate: { harsh: "storm" } });
+  dice.push(1, 12, 12, 12, 12);                    // a stormy dawn, in a climate harsh in storms
+  await applyAction({ action: "startDay", method: "walking" }, gm);
+  const scene = { id: "s", grid: { isHexagonal: true, getCenterPoint: () => ({ x: 0, y: 0 }) }, getFlag: () => null };
+  stored.overlandState = { ...stored.overlandState, tokenUuid: "Scene.s.Token.t" };
+  registerOverland();
+  globalThis.fromUuidSync = (uuid) => (uuid === "Scene.s.Token.t" ? { parent: scene } : null);
+  const journal = globalThis.game.journal;
+  globalThis.game.journal = { getName: () => ({ flags: { "shadowdark-extras": { hexData: { s: { "5_0": { terrain: "swampland" } } } } } }) };
+  globalThis.game.shadowdarkEnhancer.rules.terrainCost = () => null;
+  try {
+    assert.equal(await travelBlocked({ i: 5, j: 0 }), "storm");   // the storm waits, the ground is not "never"
+  } finally { globalThis.game.journal = journal; }
 });

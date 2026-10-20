@@ -73,7 +73,7 @@ The battle's panel (the **Battle map** item on the Crawl Bar, open by itself whi
 up) starts with who you are fighting: the creature and how many, and the distance,
 activity and reaction that were rolled for them, worded as the Encounter panel
 worded them on the hex map. It is kept with the battle, so it is still there after
-you press Continue, and for a battle set up from a posted card.
+you press Resume clock, and for a battle set up from a posted card.
 
 ### Bring the table
 
@@ -110,11 +110,11 @@ everyone to a scene that is not a hex map, and where the table's active scene
 decides between travel and crawl, that turns the travel into a crawl. Returning
 puts the party back on the road (only when they were travelling as the battle was
 set up, and only from that crawl: travel you ended yourself stays ended). Then it
-does what **Continue** does: the encounter that stopped the clock is cleared and the
+does what **Resume clock** does: the encounter that stopped the clock is cleared and the
 move it interrupted is finished, so the party moves, time passes and the checks roll
 again. Without that the party could be dragged about the hex map with nothing
 happening. If the battle was only set up and you never brought the table, nothing
-changes: the encounter stays held and **Continue** is yours to press, as before.
+changes: the encounter stays held and **Resume clock** is yours to press, as before.
 
 ### Keep this battle
 

@@ -409,6 +409,18 @@ export function registerSettings() {
     onChange: clockBarChanged,
   });
 
+  // The Pulp cap an Entertain target may reach: an automatic camp turns to another character at this
+  // many luck tokens. Standard mode has one token, so the setting is ignored there.
+  game.settings.register(MODULE_ID, "campPulpLuckMax", {
+    name: "SDE.settings.campPulpLuckMax.name",
+    hint: "SDE.settings.campPulpLuckMax.hint",
+    scope: "world",
+    config: false,
+    type: Number,
+    range: { min: 1, max: 10, step: 1 },
+    default: 4,
+  });
+
   // The clock bar at the top (#253): who sees it. Everyone by default; nobody
   // during a combat whatever this says.
   game.settings.register(MODULE_ID, "clockBar", {

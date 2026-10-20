@@ -4104,6 +4104,33 @@ body:has(.sdx-scene-nav-bar) #shadowdark-enhancer-travel { top: 72px; }
   color: var(--sd-text-muted);
 }
 .sde-hud-plate b { font-family: "Montserrat-Bold", sans-serif; font-weight: normal; color: var(--sd-text); }
+/* The Auto travel toggle in the clock bar: quiet when off, lit when on, so the standing mode is visible without
+   opening the Travel panel. */
+.sde-hud-auto {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  width: 67px;
+  padding: 0;
+  justify-content: center;
+  margin-right: 4px;
+  border: 1px dashed var(--sd-frame);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--sd-text-muted);
+  font-family: "Montserrat-SemiBold", sans-serif;
+  font-size: 9.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.sde-hud-auto:hover { color: var(--sd-text); border-color: var(--sd-text-muted); }
+.sde-hud-auto[aria-pressed="true"] { background: var(--sd-text); border: 1px solid var(--sd-text); color: var(--sd-page); }
+.sde-hud-auto[aria-pressed="true"]:hover { background: var(--sd-text-body); border-color: var(--sd-text-body); }
 .sde-hud-go {
   height: 26px;
   padding: 0 12px;
@@ -4265,6 +4292,7 @@ button.sde-hud-ttlbtn:hover, button.sde-hud-ttlbtn[aria-expanded="true"] { borde
 .sde-hud-key.sde-hud-sm { height: 26px; padding: 0 10px; font-size: 10px; border-width: 1px; }
 .sde-hud-key.sde-hud-ghost { border-color: #666; color: var(--sd-text-muted); }
 .sde-hud-key.sde-hud-primary { background: var(--sd-text); color: var(--sd-page); border-color: var(--sd-text); }
+.sde-hud-key[aria-pressed="true"] { background: var(--sd-text); color: var(--sd-page); border-color: var(--sd-text); }
 .sde-hud-grid4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
 .sde-hud-grid4 .sde-hud-key { height: 30px; }
 .sde-hud-row { display: flex; align-items: center; gap: 6px; }
@@ -4407,17 +4435,21 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 #sde-route-tip {
   position: fixed;
   z-index: 100;
-  transform: translateY(-50%);
-  padding: 4px 9px;
+  max-width: 320px;
+  padding: 7px 10px;
   background: #000;
   border: 1px solid #c9c9c9;
   border-radius: 3px;
   font-family: "Montserrat-SemiBold", sans-serif;
   font-size: 12px;
+  line-height: 1.35;
   color: #ffffff;
-  white-space: nowrap;
+  white-space: normal;
   pointer-events: none;
 }
+.sde-route-tip-main { font-size: 13px; color: #fff; }
+.sde-route-tip-sub { margin-top: 2px; font-size: 11px; color: #d6d6d6; }
+.sde-route-tip-hint { margin-top: 3px; font-size: 10px; letter-spacing: 0.04em; text-transform: uppercase; color: #a8a8a8; }
 
 /* The travel panel: the book's eight steps beside the step's record (#257). */
 .sde-hud-travel { width: 740px; }

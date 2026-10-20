@@ -16,7 +16,7 @@ import { BASTION_TYPE } from "../bastion/bastion-art.mjs";
 import { esc }             from "../shared/esc.mjs";
 import { BUTTONS, barItems, overlandBadge, toolsSections } from "./crawl-bar-core.mjs";
 import {
-  startOverland, endOverland, rollWeather, weatherNow, weatherName, startDayFromParty, resume, overlandState, OVERLAND_CHANGED,
+  startOverland, endOverland, rollWeather, weatherNow, weatherName, startDayFromParty, resumeHeld, overlandState, OVERLAND_CHANGED,
   makeCamp,
 } from "../overland/overland.mjs";
 import { TravelBar }       from "../overland/overland-bar.mjs";
@@ -464,7 +464,7 @@ export const CrawlBar = {
       }
 
       case "resumeTravel": {
-        const reply = await resume();
+        const reply = await resumeHeld();
         if (!reply?.ok && reply?.error) ui.notifications.warn(reply.error);
         this.render();
         break;

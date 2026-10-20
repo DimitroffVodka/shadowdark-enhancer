@@ -39,13 +39,15 @@ import {
 } from "../time/time-core.mjs";
 import {
   overlandState, weatherNow, weatherName, methodName, rollWeather, startDayFromParty, setTravelPace, partyReading, makeCamp,
-  endOverland, resume, forage, startOverland, advanceClock, checkNow, encounterSettings, ENCOUNTER_SETTINGS, OVERLAND_CHANGED, autoForageEnabled,
+  endOverland, resumeHeld, forage, startOverland, advanceClock, checkNow, encounterSettings, ENCOUNTER_SETTINGS, OVERLAND_CHANGED, autoForageEnabled,
+  setAutoTravel, openCampChoices,
 } from "./overland.mjs";
 import { Party, isNativeParty } from "../party/party.mjs";
 import { barModel, itemTouchesBar, redrawStamp, hhmm, weatherSwitch } from "./overland-bar-core.mjs";
 import { WEATHER_VISUALS, weatherVisualsOn } from "./sky.mjs";
 import { travelPanel } from "./travel-panel.mjs";
 import { campOf } from "../camping/camping.mjs";
+import { resumeAutoTravel } from "./route.mjs";
 import { encounterCard, encounterPanel, encounterStrip } from "./encounter-panel.mjs";
 import { BATTLE_STATUS, FLAGS } from "../encounter/battle-maps/constants.mjs";
 import {
@@ -126,6 +128,9 @@ const supplyChips = (sup) => {
 const key = (action, label, { id = "", hint = "", cls = "", aria = "" } = {}) =>
   `<button type="button" class="sde-hud-key ${cls}" data-action="${action}"${id ? ` data-id="${esc(id)}"` : ""}${
     aria ? ` aria-label="${esc(aria)}"` : ""}${hint ? ` data-tooltip="${esc(hint)}"` : ""}>${esc(label)}</button>`;
+
+/** The last warning shown by the bar, so a burst of the same click does not stack banners. */
+let _lastWarn = { text: "", at: 0 };
 
 export const TravelBar = {
   _el: null,
@@ -504,6 +509,10 @@ export const TravelBar = {
       people = Party.list().length ? ib("findParty", "fa-location-crosshairs", t("SDE.clock.find.tip")) + ib("partySheet", "fa-shield-halved", t("SDE.clock.sheet.tip")) : "";
       party = plate ? ib("open", "fa-users", t("SDE.clock.travel"), { id: "travel", pressed: this._open === "travel" }) : "";
     }
+    // The standing Auto travel switch, beside the travel switch, so the mode is visible without opening the panel.
+    const auto = (gm || this._mayCamp()) && CrawlState.isOverland
+      ? `<button type="button" class="sde-hud-auto" data-action="auto" data-id="${state.auto ? "0" : "1"}" aria-pressed="${!!state.auto}" data-tooltip="${esc(t(state.auto ? "SDE.overland.autoBarHintOn" : "SDE.overland.autoBarHintOff"))}">${esc(t(state.auto ? "SDE.overland.autoBarOn" : "SDE.overland.autoBarOff"))}</button>`
+      : "";
     const supplies = supplyChips(isHexMapScene() ? partySupplies(supplyParty()) : null);
     const tools = `${gm ? ib("stack", "fa-backward", t("SDE.clock.rewind"), { id: "rew", pressed: this._stack === "rew" }) : ""}`
       + `${ib("weather", wx.icon, t(wx.labelKey), { pressed: wx.on, cls: wx.cls })}`
@@ -518,6 +527,7 @@ export const TravelBar = {
         ${ib("sky", this._sky ? "fa-chevron-up" : "fa-chevron-down", t(this._sky ? "SDE.clock.skyHide" : "SDE.clock.skyShow"), { pressed: this._sky, cls: "sde-hud-chev" })}</span>
       <div class="sde-hud-side sde-hud-side-r">
         ${tools}
+        ${auto}
         ${party}
         ${gm ? ib("stack", "fa-forward", t("SDE.clock.advance"), { id: "adv", pressed: this._stack === "adv" }) : ""}
       </div>
@@ -539,7 +549,7 @@ export const TravelBar = {
     if (!m.dayOpen) return { cls: "sde-hud-idle", html: `<i class="fa-solid fa-sun"></i> ${esc(t("SDE.clock.plate.noDay"))}`, tip: t("SDE.clock.plate.noDayTip") };
     const how = methodName(m.method);
     return {
-      html: `<i class="fa-solid ${METHOD_ICON[m.method] ?? METHOD_ICON.walking} sde-hud-how"></i><b>${m.hexesLeft}</b>/${m.budget}${m.pushed ? '<i class="fa-solid fa-angles-up sde-hud-push"></i>' : ""}`,
+      html: `<i class="fa-solid ${METHOD_ICON[m.method] ?? METHOD_ICON.walking} sde-hud-how"></i><b>${m.hexesLeft}</b>/${m.budget}${m.pushed ? '<i class="fa-solid fa-angles-up sde-hud-push"></i>' : ""}${m.auto ? `<i class="fa-solid fa-angles-right sde-hud-push" data-tooltip="${esc(t("SDE.overland.autoPlate"))}"></i>` : '<i class="fa-solid fa-angles-right sde-hud-push" style="visibility:hidden" aria-hidden="true"></i>'}`,
       tip: t("SDE.clock.plate.tip", { left: m.hexesLeft, budget: m.budget, method: how }) + (m.pushed ? t("SDE.clock.plate.pushTip") : ""),
     };
   },
@@ -914,7 +924,14 @@ export const TravelBar = {
     const el = event.target.closest("[data-action]");
     if (!el || !this._el.contains(el) || el.matches("input")) return;
     const id = el.dataset.id;
-    const warn = (reply) => { if (!reply?.ok && reply?.error) ui.notifications.warn(reply.error); };
+    const warn = (reply) => {
+      if (!reply?.ok && reply?.error) {
+        const now = Date.now();
+        if (_lastWarn.text === reply.error && now - _lastWarn.at < 1500) return;
+        _lastWarn = { text: reply.error, at: now };
+        ui.notifications.warn(reply.error);
+      }
+    };
     switch (el.dataset.action) {
       case "open":
         this._open = this._open === id ? null : id;
@@ -978,7 +995,7 @@ export const TravelBar = {
         return this.render();
       }
       case "forage": return forage(id);
-      case "resume": return warn(await resume());
+      case "resume": return warn(await resumeHeld());
       // The panel's Post is the GM's decision to show it: to everyone, whatever the roller's GM-only setting.
       case "postEncounter": return postEncounter(encounterCard(overlandState().encounter), { gmOnly: false });
       case "openRoller": {
@@ -1009,6 +1026,9 @@ export const TravelBar = {
           : (id === "push" ? "SDE.travel.speed.pushNextDawn" : "SDE.travel.speed.normalNextDawn")));
         return warn(reply);
       }
+      case "auto": return warn(await setAutoTravel(id === "1"));
+      case "resumeAuto": return warn(await resumeAutoTravel());
+      case "campChoices": return openCampChoices();
       case "makeCamp": return warn(await makeCamp());
       case "adjust": this._adjust = !this._adjust; return this.render();
       // A GM's number in the Adjust rows is the world setting: every client redraws on its change.
