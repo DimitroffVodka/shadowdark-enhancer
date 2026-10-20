@@ -2748,7 +2748,7 @@ export function planWalls(data, rect, types, patch = null) {
 
 /** The Foundry values for a plain wall and a closed door, read from CONST (v14 names, with the numbers behind them as fallbacks). */
 export function wallTypes(C = globalThis.CONST ?? {}) {
-  const normal = C.WALL_MOVEMENT_TYPES?.NORMAL ?? 20, sense = C.WALL_SENSE_TYPES?.NORMAL ?? 20;
+  const normal = C.WALL_MOVEMENT_TYPES?.NORMAL ?? 20, sense = C.EDGE_SENSE_TYPES?.NORMAL ?? 20;
   const base = { move: normal, sight: sense, light: sense, sound: sense };
   return {
     wall: { ...base, door: C.WALL_DOOR_TYPES?.NONE ?? 0, ds: C.WALL_DOOR_STATES?.CLOSED ?? 0 },
