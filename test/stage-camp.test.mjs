@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { campArtFor, campTransition, showCamp } from "../scripts/stage/stage-core.mjs";
-import { registerStage, onPartyCamp } from "../scripts/stage/stage.mjs";
+import { campArtFor, campTransition } from "../scripts/stage/stage-core.mjs";
+import { registerStage, onPartyCamp, toggleCampPicture } from "../scripts/stage/stage.mjs";
 
 const M = "shadowdark-enhancer";
 const IMAGE = campArtFor("").image;
@@ -30,29 +30,7 @@ function world({ active = true, stage = null, token = false } = {}) {
   return { store, written, party, set, begin, flags };
 }
 
-const raised = { shown: true, place: "camp", image: IMAGE, partyId: "p1", campId: "c1", kind: "", pageSceneId: "" };
-
-test("a camp begun in setup with no token on the map raises the camp picture and stores the campId", async () => {
-  const w = world();
-  await w.begin({ id: "c1", phase: "setup" });
-  assert.deepEqual(w.written, [raised]);
-});
-
-test("later writes of the same camp do not write again", async () => {
-  const w = world();
-  await w.begin({ id: "c1", phase: "setup" });
-  for (const phase of ["setup", "setup", "fuel", "awaitingRest"]) await w.set({ id: "c1", phase });
-  assert.equal(w.written.length, 1);
-});
-
-test("a GM who hid the picture mid-camp is not overruled by later camp writes", async () => {
-  const w = world();
-  await w.begin({ id: "c1", phase: "setup" });
-  w.store.stage = { ...raised, shown: false };
-  await w.set({ id: "c1", phase: "setup", fuel: "wood" });
-  await w.set({ id: "c1", phase: "fuel" });
-  assert.equal(w.written.length, 1);
-});
+const raised = { shown: true, place: "camp", image: IMAGE, partyId: "p1", campId: "c1" };
 
 test("a completed or cancelled camp drops the picture it raised", async () => {
   for (const end of [{ id: "c1", phase: "complete" }, null]) {
@@ -62,11 +40,13 @@ test("a completed or cancelled camp drops the picture it raised", async () => {
   }
 });
 
+
 test("the legacy ==camping spelling still counts as a camp change", async () => {
   const w = world({ stage: raised });
   await w.set({ id: "c1", phase: "complete" }, { key: "==camping" });
   assert.deepEqual(w.written, [{ ...raised, shown: false }]);
 });
+
 
 test("a removed key (-=camping) still counts as a camp change", async () => {
   const w = world({ stage: raised });
@@ -74,6 +54,7 @@ test("a removed key (-=camping) still counts as a camp change", async () => {
   await onPartyCamp(w.party, { flags: { [M]: { "-=camping": null } } });
   assert.deepEqual(w.written, [{ ...raised, shown: false }]);
 });
+
 
 test("another party's cancelled camp, or a different place on the stage, is not dropped", async () => {
   const w = world({ stage: { ...raised, partyId: "p2" } });
@@ -84,33 +65,6 @@ test("another party's cancelled camp, or a different place on the stage, is not 
   assert.equal(x.written.length, 0);
 });
 
-test("with a party token on the viewed map the camp does not raise it", async () => {
-  const w = world({ token: true });
-  await w.begin({ id: "c1", phase: "setup" });
-  assert.equal(w.written.length, 0);
-});
-
-test("no canvas means no token on the map", async () => {
-  const w = world();
-  delete globalThis.canvas;
-  await w.begin({ id: "c1", phase: "setup" });
-  assert.deepEqual(w.written, [raised]);
-});
-
-test("a second night (new camp id) raises again", async () => {
-  const w = world();
-  await w.begin({ id: "c1", phase: "setup" });
-  await w.set({ id: "c1", phase: "complete" });
-  await w.begin({ id: "c2", phase: "setup" });
-  assert.deepEqual(w.written.map((s) => [s.shown, s.campId]), [[true, "c1"], [false, "c1"], [true, "c2"]]);
-});
-
-test("the camp is read from the actor document, not from the diff", async () => {
-  const w = world();
-  w.flags[M].camping = { id: "c1", phase: "setup" };
-  await onPartyCamp(w.party, { flags: { [M]: { camping: "OPERATOR-NOT-A-CAMP" } } }, { [M]: { campBegin: true } });
-  assert.deepEqual(w.written, [raised]);
-});
 
 test("an update that does not touch the camping flag does nothing", async () => {
   const w = world();
@@ -120,54 +74,6 @@ test("an update that does not touch the camping flag does nothing", async () => 
   assert.equal(w.written.length, 0);
 });
 
-test("only the active GM's client acts; a non-party actor is ignored", async () => {
-  const w = world({ active: false });
-  await w.begin({ id: "c1", phase: "setup" });
-  assert.equal(w.written.length, 0);
-  const v = world();
-  globalThis.game.user = { id: "pl", isGM: false };
-  await v.begin({ id: "c1", phase: "setup" });
-  assert.equal(v.written.length, 0);
-  const n = world();
-  n.flags[M].party = false;
-  await n.begin({ id: "c1", phase: "setup" });
-  assert.equal(n.written.length, 0);
-});
-
-test("a begin write without the option raises nothing; with it and no token it raises once and later setup writes do nothing", async () => {
-  const w = world();
-  await w.set({ id: "c1", phase: "setup" });
-  assert.equal(w.written.length, 0);
-  await w.begin({ id: "c1", phase: "setup" });
-  await w.set({ id: "c1", phase: "setup", fuel: "wood" });
-  await w.set({ id: "c1", phase: "fuel" });
-  assert.deepEqual(w.written, [raised]);
-});
-
-test("scenario a: begun with a token on the map, then viewing another scene, later setup writes never raise", async () => {
-  const w = world({ token: true });
-  await w.begin({ id: "c1", phase: "setup" });
-  globalThis.canvas = { scene: { tokens: [] } };
-  await w.set({ id: "c1", phase: "setup", fuel: "wood" });
-  await w.set({ id: "c1", phase: "setup", fuel: "torches" });
-  assert.equal(w.written.length, 0);
-});
-
-test("scenario b: two parties, B raises over A, GM hides B, A's later setup writes do not put A back", async () => {
-  const w = world();
-  await w.begin({ id: "cA", phase: "setup" });
-  const b = { id: "p2", type: "NPC", flags: { [M]: { party: true, camping: { id: "cB", phase: "setup" } } } };
-  globalThis.game.actors.contents.push(b);
-  const op = { __$OPERATOR$__: "ForcedReplacement" };
-  await onPartyCamp(b, { flags: { [M]: { camping: op } } }, { [M]: { campBegin: true } });
-  assert.deepEqual(w.written.map((s) => s.partyId), ["p1", "p2"]);
-  await w.set({ id: "cA", phase: "setup", fuel: "wood" });
-  await w.set({ id: "cA", phase: "setup", fuel: "none" });
-  assert.equal(w.written.length, 2); // no flip before the hide
-  w.store.stage = { ...w.store.stage, shown: false };
-  await w.set({ id: "cA", phase: "setup", fuel: "wood" });
-  assert.equal(w.written.length, 2);
-});
 
 test("registerStage listens to updateActor with the watcher", () => {
   const w = world(), on = {};
@@ -177,27 +83,49 @@ test("registerStage listens to updateActor with the watcher", () => {
   void w;
 });
 
-test("a custom place on the stage: a camp begin raises over it, a complete or cancel never drops it", () => {
-  const custom = { shown: true, place: "tavern1", image: "t.webp", partyId: "p1", campId: "c1" };
-  const S2 = { partyId: "p1", image: "camp.webp", partyTokenOnMap: false };
-  const begin = campTransition(custom, { id: "c2", phase: "setup" }, S2);
-  assert.deepEqual(begin, { shown: true, place: "camp", image: "camp.webp", partyId: "p1", campId: "c2", kind: "", pageSceneId: "" });
-  assert.equal(campTransition(custom, { id: "c1", phase: "complete" }, S2), null);
-  assert.equal(campTransition(custom, null, S2), null);
-  assert.equal(showCamp(null, { partyId: "p1", image: "x" }).place, "camp");
+
+test("a camp that begins and ends with the button never pressed writes nothing: no picture comes up by itself", async () => {
+  for (const token of [false, true]) {
+    const w = world({ token });
+    delete globalThis.canvas;
+    await w.begin({ id: "c1", phase: "setup" });
+    for (const phase of ["setup", "fuel", "tasks", "awaitingRest", "complete"]) await w.set({ id: "c1", phase });
+    await w.begin({ id: "c2", phase: "setup" });
+    await w.set(null);
+    assert.deepEqual(w.written, [], `party token on the map: ${token}`);
+  }
 });
 
-test("camp guard: a begin never replaces a shown town or tavern place", () => {
-  const up = (kind, shown = true) => ({ shown, place: "pl1", image: "t.webp", partyId: "", campId: "", kind, pageSceneId: "" });
-  const S2 = { partyId: "p1", image: "camp.webp", partyTokenOnMap: false };
-  const begin = { id: "c2", phase: "setup" };
-  assert.equal(campTransition(up("town"), begin, S2), null);
-  assert.equal(campTransition(up("tavern"), begin, S2), null);
-  assert.equal(campTransition(up("custom"), begin, S2)?.place, "camp");
-  assert.equal(campTransition(up("camp"), begin, S2)?.place, "camp");
-  assert.equal(campTransition(up("town", false), begin, S2)?.place, "camp");
-  assert.equal(campTransition(null, begin, S2)?.place, "camp");
-  assert.equal(campTransition(up("town"), { id: "c1", phase: "complete" }, S2), null);
-  assert.equal(campTransition(up("town"), null, S2), null);
-  assert.equal(showCamp(null, { partyId: "p1", image: "x" }).place, "camp");
+test("the button during a camp shows it, the camp's end drops it; pressed again it hides, and the end then writes nothing", async () => {
+  const w = world();
+  await w.begin({ id: "c1", phase: "setup" });
+  w.flags[M].camping = { id: "c1", phase: "tasks" };
+  await toggleCampPicture(w.party);
+  assert.deepEqual(w.written, [raised]);
+  await w.set({ id: "c1", phase: "complete" });
+  assert.deepEqual(w.written, [raised, { ...raised, shown: false }]);
+
+  const x = world();
+  x.flags[M].camping = { id: "c1", phase: "tasks" };
+  await toggleCampPicture(x.party);
+  await toggleCampPicture(x.party);
+  assert.deepEqual(x.written.map((v) => v.shown), [true, false]);
+  await x.set({ id: "c1", phase: "complete" });
+  assert.equal(x.written.length, 2, "already down: the end writes nothing");
+});
+
+test("only the active GM's client drops it; a non-party actor is ignored", async () => {
+  const w = world({ active: false, stage: raised });
+  await w.set(null);
+  assert.equal(w.written.length, 0);
+  const n = world({ stage: raised });
+  n.flags[M].party = false;
+  await n.set(null);
+  assert.equal(n.written.length, 0);
+});
+
+test("a picture shown with no camp running stays when a later camp ends", () => {
+  const byHand = { ...raised, campId: "" };
+  assert.equal(campTransition(byHand, { id: "c1", phase: "complete" }, { partyId: "p1" }), null);
+  assert.equal(campTransition(byHand, null, { partyId: "p1" }), null, "nor when a camp record goes");
 });

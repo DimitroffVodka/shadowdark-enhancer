@@ -498,11 +498,7 @@ entries.
 The games table, the shop and the sales log close with the page, so nothing is left
 open when it goes away.
 
-## On a Backdrop
-
-A Town or Tavern place in Backdrop places can host this page over the full-screen
-picture for the whole table, kept across scene changes. See
-[A Town page on a place](Backdrop.md#a-town-page-on-a-place).
+---
 
 ## Related
 
