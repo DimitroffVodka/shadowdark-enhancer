@@ -20,7 +20,7 @@ test("a merchant needs a usable id and an NPC, and every value is kept in range"
   assert.equal(normalizeMerchant({ id: "m.1", actorId: "a1" }), null);
   assert.equal(normalizeMerchant({ id: "m 1", actorId: "a1" }), null);
   assert.equal(normalizeMerchant({ id: "m1" }), null);
-  assert.deepEqual(normalizeMerchant({ id: "m1", actorId: "a1" }), { id: "m1", actorId: "a1", role: "", pitch: "", open: true, rev: 0, buyMultiplier: 100, sellRatio: 50, restockDays: 0, restockedDay: null, haggle: true });
+  assert.deepEqual(normalizeMerchant({ id: "m1", actorId: "a1" }), { id: "m1", actorId: "a1", role: "", pitch: "", open: true, rev: 0, buyMultiplier: 100, sellRatio: 50, restockDays: 0, restockedDay: null, haggle: true, stock: null });
   const m = normalizeMerchant({ id: "m1", actorId: "a1", buyMultiplier: 9000, sellRatio: -5, rev: -3, open: false, role: "  Smith  " });
   assert.deepEqual([m.buyMultiplier, m.sellRatio, m.rev, m.open, m.role], [500, 0, 0, false, "Smith"]);
   assert.equal(normalizeMerchant({ id: "m1", actorId: "a1", buyMultiplier: "abc" }).buyMultiplier, 100);
@@ -31,6 +31,12 @@ test("the restock clock and haggle switch are kept in range: days 0-365, a day n
   assert.deepEqual([m({ restockDays: 9999 }).restockDays, m({ restockDays: -2 }).restockDays, m({ restockDays: "7.4" }).restockDays, m({ restockDays: "x" }).restockDays], [365, 0, 7, 0]);
   assert.deepEqual([m({ restockedDay: 120.9 }).restockedDay, m({ restockedDay: null }).restockedDay, m({ restockedDay: "" }).restockedDay, m({ restockedDay: "x" }).restockedDay, m({ restockedDay: 0 }).restockedDay], [120, null, null, null, 0]);
   assert.deepEqual([m({}).haggle, m({ haggle: false }).haggle, m({ haggle: "on" }).haggle], [true, false, true]);
+});
+
+test("a rolled merchant keeps its kind and settlement size; anything unknown is a hand-stocked one", () => {
+  const m = (stock) => normalizeMerchant({ id: "m1", actorId: "a1", stock }).stock;
+  assert.deepEqual(m({ kind: "outfitter", size: "city_state", extra: 1 }), { kind: "outfitter", size: "city_state" });
+  assert.deepEqual([m(undefined), m({ kind: "outfitter", size: "metropolis" }), m({ kind: "bakery", size: "town" })], [null, null, null]);
 });
 
 test("a landing page always has every field, keeps the places in order, and drops unusable merchants", () => {

@@ -16,13 +16,16 @@ const writing = new Map();
  * The one way the GM's side writes a scene's page (the switch, Restock all, the automatic restock). Writes on a scene
  * go one after another, and each re-reads the live page right before `transform(page)` runs, so a restock can never
  * undo a switch that landed a moment earlier and two ticks can never raise a revision twice. `transform` returns the
- * page to write, or null to write nothing; the result is the page as written (or as found).
+ * page to write, or null to write nothing; the result is the page as written (or as found). A rolled merchant whose
+ * revision went up gets its shelf rolled again before the next write runs.
  */
 export function updateLanding(scene, transform) {
   const run = async () => {
     const live = landingOf(scene), next = transform(live);
     if (!next) return live;
     await replaceModuleFlag(scene, LANDING_FLAG, next);
+    // A restocked merchant the module made gets a fresh roll of goods, not just its old shelf back.
+    if (live?.merchants.some((m) => m.stock)) await (await import("./town-stock.mjs")).rerollRestocked(live, landingOf(scene));
     return next;
   };
   const turn = (writing.get(scene.id) ?? Promise.resolve()).catch(() => {}).then(run);

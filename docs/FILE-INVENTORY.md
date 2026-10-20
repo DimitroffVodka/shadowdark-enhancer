@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-2167 tracked files · ~275,800 lines of code/markup across scripts+templates+styles+test.
+2168 tracked files · ~275,900 lines of code/markup across scripts+templates+styles+test.
 `v0.19.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -343,7 +343,7 @@
 | `shop-core.mjs` | 144 | Shop price rules shared by both shops, and the town shop's per-character stock ledger (pure). |
 | `property-names.mjs` | 30 | The names of weapon properties (Finesse, Thrown...) read from their compendium links and cached, and a ware's fact chips and short description for the shop windows. |
 | `town-shop.mjs` | 322 | A town merchant's buy and sell on the player's own client, no GM needed. |
-| `stock-generator.mjs` | 53 | A generated merchant's stock (pure): which ordinary gear a kind of shop carries and how much, by town size. |
+| `stock-generator.mjs` | 99 | A generated merchant's stock (pure): which ordinary gear a kind of shop carries and how much, by town size. |
 | `haggle-core.mjs` | 72 | The haggle ladder (d20 + CHA against a scale from a quarter off to a ban) and what a character has already tried (pure). |
 | `lots-core.mjs` | 32 | What a character sold to a town merchant, kept as lots so it can be bought back at the price it was paid (pure): the newest ten per merchant. |
 
@@ -671,14 +671,15 @@ The camp picture: a full-screen picture every client shows behind Foundry's UI, 
 
 | File | Lines | Description |
 |---|---:|---|
-| `town-core.mjs` | 190 | A town's landing page flag: merchants as NPC references, restock revision, the games table, the table switch, the editor's form folded in (pure). |
+| `town-core.mjs` | 196 | A town's landing page flag: merchants as NPC references, restock revision, the games table, the table switch, the editor's form folded in (pure). |
 | `town-view.mjs` | 173 | What the Town window and the shopfront show: ware cards, sell rows, tiles, the buyer (pure). |
-| `town-live.mjs` | 95 | What the town windows share on the Foundry side: the buyer, redrawing on change, the serialized page writer `updateLanding`, the table switch, the tiles' windows. |
+| `town-live.mjs` | 98 | What the town windows share on the Foundry side: the buyer, redrawing on change, the serialized page writer `updateLanding`, the table switch, the tiles' windows. |
 | `town-app.mjs` | 144 | The landing page menu over the scene's picture: merchants, tiles, the GM's pencil, sales log, restock and switch; clear of the sidebar and the Crawl Strip. |
 | `town-shop-app.mjs` | 260 | One merchant's shopfront: buy and sell as a chosen character with no GM, categories, search. |
-| `town-editor-app.mjs` | 190 | The GM's landing page editor window: town text, tiles, games table, merchants. |
+| `town-editor-app.mjs` | 163 | The GM's landing page editor window: town text, tiles, games table, merchants. |
 | `town-entry-points.mjs` | 110 | The Landing page toolbar button and Alt+T: one switch for the table, the page made on any scene, followed by every client. |
 | `town-restock.mjs` | 28 | Shelves that restock by themselves: on a new world day the active GM runs `autoRestock` over every scene's landing page (plus a catch-up on ready). |
+| `town-stock.mjs` | 89 | A made merchant's rolled shelf: builds the gear pool, rolls it by rarity for the settlement size (`pickStock`), makes the NPC, and rolls the shelf again when a restock raises its revision (rolled items only; the GM's own stay). |
 | `games-core.mjs` | 156 | The town's games of chance: the four that settle on one roll, the names and keys of the games that open a table (Liar's Dice among them), the house's cut and the wager limits (pure). |
 | `liars-dice-core.mjs` | 153 | Liar's Dice for two to six seats: the rules (bids, calls, ones wild, five dice each, forfeits) and the house's odds-based play (pure). |
 | `liars-dice-table.mjs` | 132 | A Liar's Dice table: lobby, seats, who may move, the house's turns, leaving, and the view each person may see (pure). |

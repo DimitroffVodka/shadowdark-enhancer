@@ -16,15 +16,18 @@
  * town shop reads them live (merchant/shop-core.mjs). Everything players need to see rides on this flag, so it stays
  * small: scene flags reach every client in the world, hidden scenes included.
  *
- *   { id, actorId, role, pitch, open, rev, buyMultiplier, sellRatio, restockDays, restockedDay, haggle }
+ *   { id, actorId, role, pitch, open, rev, buyMultiplier, sellRatio, restockDays, restockedDay, haggle, stock }
  *
  * `id` names the merchant in each buyer's stock ledger, so it never changes after it is made. `rev` is the restock
  * counter: raising it puts the whole shelf back without writing to any player. `restockDays` is how many days pass
  * between automatic restocks (0 = by hand) and `restockedDay` the world day (absolute) of the last restock, or null
  * when the clock has not started; `haggle` says whether this merchant lets a buyer bargain (on unless switched off).
+ * `stock` is `{ kind, size }` for a merchant the module made: its shelf is rolled by rarity for that settlement size,
+ * and rolled again at each restock (town-stock.mjs); null for an NPC the GM stocks by hand.
  */
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { STOCK_TYPES } from "../merchant/shop-core.mjs";
+import { KINDS, SIZES } from "../merchant/stock-generator.mjs";
 
 export const LANDING_FLAG = "landing";
 /** Every tile a page may carry, in the order they show (the editor lists these). Carouse and Rumors make a tavern. */
@@ -45,6 +48,8 @@ const whole = (value, [lo, hi], fallback) => {
 /** An id becomes a flag key in every buyer's ledger, and a dot or a space would split or break the path. */
 export const idOk = (id) => typeof id === "string" && id !== "" && !/[.\s]/.test(id);
 const on = (value) => value === true || value === "on" || value === "true";
+/** A rolled merchant's kind and settlement size, or null when either is not one this module knows. */
+const stockOf = (raw) => (KINDS.some((k) => k.id === raw?.kind) && SIZES.some((z) => z.id === raw?.size) ? { kind: raw.kind, size: raw.size } : null);
 
 /** One merchant reference as stored, or null when it cannot work (no usable id or no NPC). */
 export function normalizeMerchant(raw) {
@@ -59,6 +64,7 @@ export function normalizeMerchant(raw) {
     restockDays: whole(raw.restockDays, LIMITS.restockDays, DEFAULTS.restockDays),
     restockedDay: raw.restockedDay === null || raw.restockedDay === undefined || raw.restockedDay === "" || !Number.isFinite(Number(raw.restockedDay)) ? null : Math.floor(Number(raw.restockedDay)),
     haggle: raw.haggle === undefined ? DEFAULTS.haggle : on(raw.haggle),
+    stock: stockOf(raw.stock),
   };
 }
 
