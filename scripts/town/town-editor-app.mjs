@@ -11,6 +11,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { L as t } from "../shared/i18n.mjs";
 import { KINDS, SIZES } from "../merchant/stock-generator.mjs";
 import { makeMerchant } from "./town-stock.mjs";
+import { GAME_KEYS, TABLE_GAMES } from "./games-core.mjs";
 import {
   PLACE_IDS, PLACE_LABEL_KEYS, addMerchant, applyForm, landingOf, linkableNpcs, mergeSave, normalizeLanding,
   removeMerchant, restockMerchant, waresCount,
@@ -73,6 +74,7 @@ export class TownEditorApp extends HandlebarsApplicationMixin(ApplicationV2) {
     context.sceneName = this.scene?.name ?? "";
     context.page = page;
     context.places = PLACE_IDS.map((id) => ({ id, label: t(PLACE_LABEL_KEYS[id]), on: page.places.includes(id) }));
+    context.games = TABLE_GAMES.map((id) => ({ id, label: t(GAME_KEYS[id].name), on: page.games.list.includes(id) }));
     context.merchants = page.merchants.map((m) => {
       const actor = game.actors.get(m.actorId);
       const wares = actor ? waresCount(actor) : 0;

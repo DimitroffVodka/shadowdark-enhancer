@@ -671,12 +671,12 @@ The camp picture: a full-screen picture every client shows behind Foundry's UI, 
 
 | File | Lines | Description |
 |---|---:|---|
-| `town-core.mjs` | 196 | A town's landing page flag: merchants as NPC references, restock revision, the games table, the table switch, the editor's form folded in (pure). |
+| `town-core.mjs` | 203 | A town's landing page flag: merchants as NPC references, restock revision, the games table, the table switch, the editor's form folded in (pure). |
 | `town-view.mjs` | 173 | What the Town window and the shopfront show: ware cards, sell rows, tiles, the buyer (pure). |
 | `town-live.mjs` | 98 | What the town windows share on the Foundry side: the buyer, redrawing on change, the serialized page writer `updateLanding`, the table switch, the tiles' windows. |
 | `town-app.mjs` | 144 | The landing page menu over the scene's picture: merchants, tiles, the GM's pencil, sales log, restock and switch; clear of the sidebar and the Crawl Strip. |
 | `town-shop-app.mjs` | 260 | One merchant's shopfront: buy and sell as a chosen character with no GM, categories, search. |
-| `town-editor-app.mjs` | 163 | The GM's landing page editor window: town text, tiles, games table, merchants. |
+| `town-editor-app.mjs` | 165 | The GM's landing page editor window: town text, tiles, games table, merchants. |
 | `town-entry-points.mjs` | 110 | The Landing page toolbar button and Alt+T: one switch for the table, the page made on any scene, followed by every client. |
 | `town-restock.mjs` | 28 | Shelves that restock by themselves: on a new world day the active GM runs `autoRestock` over every scene's landing page (plus a catch-up on ready). |
 | `town-stock.mjs` | 89 | A made merchant's rolled shelf: builds the gear pool, rolls it by rarity for the settlement size (`pickStock`), makes the NPC, and rolls the shelf again when a restock raises its revision (rolled items only; the GM's own stay). |
