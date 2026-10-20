@@ -38,11 +38,11 @@ import { TABLE_GAMES } from "./games-core.mjs";
 
 export const LANDING_FLAG = "landing";
 /** Every tile a page may carry, in the order they show (the editor lists these). Carouse and Rumors make a tavern. */
-export const PLACE_IDS = ["quests", "journals", "party", "map", "downtime", "carouse", "rumors"];
+export const PLACE_IDS = ["quests", "journals", "recaps", "party", "map", "downtime", "carouse", "rumors"];
 /** The tiles a page gets when it has no list yet: the town's four, never the tavern's. */
 export const DEFAULT_PLACE_IDS = ["quests", "journals", "party", "downtime"];
 /** `games` is an entry too, but a separate switch (the GM turns the table on), so it is not one of the tiles above. */
-export const PLACE_LABEL_KEYS = { quests: "SDE.town.place.quests", journals: "SDE.town.place.journals", party: "SDE.town.place.party", map: "SDE.town.place.map", downtime: "SDE.town.place.downtime", carouse: "SDE.town.place.carouse", rumors: "SDE.town.place.rumors", games: "SDE.town.place.games" };
+export const PLACE_LABEL_KEYS = { quests: "SDE.town.place.quests", journals: "SDE.town.place.journals", recaps: "SDE.town.place.recaps", party: "SDE.town.place.party", map: "SDE.town.place.map", downtime: "SDE.town.place.downtime", carouse: "SDE.town.place.carouse", rumors: "SDE.town.place.rumors", games: "SDE.town.place.games" };
 export const LIMITS = { buyMultiplier: [10, 500], sellRatio: [0, 100], maxBet: [1, 1000], edge: [0, 50], restockDays: [0, 365] };
 export const DEFAULTS = { open: true, rev: 0, buyMultiplier: 100, sellRatio: 50, restockDays: 0, restockedDay: null, haggle: true };
 export const GAME_DEFAULTS = { on: false, list: [], maxBet: 10, edge: 5 };

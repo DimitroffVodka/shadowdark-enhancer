@@ -3,7 +3,8 @@
  *
  * The page is the module's own render of a candle-lit table (tools/landing-table, Blender), seen from a seat. The props
  * on it are the buttons: the quest tome (Quests), the coin chest (Market), the dice cup (Games), the tankard (Carouse),
- * the framed map (Map), the sealed letter (Rumors), the hourglass (Downtime), the journal (Journals). The session
+ * the framed map (Map), the sealed letter (Rumors), the hourglass (Downtime), the journal (Journals), the tied scrolls
+ * (Session recaps). The session
  * title card and the day dial are read-outs. The party's portraits sit round the table's far side. Everything is laid
  * out in the picture's own pixels (landing-table-layout.mjs, written with the render), and the window scales the
  * whole picture as one, so props, seats and overlays stay together at any screen size.
@@ -16,9 +17,9 @@ export const TABLE = { src: `${DIR}/table.webp`, hit: `${DIR}/hit.webp`, width: 
 export const propSrc = (id) => `${DIR}/props/${id}.webp`;
 
 /** The props that are buttons, in the order the hit map numbers them (1-based): the same order the render uses. */
-export const HIT_ORDER = ["quests", "market", "games", "carouse", "map", "rumors", "downtime", "journals", "title", "dial"];
+export const HIT_ORDER = ["quests", "market", "games", "carouse", "map", "rumors", "downtime", "journals", "title", "dial", "recaps"];
 /** Props that open something; the title card and the dial only show. */
-export const BUTTON_PROPS = ["quests", "market", "games", "carouse", "map", "rumors", "downtime", "journals"];
+export const BUTTON_PROPS = ["quests", "market", "games", "carouse", "map", "rumors", "downtime", "journals", "recaps"];
 export const SEATS_MAX = 6;
 
 /** The prop under a hit-map value (the map stores 20 per step so a lossy pixel still rounds right), or null. */

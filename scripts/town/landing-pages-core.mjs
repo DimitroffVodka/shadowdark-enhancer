@@ -3,7 +3,7 @@
  *
  * There is one landing page for everything: a table the party sits at (landing-table-core.mjs). The first time the
  * GM takes everyone there, the module makes it: its scene, one merchant whose goods are rolled for the settlement's
- * size, Quests, Journals, Party, Map and Carouse on (Downtime too in a Town or bigger), every game offered. The
+ * size, Quests, Journals, Session recaps, Party, Map and Carouse on (Downtime too in a Town or bigger), every game offered. The
  * market's size follows the settlement the party is in when the hex data knows it, else a Town; the GM can change it
  * on the page. Everything stays editable with the pencil.
  */
@@ -16,8 +16,8 @@ export const TABLE_FLAG = "landingTable";
 /** The merchant the table gets: the whole settlement's goods on one list. */
 export const MADE_KIND = "outfitter";
 
-/** The tiles the table has on: Quests, Journals, Party, Map and Carouse, plus Downtime in a Town or bigger. */
-export const placesFor = (size) => PLACE_IDS.filter((id) => ["quests", "journals", "party", "map", "carouse"].includes(id) || (id === "downtime" && size !== "village"));
+/** The tiles the table has on: Quests, Journals, Session recaps, Party, Map and Carouse, plus Downtime in a Town or bigger. */
+export const placesFor = (size) => PLACE_IDS.filter((id) => ["quests", "journals", "recaps", "party", "map", "carouse"].includes(id) || (id === "downtime" && size !== "village"));
 
 /** The table's page as it starts: one rolled merchant (`merchantId` names it, `actorId` is its NPC), every game. */
 export function madeLanding({ name, size, merchantId, actorId, role }) {

@@ -11,9 +11,9 @@ const MOD = "shadowdark-enhancer";
 const sceneOf = (id, page, extra = {}) => ({ id, name: `Scene ${id}`, flags: { [MOD]: { ...(page ? { landing: page } : {}), ...extra } } });
 const ALL = ["coin", "duel", "wheel", "cards", "bluff", "brag", "death", "roulette", "blackjack", "liars"];
 
-test("the table has Quests, Journals, Party, Map and Carouse on, Downtime from a Town up, Rumors off", () => {
-  assert.deepEqual(placesFor("village"), ["quests", "journals", "party", "map", "carouse"]);
-  for (const size of ["town", "city", "city_state"]) assert.deepEqual(placesFor(size), ["quests", "journals", "party", "map", "downtime", "carouse"]);
+test("the table has Quests, Journals, Session recaps, Party, Map and Carouse on, Downtime from a Town up, Rumors off", () => {
+  assert.deepEqual(placesFor("village"), ["quests", "journals", "recaps", "party", "map", "carouse"]);
+  for (const size of ["town", "city", "city_state"]) assert.deepEqual(placesFor(size), ["quests", "journals", "recaps", "party", "map", "downtime", "carouse"]);
 });
 
 test("the table's page: its name and size, every game, one rolled merchant for its size, up", () => {

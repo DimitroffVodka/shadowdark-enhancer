@@ -29,9 +29,9 @@ os.makedirs(OUT, exist_ok=True)
 W, H = 2560, 1440
 
 # The flat colour each prop gets in ids.png (make_assets.py reads the same table).
-PROPS = ["quests", "market", "games", "carouse", "map", "rumors", "downtime", "journals", "title", "dial"]
+PROPS = ["quests", "market", "games", "carouse", "map", "rumors", "downtime", "journals", "title", "dial", "recaps"]
 ID_COLOURS = {p: c for p, c in zip(PROPS, [
-    (1, 0, 0), (0, 1, 0), (0, 0, 1), (1, 1, 0), (1, 0, 1), (0, 1, 1), (1, .5, 0), (.5, 0, 1), (0, .5, 1), (1, 0, .5),
+    (1, 0, 0), (0, 1, 0), (0, 0, 1), (1, 1, 0), (1, 0, 1), (0, 1, 1), (1, .5, 0), (.5, 0, 1), (0, .5, 1), (1, 0, .5), (.5, 1, 0),
 ])}
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -331,6 +331,19 @@ def journal():
     return group("Journal", parts, (0.32, -0.36, 0), 18)
 
 
+def recap_scrolls():
+    """The session recaps: three rolled scrolls tied with a ribbon, one a little apart."""
+    p = "recaps"
+    parts = []
+    for i, (x, y, r) in enumerate([(0, 0, 0.032), (0.0, 0.07, 0.03), (0.035, 0.035, 0.028)]):
+        z = r + (0.045 if i == 2 else 0)
+        parts.append(cyl(f"Scroll{i}", r, 0.3, (x, y, z), M["paper"], p, rot=(0, math.radians(90), 0), verts=40))
+        for end in (-0.16, 0.16):
+            parts.append(cyl(f"ScrollRod{i}{end}", r * 0.45, 0.03, (x + end, y, z), M["darkwood"], p, rot=(0, math.radians(90), 0)))
+    parts.append(torus("ScrollRibbon", 0.07, 0.007, (0.0, 0.035, 0.045), M["redwax"], p, rot=(0, math.radians(90), 0)))
+    return group("Recaps", parts, (0.7, -0.22, 0), 28)
+
+
 def title_card():
     p = "title"
     parts = [box("TitleCard", (0.48, 0.12, 0.004), (0, 0, 0.004), M["paper"], p, bevel=0.002)]
@@ -368,6 +381,7 @@ hourglass()
 journal()
 title_card()
 dial()
+recap_scrolls()
 candle("CandleL", (-0.42, 0.62, 0), 0.22)
 candle("CandleR", (0.66, 0.6, 0), 0.15)
 candle("CandleF", (-0.86, 0.14, 0), 0.1)

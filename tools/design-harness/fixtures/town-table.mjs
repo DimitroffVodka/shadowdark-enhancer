@@ -20,7 +20,7 @@ const members = [["Denin", 1, "Kyzian Archer", "7 / 7"], ["Malchor", 2, "Wizard"
 const toolbar = `<span>State:</span>${["gm", "player", "hover"].map((s) => `<button data-action="s" data-state="${s}">${s}</button>`).join("")}`;
 const build = (state) => {
   const isGM = state !== "player";
-  const page = { places: ["quests", "journals", "party", "map", "downtime", "carouse"], games: { on: true } };
+  const page = { places: ["quests", "journals", "recaps", "party", "map", "downtime", "carouse"], games: { on: true } };
   const tiles = placeTiles([...page.places, "games"], { isGM, hasParty: true, downtimeOpen: false, activeQuests: 2, t });
   const labels = Object.fromEntries(tiles.map((p) => [p.id, { name: p.label, sub: p.tag || p.sub, disabled: p.disabled, hint: p.hint }]));
   labels.market = { name: t("SDE.town.table.market"), sub: "Outfitter, The Table" };

@@ -3,7 +3,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { BUTTON_PROPS, HIT_ORDER, SEATS_MAX, TABLE, dialAngle, homography, propAtHit, seatsFor, sizeOfGround, tableProps, tomePages } from "../scripts/town/landing-table-core.mjs";
 
-const page = (over = {}) => ({ places: ["quests", "journals", "party", "map", "carouse"], games: { on: true }, ...over });
+const page = (over = {}) => ({ places: ["quests", "journals", "recaps", "party", "map", "carouse"], games: { on: true }, ...over });
 
 test("every button prop has a box in the render's layout", () => {
   for (const id of BUTTON_PROPS) assert.ok(TABLE.layout.props[id], id);
@@ -11,7 +11,7 @@ test("every button prop has a box in the render's layout", () => {
 });
 
 test("the props shown: the tiles left on, games when offered, the market when it has a merchant", () => {
-  assert.deepEqual(tableProps(page(), { hasMerchant: true }).map((p) => p.id), ["quests", "market", "games", "carouse", "map", "journals"]);
+  assert.deepEqual(tableProps(page(), { hasMerchant: true }).map((p) => p.id), ["quests", "market", "games", "carouse", "map", "journals", "recaps"]);
   assert.deepEqual(tableProps(page({ games: { on: false }, places: ["quests"] }), { hasMerchant: false }).map((p) => p.id), ["quests"]);
   const p = tableProps(page(), { hasMerchant: true, labels: { quests: { name: "Quest Log", disabled: false } } })[0];
   assert.equal(p.name, "Quest Log");
@@ -23,6 +23,7 @@ test("the click map names the prop under a pixel, 20 grey levels a prop, and a l
   assert.equal(propAtHit(20), HIT_ORDER[0]);
   assert.equal(propAtHit(41), HIT_ORDER[1]);
   assert.equal(propAtHit(199), HIT_ORDER[9]);
+  assert.equal(propAtHit(220), "recaps");
   assert.equal(propAtHit(240), null);
 });
 

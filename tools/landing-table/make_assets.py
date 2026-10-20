@@ -25,8 +25,8 @@ LAYOUT = os.path.join(ROOT, "scripts", "town", "landing-table-layout.mjs")
 os.makedirs(PROPS_DIR, exist_ok=True)
 
 # Same order and colours as build_table.py.
-PROPS = ["quests", "market", "games", "carouse", "map", "rumors", "downtime", "journals", "title", "dial"]
-COLOURS = [(1, 0, 0), (0, 1, 0), (0, 0, 1), (1, 1, 0), (1, 0, 1), (0, 1, 1), (1, .5, 0), (.5, 0, 1), (0, .5, 1), (1, 0, .5)]
+PROPS = ["quests", "market", "games", "carouse", "map", "rumors", "downtime", "journals", "title", "dial", "recaps"]
+COLOURS = [(1, 0, 0), (0, 1, 0), (0, 0, 1), (1, 1, 0), (1, 0, 1), (0, 1, 1), (1, .5, 0), (.5, 0, 1), (0, .5, 1), (1, 0, .5), (.5, 1, 0)]
 PAD = 14
 
 
