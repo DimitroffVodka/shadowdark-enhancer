@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 
 // The supplies readout counts what camping spends, so its tests build plain actors and items: a Basic item named
 // Ration/Rations, and a torch is an unlit, unused, non-magical light source of the torch template.
-const { partySupplies } = await import("../scripts/overland/party-supplies.mjs");
+const { partySupplies, supplyParty, supplyActors } = await import("../scripts/overland/party-supplies.mjs");
 
 const MODULE_ID = "shadowdark-enhancer";
 const torch = (quantity = 1, extra = {}) => ({
@@ -51,4 +51,16 @@ test("items that are not rations or torches are left alone, and no party means n
   ]));
   assert.deepEqual(partySupplies(p), { rations: 0, torches: 0 });
   assert.equal(partySupplies(null), null);
+});
+
+test("the system's own Party actor is never counted, so the bar still draws in a world that has one", () => {
+  const sys = { uuid: "Actor.sys", type: "Party", items: [ration(9)], flags: {}, testUserPermission: () => true };
+  const [, p] = world(sys, party("Actor.p", ["Actor.a"]), actor("Actor.a", [ration(2)]), party("Actor.q", []));
+  globalThis.canvas = { tokens: { controlled: [] } };
+  try {
+    assert.equal(supplyParty(), p, "the first roster the viewer can see, not the system's actor listed before it");
+    assert.equal(partySupplies(sys), null, "no roster to read: no readout, no error");
+    assert.equal(supplyActors(sys), null);
+    assert.deepEqual(partySupplies(p), { rations: 2, torches: 0 });
+  } finally { delete globalThis.canvas; }
 });

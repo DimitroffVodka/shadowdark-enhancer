@@ -23,11 +23,11 @@ const quantity = (item) => Math.max(0, Number(item.system?.quantity) || 0);
  * Null when there is no party to count: the bar shows no readout rather than a pair of zeroes.
  */
 export function partySupplies(party) {
-  if (!party) return null;
-  const actors = [party, ...Party.members(party).map((uuid) => game.actors?.contents?.find((a) => a.uuid === uuid))].filter(Boolean);
+  const actors = supplyActors(party);
+  if (!actors) return null;
   let rations = 0;
   let torches = 0;
-  for (const actor of new Set(actors)) {
+  for (const actor of actors) {
     for (const item of actor.items) {
       if (ration(item)) rations += quantity(item);
       else if (torch(item)) torches += quantity(item);
@@ -36,5 +36,13 @@ export function partySupplies(party) {
   return { rations, torches };
 }
 
-/** The party the bar counts for: the one picked in the Party sheet, else the first the viewer can see. */
-export const supplyParty = () => Party.selected() ?? Party.list()[0] ?? null;
+/** The actors whose items the readout counts: the party and its members. Null when it has no roster to read. */
+export function supplyActors(party) {
+  if (!party) return null;
+  let members;
+  try { members = Party.members(party); } catch { return null; } // the system's own Party actor, or a broken roster
+  return new Set([party, ...members.map((uuid) => game.actors?.contents?.find((a) => a.uuid === uuid))].filter(Boolean));
+}
+
+/** The party the bar counts for: the one picked in the Party sheet, else the first roster the viewer can see. */
+export const supplyParty = () => Party.selected() ?? Party.list().find((a) => a.type !== "Party") ?? null;

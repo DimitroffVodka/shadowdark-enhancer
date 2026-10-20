@@ -58,7 +58,7 @@ import { postEncounter } from "../encounter/encounter-draw.mjs";
 import { showNpcPreview, hideNpcPreview } from "../encounter/npc-preview.mjs";
 import { DIAL, clockShown, clockSteps, dateToTime, dialMarkup, dialModel, dialSize, monthGrid, plateSize, seasonHatch } from "./hud-core.mjs";
 import { findParty, openPartySheet } from "./find-party.mjs";
-import { partySupplies, supplyParty } from "./party-supplies.mjs";
+import { partySupplies, supplyActors, supplyParty } from "./party-supplies.mjs";
 import { L as t } from "../shared/i18n.mjs";
 import { isPacedStep, moonEpoch, onShownTime, shownTime } from "../time/time.mjs";
 import { dayEvents, paragraphs } from "../calendar/calendar-core.mjs";
@@ -219,9 +219,11 @@ export const TravelBar = {
       if (this._stamp() !== this._drawn) this.render();
     });
     onShownTime((time, done) => this._paintTime(time, done));
-    // A member's rations change when they forage, buy, trade or eat.
+    // A member's rations change when they forage, buy, trade or eat; the bar's torches and rations follow the
+    // party's own sheet and every member's and mount's pack, open panel or not.
     const onItem = (item) => {
-      if (this._open === "travel" && itemTouchesBar(item, overlandState().members)) this.render();
+      if (this._open === "travel" && itemTouchesBar(item, overlandState().members)) return this.render();
+      if (isHexMapScene() && item?.parent?.documentName === "Actor" && supplyActors(supplyParty())?.has(item.parent)) this.render();
     };
     for (const hook of ["createItem", "updateItem", "deleteItem"]) Hooks.on(hook, onItem);
     // The day's forage result lands on the actor's flag, after the roll.

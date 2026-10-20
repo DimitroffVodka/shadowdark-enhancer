@@ -17,15 +17,15 @@ Left to right:
 
 | Part | Who | What it does |
 |---|---|---|
-| **⏪** | GM | Opens a column of steps back: a day, 8 hours, an hour, 10 minutes, a round. |
-| **Month** | everyone | Opens the month view (below). |
-| **Weather** (cloud) | everyone | Turns the weather drawing off and on for this device only (the Show weather effects setting); the scene keeps its weather and everyone else still sees it. A bare cloud, lit, means it is off here. |
-| **Time** | GM | Opens the Time panel (below). |
-| **The date** | everyone | In the middle of the bar: weekday, day, month and year, then the time. |
-| **⌃ / ⌄** | everyone | A small, quiet chevron beside the date: shows or hides the sky. |
 | **Travel** | on a hex map | While travelling, a counter: how the party travels (on foot, mounted, by boat), then the day's movement points left over the day's total, with a double chevron when pushing. Hover it for the words. Before a day is open it reads **No day**, and when an encounter holds the travel clock it is lit and reads **Encounter**; its tooltip says to run it and press Continue. Or **Start travel** for a GM. |
+| **Torches and rations** | on a hex map, with a party | The party's fresh torches (unlit and unused, magic ones left out) and its rations, counted across the party sheet, every member's pack and every mount's: the same stacks a camp spends. Hover each for the words. |
 | **Find the party** (crosshairs) | anyone who can see a party | Pans the map to the party token, pulses on it (on your screen only) and selects it. If the token is on another scene it names the scene. With several parties it finds the selected one, else the one travelling; if neither is known it asks you to select one rather than guess. |
 | **Party sheet** (shield) | anyone who can see a party | Opens the party sheet (the picker when there are several parties). |
+| **The date** | everyone | In the middle of the bar: weekday, day, month and year, then the time. |
+| **⌃ / ⌄** | everyone | A small, quiet chevron beside the date: shows or hides the sky. |
+| **⏪** | GM | Opens a column of steps back: a day, 8 hours, an hour, 10 minutes, a round. |
+| **Weather** (cloud) | everyone | Turns the weather drawing off and on for this device only (the Show weather effects setting); the scene keeps its weather and everyone else still sees it. A bare cloud, lit, means it is off here. |
+| **Time** | GM | Opens the Time panel (below). |
 | **Travel panel** (the party icon) | on a hex map | Opens the Travel panel. |
 | **⏩** | GM | Opens a column of steps forward, the same five. |
 
@@ -35,7 +35,8 @@ or nobody.
 
 ## The sky
 
-Under the bar, the season with today's weather beside it, then the dial: a
+Under the bar, the season plate (the season, the **Month** button that opens
+the month view below, and today's weather), then the dial: a
 half disc that turns once a day inside a ring of hour ticks, with now always
 at the bottom under the star (hover it for the time). Daylight is the light
 part, the twilight around sunrise and sunset is hatched, and night is dark with
@@ -44,7 +45,7 @@ disc; hover one for its time. While travelling, the region and terrain are
 written across the disc, wrapping when the name is long. The moon rides the
 dashed outer track by its phase.
 
-The season band fills with a hatch from the right over a season's last 30
+The season plate fills with a hatch from the right over a season's last 30
 days; hover it for how many days are left.
 
 ## Moving the clock (GM)
