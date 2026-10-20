@@ -39,7 +39,7 @@ import {
 } from "../time/time-core.mjs";
 import {
   overlandState, weatherNow, weatherName, methodName, rollWeather, startDayFromParty, setTravelPace, partyReading, makeCamp,
-  endOverland, resume, forage, startOverland, advanceClock, checkNow, encounterSettings, ENCOUNTER_SETTINGS, OVERLAND_CHANGED,
+  endOverland, resume, forage, startOverland, advanceClock, checkNow, encounterSettings, ENCOUNTER_SETTINGS, OVERLAND_CHANGED, autoForageEnabled,
 } from "./overland.mjs";
 import { Party, isNativeParty } from "../party/party.mjs";
 import { barModel, itemTouchesBar, redrawStamp, hhmm, weatherSwitch } from "./overland-bar-core.mjs";
@@ -821,6 +821,7 @@ export const TravelBar = {
       rules, season: t(seasonAt(cal, now).name ?? ""), weatherName, methodName,
       weather: weatherNow(), extras: !!game.modules.get("shadowdark-extras")?.active,
       frequency: encounterSettings(), adjust: this._adjust,
+      autoForage: autoForageEnabled(),
       camping: this._camping(),
       mayCamp: this._mayCamp(),
       ...this._partyFor(),
