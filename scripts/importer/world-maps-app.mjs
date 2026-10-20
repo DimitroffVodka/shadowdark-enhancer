@@ -55,7 +55,8 @@ export class WorldMapsApp extends HandlebarsApplicationMixin(ApplicationV2) {
         const { buildHexAdventure } = await import("./hex/hex-adventure.mjs");
         // offer: false — a map packed since the window opened is imported here, and the offer below is the one question.
         const made = await buildHexAdventure(files, { id, title: HEX_MAPS.find((h) => h.id === id)?.title, firstNum: hexPrint(id)?.firstNum ?? "0000", placement: "world", offer: false });
-        const scene = made.sceneId && game.scenes.get(made.sceneId);
+        // Only a map this click brought in is asked about; one already here (a row drawn before it arrived) is the GM's.
+        const scene = made.status === "ready" && made.sceneId && game.scenes.get(made.sceneId);
         if (scene) (await import("./wizard/wizard-app.mjs")).offerTerrainGuide([scene]);   // not awaited: the row turns first
         return made;
       },
