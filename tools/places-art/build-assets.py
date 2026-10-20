@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Convert the ready-place pictures to WebP: assets/scenes/places/<id>.webp (longest side at most 2048 px,
-quality 82) and a 480 px preview at assets/scenes/places/thumbs/<id>.webp for the Backdrop places window.
+quality 82) and a 480 px preview at assets/scenes/places/thumbs/<id>.webp. Nothing uses them yet: they are kept
+as ready backgrounds for a later landing-page plan.
 
     python3 tools/places-art/build-assets.py [--src DIR]
 
 DIR (default ~/Downloads/two-minute) holds the owned packs. Each source zip is unpacked by hand into its own
 empty directory first (they are untrusted archives), and DIR here is where those unpacked folders sit; the
-paths below are relative to it. scripts/stage/places-core.mjs (READY_PLACES) names the same files, and
-test/stage-ready-places.test.mjs checks the folder against it and against CREDITS.md.
+paths below are relative to it. CREDITS.md credits each picture.
 Dev tooling only: nothing at runtime runs this.
 """
 from __future__ import annotations

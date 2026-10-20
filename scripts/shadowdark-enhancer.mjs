@@ -147,7 +147,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "bae321399183";
+const STYLESHEET_REV = "dc0187f2b31c";
 
 // The same problem for the SCRIPTS, which cannot be solved the same way: their
 // URLs come from the manifest, which Foundry validates as real package paths,
@@ -162,7 +162,7 @@ const STYLESHEET_REV = "bae321399183";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "fe010f57ca1c";
+const BUILD_REV = "16e3a9eed466";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -1259,10 +1259,6 @@ Hooks.once("ready", () => {
   wireBattleMaps("registerBattleChatButtons", () => import("./encounter/battle-maps/battle-actions.mjs"));
   // A GM who reloads with a battle staged gets the players' readout back: it lived in the page they just reloaded.
   if (game.user.isGM) wireBattleMaps("resumeBattleReadout", () => import("./encounter/battle-maps/encounter-battle.mjs"));
-  // Every client reframes an Arena scene's first view when the GM sets it.
-  wireBattleMaps("registerArenaViewHook", () => import("./encounter/battle-maps/encounter-battle.mjs"));
-  // A monster dragged onto a live Arena fight joins its combat (the active GM's client does it).
-  if (game.user.isGM) wireBattleMaps("registerArenaTokenHook", () => import("./encounter/battle-maps/encounter-battle.mjs"));
   // If the GM enabled the monster compendium-art overlay, inject it now so every
   // monster drag carries the referenced art (all clients; GM-only settings write).
   MonsterTokenArt.initCompendiumArt();

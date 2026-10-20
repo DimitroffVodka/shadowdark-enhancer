@@ -42,35 +42,6 @@ tells you a battle is already set up. The battle's controls are on the
 [Crawl Bar](Crawl-Strip-and-Crawl-Bar.md#the-battle-map-item), so they are there on
 the battle's own scene and during its combat, where the clock bar is hidden.
 
-## Arena fight
-
-An **Arena fight** is a fight on a plain arena picture instead of a terrain's
-battle map, with nothing to set up. It makes a gridless scene, puts your party in
-the middle and starts a real Combat, then brings everyone over at once: there is
-no staging, no preload readout and no Change map.
-
-There are six looks: **Pit**, **Coliseum**, **Tournament ring**, **Tavern**,
-**Town square** and **Market**. When the Tavern, Town or Market is up on the
-[Backdrop](Backdrop.md), the fight happens there; otherwise it is the Pit.
-
-- **From an encounter:** press **Arena fight** beside **Battle map** on the
-  Encounter panel. The foes stand on the ring the distance roll gave them. There
-  is no button for a point of interest.
-- **From the Tools panel:** **Tools > Arena fight** asks which look you want and
-  starts with the party only. Drag monsters onto a ring yourself.
-
-Three glowing rings are drawn from the middle, each labelled on its right side: **Close** at 15 ft, **Near** at
-40 ft and **Far** at 70 ft. The tokens are real and the Combat is real, so
-targeting, the damage buttons, Parry and Taunt all work as on any map. The
-system's Apply damage button is for the GM only, as everywhere.
-
-A monster you drag onto the arena joins the combat by itself.
-
-**Return** ends the fight, takes the tokens down (including monsters you
-dragged onto the arena), and puts the table back and shows again the
-ready or custom Backdrop place that was up (a camp picture is not brought back;
-use Show camp picture on the Camping window). Only a GM can start or end an Arena fight.
-
 ---
 
 ## Set up, bring the table, return
@@ -114,7 +85,7 @@ The button reads **Ready 3/4**, players ready out of players, and turns green wh
 everyone is. You can press it early. The window then asks first, and names who is
 still loading.
 
-Bring the table also hides the [Backdrop](Backdrop.md) if it is up.
+Bring the table also hides the [camp picture](Camping.md#camp-picture) if it is up.
 
 Once the table is brought the panel says so, and says whether the combat is waiting
 to start, in its round, or over.

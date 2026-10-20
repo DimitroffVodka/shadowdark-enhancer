@@ -3828,7 +3828,7 @@ body.theme-light .sde-parry-note { color: #2e6b2e; }
 .hxb .hex { display: grid; place-items: center; }
 .hxb .hex img { width: 100%; height: auto; display: block; }
 .hxb .ico { display: grid; place-items: center; width: 78%; aspect-ratio: 1; border-radius: 50%; background: var(--c); border: 1px solid var(--ui-line); }
-.hxb .ico i { font-size: 1.4em; color: #fff; }
+.hxb .ico i { font-size: 1.4em; color: var(--ic, #fff); }
 .hxb .hxb-now { flex-direction: row; align-items: center; justify-content: center; gap: 14px; }
 .hxb-now .big { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 132px; }
 .hxb-now .big .hex { width: 104px; }

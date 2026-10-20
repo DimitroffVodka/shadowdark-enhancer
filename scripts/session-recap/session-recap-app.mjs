@@ -72,7 +72,6 @@ export class SessionRecapApp extends HandlebarsApplicationMixin(ApplicationV2) {
     data.sales ??= []; data.purchases ??= []; data.encounterChecks ??= [];
     data.downtime ??= []; data.renown ??= []; data.carousing ??= []; data.rumors ??= [];
 
-    const hasDamageLog = game.modules.get("damage-log")?.active ?? false;
     const sessionDuration = viewingSession
       ? SessionRecap._formatDuration(viewingSession.endTime - viewingSession.startTime)
       : data.sessionStart ? SessionRecap._formatDuration(Date.now() - data.sessionStart) : L("SDE.sessionRecap.noEvents");
@@ -250,7 +249,6 @@ export class SessionRecapApp extends HandlebarsApplicationMixin(ApplicationV2) {
       },
       activeTab: this.activeTab,
       isGM: game.user.isGM,
-      hasDamageLog,
       sessionDisplayName, sessionStatusLabel, sessionStats,
       playerSummaries, hasPlayerSummaries: playerSummaries.length > 0,
       combats, hasCombats: combats.length > 0,

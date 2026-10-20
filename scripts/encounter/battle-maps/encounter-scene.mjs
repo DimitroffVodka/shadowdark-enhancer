@@ -37,7 +37,6 @@ import { replaceModuleFlag } from "../../shared/module-flags.mjs";
 import { makeQueue } from "../../quests/quest-core.mjs";
 import { FEET_PER_SQUARE, FLAGS, FOLDERS, GRID_PX, NIGHT_DARKNESS } from "./constants.mjs";
 import { getEncounterMap } from "./encounter-maps.mjs";
-import { arenaGeometry, RINGS_TILE_PATH } from "../../stage/arena-core.mjs";
 
 /** Flag on a folder: which of this feature's folders it is ("maps" | "saved"), so a renamed one is still found. */
 const FOLDER_FLAG = "encounterFolder";
@@ -75,15 +74,13 @@ const labelOf = (map) => (map.labelKey ? L(map.labelKey) : map.id);
  * Takes a MAP, never an id: an id would produce a name no scene is ever called.
  */
 export function encounterSceneName(map) {
-  if (map.arena) return labelOf(map);   // an Arena scene is named for its look alone
   return `${L("SDE.encounterMaps.scene.prefix")} ${labelOf(map)}`;
 }
 
 function find(mapId, map) {
   const byFlag = game.scenes.find((s) => s.flags?.[MODULE_ID]?.[FLAGS.scene] === mapId);
   if (byFlag) return byFlag;
-  // No name fallback for an Arena look: a GM's own scene called "Tavern" must never be taken for it.
-  return (map && !map.arena ? game.scenes.getName(encounterSceneName(map)) : null) ?? null;
+  return (map ? game.scenes.getName(encounterSceneName(map)) : null) ?? null;
 }
 
 /**
@@ -152,82 +149,7 @@ async function setCampLight(scene, point, lit) {
   }
 }
 
-/** The ring labels' text box: wide enough for the word, tall enough for the font. Foundry always centres a Drawing's text in its box, so the box is the text's estimated width plus slack, shifted so the text's left edge sits on the label's x, and centred on y. */
-const LABEL_BOX = { charWidth: 0.6, slack: 1.25, heightPerFont: 1.4 };
-const RING_LABEL_KEYS = { close: "SDE.stage.arena.ringClose", near: "SDE.stage.arena.ringNear", far: "SDE.stage.arena.ringFar" };
-
-/**
- * An Arena look's scene: gridless, lit, no vision, no walls, sized to the picture (see arena-core for the units). The
- * rings (one Tile) and their labels (three text Drawings) are made with a NEW scene only, so a GM who deletes them from a
- * reused one keeps that choice. Placeables take canvas coordinates: the map's own plus the scene rect's origin.
- */
-async function buildArena(map, { view }) {
-  const existing = find(map.id, map);
-  if (existing) {
-    if (view) await existing.view();
-    return { scene: existing, created: false };
-  }
-  const geo = arenaGeometry(map.width, map.height);
-  const folder = await ensureFolder("maps");
-  const scene = await Scene.create({
-    name: encounterSceneName(map),
-    active: false,
-    navigation: false,
-    folder: folder?.id ?? null,
-    width: map.width,
-    height: map.height,
-    padding: 0.05,
-    levels: [{ name: labelOf(map), background: { src: map.image } }],
-    grid: { type: CONST.GRID_TYPES.GRIDLESS, size: geo.g, distance: FEET_PER_SQUARE, units: "ft" },
-    tokenVision: false,
-    fog: { mode: CONST.FOG_EXPLORATION_MODES.DISABLED },
-    environment: { darknessLevel: 0, globalLight: { enabled: true } },
-    flags: { [MODULE_ID]: { [FLAGS.scene]: map.id } },
-  });
-  if (!scene) throw new Error(`${MODULE_ID} | the scene for ${map.id} was not created`);
-
-  const { sceneX, sceneY } = scene.dimensions;
-  // anchor 0: x/y is then the tile's top-left whatever Tile's default anchor means; levels [] = every level
-  try {
-    await scene.createEmbeddedDocuments("Tile", [{
-      texture: { src: RINGS_TILE_PATH, anchorX: 0, anchorY: 0 },
-      x: Math.round(sceneX + geo.tile.x), y: Math.round(sceneY + geo.tile.y), width: Math.round(geo.tile.width), height: Math.round(geo.tile.height),
-      locked: true, levels: [],
-    }]);
-  } catch (err) {
-    console.warn(`${MODULE_ID} | encounter scene: the arena rings could not be added`, err);
-  }
-  try {
-    await scene.createEmbeddedDocuments("Drawing", geo.labels.map((label) => {
-      const text = L(RING_LABEL_KEYS[label.band]);
-      const textW = LABEL_BOX.charWidth * label.fontSize * text.length;
-      const width = Math.round(textW * LABEL_BOX.slack), height = Math.round(label.fontSize * LABEL_BOX.heightPerFont);
-      return {
-        // the text is centred in its box: shift the box so the text's left edge sits on x; the box is centred on y
-        x: Math.round(sceneX + label.x - (width - textW) / 2), y: Math.round(sceneY + label.y - height / 2),
-        shape: { type: "r", width, height },
-        text, fontFamily: "Modesto Condensed", fontSize: label.fontSize, textColor: "#ffc94d", textAlpha: 1,
-        fillType: 0, strokeWidth: 0, locked: true, levels: [],
-      };
-    }));
-  } catch (err) {
-    console.warn(`${MODULE_ID} | encounter scene: the arena labels could not be added`, err);
-  }
-
-  if (!scene.thumb) {
-    try {
-      const thumb = await scene.createThumbnail();
-      if (thumb?.thumb) await scene.update({ thumb: thumb.thumb }, { render: false });
-    } catch (err) {
-      console.warn(`${MODULE_ID} | encounter scene: thumbnail failed`, err);
-    }
-  }
-  if (view) await scene.view();
-  return { scene, created: true };
-}
-
 async function build(map, { night, fire, view }) {
-  if (map.arena) return buildArena(map, { view });
   const darkness = night ? NIGHT_DARKNESS : 0;
   const existing = find(map.id, map);
   if (existing) {

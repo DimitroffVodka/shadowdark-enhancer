@@ -407,6 +407,7 @@ export class MonsterTokenArt {
   static async _loadPresentation(source = this.SOURCE) {
     const map = {};
     try {
+      if (!source.tokenMapping) return map;
       const json = await foundry.utils.fetchJsonWithTimeout(source.tokenMapping);
       for (const docs of Object.values(json)) {
         for (const v of Object.values(docs)) {

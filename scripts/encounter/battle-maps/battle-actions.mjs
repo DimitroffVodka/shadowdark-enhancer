@@ -20,9 +20,6 @@ import { esc } from "../../shared/esc.mjs";
 import { L as t } from "../../shared/i18n.mjs";
 import { isNight, partyHex, terrainKey, worldClock } from "../encounter-terrain.mjs";
 import { BATTLE_STATUS, SETTINGS } from "./constants.mjs";
-import { ARENA_LOOKS, defaultLook } from "../../stage/arena-core.mjs";
-import { normalizeStage } from "../../stage/stage-core.mjs";
-import { fileRoute } from "../../shared/file-route.mjs";
 import {
   canBattle, needsConfirm, needsPick, pickAnswer, pickerArgs, readStash, recordOf, setUpArgs, stillLoading,
 } from "./battle-actions-core.mjs";
@@ -145,65 +142,6 @@ export async function openPartyBattleMap(io = {}) {
   const { terrain, hexNum, originSceneId } = partyContext();
   opening ??= setUpFrom({ enc: null, terrain, hex: hexNum, originSceneId, choose: true }, { ...live, ...io }).finally(() => { opening = null; });
   return opening;
-}
-
-/**
- * One click to an Arena fight: a gridless arena scene with real tokens and a real Combat, live for everyone at once
- * (no staging, no readout). Same one-at-a-time guard and running-battle refusal as openBattleMap.
- * @param {{enc?:object|null, terrain?:string|null, hex?:number|null, originSceneId?:string, look?:string}} opts
- *   look: an arena look id (default: the Backdrop's ready place, else the pit)
- * @param {object} [io]  what to reach into instead of the real parts (tests)
- */
-export async function openArenaFight(opts = {}, io = {}) {
-  if (!game.user?.isGM || (opts.enc && !canBattle(opts.enc))) return null;
-  const x = { ...live, ...io };
-  opening ??= arenaFrom(opts, x).finally(() => { opening = null; });
-  return opening;
-}
-
-async function arenaFrom({ enc = null, terrain = null, hex = null, originSceneId = globalThis.canvas?.scene?.id ?? null, look = null }, x) {
-  return guarded(async () => {
-    const BattleMaps = await x.battle();
-    if (recordOf(await BattleMaps.current())) {
-      ui.notifications?.warn(t("SDE.encounterMaps.hud.running"));
-      return null;
-    }
-    const arena = look ?? defaultLook(normalizeStage(game.settings.get(MODULE_ID, "stage"))).id;
-    const now = await x.conditions();
-    const answer = await BattleMaps.setUp({ ...setUpArgs({ enc, terrain: terrainKey(terrain) || null, hex, originSceneId, ...now }), arena, view: false });
-    const battle = recordOf(answer);
-    if (battle) {
-      await BattleMaps.bringTable(battle.id);
-      // Everyone is at the table: the codex keeps the encounter, posted to chat or not.
-      await recordEncounter(battle.encounter, { facets: false });
-    }
-    return answer ?? null;
-  });
-}
-
-/** Tools > Arena fight: pick a look, then a fight with the party alone where it stands; the GM drags the monsters on. */
-export async function openPartyArenaFight(io = {}) {
-  if (!game.user?.isGM) return null;
-  const look = await (io.pickLook ?? pickArenaLook)();
-  if (!look) return null;
-  const { terrain, hexNum, originSceneId } = partyContext();
-  return openArenaFight({ enc: null, terrain, hex: hexNum, originSceneId, look }, io);
-}
-
-/** The picker: six thumbnails, the default checked. The chosen look id, or null when cancelled. */
-async function pickArenaLook() {
-  const selected = defaultLook(normalizeStage(game.settings.get(MODULE_ID, "stage"))).id;
-  const looks = ARENA_LOOKS.map((l) => ({ id: l.id, label: t(l.labelKey), thumb: fileRoute(l.thumb), checked: l.id === selected }));
-  const content = await foundry.applications.handlebars.renderTemplate(`modules/${MODULE_ID}/templates/stage/arena-picker.hbs`, { looks });
-  return foundry.applications.api.DialogV2.prompt({
-    classes: ["sde-ui", "sde-dialog", "sde-arena-picker"],
-    window: { title: t("SDE.stage.arena.pickerTitle"), icon: "fa-solid fa-circle-dot" },
-    position: { width: 460 },
-    content,
-    ok: { label: t("SDE.stage.arena.pickerFight"), callback: (_e, button) => new foundry.applications.ux.FormDataExtended(button.form).object.look ?? null },
-    rejectClose: false,
-    buttons: [{ action: "cancel", label: t("SDE.stage.arena.pickerCancel"), callback: () => null }],
-  }).catch(() => null);
 }
 
 async function setUpFrom({ enc, terrain = null, hex = null, choose = false, originSceneId = globalThis.canvas?.scene?.id ?? null }, x) {

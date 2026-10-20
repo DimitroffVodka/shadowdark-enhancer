@@ -100,3 +100,53 @@ test("a second click on the same hex inside the window is a double click, once",
   assert.equal(isDoubleClick(prev, 3052, 1100), false);
   assert.equal(isDoubleClick(null, 3051, 1100), false);
 });
+
+import { readableInk } from "../scripts/hex-map/tag-overlay.mjs";
+
+test("readableInk: dark fills get white icons, the legend's pastel fills get near-black", () => {
+  assert.equal(readableInk(0x000000), "#fff");
+  assert.equal(readableInk(0x1f5f9e), "#fff");
+  assert.equal(readableInk(0xffffff), "#1d1d1d");
+  for (const t of ["arctic_sea", "grassland", "desert", "salt_flat"]) assert.equal(readableInk(TERRAIN_COLORS[t]), "#1d1d1d", t);
+});
+
+test("every terrain colour keeps the print's black ink readable (7:1 at full multiply)", () => {
+  const lin = (c) => (c /= 255) <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  for (const [name, hex] of Object.entries(TERRAIN_COLORS)) {
+    const L = 0.2126 * lin(hex >> 16) + 0.7152 * lin((hex >> 8) & 255) + 0.0722 * lin(hex & 255);
+    assert.ok((L + 0.05) / 0.05 >= 7, `${name} is too dark for black ink`);
+  }
+});
+
+test("multiply layer: plain print only; Tiles, a baked map, other modes, hide and tear-down drop it", async () => {
+  const saved = { canvas: globalThis.canvas, PIXI: globalThis.PIXI };
+  class Graphics { constructor() { this.destroyed = false; } clear() {} destroy() { this.destroyed = true; } }
+  globalThis.PIXI = { Graphics, BLEND_MODES: { MULTIPLY: "multiply" } };
+  const children = [];
+  const scene = { id: "s1", tiles: { size: 0 }, flags: {}, grid: { isHexagonal: true } };
+  globalThis.canvas = { scene, primary: { children, addChild: (c) => children.push(c), sortChildren() {} } };
+  globalThis.Hooks = { on: () => 1, off() {}, callAll() {} };
+  const { HexTagOverlay } = await import("../scripts/hex-map/tag-overlay.mjs");
+  const o = Object.create(HexTagOverlay.prototype);
+  Object.assign(o, { fills: null, mode: "terrain", _hooks: [], _editor: null });
+  const live = () => children.filter((c) => !c.destroyed && c.blendMode === "multiply").length;
+  const layer = () => o._multiplyLayer(o.mode === "terrain" && !o._covered());
+  try {
+    layer(); layer();
+    assert.equal(live(), 1, "plain print: one multiply layer, reused on redraw");
+    scene.tiles.size = 1; layer();
+    assert.equal(live(), 0, "with Tiles: the wash");
+    scene.tiles.size = 0; layer();
+    assert.equal(live(), 1);
+    scene.flags["shadowdark-extras"] = { bakedPyramid: { meta: {} } }; layer();
+    assert.equal(live(), 0, "baked map: the wash");
+    delete scene.flags["shadowdark-extras"]; layer();
+    assert.equal(live(), 1);
+    o.mode = "region"; layer();
+    assert.equal(live(), 0, "region mode");
+    o.mode = "terrain"; layer();
+    o.hide();
+    assert.equal(live(), 0, "hide");
+    assert.equal(o.fills, null);
+  } finally { Object.assign(globalThis, saved); }
+});

@@ -43,7 +43,7 @@ Saved sessions are stored in the **History** tab for future reference.
 | **Carousing** | Shadowdark Extras (optional) | Night outcomes, XP, benefits, mishaps, and renown |
 | **Encounter checks** | [Encounter Roller](Random-Encounters.md) | Round, die roll, threshold, and hit/miss |
 | **Rumors** | [Rumors](Rumors.md) | Each rumor given, its region, and the time |
-| **Combat statistics** | Combat Tracker | Rounds, participants, damage dealt, and kills |
+| **Combat statistics** | Combat Tracker and hit points | Rounds, participants, damage dealt and taken, and kills — counted from every HP loss, no other module needed |
 | **Dice rolls** | Chat Log | Per-character d20 and damage roll stats |
 
 ---
