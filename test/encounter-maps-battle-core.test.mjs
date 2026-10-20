@@ -483,7 +483,7 @@ test("newBattleRecord: a staged record with the plan's fields", () => {
   });
   assert.deepEqual(record, {
     id: "battle0000000001", at: 1760000000000, gmId: null, status: BATTLE_STATUS.staged, originSceneId: "hexScene", mapId: "forest-woods",
-    sceneId: "scene1", variant: "night", terrain: "forest", hex: "0203", tokenIds: ["a", "b"], presentTokenIds: [], combatId: null, travelling: false, arena: null,
+    sceneId: "scene1", variant: "night", terrain: "forest", hex: "0203", tokenIds: ["a", "b"], presentTokenIds: [], combatId: null, travelling: false,
     encounter: { name: "Wolf", uuid: "Compendium.x.y.Actor.wolf", count: 4, distanceRoll: 3, activityRoll: 7, reactionRoll: 9, img: "wolf.webp" },
   });
 });
@@ -493,13 +493,6 @@ test("newBattleRecord: it says whether the party was travelling, and not by defa
   assert.equal(newBattleRecord().travelling, false);
   assert.equal(newBattleRecord({ travelling: "yes" }).travelling, true, "a flag, whatever was passed");
   assert.equal(newBattleRecord({ travelling: undefined }).travelling, false);
-});
-
-test("newBattleRecord: an Arena fight records its look id, and a battle map's record has none", () => {
-  assert.equal(newBattleRecord({ arena: "arena-pit" }).arena, "arena-pit");
-  assert.equal(newBattleRecord().arena, null);
-  assert.equal(newBattleRecord({ arena: "" }).arena, null);
-  assert.equal(newBattleRecord({ arena: 7 }).arena, null);
 });
 
 test("newBattleRecord: it says which GM set the battle up, and nobody by default", () => {

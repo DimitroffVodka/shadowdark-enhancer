@@ -1,4 +1,4 @@
-/* Backdrop layer: z 0 (--z-index-canvas) appended after #board, so it paints over the canvas and under #pause and the UI. */
+/* Camp picture layer: z 0 (--z-index-canvas) appended after #board, so it paints over the canvas and under #pause and the UI. */
 #sde-stage {
   position: fixed;
   inset: 0;
@@ -20,47 +20,3 @@
 
 /* The Camping footer gained a third button; let its right group wrap instead of running past the window edge. */
 .sde-camping-body .ui-actions .ui-right { flex-wrap: wrap; justify-content: flex-end; }
-
-/* Places window. Kit tokens only (styles/sde-ui.css); the window is a container, so it also works narrow. */
-.sde-stage-places [hidden] { display: none !important; }
-.sde-stage-places .sp-top { flex: 0 0 auto; }
-.sde-stage-places .sp-add-group, .sde-stage-places .sp-ready-group { padding: 8px 16px 0; }
-.sde-stage-places .sp-ready-name { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
-.sde-stage-places .sp-ready .sp-row { align-items: center; }
-.sde-stage-places .sp-row { align-items: flex-start; padding: 10px; }
-.sde-stage-places .sp-row > .sp-thumb { width: 64px; height: 64px; border-radius: var(--ui-r); border: 1px solid var(--ui-line); object-fit: cover; flex: 0 0 auto; background: var(--ui-raised); }
-.sde-stage-places .sp-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
-.sde-stage-places .sp-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 9em); gap: 6px; }
-.sde-stage-places .sp-name { text-overflow: ellipsis; }
-.sde-stage-places .sp-page { grid-column: 1 / -1; }
-.sde-stage-places .sp-add-hint { grid-column: 1 / -1; margin: 0; }
-.sde-stage-places .sp-actions { display: flex; flex-wrap: wrap; gap: 6px; }
-.sde-stage-places .sp-actions .ui-btn { min-height: 24px; }
-.sde-stage-places .sp-add { gap: 6px; padding: 8px 10px; }
-.sde-stage-places .sp-add-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px 10px; align-items: end; }
-.sde-stage-places .sp-add-file input[type=file] { max-width: 100%; color: var(--ui-body); }
-.sde-stage-places .sp-add-foot { display: flex; align-items: center; justify-content: flex-end; gap: 8px; min-width: 0; }
-.sde-stage-places .sp-add-foot > .ui-row-sub { margin-right: auto; }
-
-@container (max-width: 470px) {
-  .sde-stage-places .sp-fields { grid-template-columns: minmax(0, 1fr); }
-  .sde-stage-places .sp-row { gap: 8px; padding: 8px; }
-  .sde-stage-places .sp-row > .sp-thumb { width: 48px; height: 48px; }
-}
-
-@container (max-width: 420px) {
-  .sde-stage-places .sp-add-fields { grid-template-columns: minmax(0, 1fr); }
-}
-
-/* Arena fight picker (DialogV2): six thumbnails, three across, two at narrow width. */
-.sde-arena-picker .ap-body { container-type: inline-size; display: flex; flex-direction: column; gap: 10px; }
-.sde-arena-picker .ap-hint { margin: 0; }
-.sde-arena-picker .ap-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.sde-arena-picker .ap-look { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 6px; border: 1px solid var(--ui-line); border-radius: var(--ui-r); background: var(--ui-raised); cursor: pointer; min-width: 0; }
-.sde-arena-picker .ap-look input { position: absolute; opacity: 0; pointer-events: none; }
-.sde-arena-picker .ap-thumb { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: var(--ui-r); border: 1px solid var(--ui-line); background: var(--ui-raised); }
-.sde-arena-picker .ap-name { font-weight: 600; text-align: center; overflow-wrap: anywhere; }
-.sde-arena-picker .ap-look:hover { border-color: var(--ui-body); }
-.sde-arena-picker .ap-look:has(input:checked) { border-color: var(--ui-gold); box-shadow: 0 0 0 2px var(--ui-gold); }
-.sde-arena-picker .ap-look:has(input:focus-visible) { outline: 2px solid var(--ui-body); outline-offset: 2px; }
-@container (max-width: 400px) { .sde-arena-picker .ap-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

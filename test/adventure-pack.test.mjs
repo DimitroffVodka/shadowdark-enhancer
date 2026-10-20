@@ -5,7 +5,7 @@ import {
   reuseWorldActors, importMissingOnly, onPreImportAdventure, removeStaged, worldSnapshot,
 } from "../scripts/importer/adventure/adventure-pack.mjs";
 import { SUITE_PACKS } from "../scripts/shared/compendium-suite.mjs";
-import { bookFolderId } from "../scripts/importer/world-folders.mjs";
+import { bookFolderId, pruneEmptyBookFolders } from "../scripts/importer/world-folders.mjs";
 
 // Invented data throughout.
 
@@ -40,7 +40,7 @@ test("removalPlan: deletes what the run made and nothing it did not", () => {
   assert.equal(plan.scene, "S1");
   assert.equal(plan.journal, "J1");
   assert.deepEqual(plan.actors, ["a1", "a3"]);     // a2 was in the world before the run
-  assert.equal("folders" in plan, false); // folders always stay: the next adventure of the book files into them
+  assert.equal("folders" in plan, false); // removeStaged never deletes folders; the wizard prunes its own emptied ones by fixed id
 });
 
 test("removalPlan: a run that made nothing deletes nothing", () => {
@@ -138,7 +138,7 @@ test("two adventures of one book packed to the compendium leave one folder per t
   const add = (coll, doc) => { const d = { ...doc, delete: async () => { coll.splice(coll.indexOf(d), 1); } }; coll.push(d); return d; };
   const had = { game: globalThis.game, Folder: globalThis.Folder };
   globalThis.game = { user: { isGM: true }, ...world };
-  globalThis.Folder = { create: async (d) => add(world.folders, { id: id("F"), folder: null, ...d }) };
+  globalThis.Folder = { create: async (d, o = {}) => add(world.folders, { ...d, id: o.keepId && d._id ? d._id : id("F"), folder: null }) };
   try {
     const packed = [];
     for (const [site, creatures] of [["cs2-iron-fortress", ["Goblin", "Orc"]], ["cs2-mines", ["Goblin", "Troll"]]]) {
@@ -155,11 +155,13 @@ test("two adventures of one book packed to the compendium leave one folder per t
       packed.push(adventureData({ name: site, site, scene: { _id: scene.id }, journal: { _id: journal.id }, actors: actors.map((a) => ({ _id: a.id })), folders: folderIds.map((f) => ({ _id: f })) }));
       const staged = { scene: scene.id, journal: journal.id, actors: actors.map((a) => a.id) };
       await removeStaged(staged, createdSince(before, staged));
+      await pruneEmptyBookFolders();   // the wizard's run-end prune
     }
     assert.equal(world.actors.length + world.scenes.length + world.journal.length, 0, "the world copies are gone");
+    assert.equal(world.folders.length, 0, "the wizard's prune removed the emptied book folders (fixed id kept on create)");
     // Foundry's Adventure#prepareImport: what is not in the world yet is created, with the packed id.
     for (const a of packed) for (const f of a.folders) if (!world.folders.has(f._id)) add(world.folders, { id: f._id, folder: null });
-    for (const type of ["Actor", "Scene", "JournalEntry"]) assert.equal(world.folders.filter((f) => f.type === type).length, 1, type);
+    assert.equal(world.folders.length, 3, "one folder per type: actors, scenes, journals");
     assert.deepEqual(packed[0].folders.map((f) => f._id).sort(), packed[1].folders.map((f) => f._id).sort(), "both adventures carry the same folders");
   } finally {
     globalThis.game = had.game;
