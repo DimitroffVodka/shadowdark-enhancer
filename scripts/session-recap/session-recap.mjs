@@ -23,7 +23,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import {
   DEFAULT_DATA, HP_PATH, emptyPlayerStat, formatDuration, generateSessionName,
-  formatForDiscordFromData, hpDrop, classifyCombatant,
+  formatForDiscordFromData, recapDrop, stampHpFrom, classifyCombatant,
 } from "./session-recap-core.mjs";
 import { CarousingFeed } from "./carousing-feed.mjs";
 import { isActiveGM } from "../shared/gm-relay.mjs";
@@ -499,16 +499,18 @@ export const SessionRecap = {
     // was stamped into the update's options by `_initHpStamp` (see there).
     Hooks.on("updateActor", (actor, changes, options) => {
       if (!this.isActive() || !this._isPrimaryGM()) return;
-      const drop = hpDrop(options?.[MODULE_ID]?.hpFrom?.[actor.uuid], foundry.utils.getProperty(changes, HP_PATH));
+      const get = (path) => foundry.utils.getProperty(changes, path);
+      const drop = recapDrop(options, MODULE_ID, actor.uuid, {
+        to: get(HP_PATH), hp: actor.system?.attributes?.hp?.value,
+        maxWritten: get("system.attributes.hp.max") !== undefined,
+        poolWritten: get(`flags.${MODULE_ID}.tempHp`) !== undefined,
+      });
       if (!drop) return;
 
       const FRESH_MS = 60_000;
-      let attackerActor = null;
-      if (this._lastAttacker && Date.now() - this._lastAttacker.timestamp < FRESH_MS) {
-        attackerActor = this._lastAttacker.actor;
-      }
-      if (!attackerActor) attackerActor = game.combat?.combatant?.actor ?? null;
-      attackerActor = this._unwrapToPC(attackerActor) ?? attackerActor;
+      // Only a character's own roll names the attacker; a monster's or trap's roll falls through to whose turn it is.
+      const fresh = this._lastAttacker && Date.now() - this._lastAttacker.timestamp < FRESH_MS ? this._lastAttacker.actor : null;
+      const attackerActor = this._unwrapToPC(fresh) ?? this._unwrapToPC(game.combat?.combatant?.actor);
 
       const attackerIsPC = !!attackerActor?.hasPlayerOwner && attackerActor.type === "Player";
       const targetIsPC = actor.hasPlayerOwner && actor.type === "Player";
@@ -517,7 +519,9 @@ export const SessionRecap = {
         this.updatePlayerStat(actor.id, actor.name, "damageTaken", drop.lost);
       } else if (attackerIsPC && attackerActor) {
         this.updatePlayerStat(attackerActor.id, attackerActor.name, "damageDealt", drop.lost);
-        const tokenId = actor.token?.id ?? actor.getActiveTokens?.()[0]?.id;
+        const tokenId = actor.token?.id
+          ?? game.combats.find(c => this._activeCombats.has(c.id))?.combatants.find(c => c.actorId === actor.id)?.tokenId
+          ?? actor.getActiveTokens?.()[0]?.id;
         if (tokenId) this._killMap.set(tokenId, attackerActor.name);
         if (drop.to <= 0) this.updatePlayerStat(attackerActor.id, attackerActor.name, "kills", 1);
       }
@@ -535,8 +539,7 @@ export const SessionRecap = {
     Hooks.on("preUpdateActor", (actor, changes, options) => {
       if (foundry.utils.getProperty(changes, HP_PATH) === undefined) return;
       // Keyed by actor: one batch update of several actors shares a single options object.
-      const mine = options[MODULE_ID] ?? {};
-      options[MODULE_ID] = { ...mine, hpFrom: { ...mine.hpFrom, [actor.uuid]: actor.system?.attributes?.hp?.value } };
+      stampHpFrom(options, MODULE_ID, actor.uuid, actor.system?.attributes?.hp?.value);
     });
   },
 

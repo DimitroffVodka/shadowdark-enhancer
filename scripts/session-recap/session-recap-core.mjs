@@ -113,6 +113,25 @@ export function hpDrop(from, to) {
   return Number.isFinite(a) && Number.isFinite(b) && b < a ? { lost: a - b, to: b } : null;
 }
 
+/** Stamp the HP an actor's update starts from into the batch's shared options, keyed by actor, keeping other keys. */
+export function stampHpFrom(options, moduleId, uuid, hp) {
+  const mine = options[moduleId] ?? {};
+  options[moduleId] = { ...mine, hpFrom: { ...mine.hpFrom, [uuid]: hp } };
+}
+
+/**
+ * The damage an actor update stands for, or null. Points the temp HP pool spent travel in the options.
+ * An update that also writes the maximum (quick adjust, rollHP, undo) or the pool (the Cook settle)
+ * moves HP without anyone being hit.
+ * @param {{to: *, hp: *, maxWritten: boolean, poolWritten: boolean}} now  the update's new HP, the actor's HP, and what else it writes
+ */
+export function recapDrop(options, moduleId, uuid, { to, hp, maxWritten, poolWritten }) {
+  const spent = Number(options?.[moduleId]?.tempHpSpent);
+  if (spent > 0) return { lost: spent, to: Number(hp) };
+  if (maxWritten || poolWritten) return null;
+  return hpDrop(options?.[moduleId]?.hpFrom?.[uuid], to);
+}
+
 /**
  * Build the Discord-markdown recap from a plain `data` object. Pure — every
  * input is read off `data`, currency via {@link toCopper}/{@link formatCurrency}.

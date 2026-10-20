@@ -32,7 +32,7 @@ async function damageThroughPool(original, damage, multiplier) {
   const pool = poolOf(this);
   if (!(amount > 0) || tempHpValue(pool, now()) <= 0) return original.call(this, damage, multiplier);
   const { left, rest } = spendTempHp(pool, amount, now());
-  await replaceModuleFlag(this, TEMP_HP_FLAG, tempHpFlag(left, pool.expires));
+  await replaceModuleFlag(this, TEMP_HP_FLAG, tempHpFlag(left, pool.expires), {}, { [MODULE_ID]: { tempHpSpent: amount - rest } });
   if (rest > 0) return original.call(this, rest, 1);
 }
 
