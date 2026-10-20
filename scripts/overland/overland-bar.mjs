@@ -491,9 +491,11 @@ export const TravelBar = {
     const state = overlandState();
     const wx = weatherSwitch(weatherVisualsOn());
     const date = t("SDE.clock.date", { weekday: t(parts.weekday), day: parts.day, month: t(parts.month), year: parts.year });
-    // The day's movement counter rides the left with the tools (how far the day reaches, at a glance, without stretching
-    // the bar); the party's buttons stay on the right.
+    // The left end says who is carrying what: the day's counter, the party's torches and rations, and the two buttons
+    // that find the party and open its sheet. The clock's tools join the travel switch and the advance on the right, so
+    // neither side of the date is left with a stretch of empty bar.
     let day = "";
+    let people = "";
     let party = "";
     if (isHexMapScene()) {
       const plate = CrawlState.isOverland ? this._plate() : null;
@@ -501,23 +503,23 @@ export const TravelBar = {
         ? `<button type="button" class="sde-hud-plate sde-hud-count${plate.cls ? ` ${plate.cls}` : ""}" data-action="open" data-id="${gm && state.encounter ? "encounter" : "travel"}"${plate.tip ? ` data-tooltip="${esc(plate.tip)}" aria-label="${esc(plate.tip)}"` : ""}>${plate.html}</button>`
         : gm && CrawlState.mode === "off" ? `<button type="button" class="sde-hud-go" data-action="startTravel"><i class="fa-solid fa-hexagon"></i> ${esc(t("SDE.overland.startTravel"))}</button>` : "";
       // Finding the party and opening its sheet: for any viewer who can see a party.
-      const people = Party.list().length ? ib("findParty", "fa-location-crosshairs", t("SDE.clock.find.tip")) + ib("partySheet", "fa-shield-halved", t("SDE.clock.sheet.tip")) : "";
-      party = people + (plate ? ib("open", "fa-users", t("SDE.clock.travel"), { id: "travel", pressed: this._open === "travel" }) : "");
+      people = Party.list().length ? ib("findParty", "fa-location-crosshairs", t("SDE.clock.find.tip")) + ib("partySheet", "fa-shield-halved", t("SDE.clock.sheet.tip")) : "";
+      party = plate ? ib("open", "fa-users", t("SDE.clock.travel"), { id: "travel", pressed: this._open === "travel" }) : "";
     }
-    // The day's counter sits at the far left with the party's torches and rations beside it, then the clock's tools. The
-    // calendar has moved onto the season plate; the party's buttons stay on the right.
     const supplies = supplyChips(isHexMapScene() ? partySupplies(supplyParty()) : null);
+    const tools = `${gm ? ib("stack", "fa-backward", t("SDE.clock.rewind"), { id: "rew", pressed: this._stack === "rew" }) : ""}`
+      + `${ib("weather", wx.icon, t(wx.labelKey), { pressed: wx.on, cls: wx.cls })}`
+      + `${gm ? ib("open", "fa-sliders", t("SDE.clock.time"), { id: "time", pressed: this._open === "time" }) : ""}`;
     return `<div class="sde-hud-bar sde-hud-bar-3">
       <div class="sde-hud-side">
         ${day}
         ${supplies}
-        ${gm ? ib("stack", "fa-backward", t("SDE.clock.rewind"), { id: "rew", pressed: this._stack === "rew" }) : ""}
-        ${ib("weather", wx.icon, t(wx.labelKey), { pressed: wx.on, cls: wx.cls })}
-        ${gm ? ib("open", "fa-sliders", t("SDE.clock.time"), { id: "time", pressed: this._open === "time" }) : ""}
+        ${people}
       </div>
       <span class="sde-hud-date sde-hud-date-mid"><span class="sde-hud-d">${esc(date)}</span><span class="sde-hud-t">${esc(parts.time)}</span>
         ${ib("sky", this._sky ? "fa-chevron-up" : "fa-chevron-down", t(this._sky ? "SDE.clock.skyHide" : "SDE.clock.skyShow"), { pressed: this._sky, cls: "sde-hud-chev" })}</span>
       <div class="sde-hud-side sde-hud-side-r">
+        ${tools}
         ${party}
         ${gm ? ib("stack", "fa-forward", t("SDE.clock.advance"), { id: "adv", pressed: this._stack === "adv" }) : ""}
       </div>

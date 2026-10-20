@@ -32,11 +32,13 @@ const dayCell = (s, tip) => {
   return `<button type="button" class="sde-hud-plate sde-hud-count" data-tooltip="${tip}"><i class="fa-solid ${ICON[s.method]} sde-hud-how"></i><b>${s.hexes[0]}</b>/${s.hexes[1]}${s.pushed ? '<i class="fa-solid fa-angles-up sde-hud-push"></i>' : ""}</button>`;
 };
 
-// What _bar() builds on the right: finding the party and opening its sheet, then the travel panel while a day is open.
-const partyCells = (s) => {
-  const users = '<button type="button" class="sde-hud-ib" data-tooltip="Find the party on the map"><i class="fa-solid fa-location-crosshairs"></i></button><button type="button" class="sde-hud-ib" data-tooltip="Open the party sheet"><i class="fa-solid fa-shield-halved"></i></button>';
-  return s.plate === "start" ? users : `${users}<button type="button" class="sde-hud-ib"><i class="fa-solid fa-users"></i></button>`;
-};
+// What _bar() builds on the right: the clock's tools, the travel switch, then the advance.
+const autoCell = (s) => (s.plate === "start" ? "" : '<button type="button" class="sde-hud-auto" aria-pressed="false">Auto</button>');
+const tools = '<button type="button" class="sde-hud-ib"><i class="fa-solid fa-backward"></i></button><button type="button" class="sde-hud-ib sde-hud-cloud" aria-pressed="true" data-tooltip="Hide weather effects on this device"><i class="fa-solid fa-cloud-rain"></i></button><button type="button" class="sde-hud-ib"><i class="fa-solid fa-sliders"></i></button>';
+// What _bar() builds on the left after the supplies: finding the party and opening its sheet.
+const peopleCells = '<button type="button" class="sde-hud-ib" data-tooltip="Find the party on the map"><i class="fa-solid fa-location-crosshairs"></i></button><button type="button" class="sde-hud-ib" data-tooltip="Open the party sheet"><i class="fa-solid fa-shield-halved"></i></button>';
+// What _bar() builds on the right after the tools: the travel panel while a day is open.
+const travelCell = (s) => (s.plate === "start" ? "" : '<button type="button" class="sde-hud-ib"><i class="fa-solid fa-users"></i></button>');
 
 // What _bar() builds: the day's counter at the far left, then the party's torches and rations, then the clock's tools.
 const supplies = '<span class="sde-hud-sup" data-tooltip="6 fresh torches in the party\'s packs"><i class="fa-solid fa-fire"></i><b>6</b></span><span class="sde-hud-sup" data-tooltip="8 rations in the party\'s packs"><i class="fa-solid fa-drumstick-bite"></i><b>8</b></span>';
@@ -57,14 +59,14 @@ const hud = (s) => {
     <div class="sde-hud-side">
       ${dayCell(s, tip)}
       ${supplies}
-      <button type="button" class="sde-hud-ib"><i class="fa-solid fa-backward"></i></button>
-      <button type="button" class="sde-hud-ib sde-hud-cloud" aria-pressed="true" data-tooltip="Hide weather effects on this device"><i class="fa-solid fa-cloud-rain"></i></button>
-      <button type="button" class="sde-hud-ib"><i class="fa-solid fa-sliders"></i></button>
+      ${peopleCells}
     </div>
     <span class="sde-hud-date sde-hud-date-mid"><span class="sde-hud-d">${esc(s.date)}</span><span class="sde-hud-t">${esc(s.time)}</span>
       <button type="button" class="sde-hud-ib sde-hud-chev" aria-pressed="true" data-tooltip="Hide the sky"><i class="fa-solid fa-chevron-up"></i></button></span>
     <div class="sde-hud-side sde-hud-side-r">
-      ${partyCells(s)}
+      ${tools}
+      ${autoCell(s)}
+      ${travelCell(s)}
       <button type="button" class="sde-hud-ib"><i class="fa-solid fa-forward"></i></button>
     </div>
   </div>
