@@ -387,3 +387,16 @@ test("a manual link to a document the keyed pages already name shows once", () =
   assert.deepEqual(view.links, [{ uuid: "JournalEntry.b", label: "Other" }, { uuid: "JournalEntry.a.JournalEntryPage.b", label: "Keyed cave" }]);
   assert.equal(JSON.stringify(view.links).includes("My label"), false);
 });
+test("every row the window reads back on Save carries each field it reads, so a linked row never breaks Save", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const template = await readFile(new URL("../templates/hex-map/hex-explorer.hbs", import.meta.url), "utf8");
+  const app = await readFile(new URL("../scripts/hex-map/hex-explorer-app.mjs", import.meta.url), "utf8");
+  const reads = [...app.matchAll(/collection\("(\w+)", \[([^\]]+)\]\)/g)].map(m => [m[1], [...m[2].matchAll(/"(\w+)"/g)].map(f => f[1])]);
+  assert.ok(reads.some(([kind]) => kind === "adventure"), "the adventure rows are read back");
+  for (const [kind, fields] of reads) {
+    const at = template.indexOf(`data-row="${kind}"`);
+    assert.ok(at >= 0, kind);
+    const row = template.slice(at, template.indexOf("{{", template.indexOf("</div>{{", at) + 6));
+    for (const field of fields) assert.ok(row.includes(`data-field="${field}"`), `${kind} row carries ${field}`);
+  }
+});

@@ -301,10 +301,13 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
   /** A quest made from this window is tied to the hex at birth, so the log's Hex column already points at it. */
   async _addQuest() {
-    if (!Number.isInteger(this.record?.num)) return;
-    const quest = await Quests.create({ hex: this.record.num, hexScene: this.scene.uuid });
-    if (!quest) return;
+    if (!Number.isInteger(this.record?.num) || !game.user?.isGM) return;
+    this._capture();
+    let quest = null;
+    try { quest = await Quests.create({ hex: this.record.num, hexScene: this.scene.uuid }); }
+    catch (error) { console.error(`${MODULE_ID} | Hex Data new quest`, error); ui.notifications.warn(game.i18n.localize("SDE.hexExplorer.failed")); }
     this.render();
+    if (!quest) return;
     const { QuestLogApp } = await import("../quests/quest-log-app.mjs");
     QuestLogApp.open(quest.id ?? quest.uuid);
   }

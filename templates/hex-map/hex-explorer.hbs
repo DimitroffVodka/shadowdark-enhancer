@@ -66,6 +66,7 @@
     <section class="ui-card">
       <h3 class="ui-h">{{localize "SDE.hexExplorer.adventures"}}</h3>
       {{#each adventures}}<div class="ui-row" data-row="adventure" data-index="{{index}}">
+        <input type="hidden" data-field="uuid" value="{{uuid}}"><input type="hidden" data-field="label" value="{{label}}">
         <div class="ui-row-main"><span>{{label}}</span></div>
         <button type="button" class="ui-icon" data-action="openPage" data-uuid="{{uuid}}" title="{{localize 'SDE.hexExplorer.openPage'}}" aria-label="{{localize 'SDE.hexExplorer.openPage'}}"><i class="fa-solid fa-book-open"></i></button>
         <button type="button" class="ui-icon danger" data-action="remove" title="{{localize 'SDE.hexExplorer.remove'}}" aria-label="{{localize 'SDE.hexExplorer.remove'}}"><i class="fa-solid fa-trash"></i></button>
