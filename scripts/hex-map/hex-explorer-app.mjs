@@ -23,6 +23,12 @@ const t = (key) => game.i18n.localize(key);
 const fileLoads = async src => { try { return (await fetch(src, { method: "HEAD" })).ok; } catch { return false; } };
 const LABELS = { river: "SDE.hexMap.feature.river", path: "SDE.hexMap.feature.path", coast: "SDE.hexMap.feature.coast" };
 const ENCOUNTER_NOTES = { region: "SDE.hexExplorer.enc.region", ambiguous: "SDE.hexExplorer.enc.ambiguous", terrain: "SDE.hexExplorer.enc.terrain", active: "SDE.hexExplorer.enc.active", none: "SDE.hexExplorer.enc.none" };
+/** Every region this map names — the scan's, the GM's corrections, the nearest-hex guesses — plus the hex's own answer. */
+const regionChoiceNames = (zones, current) => {
+  const names = new Set([...zones?.byNum?.values?.() ?? []].map(z => z.zone));
+  if (current) names.add(current);
+  return [...names].sort((a, b) => a.localeCompare(b));
+};
 export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     classes: ["shadowdark", "sde-hex-explorer", "sde-ui"], window: { title: "SDE.hexExplorer.title", icon: "fa-solid fa-map", resizable: true },
@@ -40,7 +46,19 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       // Quest links are the quest's own flag, written at once: they are not part of this window's Save.
       linkQuest: function () { return this._setQuestHex(this.element.querySelector('[name="questPick"]')?.value, this.record.num); },
       unlinkQuest: function (_event, el) { return this._setQuestHex(el.dataset.uuid, null); },
-      openQuest: function (_event, el) { return fromUuid(el.dataset.uuid).then(doc => doc?.sheet?.render(true)); },
+      addQuest: function () { return this._addQuest(); },
+      // An adventure is attached to the hex but lives in its compendium until the GM imports it there.
+      linkAdventure: function () {
+        const select = this.element.querySelector('[name="adventurePick"]');
+        if (!select?.value) return;
+        this._capture();
+        this.draft.adventures.push({ index: null, uuid: select.value, label: select.selectedOptions[0]?.textContent ?? "" });
+        this.render();
+      },
+      openQuest: async function (_event, el) {
+        const { QuestLogApp } = await import("../quests/quest-log-app.mjs");
+        return QuestLogApp.open(el.dataset.uuid);
+      },
       openEncounterTable: async function () { (await fromUuid(this.encounterUuid))?.sheet?.render(true); },
       openPage: async function (_event, el) {
         const doc = await fromUuid(el.dataset.uuid);
@@ -56,7 +74,7 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     },
   };
   static PARTS = { body: { template: `modules/${MODULE_ID}/templates/hex-map/hex-explorer.hbs`, scrollable: [".sde-hex-explorer-body"] } };
-  constructor(offset, scene, options = {}) { super(options); this.offset = { ...offset }; this.scene = scene; this.draft = null; this.saving = false; this.artSrc = null; this.artTitle = ""; this.keyedBook = null; this.tilePick = null; this.tileTarget = null; }
+  constructor(offset, scene, options = {}) { super(options); this.offset = { ...offset }; this.scene = scene; this.draft = null; this.saving = false; this.artSrc = null; this.artTitle = ""; this.keyedBook = null; this.tilePick = null; this.tileTarget = null; this.adventurePacks = null; }
   static open(offset, target) {
     const scene = sceneRef(target);
     if (!game.user?.isGM || !explorerCell(scene, offset)) return null;
@@ -68,15 +86,20 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _prepareContext() {
     if (!game.user?.isGM) return {};
     const record = this.record = HexRecords.read(this.offset, this.scene);
+    // The region answer every reader gives this hex; the select shows it, and a save corrects it on the scan's scene.
+    const zones = await hexZonesFor(this.scene).catch(() => null);
+    const region = this.shownRegion = regionLine(zones, record.num);
     // The reveal boxes are the viewed party's: what they say is what that party's players see.
     const seen = effectiveDiscovery(record.discovery, viewedPartyIds());
     // The draft belongs to the party it was filled from; switching party while the window is open must not move its boxes to another.
     if (!this.draft) this.partyId = viewedPartyIds()[0] ?? null;
+    if (!this.draft) this.regionBase = region?.zone ?? "";
     if (!this.draft) this.draft = {
-      terrain: record.terrain ?? "", title: record.title ?? "",
+      terrain: record.terrain ?? "", region: region?.zone ?? "", title: record.title ?? "",
       lines: FEATURES.filter(type => record.features?.some(f => f.type === type)),
       features: (record.features ?? []).map((f, index) => ({ ...f, index })).filter(f => !FEATURES.includes(f.type)),
       notes: (record.notes ?? []).map((n, index) => ({ ...n, index })), links: (record.links ?? []).map((l, index) => ({ ...l, index })),
+      adventures: (record.adventures ?? []).map((a, index) => ({ ...a, index })),
       rollTable: record.rollTable ?? "", rollTableChance: record.rollTableChance ?? 100, rollTableFirstOnly: !!record.rollTableFirstOnly,
       revealed: !!seen.revealed, visited: !!seen.visited,
       location: seen.locationRevealed === undefined ? "auto" : seen.locationRevealed ? "show" : "hide",
@@ -84,8 +107,6 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const d = this.draft;
     // The saved cell, as a travel check reads it; tableForCheck never throws, so a bad lookup shows as no table.
     const hex = { num: record.num ?? undefined, terrain: record.terrain, features: (record.features ?? []).map(f => f?.type).filter(type => FEATURES.includes(type)) };
-    const zones = await hexZonesFor(this.scene).catch(() => null);
-    const region = this.shownRegion = regionLine(zones, record.num);
     // The "To enter" stat reads the hex scene's OWN ruleset, not the viewed scene's. A keyed or settlement hex stands on
     // the ground its book row names: the same read as the region, and the same map travel prices with.
     const enter = enterStat(rulesFrom(storedRulesFor(this.scene)), record, zones?.ground?.get(record.num));
@@ -120,6 +141,10 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       enter: !enter ? "" : enter.cost === null ? t(`SDE.rulesData.type.${enter.type}`)
         : game.i18n.format("SDE.hexExplorer.enterCost", { type: t(`SDE.rulesData.type.${enter.type}`), cost: enter.cost }),
       region: region && regionText(region),
+      // A region is a printed number's answer, so an adopted offset cell has none to correct.
+      canRegion: numbered,
+      regionOptions: regionChoiceNames(zones, d.region).map(name => ({ value: name, label: name, selected: name === d.region })),
+      adventures: d.adventures, adventureChoices: await this._adventureChoices(),
       number, artSrc: this.artSrc,
       locationAuto: d.location === "auto", locationShow: d.location === "show", locationHide: d.location === "hide",
       terrainOptions: this._terrainOptions(d.terrain),
@@ -274,6 +299,31 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     catch (error) { console.error(`${MODULE_ID} | Hex Data quest link`, error); ui.notifications.warn(game.i18n.localize("SDE.hexExplorer.failed")); }
     this.render();
   }
+  /** A quest made from this window is tied to the hex at birth, so the log's Hex column already points at it. */
+  async _addQuest() {
+    if (!Number.isInteger(this.record?.num) || !game.user?.isGM) return;
+    this._capture();
+    let quest = null;
+    try { quest = await Quests.create({ hex: this.record.num, hexScene: this.scene.uuid }); }
+    catch (error) { console.error(`${MODULE_ID} | Hex Data new quest`, error); ui.notifications.warn(game.i18n.localize("SDE.hexExplorer.failed")); }
+    this.render();
+    if (!quest) return;
+    const { QuestLogApp } = await import("../quests/quest-log-app.mjs");
+    QuestLogApp.open(quest.id ?? quest.uuid);
+  }
+  /** Every Adventure in a compendium, grouped by pack: the list a GM loads one from when the party reaches the hex. Read once. */
+  _adventureChoices() {
+    return this.adventurePacks ??= (async () => {
+      const out = [];
+      for (const pack of [...(game.packs ?? [])].filter(p => p.documentName === "Adventure")) {
+        let rows = [];
+        try { rows = [...(await pack.getIndex()).values()]; } catch { rows = []; }
+        const entries = rows.map(r => ({ uuid: r.uuid ?? `Compendium.${pack.collection}.${pack.documentName}.${r._id ?? r.id}`, label: r.name }));
+        if (entries.length) out.push({ label: pack.metadata?.label ?? pack.collection, entries });
+      }
+      return out;
+    })().catch(() => []);
+  }
   /** The map's own terrains (the on-map editor's list); a new one is made with "other…", never typed into a free box. */
   _terrainOptions(current) {
     const state = decodeTags(this.scene.getFlag(MODULE_ID, "hexTags"));
@@ -296,8 +346,10 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _onClose(options) { this.stopRegions?.(); this.stopRegions = null; super._onClose(options); }
   _onRender(context, options) {
     super._onRender(context, options);
-    const select = this.element.querySelector('select[name="terrain"]'), other = this.element.querySelector('[name="terrainOther"]');
-    select?.addEventListener("change", () => { other.hidden = select.value !== OTHER; if (!other.hidden) other.focus(); });
+    for (const [name, otherName] of [["terrain", "terrainOther"], ["region", "regionOther"]]) {
+      const select = this.element.querySelector(`select[name="${name}"]`), other = this.element.querySelector(`[name="${otherName}"]`);
+      select?.addEventListener("change", () => { other.hidden = select.value !== OTHER; if (!other.hidden) other.focus(); });
+    }
     // The picker lists one terrain's tiles at a time; choosing another terrain here shows its tiles for this hex.
     this._wireTileZoom();
     const tileTerrain = this.element.querySelector('select[name="tileTerrain"]');
@@ -340,16 +392,20 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
         return [key, field.type === "checkbox" ? field.checked : field.value];
       })) };
     });
-    this.draft = { terrain: value("terrain") === OTHER ? value("terrainOther") : value("terrain"), title: value("title"), lines: FEATURES.filter(type => checked(type)),
+    this.draft = { terrain: value("terrain") === OTHER ? value("terrainOther") : value("terrain"), region: value("region") === OTHER ? value("regionOther") : value("region"), title: value("title"), lines: FEATURES.filter(type => checked(type)),
       features: collection("feature", ["type", "name", "uuid", "discovered"]), notes: collection("note", ["text", "visible", "location"]), links: collection("link", ["uuid", "label", "visible", "share"]),
+      adventures: collection("adventure", ["uuid", "label"]),
       rollTable: value("rollTable").trim(), rollTableChance: value("rollTableChance"), rollTableFirstOnly: checked("rollTableFirstOnly"),
       revealed: checked("revealed"), visited: checked("visited"), location: value("location") };
   }
   async _save() {
     if (this.saving || !game.user?.isGM) return;
     this._capture(); this.saving = true;
+    // Only a region the GM changed is written: an untouched select must not turn the map's estimate into a correction.
+    const input = { ...this.draft };
+    if (input.region === this.regionBase) delete input.region;
     this.element.querySelector('[data-action="save"]').disabled = true;
-    try { await HexExplorer.save(this.offset, this.draft, this.scene, this.partyId); this.draft = null; }
+    try { await HexExplorer.save(this.offset, input, this.scene, this.partyId); this.draft = null; }
     catch (error) { console.error(`${MODULE_ID} | Hex Data edit`, error); ui.notifications.warn(t(error.message.startsWith("SDE.") ? error.message : "SDE.hexExplorer.failed")); }
     finally { this.saving = false; this.render(); }
   }

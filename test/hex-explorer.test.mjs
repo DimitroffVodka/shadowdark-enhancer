@@ -34,6 +34,16 @@ test("one cell edits authoritative terrain/lines while rich metadata and other r
   assert.equal(plan.patch.discovery.arrivalRolled, true); assert.equal(plan.patch.discovery.locationRevealed, false);
   assert.equal(plan.patch.links[0].uuid, "RollTable.a");
 });
+test("a region correction rides the plan beside the cell, and adventure rows save only when the window carries them", () => {
+  const plan = planExplorerEdit(record, { ...input, region: "  Myre Swamp " }, flag);
+  assert.equal(plan.region, "Myre Swamp");
+  assert.ok(!Object.hasOwn(plan.patch, "region"));
+  assert.equal(planExplorerEdit(record, { ...input, region: "" }, flag).region, "");
+  assert.equal(planExplorerEdit(record, input, flag).region, undefined);
+  const rows = [{ index: 0, uuid: "Compendium.world.sde-adventures.Adventure.a", label: "Army Ants" }];
+  assert.deepEqual(planExplorerEdit(record, { ...input, adventures: rows }, flag).patch.adventures, [{ uuid: "Compendium.world.sde-adventures.Adventure.a", label: "Army Ants" }]);
+  assert.ok(!Object.hasOwn(planExplorerEdit(record, input, flag).patch, "adventures"));
+});
 test("automatic location disclosure clears explicit override without clearing visit/history", () => {
   const plan = planExplorerEdit({ ...record, discovery: { revealed: true, visited: true, locationRevealed: false, arrivalRolled: true } }, { ...input, location: "auto" }, flag);
   assert.ok(!Object.hasOwn(plan.patch.discovery, "locationRevealed")); assert.equal(plan.patch.discovery.arrivalRolled, true);
@@ -376,4 +386,17 @@ test("a manual link to a document the keyed pages already name shows once", () =
   const view = explorerView({ ...record, discovery: { revealed: true, visited: true }, links }, true);
   assert.deepEqual(view.links, [{ uuid: "JournalEntry.b", label: "Other" }, { uuid: "JournalEntry.a.JournalEntryPage.b", label: "Keyed cave" }]);
   assert.equal(JSON.stringify(view.links).includes("My label"), false);
+});
+test("every row the window reads back on Save carries each field it reads, so a linked row never breaks Save", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const template = await readFile(new URL("../templates/hex-map/hex-explorer.hbs", import.meta.url), "utf8");
+  const app = await readFile(new URL("../scripts/hex-map/hex-explorer-app.mjs", import.meta.url), "utf8");
+  const reads = [...app.matchAll(/collection\("(\w+)", \[([^\]]+)\]\)/g)].map(m => [m[1], [...m[2].matchAll(/"(\w+)"/g)].map(f => f[1])]);
+  assert.ok(reads.some(([kind]) => kind === "adventure"), "the adventure rows are read back");
+  for (const [kind, fields] of reads) {
+    const at = template.indexOf(`data-row="${kind}"`);
+    assert.ok(at >= 0, kind);
+    const row = template.slice(at, template.indexOf("{{", template.indexOf("</div>{{", at) + 6));
+    for (const field of fields) assert.ok(row.includes(`data-field="${field}"`), `${kind} row carries ${field}`);
+  }
 });
