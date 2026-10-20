@@ -1675,6 +1675,8 @@ export function applyAction(data, user) {
         const pending = _state.pending;
         // An encounter that hit as the clock reached its target holds nothing but its panel.
         if (!pending && !_state.encounter) return { ok: false, error: t("SDE.overland.notify.nothingPending") };
+        // A held encounter is the GM's to clear, whatever route asked (the bar's own check, a macro, the API).
+        if (_state.encounter && !user.isGM) return { ok: false, error: t("SDE.overland.notify.encounterGm") };
         // Continue is the deliberate resume: unpause first, then let the clock move. A player cannot
         // unpause the table; say who can instead of silently sending the same warning on every click.
         if (game.paused) {

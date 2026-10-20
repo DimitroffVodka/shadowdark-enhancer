@@ -2280,8 +2280,9 @@ Added in 1.17.0 (Overland O6, #232; design §5.1 step 4, §5.3, Q4, §5.7).
 - **`overland.resume()`** (GM, forwarded to the active GM; the crawl bar's
   **Resume clock**) clears `pending` and finishes the advance, rolling any later
   check on the way. If the game is paused, the active GM unpauses it first; a
-  player's Resume clock is refused with a notice that the GM must unpause. It
-  resolves to `{ ok: true, stopped }` (`stopped` when another check hit), or
+  player's Resume clock is refused with a notice that the GM must unpause. A
+  held encounter is the GM's to clear: a party owner's call is refused while one
+  waits, whatever route it comes by. It resolves to `{ ok: true, stopped }` (`stopped` when another check hit), or
   `{ ok: false, error }` when nothing is pending.
 
 - **Starting and ending travel** is the GM's, from the crawl bar's **Travel**

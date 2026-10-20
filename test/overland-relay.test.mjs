@@ -1618,6 +1618,22 @@ test("the bar's Make camp only reopens the window when the tasks are done; Night
   }
 });
 
+test("a held encounter is the GM's to clear: a Party owner's Resume clock is refused on every route, the GM's goes through", async () => {
+  travelling(["mine"]);
+  const party = { id: "native", uuid: "Actor.native", type: "NPC", flags: { "shadowdark-enhancer": { party: true } }, ...owner("player1") };
+  actors[party.uuid] = party;
+  stored.overlandState = { ...stored.overlandState, camp: { party: party.uuid, executor: "native" },
+    encounter: { at: 1, half: "night", chance: 1, kind: "monster", name: "Wolf", chain: [], also: [] } };
+  registerOverland();
+  try {
+    assert.deepEqual(await applyAction({ action: "resume" }, { id: "player1", isGM: false }),
+      { ok: false, error: "SDE.overland.notify.encounterGm" }, "a macro or the API cannot step past the bar's own check");
+    assert.equal(overlandState().encounter?.name, "Wolf", "the encounter is still held");
+    assert.deepEqual(await applyAction({ action: "resume" }, gm), { ok: true });
+    assert.equal(overlandState().encounter, null);
+  } finally { delete actors[party.uuid]; }
+});
+
 test("a throwing Extras never breaks the weather write (#307)", async () => {
   for (const api of [
     { revealFrom: () => { throw new Error("sync"); } },
