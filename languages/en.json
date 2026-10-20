@@ -5719,7 +5719,6 @@
   "SDE.sessionRecap.ui.dealt": "Dealt",
   "SDE.sessionRecap.ui.taken": "Taken",
   "SDE.sessionRecap.ui.noActivity": "No activity recorded yet.",
-  "SDE.sessionRecap.ui.damageLogNotice": "Install the <strong>Damage Log</strong> module for damage and kill tracking.",
   "SDE.sessionRecap.ui.defeatedOf": "{defeated}/{total} defeated",
   "SDE.sessionRecap.ui.noCombats": "No combats recorded.",
   "SDE.sessionRecap.ui.rollStats": "Roll & Damage Stats",
