@@ -56,6 +56,18 @@ healing does not recreate spent ones. After one world day any that are left expi
 Temp HP do not stack, so a character who already has more keeps them. Resume/reload
 does not grant another meal.
 
+## Automatic camps
+
+When the party travels with **Auto** on (see [Overland travel](Crawl-Strip-and-Crawl-Bar.md#automatic-travel-one-click-to-a-far-destination)),
+each evening's camp runs by itself with the last camp's tasks, stats and fire
+choice, and the night starts at once. The camp window opens only when a choice
+is needed: rations short, too few torches for the fire, a Repair item that is
+gone, Hunt in a storm on harsh ground (impossible by the rules, so Hunt is
+greyed out and the camp says why), or an Entertain with nobody left who can
+gain luck. A character added to the party while a camp is being set up joins
+it; one removed drops out. **Camp choices** in the Travel panel opens the
+window to change the saved tasks ahead of time.
+
 ## Resume and Overland
 
 Reopen shows saved choices/results and Resume/Review. After commitment there is

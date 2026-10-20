@@ -33,6 +33,7 @@ export function barModel({ state, isGM, owns, actors }) {
     leftShare: state.budget > 0 ? Math.max(0, Math.min(1, state.hexesLeft / state.budget)) : 0,
     method: state.method,
     pushed: state.pushed,
+    auto: !!state.auto,
     weather: state.weather?.kind ?? null,
     stormy: !!state.stormy,
     harsh: state.harsh,

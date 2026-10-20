@@ -22,7 +22,7 @@ export const TRAVEL_DAY_HOURS = 8;
 export const PUSH = 1.5;
 
 /** What a different party does not inherit from the one before it: the open day, its checks, camp and forage, its hex. */
-const NEW_PARTY_RESETS = ["day", "pushed", "base", "budget", "spent", "pointSeconds", "checks", "pending", "encounter", "camp", "foraged", "boatUuid", "hex"];
+const NEW_PARTY_RESETS = ["day", "pushed", "base", "budget", "spent", "pointSeconds", "checks", "pending", "encounter", "camp", "foraged", "boatUuid", "hex", "autoGoal"];
 
 /** @returns {object} a fresh travel state: no token, no day open */
 export function defaultOverlandState() {
@@ -36,6 +36,8 @@ export function defaultOverlandState() {
     boatUuid: null,       // aboard a boat actor, its speed is the budget
     pushed: false,        // today's pace: pushing or not, fixed at dawn from `pace`
     pace: "normal",       // the standing pace, "normal" or "push": holds every dawn until changed (#257)
+    auto: false,          // auto travel: a clicked route runs over days, camping and starting each dawn by itself (GM)
+    autoGoal: null,       // {i, j}: the destination the automatic journey is going to, kept so Travel > Resume auto can pick it up after a stop
     base: 0,              // today's hexes at a normal pace (the method's, or the boat's speed)
     budget: 0,            // the day's points, fixed at dawn
     spent: 0,             // points spent; hexes left = budget - spent
@@ -54,6 +56,8 @@ const str = (v) => (typeof v === "string" && v ? v : null);
 const int = (v, min = 0) => (Number.isFinite(Number(v)) ? Math.max(min, Math.trunc(Number(v))) : min);
 const ids = (v) => [...new Set((Array.isArray(v) ? v : []).filter((id) => typeof id === "string" && id))];
 const obj = (v) => (v && typeof v === "object" && !Array.isArray(v) ? { ...v } : null);
+/** A grid offset, or null. The automatic journey's saved destination. */
+const offsetOf = (v) => (obj(v) && Number.isFinite(v.i) && Number.isFinite(v.j) ? { i: Math.trunc(v.i), j: Math.trunc(v.j) } : null);
 
 /** A stored encounter check, or null when it isn't one. Its chance is the one it rolled at: none until rolled (#257). */
 function checkOf(v) {
@@ -145,6 +149,8 @@ export function normalizeOverlandState(value) {
     boatUuid: str(value.boatUuid),
     pushed: value.pushed === true,
     pace: value.pace === "push" ? "push" : "normal",
+    auto: value.auto === true,
+    autoGoal: offsetOf(value.autoGoal),
     base: int(value.base),
     budget: int(value.budget),
     spent: int(value.spent),
@@ -188,6 +194,12 @@ export function startTravel(state, { tokenUuid, members, method, sameParty } = {
 export function setHex(state, hex) {
   const next = normalizeOverlandState({ ...state, hex });
   return { state: next, changed: JSON.stringify(next.hex) !== JSON.stringify(state.hex) };
+}
+
+/** Remember (or clear) the automatic journey's destination, for Travel > Resume auto after a stop. */
+export function setAutoGoal(state, goal) {
+  const next = normalizeOverlandState({ ...state, autoGoal: goal });
+  return { state: next, changed: JSON.stringify(next.autoGoal) !== JSON.stringify(state.autoGoal) };
 }
 
 /** Record that a member foraged today. The check itself is #233's. */

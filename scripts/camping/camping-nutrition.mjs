@@ -23,9 +23,13 @@ export function foodPreview(party, camp, each = camp.each ?? 1, day = camp.day) 
   const stacks = stacksOf([party, ...campEaters(camp).map(p => actorOf(p.uuid))]);
   return campEaters(camp).map(p => {
     const actor = actorOf(p.uuid), saved = nutritionDay(actor, day);
-    const plan = saved?.foodDone ? { fed: saved.fed, own: stacks.filter(s => s.actorUuid === p.uuid).reduce((n, s) => n + s.quantity, 0), shortfall: 0, deductions: [] } : mealPlan(stacks, p.uuid, party.uuid, needs(actor, each));
+    // A day can hold more than one camp (an automatic camp, then a stopped or planned one). Only this
+    // camp's record, or one that already fed the eater, is authoritative; an older unfed record must
+    // not hide rations the party has since gained.
+    const committed = !!(saved?.foodDone && (saved.campId === camp.id || saved.fed));
+    const plan = committed ? { fed: saved.fed, own: stacks.filter(s => s.actorUuid === p.uuid).reduce((n, s) => n + s.quantity, 0), shortfall: 0, deductions: [] } : mealPlan(stacks, p.uuid, party.uuid, needs(actor, each));
     for (const d of plan.deductions) stacks.find(s => s.id === d.id && s.actorUuid === d.actorUuid).quantity -= d.quantity;
-    return { actorId: p.actorId, ...plan, saved: !!saved?.foodDone, con: isMount(actor) ? effectiveMountScores(scoresOf(actor)).con : Number(actor?.system.abilities.con.value ?? 0), rest: saved?.rest?.done ? saved.rest.eligible : null };
+    return { actorId: p.actorId, ...plan, saved: committed, con: isMount(actor) ? effectiveMountScores(scoresOf(actor)).con : Number(actor?.system.abilities.con.value ?? 0), rest: saved?.rest?.done ? saved.rest.eligible : null };
   });
 }
 // Shared across parties: an Actor/day is authoritative even when two camps share a PC.
@@ -37,10 +41,18 @@ export function feedCamp(party, camp) {
       const actor = actorOf(p.uuid); if (!actor || (actor.type !== "Player" && !isMount(actor))) invalid();
       if (isMount(actor)) await adoptMountScores(actor);
       let record = nutritionDay(actor, camp.day);
-      if (record?.foodDone) continue;
-      if (!record) {
+      // A finished record only settles this camp, or a meal already eaten today; an old unfed record
+      // from another camp must not stop this camp from spending rations the party has now.
+      const committed = record?.foodDone && (record.campId === camp.id || record.fed);
+      if (committed) continue;
+      const previous = record;
+      if (!record || record.campId !== camp.id) {
         const plan = mealPlan(stacksOf([actor, party]), actor.uuid, party.uuid, needs(actor, camp.each));
-        record = { partyUuid: party.uuid, campId: camp.id, fed: plan.fed, deductions: plan.deductions, foodDone: false, starvationId: plan.fed ? null : foundry.utils.randomID() };
+        record = {
+          partyUuid: party.uuid, campId: camp.id, fed: plan.fed, deductions: plan.deductions,
+          foodDone: false, starvationId: plan.fed ? null : previous?.starvationId ?? foundry.utils.randomID(),
+          starvationDone: !plan.fed && !!previous?.starvationDone,
+        };
         await saveDay(actor, camp.day, record);
       }
       const mealKey = `${camp.day}_${actor.id}`;

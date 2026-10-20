@@ -87,9 +87,9 @@ encounter is held, until you press Continue. Players' Shift-clicks do nothing.
 
 **Make camp** sits on the Travel panel's Traveling and Resting steps for the GM and
 for a player who owns the travelling party; the camp window opens on that player's
-own screen. **Continue** stays the GM's.
+own screen. **Resume clock** stays the GM's.
 
-**Make camp** and **Continue** run the rest of the night, or of a stopped move, as
+**Make camp** and **Resume clock** run the rest of the night, or of a stopped move, as
 a time-lapse: a beat plus a share of the span, about eight seconds for a whole
 night and never more than ten. The camp window folds away while the night runs,
 so you watch it on the map, and opens again at dawn with the results. The bar's
@@ -117,14 +117,14 @@ plate says **Encounter** until it's done. The panel shows:
 
 Only the GMs see it. **Post to chat** shows the players the encounter card.
 **Encounter Roller** opens the roller to roll again, set CHA or renown for the
-reaction, or place the tokens. **Continue** clears it and runs the rest of the
+reaction, or place the tokens. **Resume clock** clears it and runs the rest of the
 clock.
 
 The chevron at the panel's top right folds it into a strip under the bar:
 **Encounter**, the check's hour and what turned up (a point of interest's text,
 shortened). The strip stays while the encounter is held, above the sky or
 whichever panel you open meanwhile. Its chevron opens the panel again, and its
-**Continue** is the panel's.
+**Resume clock** is the panel's.
 
 How often the checks come is yours to change: **Adjust** in the Travel panel's
 Encounters step sets the chance (1 to 5 in 6, one more on a pushed day) and the

@@ -196,6 +196,8 @@ export function encounterPanel({ enc, cal, battle = null, preload = null, keep =
     body = `<p class="sde-hud-res">${esc(t(c.noTable ? "SDE.clock.enc.noTable" : "SDE.clock.enc.empty"))}</p>`;
   }
   const also = enc.also.map((a) => `<p class="sde-hud-fl">${esc(t("SDE.clock.enc.also", { table: a.name ?? "", text: a.text ?? "" }))}</p>`).join("");
+  // Whatever shows the encounter to the table leads; Resume clock is the quiet way out, and asks before it clears anything.
+  const handling = (battling && !battle) || c.kind === "flavor";
   return `<div class="sde-hud-panel sde-hud-enc">
     <div class="sde-hud-ph sde-hud-ph-row"><span class="sde-hud-cap sde-hud-grow">${esc(header)}</span>${chevron(true)}</div>
     <div class="sde-hud-pb">
@@ -209,13 +211,13 @@ export function encounterPanel({ enc, cal, battle = null, preload = null, keep =
     </div>
     ${battling && battle ? battleSection({ battle, preload, keep }) : ""}
     <div class="sde-hud-pf">
-      ${c.kind === "empty" ? "" : key("postEncounter", t("SDE.clock.enc.post"), { hint: t("SDE.clock.enc.postHint") })}
-      ${battling && !battle ? key("battleMap", t("SDE.encounterMaps.hud.battleMap"), { hint: t("SDE.encounterMaps.hud.battleMapHint") })
+      ${c.kind === "empty" ? "" : key("postEncounter", t("SDE.clock.enc.post"), { cls: c.kind === "flavor" ? "sde-hud-primary" : "", hint: t("SDE.clock.enc.postHint") })}
+      ${battling && !battle ? key("battleMap", t("SDE.encounterMaps.hud.battleMap"), { cls: "sde-hud-primary", hint: t("SDE.encounterMaps.hud.battleMapHint") })
         + key("arenaFight", t("SDE.stage.arena.encounterButton"), { hint: t("SDE.stage.arena.encounterHint") })
         + key("chooseBattleMap", t("SDE.encounterMaps.hud.chooseMap"), { cls: "sde-hud-ghost", hint: t("SDE.encounterMaps.hud.chooseMapHint") }) : ""}
       ${key("openRoller", t("SDE.clock.enc.roller"), { cls: "sde-hud-ghost", hint: t("SDE.clock.enc.rollerHint") })}
       <span class="sde-hud-grow"></span>
-      ${key("resume", t("SDE.overland.resume"), { cls: "sde-hud-primary", hint: t("SDE.overland.resumeHint") })}
+      ${key("resume", t("SDE.overland.resume"), { cls: handling ? "sde-hud-ghost" : "sde-hud-primary", hint: t("SDE.overland.resumeHint") })}
     </div>
   </div>`;
 }

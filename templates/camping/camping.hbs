@@ -1,6 +1,9 @@
 <section class="sde-ui ui-body sde-camping-body cp-root">
   <h3 class="ui-h">{{#unless embedded}}{{title}} {{/unless}}<small>{{phase}} · {{fire}}</small></h3>
   {{#if error}}<div class="ui-note bad" role="alert">{{error}}</div>{{/if}}
+  {{#if planning}}<div class="ui-note">{{localize "SDE.camping.planHint"}}</div>{{/if}}
+  {{#if autoBlockedNote}}<div class="ui-note warn" role="status">{{autoBlockedNote}}</div>{{/if}}
+  {{#if stormHuntNote}}<div class="ui-note warn" role="status">{{stormHuntNote}}</div>{{/if}}
   {{#if torchShortage}}<div class="ui-note warn" role="status">{{torchShortage}}</div>{{/if}}
 
   {{#if empty}}
@@ -33,7 +36,7 @@
         </div>
         <div class="cp-fields">
           <div class="ui-field"><label class="ui-label">{{localize "SDE.camping.task"}}</label>
-            <select data-choice="task" {{#unless editable}}disabled{{/unless}}>{{#each tasks}}<option value="{{key}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select></div>
+            <select data-choice="task" {{#unless editable}}disabled{{/unless}}>{{#each tasks}}<option value="{{key}}" {{#if selected}}selected{{/if}} {{#if disabled}}disabled{{/if}}>{{name}}</option>{{/each}}</select></div>
           {{#if abilities}}<div class="ui-field"><label class="ui-label">{{localize "SDE.camping.ability"}}</label>
             <select data-choice="ability" {{#unless editable}}disabled{{/unless}}>{{#each abilities}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></div>{{/if}}
           {{#if dc}}<div class="ui-field cp-dc"><label class="ui-label">{{localize "SDE.camping.dc"}}</label>
@@ -74,16 +77,17 @@
     {{#if manager}}<div class="ui-inline"><button type="button" class="ui-btn" data-action="declineFuel">{{localize "SDE.camping.decline"}}</button><button type="button" class="ui-btn primary" data-action="acceptFuel" {{#unless canFuel}}disabled{{/unless}}>{{localize "SDE.camping.spendThree"}}</button></div>{{/if}}
     {{/if}}
 
+    {{#if interrupted}}<div class="ui-note warn" role="status">{{localize "SDE.camping.interrupted" time=interrupted.time what=interrupted.what}}</div>{{/if}}
     {{#if awaitingRest}}<p class="ui-muted cp-hint">{{localize "SDE.camping.awaitingRest"}}</p>{{/if}}
     {{#if canNight}}{{#if shortageWarning}}<div class="ui-note bad">{{localize "SDE.camping.shortageWarning"}}{{#if unfedNames}} <b>{{unfedNames}}</b>{{/if}}</div>{{/if}}{{/if}}
 
     <div class="ui-actions">
-      {{#if canResolve}}<button type="button" class="ui-btn ghost" data-action="cancel">{{localize "SDE.camping.cancel"}}</button>{{/if}}
+      {{#if canCancel}}<button type="button" class="ui-btn ghost" data-action="cancel">{{localize "SDE.camping.cancel"}}</button>{{/if}}
       <div class="ui-right">
         {{#if isGM}}<button type="button" class="ui-btn" data-action="showCampPicture" data-tooltip="{{localize 'SDE.stage.hintCampPicture'}}">{{localize "SDE.stage.campPicture"}}</button>{{/if}}
         {{#if canResolve}}<button type="button" class="ui-btn primary" data-action="resolve">{{localize "SDE.camping.resolve"}}</button>{{/if}}
         {{#if canResume}}<button type="button" class="ui-btn primary" data-action="resume">{{localize "SDE.camping.resume"}}</button>{{/if}}
-        {{#if canNight}}{{#if shortageWarning}}<button type="button" class="ui-btn primary" data-action="acceptShortages">{{localize "SDE.camping.continueHungry"}}</button>{{else}}<button type="button" class="ui-btn primary" data-action="night">{{localize "SDE.camping.passNight"}}</button>{{/if}}{{/if}}
+        {{#if canNight}}{{#if shortageWarning}}<button type="button" class="ui-btn primary" data-action="acceptShortages">{{localize "SDE.camping.continueHungry"}}</button>{{else}}<button type="button" class="ui-btn primary" data-action="night">{{#if interrupted}}{{localize "SDE.overland.resume"}}{{else}}{{localize "SDE.camping.passNight"}}{{/if}}</button>{{/if}}{{/if}}
         {{#if complete}}{{#if manager}}<button type="button" class="ui-btn {{#unless canResume}}primary{{/unless}}" data-action="begin">{{localize "SDE.camping.newCamp"}}</button>{{/if}}{{/if}}
       </div>
     </div>

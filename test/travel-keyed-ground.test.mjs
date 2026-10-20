@@ -527,6 +527,8 @@ test("a player's client never reads the pack for the ground and prices a keyed h
   globalThis.game.user = { id: "player1", isGM: false };
   try {
     travelling(scene, PRINTED, { state: { budget: 1, base: 1 } });
+    // Only the party sheet's owner may move the party: this player owns it.
+    doc.actor = { testUserPermission: (user, level) => user.id === "player1" && level === "OWNER" };
     await settle();
     forgetHexZones(); fire("canvasReady"); socketHandlers.at(-1)({ type: "overland" });
     await settle();

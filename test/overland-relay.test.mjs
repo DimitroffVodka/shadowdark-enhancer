@@ -1115,7 +1115,7 @@ test("Make camp pressed again after the night failed goes on from where the camp
   await assert.rejects(applyAction({ action: "camp" }, gm));
   assert.equal(globalThis.game.time.worldTime, at(1301, 6, 21, 8), "no clock passed");
   assert.deepEqual(await applyAction({ action: "camp" }, { id: "player1", isGM: false }),
-    { ok: false, error: "SDE.overland.notify.dayGmOnly" }, "a player can't press it on");
+    { ok: false, error: "SDE.overland.notify.notPartyOwner" }, "a player who does not own the party sheet can't press it on");
   dice.push(4);                                    // the new day's weather
   assert.deepEqual(await applyAction({ action: "camp" }, gm), { ok: true, stopped: false });
   lights.stop();

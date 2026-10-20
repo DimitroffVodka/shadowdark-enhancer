@@ -24,7 +24,7 @@ and Forge & Loot features.
 [`time`](#time--season-day-and-night-sun-moon-and-anchors) ·
 [`overland`](#overland--the-travel-state)
 
-**API version:** `1.32.0` (semver — additive changes bump the minor version,
+**API version:** `1.35.0` (semver — additive changes bump the minor version,
 breaking changes the major; check `apiVersion` before relying on newer keys).
 
 ## Discovery
@@ -2070,6 +2070,8 @@ o.state();      // a copy of the travel state, plus derived fields:
 // {
 //   tokenUuid, members,            // the travel token; who travels (actor ids)
 //   method, mounts, boatUuid, pushed,
+//   auto,                          // the standing automatic-journey switch (1.33.0)
+//   autoGoal,                      // { i, j }: the destination Resume auto walks to (1.34.0)
 //   day, budget, spent,            // when the open day started (worldTime), and its points
 //   pointSeconds,                  // clock seconds per point of cost, fixed at the day's start
 //   weather, checks, pending, foraged,
@@ -2080,6 +2082,9 @@ o.state();      // a copy of the travel state, plus derived fields:
 await o.rollWeather();                 // GM: roll today's weather (1.15.0)
 await o.rollWeather({ reroll: true }); // replace today's roll (Predict)
 await o.startDay({ method: "walking", pushed: false, boatUuid: null, hexes: null });   // GM (1.16.0; hexes 1.20.0)
+await o.setAutoTravel(true);   // party owner or GM: a clicked route runs over days (1.33.0)
+await o.setAutoGoal({ i, j }); // GM or an owner: remember the journey's destination (1.34.0)
+await o.resumeAutoTravel();    // GM: continue to that destination after a stop (1.34.0)
 await o.resume();   // GM: finish an advance an encounter stopped (1.17.0)
 await o.forage(actorId);   // the owner or a GM: forage for a travelling character (1.18.0)
 await o.makeCamp();        // GM: camp for the night (1.18.0)
@@ -2140,6 +2145,52 @@ member's actor uuid to its mount's name.
 `overland.setPace("normal" | "push")` (1.25.0, GM) sets the standing pace. It
 holds every dawn; when the party hasn't moved or foraged today, today's pace
 and budget change too. Resolves to `{ ok, today, changed }`.
+
+`overland.setAutoTravel(true | false)` (1.33.0; GM, or an owner of the
+travelling party) sets the standing automatic journey. On, a clicked route on
+the hex map runs over as many days as it takes:
+the party camps when the day cannot pay for the next hex, the dawn opens the
+next day by itself, and the route is drawn again from where it stands. It stops
+for an encounter and resumes when `overland.resume()` clears it, and it never
+moves the party while the game is paused. Automatic camps reuse the last camp's
+tasks and fire; a camp left awaiting its Night is finished and the next day
+opened; a camp that truly needs a choice stops with that choice named (short
+rations, too few torches, an Entertain target at luck max, a gone Repair item,
+or a storm-forbidden Hunt), and a night encounter waits for Resume clock. An
+Entertain at a character whose luck is full turns to the next
+character who can still gain it; in Pulp mode the world setting
+`campPulpLuckMax` (default 4) is the cap, and standard mode uses the one luck
+token the system allows. The party sheet's owner or a GM may toggle it; token
+ownership alone does not. Resolves to `{ ok, auto }`.
+
+`overland.setAutoGoal({ i, j } | null)` (1.34.0; GM, or an owner of the
+travelling party) remembers the destination of the standing automatic journey.
+Starting a journey from the map saves it; a stop that is not the destination —
+a keyed location, a scene change, a camp decision, or any path the walk cannot
+finish — leaves it saved. `overland.resumeAutoTravel()` (1.34.0; GM, or the token's owner) routes the
+party from its current hex to that saved goal and walks on; the Travel panel's
+**Resume auto** button calls it. Arriving clears the saved goal, and turning
+Auto travel off clears it too. Resolves to `{ ok, autoGoal }` and `{ ok }`
+respectively, or `{ ok: false, error }`.
+
+Auto travel's day-walking (no new API): when the next hex is closed by a storm on
+harsh ground, or by ground the rules make impassable today, the journey ends that
+day and makes the party's own camp — the rations being short, or the storm
+forbidding a chosen Hunt, opens the camp window for the table instead of closing
+the day without a camp. It then opens the next dawn, up to fourteen days, and
+walks on once the way opens or stops and says why. A day's catch-up check that
+draws a creature pauses the days for the GM, as any encounter does. The internal
+action `autoSkipDay` does a bare close for callers that ask for it; the automatic
+storm walk no longer skips a camp. `overland.travelBlocked({ i, j })`
+(active GM) answers `"storm"`, `"weather"`, `"terrain"` or `null` for a
+destination; `"weather"` is worth retrying at dawn, `"terrain"` is permanent and
+stops the journey.
+
+A player who moves the party, sets an automatic destination, starts its day, or
+camps must own the **party sheet** (the Party actor), not merely the travel token.
+A refusal names that user: “<name> is not the owner of the party sheet.” Token
+ownership is still what Foundry uses to let a token be moved at all; grant both
+when a player should run the party.
 
 1. **The weather** is rolled first, unless today's still holds.
 2. **The budget**:
@@ -2224,12 +2275,14 @@ Added in 1.17.0 (Overland O6, #232; design §5.1 step 4, §5.3, Q4, §5.7).
   `pending: { until, reason }`. The move itself stands and is paid for; only
   the clock waits. When no clock is left but more checks are due at that
   moment (a second check at the same hour, or a late Start day's overdue
-  checks), `pending` holds them for Continue too. While something is pending, the travel token can't move
+  checks), `pending` holds them for Resume clock too. While something is pending, the travel token can't move
   on, except by displace.
 - **`overland.resume()`** (GM, forwarded to the active GM; the crawl bar's
-  **Continue**) clears `pending` and finishes the advance, rolling any later
-  check on the way. It resolves to `{ ok: true, stopped }` (`stopped` when
-  another check hit), or `{ ok: false, error }` when nothing is pending.
+  **Resume clock**) clears `pending` and finishes the advance, rolling any later
+  check on the way. If the game is paused, the active GM unpauses it first; a
+  player's Resume clock is refused with a notice that the GM must unpause. It
+  resolves to `{ ok: true, stopped }` (`stopped` when another check hit), or
+  `{ ok: false, error }` when nothing is pending.
 
 - **Starting and ending travel** is the GM's, from the crawl bar's **Travel**
   and **End travel** (offered on a tagged hex map). Another GM's click is
@@ -2331,7 +2384,7 @@ never longer, and a creature already recorded still counts (#282 review).
    finishes it on the party actor that camped, even if the travel token has
    changed since: who ate and didn't succeed at Bed Down rolls CON against DC
    12, and then the rest's benefits apply. When that is canceled or fails, the
-   camp stays pending with a warning, and Continue tries the dawn again rather
+   camp stays pending with a warning, and Resume clock tries the dawn again rather
    than passing a second night. The same happens when no Extras can finish it
    at dawn (turned off, or a version without `camping.dawn`): the rest is
    still stored on the party, so it isn't dropped. Starting a new day instead
@@ -2448,6 +2501,9 @@ scene's choice changes, and once on load.
   `overland.setPace`; `overland.startDay` reads the method and the pace when they're left out.
   `overland.makeCamp` makes the camp before the night (with Shadowdark Extras' `deferRest` and
   `camping.dawn`) and needs an open travel day, and the state gains `camp` and the held encounter `interrupts`.
+- `1.35.0` adds `overland.travelBlocked({ i, j })`, why the party cannot enter a destination today (`"storm"`, `"weather"`, `"terrain"` or `null`); the automatic journey's day-walking. `"weather"` is worth retrying at dawn; `"terrain"` is permanent and stops the journey.
+- `1.34.0` remembers the automatic journey's destination as `autoGoal` and adds `overland.setAutoGoal` / `overland.resumeAutoTravel`, so a stop at a keyed location or another interruption can be picked up with Travel > Resume auto.
+- `1.33.0` adds `overland.setAutoTravel`, the standing automatic-journey switch; the travel state gains `auto`.
 - `1.27.0` adds the `bastion` namespace (the Bastion actor type and its sheet).
 - `1.4.0` adds the shared `forgeLoot.open()` preview shell. Generator rules and
   document writes remain behind the later NPC/Rival adapter implementations.

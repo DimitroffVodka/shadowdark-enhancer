@@ -1,7 +1,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { Party, isNativeParty } from "../party/party.mjs";
-import { CAMP_LABELS, taskDefinitions, selectTask, carryOver, lockCamp, torchPlan, fireDecision, fireAlive } from "./camping-core.mjs";
+import { CAMP_LABELS, taskDefinitions, selectTask, carryOver, lockCamp, torchPlan, fireDecision, fireAlive, luckFull, rotateEntertain } from "./camping-core.mjs";
 import { queryActiveGM, registerQuery, refuseQuery, isActiveGM } from "../shared/gm-relay.mjs";
 import { expireTempHp } from "../shared/temp-hp.mjs";
 import { foodPreview, feedCamp, restCamp } from "./camping-nutrition.mjs";
@@ -13,10 +13,44 @@ const actorOf = uuid => game.actors.contents.find(a => a.uuid === uuid);
 const own = (a, u) => !!a?.testUserPermission(u, "OWNER");
 const flag = (a, key) => a?.flags?.[MODULE_ID]?.[key];
 const invalid = () => { throw new Error("SDE.camping.invalid"); };
+/** The Pulp cap a world sets for a luck token, read at each automatic camp (4 when unset). */
+function pulpLuckMax() {
+  try { return Math.max(1, Math.trunc(Number(game.settings.get(MODULE_ID, "campPulpLuckMax"))) || 4); } catch { return 4; }
+}
+/** Whether this participant is at luck max, so Entertain on them would be wasted. */
+function luckIsFull(uuid) {
+  let pulp = false;
+  try { pulp = !!game.settings.get("shadowdark", "usePulpMode"); } catch { /* not the Shadowdark system */ }
+  const actor = actorOf(uuid);
+  return !actor || luckFull(actor, { pulp, max: pulpLuckMax() });
+}
+/** A repeated Repair whose item is gone, mended or magical: the automatic camp must ask what to do. */
+const brokenRepairMissing = (camp) => camp.participants.some((p) => {
+  if (p.task !== "craft" || p.craft !== "repair") return false;
+  const item = actorOf(p.uuid)?.items.get(p.repairItemId);
+  return !item?.system?.isPhysical || !item.system.broken || item.system.magicItem;
+});
 export const campOf = party => structuredClone(flag(party, "camping"));
 const save = (party, camp, options) => replaceModuleFlag(party, "camping", camp, {}, options);
 // The Stage raises its camp picture only on the write that creates a camp; update hooks on every client read this.
 const begin = () => ({ [MODULE_ID]: { campBegin: true } });
+/**
+ * A camp's participants are fixed when the camp starts, but the roster can change before it resolves: a PC added
+ * mid-day must not be frozen out of tonight's camp (no task, no roll, no rations). While the camp is still being
+ * set up it follows the party's characters — joined ones are added with no task, departed or deleted ones dropped.
+ * Reads only; the caller saves.
+ */
+export function syncParticipants(party, camp) {
+  if (camp?.phase !== "setup") return camp;
+  let roster;
+  try { roster = Party.members(party, { charactersOnly: true }); } catch { return camp; }
+  const onCamp = new Set(camp.participants.map(p => p.uuid)), inParty = new Set(roster);
+  const kept = camp.participants.filter(p => inParty.has(p.uuid));
+  const added = roster.filter(uuid => !onCamp.has(uuid))
+    .map(uuid => ({ uuid, actorId: actorOf(uuid).id, confirmed: true, participate: true, task: "", ability: null, craft: "torch", watchHalf: "first" }));
+  if (!added.length && kept.length === camp.participants.length) return camp;
+  return { ...camp, participants: [...kept, ...added] };
+}
 const torch = item => item.type === "Basic" && item.system?.light?.isSource && item.system.light.template === "torch" && !item.system.magicItem && !item.system.light.active && !item.system.light.hasBeenUsed;
 export function campTorchPlan(party, camp = campOf(party)) {
   const stacks = [party, ...camp.participants.map(p => actorOf(p.uuid)).filter(Boolean)].flatMap(a => a.items.filter(torch).map(i => ({ actorUuid: a.uuid, id: i.id, quantity: i.system.quantity })));
@@ -73,6 +107,8 @@ async function rollTask(party, camp, p) {
   if (yieldRoll) result.amount = yieldRoll.total;
   camp.results[p.actorId] = result; await save(party, camp);
   // Reporting is deliberately outside the saved result: failure never makes a roll replayable.
+  // An automatic camp keeps quiet and puts its one summary at dawn instead of a card per roll.
+  if (camp.auto) return;
   try {
     const name = esc(game.i18n.localize(task.label ?? "SDE.camping.customTask"));
     const outcome = game.i18n.localize(result.success ? "SDE.camping.success" : "SDE.camping.failure");
@@ -136,6 +172,8 @@ async function resolveTasks(party, camp) {
 function validateChoices(camp) {
   for (const p of camp.participants) {
     const actor = actorOf(p.uuid); if (!actor || actor.type !== "Player") invalid();
+    // The GM Guide's harsh-weather rule: no hunting in a storm (the camp still happens; pick another task).
+    if (camp.stormy && camp.harsh && p.task === "hunt") throw new Error("SDE.camping.stormHunt");
     if (p.task === "craft" && p.craft === "repair") { const item = actor.items.get(p.repairItemId); if (!item?.system?.isPhysical || !item.system.broken || item.system.magicItem) invalid(); }
   }
 }
@@ -148,9 +186,23 @@ async function perform(party, action, data, user) {
     const participants = Party.members(party, { charactersOnly: true }).map(uuid => ({ uuid, actorId: actorOf(uuid).id, confirmed: true, participate: true, task: "", ability: null, craft: "torch", watchHalf: "first" }));
     const mounts = Party.members(party).filter(uuid => isMount(actorOf(uuid))).map(uuid => ({ uuid, actorId: actorOf(uuid).id }));
     for (const p of mounts) await adoptMountScores(actorOf(p.uuid));
-    camp = carryOver({ id: foundry.utils.randomID(), phase: "setup", participants, mounts, tasks: definitions(party), fuel: "none", anchor: anchor(party, participants), results: {}, effects: {}, day: null }, camp); await save(party, camp, begin()); return camp;
+    camp = carryOver({ id: foundry.utils.randomID(), phase: "setup", participants, mounts, tasks: definitions(party), fuel: "none", anchor: anchor(party, participants), results: {}, effects: {}, day: null }, camp); await save(party, camp, data.preview ? {} : begin()); return camp;
+  }
+  // Camp choices can be set before the party stops: they are the next automatic camp's settings, editable and
+  // without results, so every night repeats them until someone changes them.
+  if (action === "plan") {
+    if (!manager) invalid();
+    if (!camp || camp.phase === "complete") {
+      await perform(party, "begin", { preview: true }, user);
+      camp = campOf(party);
+      if (!camp || camp.phase !== "setup") invalid();
+      camp = { ...camp, preview: true }; await save(party, camp);
+    }
+    if (camp.phase !== "setup") invalid();
+    return camp;
   }
   if (!camp) invalid();
+  camp = syncParticipants(party, camp);
   if (action === "select") {
     const actor = actorOf(data.uuid); if (!own(actor, user) || actor.type !== "Player") invalid();
     const patch = {}; for (const k of ["task", "ability", "craft", "repairItemId", "recipientUuid", "watchHalf"]) if (data.patch?.[k] !== undefined) patch[k] = data.patch[k];
@@ -165,6 +217,8 @@ async function perform(party, action, data, user) {
   if (action === "fuelChoice" && camp.phase === "setup") { if (!["none", "wood", "torches"].includes(data.fuel)) invalid(); camp.fuel = data.fuel; await save(party, camp); return camp; }
   if (action === "dc" && camp.phase === "setup" && user.isGM) { const t = camp.tasks.find(t => t.key === data.task); if (!t || !Number.isFinite(data.dc)) invalid(); t.dc = data.dc; await save(party, camp); return camp; }
   if (action === "resolve") {
+    if (camp.preview) invalid();
+    if (camp.autoBlocked) camp = { ...camp, autoBlocked: null };
     if (camp.phase === "setup") validateChoices(camp);
     if (camp.phase === "setup") { if ((camp.fuel !== "none" || camp.participants.some(p => p.task === "firewood")) && camp.anchor && !nearFire(party, camp)) invalid(); camp = lockCamp(camp); await save(party, camp); }
     camp = await resolveTasks(party, camp);
@@ -224,12 +278,86 @@ export function prepareCampNight(party, context, user, acceptShortages = false) 
   return queued(party, async () => {
     if (!own(party, user)) invalid();
     let camp = campOf(party);
+    // A planned camp was set up wherever the party stood then: refresh its anchor and let the window roll it here.
+    if (camp?.preview) {
+      const here = anchor(party, camp.participants);
+      camp = { ...camp, preview: false, ...(here ? { anchor: here } : {}) };
+      await save(party, camp);
+    }
     if (!camp || camp.phase === "complete") { await perform(party, "begin", {}, user); return { ready: false }; }
     if (camp.phase !== "awaitingRest") return { ready: false };
     if (camp.day === null || camp.day === undefined) { camp = { ...camp, ...context }; await save(party, camp); }
     if (camp.day !== context.day) invalid();
     const shortages = foodPreview(party, camp).some(p => !p.fed);
     if (shortages && !acceptShortages && !camp.foodCommitted) { camp.shortageWarning = true; await save(party, camp); return { ready: false }; }
+    if (camp.shortageWarning) { camp.shortageWarning = false; await save(party, camp); }
+    camp.foodCommitted = true; await save(party, camp);
+    await feedCamp(party, camp);
+    return { ready: true, camp };
+  });
+}
+/**
+ * Overland's automatic camp: the last camp's choices, resolved without a window, with only the
+ * decisions that cannot repeat left for the table. Tasks roll quietly; a repeated Entertain turns to
+ * the next character below luck max, and camp stops for a window when nobody is left, when a chosen
+ * torch fire cannot be paid, when the rations are short, or when a repeated repair has no broken item.
+ * @returns {Promise<{ready:boolean, reason?:string, camp?:object}>} ready: go on to the night
+ */
+export function autoCampNight(party, context, user, acceptShortages = false) {
+  return queued(party, async () => {
+    if (!own(party, user)) invalid();
+    let camp = campOf(party);
+    // A camp left awaiting its Night on an earlier day is not a camp for tonight: finish that rest once,
+    // then make tonight's camp. Without this, every auto camp found the old camp and stopped for it.
+    if (camp?.phase === "awaitingRest" && camp.day !== undefined && camp.day !== context.day) {
+      await finishCampNightNow(party, camp, false);
+      camp = null;
+    }
+    if (!camp || camp.phase === "complete") { await perform(party, "begin", {}, user); camp = campOf(party); }
+    if (!camp) invalid();
+    if (camp.phase === "setup") {
+      camp = syncParticipants(party, camp);
+      const here = anchor(party, camp.participants);
+      camp = { ...camp, ...context, auto: true, preview: false, ...(here ? { anchor: here } : {}) };
+      const rotated = rotateEntertain(camp, luckIsFull);
+      camp = rotated.camp;
+      if (rotated.blocked) { camp.autoBlocked = "entertain"; await save(party, camp); return { ready: false, reason: "entertain" }; }
+      if (brokenRepairMissing(camp)) { camp.autoBlocked = "repair"; await save(party, camp); return { ready: false, reason: "repair" }; }
+      // A storm in a harsh climate forbids hunting: stop for a different activity, never roll the impossible one.
+      if (camp.stormy && camp.harsh && camp.participants.some(p => p.task === "hunt")) {
+        camp.autoBlocked = "hunt"; await save(party, camp); return { ready: false, reason: "hunt" };
+      }
+      camp = { ...camp, autoBlocked: null };
+      await save(party, camp);
+      validateChoices(camp);
+      camp = lockCamp(camp); await save(party, camp);
+      camp = await resolveTasks(party, camp);
+    } else {
+      const here = anchor(party, camp.participants);
+      camp = { ...camp, auto: true, ...(camp.day === null || camp.day === undefined ? context : {}), ...(here ? { anchor: here } : {}) };
+      await save(party, camp);
+    }
+    if (camp.phase === "fuel") {
+      const plan = campTorchPlan(party, camp);
+      // A fire needs a place on the party's scene: with no anchor or nobody near it, go without one rather
+      // than fail the camp (the plan was made on whichever scene the GM was looking at).
+      const canLight = !!camp.anchor && nearFire(party, camp);
+      if (camp.fuel === "torches") {
+        if (!plan.ok) { camp.fuelShort = plan.available; await save(party, camp); return { ready: false, reason: "torches" }; }
+        camp = await perform(party, "fuel", canLight ? { accept: true, deductions: plan.deductions } : { accept: false }, user);
+      } else if (camp.fuel === "wood") {
+        // Firewood failed: take the torches when there are three, else go without a fire.
+        camp = await perform(party, "fuel", plan.ok && canLight ? { accept: true, deductions: plan.deductions } : { accept: false }, user);
+      } else {
+        camp = await perform(party, "fuel", { accept: false }, user);
+      }
+    }
+    if (camp.phase !== "awaitingRest") { await save(party, camp); return { ready: false, reason: camp.phase }; }
+    if (camp.day === null || camp.day === undefined) { camp = { ...camp, ...context }; await save(party, camp); }
+    if (camp.day !== context.day) invalid();
+    const shortages = foodPreview(party, camp).some(p => !p.fed);
+    if (shortages && !acceptShortages && !camp.foodCommitted) { camp.shortageWarning = true; await save(party, camp); return { ready: false, reason: "rations" }; }
+    if (camp.shortageWarning) { camp.shortageWarning = false; await save(party, camp); }
     camp.foodCommitted = true; await save(party, camp);
     await feedCamp(party, camp);
     return { ready: true, camp };
@@ -238,19 +366,44 @@ export function prepareCampNight(party, context, user, acceptShortages = false) 
 async function reportCampNight(party, camp) {
   if (!camp.reportId) { camp.reportId = foundry.utils.randomID(); await save(party, camp); }
   try {
-    if (!game.messages.has(camp.reportId)) await ChatMessage.create({ _id: camp.reportId, content: `<p>${game.i18n.localize("SDE.camping.nightComplete")}</p>` }, { keepId: true });
+    const content = camp.auto ? autoCampSummary(party, camp) : `<p>${game.i18n.localize("SDE.camping.nightComplete")}</p>`;
+    if (!game.messages.has(camp.reportId)) await ChatMessage.create({ _id: camp.reportId, content }, { keepId: true });
   } catch (error) { console.warn(`${MODULE_ID} | Camp summary`, error); }
+}
+/** The one card an automatic camp leaves at dawn: the fire, what each PC did, and who was fed. */
+function autoCampSummary(party, camp) {
+  const lines = [`<p><b>${esc(game.i18n.localize("SDE.camping.autoTitle"))}</b></p>`];
+  const fire = camp.fire?.lit
+    ? game.i18n.format("SDE.camping.autoFire", { source: game.i18n.localize(camp.fire.source === "torches" ? "SDE.camping.fireTorches" : "SDE.camping.fireWood") })
+    : game.i18n.localize("SDE.camping.autoNoFire");
+  lines.push(`<p>${esc(fire)}</p>`);
+  for (const p of camp.participants) {
+    const result = camp.results[p.actorId];
+    if (!result) continue;
+    const actor = actorOf(p.uuid), task = camp.tasks.find(v => v.key === result.task);
+    const taskName = task ? (task.name ?? game.i18n.localize(task.label ?? "SDE.camping.customTask")) : game.i18n.localize("SDE.camping.noTask");
+    const outcome = game.i18n.localize(result.success ? "SDE.camping.success" : "SDE.camping.failure") + (result.amount ? ` (${result.amount})` : "");
+    lines.push(`<p>${esc(game.i18n.format("SDE.camping.autoLine", { name: actor?.name ?? "?", task: taskName, outcome }))}</p>`);
+  }
+  const food = foodPreview(party, camp);
+  lines.push(`<p>${esc(game.i18n.format("SDE.camping.autoFood", { fed: food.filter(f => f.fed).length, eaters: food.length }))}</p>`);
+  return lines.join("");
 }
 export function finishCampNight(party, campId, interrupted) {
   return queued(party, async () => {
     const camp = campOf(party); if (!camp || camp.id !== campId) invalid();
-    if (camp.phase !== "complete") {
-      await restCamp(party, camp, interrupted);
-      camp.phase = "complete"; camp.interrupted = interrupted; await save(party, camp);
-    }
-    await reportCampNight(party, camp);
-    return { completed: true };
+    return finishCampNightNow(party, camp, interrupted);
   });
+}
+
+/** The finish's body, already inside the party queue (auto camp finishes an earlier camp from inside it). */
+async function finishCampNightNow(party, camp, interrupted) {
+  if (camp.phase !== "complete") {
+    await restCamp(party, camp, interrupted);
+    camp.phase = "complete"; camp.interrupted = interrupted; await save(party, camp);
+  }
+  await reportCampNight(party, camp);
+  return { completed: true };
 }
 export async function refreshCampFires() {
   if (!isActiveGM()) return;

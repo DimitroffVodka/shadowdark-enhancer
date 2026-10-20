@@ -116,7 +116,8 @@ function torchCamp(torches) {
   const pc = { id: "pc", uuid: "Actor.pc", type: "Player", system: { isPC: true, abilities: { dex: { mod: 2 } } }, testUserPermission: () => true, items: Object.assign([], { get: () => undefined }), createEmbeddedDocuments: async () => [] };
   const camp = { id: "camp", phase: "setup", fuel: "torches", anchor: { sceneId: "scene", x: 550, y: 550 }, results: {}, effects: {}, tasks: [{ key: "craft", abilities: ["dex"], dc: 12, label: "x" }],
     participants: [{ uuid: pc.uuid, actorId: pc.id, confirmed: true, task: "craft", ability: "dex", craft: "torch" }] };
-  const flags = { [M]: { party: true, camping: camp } };
+  // The camp follows the party's roster while it is set up, so the PC must be a member.
+  const flags = { [M]: { party: true, partyData: { members: [pc.uuid] }, camping: camp } };
   const item = { id: "t1", type: "Basic", flags: {}, system: { quantity: torches, light: { isSource: true, template: "torch", active: false, hasBeenUsed: false } }, update: async function (d) { this.system.quantity = d["system.quantity"] ?? this.system.quantity; this.flags[M] = { campFuel: d[`flags.${M}.campFuel`] }; } };
   const party = { id: "party", uuid: "Actor.party", type: "NPC", flags, testUserPermission: () => true, items: Object.assign([item], { get: id => id === item.id ? item : undefined }), update: async data => { flags[M].camping = data[`flags.${M}.camping`]; } };
   const lights = new Map(), user = { id: "gm", isGM: true };

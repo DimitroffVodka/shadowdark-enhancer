@@ -223,7 +223,7 @@ with forage and camp.
 
 While you travel the Crawl Bar's badge reads **Terrain · Weather · N of M hexes
 left** (the terrain is left out on a map with no terrain tags; hover the badge
-for the hex number and its features). Then one main button, **Continue** when
+for the hex number and its features). Then one main button, **Resume clock** when
 an encounter stopped the clock partway through a move, or **Start day** while no
 day is open (a day opens by itself at travel start; after a camp you press it), then
 **Make camp**, **Tools** and **End travel**. **Roll weather** and
@@ -345,7 +345,7 @@ the party token travels.
   at that hour on the table for the party's hex, day or night columns and the
   moon included. A hit stops the clock at that hour and opens the clock bar's
   [Encounter panel](Clock-and-Calendar.md#encounters-while-travelling-gm):
-  run the encounter, then press **Continue** to finish the rest of the move.
+  run the encounter, then press **Resume clock** to finish the rest of the move.
   The token can't move on until you do, except by **Displace**. A check whose
   hour had passed before you started the day is rolled at once.
 
@@ -370,7 +370,7 @@ the party token travels.
     what's left. Closing Extras' window makes no camp.
   - Then carried lights go out, keeping their time, as with the off-duty move.
   - The clock runs to 06:00 (or sunrise, if that is later), rolling the rest of the day's checks and the
-    night's. A hit stops the night until you press **Continue**.
+    night's. A hit stops the night until you press **Resume clock**.
   - A creature met in the night's checks interrupts the rest; a rockslide
     doesn't, nor does a creature from a day check still to roll when you
     made camp early. The
@@ -422,6 +422,41 @@ the party token travels.
 - **Deep tunnels.** When a season changes while the party's last hex is deep
   tunnels, each member makes a DC 12 CHA check (their player rolls), and a
   failure costs 1d4 CHA. That happens whether or not they're travelling.
+
+### Automatic travel: one click to a far destination
+
+Turn on **Auto** (in the Travel panel, or the **Auto On / Auto Off** button on
+the clock bar) and click a far hex: the party walks there over as many days as
+it takes, without anyone pressing Start day or Make camp.
+
+- **Who can use it.** The GM, or a player who owns the **party sheet** (the
+  Party actor). Owning the party's token is not enough: a player who does not
+  own the sheet cannot drag the party, start its day, set a destination or
+  camp. Give a player Owner on the Party actor when they should run the party.
+- **The route.** Hovering a hex shows a small card with the distance, the
+  movement points it costs, the hours and how many days it takes. A long route
+  is a line with its total on the destination.
+- **Each day.** The party walks until the day's movement cannot pay for the
+  next hex, then camps. The camp repeats the last camp's tasks, stats and fire
+  choice with no window, and the night runs to dawn; the next day opens by
+  itself and the walk goes on.
+- **It stops and tells you why** for an encounter, a camp that needs a choice
+  (short rations, too few torches for the fire, a Repair item that is gone, a
+  storm that forbids Hunt, or an Entertain with nobody left who can gain luck),
+  a paused game, a moved token, or ground it cannot cross. A player's stop is
+  also whispered to the GM. **Resume auto** in the Travel panel picks the
+  journey up again from where the party stands.
+- **Weather and ground.** A storm on harsh ground, or ground closed today, ends
+  the day early and the party waits it out, up to fourteen days. Ground that is
+  never passable stops the journey. A river or pass the party cannot cross is
+  walked around when there is another way.
+- **Entertain.** An automatic camp turns an Entertain aimed at a character
+  whose luck is full to the next one who can still gain it. In Pulp mode the
+  setting **Pulp luck token max** (default 4) says when a character is full.
+- **Camp choices** (Travel panel, step 7) opens the camp window to change the
+  saved tasks without camping.
+- **Resume clock** (it used to say Continue) asks before it clears an
+  encounter that is still waiting, and names it, so a mis-click does not lose it.
 
 ## The party cards
 

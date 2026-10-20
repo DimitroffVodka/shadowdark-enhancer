@@ -26,7 +26,7 @@ import { storedRulesFor } from "./rules-data/rules-data-scope.mjs";
 import { registerRulesNotice } from "./rules-data/rules-data-notice.mjs";
 import { timeApi, registerTimeHooks } from "./time/time.mjs";
 import { registerCalendar } from "./calendar/calendar.mjs";
-import { overlandState, isOverland, rollWeather, startDay, resume, forage, makeCamp, registerOverland, partyReading, setTravelPace, rulesScene } from "./overland/overland.mjs";
+import { overlandState, isOverland, rollWeather, startDay, resume, forage, makeCamp, registerOverland, partyReading, setTravelPace, setAutoTravel, setAutoGoal, travelBlocked, rulesScene } from "./overland/overland.mjs";
 import { TravelBar } from "./overland/overland-bar.mjs";
 import { registerHexRules } from "./overland/hex-rules.mjs";
 import { Party } from "./party/party.mjs";
@@ -41,7 +41,7 @@ import { registerPartyMovement, requestMovement, configureMovement, movementStat
 import { registerPartyHUD } from "./party/party-hud.mjs";
 import { registerPartyLight } from "./party/party-light.mjs";
 import { registerPartyRoll } from "./party/party-roll.mjs";
-import { registerRoute } from "./overland/route.mjs";
+import { registerRoute, resumeAutoTravel } from "./overland/route.mjs";
 import { registerSky, registerWeatherVisuals } from "./overland/sky.mjs";
 import { registerWeatherLooks } from "./overland/weather-looks.mjs";
 import { CrawlState } from "./crawl-strip/crawl-state.mjs";
@@ -146,7 +146,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "aa9d310fe07c";
+const STYLESHEET_REV = "d599bd6af27d";
 
 // The same problem for the SCRIPTS, which cannot be solved the same way: their
 // URLs come from the manifest, which Foundry validates as real package paths,
@@ -161,7 +161,7 @@ const STYLESHEET_REV = "aa9d310fe07c";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "0df259300461";
+const BUILD_REV = "a8aee0e03ca6";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -558,7 +558,10 @@ Hooks.once("init", () => {
     // 1.31.0 — additive: owns("hex.baked", scene), a map baked with Extras that the Enhancer draws itself.
     // 1.32.0 — additive: quest steps gain parent and secret, quests gain reveal; a non-GM gets the player view.
     //          Also giver, rewards.notes, startsAt, deadline, autoFail and the questLine chat flag (see docs/API.md).
-    apiVersion: "1.32.0",
+    // 1.33.0 — additive: overland.setAutoTravel, the standing automatic journey; the travel state gains auto.
+    // 1.34.0 — additive: the automatic journey's saved destination (overland.autoGoal) and Travel > Resume auto.
+    // 1.35.0 — additive: overland.travelBlocked, why the party cannot enter a destination today.
+    apiVersion: "1.35.0",
     // The one travel state per world (scripts/overland/overland.mjs): a copy
     // with hexes left, climate, storm, harshness and night derived; whether
     // travel is on; today's weather roll, the travel day's start, Continue
@@ -570,6 +573,10 @@ Hooks.once("init", () => {
       startDay: (options) => startDay(options),
       partyMethod: () => partyReading(),
       setPace: (pace) => setTravelPace(pace),
+      setAutoTravel: (on) => setAutoTravel(on),
+      setAutoGoal: (goal) => setAutoGoal(goal),
+      resumeAutoTravel: () => resumeAutoTravel(),
+      travelBlocked: (goal) => travelBlocked(goal),
       resume: () => resume(),
       forage: (actorId) => forage(actorId),
       makeCamp: () => makeCamp(),

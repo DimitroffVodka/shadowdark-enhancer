@@ -9,6 +9,13 @@ const TASK_LABELS = {
   keepWatch: ["SDE.camping.tasks.keepWatch.name", "SDE.camping.tasks.keepWatch.description"],
   predict: ["SDE.camping.tasks.predict.name", "SDE.camping.tasks.predict.description"],
 };
+/** Why an automatic camp stopped for a choice, as camp.autoBlocked names it. Keys in full, for the i18n scan. */
+export const AUTO_BLOCKED = {
+  entertain: "SDE.camping.autoBlocked.entertain",
+  repair: "SDE.camping.autoBlocked.repair",
+  hunt: "SDE.camping.autoBlocked.hunt",
+};
+
 export const CAMP_LABELS = {
   gear: { torch: "SDE.camping.gear.torch", arrows: "SDE.camping.gear.arrows", bolts: "SDE.camping.gear.bolts", slingStones: "SDE.camping.gear.slingStones", rations: "SDE.camping.gear.rations", repair: "SDE.camping.gear.repair" },
   fuel: { none: "SDE.camping.fuel.none", wood: "SDE.camping.fuel.wood", torches: "SDE.camping.fuel.torches" },
@@ -67,6 +74,32 @@ export function lockCamp(camp) {
     if (p.task === "craft" && p.craft === "repair" && !p.repairItemId) invalid();
   }
   return { ...camp, phase: "firewood", results: {}, effects: {} };
+}
+/** A character's luck is full: the one token standard mode allows, or the Pulp cap a world sets. */
+export const luckFull = (actor, { pulp = false, max = 4 } = {}) => pulp
+  ? (Number(actor?.system?.luck?.remaining) || 0) >= Math.max(1, Math.trunc(Number(max)) || 1)
+  : actor?.system?.luck?.available === true;
+/**
+ * Turn each Entertain at a full target to the next party member who can still gain luck, so a repeated
+ * camp task keeps working. `isFull(uuid)` says whether that member is full. `blocked` is true when at
+ * least one Entertain has no one left to turn to: an automatic camp stops for a decision.
+ */
+export function rotateEntertain(camp, isFull) {
+  if (camp.phase !== "setup") return { camp, blocked: false };
+  let blocked = false;
+  const taken = new Set();
+  const participants = camp.participants.map((p) => {
+    if (p.task !== "entertain") return p;
+    const others = camp.participants.filter(v => v.uuid !== p.uuid);
+    const chosen = others.find(v => v.uuid === p.recipientUuid);
+    if (chosen && !isFull(chosen.uuid) && !taken.has(chosen.uuid)) { taken.add(chosen.uuid); return p; }
+    const start = chosen ? others.indexOf(chosen) + 1 : 0;
+    const target = [...others.slice(start), ...others.slice(0, start)].find(v => !isFull(v.uuid) && !taken.has(v.uuid));
+    if (!target) { blocked = true; return p; }
+    taken.add(target.uuid);
+    return { ...p, recipientUuid: target.uuid };
+  });
+  return { camp: { ...camp, participants }, blocked };
 }
 export function torchPlan(stacks, partyUuid, participants) {
   // The party's own torches first, then the character holding the most, so one pack empties before another is touched.
