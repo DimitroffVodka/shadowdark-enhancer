@@ -347,8 +347,14 @@ NPC sheet (the GM sees it; players do not).
   right-click HUD (a hand holding coins) while the NPC carries anything.
 - **When a fight ends**, with **Loot drops on combat end** on, every defeated NPC
   drops what it carries as its own card, before (and whatever) its loot table rolls.
-- **With Shadowdark Extras active**, Extras draws its own NPC Inventory tab, so
-  this one is not added; the HUD button and the end-of-fight drop still work.
+- **With Shadowdark Extras' NPC Inventory on**, Extras draws its own Inventory
+  tab, so this one is not added; the HUD button and the end-of-fight drop still
+  work and take the coins typed on Extras' tab. With that Extras feature off,
+  this tab is added as usual.
+- **One GM does every drop.** Whoever clicks, the active GM's Foundry takes the
+  gear and coins off the NPC and posts the card, one NPC at a time, so two
+  clicks never post the same loot twice. If the card cannot be posted, the gear
+  and coins go back on the NPC and the GM is told.
 
 ## Treasure XP
 

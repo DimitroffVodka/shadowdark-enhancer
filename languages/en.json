@@ -4875,6 +4875,8 @@
   "SDE.npcInv.coins": "Coins",
   "SDE.npcInv.drop": "Drop as loot",
   "SDE.npcInv.hudTooltip": "Drop what it carries as loot",
+  "SDE.npcInv.dropFailed": "The loot card could not be finished; check the NPC's Inventory tab.",
+  "SDE.npcInv.relayLabel": "NPC loot drops",
   "SDE.loot.card.heading": "Loot — Treasure {tier}",
   "SDE.loot.card.assignCoinsTo": "Assign coins to",
   "SDE.loot.card.assign": "Assign",

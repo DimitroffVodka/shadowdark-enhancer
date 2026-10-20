@@ -8,13 +8,20 @@
  * turns it all into a loot card the players claim from, and an NPC that is
  * defeated when a fight ends does the same when loot drops are on.
  *
- * The tab is for owners (the GM); players take what a body carried from the card.
- * Shadowdark Extras draws an Inventory tab of its own on the same sheet; with it
- * active this adds no second tab. The Token HUD button below works either way.
+ * The tab is the GM's; players take what a body carried from the card.
+ * Shadowdark Extras can draw an NPC Inventory tab of its own on the same sheet;
+ * while that one is on, this adds no second tab and reads Extras' purse instead.
+ *
+ * Every drop (the tab, the Token HUD, a fight's end) is done by the active GM,
+ * one NPC at a time: the gear and the purse come off first, the actor is read
+ * back, and the card lists exactly what was taken. A card that cannot be posted
+ * puts it all back.
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { L } from "../shared/i18n.mjs";
+import { isActiveGM, queryActiveGM, refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
+import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { LootDelivery } from "../loot/loot-delivery.mjs";
 import { COINS_FLAG, carriedRows, hasCoins, lootBatch, purse } from "./npc-inventory-core.mjs";
 
@@ -22,47 +29,114 @@ import { COINS_FLAG, carriedRows, hasCoins, lootBatch, purse } from "./npc-inven
 const TAB = "tab-sde-inventory";
 const EXTRAS_ID = "shadowdark-extras";
 const TEMPLATE = `modules/${MODULE_ID}/templates/npc-inventory.hbs`;
+const DROP_QUERY = `${MODULE_ID}.npcDropCarried`;
 
-/** Actors whose carried gear is being dropped right now: a second click, or the fight's end, must not post it twice. */
-const dropping = new Set();
+/** Each NPC's drop in progress: a second drop of the same NPC waits for it, and then finds it empty. */
+const drops = new Map();
 
 /** The carried item documents of an actor. */
 const carriedDocs = (actor) => actor.items.filter((i) => carriedRows([i]).length);
 
+/** Whether Shadowdark Extras' own NPC Inventory tab is the one in use (its feature gate and its setting). */
+export function extrasNpcInventory() {
+  if (!game.modules.get(EXTRAS_ID)?.active) return false;
+  return !!game.settings.settings?.has(`${EXTRAS_ID}.enableNpcInventory`) && !!game.settings.get(EXTRAS_ID, "enableNpcInventory");
+}
+
+/** Where the purse the GM sees lives: Extras' tab keeps its own. */
+const purseFlag = () => (extrasNpcInventory() ? [EXTRAS_ID, "coins"] : [MODULE_ID, COINS_FLAG]);
+
 export const NpcInventory = {
   init() {
+    registerQuery(DROP_QUERY, (data, { user } = {}) => this.handleDropQuery(data, user));
     Hooks.on("renderActorSheet", (app, html) => this._inject(app, html));
     Hooks.on("renderTokenHUD", (hud, html) => this._hudButton(hud, html));
   },
 
-  /** The purse an NPC carries. */
-  coinsOf: (actor) => purse(actor.getFlag(MODULE_ID, COINS_FLAG)),
+  /** The purse an NPC carries, where the GM sees it. */
+  coinsOf: (actor) => purse(actor.getFlag(...purseFlag())),
+
+  /** Drop as loot from a button: the active GM does it, and a failure is said. */
+  async requestDrop(actor) {
+    const data = { actorUuid: actor.uuid };
+    const reply = isActiveGM() ? await this.handleDropQuery(data, game.user)
+      : await queryActiveGM(DROP_QUERY, data, { label: L("SDE.npcInv.relayLabel") });
+    if (!reply?.ok) ui.notifications.error(reply?.error ?? L("SDE.npcInv.dropFailed"));
+    return !!reply?.ok;
+  },
+
+  /** The active GM's side of a drop. `user` is the server-stamped sender, never the payload. */
+  async handleDropQuery(data, user) {
+    const refusal = refuseQuery(user, L("SDE.npcInv.relayLabel"));
+    if (refusal) return refusal;
+    const actor = typeof data?.actorUuid === "string" ? await fromUuid(data.actorUuid) : null;
+    if (actor?.type !== "NPC") return { ok: false, error: L("SDE.shared.relay.actorGone") };
+    if (!actor.testUserPermission(user, "OWNER")) return { ok: false, error: L("SDE.shared.relay.notOwner") };
+    try {
+      return { ok: true, dropped: await this.dropCarried(actor) };
+    } catch (err) {
+      console.error(`${MODULE_ID} | dropping what ${actor.name} carried failed`, err);
+      return { ok: false, error: L("SDE.npcInv.dropFailed") };
+    }
+  },
 
   /**
-   * Post everything the actor carries as a loot card, then take it off the actor.
-   * The card goes first: if it cannot be posted (not a GM) nothing is removed.
+   * Take everything the actor carries off it and post it as a loot card. The active GM's work: one drop per
+   * NPC at a time, and the card lists what the actor read back says was taken. A card that cannot be posted
+   * puts it all back.
    * @returns {Promise<boolean>} whether a card was posted
    */
-  async dropCarried(actor) {
-    if (!actor || dropping.has(actor.uuid)) return false;
-    dropping.add(actor.uuid);
+  dropCarried(actor) {
+    if (!actor) return Promise.resolve(false);
+    const run = (drops.get(actor.uuid) ?? Promise.resolve()).catch(() => {}).then(() => this._take(actor));
+    drops.set(actor.uuid, run);
+    const done = () => { if (drops.get(actor.uuid) === run) drops.delete(actor.uuid); };
+    run.then(done, done);
+    return run;
+  },
+
+  async _take(actor) {
+    const [scope, key] = purseFlag();
+    const rawCoins = actor.getFlag(scope, key);
+    const coins = purse(rawCoins);
+    const docs = carriedDocs(actor);
+    if (!docs.length && !hasCoins(coins)) return false;
+
+    const data = docs.map((d) => d.toObject());
+    let deleted = [];
+    // A batch naming an item already gone fails whole: nothing is taken and the GM is told.
+    if (docs.length) deleted = (await actor.deleteEmbeddedDocuments("Item", docs.map((d) => d.id))) ?? [];
+    const gone = new Set(deleted.map((d) => d.id));
+    // A preDeleteItem veto resolves with fewer documents: only what really left the actor goes on the card.
+    const items = data.filter((d) => gone.has(d._id) && !actor.items.get(d._id));
+    let taken = purse(null);
     try {
-      const docs = carriedDocs(actor);
-      const coins = this.coinsOf(actor);
-      if (!docs.length && !hasCoins(coins)) return false;
-      const card = await LootDelivery.postCard(lootBatch(actor.name, docs.map((d) => d.toObject()), coins));
-      if (!card) return false;
-      if (docs.length) await actor.deleteEmbeddedDocuments("Item", docs.map((d) => d.id));
-      await actor.unsetFlag(MODULE_ID, COINS_FLAG);
-      return true;
-    } finally {
-      dropping.delete(actor.uuid);
+      if (hasCoins(coins)) {
+        await actor.unsetFlag(scope, key);
+        if (!hasCoins(purse(actor.getFlag(scope, key)))) taken = coins;
+      }
+      if (!items.length && !hasCoins(taken)) return false;
+      if (await LootDelivery.postCard(lootBatch(actor.name, items, taken))) return true;
+    } catch (err) {
+      await this._putBack(actor, items, hasCoins(taken) && [scope, key, rawCoins]);
+      throw err;
     }
+    await this._putBack(actor, items, hasCoins(taken) && [scope, key, rawCoins]);
+    return false;
+  },
+
+  /** Return what a drop took when its card was not posted. */
+  async _putBack(actor, items, coins) {
+    if (items.length) await actor.createEmbeddedDocuments("Item", items, { keepId: true });
+    if (!coins) return;
+    const [scope, key, value] = coins;
+    if (scope === MODULE_ID) await replaceModuleFlag(actor, key, value);
+    else await actor.setFlag(scope, key, value);
   },
 
   async _inject(app, html) {
     const actor = app?.actor;
-    if (actor?.type !== "NPC" || !actor.isOwner || game.modules.get(EXTRAS_ID)?.active) return;
+    if (actor?.type !== "NPC" || !game.user.isGM || extrasNpcInventory()) return;
     const root = html?.querySelectorAll ? html : html?.[0];
     const nav = root?.querySelector(".SD-nav");
     const body = root?.querySelector(".SD-content-body");
@@ -72,7 +146,7 @@ export const NpcInventory = {
     const coins = this.coinsOf(actor);
     const panel = document.createElement("div");
     panel.innerHTML = await foundry.applications.handlebars.renderTemplate(TEMPLATE, {
-      rows, coins, canDrop: game.user.isGM && (rows.length > 0 || hasCoins(coins)),
+      rows, coins, canDrop: rows.length > 0 || hasCoins(coins),
     });
     if (body.querySelector(`.${TAB}`)) return; // a second render finished first
 
@@ -108,7 +182,7 @@ export const NpcInventory = {
       ev.preventDefault();
       ev.stopPropagation();
       hud.close();
-      this.dropCarried(actor);
+      this.requestDrop(actor);
     });
     col.appendChild(button);
   },
@@ -117,22 +191,44 @@ export const NpcInventory = {
     // The sheet is a form that saves on any change; these inputs are ours, not the form's.
     tab.addEventListener("change", (e) => e.stopPropagation());
 
+    // Saves run one after another, and Drop as loot waits for them. An input edited but not yet
+    // changed (a click that does not blur it, as on Safari) is saved before the drop too.
+    let pending = Promise.resolve();
+    const edited = (input) => input.value !== input.defaultValue;
+    const saved = (inputs) => { for (const input of inputs) input.defaultValue = input.value; };
+    const save = () => (pending = pending.catch(() => {}).then(async () => {
+      const coins = [...tab.querySelectorAll(".sde-npc-inv-coin")];
+      if (coins.some(edited)) {
+        await replaceModuleFlag(actor, COINS_FLAG, purse(Object.fromEntries(coins.map((i) => [i.name, i.value]))));
+        saved(coins);
+      }
+      for (const input of tab.querySelectorAll(".sde-npc-inv-qty")) {
+        if (!edited(input)) continue;
+        const id = input.closest("[data-item-id]")?.dataset.itemId;
+        await actor.items.get(id)?.update({ "system.quantity": Math.max(1, Math.floor(Number(input.value)) || 1) });
+        saved([input]);
+      }
+    }));
+
     tab.addEventListener("click", async (e) => {
       const action = e.target.closest("[data-action]")?.dataset.action;
       const id = e.target.closest("[data-item-id]")?.dataset.itemId;
       if (action === "open") actor.items.get(id)?.sheet.render(true);
       else if (action === "delete") await actor.items.get(id)?.delete();
-      else if (action === "drop") await this.dropCarried(actor);
+      else if (action === "drop") {
+        try {
+          await save();
+        } catch (err) {
+          console.error(`${MODULE_ID} | saving ${actor.name}'s inventory failed`, err);
+          return ui.notifications.error(L("SDE.npcInv.dropFailed"));
+        }
+        await this.requestDrop(actor);
+      }
     });
 
-    tab.addEventListener("change", async (e) => {
-      const input = e.target;
-      if (input.matches(".sde-npc-inv-qty")) {
-        const id = input.closest("[data-item-id]")?.dataset.itemId;
-        await actor.items.get(id)?.update({ "system.quantity": Math.max(1, Math.floor(Number(input.value)) || 1) });
-      } else if (input.matches(".sde-npc-inv-coin")) {
-        const value = (k) => tab.querySelector(`.sde-npc-inv-coin[name="${k}"]`).value;
-        await actor.setFlag(MODULE_ID, COINS_FLAG, purse({ gp: value("gp"), sp: value("sp"), cp: value("cp") }));
+    tab.addEventListener("change", (e) => {
+      if (e.target.matches(".sde-npc-inv-qty, .sde-npc-inv-coin")) {
+        save().catch((err) => console.error(`${MODULE_ID} | saving ${actor.name}'s inventory failed`, err));
       }
     });
   },
