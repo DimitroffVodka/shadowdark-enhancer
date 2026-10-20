@@ -36,9 +36,6 @@ const enqueue = (fn) => {
 const ledger = () => game.journal.find((e) => e.getFlag(MODULE_ID, LEDGER_FLAG)) ?? null;
 const pageFlag = (page) => page.getFlag(MODULE_ID, PAGE_FLAG);
 
-/** Whether the codex exists for this user yet. */
-export const hasCodex = () => !!ledger();
-
 /** The codex journal, made on first use (a GM's write). */
 async function ledgerFor() {
   return ledger() ?? JournalEntry.create({

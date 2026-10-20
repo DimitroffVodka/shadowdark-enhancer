@@ -352,9 +352,10 @@ the first time the GM shows an encounter, and every player can open and read it.
 - **What a line says.** The day and hour, the hex and its terrain, then the
   creature with its picture, how many there were and how they were behaving
   (close, hunting, hostile). A point of interest writes its own text instead.
-- **How it is laid out.** One page for each region of the map, newest first,
-  and one page for whatever was met off the map. A page keeps its latest 300
-  lines.
+- **How it is laid out.** One page for each region the party travelled
+  through, newest first, and one page called **Elsewhere** for encounters met
+  outside overland travel or where the region is not known. A page keeps its
+  latest 300 lines.
 - **Posting and then fighting the same encounter** writes one line, not two.
 - **Edits.** The page is rebuilt from what the module recorded, so editing the
   text by hand does not stick; write your own notes on a page of your own.
