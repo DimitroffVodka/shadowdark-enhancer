@@ -142,8 +142,8 @@
     {
       "id": "3.24",
       "dir": "scripts/stage",
-      "title": "`scripts/stage/` — Stage (Backdrop)",
-      "note": "A full-screen picture every client shows behind Foundry's UI, kept in one world setting: the camp picture, the ready Tavern, Town and Market places, the GM's own places, and the Town page hosted on a place. The Arena fight's pure layout lives here too."
+      "title": "`scripts/stage/` — Camp picture",
+      "note": "The camp picture: a full-screen picture every client shows behind Foundry's UI, kept in one world setting (`stage`), raised and hidden by the Camping window's button."
     },
     {
       "id": "3.25",
@@ -504,9 +504,6 @@
       "scripts/bastion/bastion-shop-app.mjs"
     ],
     "3.24": [
-      "scripts/stage/arena-core.mjs",
-      "scripts/stage/places-core.mjs",
-      "scripts/stage/places.mjs",
       "scripts/stage/stage-core.mjs",
       "scripts/stage/stage.mjs"
     ],
@@ -518,7 +515,6 @@
       "scripts/town/town-shop-app.mjs",
       "scripts/town/town-editor-app.mjs",
       "scripts/town/town-entry-points.mjs",
-      "scripts/town/town-host-core.mjs",
       "scripts/town/town-restock.mjs",
       "scripts/town/games-core.mjs",
       "scripts/town/liars-dice-core.mjs",
@@ -683,7 +679,6 @@
     "scripts/town/town-app.mjs": "The landing page menu over the scene's picture: merchants, tiles, the GM's pencil, sales log, restock and switch; clear of the sidebar and the Crawl Strip.",
     "scripts/town/town-shop-app.mjs": "One merchant's shopfront: buy and sell as a chosen character with no GM, categories, search.",
     "scripts/town/town-editor-app.mjs": "The GM's landing page editor window: town text, tiles, games table, merchants.",
-    "scripts/town/town-host-core.mjs": "Which scene's Town page is up: the Stage-hosted page wins over the canvas scene's, decided from the stage value only.",
     "scripts/town/town-entry-points.mjs": "The Landing page toolbar button and Alt+T: one switch for the table, the page made on any scene, followed by every client.",
     "scripts/party-xp/party-xp.mjs": "Award XP to the whole party in one click (ApplicationV2 GM tool).",
     "scripts/party-xp/party-xp-core.mjs": "Pure XP math + item-XP resolution.",
@@ -910,7 +905,7 @@
     "scripts/holidays/holy-days.mjs": "The gods' holy days for the calendar (Player's Guide pp.190-205): name, god, printed page and a timing rule over the calendar's seasons and moon (a day, a stretch of a season, or a moon), no book wording; `holyOnDay` and `holyWindows` say what shows on a day or only in a month. The four with no date are left out.",
     "scripts/holidays/holidays.mjs": "Holidays for carousing (#191): the four City of Masks holidays (CS6 pp.46-47) as recipes (name, page, place, `when` anchor, carousing mechanics, garb questions with modifiers), no book wording; pure `whenMatches(rule, dateInfo)` / `placeMatches`, and `holidays.list()` / `today({place})`, which list a holiday once its page is imported by the Chapter-to-journal preset. importHolidays(src) files the CS6 holidays and the Player's Guide holy days (the wizard's step 3b, and fileLinkedChapters at ready for a world that imported its books earlier), one filing at a time; a GM's month view reads the pack, a player's a world-setting copy (calendarLore) that leaves out what is switched to GM only. Solar days follow the calendar's own sun table (1200-1500), so the Duke's Ball is 13 June in 1348. `currentDateInfo()` reads the core calendar, with `isLastFullMoonOfYear` from the time API's `anchor(\"lastFullMoon\")` (#227), so Lastmoon falls.",
     "scripts/importer/chapter-journal.mjs": "Chapter to journal (#194): a printed page range of a linked book → one JournalEntry in the journals pack, split at ALL-CAPS headings (or a preset's sections, e.g. the GM Guide's City-States) and reflowed, with page furniture dropped. Identity by flag, so a re-import updates in place and keeps GM pages; pages naming a key location link to its hex page and back. Presets are page numbers only.",
-    "scripts/importer/world-folders.mjs": "Files what an import makes in the world (adventure and hex-crawl journals, their scenes, the hex records) into folders for their books, touching only the module's own documents that are not in a folder yet.",
+    "scripts/importer/world-folders.mjs": "Files what an import makes in the world (adventure and hex-crawl journals, their scenes, the hex records) into folders for their books, touching only the module's own documents that are not in a folder yet, and removing the book folders (fixed id) that the wizard's run left empty.",
     "scripts/importer/hex/hex-commit.mjs": "Hex-key drafts → JournalEntry pages in sde-journal (one entry per crawl, one page per hex); pure planner + two-pass link rewrite.",
     "scripts/importer/adventure/adventure-pack.mjs": "Packs a built adventure (its scene, journal and the creature actors its tokens use, with their folders) into one Adventure in the Adventures compendium, and removes the world copies afterwards: only the ids a run made, and never an actor another scene still uses. Reads only until told to remove. Importing one back only creates, and joins its stairs and ladders to the maps already in the world.",
     "scripts/importer/adventure/adventure-manifest.mjs": "Where each Cursed Scroll adventure's numbered key is: per site (a dungeon, a mini-adventure, a city district) its title, printed pages, the numbers the book prints, the heading style, and the map's printed grid. Page numbers and titles only; no book text, no art.",
@@ -1004,7 +999,7 @@
     "scripts/overland/party-supplies.mjs": "The clock bar's supplies readout: the party's fresh torches and rations totalled across the party's own item sheet, every member's pack and every mount's, using the tests camping spends by (a Basic item named Ration/Rations, and an unlit, unspent, non-magical torch), and which party the readout counts for.",
     "scripts/overland/route.mjs": "The route on the hex map (#257): with the travel token selected while travelling on a tagged hex map, the cheapest route (overland-state-core cheapestRoute over the grid's neighbours, priced as a move) is drawn to the hovered hex with each hex's cost and a tooltip (hexes, miles, points, hours, or why there's no way); a click walks the party there one hex a move, stopping at an encounter, a bounce or the end of the day's points.",
     "scripts/overland/travel-panel.mjs": "The clock HUD's Travel panel (#257): the day as the book's travel procedure in eight steps (weather, sight, method, speed, traveling, encounters, resting, night), the step list as the day's record with the current step marked; step bodies read Overland's state (the weather and its roll, sight in hexes by hex rules, the budget meter, forage by member with INT and DC, the checks by half for a GM) and carry the day's buttons.",
-    "scripts/overland/encounter-panel.mjs": "The clock HUD's Encounter panel (#257): a quiet travel check's hit as the GMs see it until Continue: the check (step 6 or 8, its hour and chance), the chain of tables it went through as chips (zone and its roll, category, the region's table and its roll), the creature with its art and number appearing, the distance, activity and reaction rolls in words, a second category's draw, and Post to chat and Continue; encounterCard gives the chat card's data at CHA +0. An Arena fight button beside the battle-map one (shown while a battle can start and none runs) starts a real-token arena fight with the rolled foes. A battle map's panel and battleItem, the Crawl Bar's item that folds and opens it (#485).",
+    "scripts/overland/encounter-panel.mjs": "The clock HUD's Encounter panel (#257): a quiet travel check's hit as the GMs see it until Continue: the check (step 6 or 8, its hour and chance), the chain of tables it went through as chips (zone and its roll, category, the region's table and its roll), the creature with its art and number appearing, the distance, activity and reaction rolls in words, a second category's draw, and Post to chat and Continue; encounterCard gives the chat card's data at CHA +0. A battle map's panel and battleItem, the Crawl Bar's item that folds and opens it (#485).",
     "scripts/overland/find-party.mjs": "The clock HUD's two party buttons: Find pans to the party token, pulses on it (this client only) and selects it when the viewer can, naming another scene if that is where it is; the other opens the party sheet.",
     "scripts/overland/hud-core.mjs": "The clock HUD, pure (#253): who sees the bar, the GM's steps in the calendar's units, the sky dial as a half disc (its model: the disc turning 15 degrees an hour with now at the bottom, day and twilight sectors, an hour ring with sunrise and sunset badges, the moon on its track by phase; the region and terrain fitted to the disc; and its SVG), which party token Find picks, the season band's hatch, the month grid read back day by day from the calendar (moon quarters, today, holidays by a callback) and a typed date to a worldTime.",
     "scripts/overland/sky-core.mjs": "The sky on scenes (#235, O9), pure: darkness by the sun and moon (0 by day, a four-hour cosine twilight each way (#389), night 1 - 0.2 x illumination, the hex map capped at 0.6), the Isles of Andrik's Midnight Sun and Long Dark by region and season, the weather effect (rainStorm, blizzard in the cold, the season's snow or leaves on a fair day: #294), and which scenes follow the sky or show the party's weather (followsWeather: its own choice, else as the sky does) and are written (the active scene and the party's, and one still holding an effect Overland put there).",
@@ -1080,11 +1075,7 @@
     "scripts/town/town-table.mjs": "What every sit-down game does when it ends: pay the player what came back and post the one card the chat and the sales log read.",
     "scripts/town/town-table-app.mjs": "What the sit-down games' windows share: one window of a kind, the chosen character, the town's table settings, redraw on change and leaving the table on close.",
     "scripts/town/town-log-app.mjs": "The GM's sales log window: what was bought, sold and played, filtered and totalled.",
-    "scripts/stage/stage-core.mjs": "Stage's Foundry-free half: `normalizeStage` (the only reader of the stage setting), `campArtFor` (a terrain's camp picture, null on water) and `campTransition` (the raise/drop table for the Camp place; one camp id raises once).",
-    "scripts/stage/places-core.mjs": "Stage places, Foundry-free: `normalizePlaces` (the only reader of the list: bad ids, pictureless and duplicate places dropped, 24 at most), add/update/remove, `fitWithin` and `uploadName` for the picture upload, and `reshowTarget` (the custom place the toolbar switch raises again).",
-    "scripts/stage/places.mjs": "Stage places, Foundry side: registers the world setting `stagePlaces`, `showPlace` (writes the `stage` value), `removePlaceAndHide`, GM-only list writes, `refreshPlacesWindow` (a setting change redraws the open Places window), and `uploadPlacePicture` (FILES_UPLOAD check, downscale to 2560 px WebP, world `stage` folder created first).",
-    "scripts/stage/places-app.mjs": "The Stage Places window (GM only, AppV2, opened by the Backdrop places toolbar button): the list of the GM's places with a thumbnail, name and kind edits, Show/Hide, Replace picture and a confirmed Delete, plus the Add place form with its busy state. Edits go through the places.mjs services; the file is never deleted.",
-    "scripts/stage/stage.mjs": "Stage's layer and switch: registers the world setting `stage` (every client redraws from its onChange and on ready), keeps one `div#sde-stage` behind Foundry's UI, adds the GM's Backdrop toggle and Backdrop places button to the Tokens toolbar, watches party updates (`onPartyCamp`: raises the camp picture only on the write that begins a camp, drops it when the camp ends), and exports `raiseByHand`, `pickParty`, `partyTerrain`, `hideStage` and `onPartyCamp`.",
-    "scripts/stage/arena-core.mjs": "The Arena fight's Foundry-free half: `ARENA_LOOKS` (six pictures: pit, coliseum, tournament ring and the three ready places), `defaultLook` (the ready place the Backdrop is showing, else the pit), `arenaGeometry` (the picture's short side for the grid size, 160 ft as 32 squares, the Close 15 ft, Near 40 ft and Far 70 ft ring radii in pixels, the rings tile (32 squares square, centred) and label spots) and `arenaLayout` (the party at the centre or on a circle, foes on the ring the distance roll names, deterministic, never losing a token)."
+    "scripts/stage/stage-core.mjs": "The camp picture's Foundry-free half: `normalizeStage` (the only reader of the stage setting; an old Backdrop place reads as nothing), `campPictureUp`, `campArtFor` (a terrain's camp picture, null on water), `campTransition` (drops the picture when the camp it was raised for ends; a camp never raises it) and `showCamp`.",
+    "scripts/stage/stage.mjs": "The camp picture's layer: registers the world setting `stage` (every client redraws from its onChange and on ready, and re-renders open windows with the camp picture button), keeps one `div#sde-stage` behind Foundry's UI, drops it when its camp ends (`onPartyCamp`), and exports `toggleCampPicture` (the Camping window's button), `raiseByHand`, `partyTerrain` and `hideStage` (Bring the table)."
   }
 }

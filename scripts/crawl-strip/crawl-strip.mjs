@@ -752,6 +752,7 @@ export const CrawlStrip = {
       // A player sees a hostile (or secret) NPC's HP bar but none of its
       // numbers — no HP, AC, or movement (#163). Disposition is read off the
       // combatant's token too: canvas.tokens only holds the viewed scene's.
+      // Retired flag keys, never to be reused: zoneFight, zone, zoneClone, zoneFoes (old zone fights left them in live worlds).
       // A zone-fight foe has no token: read its prototype, and a clone is always concealed.
       const concealToken = tokenDoc ?? combatant?.token;
       const concealStats = !game.user.isGM && m.type === "npc"

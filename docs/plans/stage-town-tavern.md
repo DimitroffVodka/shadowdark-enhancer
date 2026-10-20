@@ -1,5 +1,7 @@
 # Stage phase 2: town and tavern places (plan v2, 2026-10-17, after the Opus review)
 
+Status 2026-10-20: 2a (the landing page's Carouse and Rumors tiles) stays; 2b (a landing page hosted over a Backdrop place, `pageSceneId`) is removed with the Backdrop. The rest of this plan is history.
+
 Status now: 2a (tavern tiles) and 2b (hosting) are built; 2a is merged (PR 530), 2b is on `feat/stage-town-hosting`
 
 STATUS: REVIEWED (Opus-High review 2026-10-17: FIX, all findings folded in below). May be built.

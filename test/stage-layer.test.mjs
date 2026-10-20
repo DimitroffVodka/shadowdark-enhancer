@@ -2,9 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
 import { normalizeStage } from "../scripts/stage/stage-core.mjs";
-import { registerStage, hideStage, reshowStage, pickParty, raiseByHand } from "../scripts/stage/stage.mjs";
+import { registerStage, hideStage, raiseByHand } from "../scripts/stage/stage.mjs";
 
-const M = "shadowdark-enhancer";
 const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
 
 test("the stylesheet is in the manifest after the kit, scoped, at z 0, reduced-motion safe, colourless", () => {
@@ -24,12 +23,12 @@ test("the stylesheet is in the manifest after the kit, scoped, at z 0, reduced-m
 
 function setup({ gm = true, stage = null, actors = [] } = {}) {
   const store = { stage }, hooks = {}, registered = {}, written = [], body = [];
-  const released = { n: 0 }, rendered = { n: 0, opts: [] };
+  const released = { n: 0 }, apps = new Map();
   const mk = () => ({ attrs: {}, style: {}, setAttribute(k, v) { this.attrs[k] = v; }, remove() { body.splice(body.indexOf(this), 1); } });
   globalThis.document = { body: { append: (e) => body.push(e) }, createElement: mk, querySelector: () => body[0] ?? null };
-  globalThis.foundry = { utils: { getRoute: (p) => `/route/${p}` } };
+  globalThis.foundry = { utils: { getRoute: (p) => `/route/${p}` }, applications: { instances: apps } };
   globalThis.canvas = { tokens: { releaseAll: () => { released.n++; } } };
-  globalThis.ui = { controls: { render: (o) => { rendered.n++; rendered.opts.push(o); } } };
+  globalThis.ui = {};
   globalThis.Hooks = { once: (n, f) => { hooks[n] = f; }, on: (n, f) => { hooks[n] = f; } };
   globalThis.game = {
     user: { isGM: gm },
@@ -41,7 +40,7 @@ function setup({ gm = true, stage = null, actors = [] } = {}) {
     },
   };
   registerStage();
-  return { store, hooks, registered, written, body, released, rendered };
+  return { store, hooks, registered, written, body, released, apps };
 }
 
 test("the setting registers world-scoped, hidden from config, with the normalized defaults", () => {
@@ -73,11 +72,6 @@ test("drawStage keeps exactly one aria-hidden layer, updates it, removes it, rel
   e.store.stage = { shown: true, place: "camp", image: "b.webp" };
   e.registered.stage.onChange();
   assert.equal(e.released.n, 2, "released again on hidden to shown");
-  assert.equal(e.rendered.n, 3, "GM toolbar re-renders on each change");
-  assert.ok(e.rendered.opts.every((o) => o?.reset === true), "toolbar render resets");
-  const p = setup({ gm: false, stage: { shown: true, place: "camp", image: "a.webp" } });
-  p.registered.stage.onChange();
-  assert.equal(p.rendered.n, 1, "players re-render the toolbar too: their Town tool follows the hosted page");
 });
 
 test("canvasReady releases tokens only while the layer is up", () => {
@@ -92,32 +86,27 @@ test("canvasReady releases tokens only while the layer is up", () => {
   assert.equal(e.released.n, before + 1, "no layer, no release");
 });
 
-test("the toolbar tool is for a GM only, in the Tokens group, and toggles hide / raise", async () => {
-  const gm = setup({ stage: { shown: true, place: "camp", image: "a.webp", campId: "c1", partyId: "p" } });
-  const controls = { tokens: { tools: {} } };
-  gm.hooks.getSceneControlButtons(controls);
-  const tool = controls.tokens.tools.sdeStage;
-  assert.equal(tool.title, "SDE.stage.tool");
-  assert.equal(tool.active, true);
-  await tool.onChange();
-  assert.equal(gm.written.at(-1).shown, false);
-  assert.equal(gm.written.at(-1).campId, "c1");
-  const player = setup({ gm: false });
-  const pc = { tokens: { tools: {} } };
-  player.hooks.getSceneControlButtons(pc);
-  assert.equal(pc.tokens.tools.sdeStage, undefined);
-  // hidden: raising writes a shown camp stage even with no party
-  const g2 = setup();
-  const c2 = { tokens: { tools: {} } };
-  g2.hooks.getSceneControlButtons(c2);
-  await c2.tokens.tools.sdeStage.onChange();
-  assert.equal(g2.written.at(-1).shown, true);
-  assert.equal(g2.written.at(-1).place, "camp");
-  assert.equal(g2.written.at(-1).partyId, "");
+test("no toolbar tool and no places: registerStage adds no scene control, and an old Backdrop place in the setting draws nothing", () => {
+  const e = setup({ stage: { shown: true, place: "ready-tavern", image: "modules/shadowdark-enhancer/assets/scenes/places/tavern.webp", kind: "tavern" } });
+  assert.equal(e.hooks.getSceneControlButtons, undefined);
+  assert.equal(e.registered.stagePlaces, undefined);
+  e.hooks.ready();
+  assert.equal(e.body.length, 0);
+  assert.equal(e.released.n, 0);
+});
+
+test("a change of the setting re-renders the open windows that carry the camp picture button, and no others", () => {
+  const e = setup();
+  const app = (sel) => ({ rendered: true, n: 0, render() { this.n++; }, element: { querySelector: (q) => (sel && q.includes(sel) ? {} : null) } });
+  const camping = app('data-action="campPicture"'), sheet = app('data-activity-action="campPicture"'), other = app(null);
+  const closed = { ...app('data-action="campPicture"'), rendered: false };
+  for (const [k, v] of Object.entries({ camping, sheet, other, closed })) e.apps.set(k, v);
+  e.registered.stage.onChange();
+  assert.deepEqual([camping.n, sheet.n, other.n, closed.n], [1, 1, 0, 0]);
 });
 
 test("hideStage is a no-op for players and when hidden, and keeps campId", async () => {
-  const shown = { shown: true, place: "camp", image: "a.webp", campId: "c1", partyId: "p", kind: "", pageSceneId: "" };
+  const shown = { shown: true, place: "camp", image: "a.webp", campId: "c1", partyId: "p" };
   const p = setup({ gm: false, stage: shown });
   await hideStage();
   assert.equal(p.written.length, 0);
@@ -129,43 +118,14 @@ test("hideStage is a no-op for players and when hidden, and keeps campId", async
   assert.deepEqual(g.written, [{ ...shown, shown: false }]);
 });
 
-test("reshowStage shows the hidden place again only while the setting still holds it, for the GM", async () => {
-  const hidden = { shown: false, place: "ready-tavern", image: "a.webp", campId: "", partyId: "", kind: "", pageSceneId: "" };
-  const g = setup({ stage: hidden });
-  assert.equal(await reshowStage("ready-tavern"), true);
-  assert.deepEqual(g.written, [{ ...hidden, shown: true }]);
-  const other = setup({ stage: hidden });
-  assert.equal(await reshowStage("ready-town"), false, "the GM switched place meanwhile");
-  assert.equal(await reshowStage(null), false);
-  assert.equal(other.written.length, 0);
-  const live = setup({ stage: { ...hidden, shown: true } });
-  assert.equal(await reshowStage("ready-tavern"), false, "already showing");
-  assert.equal(live.written.length, 0);
-  const p = setup({ gm: false, stage: hidden });
-  assert.equal(await reshowStage("ready-tavern"), false);
-  assert.equal(p.written.length, 0);
-});
-
-test("pickParty prefers the party with a camp in progress, else the first native party", () => {
-  const party = (id, camping) => ({ id, type: "NPC", flags: { [M]: { party: true, ...(camping ? { camping } : {}) } } });
-  const a = party("a"), b = party("b", { id: "c", phase: "setup" }), d = party("d", { id: "x", phase: "complete" });
-  setup({ actors: [{ id: "pc", type: "Player", flags: {} }, a, d, b] });
-  assert.equal(pickParty(), b);
-  setup({ actors: [d, a] });
-  assert.equal(pickParty(), d);
-  setup({ actors: [] });
-  assert.equal(pickParty(), null);
-});
-
 test("a hand raise with no party and no map still writes a camp picture", async () => {
   const e = setup();
   await raiseByHand(null);
   assert.ok(e.written.at(-1).image);
 });
 
-test("the layer draws every picture through fileRoute: world path routed, camp path routed, absolute URL as is", () => {
+test("the layer draws the picture through fileRoute: module path routed, absolute URL as is", () => {
   const draw = (image) => { const e = setup({ stage: { shown: true, place: "camp", image } }); e.hooks.ready(); return e.body[0].style.backgroundImage; };
-  assert.equal(draw("worlds/w/stage/boar-abc.webp"), 'url("/route/worlds/w/stage/boar-abc.webp")');
-  assert.equal(draw("modules/shadowdark-enhancer/assets/scenes/encounter/forest-woods-camp.webp"), 'url("/route/modules/shadowdark-enhancer/assets/scenes/encounter/forest-woods-camp.webp")');
+    assert.equal(draw("modules/shadowdark-enhancer/assets/scenes/encounter/forest-woods-camp.webp"), 'url("/route/modules/shadowdark-enhancer/assets/scenes/encounter/forest-woods-camp.webp")');
   assert.equal(draw("https://assets.example/x.webp"), 'url("https://assets.example/x.webp")');
 });
