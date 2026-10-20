@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 globalThis.CONST = { TOKEN_DISPOSITIONS: { FRIENDLY: 1 } };
 globalThis._replace = (value) => value;
-const { partyActor, joinExtras, extrasParties } = await import("../scripts/overland/hex-rules.mjs");
+const { partyActor, joinExtras, extrasParties, wearPartyHex, PARTY_TOKEN_IMG, PARTY_TOKEN_ART_SCALE } = await import("../scripts/overland/hex-rules.mjs");
 const MOD = "shadowdark-enhancer", SDX = "shadowdark-extras";
 function actor(id, flags = {}, extra = {}) {
   const a = { id, uuid: `Actor.${id}`, type: "NPC", flags, updates: [],
@@ -61,4 +61,17 @@ test("extrasParties remains optional and read-only", () => {
   world([], { active: false }); assert.deepEqual(extrasParties(), []);
   world([], { active: true, api: { party: { list: () => { throw new Error("failed"); } } } });
   assert.deepEqual(extrasParties(), []);
+});
+test("the party token wears the standard at the party's size, and one dressed by an older version is re-dressed", async () => {
+  world([]);
+  const grid = { getOffset: () => ({ i: 0, j: 0 }), getTopLeftPoint: () => ({ x: 0, y: 0 }) };
+  const token = (texture) => ({ parent: { grid: { ...grid, isHexagonal: true } }, actor: null, width: 1, height: 1, texture, updates: [],
+    getCenterPoint: () => ({ x: 50, y: 50 }), async update(data) { this.updates.push(data); } });
+  const dressed = token({ src: PARTY_TOKEN_IMG, scaleX: PARTY_TOKEN_ART_SCALE, scaleY: PARTY_TOKEN_ART_SCALE });
+  await wearPartyHex(dressed);
+  assert.equal(dressed.updates.length, 0, "already dressed: left alone");
+  const older = token({ src: PARTY_TOKEN_IMG, scaleX: 1, scaleY: 1 });
+  await wearPartyHex(older);
+  assert.equal(older.updates.length, 1, "the right picture at the old full-hex size is re-dressed");
+  assert.equal(older.updates[0].texture.scaleX, PARTY_TOKEN_ART_SCALE);
 });
