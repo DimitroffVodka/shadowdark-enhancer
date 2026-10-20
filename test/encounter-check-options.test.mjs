@@ -7,13 +7,22 @@ import assert from "node:assert/strict";
 
 const cards = [];
 const renderTemplate = async (path, data) => { cards.push(data); return "<div>card</div>"; };
+// A flavour row is enriched at draw time (encounter-draw's flavorHtml). Without a
+// real promise here the stub's own `then` would swallow the await: the proxied
+// function is a thenable that never settles, so the draw would hang, not fail.
+const enrichHTML = async (text) => text;
 const deep = new Proxy(function () {}, {
-  get: (t, k) => (k === Symbol.toPrimitive ? () => "" : k === "prototype" ? {} : k === "renderTemplate" ? renderTemplate : deep),
+  get: (t, k) => (k === Symbol.toPrimitive ? () => "" : k === "prototype" ? {} : k === "renderTemplate" ? renderTemplate : k === "enrichHTML" ? enrichHTML : deep),
   construct: () => deep, apply: () => deep,
 });
 // A pack table's short uuid gains its document type, as v14's parseUuid does.
 const parseUuid = (uuid) => ({ uuid: uuid.replace(/^(Compendium\.[^.]+\.[^.]+)\.(?!RollTable\.)/, "$1.RollTable.") });
 const dice = [];
+const settings = {
+  encounterThreshold: 3, encounterRollGMOnly: false, encounterTableUuid: "Compendium.sde.tables.abc",
+  pauseOnEncounter: false,
+};
+const pauses = [];
 Object.assign(globalThis, {
   foundry: new Proxy(deep, { get: (t, k) => (k === "utils" ? new Proxy({ parseUuid }, { get: (u, n) => u[n] ?? deep }) : deep[k]) }), CONFIG: {}, CONST: { DICE_ROLL_MODES: { PRIVATE: "gmroll", PUBLIC: "publicroll" } },
   Hooks: { on() {}, once() {}, callAll() {} }, ui: { notifications: { warn() {} } }, canvas: null,
@@ -25,12 +34,13 @@ Object.assign(globalThis, {
   },
   game: {
     settings: {
-      get: (ns, key) => ({ encounterThreshold: 3, encounterRollGMOnly: false, encounterTableUuid: "Compendium.sde.tables.abc" })[key] ?? null,
+      get: (ns, key) => settings[key] ?? null,
       set: async () => {},
     },
     shadowdarkEnhancer: { encounter: { openRoller: async () => ({ rollActiveTable() {} }) } },
     i18n: { localize: (k) => k, format: (k, d) => k + JSON.stringify(d) },
     user: { id: "gm", isGM: true }, users: {}, socket: { on() {}, emit() {} },
+    togglePause: async (pause) => { pauses.push(pause); },
   },
 });
 const { EncounterCheck } = await import("../scripts/encounter/encounter-check.mjs");
@@ -94,7 +104,7 @@ test("a quiet check posts nothing and opens nothing; a hit draws its encounter a
     const hit = await EncounterCheck.check({ threshold: 1, quiet: true, travel: true, label: "Day check, 10:00", clockLabel: "Day check, 10:00" });
     assert.equal(hit.hit, true);
     assert.deepEqual(hit.encounter, {
-      kind: "flavor", text: "Three wolves howl", via: null, also: [],
+      kind: "flavor", text: "Three wolves howl", html: "Three wolves howl", via: null, also: [],
       chain: [{ name: "Wandering Beasts", formula: "1d6", roll: 3 }],
     });
     assert.equal(cards.length, 0, "no check card");
@@ -109,4 +119,25 @@ test("a quiet check posts nothing and opens nothing; a hit draws its encounter a
     globalThis.game.shadowdarkEnhancer.encounter.openRoller = openRoller;
     delete globalThis.fromUuid;
   }
+});
+
+test("a quiet hit pauses the game under the pause setting; a miss, or the setting off, does not", async () => {
+  pauses.length = 0;
+  settings.pauseOnEncounter = true;
+  globalThis.fromUuid = async () => null;
+
+  dice.push(4);
+  assert.equal((await EncounterCheck.check({ threshold: 1, quiet: true })).hit, false);
+  assert.deepEqual(pauses, [], "a miss pauses nothing");
+
+  dice.push(1);
+  assert.equal((await EncounterCheck.check({ threshold: 1, quiet: true })).hit, true);
+  assert.deepEqual(pauses, [true], "the hit pauses the game");
+
+  pauses.length = 0;
+  settings.pauseOnEncounter = false;
+  dice.push(1);
+  assert.equal((await EncounterCheck.check({ threshold: 1, quiet: true })).hit, true);
+  assert.deepEqual(pauses, [], "the setting is honoured");
+  delete globalThis.fromUuid;
 });

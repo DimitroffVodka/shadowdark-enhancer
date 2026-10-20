@@ -137,12 +137,12 @@ export const SETTING_GROUPS = [
   {
     key: "overlandMenu",
     icon: "fa-solid fa-person-walking",
-    sections: [{ entries: ["clockBar", "overlandWeatherRule", "overlandEncounterChance", "overlandEncounterDay", "overlandEncounterNight"] }],
+    sections: [{ entries: ["clockBar", "overlandWeatherRule", "overlandEncounterChance", "overlandEncounterDay", "overlandEncounterNight", "overlandAutoForage"] }],
   },
   {
     key: "encountersMenu",
     icon: "fa-solid fa-dice-d20",
-    sections: [{ entries: ["encounterRollGMOnly", "pauseOnEncounter", "autoRollActiveTable"] }],
+    sections: [{ entries: ["encounterRollGMOnly", "pauseOnEncounter", "autoRollActiveTable", "poiArrivalChance"] }],
   },
   {
     key: "lootXpMenu",

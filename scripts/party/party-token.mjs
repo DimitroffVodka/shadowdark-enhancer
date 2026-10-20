@@ -4,6 +4,7 @@
  * emblem; Foundry's texture field takes no data URIs.
  */
 import { MODULE_ID } from "../shared/module-id.mjs";
+import { isActiveGM } from "../shared/gm-relay.mjs";
 import {
   EMBLEM_FLAG, emblemOf, emblemIconPath, emblemStandardName, emblemStandardSvg, emblemTokenName, emblemTokenSvg,
 } from "./party-emblem-core.mjs";
@@ -76,10 +77,13 @@ export async function syncPartyTokenArt(actor) {
   }
 }
 
-/** Any write of the emblem flag (the sheet, a macro, a flag edit) re-dresses the tokens; the writing GM's client does it once. */
+/** Any write of the emblem flag (the sheet, a macro, a flag edit) re-dresses the tokens; one client does it. */
 export function registerPartyTokenArt() {
   Hooks.on("updateActor", (actor, changes, _options, userId) => {
-    if (userId !== game.user?.id || !foundry.utils.hasProperty(changes, `flags.${MODULE_ID}.${EMBLEM_FLAG}`)) return;
+    if (!foundry.utils.hasProperty(changes, `flags.${MODULE_ID}.${EMBLEM_FLAG}`)) return;
+    // A GM's own pick re-dresses on their client. A player may now pick too, and Foundry refuses a player an
+    // upload, so the active GM dresses that one instead of waiting for the world to be reloaded.
+    if (userId !== game.user?.id && !isActiveGM()) return;
     void syncPartyTokenArt(actor);
   });
   // A flag written while Foundry had the browser logged out leaves the actor and its tokens on the stock hex;

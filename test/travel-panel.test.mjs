@@ -130,6 +130,14 @@ test("the Night step names the hour a creature woke the camp to the GM only (#28
   assert.ok(gm.includes("SDE.travel.night.interrupted"));
 });
 
+test("Automatic foraging off asks for the manual Forage press in the Traveling step", () => {
+  const step = (autoForage) => travelPanel(view({ see: 5, autoForage }));
+  assert.ok(step(undefined).includes("SDE.travel.forage.about"), "unset: the day's first move forages");
+  assert.ok(step(true).includes("SDE.travel.forage.about"));
+  assert.ok(step(false).includes("SDE.travel.forage.manual"));
+  assert.ok(!step(false).includes("SDE.travel.forage.about"));
+});
+
 test("Make camp shows for an owner of the travelling party, and not for a player who is not one", () => {
   const camp = (over) => travelPanel(view({ see: 7, ...over })).includes('data-action="makeCamp"');
   assert.equal(camp({ mayCamp: true }), true, "a player who owns the party is offered it");

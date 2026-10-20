@@ -190,7 +190,8 @@ export function encounterPanel({ enc, cal, battle = null, preload = null, keep =
         facet("SDE.encounter.facet.reaction", "2d6", c.reactionRoll, c.reactionText, `sde-reaction-${c.reactionBand}`)}</div>`
       + (c.reactionDoubleOnes ? `<span class="sde-hud-res">${esc(t("SDE.encounter.chat.doubleOnes"))}</span>` : "");
   } else if (c.kind === "flavor") {
-    body = (c.poi ? `<span class="sde-hud-cap">${esc(t("SDE.clock.enc.poi"))}</span>` : "") + `<p class="sde-hud-res">${esc(c.text ?? "")}</p>`;
+    // A row's own dice are enriched at draw time (encounter-draw's flavorHtml), so "[[/r 1d4]]" is a roll link.
+    body = (c.poi ? `<span class="sde-hud-cap">${esc(t("SDE.clock.enc.poi"))}</span>` : "") + `<p class="sde-hud-res">${c.html ?? esc(c.text ?? "")}</p>`;
   } else {
     body = `<p class="sde-hud-res">${esc(t(c.noTable ? "SDE.clock.enc.noTable" : "SDE.clock.enc.empty"))}</p>`;
   }

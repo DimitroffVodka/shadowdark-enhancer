@@ -14,6 +14,9 @@ export const EMBLEM_ICONS = [
   "lantern", "campfire", "torch", "castle", "crown", "crossed-swords", "wolf-head", "bear-head", "stag-head", "raven", "owl", "dragon-head",
   "skull-crossed-bones", "tower-flag", "shield-echoes", "anvil-impact", "mountain-cave", "tree-roots", "treasure-map", "rune-stone",
   "hooded-figure", "unicorn", "minotaur", "gem-pendant",
+  "battle-axe", "bow-arrow", "magic-swirl", "spell-book", "potion-ball", "scroll-unfurled", "lockpicks", "compass", "key", "hourglass",
+  "anchor", "horse-head", "eagle-head", "lion", "boar", "ghost", "sun", "moon", "mountains", "forest", "mushroom", "cauldron",
+  "village", "beer-horn",
 ];
 
 /** Each icon's name, as an en.json key written out in full. */
@@ -24,6 +27,12 @@ export const EMBLEM_ICON_KEYS = {
   "skull-crossed-bones": "SDE.party.emblem.icon.skull", "tower-flag": "SDE.party.emblem.icon.towerFlag", "shield-echoes": "SDE.party.emblem.icon.shield", "anvil-impact": "SDE.party.emblem.icon.anvil",
   "mountain-cave": "SDE.party.emblem.icon.mountainCave", "tree-roots": "SDE.party.emblem.icon.treeRoots", "treasure-map": "SDE.party.emblem.icon.treasureMap", "rune-stone": "SDE.party.emblem.icon.runeStone",
   "hooded-figure": "SDE.party.emblem.icon.hoodedFigure", unicorn: "SDE.party.emblem.icon.unicorn", minotaur: "SDE.party.emblem.icon.minotaur", "gem-pendant": "SDE.party.emblem.icon.gemPendant",
+  "battle-axe": "SDE.party.emblem.icon.battleAxe", "bow-arrow": "SDE.party.emblem.icon.bowArrow", "magic-swirl": "SDE.party.emblem.icon.magicSwirl", "spell-book": "SDE.party.emblem.icon.spellBook",
+  "potion-ball": "SDE.party.emblem.icon.potionBall", "scroll-unfurled": "SDE.party.emblem.icon.scrollUnfurled", lockpicks: "SDE.party.emblem.icon.lockpicks", compass: "SDE.party.emblem.icon.compass",
+  key: "SDE.party.emblem.icon.key", hourglass: "SDE.party.emblem.icon.hourglass", anchor: "SDE.party.emblem.icon.anchor", "horse-head": "SDE.party.emblem.icon.horseHead",
+  "eagle-head": "SDE.party.emblem.icon.eagleHead", lion: "SDE.party.emblem.icon.lion", boar: "SDE.party.emblem.icon.boar", ghost: "SDE.party.emblem.icon.ghost",
+  sun: "SDE.party.emblem.icon.sun", moon: "SDE.party.emblem.icon.moon", mountains: "SDE.party.emblem.icon.mountains", forest: "SDE.party.emblem.icon.forest",
+  mushroom: "SDE.party.emblem.icon.mushroom", cauldron: "SDE.party.emblem.icon.cauldron", village: "SDE.party.emblem.icon.village", "beer-horn": "SDE.party.emblem.icon.beerHorn",
 };
 
 /** The tile colours the picker offers, as six hex digits. */
