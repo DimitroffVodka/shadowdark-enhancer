@@ -3162,6 +3162,7 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 
 /* Inventory / cargo */
 .sde-veh-slottally { font-size: 13px; margin-bottom: 6px; }
+.sde-veh-slottally.over { color: #b22222; font-weight: bold; }
 .sde-veh-slotnote { opacity: 0.7; font-size: 11px; }
 .sde-veh-item {
   display: flex;

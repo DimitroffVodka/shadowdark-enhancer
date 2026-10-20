@@ -21,10 +21,11 @@ import { NpcStatSheet, NPC_STAT_PARTIALS, ABILITY_LABEL_KEYS, choices } from "./
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { scoresOf } from "./mount-scores.mjs";
 import { mountScores } from "./mount-scores-core.mjs";
+import { mountLoad } from "./mount-load.mjs";
 import { garrisonFor } from "./warband-garrison.mjs";
 import { visibleBastions } from "../bastion/bastion-panel-core.mjs";
+import { partyStashForActor } from "../party/party-stash.mjs";
 
-const PHYSICAL_TYPES = ["Weapon", "Armor", "Basic", "Gem", "Potion", "Scroll", "Wand", "Light"];
 const RARITIES = ["common", "uncommon", "rare", "legendary"];
 const RARITY_LABELS = { common: "SDE.mount.rarity.common", uncommon: "SDE.mount.rarity.uncommon", rare: "SDE.mount.rarity.rare", legendary: "SDE.mount.rarity.legendary" };
 const PERSONALITY_LABELS = { horrid: "SDE.mount.personality.horrid", bad: "SDE.mount.personality.bad", neutral: "SDE.mount.personality.neutral", good: "SDE.mount.personality.good", lovely: "SDE.mount.personality.lovely" };
@@ -92,20 +93,14 @@ export class MountSheet extends NpcStatSheet {
     context.tabs.find((t) => t.id === "riders").count = context.occupantCount;
 
     // Physical items only: attacks, features and spells stay on their own tabs.
-    context.inventory = actor.items.filter((i) => PHYSICAL_TYPES.includes(i.type)).map((i) => ({
-      id: i.id, name: i.name, img: i.img, type: i.type, quantity: i.system?.quantity ?? 1, slots: this._slotsForItem(i),
-    }));
-    const slotsUsed = context.inventory.reduce((s, i) => s + i.slots, 0);
+    const carried = mountLoad(actor, { reserved: partyStashForActor(actor) });
+    context.inventory = carried.items;
 
     // Derived mount values
-    const strMod = sys.abilities?.str?.mod ?? 0;
     const lvl = sys.level?.value ?? 0;
-    let gearMax = 5 * strMod;
-    if (mount.properties?.sturdy) gearMax += 5;
-    if (mount.tack?.wagon) gearMax += 15;
-    const riderSlots = context.occupantCount * 10;
     context.derived = {
-      gearSlotsMax: Math.max(0, gearMax), slotsUsed, riderSlots, slotsTotal: slotsUsed + riderSlots,
+      gearSlotsMax: carried.max, slotsUsed: carried.used, riderSlots: carried.riderSlots, slotsTotal: carried.load,
+      reserved: carried.reserved, gearFree: carried.free, overloaded: carried.over,
       attackBonus: Math.floor(lvl / 2), canAttack: lvl >= 7, pushHexesPerDay: sys.abilities?.con?.mod ?? 0,
       personalityBonus: mount.properties?.goodTempered ? 2 : 0,
       needsTraining: RARITIES.slice(2).includes(mount.rarity),
@@ -146,15 +141,6 @@ export class MountSheet extends NpcStatSheet {
       });
     }
     return cards;
-  }
-
-  _slotsForItem(item) {
-    const sl = item.system?.slots;
-    if (!sl) return 0;
-    const per = sl.per_slot || 1;
-    const used = sl.slots_used ?? 1;
-    const qty = item.system?.quantity ?? 1;
-    return Math.ceil(qty / per) * used;
   }
 
   // ── Form ───────────────────────────────────────────────────────────────────

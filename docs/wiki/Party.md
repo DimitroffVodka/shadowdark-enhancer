@@ -72,8 +72,9 @@ leader, formation and follow choices. Adding a new character
 requires OWNER on that character. Party ownership does not authorize spending
 another PC's coins or selecting their camping/carousing result.
 
-Missing/deleted/compendium references remain visible missing rows, never matched
-by name or silently removed. Removing a member removes only membership/leader/
+Missing/deleted/compendium references are never matched by name or silently
+removed: instead of a card each, the GM sees one note under the members saying how
+many entries are missing, with a button that removes them from the roster. Removing a member removes only membership/leader/
 slot references, not the Actor, token, inventory or history. Characters may be
 in more than one Party; the selected activity uses one explicit Party.
 
@@ -187,6 +188,17 @@ Party's items of the Shadowdark system's Gem type. A gem is worth its cost
 and value and the total, quantity times value. Gems are kept out of the item list
 and take no Party slots, as in the system. Quantity buttons and **New Item** are
 a manager's. This feature does not add a trade/container transfer subsystem.
+Under the list, each party mount has its own box: its rider, its load against its
+gear slots (a rider and the rider's gear take 10, as in Cursed Scroll 2) and the
+gear it carries. Mount cards on **Members** show the rider and the load too, to
+every member, without the mount's own sheet being opened to them.
+
+The party's slots come from the **Party stash** setting. With *Free allowance*
+(the default) the party has its own 10. With *Donated by members* the capacity is
+what members reserve in the **Party stash** box on the Items tab: a character's
+share is a locked *Party stash* item on their own sheet, so it takes their slots,
+and a mount's share comes out of its free gear room. A donation that would leave
+the party carrying more than it has is refused.
 The **Travel** tab holds [Camping](Camping.md) and the **Carousing** tab holds
 [Carousing](Carousing.md), each with its controls in the sheet: select each PC's
 task and ability, confirm their choices, then lock and roll. Results and

@@ -484,3 +484,19 @@ export function warbandGroups(warbands = [], commanderUuids = [], nameOf = (uuid
   return [...byCommander].map(([uuid, rows]) => ({ commander: nameOf(uuid), rows: rows.sort((a, b) => String(a.name).localeCompare(String(b.name))) }))
     .sort((a, b) => String(a.commander).localeCompare(String(b.commander)));
 }
+
+/**
+ * A Shadowdark actor's carried slots: every physical item that is not stashed,
+ * plus coins (100 coins to a slot). A Basic item that marks free carry is
+ * subtracted per name, as the system's own inventory does.
+ */
+export function inventorySlots(items = [], coins = {}) {
+  const seen = new Map();
+  return (items ?? []).reduce((sum, item) => {
+    const s = item.system ?? {};
+    if (!s.isPhysical || s.stashed || item.type === "Gem") return sum;
+    const free = Math.max(0, Number(s.slots?.free_carry ?? 0) - (seen.get(item.name) ?? 0));
+    seen.set(item.name, (seen.get(item.name) ?? 0) + free);
+    return sum + (Math.ceil(Number(s.quantity ?? 1) / (Number(s.slots?.per_slot) || 1)) - free) * Number(s.slots?.slots_used ?? 0);
+  }, Math.floor(["gp", "sp", "cp"].reduce((n, key) => n + Math.max(0, Number(coins?.[key]) || 0), 0) / 100));
+}
