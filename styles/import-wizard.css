@@ -24,6 +24,11 @@
 .sde-wiz-opt > span { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .sde-wiz-opt small { color: var(--ui-muted); font-size: 12px; line-height: 1.4; }
 
+/* The Ready page's map picker: one tick a map, none ticked until the GM chooses. */
+.sde-wiz-map-group { margin: 12px 0 4px; }
+.sde-wiz .sde-wiz-map-pick { cursor: pointer; }
+.sde-wiz-map-pick input { margin: 0; flex: 0 0 auto; }
+
 /* Where files are dropped. */
 .sde-wiz-drop {
   display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 18px 12px;

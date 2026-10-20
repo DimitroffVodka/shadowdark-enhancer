@@ -98,7 +98,7 @@ test("cards use the dealt deck and need no dice", async () => {
 test("who may play, what, and for how much: every refusal changes nothing and posts nothing", async () => {
   const cases = [
     [{ player: player({ isOwner: false }), game: "coin", wager: 100, pick: "heads", town: TOWN }, /actorNotFound/],
-    [{ player: player(), game: "roulette", wager: 100, town: TOWN }, /noGame/],
+    [{ player: player(), game: "blackjack", wager: 100, town: TOWN }, /noGame/],
     [{ player: player(), game: "coin", wager: 100, pick: "heads", town: { ...TOWN, on: false } }, /games\.closed/],
     [{ player: player(), game: "coin", wager: 100, pick: "edge", town: TOWN }, /noPick/],
     [{ player: player(), game: "duel", wager: 0, town: TOWN }, /wagerMin/],

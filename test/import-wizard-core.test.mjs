@@ -160,6 +160,6 @@ test("the work cannot be stepped back out of, and the last page is the last", ()
   assert.equal(PAGES.at(-1), "done");
 });
 
-test("a fresh wizard loads adventures into the world", () => {
-  assert.equal(newState().placement, "world");
+test("a fresh wizard loads no map into the world", () => {
+  assert.equal(newState().worldMaps.size, 0);
 });

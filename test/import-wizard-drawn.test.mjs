@@ -1,26 +1,24 @@
 /**
- * The five hex maps that are drawings with a grid laid over them (hex-prints.mjs `drawn`) are set up and pinned like any
- * other, but their terrain is a choice, not a step: the Terrain page is only for the maps where the Legend works (the
- * Western Reaches' A0). What the run marks, what the pages say, and what the Done page offers.
+ * The five hex maps that are drawings with a grid laid over them (hex-prints.mjs `drawn`): the wizard builds them like
+ * any other map and leaves their terrain for the Hex Tagger, so nothing is named during the import.
  */
 import test from "node:test";
 import assert from "node:assert/strict";
 import { newState, addFiles } from "../scripts/importer/wizard/wizard-core.mjs";
 import { runWizardImport } from "../scripts/importer/wizard/wizard-run.mjs";
 import { WizardController } from "../scripts/importer/wizard/wizard-controller.mjs";
-import { readFileSync } from "node:fs";
 import { HEX_PRINTS } from "../scripts/hex-map/hex-prints.mjs";
 
 const t = (key, args) => `${key}${args ? JSON.stringify(args) : ""}`;
 const file = (name, mb = 2) => ({ name, size: Math.round(mb * 1048576) });
-const HEX = (id, over = {}) => ({ id, title: `Map ${id}`, status: "ready", legend: true, look: false, optional: false, sceneId: `s-${id}`, pinned: 10, ...over });
+const HEX = (id, over = {}) => ({ id, title: `Map ${id}`, status: "ready", legend: false, look: false, optional: false, sceneId: `s-${id}`, pinned: 10, ...over });
 
-test("the A0 is the one map whose terrain is a step; the five drawings are not", () => {
+test("the A0 is the one map whose terrain is not a drawing", () => {
   assert.deepEqual(Object.entries(HEX_PRINTS).filter(([, p]) => p.drawn).map(([id]) => id), ["hex-cs1", "hex-cs2", "hex-cs3", "hex-cs4", "hex-cs5"]);
   assert.equal(HEX_PRINTS["hex-wr"].drawn, undefined);
 });
 
-test("a run marks each hex map it set up as optional or not, from its print", async () => {
+test("a run marks each hex map with its print and never asks for a Legend", async () => {
   const s = newState();
   addFiles(s, [file("Western Reaches GM Map A0.jpg", 21), file("The Gloaming Hex Map.png"), file("Jungle Hex Map North.png"), file("Jungle Hex Map South.png")]);
   s.check = { done: true, ready: [...Object.keys(s.maps).map((id) => `map:${id.split(":")[0]}`)], problems: [], items: [] };
@@ -29,7 +27,7 @@ test("a run marks each hex map it set up as optional or not, from its print", as
     fileAdventures: async () => ({ sites: [], failed: [] }), siteOf: () => null, isFiled: async () => true, buildScene: async () => ({ status: "built" }), keyLocations: async () => ({ hexes: 0, created: 0, failed: [] }),
     hexMap: async (id) => ({ status: "ready", sceneId: `s-${id}`, legend: true, pinned: 5 }),
   });
-  assert.deepEqual(r.hex.map((h) => [h.id, h.optional]), [["hex-wr", false], ["hex-cs1", true], ["hex-cs4", true]]);
+  assert.deepEqual(r.hex.map((h) => [h.id, h.optional, h.legend]), [["hex-wr", false, false], ["hex-cs1", true, false], ["hex-cs4", true, false]]);
 });
 
 /** A controller whose run has finished with these hex results, on the page after the import. */
@@ -45,56 +43,33 @@ async function afterRun(hex) {
   return { ctl, opened };
 }
 
-test("only the A0 is walked through on the Terrain page; a drawn map waits on the Done page with its terrain offered", async () => {
+test("a run of hex maps goes straight to Done; no Legend is opened", async () => {
   const { ctl, opened } = await afterRun([HEX("hex-wr"), HEX("hex-cs1", { optional: true }), HEX("hex-cs4", { optional: true })]);
-  assert.equal(ctl.state.page, "terrain");
-  assert.deepEqual(opened, ["hex-wr"]);
-  assert.match(ctl.viewModel().terrain.heading, /"n":1,"of":1/, "one map is waiting, not three");
-  await ctl.dispatch("cancel");   // skip the A0
   assert.equal(ctl.state.page, "done");
+  assert.deepEqual(opened, [], "the Hex Tagger names the terrain later");
   const done = ctl.viewModel().done;
-  assert.deepEqual(done.hexMaps.map((h) => [h.id, h.legend]), [["hex-wr", true], ["hex-cs1", true], ["hex-cs4", true]], "every unnamed map still has its Name the terrain button");
-  assert.match(done.hexMaps[0].line, /hexStatus\.ready\{/, "the A0 line is the ordinary one");
-  assert.match(done.hexMaps[1].line, /hexStatus\.readyDrawn.*"n":10/);
-  assert.equal(done.hexLegend, true, "the A0 is still unnamed, so the ordinary explanation shows");
+  assert.equal(done.hexMaps.every((h) => !h.legend), true, "no map offers a Name the terrain button from the import");
+  assert.equal(done.hexBody, "SDE.importer.wizard.done.hexBody");
 });
 
-test("a run of drawn maps only goes straight to Done, with the optional explanation", async () => {
-  const { ctl, opened } = await afterRun([HEX("hex-cs1", { optional: true }), HEX("hex-cs5", { optional: true })]);
-  assert.equal(ctl.state.page, "done");
-  assert.deepEqual(opened, [], "no Legend is read until the GM asks");
-  const done = ctl.viewModel().done;
-  assert.equal(done.hexLegend, false);
-  assert.equal(done.hexLegendOptional, true);
-  assert.equal(done.hexMaps.every((h) => h.legend), true);
+test("a packed map's Done row says it waits in the Adventures compendium", async () => {
+  const { ctl } = await afterRun([HEX("hex-cs1", { status: "packed", packed: true })]);
+  const line = ctl.viewModel().done.hexMaps[0].line;
+  assert.match(line, /hexStatus\.packed.*"n":10/);
 });
 
-test("a drawn map that is already named reads as named, and the explanation goes when nothing is left", async () => {
-  const { ctl } = await afterRun([HEX("hex-cs1", { optional: true, legend: false, named: true })]);
-  const done = ctl.viewModel().done;
-  assert.match(done.hexMaps[0].line, /hexStatus\.named/);
-  assert.equal(done.hexLegend || done.hexLegendOptional, false);
-});
-
-test("the Ready page's hex note is the optional one only when every chosen map is a drawing", () => {
+test("the Ready page's hex note is the same tagging note for every chosen hex map", () => {
   const ctl = new WizardController({ t }, () => {});
   ctl.state.page = "ready";
   ctl.state.check = { done: true, ready: ["map:hex-cs1", "map:hex-cs2"], problems: [], items: [] };
-  assert.deepEqual([ctl.viewModel().ready.hexNote, ctl.viewModel().ready.hexDrawnOnly], [true, true]);
+  assert.equal(ctl.viewModel().ready.hexNote, "SDE.importer.wizard.hex.ready");
   ctl.state.check = { done: true, ready: ["map:hex-cs1", "map:hex-wr"], problems: [], items: [] };
-  assert.deepEqual([ctl.viewModel().ready.hexNote, ctl.viewModel().ready.hexDrawnOnly], [true, false]);
+  assert.equal(ctl.viewModel().ready.hexNote, "SDE.importer.wizard.hex.ready");
 });
 
-test("a drawn map that was already set up and is still unnamed says its terrain is optional, without a pin count", async () => {
-  const { ctl } = await afterRun([HEX("hex-cs1", { optional: true, status: "already", pinned: 0 })]);
-  const lines = ctl.viewModel().done.hexMaps.map((h) => h.line);
-  assert.match(lines[0], /hexStatus\.alreadyDrawn/);
-  assert.doesNotMatch(JSON.parse(readFileSync(new URL("../languages/en.json", import.meta.url), "utf8"))["SDE.importer.wizard.done.hexStatus.alreadyDrawn"], /\{n\}/, "the string has no count to print");
-});
-
-test("the Ready page's drawing-only note is false when no hex map is chosen", () => {
+test("the Ready page's hex note is empty when no hex map is chosen", () => {
   const ctl = new WizardController({ t }, () => {});
   ctl.state.page = "ready";
   ctl.state.check = { done: true, ready: ["book:x"], problems: [], items: [] };
-  assert.deepEqual([ctl.viewModel().ready.hexNote, ctl.viewModel().ready.hexDrawnOnly], [false, false]);
+  assert.equal(ctl.viewModel().ready.hexNote, "");
 });

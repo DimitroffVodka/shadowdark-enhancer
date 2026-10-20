@@ -343,18 +343,24 @@ export function sceneDataFromAnswer({ name, src, imageW, imageH, answer, mapId =
  * The Western Reaches A0: its lattice is known (a0-print.mjs), so there is
  * nothing to detect or confirm. The scene is made to fit the print, then Make
  * this map playable does the rest.
- * @param {{mapId?:string, quiet?:boolean}} [opts]  quiet: no checklist or Legend window; the answer says whether the Legend is still to do
- * @returns {Promise<{status:"ready", scene:Scene, legend:boolean, pinned:number}>}
+ * @param {{mapId?:string, quiet?:boolean, staged?:boolean}} [opts]  quiet: no checklist or Legend window;
+ *   staged: the import wizard's Adventure build — number it and pin its keyed locations, but leave the terrain
+ *   (and the Extras handoff) for the Hex Tagger, after the map is imported and run
+ * @returns {Promise<{status:"ready", scene:Scene, legend:boolean, pinned:number, journals:JournalEntry[]}>}
  */
-async function a0Scene(file, name, { mapId = "", quiet = false } = {}) {
+async function a0Scene(file, name, { mapId = "", quiet = false, staged = false } = {}) {
   const src = await uploadMap(file);
   const { width, height, lat, firstNum, bounds } = A0_PRINT;
   const data = alignedSceneData({ name, src, imageW: width, imageH: height, lat, firstNum, cols: bounds.cols, rows: bounds.rows, rowsLowered: bounds.rowsLowered, mapId });
   const scene = await Scene.create(data);
   if (!quiet) ui.notifications?.info(t("SDE.hexMap.notify.sceneCreated", { name: scene.name, cols: bounds.cols, rows: bounds.rows, size: data.grid.size }));
   await scene.view();
+  if (staged) {
+    const { pinned, journals } = await pinBookKey(mapId, scene);
+    return { status: "ready", scene, legend: false, pinned, journals };
+  }
   const made = await (await import("./hex-tagger-app.mjs")).HexTaggerApp.makePlayable({ quiet });
-  return { status: "ready", scene, legend: made?.legend ?? true, pinned: scene.notes.size };
+  return { status: "ready", scene, legend: made?.legend ?? true, pinned: scene.notes.size, journals: [] };
 }
 
 /**
@@ -382,20 +388,26 @@ export async function joinHalves(files, { width, height, dy }) {
 }
 
 /**
- * Pin a book's keyed hexes on the scene being viewed: every crawl filed from that book's key locations
+ * Pin a book's keyed hexes on a viewed scene: every crawl filed from that book's key locations
  * (importKeyLocations), which this map's numbering has to match. Nothing is pinned when none are filed yet.
- * @returns {Promise<number>} how many pins the scene now has
+ * @param {string} mapId
+ * @param {Scene} [scene]  the scene being viewed (the notes land on the canvas's scene)
+ * @returns {Promise<{pinned:number, journals:JournalEntry[]}>} the crawls' world copies the pins open
  */
-async function pinBookKey(mapId) {
+async function pinBookKey(mapId, scene = canvas?.scene) {
   const print = hexPrint(mapId);
-  if (!print) return 0;
+  if (!print) return { pinned: 0, journals: [] };
   const [{ crawlEntries }, { pinCrawlOnActiveScene }, { sourceFolderName }, { HEX_FLAG }] = await Promise.all([
     import("./hex-region.mjs"), import("./hex-pins.mjs"), import("../shared/compendium-suite.mjs"), import("../importer/hex/hex-commit.mjs"),
   ]);
+  const journals = new Map();
   for (const entry of await crawlEntries()) {
-    if (sourceFolderName(entry.getFlag(MODULE_ID, HEX_FLAG)?.source) === print.folder) await pinCrawlOnActiveScene(entry);
+    if (sourceFolderName(entry.getFlag(MODULE_ID, HEX_FLAG)?.source) === print.folder) {
+      const made = await pinCrawlOnActiveScene(entry);
+      if (made?.journal) journals.set(made.journal.id, made.journal);
+    }
   }
-  return canvas.scene?.notes.size ?? 0;
+  return { pinned: scene?.notes?.size ?? 0, journals: [...journals.values()] };
 }
 
 /**
@@ -408,11 +420,12 @@ async function pinBookKey(mapId) {
  * A print the module has measured (hex-prints.mjs `grid`) needs nothing asked in either mode: it is used as it is when the
  * image is that print's size, and a print that ships as two files is joined first.
  * @param {File|File[]} files  one image, or the two halves of a joined print in order
- * @param {{name?:string, mapId?:string, firstNum?:string, auto?:boolean}} [opts]  firstNum: the printed number of the first hex
- *   (hex-prints.mjs), used when nothing is asked
- * @returns {Promise<{status:"ready"|"already"|"needsLook"|"cancelled"|"failed", scene?:Scene, legend?:boolean, pinned?:number}>}
+ * @param {{name?:string, mapId?:string, firstNum?:string, auto?:boolean, staged?:boolean}} [opts]  firstNum: the printed number of the first hex
+ *   (hex-prints.mjs), used when nothing is asked. staged: the import wizard's Adventure build — the scene and its
+ *   keyed pins, with `legend: false`; the terrain is left for the Hex Tagger once the map is imported and run
+ * @returns {Promise<{status:"ready"|"already"|"needsLook"|"cancelled"|"failed", scene?:Scene, legend?:boolean, pinned?:number, journals?:JournalEntry[]}>}
  */
-export async function hexMapFromFile(files, { name, mapId = "", firstNum = "0000", auto = false } = {}) {
+export async function hexMapFromFile(files, { name, mapId = "", firstNum = "0000", auto = false, staged = false } = {}) {
   if (!game.user?.isGM) { ui.notifications?.warn(t("SDE.hexMap.notify.gmOnlySetup")); return { status: "failed" }; }
   const list = [files].flat().filter(Boolean);
   let file = list[0];
@@ -435,7 +448,7 @@ export async function hexMapFromFile(files, { name, mapId = "", firstNum = "0000
   const scale = Math.min(1, WORK_WIDTH / imageW);
   if (!auto) ui.notifications?.info(t("SDE.hexMap.notify.readingImage", { file: file.name, w: imageW, h: imageH }));
   try {
-    if (isA0(imageW, imageH)) return await a0Scene(file, name, { mapId, quiet: auto });
+    if (isA0(imageW, imageH)) return await a0Scene(file, name, { mapId, quiet: auto, staged });
     // A print the module has measured is used as it is; one that is not the print's size is not trusted to it.
     if (!mapId) mapId = printBySize(imageW, imageH)?.id ?? "";
     const print = hexPrint(mapId);
@@ -446,9 +459,9 @@ export async function hexMapFromFile(files, { name, mapId = "", firstNum = "0000
       const scene = await Scene.create(sceneDataFromAnswer({ name, src, imageW, imageH, answer, mapId }));
       if (!auto) ui.notifications?.info(t("SDE.hexMap.notify.sceneCreated", { name: scene.name, cols: answer.cols, rows: answer.rows, size: scene.grid.size }));
       await scene.view();
-      const pinned = await pinBookKey(mapId);
+      const { pinned, journals } = await pinBookKey(mapId, scene);
       if (!auto) (await import("./hex-tagger-app.mjs")).HexTaggerApp.open({ legend: true });
-      return { status: "ready", scene, legend: true, pinned };
+      return { status: "ready", scene, legend: !staged, pinned, journals };
     }
     working = scale < 1 ? await createImageBitmap(full, { resizeWidth: Math.round(imageW * scale), resizeHeight: Math.round(imageH * scale), resizeQuality: "medium" }) : full;
     const { ink, w, h } = await imageInk(working, { scale: 1, onProgress: () => new Promise((r) => setTimeout(r, 0)) });
@@ -476,10 +489,10 @@ export async function hexMapFromFile(files, { name, mapId = "", firstNum = "0000
     const scene = await Scene.create(data);
     if (!auto) ui.notifications?.info(t("SDE.hexMap.notify.sceneCreated", { name: scene.name, cols: answer.cols, rows: answer.rows, size: data.grid.size }));
     await scene.view();
-    const pinned = await pinBookKey(mapId);
+    const { pinned, journals } = await pinBookKey(mapId, scene);
     // Run by hand, the tagger opens on the Legend; run by the wizard, the Done page offers it once for every map.
     if (!auto) (await import("./hex-tagger-app.mjs")).HexTaggerApp.open({ legend: true });
-    return { status: "ready", scene, legend: true, pinned };
+    return { status: "ready", scene, legend: !staged, pinned, journals };
   } catch (err) {
     console.error(`${MODULE_ID} | hex map from image`, err);
     ui.notifications?.error(t("SDE.hexMap.notify.setupFailed", { error: err.message }));

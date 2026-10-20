@@ -142,7 +142,7 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
     };
   }
 
-  /** The three stages of the import, joined to the game (the flow itself is wizard-run.mjs). */
+  /** The import, joined to the game (the flow itself is wizard-run.mjs). */
   async _run(state, hooks) {
     const { ImporterHubApp } = await import("../importer-hub-app.mjs");
     const { adventureBooks, findSite } = await import("../adventure/adventure-manifest.mjs");
@@ -152,8 +152,7 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const { buildPlaced } = await import("../adventure/adventure-pack.mjs");
     const { CHAR_SOURCES } = await import("../char-content/char-content-manifest.mjs");
     const { importKeyLocations, keyLocationBooks } = await import("../hex/hex-book-import.mjs");
-    const { legendNamed } = await import("../../hex-map/hex-legend-session.mjs");
-    const { hexMapFromFile } = await import("../../hex-map/hex-map-flow.mjs");
+    const { buildHexAdventure } = await import("../hex/hex-adventure.mjs");
     let hub = null;
     // Building a scene opens the placer, which takes the GM's view to it; the GM's view goes back where it was afterwards.
     const viewed = game.scenes?.viewed ?? null;
@@ -167,15 +166,12 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
         keyBooks: keyLocationBooks(),
         keyLocations: (src, opts) => importKeyLocations(src, { ...opts, keepExisting: true }),
         holidays: async (src) => (await import("../../holidays/holidays.mjs")).importHolidays(src),
-        // The hex map's file is the one the GM picked; nothing is asked, and a scene made on an earlier run is left alone.
-        hexMap: async (id, { title, firstNum }) => {
+        // A hex map is an adventure too: its numbered scene and the journals its pins open, packed when adventures are
+        // kept in the compendium. Its terrain is named later, in the Hex Tagger, once the map is imported and run.
+        hexMap: async (id, { title, firstNum, placement }) => {
           const files = filesOfHex(state, id);   // a print that ships as two halves has two, in order
           if (!files.length) return { status: "failed" };
-          const made = await hexMapFromFile(files, { name: title, mapId: id, firstNum: firstNum ?? "0000", auto: true });
-          const scene = made.scene;
-          // A scene made now still needs its Legend; one found from an earlier run needs it only until the GM has applied one.
-          const legend = made.status === "ready" ? !!made.legend : !!scene && !legendNamed(scene);
-          return { status: made.status, sceneId: scene?.id, legend, pinned: made.pinned };
+          return buildHexAdventure(files, { id, title, firstNum: firstNum ?? "0000", placement });
         },
         siteOf: (id) => { const site = findSite(id); return site && { ...site, src: CHAR_SOURCES[site.src]?.label ?? site.src }; },
         isFiled: async (id) => (await scenes.filedSiteIds()).has(id),

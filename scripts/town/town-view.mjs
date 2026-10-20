@@ -6,7 +6,7 @@
  * windows pass the real one; tests pass a stand-in), so nothing here needs Foundry.
  */
 import { canAfford, fromCopper, formatPrice } from "../shared/coins.mjs";
-import { buyCopper, sellCopper, bundleOf, STOCK_TYPES } from "../merchant/shop-core.mjs";
+import { quoteLine, sellCopper, bundleOf, STOCK_TYPES } from "../merchant/shop-core.mjs";
 import { PLACE_LABEL_KEYS } from "./town-core.mjs";
 
 /** The shopfront's filter chips. `gear` is the system's Basic items. */
@@ -65,15 +65,15 @@ export function wareFacts(item, { t, propName = () => "" }) {
 }
 
 /**
- * The ware cards for a shelf (shop-core's `shelf`). `swing` maps copper to copper (the buyer's armed extortion, or
- * identity). `describe(entry)` gives a ware's whole description (shown for the one that is open); `blurb(entry)` its
+ * The ware cards for a shelf (shop-core's `shelf`). `pct` is the buyer's haggle percent for this merchant (the extortion
+ * bargain never shows on a card: it falls on one cart line only). `describe(entry)` gives a ware's whole description (shown for the one that is open); `blurb(entry)` its
  * short form, shown on every card; `facts(entry)` its facts (wareFacts); `rules(entry)` the `{ name, text }` of each
  * property, shown with the description. A card has a Details button (`more`) only when there is more to read.
  */
-export function wareCards(shelf, { merchant, coins, category = "all", expandedId = null, swing = (c) => c, describe = () => "", blurb = () => "", facts = () => [], rules = () => [], t }) {
+export function wareCards(shelf, { merchant, coins, category = "all", expandedId = null, pct = 0, describe = () => "", blurb = () => "", facts = () => [], rules = () => [], t }) {
   const types = CATEGORIES.find((c) => c.id === category)?.types ?? null;
   return shelf.filter((e) => !types || types.includes(e.type)).map((e) => {
-    const price = fromCopper(swing(buyCopper(e.cost, (merchant?.buyMultiplier ?? 100) / 100, e.bundle, e.bundle)));
+    const price = fromCopper((quoteLine(e, 1, merchant, { pct }) ?? quoteLine({ ...e, stock: -1 }, 1, merchant, { pct })).copper);
     const out = e.stock === 0, unlimited = e.stock === -1, open = expandedId === e.id;
     const full = describe(e), short = blurb(e), props = rules(e);
     return {
@@ -87,11 +87,22 @@ export function wareCards(shelf, { merchant, coins, category = "all", expandedId
 }
 
 /** What a character can sell here: gear the merchant deals in, with what one unit pays. */
-export function sellRows(items, merchant, { swing = (c) => c, t }) {
+export function sellRows(items, merchant, { swing = (c) => c, facts = () => [], blurb = () => "", t }) {
   return [...items].filter((i) => STOCK_TYPES.includes(i.type)).map((i) => {
     const copper = swing(sellCopper(i.system?.cost, 1, merchant?.sellRatio ?? 50, bundleOf(i)));
-    return { id: i.id, name: i.name, img: i.img, qty: i.system?.quantity ?? 1, pays: copper ? formatPrice(fromCopper(copper)) : t("SDE.town.nothing") };
+    return { id: i.id, name: i.name, img: i.img, qty: i.system?.quantity ?? 1, pays: copper ? formatPrice(fromCopper(copper)) : t("SDE.town.nothing"), facts: facts(i), blurb: blurb(i) };
   }).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * What a character sold here and can take back: each lot with what they were paid, its facts, and whether they can
+ * afford it now (`poor`). `lots` are lots-core lots, whose `data` is the item as it was handed over.
+ */
+export function lotRows(lots, { coins, facts = () => [], blurb = () => "", t }) {
+  return [...lots].reverse().map((l) => ({
+    id: l.id, name: l.name, img: l.img, qty: l.qty, paid: l.copper ? formatPrice(fromCopper(l.copper)) : t("SDE.town.nothing"),
+    poor: !canAfford(coins, fromCopper(l.copper)), facts: facts(l.data), blurb: blurb(l.data),
+  }));
 }
 
 /** The tiles that open other windows, for the places the GM left on. */
@@ -121,4 +132,42 @@ export function priceNote(merchant, t) {
 export function pickBuyer(actors, { chosenId = null, controlledId = null, assignedId = null } = {}) {
   const has = (id) => id && actors.find((a) => a.id === id);
   return has(chosenId) ?? has(controlledId) ?? has(assignedId) ?? actors[0] ?? null;
+}
+
+// ── the cart ─────────────────────────────────────────────────────────────────────────────────────────────────────
+
+/** A cart is `[{ wareId, qty }]` (bundles), one line per ware. Add `by` bundles of a ware; a line at 0 or less goes. */
+export function cartAdd(lines, wareId, by = 1) {
+  const out = lines.map((l) => ({ ...l })), line = out.find((l) => l.wareId === wareId);
+  if (line) line.qty += by; else if (by > 0) out.push({ wareId, qty: by });
+  return out.filter((l) => l.qty > 0);
+}
+
+/**
+ * Price a cart against the shelf as it is now. Lines for wares that are gone drop out; a line is cut to what the shelf
+ * can fill (`adjusted`). `swing(copper)` is the buyer's armed extortion (`{ copper, applied, pct }`); it falls on ONE line,
+ * the costliest before it (ties: the first). `total` is what checkout will charge.
+ */
+export function priceCart(lines, shelf, { merchant, pct = 0, swing = (copper) => ({ copper, applied: false, pct: 0 }) }) {
+  const priced = [], merged = [];
+  for (const { wareId, qty } of lines) {
+    const n = Math.floor(Number(qty)) || 0, same = merged.find((l) => l.wareId === wareId);
+    if (n < 1) continue;
+    if (same) same.qty += n; else merged.push({ wareId, qty: n });
+  }
+  for (const { wareId, qty } of merged) {
+    const entry = shelf.find((e) => e.id === wareId);
+    if (!entry || entry.stock === 0) continue;
+    const most = entry.stock === -1 ? 99 : Math.ceil(entry.stock / entry.bundle);
+    const q = Math.min(qty, most);
+    const quote = quoteLine(entry, q, merchant, { pct });
+    if (quote) priced.push({ wareId, entry, qty: q, units: quote.units, base: quote.copper, copper: quote.copper, adjusted: q !== qty, swung: false, swingPct: 0 });
+  }
+  let top = null;
+  for (const l of priced) if (!top || l.base > top.base) top = l;
+  if (top) {
+    const s = swing(top.base);
+    if (s.applied) Object.assign(top, { copper: s.copper, swung: true, swingPct: s.pct });
+  }
+  return { lines: priced, total: priced.reduce((n, l) => n + l.copper, 0), adjusted: priced.some((l) => l.adjusted) || priced.length !== merged.length };
 }

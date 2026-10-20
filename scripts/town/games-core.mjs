@@ -1,23 +1,47 @@
 /**
  * Shadowdark Enhancer — the town's games of chance (pure).
  *
- * Four games, each a plain function of what was rolled, so the rules are pinned by tests and the live side only has
- * to roll. A game returns `mult`: how many times the wager comes back (0 loses it, 1 gives it back, 2 doubles it).
- * `settle` turns that into the coins that move, with the house's cut taken from winnings only.
+ * Four games that settle on one roll, each a plain function of what was rolled, so the rules are pinned by tests and the
+ * live side only has to roll. A game returns `mult`: how many times the wager comes back (0 loses it, 1 gives it back,
+ * 2 doubles it). `settle` turns that into the coins that move, with the house's cut taken from winnings only.
  *
  *   coin    call heads or tails           wins at 1 to 1
  *   duel    2d6 against the house         wins at 1 to 1, a tie gives the wager back
  *   wheel   d100 on a payout table        from nothing back to 10 to 1
  *   cards   one card each from a deck     higher wins at 1 to 1, the same rank gives the wager back
  *
- * With no house cut the coin, the duel and the cards are exactly fair (the wheel returns 99.5%); the town's cut is
- * what makes the house win over a night.
+ * The games that are played over several choices open a table of their own (`SIT_GAMES`): Bluff and Brag are hands of
+ * betting over hidden dice (hand-core.mjs), the death roll has a doubling stake (death-core.mjs), the roulette a board
+ * of chips (roulette-core.mjs) and blackjack hits, doubles and splits over a shuffled deck (blackjack-core.mjs). This file keeps what they share: the wager limits, `settle`, the strings and the odds
+ * of a single roulette bet.
+ *
+ * With no house cut the coin, duel and cards are exactly fair and the wheel returns 99.5%; the town's cut is what
+ * makes the house win over a night.
+ *
+ * A ninth, Liar's Dice, is a match of many rounds rather than one roll: its rules are in liars-dice-core.mjs, its wager
+ * is taken when the match begins and a win pays 1 to 1 through `settle` like the rest.
  */
 /** The smallest wager: 1 sp, in copper. */
 export const MIN_WAGER = 10;
 export const GAME_IDS = ["coin", "duel", "wheel", "cards"];
-export const GAME_ICONS = { coin: "fa-coins", duel: "fa-dice", wheel: "fa-dharmachakra", cards: "fa-heart" };
+/** The games played as a hand of betting (hand-core.mjs). */
+export const HAND_GAMES = ["bluff", "brag"];
+/** The games that open a table of their own instead of settling on one roll, in the order the window lists them. */
+export const SIT_GAMES = [...HAND_GAMES, "death", "roulette", "blackjack"];
+/** Liar's Dice: a match, not a roll, so it is not one of the `GAME_IDS` that `playGame` rolls. */
+export const LIARS = "liars";
+/** Everything on the table, in the order the window lists it. */
+export const TABLE_GAMES = [...GAME_IDS, ...SIT_GAMES, LIARS];
+export const GAME_ICONS = {
+  coin: "fa-coins", duel: "fa-dice", wheel: "fa-dharmachakra", cards: "fa-heart",
+  death: "fa-skull", roulette: "fa-bullseye", brag: "fa-dice-three", bluff: "fa-eye", liars: "fa-dice-five", blackjack: "fa-diamond",
+};
 export const SIDES = ["heads", "tails"];
+/** The roulette bets that are not a number; a number bet is "1" to "20". */
+export const ROULETTE_BETS = ["even", "odd", "low", "high"];
+export const ROULETTE_SIZE = 20;
+/** The death roll opens on this die. */
+export const DEATH_START = 100;
 
 /** The strings each game, side, wheel slot and result uses (written out in full: the code never builds a key from pieces). */
 export const GAME_KEYS = {
@@ -25,8 +49,22 @@ export const GAME_KEYS = {
   duel: { name: "SDE.town.games.duel.name", rules: "SDE.town.games.duel.rules", odds: "SDE.town.games.duel.odds", line: "SDE.town.games.line.duel" },
   wheel: { name: "SDE.town.games.wheel.name", rules: "SDE.town.games.wheel.rules", odds: "SDE.town.games.wheel.odds", line: "SDE.town.games.line.wheel" },
   cards: { name: "SDE.town.games.cards.name", rules: "SDE.town.games.cards.rules", odds: "SDE.town.games.cards.odds", line: "SDE.town.games.line.cards" },
+  death: { name: "SDE.town.games.death.name", rules: "SDE.town.games.death.rules", odds: "SDE.town.games.death.odds" },
+  roulette: { name: "SDE.town.games.roulette.name", rules: "SDE.town.games.roulette.rules", odds: "SDE.town.games.roulette.odds" },
+  brag: { name: "SDE.town.games.brag.name", rules: "SDE.town.games.brag.rules", odds: "SDE.town.games.brag.odds" },
+  bluff: { name: "SDE.town.games.bluff.name", rules: "SDE.town.games.bluff.rules", odds: "SDE.town.games.bluff.odds" },
+  liars: { name: "SDE.town.games.liars.name", rules: "SDE.town.games.liars.rules", odds: "SDE.town.games.liars.odds" },
+  blackjack: { name: "SDE.town.games.blackjack.name", rules: "SDE.town.games.blackjack.rules", odds: "SDE.town.games.blackjack.odds" },
 };
 export const SIDE_KEYS = { heads: "SDE.town.games.side.heads", tails: "SDE.town.games.side.tails" };
+export const BET_KEYS = {
+  even: "SDE.town.games.bet.even", odd: "SDE.town.games.bet.odd", low: "SDE.town.games.bet.low", high: "SDE.town.games.bet.high",
+  number: "SDE.town.games.bet.number",
+};
+export const HAND_KEYS = {
+  prial: "SDE.town.games.hand.prial", straight: "SDE.town.games.hand.straight", flush: "SDE.town.games.hand.flush",
+  pair: "SDE.town.games.hand.pair", high: "SDE.town.games.hand.high",
+};
 export const SLOT_KEYS = {
   bust: "SDE.town.games.slot.bust", half: "SDE.town.games.slot.half", double: "SDE.town.games.slot.double",
   triple: "SDE.town.games.slot.triple", jackpot: "SDE.town.games.slot.jackpot",
@@ -93,4 +131,26 @@ export const cardName = ({ rank, suit }) => `${RANKS[rank - 2]}${SUITS[suit]}`;
 export function cards({ you, house }) {
   const y = cardOf(you), h = cardOf(house);
   return { you: y, house: h, mult: y.rank > h.rank ? 2 : y.rank === h.rank ? 1 : 0 };
+}
+
+/** Whether `pick` is a roulette bet: even, odd, low (1 to 10), high (11 to 20) or one number from 1 to 20. */
+export const isRouletteBet = (pick) => ROULETTE_BETS.includes(pick) || /^(?:[1-9]|1\d|20)$/.test(String(pick));
+
+/** Roulette on a d20. The even-money bets cover ten numbers, a number pays 19 to 1: all fair before the house's cut. */
+export function roulette({ pick, d20 }) {
+  const win = pick === "even" ? d20 % 2 === 0 : pick === "odd" ? d20 % 2 === 1 : pick === "low" ? d20 <= 10 : pick === "high" ? d20 > 10 : Number(pick) === d20;
+  return { d20, mult: !win ? 0 : ROULETTE_BETS.includes(pick) ? 2 : ROULETTE_SIZE };
+}
+
+/**
+ * A brag hand from three d6, best first by `score` (compared left to right): a prial (all three alike), a straight
+ * (three in a row), a flush (all odd or all even), a pair, then the high dice. A pair of one parity is a flush.
+ */
+export function bragHand(dice) {
+  const [a, b, c] = [...dice].sort((x, y) => y - x);
+  if (a === c) return { hand: "prial", score: [4, a] };
+  if (a - b === 1 && b - c === 1) return { hand: "straight", score: [3, a] };
+  if (a % 2 === b % 2 && b % 2 === c % 2) return { hand: "flush", score: [2, a, b, c] };
+  if (a === b || b === c) return { hand: "pair", score: [1, b, a === b ? c : a] };
+  return { hand: "high", score: [0, a, b, c] };
 }

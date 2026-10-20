@@ -58,7 +58,7 @@ export const sellCopper = (cost, quantity, ratio, bundle) => Math.floor(toCopper
 export const revOf = (merchant) => Math.max(0, Math.floor(Number(merchant?.rev) || 0));
 const revKey = (merchant) => `r${revOf(merchant)}`;
 /** Ids become flag keys, and a dot or a space would split or break the path. */
-const keyOk = (id) => typeof id === "string" && id !== "" && !/[.\s]/.test(id);
+export const keyOk = (id) => typeof id === "string" && id !== "" && !/[.\s]/.test(id);
 
 /** The dotted update path of one ware's purchases on a character. Throws on an id that cannot be a key. */
 export function ledgerPath(merchant, wareId) {
@@ -94,11 +94,47 @@ export function shelf(items, merchant, characters) {
   }).sort((a, b) => a.name.localeCompare(b.name));
 }
 
-/** Units and copper for a buy of `quantity` bundles of a shelf entry, or null when the shelf cannot fill it. */
-export function buyQuote(entry, quantity, merchant) {
+/**
+ * Units and copper for a buy of `quantity` bundles of a shelf entry, or null when the shelf cannot fill it. The one
+ * price rule for the card, the cart line and the charge: it goes through `buyUnits`, so a partial bundle prices
+ * exactly what the charge takes. Whole-number math (markup and `pct` are whole percents), rounded once.
+ */
+export function quoteLine(entry, quantity, merchant, { pct = 0 } = {}) {
   const units = buyUnits(sanitizeQty(quantity), entry.bundle, entry.stock);
   if (!units) return null;
-  return { units, copper: buyCopper(entry.cost, (merchant?.buyMultiplier ?? 100) / 100, units, entry.bundle) };
+  const mult = Math.round(Number(merchant?.buyMultiplier ?? 100));
+  return { units, copper: Math.round(toCopper(entry.cost) * units * mult * (100 + pct) / (10000 * entry.bundle)) };
+}
+
+/** `quoteLine` without a percent on top (kept for callers that never haggle). */
+export const buyQuote = (entry, quantity, merchant) => quoteLine(entry, quantity, merchant);
+
+const STRIPPED = ["_id", "folder", "sort", "ownership", "_stats", "flags"];
+/**
+ * An item as it is handed to a buyer: the merchant's item minus everything that belongs to the merchant's copy (its id,
+ * folder, sort, ownership, stats (but the compendium link stays), this module's flags such as `unlimitedStock`, and equipped/stashed state).
+ */
+export function cleanItemData(item) {
+  const data = structuredClone(item.toObject());
+  const source = data._stats?.compendiumSource;
+  for (const k of STRIPPED) delete data[k];
+  if (source) data._stats = { compendiumSource: source };
+  if (data.system) { delete data.system.equipped; delete data.system.stashed; }
+  return data;
+}
+
+/**
+ * A character's OWN item as it is kept or handed back: unlike a merchant's copy it keeps its flags (this module's
+ * downtime training, the junk mark, other modules' data), its effects and its compendium link. Only what belongs
+ * to the old document (id, folder, sort, ownership) and the equipped state go.
+ */
+export function ownItemData(item) {
+  const data = structuredClone(item.toObject());
+  for (const k of ["_id", "folder", "sort", "ownership"]) delete data[k];
+  if (data._stats) data._stats = data._stats.compendiumSource ? { compendiumSource: data._stats.compendiumSource } : undefined;
+  if (data._stats === undefined) delete data._stats;
+  if (data.system) delete data.system.equipped;
+  return data;
 }
 
 /** The quantity a sale takes (never more than the seller holds) and what it pays in copper, before extortion. */

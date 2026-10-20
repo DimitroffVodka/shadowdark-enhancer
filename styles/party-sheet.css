@@ -319,7 +319,7 @@
 .sde-party .sdp-pop h4 { margin: 0; font: 600 11px/1 var(--ui-head); letter-spacing: .06em; text-transform: uppercase; color: var(--ui-muted); }
 .sde-party .sdp-pop h4 + .colors, .sde-party .sdp-pop .icons + h4 { margin-top: 2px; }
 .sde-party .sdp-pop-foot { display: flex; justify-content: flex-end; }
-.sde-party .sdp-emblems .icons { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
+.sde-party .sdp-emblems .icons { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; max-height: 210px; padding-right: 2px; overflow-y: auto; }
 .sde-party .sdp-emblems .icons button { display: grid; place-items: center; height: 38px; min-height: 0; padding: 0; border: 1px solid var(--ui-line); border-radius: var(--ui-r); background: color-mix(in srgb, var(--ui-page) 30%, black); cursor: pointer; }
 .sde-party .sdp-emblems .icons img { width: 24px; height: 24px; border: 0; opacity: .85; }
 .sde-party .sdp-emblems .icons button:hover { border-color: var(--ui-frame); }

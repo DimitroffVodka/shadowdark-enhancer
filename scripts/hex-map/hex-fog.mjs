@@ -9,6 +9,10 @@ import { isActiveGM } from "../shared/gm-relay.mjs";
 import { HexRecords, isHexAdopted, sceneRef, recordJournal, offsetKey, readPass, RECORD_FLAG, publishHexProjection, assertPrivateJournal, loadHexRecords, partyMemberIds, PUBLIC_FLAG } from "./hex-records.mjs";
 import { adoptHexScene, withHexLock } from "./hex-adoption.mjs";
 import { disclosure, effectiveDiscovery, withPartyDiscovery, revealRadius, revealCells, arrivalDue, planFogReset, RESET_FIELDS } from "./hex-fog-core.mjs";
+import { hexZonesFor } from "../encounter/encounter-terrain.mjs";
+import { drawPointOfInterest, poiTableFor, flavorHtml, postEncounter } from "../encounter/encounter-draw.mjs";
+import { NOT_GROUND } from "./tag-store.mjs";
+
 
 let overlay = null;
 /** The GM sees the unexplored hexes through a 60% veil; this draws them as a player does, solid black. Kept per browser. */
@@ -148,9 +152,13 @@ export async function revealParty(token, { path = null, weather = null, committe
   const validRules = ["darkness", "stormy", "excellent", "slight", "high"].every(k => Number.isFinite(rules[k]));
   const validWeather = ["fair", "stormy", "excellent"].includes(weather?.kind) && weather.until > game.time.worldTime;
   const pass = readPass(scene);
+  const poiChance = (() => { try { return Number(game.settings.get(MODULE_ID, "poiArrivalChance")) || 0; } catch { return 0; } })();
   const all = fogCells(scene), records = new Map(all.map(o => [offsetKey(o), HexRecords.read(o, scene, pass)]));
+  // The printed region of a hex, for the points-of-interest list a find draws from.
+  const zones = poiChance > 0 ? await hexZonesFor(scene).catch(() => null) : null;
   const mountain = o => records.get(offsetKey(o))?.terrain === "mountain";
   const draws = [];
+  const poiDraws = [];
   const result = await saveCells(scene, async cells => {
     const reveal = new Set();
     for (const at of committed ? entered : [origin]) {
@@ -168,6 +176,19 @@ export async function revealParty(token, { path = null, weather = null, committe
     for (const at of entered) {
       const key = offsetKey(at), cell = cells[key] ??= {};
       cell.discovery = withPartyDiscovery(cell.discovery, party.id, { revealed: true, visited: true });
+      // A hex that is not a keyed location can turn out to be a point of interest:
+      // the book's 1-in-20, rolled once per party per hex whatever the outcome, so
+      // walking in and out of a plain hex cannot farm the list.
+      // The record's terrain, not the stored cell's: a numbered hex keeps its terrain in the map's tags.
+      if (poiChance > 0 && !NOT_GROUND.has(records.get(key)?.terrain) && !(cell.poiRolledBy ?? []).includes(party.id)) {
+        cell.poiRolledBy = [...new Set([...(cell.poiRolledBy ?? []), party.id])];
+        if (Math.random() * 100 < poiChance) {
+          const num = records.get(key)?.num;
+          const own = cell.poiTable ? await fromUuid(cell.poiTable).catch(() => null) : null;
+          const table = own?.documentName === "RollTable" ? own : await poiTableFor(zones?.byNum?.get(num)?.zone ?? "");
+          if (table) poiDraws.push(table);
+        }
+      }
       if (!arrivalDue(cell, { entered: true, partyId: party.id })) continue;
       if (Math.random() * 100 >= (cell.rollTableChance ?? 100)) continue;
       const table = await fromUuid(cell.rollTable);
@@ -179,6 +200,14 @@ export async function revealParty(token, { path = null, weather = null, committe
     return { revealed: [...reveal], visited: entered.map(offsetKey) };
   });
   for (const table of draws) try { await table.draw(); } catch (error) { console.error(`${MODULE_ID} | arrival table`, error); }
+  // A found point of interest is the same card a travel hit posts: text, its own
+  // dice live, headed as a point of interest rather than an environmental result.
+  for (const table of poiDraws) try {
+    const picked = await drawPointOfInterest(table);
+    if (!picked) continue;
+    const text = (picked.result.description || picked.result.name || "").trim();
+    await postEncounter({ kind: "flavor", heading: game.i18n.localize("SDE.hexExplorer.poiTitle"), text, html: await flavorHtml(text), via: table.name });
+  } catch (error) { console.error(`${MODULE_ID} | point of interest`, error); }
   return result;
 }
 export const HexFog = { owns: ownsHexFog, disclosed: hexDisclosure, setDisclosure: setHexDisclosure, revealParty,

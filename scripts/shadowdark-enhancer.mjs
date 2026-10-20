@@ -11,7 +11,8 @@ import { registerHexCoordinates } from "./hex-map/coordinate-overlay.mjs";
 import { registerMapNetwork } from "./hex-map/map-network.mjs";
 import { registerHexMapControls } from "./hex-map/hex-map-controls.mjs";
 import { HexExplorer, registerHexExplorer, ownsHexData } from "./hex-map/hex-explorer.mjs";
-import { HexRecords, isHexAdopted } from "./hex-map/hex-records.mjs";
+import { registerHexHud } from "./hex-map/hex-hud.mjs";
+import { HexRecords, isHexAdopted, registerHexRecordProjections } from "./hex-map/hex-records.mjs";
 import { adoptHexScene, registerHexAdoption } from "./hex-map/hex-adoption.mjs";
 import { HexFog, ownsHexFog, registerHexFog } from "./hex-map/hex-fog.mjs";
 import { ownsBakedMap, registerBakedMaps } from "./hex-map/baked-map.mjs";
@@ -120,6 +121,7 @@ import { registerQuestNotices } from "./quests/quest-notices.mjs";
 import { Troubles, registerTroubles } from "./troubles/troubles.mjs";
 import { Rumors, registerRumors } from "./rumors/rumors.mjs";
 import { registerTownEntryPoints } from "./town/town-entry-points.mjs";
+import { registerTownRestock } from "./town/town-restock.mjs";
 import { registerActorTypes, WARBAND_TYPE } from "./actors/register-actors.mjs";
 import { bastionApi } from "./bastion/register-bastion.mjs";
 import { registerTraps, trapsApi } from "./traps/traps.mjs";
@@ -144,7 +146,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "c32930dfc79c";
+const STYLESHEET_REV = "128a0b66dc17";
 
 // The same problem for the SCRIPTS, which cannot be solved the same way: their
 // URLs come from the manifest, which Foundry validates as real package paths,
@@ -159,7 +161,7 @@ const STYLESHEET_REV = "c32930dfc79c";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "3d9b043d8cc3";
+const BUILD_REV = "4ba131201f40";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -376,7 +378,11 @@ Hooks.once("init", () => {
   registerMapNetwork();
   registerHexMapControls();
   registerHexExplorer();
+  // Hex Data from the token standing in the hex, since a token hides the bare hex from the pointer.
+  registerHexHud();
   registerHexAdoption();
+  // Disclosed-hex projection journals carry player fog data; they are not reading material and stay out of the sidebar.
+  registerHexRecordProjections();
   // The route and click-to-travel on the hex map (#257).
   registerRoute();
   // Out-of-combat tracker as a sidebar tab, beside Combat. Must run in init:
@@ -398,6 +404,7 @@ Hooks.once("init", () => {
   registerRumors();
   // Town landing page: the GM's "Landing page" entry in the Scenes directory menu.
   registerTownEntryPoints();
+  registerTownRestock();
 
   // Handlebars helpers
   Handlebars.registerHelper("includes", (arr, val) => {
@@ -1164,6 +1171,18 @@ async function wireBattleMaps(name, load) {
 const preloadSocket = import("./encounter/battle-maps/encounter-preload.mjs");
 preloadSocket.catch(() => {}); // not an unhandled rejection: wireBattleMaps logs it when `setup` awaits it
 Hooks.once("setup", () => wireBattleMaps("registerPreloadSocket", () => preloadSocket));
+
+// Liar's Dice tables talk over the module's socket channel, and a person may open one while another is still loading, so
+// the listener goes in at `setup` for the same reason as the preload one above. It reads nothing but the message; the
+// file that acts on it (and holds the table logic) is loaded only when a message arrives or the games window is used.
+Hooks.once("setup", () => {
+  game.socket.on(`module.${MODULE_ID}`, (msg, senderId) => {
+    if (msg?.action === "liars") import("./town/liars-dice-live.mjs").then((m) => m.onLiarsMessage(msg, senderId)).catch((err) => console.error(`${MODULE_ID} | liar's dice`, err));
+  });
+  Hooks.on("userConnected", (user, active) => {
+    if (!active) import("./town/liars-dice-live.mjs").then((m) => m.onUserGone(user.id)).catch(() => {});
+  });
+});
 
 Hooks.once("ready", () => {
   console.log(`${MODULE_ID} | ready`);

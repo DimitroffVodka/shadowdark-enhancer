@@ -13,23 +13,30 @@ import { toCopper, fromCopper, formatPrice, addToPurse } from "../shared/coins.m
 import { IMPORTED_ITEMS_PACK } from "../merchant/catalog-stock.mjs";
 import { purseUpdate, purseOf } from "./bastion-funding.mjs";
 import { planBuy, inStock, shopOf, unitCopper } from "./bastion-shop-core.mjs";
+import { loadPropertyNames, factsOf } from "../merchant/property-names.mjs";
+import { plainText } from "../town/town-view.mjs";
+
+const say = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
 
 /** The packs a bastion shop sells from: the system's gear and the imported gear (never the magic items). */
 export const SHOP_PACKS = ["shadowdark.gear", IMPORTED_ITEMS_PACK];
 
 const samePurse = (a, b) => a.gp === b.gp && a.sp === b.sp && a.cp === b.cp;
 
-/** What a shop has for sale, by name: `{ name, uuid, img, list, price }` with the price in words. */
+/** What a shop has for sale, by name: `{ name, uuid, img, list, price, facts, blurb, desc }` with the price in words, the fact chips and the description. */
 export async function loadStock(shopId) {
   const shop = shopOf(shopId);
   const stock = [];
   for (const id of SHOP_PACKS) {
     const pack = game.packs.get(id);
     if (!pack || !shop) continue;
-    const index = await pack.getIndex({ fields: ["system.cost", "system.quantity", "system.magicItem", `flags.${MODULE_ID}.fromTreasureTable`, `flags.${MODULE_ID}.generated`] });
-    for (const entry of index.contents) {
-      if (!inStock(entry, shop)) continue;
-      stock.push({ name: entry.name, uuid: entry.uuid, img: entry.img, bundle: Number(entry.system.quantity) > 1 ? Number(entry.system.quantity) : 0, list: formatPrice(entry.system.cost), price: formatPrice(fromCopper(unitCopper(toCopper(entry.system.cost)))) });
+    const index = await pack.getIndex({ fields: ["system.cost", "system.quantity", "system.magicItem", "system.type", "system.range", "system.damage", "system.ac", "system.slots", "system.properties", "system.description", `flags.${MODULE_ID}.fromTreasureTable`, `flags.${MODULE_ID}.generated`] });
+    const wares = index.contents.filter((entry) => inStock(entry, shop));
+    await loadPropertyNames(wares);
+    for (const entry of wares) {
+      const { facts, blurb } = factsOf(entry, say);
+      const desc = plainText(entry.system?.description, 600);
+      stock.push({ facts, blurb, desc: desc.length > blurb.length ? desc : "", name: entry.name, uuid: entry.uuid, img: entry.img, bundle: Number(entry.system.quantity) > 1 ? Number(entry.system.quantity) : 0, list: formatPrice(entry.system.cost), price: formatPrice(fromCopper(unitCopper(toCopper(entry.system.cost)))) });
     }
   }
   return stock.sort((a, b) => a.name.localeCompare(b.name));

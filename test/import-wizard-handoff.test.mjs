@@ -124,21 +124,20 @@ test("the advanced importer inherits the books checked for use once; any other w
   assert.equal(hasSessionPdf("CS1"), false);
 });
 
-test("the placement switch shows only when an adventure map is ready, and Done says how many were packed", async () => {
+test("the Ready page lists the ready maps by book, none ticked, and Done says how many were packed", async () => {
   const ctl = new WizardController({
-    t, run: async (state) => ({ imported: 3, already: 0, needsYou: [], hex: [], packed: state.placement === "compendium" ? 2 : 0 }),
+    t, run: async () => ({ imported: 3, already: 0, needsYou: [], hex: [], packed: 1 }),
   }, () => {});
   ctl.state.page = "ready";
   ctl.state.check = { done: true, ready: ["book:CS1"], problems: [], items: [] };
-  assert.equal(ctl.viewModel().ready.adventureMaps, false, "no adventure map picked: nothing to place");
+  assert.deepEqual(ctl.viewModel().ready.maps, [], "no map picked: nothing to place");
   ctl.state.check = { done: true, ready: ["book:CS1", "map:cs1-mugdulblub", "map:hex-wr"], problems: [], items: [] };
-  assert.equal(ctl.viewModel().ready.adventureMaps, true);
-  assert.equal(ctl.viewModel().placementWorld, true, "the world is where adventures go unless the GM says otherwise");
-  await ctl.dispatch("setPlacement", { value: "compendium" });
-  assert.equal(ctl.viewModel().placementWorld, false);
-  await ctl.dispatch("setPlacement", { value: "anything else" });
-  assert.equal(ctl.viewModel().placementWorld, true, "an unknown value falls back to the world");
-  await ctl.dispatch("setPlacement", { value: "compendium" });
+  const rows = () => ctl.viewModel().ready.maps.flatMap((g) => g.rows);
+  assert.equal(rows().length, 2);
+  assert.equal(rows().every((r) => !r.world), true, "nothing is ticked until the GM chooses");
+  await ctl.dispatch("toggleWorldMap", { id: "hex-wr" });
+  assert.equal(rows().find((r) => r.id === "hex-wr").world, true);
+  assert.equal(rows().find((r) => r.id === "cs1-mugdulblub").world, false);
   await ctl.dispatch("next");
   assert.match(ctl.viewModel().done.packed, /SDE\.importer\.wizard\.done\.packed/);
 });

@@ -161,7 +161,8 @@ export async function setDonation(party, memberId, requested) {
 
 /** Bring every party's projections back in line with its flag (active GM only). */
 export async function reconcilePartyStash(party) {
-  if (!party || !isParty(party)) return;
+  // The system's own Party actor has no roster here (Party.rows throws for it), so it holds no stash.
+  if (!party || !isParty(party) || party.type === "Party") return;
   const rows = Party.rows(party), memberIds = rows.filter((r) => r.actor && GROUPED.includes(r.group)).map((r) => r.actor.id);
   const raw = party.flags?.[MODULE_ID]?.partyStash ?? {};
   const donations = normalizeDonations(raw, memberIds);
@@ -196,14 +197,17 @@ export async function reconcilePartyStash(party) {
 
 export async function reconcileAllPartyStashes() {
   if (!isActiveGM()) return;
-  const parties = Party.list(), uuids = new Set(parties.map((party) => party.uuid));
+  const parties = Party.list().filter((party) => party.type !== "Party"), uuids = new Set(parties.map((party) => party.uuid));
   // A filler whose party no longer exists cannot be reconciled per party: remove it here.
   for (const actor of game.actors?.contents ?? []) {
     const item = stashItemOf(actor);
     const partyUuid = item?.flags?.[MODULE_ID]?.[STASH_PARTY];
     if (partyUuid && !uuids.has(partyUuid)) await deleteStashItem(actor);
   }
-  for (const party of parties) await reconcilePartyStash(party);
+  // One party that fails to reconcile must not leave the others stale.
+  for (const party of parties) {
+    try { await reconcilePartyStash(party); } catch (error) { console.error(`${MODULE_ID} | party stash: ${party.name}`, error); }
+  }
 }
 
 /** The setting changed: reconcile on the authority client, then let open sheets re-read it. */

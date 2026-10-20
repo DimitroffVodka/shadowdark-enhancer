@@ -29,11 +29,11 @@ export const resolveTab = (tab, keys) => (keys.includes(tab) ? tab : "members");
 
 /**
  * What a viewer may change. `canEdit` is the party's rule (a GM, or an owner of the party);
- * the emblem is the GM's alone.
+ * the emblem follows it, so a party's players can dress it as well as its GM.
  * @param {{ isGM?: boolean, canEdit?: boolean }} who
  */
 export function sheetView({ isGM = false, canEdit = false } = {}) {
-  return { isGM: !!isGM, canEdit: !!canEdit, emblemEdit: !!isGM && !!canEdit };
+  return { isGM: !!isGM, canEdit: !!canEdit, emblemEdit: !!canEdit };
 }
 
 /**

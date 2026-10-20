@@ -6,7 +6,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  GAME_IDS, MIN_WAGER, WHEEL, cardName, cardOf, cards, checkWager, coin, duel, settle, wagerFromSp, wheel,
+  GAME_IDS, MIN_WAGER, ROULETTE_BETS, ROULETTE_SIZE, WHEEL,
+  bragHand, cardName, cardOf, cards, checkWager, coin, duel, isRouletteBet, roulette, settle, wagerFromSp, wheel,
 } from "../scripts/town/games-core.mjs";
 
 test("settle: a win pays the wager times the odds less the house's share of the winnings, rounded down", () => {
@@ -75,6 +76,40 @@ test("cards: a deck position is a rank (ace high) and a suit, and the higher ran
   assert.equal(cards({ you: 12, house: 11 }).mult, 2);   // ace over king
   assert.equal(cards({ you: 0, house: 5 }).mult, 0);
   assert.equal(cards({ you: 0, house: 13 }).mult, 1);    // the same rank in another suit
+});
+
+test("roulette: even, odd, low and high win at even money, a number at 19 to 1, and every bet covers its share of the d20", () => {
+  assert.deepEqual([roulette({ pick: "even", d20: 8 }).mult, roulette({ pick: "even", d20: 9 }).mult], [2, 0]);
+  assert.deepEqual([roulette({ pick: "odd", d20: 1 }).mult, roulette({ pick: "odd", d20: 20 }).mult], [2, 0]);
+  assert.deepEqual([roulette({ pick: "low", d20: 10 }).mult, roulette({ pick: "low", d20: 11 }).mult], [2, 0]);
+  assert.deepEqual([roulette({ pick: "high", d20: 11 }).mult, roulette({ pick: "high", d20: 10 }).mult], [2, 0]);
+  assert.deepEqual([roulette({ pick: "17", d20: 17 }).mult, roulette({ pick: "17", d20: 3 }).mult], [ROULETTE_SIZE, 0]);
+  assert.equal(roulette({ pick: "20", d20: 20 }).mult, 20);
+  for (const pick of [...ROULETTE_BETS, "1", "20"]) {
+    const outcomes = Array.from({ length: ROULETTE_SIZE }, (_, i) => [1 / ROULETTE_SIZE, roulette({ pick, d20: i + 1 }).mult]);
+    assert.ok(Math.abs(expectedReturn(outcomes) - 1) < 1e-12, pick);        // fair before the house's cut
+  }
+});
+
+test("a roulette bet is a named bet or a whole number from 1 to 20 and nothing else", () => {
+  for (const ok of [...ROULETTE_BETS, "1", "9", "10", "19", "20", 7]) assert.equal(isRouletteBet(ok), true, String(ok));
+  for (const bad of ["", "0", "21", "07", "2.5", "-3", "red", "numbers", undefined, null]) assert.equal(isRouletteBet(bad), false, String(bad));
+});
+
+test("brag: the hands rank prial, straight, flush, pair, high, and a pair of one parity is a flush", () => {
+  assert.deepEqual([bragHand([3, 3, 3]).hand, bragHand([4, 6, 5]).hand, bragHand([1, 5, 3]).hand, bragHand([2, 2, 5]).hand, bragHand([6, 1, 4]).hand],
+    ["prial", "straight", "flush", "pair", "high"]);
+  assert.equal(bragHand([1, 1, 3]).hand, "flush");                          // all odd, though two are alike
+  assert.equal(bragHand([2, 4, 4]).hand, "flush");
+  assert.equal(bragHand([1, 2, 3]).hand, "straight");                       // 1-2-3 is a run, not a mixed high hand
+  const order = [[1, 4, 6], [2, 2, 5], [1, 5, 3], [3, 4, 5], [1, 1, 1]];  // high, pair, flush, straight, prial
+  for (let i = 1; i < order.length; i++) assert.ok(bragHand(order[i]).score[0] > bragHand(order[i - 1]).score[0]);
+});
+
+test("brag: out of 216 rolls the hands are 6 prials, 24 straights, 48 flushes, 54 pairs and 84 high hands", () => {
+  const counts = { prial: 0, straight: 0, flush: 0, pair: 0, high: 0 };
+  for (let a = 1; a <= 6; a++) for (let b = 1; b <= 6; b++) for (let c = 1; c <= 6; c++) counts[bragHand([a, b, c]).hand]++;
+  assert.deepEqual(counts, { prial: 6, straight: 24, flush: 48, pair: 54, high: 84 });
 });
 
 /** The return on one unit staked: the sum of probability times what comes back. */

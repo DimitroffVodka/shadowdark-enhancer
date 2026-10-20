@@ -105,6 +105,8 @@ Ten of the upgrades have an effect the module applies for you while the bastion 
   gear, from the same gear the Merchant Shop's Catalog lists, each at a markup over its list
   price (rounded to the copper). Pick which character of the party buys, search, set a
   quantity and Buy: the gold is taken from their purse and the item is added to their sheet.
+  Each row shows what the ware is (a weapon's kind, range and damage, an armor's AC, its slots
+  and properties) and the start of its description, with a Details control for the rest.
   Magic items are never sold here. The sale is run by the GM; it does not touch the Merchant
   Shop that may be open at the same time.
 

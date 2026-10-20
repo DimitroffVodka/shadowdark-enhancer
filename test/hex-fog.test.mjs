@@ -481,3 +481,39 @@ test("resetHexFog writes once through the store, keeps other fields and flags, a
     }
   }
 });
+
+test("entering a settlement or keyed hex never rolls a point of interest; a plain hex rolls once per party", async () => {
+  const MOD = "shadowdark-enhancer";
+  const flags = { version: 1, sceneUuid: "Scene.poi", fogImported: true,
+    cells: { "0_0": { terrain: "city", discovery: { revealed: true } }, "0_1": { terrain: "forest", discovery: { revealed: true } } } };
+  const journal = { id: "jpoi", ownership: { default: 0 }, flags: { [MOD]: { hexRecords: flags } },
+    update: async data => { for (const [key, value] of Object.entries(data)) { const [, mod, flag] = key.split("."); (journal.flags[mod] ??= {})[flag] = value; } } };
+  cacheHexJournal(journal);
+  const publicJournal = { id: "pubpoi", flags: { [MOD]: { hexRecordProjection: { sceneUuid: "Scene.poi", cells: {} } } }, update: async () => {} };
+  const scene = { id: "poi", uuid: "Scene.poi", flags: { [MOD]: { hexFog: { enabled: true }, hexRecords: { adopted: true } } },
+    getFlag: (mod, key) => scene.flags[mod]?.[key],
+    grid: { isHexagonal: true, sizeX: 100, sizeY: 100, getOffset: point => ({ i: Math.floor(point.y / 100), j: Math.floor(point.x / 100) }), getCenterPoint: offset => ({ x: offset.j * 100 + 50, y: offset.i * 100 + 50 }) },
+    dimensions: { sceneRect: { x: 0, y: 0, width: 300, height: 300, contains: (x, y) => x >= 0 && y >= 0 && x < 300 && y < 300 } } };
+  const party = { id: "p", uuid: "Actor.p", type: "NPC", flags: { [MOD]: { party: true } }, testUserPermission: () => true };
+  const saved = { game: globalThis.game, canvas: globalThis.canvas, CONST: globalThis.CONST, replace: globalThis._replace, random: Math.random, fromUuid: globalThis.fromUuid };
+  globalThis._replace = value => value;
+  globalThis.CONST = { GRID_TYPES: { HEXODDQ: 4, HEXEVENQ: 5 } };
+  globalThis.canvas = {};
+  globalThis.fromUuid = async () => null;
+  globalThis.game = { user: { id: "gm", isGM: true }, actors: { contents: [party], get: id => id === "p" ? party : null },
+    journal: { contents: [publicJournal] }, packs: { get: () => ({ ownership: { PLAYER: "NONE", TRUSTED: "NONE", ASSISTANT: "NONE" }, getDocuments: async () => [journal] }), [Symbol.iterator]: function* () {} },
+    tables: [], modules: { get: () => undefined }, time: { worldTime: 0 }, i18n: { localize: key => key, format: key => key },
+    settings: { get: (_m, key) => { if (key === "poiArrivalChance") return 100; throw new Error("not registered"); } } };
+  Math.random = () => 0;
+  try {
+    for (const j of [0, 1]) await revealParty({ parent: scene, actor: party, getCenterPoint: () => ({ x: j * 100 + 50, y: 50 }) }, { path: [{ i: 0, j }], committed: true });
+    const cells = journal.flags[MOD].hexRecords.cells;
+    assert.equal(cells["0_0"].poiRolledBy, undefined, "a city is a keyed place, not a plain hex");
+    assert.deepEqual(cells["0_1"].poiRolledBy, ["p"], "the forest hex rolled, once, for this party");
+  } finally {
+    Math.random = saved.random;
+    for (const [key, value] of [["game", saved.game], ["canvas", saved.canvas], ["CONST", saved.CONST], ["_replace", saved.replace], ["fromUuid", saved.fromUuid]]) {
+      if (value === undefined) delete globalThis[key]; else globalThis[key] = value;
+    }
+  }
+});
