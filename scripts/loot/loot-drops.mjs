@@ -10,6 +10,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { LootGenerator } from "./loot-generator.mjs";
 import { LootDelivery } from "./loot-delivery.mjs";
+import { NpcInventory } from "../npc-inventory/npc-inventory.mjs";
 import { esc } from "../shared/esc.mjs";
 import { isActiveGM } from "../shared/gm-relay.mjs";
 
@@ -49,6 +50,11 @@ export const LootDrops = {
       if (!a || a.type !== "NPC") return false;
       return c.defeated || (a.system?.attributes?.hp?.value ?? a.system?.hp?.value ?? 1) <= 0;
     });
+
+    // What a defeated NPC carries is its own loot, whatever the table and chance say.
+    for (const c of defeated) {
+      await NpcInventory.dropCarried(c.actor).catch((err) => console.warn(`${MODULE_ID} | dropping what ${c.actor.name} carried failed`, err));
+    }
 
     if (game.settings.get(MODULE_ID, "lootDropMode") === "encounter") {
       return this._dropForEncounter(defeated);

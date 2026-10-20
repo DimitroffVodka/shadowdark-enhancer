@@ -6062,3 +6062,18 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-ui .tl-ware-more .tl-ware-desc { padding: 0; border: 0; }
 .sde-ui .tl-rules { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; font-size: 12px; line-height: 1.45; color: var(--ui-body); }
 .sde-ui .tl-rules b { color: var(--ui-text); }
+
+/* NPC sheet Inventory tab */
+.sde-npc-inv { padding: 8px 4px; }
+.sde-npc-inv-hint { margin: 0 0 6px; font-size: var(--font-size-12, 12px); opacity: 0.7; }
+.sde-npc-inv-list { margin: 0; padding: 0; list-style: none; }
+.sde-npc-inv-list li { display: flex; align-items: center; gap: 8px; padding: 3px 0; border-bottom: 1px solid rgba(128, 128, 128, 0.25); }
+.sde-npc-inv-name { flex: 1; cursor: pointer; }
+.sde-npc-inv-qty { width: 56px; text-align: center; }
+.sde-npc-inv-del { cursor: pointer; opacity: 0.7; }
+.sde-npc-inv-del:hover { opacity: 1; }
+.sde-npc-inv-empty { opacity: 0.6; border: 0 !important; }
+.sde-npc-inv-purse { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.sde-npc-inv-purse span { flex: 1; font-weight: bold; }
+.sde-npc-inv-coin { width: 56px; text-align: center; }
+.sde-npc-inv-drop { margin-top: 10px; width: 100%; }

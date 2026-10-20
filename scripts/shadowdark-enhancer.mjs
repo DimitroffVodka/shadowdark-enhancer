@@ -83,6 +83,7 @@ import { LootCatalog } from "./loot/loot-catalog.mjs";
 import { LootGenerator } from "./loot/loot-generator.mjs";
 import { LootDelivery } from "./loot/loot-delivery.mjs";
 import { LootDrops } from "./loot/loot-drops.mjs";
+import { NpcInventory } from "./npc-inventory/npc-inventory.mjs";
 import { ItemDrops } from "./loot/item-drops.mjs";
 import { LootTableTag } from "./loot/loot-table-tag.mjs";
 import { TableRegistry } from "./importer/tables/table-registry.mjs";
@@ -146,7 +147,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "aa9d310fe07c";
+const STYLESHEET_REV = "8fb048907d0e";
 
 // The same problem for the SCRIPTS, which cannot be solved the same way: their
 // URLs come from the manifest, which Foundry validates as real package paths,
@@ -161,7 +162,7 @@ const STYLESHEET_REV = "aa9d310fe07c";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "0df259300461";
+const BUILD_REV = "ce7533473b5c";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -1261,6 +1262,7 @@ Hooks.once("ready", () => {
   // monster drag carries the referenced art (all clients; GM-only settings write).
   MonsterTokenArt.initCompendiumArt();
   LootDrops.init();
+  NpcInventory.init();
   ItemDrops.init();
   // Token HUD "adjust monster level" button (GM-only, NPC tokens).
   registerQuickAdjustHUD();
