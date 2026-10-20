@@ -38,18 +38,16 @@ export const wizardFirst = () => !game.settings.get(MODULE_ID, RUN_SETTING)?.at
   && !findLibraryJournal()?.pages.some((p) => p.type === "pdf");
 
 /**
- * Does this hex map, now in the world, still have its terrain to name? A Western Reaches A0 that is not numbered yet is
- * made playable first, quietly, as the guide always did for it (the numbering, the book's keyed hexes, borders copied
- * from another A0); that answers whether the Legend is still to do. Any other map: whether its Legend was ever applied.
+ * Does this hex map, now in the world, still have its terrain to name? The Western Reaches A0 is made playable first,
+ * quietly, as the guide always did for it: Make this map playable runs only what the map lacks (the numbering, terrain
+ * and borders copied from another A0, the book's keyed hexes); its answer says whether the Legend is still to do.
+ * Any other map: whether its Legend was ever applied.
  */
 export async function terrainToName(mapId, sceneId) {
   const scene = game.scenes.get(sceneId);
   if (!scene) return false;
-  if (mapId === "hex-wr" && !scene.getFlag(MODULE_ID, "hexTags")?.origin) {
-    const { ASKED_FLAG } = await import("../../hex-map/a0-prompt.mjs");
-    const { replaceModuleFlag } = await import("../../shared/module-flags.mjs");
-    await replaceModuleFlag(scene, ASKED_FLAG, true);   // the A0's own "make it playable?" question would ask over this one
-    await scene.view();
+  if (mapId === "hex-wr") {
+    await scene.view();   // the A0's own "make it playable?" question stays quiet while this window is open (a0-prompt.mjs)
     const made = await (await import("../../hex-map/hex-tagger-app.mjs")).HexTaggerApp.makePlayable({ quiet: true });
     return made ? made.legend : false;
   }
@@ -71,6 +69,7 @@ export async function offerTerrainGuide(scenes) {
     return hex && !legendNamed(scene) ? [{ id: hex.id, title: hex.title, sceneId: scene.id, pinned: scene.notes?.size ?? 0 }] : [];
   });
   if (!rows.length) return false;
+  if (ImportWizardApp._instance) return !!(await ImportWizardApp.openTerrain(rows));   // says the guide is busy instead of asking first
   const yes = await foundry.applications.api.DialogV2.confirm({
     classes: ["sde-ui", "sde-dialog"],
     window: { title: t("SDE.importer.wizard.terrainOffer.title"), icon: "fas fa-map" },
@@ -131,7 +130,7 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static async openTerrain(rows) {
     if (!game.user?.isGM) return null;
     if (this._instance) { this._instance.render({ force: true }); ui.notifications.info(t("SDE.importer.wizard.terrainOffer.busy")); return null; }
-    const app = this._instance = new ImportWizardApp({});
+    const app = this._instance = new ImportWizardApp({ window: { title: "SDE.importer.wizard.terrainWindowTitle" } });
     const run = app.ctl.startTerrain(rows);   // on the Terrain page before the first draw
     await app.render({ force: true });
     await run;

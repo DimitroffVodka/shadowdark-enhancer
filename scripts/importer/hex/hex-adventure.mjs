@@ -15,9 +15,17 @@ import { MODULE_ID } from "../../shared/module-id.mjs";
 import { ADVENTURE_PACK_FLAG, adventureData, folderChain } from "../adventure/adventure-pack.mjs";
 import { findSuitePack } from "../../shared/compendium-suite.mjs";
 import { HEXMAP_FLAG, hexMapFromFile } from "../../hex-map/hex-map-flow.mjs";
+import { A0_PRINT } from "../../hex-map/a0-print.mjs";
 
-/** The world scene this map made, or null. */
-export const findHexScene = (mapId) => game.scenes?.find((s) => s.getFlag(MODULE_ID, HEXMAP_FLAG) === mapId) ?? null;
+/** An A0 made by hand (Hex map from image) carries no map id; its numbering covers the A0 print's field, which no other print has. */
+export const isHandMadeA0 = (scene) => {
+  const bounds = scene.getFlag(MODULE_ID, "hexTags")?.origin?.bounds;
+  return !scene.getFlag(MODULE_ID, HEXMAP_FLAG) && bounds?.cols === A0_PRINT.bounds.cols && bounds?.rows === A0_PRINT.bounds.rows;
+};
+
+/** The world scene this map made, or null. The Western Reaches A0 is also found when it was made by hand, so it is not built twice. */
+export const findHexScene = (mapId) => game.scenes?.find((s) => s.getFlag(MODULE_ID, HEXMAP_FLAG) === mapId)
+  ?? (mapId === "hex-wr" ? game.scenes?.find(isHandMadeA0) : null) ?? null;
 
 /** The map's Adventure in the Adventures pack, or null. */
 export async function findPackedHexMap(mapId) {

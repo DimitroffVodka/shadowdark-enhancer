@@ -53,7 +53,8 @@ export class WorldMapsApp extends HandlebarsApplicationMixin(ApplicationV2) {
       },
       buildHex: async (id, files) => {
         const { buildHexAdventure } = await import("./hex/hex-adventure.mjs");
-        const made = await buildHexAdventure(files, { id, title: HEX_MAPS.find((h) => h.id === id)?.title, firstNum: hexPrint(id)?.firstNum ?? "0000", placement: "world" });
+        // offer: false — a map packed since the window opened is imported here, and the offer below is the one question.
+        const made = await buildHexAdventure(files, { id, title: HEX_MAPS.find((h) => h.id === id)?.title, firstNum: hexPrint(id)?.firstNum ?? "0000", placement: "world", offer: false });
         const scene = made.sceneId && game.scenes.get(made.sceneId);
         if (scene) (await import("./wizard/wizard-app.mjs")).offerTerrainGuide([scene]);   // not awaited: the row turns first
         return made;
@@ -69,11 +70,11 @@ export class WorldMapsApp extends HandlebarsApplicationMixin(ApplicationV2) {
     };
   }
 
-  /** The map a world scene shows, hex or adventure, or "" (the flag names are read in _prepareContext, before any click). */
-  _mapIdOf(scene) { return scene.getFlag(MODULE_ID, this._flags.hex) || scene.getFlag(MODULE_ID, this._flags.site)?.site || ""; }
-
-  /** The world scene of a map, or null. */
-  _sceneOf(id) { return game.scenes.find((s) => this._mapIdOf(s) === id) ?? null; }
+  /** The world scene of a map, or null: a hex map as the guide finds it (a hand-made A0 too), an adventure map by its site. */
+  _sceneOf(id) {
+    if (HEX_MAPS.some((h) => h.id === id)) return this._lookup.findHexScene(id);
+    return game.scenes.find((s) => s.getFlag(MODULE_ID, this._lookup.MAP_FLAG)?.site === id) ?? null;
+  }
 
   /** Ask for the map's picture (both halves at once for a print that ships in two). */
   _pick(id) {
@@ -103,15 +104,18 @@ export class WorldMapsApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   async _prepareContext() {
-    const [{ findSuitePack }, { filedSiteIds, MAP_FLAG }, { ADVENTURE_PACK_FLAG }, { HEXMAP_FLAG }] = await Promise.all([
+    const [{ findSuitePack }, { filedSiteIds, MAP_FLAG }, { ADVENTURE_PACK_FLAG }, { findHexScene }] = await Promise.all([
       import("../shared/compendium-suite.mjs"), import("./adventure/adventure-scene.mjs"), import("./adventure/adventure-pack.mjs"),
-      import("../hex-map/hex-map-flow.mjs"),
+      import("./hex/hex-adventure.mjs"),
     ]);
-    this._flags = { hex: HEXMAP_FLAG, site: MAP_FLAG };
+    this._lookup = { findHexScene, MAP_FLAG };   // read here, before any click needs _sceneOf
     const pack = findSuitePack("adventures");
     const index = pack ? await pack.getIndex({ fields: [`flags.${MODULE_ID}.${ADVENTURE_PACK_FLAG}`] }) : [];
     const packed = new Set([...index].map((e) => e.flags?.[MODULE_ID]?.[ADVENTURE_PACK_FLAG]?.site).filter(Boolean));
-    const inWorld = new Set(game.scenes.map((s) => this._mapIdOf(s)).filter(Boolean));
+    const inWorld = new Set([
+      ...HEX_MAPS.filter((h) => findHexScene(h.id)).map((h) => h.id),
+      ...game.scenes.map((s) => s.getFlag(MODULE_ID, MAP_FLAG)?.site).filter(Boolean),
+    ]);
     const canUpload = !!game.user?.can?.("FILES_UPLOAD");
     this._filed ??= await filedSiteIds();   // read once: nothing this window does files a book
     const groups = mapsView(mapList({ inWorld, packed, filed: this._filed }), { busy: this._busy, lines: this._lines, canUpload, t });

@@ -11,7 +11,7 @@ import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { isActiveGM } from "../shared/gm-relay.mjs";
 import { isA0 } from "./a0-print.mjs";
 
-export const ASKED_FLAG = "hexPlayableAsked";
+const ASKED_FLAG = "hexPlayableAsked";
 const t = (key) => game.i18n.localize(key);
 
 /** Offer it on each scene drawn. Call at ready. */

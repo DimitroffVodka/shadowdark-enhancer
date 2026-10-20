@@ -126,8 +126,11 @@ export const importMissingOnly = (data, actors = globalThis.game?.actors ?? []) 
   return createOnly(data);
 };
 
-/** The import option that says the caller names a hex map's terrain itself, so the import does not offer the quick guide. */
-export const NO_TERRAIN_OFFER = "sdeNoTerrainOffer";
+/**
+ * The Adventures being imported by a caller that names a hex map's terrain itself (the wizard), so their import does not
+ * offer the quick guide. Kept here, not in the import options, because core saves those options in a world setting.
+ */
+const quietImports = new WeakSet();
 
 /**
  * `preImportAdventure` handler: an Adventure from the Adventures pack only ever creates, whichever way it is imported (the
@@ -145,7 +148,7 @@ export function onPreImportAdventure(adventure, options) {
     } catch (err) {
       console.error(`${MODULE_ID} | adventure pack: joining the imported stairs and ladders failed`, err);
     }
-    if (!options[NO_TERRAIN_OFFER] && result.created?.Scene?.length) offerTerrain(result.created.Scene);
+    if (!quietImports.has(adventure) && result.created?.Scene?.length) offerTerrain(result.created.Scene);
   }];
 }
 
@@ -171,7 +174,10 @@ export function registerAdventurePackImport() {
  */
 export async function importPackedAdventure(adventure, { offer = true } = {}) {
   if (!game.user?.isGM) return { status: "gmOnly", created: {} };
-  const result = await adventure.import({ dialog: false, [NO_TERRAIN_OFFER]: !offer });
+  if (!offer) quietImports.add(adventure);
+  let result;
+  try { result = await adventure.import({ dialog: false }); }
+  finally { quietImports.delete(adventure); }
   const created = Object.fromEntries(Object.entries(result.created ?? {}).map(([name, docs]) => [name, docs.length]));
   const made = Object.values(created).reduce((n, c) => n + c, 0);
   return { status: made ? "imported" : "already", created };

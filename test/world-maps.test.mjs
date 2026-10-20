@@ -9,7 +9,8 @@ import { rowState, mapList, mapsView, hexFilesFrom, loadMap, addMapFiles } from 
 import { HEX_MAPS } from "../scripts/importer/wizard/wizard-core.mjs";
 import { allSites } from "../scripts/importer/adventure/adventure-manifest.mjs";
 import { WizardController } from "../scripts/importer/wizard/wizard-controller.mjs";
-import { ADVENTURE_PACK_FLAG, NO_TERRAIN_OFFER, onPreImportAdventure } from "../scripts/importer/adventure/adventure-pack.mjs";
+import { ADVENTURE_PACK_FLAG, onPreImportAdventure, importPackedAdventure } from "../scripts/importer/adventure/adventure-pack.mjs";
+import { findHexScene, isHandMadeA0 } from "../scripts/importer/hex/hex-adventure.mjs";
 import { HEXMAP_FLAG } from "../scripts/hex-map/hex-map-flow.mjs";
 
 const t = (key, args) => `${key}${args ? JSON.stringify(args) : ""}`;
@@ -156,12 +157,57 @@ test("the Welcome page offers Maps for this world only once the world has import
   assert.equal(update.viewModel().welcomeMaps, false);
 });
 
-test("a packed Adventure imported with no terrain offer asked for still joins its stairs and asks nothing", async () => {
-  const options = { preImport: [], postImport: [], [NO_TERRAIN_OFFER]: true };
-  onPreImportAdventure({ getFlag: (m, k) => (k === ADVENTURE_PACK_FLAG ? { site: "hex-cs1" } : undefined) }, options);
-  let flagRead = false;
-  const scene = { getFlag: (m, k) => { if (k === HEXMAP_FLAG) flagRead = true; return k === HEXMAP_FLAG ? "hex-cs1" : undefined; } };
-  for (const fn of options.postImport) await fn({ created: { Scene: [scene] } }, options);
-  await new Promise((r) => setTimeout(r, 20));
-  assert.equal(flagRead, false, "the caller names the terrain itself");
+/** A packed Adventure whose import runs the real hook as Adventure#import does, creating these scenes. */
+const packedAdventure = (scenes) => {
+  const adv = { getFlag: (m, k) => (k === ADVENTURE_PACK_FLAG ? { site: "x" } : undefined) };
+  adv.import = async (opts) => {
+    const options = { preImport: [], postImport: [], ...opts };
+    onPreImportAdventure(adv, options);
+    const result = { created: { Scene: scenes } };
+    for (const fn of options.postImport) await fn(result, options);
+    return result;
+  };
+  return adv;
+};
+const hexScene = (mapId) => ({ id: `s-${mapId}`, notes: { size: 3 }, getFlag: (m, k) => (k === HEXMAP_FLAG ? mapId : undefined) });
+const siteScene = { id: "site", getFlag: () => undefined };
+
+test("importing a packed hex map asks once to set up its terrain; the wizard's own import asks nothing", async () => {
+  const asked = [];
+  const before = { foundry: globalThis.foundry, game: globalThis.game };
+  globalThis.foundry = { applications: { api: {
+    ApplicationV2: class {}, HandlebarsApplicationMixin: (c) => c,
+    DialogV2: { confirm: async (o) => { asked.push(o.content); return false; } },
+  } } };
+  globalThis.game = { user: { isGM: true } };
+  try {
+    const settle = () => new Promise((r) => setTimeout(r, 50));
+    await importPackedAdventure(packedAdventure([hexScene("hex-cs1"), siteScene]));
+    await settle();
+    assert.equal(asked.length, 1, "one question, for the hex map only");
+    assert.match(asked[0], /terrainOffer\.body/);
+    await importPackedAdventure(packedAdventure([hexScene("hex-cs2")]), { offer: false });
+    await settle();
+    assert.equal(asked.length, 1, "the wizard names the terrain itself");
+    await importPackedAdventure(packedAdventure([siteScene]));
+    await settle();
+    assert.equal(asked.length, 1, "an adventure map is never asked about");
+  } finally {
+    globalThis.foundry = before.foundry; globalThis.game = before.game;
+  }
+});
+
+test("a Western Reaches A0 made by hand is found as the A0, so it is not built or loaded twice", () => {
+  const flags = (f) => ({ getFlag: (m, k) => f[k] });
+  const a0Origin = { origin: { bounds: { cols: 64, rows: 75 } } };
+  const handMade = flags({ hexTags: a0Origin });
+  assert.equal(isHandMadeA0(handMade), true);
+  assert.equal(isHandMadeA0(flags({ hexTags: { origin: { bounds: { cols: 30, rows: 22 } } } })), false, "another print's field");
+  assert.equal(isHandMadeA0(flags({ hexTags: a0Origin, [HEXMAP_FLAG]: "hex-wr" })), false, "one the module made is found by its id");
+  const before = globalThis.game;
+  globalThis.game = { scenes: [flags({}), handMade] };
+  try {
+    assert.equal(findHexScene("hex-wr"), handMade);
+    assert.equal(findHexScene("hex-cs1"), null);
+  } finally { globalThis.game = before; }
 });
