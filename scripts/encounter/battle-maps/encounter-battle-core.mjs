@@ -372,7 +372,7 @@ function randomId(length = 16) {
  * @property {string|null} combatId the combat made by Bring the table
  * @property {boolean} travelling  the party was on Overland travel when the battle was set up, so Return to travel puts the
  *   travel back if bringing the table turned it into a crawl (absent from older records: false)
- * @property {{name:string, uuid:string|null, count:number, distanceRoll:number|null, activityRoll?:number|null,
+ * @property {{id?:string|null, name:string, uuid:string|null, count:number, distanceRoll:number|null, activityRoll?:number|null,
  *   reactionRoll?:number|null, img?:string|null}} encounter  what the GM was told of the creatures: the last three are
  *   absent from records written before the battle's panel showed them, and the panel then says what it has
  */
@@ -408,6 +408,7 @@ export function newBattleRecord({
     combatId: null,
     travelling: !!travelling,
     encounter: {
+      ...(typeof encounter?.id === "string" && encounter.id ? { id: encounter.id } : {}),
       name: String(encounter?.name ?? ""),
       uuid,
       count: uuid ? Math.max(1, Math.floor(Number(encounter?.count)) || 1) : 0,

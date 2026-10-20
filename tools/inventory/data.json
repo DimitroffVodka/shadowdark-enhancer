@@ -624,6 +624,8 @@
     "scripts/encounter/encounter-roller-app.mjs": "The Encounter Roller shell + tabs (Roll Tables / Build / Browse / Creator).",
     "scripts/encounter/encounter-check.mjs": "The d6 random-encounter check + chat post. Options (#232): a threshold, the travel hex (its region as the zone), a card label and the recap clock label, for Overland's travel checks.",
     "scripts/encounter/encounter-result.mjs": "Distance / Activity / Reaction RAW lookups.",
+    "scripts/encounter/encounter-codex.mjs": "The Encounters Met codex: one players-readable journal, a page a region, filed when an encounter is shown to the table (posted to chat, or brought to it as a battle); entries on the page flag, one write at a time, a page keeps its latest 300.",
+    "scripts/encounter/encounter-codex-core.mjs": "The codex's pure part: an entry's identity (the draw id, else hour and what it was) and a page's HTML rebuilt from its entries, newest first.",
     "scripts/encounter/encounter-draw.mjs": "Drawing an encounter with no window, shared by the Encounter Roller and quiet travel checks (#257): the table's row, a zone table's category and the region's table for it (day or night, then Special), the travel draw's point of interest (#262, #273), the entry (the NPC, its art, number appearing with its formula, distance 1d6, activity 2d6, reaction 2d6), the chain of tables drawn for the panel, a second category kept out of chat when quiet, and postEncounter's chat card.",
     "scripts/encounter/encounter-build.mjs": "Build-a-table data layer (slots, die formats, save to RollTable).",
     "scripts/encounter/encounter-browse.mjs": "Browse-NPCs data layer (sources, loading, cache, filter/sort).",

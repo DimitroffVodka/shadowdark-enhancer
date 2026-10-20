@@ -23,6 +23,7 @@ import { BATTLE_STATUS, SETTINGS } from "./constants.mjs";
 import {
   canBattle, needsConfirm, needsPick, pickAnswer, pickerArgs, readStash, recordOf, setUpArgs, stillLoading,
 } from "./battle-actions-core.mjs";
+import { recordEncounter } from "../encounter-codex.mjs";
 
 /**
  * The table's conditions: night by the fixed hours the encounter tables use, whether Overland has tonight's camp made, and
@@ -184,7 +185,10 @@ export async function bringTheTable({ battle, preload = null }, io = {}) {
   if (!game.user?.isGM || !battle?.id) return null;
   return guarded(async () => {
     if (needsConfirm(preload) && !(await x.confirm(stillLoading(preload)))) return null;
-    return (await x.battle()).bringTable(battle.id);
+    const out = await (await x.battle()).bringTable(battle.id);
+    // Everyone is at the table: the codex keeps the encounter, posted to chat or not.
+    if (out) await recordEncounter(battle.encounter, { facets: false });
+    return out;
   });
 }
 

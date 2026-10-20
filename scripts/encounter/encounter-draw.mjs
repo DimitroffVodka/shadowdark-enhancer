@@ -20,6 +20,7 @@ import {
 import { isNight, worldClock } from "./encounter-terrain.mjs";
 import { partyContext } from "./battle-maps/battle-actions.mjs";
 import { canBattle, cardStash } from "./battle-maps/battle-actions-core.mjs";
+import { recordEncounter } from "./encounter-codex.mjs";
 
 // Read at call time, not import time: the module is imported by Node tests (and by
 // hex-fog, whose neighbours hex-explorer.mjs's tests load) where `foundry` is absent.
@@ -283,7 +284,6 @@ export async function flavorHtml(text) {
   }
 }
 
-
 /**
  * The encounter a row gives. A creature: its name, art, how many, and the
  * distance (1d6), activity (2d6) and reaction (2d6) rolls. Else the row's
@@ -295,13 +295,16 @@ export async function rollEntry(result) {
   const monster = await monsterOf(result);
   if (!monster) {
     const text = resultBody(result).trim();
-    return text ? { kind: "flavor", text, html: await flavorHtml(text) } : { kind: "empty" };
+    return text
+      ? { id: foundry.utils.randomID(), kind: "flavor", text, html: await flavorHtml(text) }
+      : { id: foundry.utils.randomID(), kind: "empty" };
   }
   // A world copy of a compendium creature whose art is a placeholder shows the compendium's art.
   const art = await _bestArtForActor(monster);
   const creatures = await placementOf(result, monster);
   const primary = creatures.find((c) => c.uuid === monster.uuid) ?? { count: 1, countFormula: null };
   return {
+    id: foundry.utils.randomID(),
     kind: "monster", uuid: monster.uuid, name: monster.name, img: art.img || "icons/svg/mystery-man.svg",
     count: primary.count, countFormula: primary.countFormula,
     creatures,
@@ -323,7 +326,7 @@ export async function drawEncounter(table, { travel = false, quiet = false } = {
   const chain = [link(table, draw)];
   const also = [];
   const result = draw.results[0];
-  if (!result) return { kind: "empty", via: null, chain, also };
+  if (!result) return { id: foundry.utils.randomID(), kind: "empty", via: null, chain, also };
   // If the chain fails, the zone's own row still shows.
   const chained = await zoneRow(table, result, { travel, chain, also, quiet }).catch((err) => {
     console.warn(`${MODULE_ID} | rolling the category's table failed`, err);
@@ -332,7 +335,7 @@ export async function drawEncounter(table, { travel = false, quiet = false } = {
   // A point of interest is found instead of an encounter: its row's text, even
   // where it names a creature, never an encounter with counts and reactions.
   if (chained?.poi) {
-    return { kind: "flavor", poi: true, text: chained.missing ?? resultBody(chained.result).trim(), via: chained.via ?? null, chain, also };
+    return { id: foundry.utils.randomID(), kind: "flavor", poi: true, text: chained.missing ?? resultBody(chained.result).trim(), via: chained.via ?? null, chain, also };
   }
   return { ...(await rollEntry(chained?.result ?? result)), via: chained?.via ?? null, chain, also };
 }
@@ -358,4 +361,6 @@ export async function postEncounter(res, { gmOnly = game.settings.get(MODULE_ID,
     whisper: gmOnly ? ChatMessage.getWhisperRecipients("GM") : [],
     ...(battle ? { flags: { [MODULE_ID]: { encounterCard: battle } } } : {}),
   });
+  // Shown to the players: the codex keeps it. A GM-only post is not theirs to read.
+  if (!gmOnly) await recordEncounter(res);
 }
