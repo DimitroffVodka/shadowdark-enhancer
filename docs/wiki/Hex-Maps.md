@@ -827,8 +827,8 @@ map's own hexes, cut from the map on your computer when the tagger has read it
 (a hex you tagged yourself is preferred), so what you pick is what is printed
 on the map you are tagging. The pictures are kept in memory only and are never
 saved. Until the tagger has read the map, or for a terrain with no tagged hex
-yet, the tile is a coloured circle with an icon in the colour the overlay paints
-that terrain. Tab goes to the tiles and the arrow keys and Space pick one.
+yet, the tile is a coloured circle in the colour the overlay paints that terrain,
+with a white icon on a dark colour and a black one on a light colour. Tab goes to the tiles and the arrow keys and Space pick one.
 
 The brush needs a numbered map and nothing else: it is there from the first
 moment, before a single hex is tagged. On a map the classifier reads badly (a
@@ -978,6 +978,15 @@ can see from the zoomed-out view; a single wrong hex is a dot in the wrong
 colour. Terrain the classifier or the legend named itself gets a fixed
 colour; terrain you typed yourself gets a colour of its own, so two invented
 words never look alike.
+
+The fixed colours are the printed legend's own (sampled from the Western
+Reaches colour map's swatches), so a hex tagged right takes the colour the
+colour map gives it, and a wrong tag stands out against its neighbours. On a
+black-and-white print with no Tiles over it, the colours are blended into the
+print rather than laid over it: the paper takes the terrain colour and the
+ink stays black, so **Show tags** reads like the colour edition of the map. A
+scene with Tiles keeps the lighter see-through wash, since the Tiles would
+cover the blended colours.
 
 Hovering a hex names it: the number, its tags, and whether it was tagged
 automatically and how confidently. Clicking one opens a small box — one at a

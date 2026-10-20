@@ -100,3 +100,12 @@ test("a second click on the same hex inside the window is a double click, once",
   assert.equal(isDoubleClick(prev, 3052, 1100), false);
   assert.equal(isDoubleClick(null, 3051, 1100), false);
 });
+
+import { readableInk } from "../scripts/hex-map/tag-overlay.mjs";
+
+test("readableInk: dark fills get white icons, the legend's pastel fills get near-black", () => {
+  assert.equal(readableInk(0x000000), "#fff");
+  assert.equal(readableInk(0x1f5f9e), "#fff");
+  assert.equal(readableInk(0xffffff), "#1d1d1d");
+  for (const t of ["arctic_sea", "grassland", "desert", "salt_flat"]) assert.equal(readableInk(TERRAIN_COLORS[t]), "#1d1d1d", t);
+});
