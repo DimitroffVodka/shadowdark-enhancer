@@ -56,6 +56,7 @@ function pointTime(seconds, cal) {
  *   night:boolean, rules:object|null, season:string, weather:string|null, extras:boolean,
  *   party:{method:string, ride:Object<string,string>}, nextBase:number,
  *   frequency?:{chance:number, day:number, night:number}, adjust?:boolean, camping?:boolean, mayCamp?:boolean,
+ *   autoForage?:boolean,
  *   weatherName:Function, methodName:Function}} v
  */
 export function travelPanel(v) {
@@ -153,7 +154,7 @@ function stepBody(n, v, sight) {
     case 5: {
       if (!m.dayOpen) return h3 + res(t("SDE.travel.noDay"));
       const dc = forageDC(m.harsh);
-      const why = state.pushed ? "SDE.travel.forage.pushed" : (m.stormy && m.harsh) ? "SDE.travel.forage.storm" : "SDE.travel.forage.about";
+      const why = state.pushed ? "SDE.travel.forage.pushed" : (m.stormy && m.harsh) ? "SDE.travel.forage.storm" : v.autoForage === false ? "SDE.travel.forage.manual" : "SDE.travel.forage.about";
       const rows = m.members.map((p) => `<div class="sde-hud-member"><span class="sde-hud-n">${esc(p.name)}</span>
         <span class="sde-hud-need"><b>${esc(t("SDE.travel.forage.int", { mod: signed(p.int ?? 0) }))}</b> · ${t("SDE.travel.forage.dc", { dc: `<b>${dc}</b>` })}</span>
         ${p.foraged ? `<span class="sde-hud-chip">${esc(t(p.found === null ? "SDE.overland.bar.foraged" : p.found ? "SDE.travel.forage.found" : "SDE.travel.forage.nothing"))}</span>` : p.canForage ? key("forage", t("SDE.overland.forage.button"), { id: p.id, cls: "sde-hud-sm" }) : ""}

@@ -94,6 +94,13 @@ export const EncounterCheck = {
     }
 
     if (quiet) {
+      // A hit holds the clock and the encounter for the GMs' panel, and pauses
+      // the game as the loud path below does: nothing on screen moves on until
+      // the GM has read what the check drew.
+      if (hit && game.settings.get(MODULE_ID, "pauseOnEncounter")) {
+        await game.togglePause(true, { broadcast: true });
+      }
+
       const doc = hit && table?.uuid ? await fromUuid(table.uuid).catch(() => null) : null;
       // A hit with no table for the hex (a keyed location, no active table) still stops the clock.
       const encounter = !hit ? null : doc ? await drawEncounter(doc, { travel, quiet: true }).catch((err) => {
@@ -105,7 +112,7 @@ export const EncounterCheck = {
 
     if (hit) {
       if (game.settings.get(MODULE_ID, "pauseOnEncounter")) {
-        game.togglePause(true, true);
+        game.togglePause(true, { broadcast: true });
       }
 
       // Open roller on tables tab
