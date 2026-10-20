@@ -982,11 +982,11 @@ words never look alike.
 The fixed colours are the printed legend's own (sampled from the Western
 Reaches colour map's swatches), so a hex tagged right takes the colour the
 colour map gives it, and a wrong tag stands out against its neighbours. On a
-black-and-white print with no Tiles over it, the colours are blended into the
+black-and-white print with no Tiles over it (and not baked), the colours are blended into the
 print rather than laid over it: the paper takes the terrain colour and the
 ink stays black, so **Show tags** reads like the colour edition of the map. A
-scene with Tiles keeps the lighter see-through wash, since the Tiles would
-cover the blended colours.
+scene with Tiles, or a baked map, keeps the lighter see-through wash, since the
+painted ground would cover the blended colours.
 
 Hovering a hex names it: the number, its tags, and whether it was tagged
 automatically and how confidently. Clicking one opens a small box — one at a
@@ -1000,8 +1000,10 @@ to it. **(clear this hex)** removes its tags, and
 to the scene the same way the tagger does, and the map redraws at once. Tokens and map notes keep their own clicks, and dragging the
 map still pans it. Press the button again to hide the tags.
 
-The fills sit at 45% opacity over the print. If that is too much or too little
-for your map, show them from the console with your own value:
+The region and encounter fills, and the terrain fills on a scene with Tiles or
+a baked map, sit at 45% opacity over the print. On a plain print the terrain
+colours are blended in at full strength and ignore this. If 45% is too much or
+too little for your map, show them from the console with your own value:
 `game.shadowdarkEnhancer.hexMaps.showTags({ alpha: 0.3 })`. It sticks until
 you reload.
 

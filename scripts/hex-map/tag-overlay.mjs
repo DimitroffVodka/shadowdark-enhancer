@@ -10,7 +10,8 @@
  * Hovering a cell names it; clicking one edits its tags in place through the
  * same store write the tagger uses.
  *
- * Everything is ONE PIXI.Graphics in the interface group — 4768 Drawing
+ * Terrain fills on a plain print go into a MULTIPLY Graphics in the primary group, over the background and
+ * under Tiles and Tokens (see _multiplyLayer). Everything else is ONE PIXI.Graphics in the interface group — 4768 Drawing
  * documents would be a different kind of mistake. Cell centres come from
  * sceneCells and cellNumber on the scene's stored anchor, so no image is read
  * and the overlay works without the tagger open. zIndex 1 keeps it above the
@@ -21,6 +22,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { sceneCells } from "./sampler.mjs";
+import { isBakedMap } from "./baked-map-core.mjs";
 import { cellNumber, foundryOffsetToCube, originFromFlag } from "./geometry.mjs";
 import { decodeTags, encodeTags, applySheet, strandedRiver, readCell, paletteTags, WRITER_OPTION, FEATURES, OTHER } from "./tag-store.mjs";
 export { OTHER };
@@ -58,7 +60,7 @@ export const TERRAIN_COLORS = {
   swamp: 0xc3c8c8,
   desert: 0xffe8ba,
   salt_flat: 0xf5ebd9,
-  deep_tunnels: 0x584a6b,
+  deep_tunnels: 0xc9bfd9,
   path: 0xc9a05f,
 };
 
@@ -476,6 +478,10 @@ export class HexTagOverlay {
       // Mid-write the scene is about to change again under this overlay's own write: read it when that settles.
       if (this._writing) this._heard = true; else this._takeInScene();
     })]);
+    // A Tile added or removed changes which layer the terrain colours belong in.
+    const tileChanged = (tile) => { if (tile.parent?.id === this.scene.id && this.mode === "terrain") this.draw(); };
+    this._hooks.push(["createTile", Hooks.on("createTile", tileChanged)]);
+    this._hooks.push(["deleteTile", Hooks.on("deleteTile", tileChanged)]);
     this._hooks.push(["canvasTearDown", Hooks.on("canvasTearDown", () => this.hide())]);
     // Dusk, dawn and a new or full moon change which column a hex rolls on, and
     // nothing else the clock does: a clock module ticking every second must not
@@ -551,7 +557,7 @@ export class HexTagOverlay {
    * The print is greyscale, so a fill multiplied into it takes the fill's own colour on white paper and
    * leaves the ink black: the picture is the colour map, which a wash at 0.45 never was. It has to sit in
    * the primary group, under the tokens: multiply in the interface group has nothing beneath it and paints
-   * the whole canvas black. A scene with Tiles keeps the wash, since the Tiles would cover a layer down here.
+   * the whole canvas black. A scene with Tiles keeps the wash, since the Tiles, or a baked map's painted ground, would cover a layer down here.
    * @param {boolean} on
    */
   _multiplyLayer(on) {
@@ -564,7 +570,7 @@ export class HexTagOverlay {
       this.fills = new PIXI.Graphics();
       this.fills.blendMode = PIXI.BLEND_MODES.MULTIPLY;
       this.fills.eventMode = "none";
-      this.fills.elevation = 0;
+      this.fills.elevation = canvas.primary.background?.elevation ?? 0;
       this.fills.sort = 5;
       this.fills.zIndex = 5;
       canvas.primary.addChild(this.fills);
@@ -574,6 +580,9 @@ export class HexTagOverlay {
     return this.fills;
   }
 
+  /** Tiles or a baked map's painted ground already sit over the print, so the colours stay a see-through wash. */
+  _covered() { return !!canvas.scene?.tiles?.size || isBakedMap(canvas.scene); }
+
   draw() {
     const g = this.graphics;
     if (!g || g.destroyed) return;
@@ -582,7 +591,7 @@ export class HexTagOverlay {
     const shape = grid.getShape();
     const dot = Math.min(grid.sizeX, grid.sizeY) * 0.09;
     const clock = this.mode === "encounter" ? worldClock() : null;
-    const layer = this._multiplyLayer(this.mode === "terrain" && !canvas.scene?.tiles?.size);
+    const layer = this._multiplyLayer(this.mode === "terrain" && !this._covered());
     for (const [num, at] of this.cells) {
       const cell = this.state.cells.get(String(num));
       const fill = this.fillFor(num, clock);

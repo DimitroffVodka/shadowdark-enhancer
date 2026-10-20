@@ -18,16 +18,14 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { HexRecords, keyedTitle, readPass, sceneRef } from "./hex-records.mjs";
 import { hexDisclosure, ownsHexFog, fogHiddenOn, playerViewOn } from "./hex-fog.mjs";
 import {
-  BAKED_NAMESPACE, PYRAMID_FLAG, KEYED_FLAG, keyedOf,
+  BAKED_NAMESPACE, PYRAMID_FLAG, KEYED_FLAG, keyedOf, pyramidOf, isBakedMap,
   pyramidLevel, pieceSize, pieceFrame, piecesInView, transcodeTarget, keyedOffset, keyedSpriteView,
 } from "./baked-map-core.mjs";
 
 /** Pieces fetched at once. */
 const MAX_LOADING = 6;
 
-const pyramidOf = scene => scene?.flags?.[BAKED_NAMESPACE]?.[PYRAMID_FLAG];
-/** A scene Extras baked, whether or not Extras is installed. */
-export const isBakedMap = scene => !!scene?.grid?.isHexagonal && !!pyramidOf(scene)?.meta;
+export { isBakedMap };
 /** The answer to api.owns("hex.baked", scene): a scene or its id; the viewed scene when none is given. */
 export const ownsBakedMap = target => isBakedMap(sceneRef(target));
 
