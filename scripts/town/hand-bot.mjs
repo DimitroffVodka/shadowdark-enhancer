@@ -130,4 +130,3 @@ export function houseMove(hand, who, rng, dials = DIALS) {
   if (v.phase === "draw") return { type: "draw", idx: chooseDraw(v.own, HAND_RULES.brag.rerolls[v.round - 1]) };
   return hand.bet.turn === who ? { type: chooseBet(v, rng, dials) } : null;
 }
-

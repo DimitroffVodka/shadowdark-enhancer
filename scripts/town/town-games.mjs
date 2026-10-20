@@ -62,12 +62,15 @@ export async function playGame({ player, game, wager, pick = "", town }, io = nu
   const outcome = io.t(RESULT_KEYS[result], { who: player.name, price: formatPrice(fromCopper(Math.abs(net))) });
   const lines = [played.line, outcome];
   const name = io.t(GAME_KEYS[game].name);
-  await io.chat({
-    speaker: { alias: town.name },
-    content: gameCard({ title: name, who: player.name, icon: GAME_ICONS[game].replace("fa-", ""), html: lines.map(esc).join("<br>"), tone: result === "win" ? "good" : result === "lose" ? "bad" : "" }),
-    rolls: played.rolls,
-    flags: { [MODULE_ID]: { [LOG_FLAG]: logFlag({ kind: "game", sceneId: town.sceneId, placeId: game, place: town.name, charId: player.id, charName: player.name, what: name, net, wager, result }) } },
-  });
+  // The coins have moved: a card that does not post must not undo that or stop the table being settled.
+  try {
+    await io.chat({
+      speaker: { alias: town.name },
+      content: gameCard({ title: name, who: player.name, icon: GAME_ICONS[game].replace("fa-", ""), html: lines.map(esc).join("<br>"), tone: result === "win" ? "good" : result === "lose" ? "bad" : "" }),
+      rolls: played.rolls,
+      flags: { [MODULE_ID]: { [LOG_FLAG]: logFlag({ kind: "game", sceneId: town.sceneId, placeId: game, place: town.name, charId: player.id, charName: player.name, what: name, net, wager, result }) } },
+    });
+  } catch (err) { console.warn(`${MODULE_ID} | town: the dice game card did not post`, err); }
   return { ok: true, game, result, net, wager, lines };
 }
 

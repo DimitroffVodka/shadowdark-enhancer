@@ -671,21 +671,21 @@ A full-screen picture every client shows behind Foundry's UI, kept in one world 
 | `town-app.mjs` | 151 | The landing page menu over the scene's picture: merchants, tiles, the GM's pencil, sales log, restock and switch; clear of the sidebar and the Crawl Strip. |
 | `town-shop-app.mjs` | 260 | One merchant's shopfront: buy and sell as a chosen character with no GM, categories, search. |
 | `town-editor-app.mjs` | 190 | The GM's landing page editor window: town text, tiles, games table, merchants. |
-| `town-entry-points.mjs` | 153 | The Landing page toolbar button and Alt+T: one switch for the table, the page made on any scene, followed by every client. |
+| `town-entry-points.mjs` | 159 | The Landing page toolbar button and Alt+T: one switch for the table, the page made on any scene, followed by every client. |
 | `town-host-core.mjs` | 22 | Which scene's Town page is up: the Stage-hosted page wins over the canvas scene's, decided from the stage value only. |
 | `town-restock.mjs` | 28 | Shelves that restock by themselves: on a new world day the active GM runs `autoRestock` over every scene's landing page (plus a catch-up on ready). |
 | `games-core.mjs` | 156 | The town's games of chance: the four that settle on one roll, the names and keys of the games that open a table (Liar's Dice among them), the house's cut and the wager limits (pure). |
 | `liars-dice-core.mjs` | 153 | Liar's Dice for two to six seats: the rules (bids, calls, ones wild, five dice each, forfeits) and the house's odds-based play (pure). |
 | `liars-dice-table.mjs` | 132 | A Liar's Dice table: lobby, seats, who may move, the house's turns, leaving, and the view each person may see (pure). |
-| `liars-dice-net.mjs` | 329 | One person's side of a Liar's Dice table: hosting or joining, the open-tables list, moves, presence, and settling the wager (sockets and money handed in). |
+| `liars-dice-net.mjs` | 330 | One person's side of a Liar's Dice table: hosting or joining, the open-tables list, moves, presence, and settling the wager (sockets and money handed in). |
 | `liars-dice-live.mjs` | 50 | Liar's Dice on Foundry: this tab's client wired to the module socket, the clock, the dice and the coins. |
 | `liars-dice-view.mjs` | 104 | What the Liar's Dice screens show: the table, lobby, set-up and open tables, and the log in lines (pure; never lists a die not yet shown). |
-| `town-games.mjs` | 96 | A game at a town table on the player's own client, no GM needed: roll, settle, coins, chat card. |
+| `town-games.mjs` | 99 | A game at a town table on the player's own client, no GM needed: roll, settle, coins, chat card. |
 | `town-games-app.mjs` | 362 | The games table window: wager, ten games, open tables, the last result, as a chosen character; sits the player down at a table for Bluff, Brag, the death roll, the roulette, blackjack and Liar's Dice (its set-up, lobby and table screens). |
-| `town-liars-dice.mjs` | 68 | Liar's Dice money and record on each person's own client: the wager in, refunds, the pot paid to a winner, the chat card. |
+| `town-liars-dice.mjs` | 71 | Liar's Dice money and record on each person's own client: the wager in, refunds, the pot paid to a winner, the chat card. |
 | `town-log-core.mjs` | 76 | The town's sales log read from flagged chat cards: entries, filters, totals (pure). |
 | `hand-core.mjs` | 193 | The hand games' engine, pure: Beholder's Bluff and three-dice Brag as one game of betting over hidden dice (ante, a step with the dice, fixed-limit betting, showdown), the legal moves, the costs and what a hand pays. |
-| `hand-bot.mjs` | 133 | How the house plays a hand, pure: the odds of winning from only what it can see (its own dice, the shown ones, the bets), pot odds, a little bluffing and the Brag rerolls; the dials are at the top. |
+| `hand-bot.mjs` | 132 | How the house plays a hand, pure: the odds of winning from only what it can see (its own dice, the shown ones, the bets), pot odds, a little bluffing and the Brag rerolls; the dials are at the top. |
 | `hand-view.mjs` | 101 | What a hand looks like, pure: the chat card's lines and the window's rows of dice, pot, prompt and controls; the house's hidden dice stay hidden until shown or the hand is over. |
 | `town-hand.mjs` | 101 | A hand at a town table on the player's own client, no GM needed: the ante, each move checked against the rules and the purse before a coin moves, the house's answers, settling and the card. |
 | `town-hand-app.mjs` | 90 | The hand table window: both rows of dice, pick a die to show or dice to reroll, bet, raise, call or fold; closing it in the middle of a hand walks away. |
@@ -695,13 +695,13 @@ A full-screen picture every client shows behind Foundry's UI, kept in one world 
 | `town-death-app.mjs` | 76 | The death roll window: roll the die on your turn, double before a roll, take or pass the house's double; closing it in the middle of a round walks away. |
 | `roulette-core.mjs` | 40 | The roulette board, pure: twenty numbers and four outside bets, chips laid in any mix, and one d20 spin that settles every spot (fair before the town's cut). |
 | `roulette-view.mjs` | 45 | What the roulette board looks like, pure: the chat card's lines and the window's spots, chip stacks, chip sizes within the table limit and the last spin. |
-| `town-roulette.mjs` | 38 | A spin of the roulette on the player's own client: the board checked against the limit and the purse, one d20, one change to the purse and one card. |
+| `town-roulette.mjs` | 37 | A spin of the roulette on the player's own client: the board checked against the limit and the purse, one d20, one change to the purse and one card. |
 | `town-roulette-app.mjs` | 78 | The roulette window: pick a chip size, click spots to lay chips and the stack to take one off, then spin; nothing is taken until the spin. |
 | `blackjack-core.mjs` | 143 | Blackjack, pure: a freshly shuffled deck of 52 for every hand, the dealer drawing to 17 and standing on every 17, hit, stand, double down and one split, a natural at 3 to 2, and what a finished hand pays with the town's cut taken from winnings only. |
 | `blackjack-view.mjs` | 89 | What a hand of blackjack looks like, pure: the chat card's lines and the window's dealer and player hands (the hole card face down until the hand is over), totals, tags and controls. |
 | `town-blackjack.mjs` | 73 | A hand of blackjack at a town table on the player's own client: the wager, a double or split puts one more on the table, each move checked against the rules and the purse, settling and the card. |
 | `town-blackjack-app.mjs` | 71 | The blackjack window: the dealer's cards and yours, hit, stand, double down and split; closing it in the middle of a hand walks away. |
-| `town-table.mjs` | 30 | What every sit-down game does when it ends: pay the player what came back and post the one card the chat and the sales log read. |
+| `town-table.mjs` | 33 | What every sit-down game does when it ends: pay the player what came back and post the one card the chat and the sales log read. |
 | `town-table-app.mjs` | 71 | What the sit-down games' windows share: one window of a kind, the chosen character, the town's table settings, redraw on change and leaving the table on close. |
 | `town-log-app.mjs` | 86 | The GM's sales log window: what was bought, sold and played, filtered and totalled. |
 <!-- inventory:scripts:end -->

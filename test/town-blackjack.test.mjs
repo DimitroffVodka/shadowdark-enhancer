@@ -196,3 +196,16 @@ test("the card lines read the dealer's hand, then each of the player's with how 
     `SDE.town.blackjack.line.hand ${JSON.stringify({ who: `SDE.town.blackjack.hand.second ${JSON.stringify({ who: "Creeg" })}`, cards: "8♦ 2♥", total: 10, outcome: "SDE.town.blackjack.out.lose" })}`,
   ]);
 });
+
+test("a card that fails after the payout still settles the table: walking away afterwards pays nothing more", async () => {
+  const actor = player(), io = makeIo({ random: () => 0.999999 });   // a natural on the deal: paid at once
+  io.chat = async () => { throw new Error("chat is down"); };
+  const warn = console.warn; console.warn = () => {};
+  try {
+    const s = await startBlackjack({ player: actor, wager: UNIT, town: TOWN }, io);
+    assert.deepEqual([s.ok, s.table.settled], [true, true]);
+    await walkAwayBlackjackTable({ player: actor, table: s.table, town: TOWN }, io);
+    assert.equal(io.log.paid.length, 1);
+    assert.equal(toCopper(actor.system.coins), 500 - 100 + 242);
+  } finally { console.warn = warn; }
+});

@@ -39,7 +39,7 @@ export function liveClient() {
     },
     newId: () => `${game.user.id}-${Date.now().toString(36)}`,
   });
-  client.onTable = (t) => ui.notifications.info(game.i18n.format("SDE.town.games.liars.tableOpened", { host: t.hostName, price: formatPrice(fromCopper(t.ante)) }));
+  client.onTable = (t) => ui.notifications.info("SDE.town.games.liars.tableOpened", { format: { host: t.hostName, price: formatPrice(fromCopper(t.ante)) } });
   return client;
 }
 

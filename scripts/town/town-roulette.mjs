@@ -35,4 +35,3 @@ export async function spinWheel({ player, bets, chip, town }, io = null) {
   if (!posted.ok) return posted;
   return { ok: true, out, lines: [...lines, posted.outcome], result: out.result, net: out.net };
 }
-

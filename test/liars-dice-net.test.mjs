@@ -379,3 +379,21 @@ test("the house's players are given a pause between moves, and nobody moves for 
   if (v.turn !== "h") assert.ok(delays.length > 0 && delays.every((ms) => ms === 900));
   assert.equal(c.move({ qty: 1, face: 2 }) === true || v.turn !== "h", true);
 });
+
+test("a card that fails after a payout does not stop the next table's refund", async () => {
+  const w = world(["h"]);
+  w.people.h.chat.push = () => { throw new Error("chat is down"); }; // every card this person posts throws
+  const warn = console.warn; console.warn = () => {};
+  try {
+    await open(w, "h", { aiCount: 3, humanSlots: 0 });
+    await w.playOut();
+    assert.equal(w.people.h.client.view.phase, "over");
+    await w.people.h.client.leave();
+    const after = w.purse("h");
+    assert.deepEqual(await open(w, "h", { humanSlots: 1 }), { ok: true });
+    assert.equal(w.purse("h"), after - ANTE);
+    await w.people.h.client.leave(); // calling off the lobby gives the wager back
+    await w.flush();
+    assert.equal(w.purse("h"), after);
+  } finally { console.warn = warn; }
+});

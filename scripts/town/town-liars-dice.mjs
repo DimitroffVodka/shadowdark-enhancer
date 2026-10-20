@@ -59,10 +59,13 @@ export async function settleSeat({ player, view, forfeit = false }, io) {
   const outcome = io.t(RESULT_KEYS[result], { who: player.name, price: formatPrice(fromCopper(Math.abs(net))) });
   const rounds = view.isHost ? eventLines(view.log, names, io.t) : [];
   const name = io.t(GAME_KEYS[LIARS].name);
-  await io.chat({
-    speaker: { alias: view.town.name },
-    content: gameCard({ title: name, who: player.name, icon: GAME_ICONS[LIARS].replace("fa-", ""), html: [...rounds, ending, outcome].map(esc).join("<br>"), tone: result === "win" ? "good" : result === "lose" ? "bad" : "" }),
-    flags: { [MODULE_ID]: { [LOG_FLAG]: logFlag({ kind: "game", sceneId: view.town.sceneId, placeId: LIARS, place: view.town.name, charId: player.id, charName: player.name, what: name, net, wager: view.ante, result }) } },
-  });
+  // The coins have moved: a card that does not post must not undo that or stop the table being settled.
+  try {
+    await io.chat({
+      speaker: { alias: view.town.name },
+      content: gameCard({ title: name, who: player.name, icon: GAME_ICONS[LIARS].replace("fa-", ""), html: [...rounds, ending, outcome].map(esc).join("<br>"), tone: result === "win" ? "good" : result === "lose" ? "bad" : "" }),
+      flags: { [MODULE_ID]: { [LOG_FLAG]: logFlag({ kind: "game", sceneId: view.town.sceneId, placeId: LIARS, place: view.town.name, charId: player.id, charName: player.name, what: name, net, wager: view.ante, result }) } },
+    });
+  } catch (err) { console.warn(`${MODULE_ID} | town: the liar's dice card did not post`, err); }
   return { ok: true, game: LIARS, result, net, wager: view.ante, lines: [ending, outcome] };
 }

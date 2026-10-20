@@ -22,7 +22,13 @@ import { normalizeStage } from "../stage/stage-core.mjs";
 import { pageHost } from "./town-host-core.mjs";
 
 const WINDOWS = ["sde-town", "sde-town-shop", "sde-town-games", "sde-town-log"];
-const closeWindows = (ids) => { for (const id of ids) foundry.applications.instances.get(id)?.close(); };
+// A games window seated at a Liar's dice table stays: closing it would walk away from the match and forfeit the wager.
+const closeWindows = (ids) => {
+  for (const id of ids) {
+    const app = foundry.applications.instances.get(id);
+    if (!app?.client?.part) app?.close();
+  }
+};
 export const closeTown = () => closeWindows(WINDOWS);
 const closeOthers = () => closeWindows(WINDOWS.filter((id) => id !== "sde-town"));
 

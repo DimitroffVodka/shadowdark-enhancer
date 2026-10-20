@@ -308,7 +308,8 @@ export class LiarsClient {
     if (!this.part) return;
     this.part.view = view;
     this.notify();
-    this.settling = this.settling.then(() => this.settleIfDone());
+    // One payout that throws must not stop the ones after it (the queue would stay rejected until reload).
+    this.settling = this.settling.then(() => this.settleIfDone()).catch((err) => console.error("shadowdark-enhancer | liar's dice: settle", err));
     this.track(this.settling);
   }
 

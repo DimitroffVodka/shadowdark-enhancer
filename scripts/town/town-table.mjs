@@ -20,11 +20,14 @@ export async function payAndPost({ player, game, town, net, result, payBack, put
   if (payBack > 0 && !(await io.pay(player, fromCopper(payBack)))) return { ok: false, error: io.t("SDE.town.games.notSaved") };
   const outcome = io.t(RESULT_KEYS[result], { who: player.name, price: formatPrice(fromCopper(Math.abs(net))) });
   const name = io.t(GAME_KEYS[game].name);
-  await io.chat({
-    speaker: { alias: town.name },
-    content: gameCard({ title: name, who: player.name, icon: GAME_ICONS[game].replace("fa-", ""), html: [...lines, outcome].map(esc).join("<br>"), tone: result === "win" ? "good" : result === "lose" ? "bad" : "" }),
-    rolls,
-    flags: { [MODULE_ID]: { [LOG_FLAG]: logFlag({ kind: "game", sceneId: town.sceneId, placeId: game, place: town.name, charId: player.id, charName: player.name, what: name, net, wager: put, result }) } },
-  });
+  // The coins have moved: a card that does not post must not undo that or stop the table being settled.
+  try {
+    await io.chat({
+      speaker: { alias: town.name },
+      content: gameCard({ title: name, who: player.name, icon: GAME_ICONS[game].replace("fa-", ""), html: [...lines, outcome].map(esc).join("<br>"), tone: result === "win" ? "good" : result === "lose" ? "bad" : "" }),
+      rolls,
+      flags: { [MODULE_ID]: { [LOG_FLAG]: logFlag({ kind: "game", sceneId: town.sceneId, placeId: game, place: town.name, charId: player.id, charName: player.name, what: name, net, wager: put, result }) } },
+    });
+  } catch (err) { console.warn(`${MODULE_ID} | town: the table game card did not post`, err); }
   return { ok: true, outcome };
 }
