@@ -8,6 +8,7 @@
  *
  * `size` is the settlement's size (a stock-generator SIZES id) for a page made by Make a landing page, else null.
  * `returnTo` is the scene the table came from when the GM last took everyone here; the page's Return goes back to it.
+ * `sessionTitle` is the line the GM writes on the table's title card ("Session 14: Ash Above the Styx").
  *
  * `games` is the town's table of games of chance: `{ on, list, maxBet, edge }` (`list` is the games this place offers,
  * ticked one by one, and `on` is true when it offers any; the largest bet in gp; the share of winnings the house keeps,
@@ -104,6 +105,7 @@ export function normalizeLanding(raw) {
     shown: raw?.shown !== false,
     size: SIZES.some((z) => z.id === raw?.size) ? raw.size : null,
     returnTo: typeof raw?.returnTo === "string" && raw.returnTo ? raw.returnTo : null,
+    sessionTitle: text(raw?.sessionTitle, 120),
   };
 }
 
@@ -181,7 +183,7 @@ export function applyForm(landing, fields) {
     : page.games;
   return normalizeLanding({
     title: fields.title ?? page.title, tagline: fields.tagline ?? page.tagline, blurb: fields.blurb ?? page.blurb,
-    places: PLACE_IDS.filter((p) => on(fields[`place.${p}`])), merchants, games, shown: page.shown, size: page.size, returnTo: page.returnTo,
+    places: PLACE_IDS.filter((p) => on(fields[`place.${p}`])), merchants, games, shown: page.shown, size: page.size, returnTo: page.returnTo, sessionTitle: page.sessionTitle,
   });
 }
 
@@ -191,7 +193,8 @@ export function applyForm(landing, fields) {
  * the world's current day. Per merchant the draft's revision INCREASE (a Restock pressed in the editor) is added to
  * the live revision. The restock clock is the live one unless the draft itself restocked, and it starts at `day` when
  * the interval is newly turned on (from 0) or the clock was never started, so the first automatic restock is
- * `restockDays` days from the save. `shown` and `returnTo` are always the live ones.
+ * `restockDays` days from the save. `shown`, `returnTo`, the session title and the size are always the live ones (the
+ * table changes them, not the editor).
  */
 export function mergeSave(live, draft, opened, day) {
   const now = new Map(normalizeLanding(live).merchants.map((m) => [m.id, m]));
@@ -204,5 +207,6 @@ export function mergeSave(live, draft, opened, day) {
     if (out.restockDays > 0 && Number.isFinite(day) && (out.restockedDay === null || !before?.restockDays)) out.restockedDay = day;
     return out;
   });
-  return normalizeLanding({ ...page, merchants, ...(live ? { shown: normalizeLanding(live).shown, returnTo: normalizeLanding(live).returnTo } : {}) });
+  const cur = live ? normalizeLanding(live) : null;
+  return normalizeLanding({ ...page, merchants, ...(cur ? { shown: cur.shown, returnTo: cur.returnTo, sessionTitle: cur.sessionTitle, size: cur.size } : {}) });
 }

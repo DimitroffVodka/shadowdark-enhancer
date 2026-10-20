@@ -244,7 +244,6 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
         keyBooks: keyLocationBooks(),
         keyLocations: (src, opts) => importKeyLocations(src, { ...opts, keepExisting: true }),
         holidays: async (src) => (await import("../../holidays/holidays.mjs")).importHolidays(src),
-        playerMap: async () => (await import("../../town/landing-player-map.mjs")).makePlayerMap(),
         // A hex map is an adventure too: its numbered scene and the journals its pins open, packed when the map is left
         // unticked. A ticked map comes into the world and its terrain is named on the Terrain page after the run.
         hexMap: async (id, { title, firstNum, placement }) => {

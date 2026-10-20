@@ -1,13 +1,12 @@
 /**
- * Shadowdark Enhancer — Town: the landing page's Map tile.
+ * Shadowdark Enhancer — Town: the landing table's Map (the framed map on the table).
  *
  * It shows the one who clicked it, alone, the real overland map with what their party has explored (the Enhancer's
  * hex fog draws a player's own party's hexes with no token of theirs there), while the rest of the table stays on
  * the page. Foundry's Scene#view switches only this client's canvas. A Back button returns them to the page. A world
- * with no overland map opens the Western Reaches player map picture instead, to zoom around in.
+ * with no overland map has nothing to show: the prop is greyed out and says so.
  */
 import { L as t } from "../shared/i18n.mjs";
-import { playerMapSrc } from "./landing-pages.mjs";
 
 /** The overland map: the travel token's scene, else the first scene the Enhancer's hex fog runs on; null when there is none. */
 export async function overlandMap() {
@@ -20,7 +19,7 @@ export async function overlandMap() {
 
 /** Whether the Map tile has anything to show. */
 export async function hasMap() {
-  return !!(playerMapSrc() || await overlandMap().catch(() => null));
+  return !!(await overlandMap().catch(() => null));
 }
 
 let back = null;
@@ -52,8 +51,6 @@ export async function openMap(page) {
     if (globalThis.canvas?.scene?.id === map.id) showBack(page, map);
     return map;
   }
-  const src = playerMapSrc();
-  if (src) return new foundry.applications.apps.ImagePopout({ src, window: { title: t("SDE.town.map.playerMap") } }).render({ force: true });
   ui.notifications.info(t("SDE.town.map.none"));
   return null;
 }

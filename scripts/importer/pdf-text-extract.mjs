@@ -1011,45 +1011,6 @@ export async function extractMapLabels(filePath, pages) {
   return out;
 }
 
-/**
- * The name of the largest picture a page paints (by its painted area), or null when it paints none. Pure: takes the
- * page's operator list and pdf.js's OPS.
- */
-export function largestImageId(ops, OPS) {
-  let ctm = [1, 0, 0, 1, 0, 0], best = null;
-  const stack = [];
-  for (let i = 0; i < ops.fnArray.length; i++) {
-    const fn = ops.fnArray[i], args = ops.argsArray[i];
-    if (fn === OPS.save) stack.push(ctm);
-    else if (fn === OPS.restore) ctm = stack.pop() ?? ctm;
-    else if (fn === OPS.transform) ctm = _mul(ctm, args);
-    else if (fn === OPS.paintImageXObject) {
-      const area = Math.abs(ctm[0] * ctm[3] - ctm[1] * ctm[2]);
-      if (!best || area > best.area) best = { area, id: args[0] };
-    }
-  }
-  return best?.id ?? null;
-}
-
-/**
- * The largest picture on each of several PDF pages, as pdf.js decoded it: `{ width, height, bitmap }` (an ImageBitmap)
- * or `{ width, height, kind, data }` (raw pixels), or null for a page with none. Text set over the picture is not part
- * of it, so a map comes out without its printed names.
- * @param {string} filePath  served path to the user's PDF
- * @param {number[]} pages   1-based PDF page numbers
- */
-export async function extractPageImages(filePath, pages) {
-  const doc = await _openDoc(filePath);
-  const { OPS } = await _lib();
-  const out = [];
-  for (const n of pages) {
-    const page = await doc.getPage(n);
-    const id = largestImageId(await page.getOperatorList(), OPS);
-    out.push(id ? await new Promise((resolve) => page.objs.get(id, resolve)) : null);
-  }
-  return out;
-}
-
 // Node-testable internals (no Foundry globals at module level).
 export const _internals = {
   extractPageLines,

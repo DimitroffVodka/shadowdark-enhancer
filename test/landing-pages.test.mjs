@@ -1,97 +1,70 @@
 /**
- * Make a landing page and the toolbar's list: the page a click makes, the form's defaults, where Return goes, the
- * list's rows (pages and Western Reaches settlements), and the GM's go / return dispatch with a stubbed Foundry.
+ * The one landing page: the page and scene the module makes, a new settlement size, where Return goes, and the GM's
+ * dispatch (the toolbar to the table and back, Take everyone there, Return) with a stubbed Foundry.
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import {
-  PICTURES, PLAYER_MAP, madeLanding, madeSceneData, pageRows, pictureChoices, placesFor, readMakeForm, returnFor, settlementRows,
-} from "../scripts/town/landing-pages-core.mjs";
+import { madeLanding, madeSceneData, placesFor, resized, returnFor, TABLE_FLAG } from "../scripts/town/landing-pages-core.mjs";
 import { landingOf } from "../scripts/town/town-core.mjs";
 
 const MOD = "shadowdark-enhancer";
 const sceneOf = (id, page, extra = {}) => ({ id, name: `Scene ${id}`, flags: { [MOD]: { ...(page ? { landing: page } : {}), ...extra } } });
 const ALL = ["coin", "duel", "wheel", "cards", "bluff", "brag", "death", "roulette", "blackjack", "liars"];
 
-test("a made page: Quests, Journals, Party and Map on, Downtime from a Town up, Carouse and Rumors off", () => {
-  assert.deepEqual(placesFor("village"), ["quests", "journals", "party", "map"]);
-  for (const size of ["town", "city", "city_state"]) assert.deepEqual(placesFor(size), ["quests", "journals", "party", "map", "downtime"]);
+test("the table has Quests, Journals, Party, Map and Carouse on, Downtime from a Town up, Rumors off", () => {
+  assert.deepEqual(placesFor("village"), ["quests", "journals", "party", "map", "carouse"]);
+  for (const size of ["town", "city", "city_state"]) assert.deepEqual(placesFor(size), ["quests", "journals", "party", "map", "downtime", "carouse"]);
 });
 
-test("a made page has its name, size, games, one rolled merchant for its size, and is up", () => {
-  const page = madeLanding({ name: "Low Ford", size: "town", games: ["coin", "liars"], merchantId: "m1", actorId: "a1", role: "Goods", tagline: "Town" });
-  assert.equal(page.title, "Low Ford");
-  assert.equal(page.size, "town");
-  assert.equal(page.tagline, "Town");
-  assert.equal(page.shown, true);
-  assert.deepEqual(page.games.list, ["coin", "liars"]);
-  assert.equal(page.merchants.length, 1);
-  assert.deepEqual(page.merchants[0].stock, { kind: "outfitter", size: "town" });
-  assert.equal(page.merchants[0].role, "Goods");
-  assert.deepEqual(madeLanding({ name: "X", size: "village", games: [] }).merchants, []);
+test("the table's page: its name and size, every game, one rolled merchant for its size, up", () => {
+  const page = madeLanding({ name: "The Table", size: "city", merchantId: "m1", actorId: "a1", role: "Goods" });
+  assert.deepEqual([page.title, page.size, page.shown, page.games.list], ["The Table", "city", true, ALL]);
+  assert.deepEqual(page.merchants.map((m) => [m.id, m.actorId, m.role, m.stock]), [["m1", "a1", "Goods", { kind: "outfitter", size: "city" }]]);
+  assert.deepEqual(madeLanding({ name: "X", size: "town" }).merchants, []);
 });
 
-test("the form's defaults: Market, a Town, the first picture, and only the games ticked", () => {
-  const pictures = pictureChoices(null);
-  assert.deepEqual(readMakeForm({}, pictures, "Market"), { name: "Market", size: "town", src: PICTURES[0].src, games: [] });
-  const asked = readMakeForm({ name: "  Bone Choir ", size: "city_state", picture: "tavern", "game.liars": "on", "game.coin": "on", "game.nope": "on" }, pictures, "Market");
-  assert.deepEqual(asked, { name: "Bone Choir", size: "city_state", src: PICTURES[2].src, games: ["coin", "liars"] });
-  assert.equal(readMakeForm({ size: "metropolis", picture: "nope" }, pictures, "Market").size, "town");
+test("the table's scene: the picture at its own size, no grid, no token vision or fog, out of the navigation bar, marked as the table", () => {
+  const data = madeSceneData({ name: "The Table", src: "t.webp", width: 2560, height: 1440, landing: { title: "The Table" } });
+  assert.deepEqual([data.width, data.height, data.grid.type, data.tokenVision, data.fog.exploration, data.navigation], [2560, 1440, 0, false, false, false]);
+  assert.equal(data.levels[0].background.src, "t.webp");
+  assert.equal(data.flags[MOD][TABLE_FLAG], true);
+  assert.equal(data.flags[MOD].landing.title, "The Table");
 });
 
-test("the player map is the first picture, and so the default, once the import made it", () => {
-  assert.deepEqual(pictureChoices(null).map((p) => p.id), ["town", "market", "tavern"]);
-  const withMap = pictureChoices("worlds/w/landing/player-map.webp");
-  assert.equal(withMap[0].id, PLAYER_MAP);
-  assert.equal(readMakeForm({}, withMap, "Market").src, "worlds/w/landing/player-map.webp");
-});
-
-test("the made scene: the picture at its own size, no grid, no token vision or fog, out of the navigation bar", () => {
-  const data = madeSceneData({ name: "Low Ford", src: "a.webp", width: 2048, height: 1489, landing: { title: "Low Ford" }, folder: "f1", settlement: { num: 1403 } });
-  assert.deepEqual([data.width, data.height, data.grid.type, data.tokenVision, data.fog.exploration, data.navigation, data.folder], [2048, 1489, 0, false, false, false, "f1"]);
-  assert.equal(data.levels[0].background.src, "a.webp");
-  assert.deepEqual(data.flags[MOD].landingSettlement, { num: 1403 });
-  assert.equal(data.flags[MOD].landing.title, "Low Ford");
-  assert.equal("landingSettlement" in madeSceneData({ name: "A", src: "a", width: 1, height: 1, landing: {} }).flags[MOD], false);
+test("a new settlement size rolls the market again for it; Downtime goes in a Village and comes back after", () => {
+  const page = madeLanding({ name: "T", size: "town", merchantId: "m1", actorId: "a1" });
+  const village = resized(page, "village");
+  assert.equal(village.size, "village");
+  assert.equal(village.places.includes("downtime"), false);
+  assert.deepEqual([village.merchants[0].stock.size, village.merchants[0].rev], ["village", 1]);
+  const city = resized(village, "city");
+  assert.equal(city.places.includes("downtime"), true);
+  assert.equal(city.merchants[0].rev, 2);
+  assert.equal(resized(city, "city").merchants[0].rev, 2);
+  const hand = resized({ ...page, merchants: [{ id: "m2", actorId: "a2" }] }, "city");
+  assert.deepEqual([hand.merchants[0].rev, hand.merchants[0].stock], [0, null]);   // a hand-stocked NPC is left alone
 });
 
 test("Return goes to the scene the table came from; from another page, to where that page returns", () => {
   const dungeon = sceneOf("D"), a = sceneOf("A", { title: "A", returnTo: "D" }), b = sceneOf("B", { title: "B", returnTo: "old" });
   assert.equal(returnFor(b, dungeon, landingOf), "D");
-  assert.equal(returnFor(b, a, landingOf), "D");             // page to page keeps the way back to the adventure
-  assert.equal(returnFor(b, b, landingOf), "old");           // already there: unchanged
+  assert.equal(returnFor(b, a, landingOf), "D");
+  assert.equal(returnFor(b, b, landingOf), "old");
   assert.equal(returnFor(b, null, landingOf), "old");
-  assert.equal(returnFor(b, sceneOf("A", { title: "A" }), landingOf), null);
-});
-
-test("the list: every page A to Z, where the table is, hidden ones marked", () => {
-  const rows = pageRows([sceneOf("2", { title: "Zed", size: "city", shown: false }), sceneOf("1", { title: "Ash" }), sceneOf("3")], "2", landingOf);
-  assert.deepEqual(rows.map((r) => [r.sceneId, r.name, r.size, r.here, r.shown]), [["1", "Ash", null, false, true], ["2", "Zed", "city", true, false]]);
-});
-
-test("the settlements: settlement rows only, one per hex, biggest first then A to Z, with the page once made", () => {
-  const keyed = [
-    { num: "0412", name: "Low Ford", feature: "town" }, { num: "1403", name: "Bone Choir", feature: "city" },
-    { num: "0101", name: "A Cave", feature: "keyed_location" }, { num: "0412", name: "Low Ford", feature: "town" },
-    { num: "0900", name: "Alkesh", feature: "city_state" }, { num: "0200", name: "Ash", feature: "town" }, { num: "0300", name: "", feature: "village" },
-  ];
-  const rows = settlementRows(keyed, [sceneOf("s1", { title: "Low Ford" }, { landingSettlement: { num: 412 } })]);
-  assert.deepEqual(rows.map((r) => [r.num, r.name, r.size, r.sceneId]), [[900, "Alkesh", "city_state", null], [1403, "Bone Choir", "city", null], [200, "Ash", "town", null], [412, "Low Ford", "town", "s1"]]);
-  assert.deepEqual(settlementRows(undefined, []), []);
-});
-
-test("every game is ticked in the Make form's list", () => {
-  assert.deepEqual(readMakeForm(Object.fromEntries(ALL.map((id) => [`game.${id}`, "on"])), pictureChoices(null), "M").games, ALL);
 });
 
 // ── the GM's dispatch, with a stubbed Foundry ────────────────────────────────────────────────────────────────────
 
-function world({ active = "D" } = {}) {
-  const scenes = new Map();
-  const make = (id, page) => {
-    const s = { id, name: `Scene ${id}`, flags: { [MOD]: page ? { landing: page } : {} }, get active() { return globalThis.game.scenes.active?.id === id; }, activated: 0,
+function world({ active = "D", gm = true } = {}) {
+  const scenes = new Map(), created = [];
+  const make = (id, flags = {}) => {
+    const s = {
+      id, name: `Scene ${id}`, flags: { [MOD]: { ...flags } }, activated: 0,
+      get active() { return globalThis.game.scenes.activeId === id; },
       async activate() { this.activated++; globalThis.game.scenes.activeId = id; return this; },
-      async update(data) { for (const [k, v] of Object.entries(data)) if (k === `flags.${MOD}`) Object.assign(this.flags[MOD], v); else if (k.startsWith(`flags.${MOD}.`)) this.flags[MOD][k.split(".").pop().replace(/^==/, "")] = v; return this; } };
+      getFlag(scope, key) { return this.flags[scope]?.[key]; },
+      async update(data) { for (const [k, v] of Object.entries(data)) if (k.startsWith(`flags.${MOD}.`)) this.flags[MOD][k.split(".").pop().replace(/^==/, "")] = v; else if (k === `flags.${MOD}`) Object.assign(this.flags[MOD], v); return this; },
+    };
     scenes.set(id, s);
     return s;
   };
@@ -100,36 +73,43 @@ function world({ active = "D" } = {}) {
   const warned = [];
   globalThis.ui = { notifications: { warn: (m) => warned.push(m), info() {}, error() {} } };
   globalThis.Hooks = { on() {}, once() {}, off() {}, callAll() {} };
+  globalThis.fromUuidSync = () => null;
+  globalThis.Scene = { create: async (data) => { const s = make(`T${created.length}`, data.flags[MOD]); s.name = data.name; created.push(data); return s; } };
   globalThis.game = {
-    user: { isGM: true }, i18n: { localize: (k) => k, format: (k) => k }, settings: { get: () => "" },
-    scenes: { activeId: active, get active() { return scenes.get(this.activeId) ?? null; }, get: (id) => scenes.get(id), get contents() { return [...scenes.values()]; } },
+    user: { isGM: gm }, i18n: { localize: (k) => k, format: (k) => k }, settings: { get: () => ({}) },
+    actors: { get: () => null }, packs: { get: () => null }, folders: { find: () => null },
+    scenes: { activeId: active, get active() { return scenes.get(this.activeId) ?? null; }, get: (id) => scenes.get(id), find: (f) => [...scenes.values()].find(f), get contents() { return [...scenes.values()]; } },
   };
-  return { make, warned };
+  return { make, warned, created, scenes };
 }
 
-test("Take everyone there: the page goes up, remembers the scene the table was on, and is activated", async () => {
-  const { make } = world({ active: "D" });
-  make("D");
-  const page = make("P", { title: "Market", shown: false });
-  const { goToPage } = await import("../scripts/town/landing-pages.mjs");
-  await goToPage(page);
-  assert.equal(page.activated, 1);
-  assert.equal(landingOf(page).shown, true);
-  assert.equal(landingOf(page).returnTo, "D");
-  await goToPage(page);                                         // already there: no second activation, the way back kept
-  assert.equal(page.activated, 1);
-  assert.equal(landingOf(page).returnTo, "D");
+test("the toolbar: the first press makes the table and takes everyone there; on the table it takes everyone back", async () => {
+  const { make, created, warned } = world({ active: "D" });
+  const dungeon = make("D");
+  const lp = await import("../scripts/town/landing-pages.mjs");
+  await lp.toggleTable();
+  assert.equal(created.length, 1, "made once");
+  const table = lp.tableScene();
+  assert.ok(table);
+  assert.equal(table.activated, 1);
+  assert.equal(landingOf(table).returnTo, "D");
+  assert.equal(landingOf(table).size, "town");                    // no hex says otherwise
+  await lp.toggleTable();                                          // on the table: back
+  assert.equal(dungeon.activated, 1);
+  await lp.toggleTable();                                          // again: to the same table, not a second one
+  assert.equal(created.length, 1);
+  assert.equal(table.activated, 2);
+  assert.deepEqual(warned, ["SDE.town.editor.generateEmpty"], "no gear packs in this world: the table is made without a shop, and says so");
 });
 
-test("Return takes everyone back to where they came from, and says so when it does not know", async () => {
+test("Return says so when it does not know where the table came from, and only the GM moves the table", async () => {
   const { make, warned } = world({ active: "P" });
-  const dungeon = make("D"), page = make("P", { title: "Market", returnTo: "D" }), lost = make("Q", { title: "Lost" });
-  const { returnFromPage } = await import("../scripts/town/landing-pages.mjs");
-  await returnFromPage(page);
-  assert.equal(dungeon.activated, 1);
+  const dungeon = make("D"), page = make("P", { landing: { title: "T", returnTo: "D" } }), lost = make("Q", { landing: { title: "L" } });
+  const { returnFromPage, toggleTable } = await import("../scripts/town/landing-pages.mjs");
   assert.equal(await returnFromPage(lost), null);
   assert.equal(warned.length, 1);
   globalThis.game.user.isGM = false;
-  assert.equal(await returnFromPage(page), null);               // only the GM moves the table
-  assert.equal(dungeon.activated, 1);
+  assert.equal(await returnFromPage(page), null);
+  assert.equal(await toggleTable(), null);
+  assert.equal(dungeon.activated, 0);
 });

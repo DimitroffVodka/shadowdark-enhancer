@@ -162,17 +162,3 @@ test("Cursed Scroll 6 brings its holidays and the Player's Guide its holy days t
   await runWizardImport(stateWith(CS1()), hooks(), without);
   assert.ok(!without.calls.includes("holidays"), "neither book, nothing filed");
 });
-
-test("the Player's Guide brings the Player's Map for the landing pages; a map that cannot be cut is the GM's to retry", async () => {
-  const PG = () => file("Player_s_Guide_to_the_Western_Reaches_V1.pdf", 40);
-  const made = deps({ playerMap: async () => { made.calls.push("playerMap"); return { status: "made" }; } });
-  const r = await runWizardImport(stateWith(PG()), hooks(), made);
-  assert.deepEqual(made.calls.filter((c) => c === "playerMap"), ["playerMap"]);
-  assert.equal(r.imported, 40 + 1);
-  assert.equal((await runWizardImport(stateWith(PG()), hooks(), deps({ playerMap: async () => ({ status: "already" }) }))).already, 3 + 1);
-  const failed = await runWizardImport(stateWith(PG()), hooks(), deps({ playerMap: async () => { throw new Error("worker"); } }));
-  assert.match(failed.needsYou.at(-1).why, /playerMapFailed/);
-  const other = deps({ playerMap: async () => { other.calls.push("playerMap"); return { status: "made" }; } });
-  await runWizardImport(stateWith(CS1()), hooks(), other);
-  assert.ok(!other.calls.includes("playerMap"), "no Player's Guide, no map");
-});

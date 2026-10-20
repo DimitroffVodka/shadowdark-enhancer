@@ -118,7 +118,7 @@ test("the hide icon switches the page off, with the Town title; nothing in the l
   const page = Object.create(TownApp.prototype); page.scene = e.byId.get("C");
   await page._onHide();
   assert.equal(e.byId.get("C").updates.length, 1);
-  const hbs = readFileSync(new URL("../templates/town/town-landing.hbs", import.meta.url), "utf8");
+  const hbs = readFileSync(new URL("../templates/town/town-table.hbs", import.meta.url), "utf8");
   assert.match(hbs, /data-action="hideTown" data-tooltip="\{\{localize 'SDE\.town\.hide'\}\}"/);
   const app = readFileSync(new URL("../scripts/town/town-app.mjs", import.meta.url), "utf8");
   assert.match(app, /window: \{ frame: false/); // frameless: no close control, Escape is not offered

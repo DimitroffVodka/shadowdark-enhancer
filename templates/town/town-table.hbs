@@ -1,0 +1,66 @@
+<div class="lt-stage">
+  <div class="lt-frame">
+    <div class="lt-pic" data-hot="" style="width: {{table.width}}px; height: {{table.height}}px;">
+      <img class="lt-img" src="{{table.src}}" alt="" draggable="false">
+      {{#each props}}
+      <button type="button" class="lt-prop {{#if disabled}}off{{/if}} {{#if hot}}hot{{/if}}" data-action="prop" data-prop="{{id}}" aria-label="{{name}}"
+        style="left: {{x}}px; top: {{y}}px; width: {{w}}px; height: {{h}}px;" {{#if disabled}}aria-disabled="true"{{/if}}>
+        <img class="lt-lit" src="{{src}}" alt="" draggable="false">
+        <span class="lt-label"><b>{{name}}</b>{{#if disabled}}<small>{{hint}}</small>{{else}}{{#if sub}}<small>{{sub}}</small>{{/if}}{{/if}}</span>
+      </button>
+      {{/each}}
+      {{#if chestOpen}}<img class="lt-chest-open" src="{{chestOpen.src}}" alt="" draggable="false" style="left: {{chestOpen.x}}px; top: {{chestOpen.y}}px; width: {{chestOpen.w}}px; height: {{chestOpen.h}}px;">{{/if}}
+
+      {{#each tome}}
+      <div class="lt-quad lt-page {{#if flip}}lt-page-right{{/if}}" style="width: {{box.[0]}}px; height: {{box.[1]}}px; transform: {{transform}};">
+        {{#if flip}}<div class="lt-flip"></div>{{/if}}
+        {{#if empty}}<p class="lt-page-empty">{{localize "SDE.town.table.noQuests"}}</p>{{/if}}
+        <ul>{{#each lines}}<li class="{{kind}} {{#if done}}done{{/if}}"><span class="lt-tick"></span><span class="lt-line">{{text}}</span></li>{{/each}}</ul>
+      </div>
+      {{/each}}
+
+      <div class="lt-quad lt-title-card" style="width: {{title.box.[0]}}px; height: {{title.box.[1]}}px; transform: {{title.transform}};">
+        {{#if isGM}}<span class="lt-title-text" contenteditable="plaintext-only" spellcheck="false" data-placeholder="{{localize 'SDE.town.table.titleHint'}}">{{title.text}}</span>
+        {{else}}<span class="lt-title-text">{{title.text}}</span>{{/if}}
+      </div>
+
+      <div class="lt-quad lt-dial" style="width: {{dial.box.[0]}}px; height: {{dial.box.[1]}}px; transform: {{dial.transform}};" data-tooltip="{{localize 'SDE.town.table.dial'}}">
+        <svg viewBox="0 0 200 200" aria-hidden="true">
+          <path class="lt-day" d="M100 100 L10 100 A90 90 0 0 1 190 100 Z"/>
+          <path class="lt-night" d="M100 100 L190 100 A90 90 0 0 1 10 100 Z"/>
+          <g class="lt-ticks">{{#each dial.ticks}}<line x1="100" y1="12" x2="100" y2="{{len}}" transform="rotate({{deg}} 100 100)"/>{{/each}}</g>
+          <circle class="lt-sun" cx="100" cy="42" r="10"/><circle class="lt-moon" cx="100" cy="158" r="9"/>
+          <line class="lt-hand" x1="100" y1="100" x2="100" y2="22" transform="rotate({{dial.angle}} 100 100)"/>
+          <circle class="lt-hub" cx="100" cy="100" r="7"/>
+        </svg>
+      </div>
+
+      {{#if props}}<span class="lt-coin" style="left: {{coin.x}}px; top: {{coin.y}}px;">{{coin.text}}</span>{{/if}}
+
+      {{#each seats}}
+      <button type="button" class="lt-seat {{#if mine}}mine{{/if}}" data-action="seat" data-actor-id="{{id}}" style="left: {{x}}px; top: {{y}}px;" aria-label="{{name}}">
+        <img src="{{img}}" alt="" draggable="false">
+        <span class="lt-seat-card"><b>{{name}}</b>{{#if level}}<span>{{localize "SDE.town.table.level" n=level}}{{#if cls}} {{cls}}{{/if}}</span>{{/if}}{{#if hp}}<span>{{localize "SDE.town.table.hp" hp=hp}}</span>{{/if}}<span class="lt-purse">{{purse}}</span></span>
+      </button>
+      {{/each}}
+      {{#if party}}<button type="button" class="lt-party" data-action="party" style="left: {{party.x}}px; top: {{party.y}}px;">{{localize "SDE.town.place.party"}}</button>{{/if}}
+    </div>
+  </div>
+
+  <aside class="lt-side">
+    <p class="lt-foot">{{#if actorName}}{{localize "SDE.town.playingAs" name=actorName}} &nbsp; <b>{{purse}}</b>{{else}}{{localize "SDE.town.noCharacter"}}{{/if}}</p>
+    {{#if isGM}}
+    <div class="lt-gm">
+      {{#if returnName}}<button type="button" class="ui-btn" data-action="returnTable"><i class="fa-solid fa-arrow-rotate-left"></i> {{localize "SDE.town.make.return" scene=returnName}}</button>{{/if}}
+      <label class="lt-size" data-tooltip="{{localize 'SDE.town.table.sizeTip'}}"><span>{{localize "SDE.town.editor.generateSize"}}</span>
+        <select name="size">{{#each sizes}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></label>
+      <div class="lt-tools">
+        <button type="button" class="ui-icon" data-action="editTown" data-tooltip="{{localize 'SDE.town.edit'}}" aria-label="{{localize 'SDE.town.edit'}}"><i class="fa-solid fa-pen"></i></button>
+        <button type="button" class="ui-icon" data-action="openLog" data-tooltip="{{localize 'SDE.town.log.open'}}" aria-label="{{localize 'SDE.town.log.open'}}"><i class="fa-solid fa-receipt"></i></button>
+        <button type="button" class="ui-icon" data-action="restockAll" data-tooltip="{{localize 'SDE.town.restock'}}" aria-label="{{localize 'SDE.town.restock'}}"><i class="fa-solid fa-boxes-packing"></i></button>
+        <button type="button" class="ui-icon" data-action="hideTown" data-tooltip="{{localize 'SDE.town.hide'}}" aria-label="{{localize 'SDE.town.hide'}}"><i class="fa-solid fa-eye-slash"></i></button>
+      </div>
+    </div>
+    {{/if}}
+  </aside>
+</div>

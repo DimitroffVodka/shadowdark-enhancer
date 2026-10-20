@@ -62,11 +62,7 @@ importer** link opens the hub). You add your files once and it does the rest.
    the *Adventures* compendium until you run it.
 5. **Import.** One button. The guide imports the library, the adventures, each
    book's key locations, the site maps and the hex maps, with a progress bar.
-   The guide drives the hub for you, out of sight. With the Player's Guide
-   added it also cuts the **Player's Map** (pages 2 and 3, the two halves
-   joined, no printed names) out of your PDF and saves it in your world, as the
-   picture for the Western Reaches' [landing pages](Town-Landing-Page.md#western-reaches).
-   The map comes from your own book and never ships with the module.
+   The guide drives the hub for you, out of sight.
 
 The last page (**Done**) lists what was set up, what was already there, and
 anything that needs you. Each hex map has its own row there, saying whether it

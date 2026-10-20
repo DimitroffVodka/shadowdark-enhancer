@@ -1,8 +1,8 @@
 /**
  * Shadowdark Enhancer — Town: the ways into the landing page.
  *
- * The GM's "Landing page" button (scene toolbar) opens the Landing pages window: Make a landing page, and every page
- * with a button that takes everyone there (landing-pages-app.mjs).
+ * The GM's "Landing page" button (scene toolbar) takes everyone to the table, the one landing page (made the first
+ * time), and, pressed on the table, takes everyone back where they came from (landing-pages.mjs).
  *
  * One switch for the whole table. Alt+T (and the page's own eye button) puts the current scene's page up or away for
  * everyone on the scene: the switch is the page's own `shown` flag, so every client sees it change and follows it,
@@ -34,9 +34,9 @@ async function openTown(scene = globalThis.canvas?.scene) {
   return TownApp.open(scene);
 }
 
-async function openPages() {
-  const { LandingPagesApp } = await import("./landing-pages-app.mjs");
-  return LandingPagesApp.open();
+/** The GM's button: everyone to the table (made the first time), or, on the table, everyone back. */
+async function gmTable() {
+  return (await import("./landing-pages.mjs")).toggleTable();
 }
 
 /** The window seam (tests replace it). */
@@ -69,7 +69,7 @@ export function registerTownEntryPoints() {
     onDown: () => { toggleTown(); return true; },
   });
 
-  // The toolbar button: the GM on every scene (the Landing pages window), players on a scene whose page is up (their
+  // The toolbar button: the GM on every scene (to the table and back), players on a scene whose page is up (their
   // own copy of it). The toolbar is rebuilt when the scene changes and when its page changes.
   Hooks.on("getSceneControlButtons", (controls) => {
     const page = landingOf(globalThis.canvas?.scene);
@@ -77,7 +77,7 @@ export function registerTownEntryPoints() {
     if (controls.tokens?.tools) controls.tokens.tools.sdeTown = {
       name: "sdeTown", title: "SDE.town.control", icon: "fa-solid fa-landmark", order: 90,
       button: true,
-      onChange: () => (game.user.isGM ? openPages() : toggleTown()),
+      onChange: () => (game.user.isGM ? gmTable() : toggleTown()),
     };
   });
   const refreshTools = () => ui.controls?.render({ reset: true });
