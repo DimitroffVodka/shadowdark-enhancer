@@ -192,7 +192,7 @@ this module's own.
 
 ## Party emblem icons (`icons/game-icons/party/`)
 
-The picture a party picks for its sheet's header tile: twenty-four icons from
+The picture a party picks for its sheet's header tile: forty-eight icons from
 [game-icons.net](https://game-icons.net/), licensed under
 [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). The SVGs are the
 white-on-transparent versions, unchanged; the tile colour is applied by CSS. They
@@ -201,10 +201,17 @@ are bundled here so the sheet does not depend on the Game-icons.net module.
 - `lantern.svg`, `campfire.svg`, `castle.svg`, `crown.svg`, `crossed-swords.svg`,
   `wolf-head.svg`, `stag-head.svg`, `raven.svg`, `owl.svg`, `dragon-head.svg`,
   `skull-crossed-bones.svg`, `shield-echoes.svg`, `anvil-impact.svg`,
-  `treasure-map.svg`, `rune-stone.svg`, `minotaur.svg`, `gem-pendant.svg` — **Lorc**
+  `treasure-map.svg`, `rune-stone.svg`, `minotaur.svg`, `gem-pendant.svg`,
+  `battle-axe.svg`, `magic-swirl.svg`, `potion-ball.svg`, `scroll-unfurled.svg`,
+  `compass.svg`, `lion.svg`, `ghost.svg`, `key.svg`, `hourglass.svg`,
+  `cauldron.svg`, `mushroom.svg`, `sun.svg`, `moon.svg`, `mountains.svg`,
+  `anchor.svg` — **Lorc**
 - `torch.svg`, `bear-head.svg`, `tower-flag.svg`, `mountain-cave.svg`,
-  `tree-roots.svg`, `unicorn.svg` — **Delapouite**
+  `tree-roots.svg`, `unicorn.svg`, `bow-arrow.svg`, `spell-book.svg`,
+  `lockpicks.svg`, `horse-head.svg`, `eagle-head.svg`, `forest.svg`,
+  `village.svg`, `beer-horn.svg` — **Delapouite**
 - `hooded-figure.svg` — **DarkZaitzev**
+- `boar.svg` — **Caro Asercion**
 
 ## Class icons (`icons/game-icons/classes/`)
 

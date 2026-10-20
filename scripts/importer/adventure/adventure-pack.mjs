@@ -41,14 +41,15 @@ export function folderChain(startIds, byId) {
 
 /**
  * Pure: the Adventure's data from plain document data.
- * @param {{name:string, img?:string, site:string, scene:object, journal?:object, actors?:object[], folders?:object[]}} parts
+ * @param {{name:string, img?:string, site:string, scene:object, journal?:object|object[], actors?:object[], folders?:object[]}} parts
  */
 export function adventureData({ name, img = null, site, scene, journal = null, actors = [], folders = [] }) {
+  const journals = journal ? (Array.isArray(journal) ? journal : [journal]) : [];
   return {
     name,
     ...(img ? { img } : {}),
     scenes: [scene],
-    journal: journal ? [journal] : [],
+    journal: journals,
     actors,
     folders,
     flags: { [MODULE_ID]: { [ADVENTURE_PACK_FLAG]: { site } } },

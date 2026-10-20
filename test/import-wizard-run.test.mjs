@@ -113,30 +113,28 @@ test("adventure pages that were already filed count as already had, not imported
   assert.equal(r.already, 3 + 34);        // the library's 3 and the 34 pages read again
 });
 
-test("the placement the GM chose reaches the scene build, and a packed scene is counted", async () => {
+test("a ticked map is built into the world, and an unticked one is packed", async () => {
   const seen = [];
-  const d = deps({ buildScene: async (id, path, o) => { seen.push(o); return { status: "built", placed: 33, left: 0, known: true, packed: true }; } });
+  const d = deps({ buildScene: async (id, path, o) => { seen.push(o); return { status: "built", placed: 33, left: 0, known: true, packed: o.placement === "compendium" }; } });
   const s = stateWith(CS1(), MAP1());
-  s.placement = "compendium";
+  s.worldMaps.add("cs1-mugdulblub");
   const r = await runWizardImport(s, hooks(), d);
-  assert.deepEqual(seen, [{ placement: "compendium" }]);
-  assert.equal(r.packed, 1);
+  assert.deepEqual(seen, [{ placement: "world" }]);
+  assert.equal(r.packed, 0);
   assert.equal(r.imported, 40 + 33 + 40 + 1);
 });
 
-test("world placement is the default, and nothing is packed", async () => {
+test("no map is ticked by default, so every map is packed", async () => {
   const seen = [];
-  const d = deps({ buildScene: async (id, path, o) => { seen.push(o); return { status: "built", placed: 33, left: 0, known: true }; } });
+  const d = deps({ buildScene: async (id, path, o) => { seen.push(o); return { status: "built", placed: 33, left: 0, known: true, packed: true }; } });
   const r = await runWizardImport(stateWith(CS1(), MAP1()), hooks(), d);
-  assert.deepEqual(seen, [{ placement: "world" }]);
-  assert.equal(r.packed, 0);
+  assert.deepEqual(seen, [{ placement: "compendium" }]);
+  assert.equal(r.packed, 1);
 });
 
 test("a scene that could not be packed is left in the world and named for the GM", async () => {
   const d = deps({ buildScene: async () => ({ status: "built", placed: 33, left: 0, known: true, packFailed: true }) });
-  const s = stateWith(CS1(), MAP1());
-  s.placement = "compendium";
-  const r = await runWizardImport(s, hooks(), d);
+  const r = await runWizardImport(stateWith(CS1(), MAP1()), hooks(), d);
   assert.equal(r.packed, 0);
   assert.deepEqual(r.needsYou.map((x) => x.why), ["SDE.importer.wizard.run.packFailed"]);
 });

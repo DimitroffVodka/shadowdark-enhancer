@@ -22,6 +22,11 @@ const base = {
     terrain: "salt flat", enter: "Difficult (2)", region: "Rimespire Mountains (estimated)", title: "The Drowned Observatory of the Lantern Sisters",
     encounter: { uuid, name: "Lowland Moor Encounter Zone: Salt Flat (Night)", note: "A wandering check here rolls the Lowland Moor column \"Salt Flat (Night)\", as the clock reads now." },
     terrainOptions: ["forest", "grassland", "mountain", "salt flat", "swamp"].map((v) => ({ value: v, label: v, selected: v === "salt flat" })),
+    regionOptions: ["Myre Swamp", "Rimespire Mountains", "Tallow Jungle", "The Last Sea"].map((v) => ({ value: v, label: v, selected: v === "Rimespire Mountains" })), canRegion: true,
+    questSection: true, quests: [{ uuid: "JournalEntry.q1.JournalEntryPage.a", name: "The Bell Under the Salt", status: "Active" }],
+    questChoices: [{ uuid: "JournalEntry.q2.JournalEntryPage.b", name: "A Debt at Low Water", status: "Available", where: " → 0412" }],
+    adventures: [{ index: 0, uuid, label: "The Drowned Observatory" }],
+    adventureChoices: [{ label: "Shadowdark Enhancer — Adventures", entries: [{ uuid, label: "The Drowned Observatory" }, { uuid: "Compendium.world.shadowdark-enhancer--adventures.Adventure.b2c3", label: "The Sunken Bell" }] }],
     lineRows: [["river", "River", true, true], ["path", "Path", false, false], ["coast", "Coast", true, false]].map(([type, label, checked, discovered]) => ({ type, label, checked, discovered })),
     features: [{ index: 0, type: "ruin", name: "The Collapsed Watchtower of Saint Verrin", uuid, discovered: true }, { index: 1, type: "lair", name: "Gnoll den", uuid: "", discovered: false }],
     notes: [{ index: 0, text: "A caravan route crosses here. Merchants pay double for lamp oil and will sell a map of the Salt Road.", visible: true, location: false }, { index: 1, text: "Hidden cellar under the third tower.", visible: false, location: true }],
@@ -36,8 +41,8 @@ const base = {
     revealed: true, visited: false, locationAuto: false, locationShow: true, locationHide: false,
   },
 };
-// state "scroll" (default) is the real 620px window; "full" lifts the height so the whole body can be seen;
-// "empty" is a book known but not imported: the section says why instead of vanishing.
-export default { ...base, initial: "scroll", build: (state) => (state === "full" ? { height: "auto" } : state === "picker" ? { height: 1240, previewHeight: 1300, context: { ...base.context, tilePickerOpen: true, tileChoices } }
+// state "full" (default) lifts the height so the page's own controls are all in view for review; "scroll" is the
+// real 620px window, whose body scrolls; "empty" is a book known but not imported: the section says why.
+export default { ...base, initial: "full", build: (state) => (state === "full" ? { height: "auto" } : state === "picker" ? { height: 1240, previewHeight: 1300, context: { ...base.context, tilePickerOpen: true, tileChoices } }
     : state === "keyed" ? { context: { ...base.context, tileKeyed: true, tilePickerOpen: false, tileNote: "This hex wears its own art, as a keyed location or a settlement. Change that with the Tagger's tile art." } }
     : state === "stock" ? { context: { ...base.context, artSrc: null } } : state === "empty" ? { context: { ...base.context, keyed: [], keyedNote: "No key locations imported for this book." } } : {}) };

@@ -1,12 +1,13 @@
 /**
  * Shadowdark Enhancer — what the wizard's Import page does.
  *
- * Three stages, in the order the pieces depend on each other:
+ * Five stages, in the order the pieces depend on each other:
  *   1. the library   every monster, spell, item, class, table and journal the added books can give
  *   2. adventures    each added book's numbered-location adventures, filed as journals
  *   3. key locations each added book's keyed hexes (a hex map's pins come from these, so they go first)
  *   4. site maps     a scene for each added adventure map, with every pin the module knows already placed
- *   5. hex maps      a scene for each added hex map, numbered and pinned; the terrain Legend is the GM's, once, on the Done page
+ *   5. hex maps      a numbered, pinned scene for each added hex map, packed with the journals its pins open like the
+ *                    adventures; its terrain Legend is named later, in the Hex Tagger, once the map is imported and run
  *
  * Nothing in this file touches Foundry. The pieces that do arrive as `deps` (wizard-app.mjs builds the real
  * ones), so a Node test runs the whole flow with stand-ins and checks the numbers it reports.
@@ -21,7 +22,7 @@
  *   deps.keyBooks                                                       → the source keys whose key locations can be imported
  *   deps.keyLocations(src, { onRegion(region, i, n) })                  → { regions, hexes, created, failed:[{region, error}] }
  *   deps.holidays(src)                                                  → { status:"imported"|"already"|"failed", created? } (optional; the calendar's holidays (CS6) and holy days (WR) from that book)
- *   deps.hexMap(id, { title, firstNum })                                → { status:"ready"|"already"|"needsLook"|"cancelled"|"failed", sceneId, legend, pinned }
+ *   deps.hexMap(id, { title, firstNum, placement })                       → { status:"ready"|"packed"|"already"|"needsLook"|"failed", sceneId, legend, pinned, packed?, packFailed? }
  */
 import { bookRows, isHexMap, bookTitle, HEX_MAPS } from "./wizard-core.mjs";
 import { hexPrint } from "../../hex-map/hex-prints.mjs";
@@ -117,7 +118,7 @@ export async function runWizardImport(state, hooks, deps) {
       result.needsYou.push({ title: site.title, why: t("SDE.importer.wizard.run.mapNoBook", { book: site.src }) });
       continue;
     }
-    const built = await deps.buildScene(site.id, state.uploaded?.[id], { placement: state.placement === "compendium" ? "compendium" : "world" });
+    const built = await deps.buildScene(site.id, state.uploaded?.[id], { placement: state.worldMaps?.has(id) ? "world" : "compendium" });
     if (built.status === "failed") result.needsYou.push({ title: site.title, why: t("SDE.importer.wizard.run.mapFailed") });
     else if (built.status === "already") result.already += 1;
     else {
@@ -128,17 +129,22 @@ export async function runWizardImport(state, hooks, deps) {
       else if (built.left > 0) result.needsYou.push({ title: site.title, why: t("SDE.importer.wizard.run.pinsLeft", { n: built.left }) });
     }
   }
-  // 5. Hex maps. A map the wizard is unsure of is left for the Done page rather than asked about mid-run.
+  // 5. Hex maps. Like the adventures, a map is a scene and the journals its pins open: packed with the compendium
+  // placement, built into the world with the world placement. Its terrain is named later, on the imported map.
+  // A map the wizard is unsure of is left for the Done page rather than asked about mid-run.
+  // The GM ticks the maps they want in the world now (state.worldMaps); the rest wait in the compendium.
   const hexMaps = HEX_MAPS.filter((h) => ready.has(`map:${h.id}`));
   for (const [i, h] of hexMaps.entries()) {
     if (stop()) return result;
     const print = hexPrint(h.id);
     hooks.onProgress(span(WEIGHTS.hex, i / hexMaps.length), t("SDE.importer.wizard.run.hex", { title: h.title }));
-    const made = await deps.hexMap(h.id, { title: h.title, firstNum: print?.firstNum });
+    const made = await deps.hexMap(h.id, { title: h.title, firstNum: print?.firstNum, placement: state.worldMaps?.has(h.id) ? "world" : "compendium" });
     // A map that could not be made still gets its row, with the button to try it again by hand: the GM still holds the file.
-    if (made.status === "ready") result.imported += 1;
+    if (made.status === "ready" || made.status === "packed") result.imported += 1;
     else if (made.status === "already") result.already += 1;
-    result.hex.push({ id: h.id, title: h.title, status: made.status, legend: !!made.legend, look: made.status === "needsLook" || made.status === "failed", optional: !!print?.drawn, sceneId: made.sceneId, pinned: made.pinned ?? 0 });
+    if (made.status === "packed" && made.packed) result.packed += 1;
+    if (made.packFailed) result.needsYou.push({ title: h.title, why: t("SDE.importer.wizard.run.hexPackFailed") });
+    result.hex.push({ id: h.id, title: h.title, status: made.status, legend: false, look: made.status === "needsLook" || made.status === "failed", optional: !!print?.drawn, packed: !!made.packed, sceneId: made.sceneId, pinned: made.pinned ?? 0 });
   }
   hooks.onProgress(100, t("SDE.importer.wizard.run.finishing"));
   return result;

@@ -16,9 +16,9 @@ test("a tab the viewer cannot see falls back to Members", () => {
   assert.equal(resolveTab("items", unlinked), "items");
 });
 
-test("view flags: editing follows the party rule, the emblem is the GM's alone", () => {
+test("view flags: editing follows the party rule, the emblem with it", () => {
   assert.deepEqual(sheetView({ isGM: true, canEdit: true }), { isGM: true, canEdit: true, emblemEdit: true });
-  assert.deepEqual(sheetView({ isGM: false, canEdit: true }), { isGM: false, canEdit: true, emblemEdit: false });
+  assert.deepEqual(sheetView({ isGM: false, canEdit: true }), { isGM: false, canEdit: true, emblemEdit: true }, "a player who owns the party may dress it");
   assert.deepEqual(sheetView({ isGM: false, canEdit: false }), { isGM: false, canEdit: false, emblemEdit: false });
   assert.deepEqual(sheetView(), { isGM: false, canEdit: false, emblemEdit: false });
 });

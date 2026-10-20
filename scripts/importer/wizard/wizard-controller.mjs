@@ -27,7 +27,6 @@ import {
   PAGES, HEX_MAPS, isHexMap, bookTitle, filesOfHex, isUsefulName, newState, addFiles, removeFile, bookRows, mapGroups, blocker, canBack, go,
 } from "./wizard-core.mjs";
 import { runCheck } from "./wizard-check.mjs";
-import { hexPrint } from "../../hex-map/hex-prints.mjs";
 import { OTHER } from "../../hex-map/tag-store.mjs";
 import { expandPicked, materialize } from "./zip-reader.mjs";
 
@@ -49,11 +48,12 @@ const SUBTITLES = {
 /** What the Done page says of a hex map; keys are written out in full. */
 const HEX_STATUS = {
   ready: "SDE.importer.wizard.done.hexStatus.ready", already: "SDE.importer.wizard.done.hexStatus.already", needsLook: "SDE.importer.wizard.done.hexStatus.needsLook",
-  named: "SDE.importer.wizard.done.hexStatus.named", readyDrawn: "SDE.importer.wizard.done.hexStatus.readyDrawn", alreadyDrawn: "SDE.importer.wizard.done.hexStatus.alreadyDrawn", failed: "SDE.importer.wizard.done.hexStatus.failed",
+  named: "SDE.importer.wizard.done.hexStatus.named", packed: "SDE.importer.wizard.done.hexStatus.packed", alreadyPacked: "SDE.importer.wizard.done.hexStatus.alreadyPacked",
+  failed: "SDE.importer.wizard.done.hexStatus.failed",
 };
 
 /** Names a click may carry in data-action; wizard-app.mjs maps each to dispatch(). */
-export const ACTIONS = ["next", "back", "cancel", "choose", "remove", "setKeep", "setChoice", "setPlacement", "toggleGroup", "fix", "openHex", "openLegend", "legendAnswer", "legendPick", "applyArt", "advanced", "reviewAnswer", "openBrush"];
+export const ACTIONS = ["next", "back", "cancel", "choose", "remove", "setKeep", "setChoice", "toggleWorldMap", "toggleGroup", "fix", "openHex", "openLegend", "legendAnswer", "legendPick", "applyArt", "advanced", "reviewAnswer", "openBrush"];
 
 export class WizardController {
   /** @param {object} env  see the file header  @param {() => void} onChange  called after every change worth redrawing */
@@ -82,8 +82,8 @@ export class WizardController {
       case "pick": return this.pick(data.files ?? []);
       case "remove": removeFile(this.state, data.kind, data.id); this.notice = ""; return this.afterFilesChanged();
       case "setKeep": this.state.keep = data.value === "keep" ? "keep" : "once"; this.state.check = null; this.state.useOnce.clear(); return this.changed();
-      case "setPlacement": this.state.placement = data.value === "compendium" ? "compendium" : "world"; return this.changed();
       case "setChoice": this.state.choice = data.value === "custom" ? "custom" : "everything"; return this.changed();
+      case "toggleWorldMap": this.toggleWorldMap(data.id); return this.changed();
       case "toggleGroup": this.toggle(data.id); return this.changed();
       case "fix": return this.fix(data);
       case "openHex": return this.env.openHex?.(filesOfHex(this.state, data.id), data.id);
@@ -103,6 +103,12 @@ export class WizardController {
   toggle(id) {
     const open = this.state.openGroups;
     if (!open.delete(id)) open.add(id);
+  }
+
+  /** Tick or untick one map for this world; every other map waits in the Adventures compendium. */
+  toggleWorldMap(id) {
+    const maps = this.state.worldMaps;
+    if (!maps.delete(id)) maps.add(id);
   }
 
   async pick(files) {
@@ -378,13 +384,17 @@ export class WizardController {
       const ok = new Set(s.check?.ready ?? []);
       const books = [...ok].filter((x) => x.startsWith("book:")).length;
       const maps = [...ok].filter((x) => x.startsWith("map:")).length;
+      // Every ready map, grouped by its book: a tick is "load it into this world now", no tick is "leave it in the
+      // compendium". Nothing is ticked to begin with, so a fresh world gets no scene until the GM picks one.
+      const chosen = mapGroups(s)
+        .map((g) => ({ ...g, rows: g.rows.filter((r) => ok.has(`map:${r.id}`)) }))
+        .filter((g) => g.rows.length)
+        .map((g) => ({ ...g, rows: g.rows.map((r) => ({ id: r.id, title: r.title, kind: isHexMap(r.id) ? t("SDE.importer.wizard.ready.maps.hex") : t("SDE.importer.wizard.ready.maps.site"), world: s.worldMaps.has(r.id) })) }));
       vm.everything = s.choice === "everything";
-      vm.placementWorld = s.placement !== "compendium";
       vm.ready = {
         summary: t("SDE.importer.wizard.ready.summary", { books, maps }),
-        hexNote: HEX_MAPS.some((h) => ok.has(`map:${h.id}`)),
-        adventureMaps: [...ok].some((x) => x.startsWith("map:") && !isHexMap(x.slice(4))),
-        hexDrawnOnly: HEX_MAPS.some((h) => ok.has(`map:${h.id}`)) && !HEX_MAPS.some((h) => ok.has(`map:${h.id}`) && !hexPrint(h.id)?.drawn),
+        maps: chosen,
+        hexNote: HEX_MAPS.some((h) => ok.has(`map:${h.id}`)) ? t("SDE.importer.wizard.hex.ready") : "",
       };
     }
     if (s.page === "import") vm.run = { pct: s.progress.pct, phase: s.progress.phase };
@@ -405,17 +415,22 @@ export class WizardController {
     }
     if (s.page === "done") {
       const r = s.result ?? { imported: 0, already: 0, needsYou: [] };
+      const hex = r.hex ?? [];
+      // A map's terrain is named later, on the imported scene: the row says where the map waits, never asks for a Legend.
+      const lineOf = (h) => t(h.named ? HEX_STATUS.named
+        : h.status === "packed" ? HEX_STATUS.packed
+        : h.status === "already" && h.packed ? HEX_STATUS.alreadyPacked
+        : HEX_STATUS[h.status] ?? HEX_STATUS.needsLook, { n: h.pinned ?? 0 });
       vm.done = {
         imported: r.imported, already: r.already, attention: r.needsYou.length, items: r.needsYou,
         packed: r.packed ? t("SDE.importer.wizard.done.packed", { n: r.packed }) : "",
         skipped: r.skipped?.n ? t(r.skipped.books.length ? "SDE.importer.wizard.done.skippedBooks" : "SDE.importer.wizard.done.skipped", { n: r.skipped.n, books: r.skipped.books.join(", ") }) : "",
-        hexMaps: (r.hex ?? []).map((h) => ({
+        hexMaps: hex.map((h) => ({
           id: h.id, title: h.title, sceneId: h.sceneId, legend: h.legend, look: h.look, brush: !!h.named && !!h.sceneId,
-          line: t(h.named ? HEX_STATUS.named : (h.optional && h.legend && h.status === "ready" ? HEX_STATUS.readyDrawn : h.optional && h.legend && h.status === "already" ? HEX_STATUS.alreadyDrawn : HEX_STATUS[h.status] ?? HEX_STATUS.needsLook), { n: h.pinned ?? 0 }),
+          line: lineOf(h),
         })),
+        hexBody: hex.length ? t("SDE.importer.wizard.done.hexBody") : "",
         art: s.art && { sources: s.art.sources.join(", "), offer: s.art.stage === "offer" || s.art.stage === "failed", applying: s.art.stage === "applying", line: s.art.line },
-        hexLegend: (r.hex ?? []).some((h) => h.legend && !h.optional),
-        hexLegendOptional: !(r.hex ?? []).some((h) => h.legend && !h.optional) && (r.hex ?? []).some((h) => h.legend),
       };
     }
 
