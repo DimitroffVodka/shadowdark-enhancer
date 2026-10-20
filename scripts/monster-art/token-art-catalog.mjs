@@ -58,7 +58,6 @@ export class TokenArtCatalog {
       tokenDir: "modules/dnd-players-handbook/assets/tokens",
       portraitDir: "modules/dnd-players-handbook/assets/portraits",
       subjectDir: "modules/dnd-players-handbook/assets/subjects",
-      tokenMapping: "modules/dnd-players-handbook/token-mapping.json",
     },
     {
       // Pathfinder Tokens: Character Gallery is optional and may be installed

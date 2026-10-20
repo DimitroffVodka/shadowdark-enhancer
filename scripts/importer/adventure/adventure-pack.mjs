@@ -7,8 +7,9 @@
  *
  * Packing only reads. Taking the world copies away afterwards (`removeStaged`) deletes the exact scene, journal and actor ids a
  * run made and nothing else: a document that was in the world before the run, or that another scene still uses, stays.
- * Folders always stay: the next adventure of the book files into the same ones, so every Adventure carries the same folder ids
- * and importing them back makes one folder per book, not one per adventure.
+ * Folders stay here; the wizard removes the ones left empty when its run ends. A book's folder always has the same id
+ * (`bookFolderDocId`), so every Adventure of a book carries the same folder id and importing them back makes one folder per
+ * book, not one per adventure.
  *
  * The map picture is not in the Adventure, only its path: the file stays in the world's `adventure-maps` folder.
  */
