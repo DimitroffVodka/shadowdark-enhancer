@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Landing Table</title>
+<meta name="description" content="Shadowdark Enhancer for Foundry VTT: the landing page is a candle-lit table the party sits at. Try it here.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --bg: #070605; --panel: rgb(10 7 4 / 88%); --line: rgb(231 191 98 / 55%); --gold: #e7bf62; --text: #fff; --body: #ddd5c8; --muted: #b9ae9f; --title: "Pirata One", serif; --font: "Montserrat", system-ui, sans-serif; color-scheme: dark; }
+  :root[data-theme="light"] { --bg: #070605; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--body); font: 15px/1.5 var(--font); }
+  header.intro { max-width: 980px; margin: 0 auto; padding: 28px 16px 8px; text-align: center; }
+  header.intro h1 { margin: 0; font: 400 clamp(34px, 6vw, 58px)/1 var(--title); color: var(--text); letter-spacing: .02em; }
+  header.intro p { margin: 10px auto 0; max-width: 720px; color: var(--muted); }
+  .hint { margin: 14px auto 0; color: var(--gold); font-weight: 600; }
+
+  .stage { position: relative; width: min(100vw - 24px, 1600px); margin: 18px auto 0; aspect-ratio: 2560 / 1440; }
+  .pic { position: absolute; left: 0; top: 0; width: 2560px; height: 1440px; transform-origin: 0 0; user-select: none; touch-action: manipulation; }
+  .pic > img.base { position: absolute; inset: 0; width: 100%; height: 100%; filter: brightness(.55) saturate(.55); transition: filter .25s; }
+  .pic[data-hot]:not([data-hot=""]) > img.base { filter: brightness(.42) saturate(.45); }
+  .prop { position: absolute; pointer-events: none; }
+  .prop.hot { z-index: 3; }
+  .prop img { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; transition: opacity .22s, filter .22s; }
+  .prop.hot img { opacity: 1; filter: brightness(1.12) drop-shadow(0 0 14px rgb(255 168 70 / 85%)) drop-shadow(0 0 40px rgb(255 140 40 / 45%)); }
+  .label { position: absolute; left: 50%; bottom: calc(100% + 6px); transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 22px 8px; white-space: nowrap; background: var(--panel); border: 2px solid var(--line); border-radius: 999px; color: var(--text); opacity: 0; transition: opacity .18s; }
+  .prop.hot .label { opacity: 1; }
+  .label b { font: 400 46px/1.05 var(--title); }
+  .label small { font-size: 22px; color: var(--muted); }
+  .quad { position: absolute; left: 0; top: 0; transform-origin: 0 0; pointer-events: none; }
+  .page { padding: 34px 26px; font: 600 28px/1.2 var(--font); color: #24160a; filter: brightness(.7); transition: filter .25s; }
+  .pic[data-hot="quests"] .page { filter: none; }
+  .page ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  .page li { display: flex; gap: 10px; }
+  .page li.quest { font: 400 36px/1.05 var(--title); margin-top: 6px; }
+  .page li.step { padding-left: 8px; }
+  .tick { flex: 0 0 auto; width: 22px; height: 22px; margin-top: 4px; border: 3px solid #3b2410; border-radius: 3px; }
+  .page li.quest .tick { display: none; }
+  .page li.done { color: #6b5333; text-decoration: line-through; }
+  .page li.done .tick { background: radial-gradient(circle, #3b2410 38%, transparent 42%); }
+  .flip { position: absolute; inset: 0; background: linear-gradient(90deg, #cdb88c, #e4d3a8 60%, #c8b07f); transform-origin: 0 50%; opacity: 0; }
+  .opening-quests .flip { animation: flip .5s ease-in forwards; }
+  @keyframes flip { 0% { opacity: 1; transform: perspective(1400px) rotateY(0); } 99% { opacity: 1; transform: perspective(1400px) rotateY(-178deg); } 100% { opacity: 0; } }
+  .chest-open { position: absolute; opacity: 0; pointer-events: none; }
+  .opening-market .chest-open { animation: open 2.2s ease-out forwards; }
+  .opening-market .prop[data-prop="market"] img, .opening-market .prop[data-prop="market"] .label { opacity: 0; }
+  @keyframes open { 0% { opacity: 0; } 20% { opacity: 1; filter: brightness(1.2) drop-shadow(0 0 50px rgb(255 190 80 / 90%)); } 80% { opacity: 1; } 100% { opacity: 0; } }
+  .title-card { display: grid; place-items: center; padding: 8px 40px; filter: brightness(.85); }
+  .title-text { pointer-events: auto; max-width: 100%; font: 400 72px/1.05 var(--title); color: #1e1208; white-space: nowrap; overflow: hidden; outline: none; cursor: text; }
+  .title-text:focus { background: rgb(255 240 200 / 45%); border-radius: 8px; }
+  .dial { filter: brightness(.75); }
+  .dial svg { width: 100%; height: 100%; }
+  .coin { position: absolute; transform: translate(-50%, 0); padding: 4px 18px; background: var(--panel); border: 2px solid var(--line); border-radius: 999px; font: 600 30px/1.2 var(--font); color: var(--gold); pointer-events: none; }
+  .seat { position: absolute; width: 150px; height: 150px; transform: translate(-50%, -50%); border: 5px solid rgb(231 191 98 / 75%); border-radius: 50%; background: radial-gradient(circle at 50% 35%, #4a3a2a, #1a1410); box-shadow: 0 6px 24px rgb(0 0 0 / 80%); display: grid; place-items: center; font: 400 70px/1 var(--title); color: var(--gold); filter: saturate(.55) brightness(.8); transition: filter .2s; cursor: pointer; }
+  .seat:hover, .seat:focus-visible { filter: none; box-shadow: 0 0 34px rgb(255 168 70 / 70%); outline: none; z-index: 2; }
+  .card { position: absolute; left: 50%; top: calc(100% + 12px); transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; min-width: 300px; padding: 12px 22px; background: rgb(10 7 4 / 92%); border: 2px solid var(--line); border-radius: 12px; font: 26px/1.3 var(--font); color: var(--body); white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity .18s; }
+  .card b { font: 400 40px/1.1 var(--title); color: var(--text); }
+  .card .purse { color: var(--gold); }
+  .seat:hover .card, .seat:focus-visible .card { opacity: 1; }
+  .plaque { position: absolute; transform: translate(-50%, 0); padding: 6px 26px; background: var(--panel); border: 2px solid var(--line); border-radius: 999px; font: 400 40px/1.1 var(--title); color: var(--text); }
+
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px); max-width: min(92vw, 560px); padding: 12px 18px; background: rgb(14 10 6 / 96%); border: 1px solid var(--line); border-radius: 10px; color: var(--body); opacity: 0; transition: opacity .2s, transform .2s; pointer-events: none; z-index: 10; }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  .toast b { display: block; font: 400 26px/1.1 var(--title); color: var(--text); margin-bottom: 2px; }
+
+  section.notes { max-width: 980px; margin: 28px auto 0; padding: 0 16px 40px; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+  .note { padding: 14px 16px; border: 1px solid rgb(231 191 98 / 25%); border-radius: 10px; background: #0d0a07; }
+  .note h2 { margin: 0 0 6px; font: 400 26px/1.1 var(--title); color: var(--text); }
+  .note p, .note li { margin: 0; color: var(--body); }
+  .note ul { margin: 0; padding-left: 18px; }
+  footer { max-width: 980px; margin: 0 auto; padding: 0 16px 32px; color: var(--muted); font-size: 13px; text-align: center; }
+  footer a, .note a { color: var(--gold); }
+  @media (max-width: 640px) { .hint { font-size: 14px; } }
+</style>
+</head>
+<body>
+<header class="intro">
+  <h1>The Landing Table</h1>
+  <p>In Shadowdark Enhancer for Foundry VTT, the landing page is a table the party sits at between adventures. The things on it are the buttons: the GM presses one button to bring the whole table here, and one to send everyone back to the adventure.</p>
+  <p class="hint">Move over the table. Click the chest, the tome, a portrait. Write on the title card.</p>
+</header>
+
+<div class="stage" id="stage"><div class="pic" id="pic" data-hot=""></div></div>
+<div class="toast" id="toast"></div>
+
+<section class="notes">
+  <div class="note"><h2>One page, no setup</h2><p>The module makes the table the first time the GM presses the Landing page button: the scene, a market stocked for the settlement the party is in, and the page. Nothing to upload or wire.</p></div>
+  <div class="note"><h2>A market by settlement size</h2><p>Every ware is rolled against its rarity for a Village, Town, City or City-State. Common goods are always there; rare ones turn up now and then. Each restock rolls the shelf again. Players shop with their own characters, even with no GM connected.</p></div>
+  <div class="note"><h2>What is on the table</h2><ul><li>Quest tome: the active quests with tick boxes</li><li>Coin chest: the party's coin, opens to the market</li><li>Dice cup: ten games of chance</li><li>Goblets: carousing</li><li>Framed map: your party's explored hexes</li><li>Hourglass, journal, recap scrolls, letter, day dial</li></ul></div>
+</section>
+<footer>
+  Shadowdark Enhancer is an independent product, not affiliated with The Arcane Library. The table is rendered in Blender for the module; the chest, goblets, candlesticks, compass, wood and leather are CC0 assets from <a href="https://polyhaven.com">Poly Haven</a>. Fonts: Pirata One and Montserrat (SIL Open Font License).
+  <br><a href="https://github.com/DimitroffVodka/shadowdark-enhancer">Shadowdark Enhancer on GitHub</a> · <a href="../../">The manual</a>
+</footer>
+
+<script type="module">
+import L from "./layout.js";
+const A = (p) => `./assets/${p}?v=${L.rev ?? ""}`;
+const pic = document.getElementById("pic"), stage = document.getElementById("stage"), toast = document.getElementById("toast");
+
+const PROPS = {
+  quests: ["Quest Log", "2 active", "The tome lists the party's active quests and ticks off their steps. Click it and it opens the Quest Log."],
+  market: ["Market", "Outfitter, The Table", "Opens the market. Players buy and sell with their own characters, haggle, and fill a cart, with or without a GM online."],
+  games: ["Games of chance", "Dice, cards and a wheel", "Ten games played with the characters' own coin: coin toss, dice duel, fortune wheel, card draw, Beholder's Bluff, three-dice brag, death roll, dice roulette, blackjack and Liar's dice."],
+  carouse: ["Carouse", "Spend the night's coin", "Opens a night of carousing: everyone stakes coin, rolls, and lives with the results."],
+  map: ["Map", "The lands your party has explored", "Shows the player who clicks it, alone, the overland hex map with their own party's explored hexes. A Back button returns them to the table."],
+  downtime: ["Downtime", "Train, carouse and recruit", "Opens the Downtime window for the days between adventures."],
+  journals: ["Journals", "Handouts and your own notes", "Opens the Journal sidebar."],
+  recaps: ["Session recaps", "Loot, fights, rolls and coin", "Opens the Session Recap: every session's loot, fights, rolls and coin, kept for the whole campaign."],
+};
+const QUESTS = [["The Drowned Bell", [["Find the bell-ringer", true], ["Dive the old chapel", false]]], ["Rats in the Cellar", [["Clear the cellar", false]]]];
+const PARTY = [["Denin", 1, "Kyzian Archer", "7 / 7", "40 gp"], ["Malchor", 2, "Wizard", "5 / 9", "12 gp 4 sp"], ["Romas", 1, "Fighter", "11 / 11", "61 gp"]];
+
+function homography(w, h, quad) {
+  const src = [[0, 0], [w, 0], [w, h], [0, h]], M = [], b = [];
+  for (let i = 0; i < 4; i++) { const [x, y] = src[i], [u, v] = quad[i]; M.push([x, y, 1, 0, 0, 0, -u * x, -u * y]); b.push(u); M.push([0, 0, 0, x, y, 1, -v * x, -v * y]); b.push(v); }
+  for (let c = 0; c < 8; c++) {
+    let p = c; for (let r = c + 1; r < 8; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r;
+    [M[c], M[p]] = [M[p], M[c]]; [b[c], b[p]] = [b[p], b[c]];
+    for (let r = 0; r < 8; r++) { if (r === c) continue; const f = M[r][c] / M[c][c]; for (let k = c; k < 8; k++) M[r][k] -= f * M[c][k]; b[r] -= f * b[c]; }
+  }
+  const [a, bb, cc, d, e, f, g, hh] = b.map((v, i) => v / M[i][i]);
+  return `matrix3d(${[a, d, 0, g, bb, e, 0, hh, 0, 0, 1, 0, cc, f, 0, 1].join(",")})`;
+}
+const el = (tag, cls, html) => { const n = document.createElement(tag); if (cls) n.className = cls; if (html != null) n.innerHTML = html; return n; };
+const box = (n, { x, y, w, h }) => Object.assign(n.style, { left: `${x}px`, top: `${y}px`, width: `${w}px`, height: `${h}px` });
+
+const base = el("img", "base"); base.src = A("table.webp"); base.alt = "A candle-lit wooden table with a quest tome, a coin chest, dice, goblets, a framed map and more."; pic.append(base);
+for (const [id, [name, sub]] of Object.entries(PROPS)) {
+  if (!L.props[id]) continue;
+  const p = el("div", "prop"); p.dataset.prop = id; box(p, L.props[id]);
+  const img = el("img"); img.src = A(`props/${id}.webp`); img.alt = "";
+  p.append(img, el("span", "label", `<b>${name}</b><small>${sub}</small>`)); pic.append(p);
+}
+const open = el("img", "chest-open"); open.src = A("props/market-open.webp"); open.alt = ""; box(open, L.marketOpen); pic.append(open);
+
+const lines = QUESTS.flatMap(([q, steps]) => [`<li class="quest"><span class="tick"></span>${q}</li>`, ...steps.map(([s, done]) => `<li class="step ${done ? "done" : ""}"><span class="tick"></span>${s}</li>`)]);
+for (const [quad, flip] of [[L.tomeLeft, false], [L.tomeRight, true]]) {
+  const q = el("div", "quad page", (flip ? `<div class="flip"></div>` : "") + `<ul>${flip ? "" : lines.join("")}</ul>`);
+  Object.assign(q.style, { width: "300px", height: "410px", transform: homography(300, 410, quad) }); pic.append(q);
+}
+const title = el("div", "quad title-card", `<span class="title-text" contenteditable="plaintext-only" spellcheck="false">Session 14: Ash Above the Styx</span>`);
+Object.assign(title.style, { width: "700px", height: "150px", transform: homography(700, 150, L.title) }); pic.append(title);
+const ticks = Array.from({ length: 24 }, (_, i) => `<line x1="100" y1="12" x2="100" y2="${i % 6 ? 20 : 30}" stroke="#3b2410" stroke-width="3" transform="rotate(${i * 15} 100 100)"/>`).join("");
+const dial = el("div", "quad dial", `<svg viewBox="0 0 200 200"><path d="M100 100 L10 100 A90 90 0 0 1 190 100 Z" fill="#d9b45a" opacity=".55"/><path d="M100 100 L190 100 A90 90 0 0 1 10 100 Z" fill="#22304a" opacity=".7"/>${ticks}<circle cx="100" cy="42" r="10" fill="#f5c542"/><circle cx="100" cy="158" r="9" fill="#dfe6f0"/><line id="hand" x1="100" y1="100" x2="100" y2="22" stroke="#2a1a0c" stroke-width="6" stroke-linecap="round"/><circle cx="100" cy="100" r="7" fill="#8a6420"/></svg>`);
+Object.assign(dial.style, { width: "400px", height: "400px", transform: homography(400, 400, L.dial) }); pic.append(dial);
+const coin = el("span", "coin", "113 gp"); Object.assign(coin.style, { left: `${L.chestFront[0]}px`, top: `${L.chestFront[1]}px` }); pic.append(coin);
+PARTY.forEach(([name, lvl, cls, hp, purse], i) => {
+  const [x, y] = L.seats[i];
+  const s = el("button", "seat", `${name[0]}<span class="card"><b>${name}</b><span>Level ${lvl} ${cls}</span><span>HP ${hp}</span><span class="purse">${purse}</span></span>`);
+  s.type = "button"; s.setAttribute("aria-label", name); Object.assign(s.style, { left: `${x}px`, top: `${y}px` });
+  s.addEventListener("click", () => say(name, "Opens this character's sheet: in Foundry each player opens their own."));
+  pic.append(s);
+});
+const plaque = el("div", "plaque", "Party"); Object.assign(plaque.style, { left: `${(L.seats[0][0] + L.seats[2][0]) / 2}px`, top: `${L.seats[0][1] + 92}px` }); pic.append(plaque);
+
+// The dial runs a whole day in a minute here; in Foundry it follows the world's clock.
+let hour = 20; setInterval(() => { hour = (hour + 0.1) % 24; document.getElementById("hand").setAttribute("transform", `rotate(${((hour + 12) % 24) * 15} 100 100)`); }, 250);
+
+function fit() { pic.style.transform = `scale(${stage.clientWidth / 2560})`; }
+addEventListener("resize", fit); fit();
+
+let hit = null;
+(async () => { const img = new Image(); img.src = A("hit.webp"); await img.decode(); const c = new OffscreenCanvas(img.naturalWidth, img.naturalHeight), x = c.getContext("2d"); x.drawImage(img, 0, 0); hit = { w: c.width, h: c.height, d: x.getImageData(0, 0, c.width, c.height).data }; })();
+const ORDER = ["quests", "market", "games", "carouse", "map", "rumors", "downtime", "journals", "title", "dial", "recaps"];
+function propAt(ev) {
+  if (!hit) return null;
+  const r = pic.getBoundingClientRect(), x = Math.floor(((ev.clientX - r.left) / r.width) * hit.w), y = Math.floor(((ev.clientY - r.top) / r.height) * hit.h);
+  if (x < 0 || y < 0 || x >= hit.w || y >= hit.h) return null;
+  const id = ORDER[Math.round(hit.d[(y * hit.w + x) * 4] / 20) - 1] ?? null;
+  return PROPS[id] && L.props[id] ? id : null;
+}
+function light(id) {
+  if (pic.dataset.hot === (id ?? "")) return;
+  pic.dataset.hot = id ?? "";
+  for (const p of pic.querySelectorAll(".prop")) p.classList.toggle("hot", p.dataset.prop === id);
+  pic.style.cursor = id ? "pointer" : "";
+}
+pic.addEventListener("pointermove", (ev) => light(ev.target.closest(".seat, .title-text") ? null : propAt(ev)));
+pic.addEventListener("pointerleave", () => light(null));
+pic.addEventListener("click", (ev) => {
+  if (ev.target.closest(".seat, .title-text")) return;
+  const id = propAt(ev);
+  if (!id) return;
+  light(id);
+  if (id === "market" || id === "quests") { stage.classList.remove("opening-market", "opening-quests"); void stage.offsetWidth; stage.classList.add(`opening-${id}`); setTimeout(() => stage.classList.remove(`opening-${id}`), 2300); }
+  say(PROPS[id][0], PROPS[id][2]);
+});
+let timer = null;
+function say(head, text) { toast.innerHTML = `<b>${head}</b>${text}`; toast.classList.add("show"); clearTimeout(timer); timer = setTimeout(() => toast.classList.remove("show"), 4200); }
+</script>
+</body>
+</html>
