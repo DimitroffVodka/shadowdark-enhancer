@@ -8,12 +8,14 @@
  * `landing` flag (town-core.mjs). Opened from the Scenes directory's right-click menu.
  */
 import { MODULE_ID } from "../shared/module-id.mjs";
-import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { L as t } from "../shared/i18n.mjs";
+import { toCopper } from "../shared/coins.mjs";
+import { KINDS, SIZES, pickStock, stockItem } from "../merchant/stock-generator.mjs";
 import {
-  LANDING_FLAG, PLACE_IDS, PLACE_LABEL_KEYS, addMerchant, applyForm, landingOf, linkableNpcs, normalizeLanding,
+  PLACE_IDS, PLACE_LABEL_KEYS, addMerchant, applyForm, landingOf, linkableNpcs, mergeSave, normalizeLanding,
   removeMerchant, restockMerchant, waresCount,
 } from "./town-core.mjs";
+import { today, updateLanding } from "./town-live.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -29,6 +31,7 @@ export class TownEditorApp extends HandlebarsApplicationMixin(ApplicationV2) {
       removeMerchant: TownEditorApp.prototype._onRemoveMerchant,
       restockMerchant: TownEditorApp.prototype._onRestockMerchant,
       openStock: TownEditorApp.prototype._onOpenStock,
+      generateMerchant: TownEditorApp.prototype._onGenerateMerchant,
       save: TownEditorApp.prototype._onSave,
       cancel: TownEditorApp.prototype._onCancel,
     },
@@ -42,6 +45,8 @@ export class TownEditorApp extends HandlebarsApplicationMixin(ApplicationV2) {
   scene = null;
   saved = null;
   draft = null;
+  /** True while Generate is running, so a second click cannot make a second merchant. */
+  _generating = false;
 
   constructor({ scene, ...options } = {}) {
     super(options);
@@ -77,6 +82,8 @@ export class TownEditorApp extends HandlebarsApplicationMixin(ApplicationV2) {
       };
     });
     context.openCount = page.merchants.filter((m) => m.open).length;
+    context.kinds = KINDS.map((k) => ({ id: k.id, label: t(k.labelKey) }));
+    context.sizes = SIZES.map((z) => ({ id: z.id, label: t(z.labelKey), selected: z.id === "town" }));
     context.npcs = linkableNpcs(game.actors.contents, page).map((a) => ({ id: a.id, name: a.name }));
     return context;
   }
@@ -112,7 +119,7 @@ export class TownEditorApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   _onRestockMerchant(_event, target) {
-    this.draft = restockMerchant(this._collect(), target.dataset.merchantId);
+    this.draft = restockMerchant(this._collect(), target.dataset.merchantId, today());
     return this.render();
   }
 
@@ -120,10 +127,61 @@ export class TownEditorApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return game.actors.get(target.dataset.actorId)?.sheet?.render(true);
   }
 
+  /**
+   * Make an NPC that sells ordinary gear for the chosen kind and town size, and add it to the draft. The NPC is made
+   * at once, so cancelling the editor leaves it behind in its folder (the hint says so).
+   */
+  async _onGenerateMerchant(_event, target) {
+    if (!game.user.isGM || this._generating) return;
+    this._generating = true;
+    if (target) target.disabled = true;
+    try { return await this._generateMerchant(); }
+    finally { this._generating = false; if (target) target.disabled = false; }
+  }
+
+  async _generateMerchant() {
+    const form = this.element.querySelector("form");
+    const kind = KINDS.find((k) => k.id === form.querySelector("select[name=genKind]")?.value) ?? KINDS[0];
+    const size = form.querySelector("select[name=genSize]")?.value;
+    const { SHOP_PACKS } = await import("../bastion/bastion-shop.mjs");
+    const { inStock } = await import("../bastion/bastion-shop-core.mjs");
+    const pool = [];
+    for (const id of SHOP_PACKS) {
+      const pack = game.packs.get(id);
+      if (!pack) continue;
+      const index = await pack.getIndex({ fields: ["system.cost", "system.quantity", "system.magicItem", `flags.${MODULE_ID}.fromTreasureTable`, `flags.${MODULE_ID}.generated`] });
+      for (const entry of index.contents) {
+        if (kind.types.some((type) => inStock(entry, { type }))) pool.push({ uuid: entry.uuid, name: entry.name, type: entry.type, costCp: toCopper(entry.system.cost ?? {}) });
+      }
+    }
+    const picks = pickStock(pool, { kind: kind.id, size });
+    if (!picks.length) return ui.notifications.warn(t("SDE.town.editor.generateEmpty"));
+
+    const items = [];
+    for (const pick of picks) {
+      const doc = await fromUuid(pick.uuid).catch(() => null);
+      if (!doc) continue;
+      items.push(stockItem(doc.toObject(), pick.bundles));
+    }
+    const label = t(kind.labelKey), sceneName = this.scene?.name ?? "";
+    const folderName = t("SDE.town.editor.generateFolder", { scene: sceneName });
+    const folder = game.folders.find((f) => f.type === "Actor" && f.name === folderName) ?? await Folder.create({ name: folderName, type: "Actor" });
+    const actor = await Actor.create({ name: `${label}, ${sceneName}`, type: "NPC", folder: folder?.id ?? null });
+    if (!actor) return ui.notifications.error(t("SDE.town.editor.generateFailed"));
+    // The NPC is on the page either way (an orphan in its folder helps nobody); a short shelf is the GM's to fix on the NPC.
+    await actor.createEmbeddedDocuments("Item", items).catch((err) => console.error("Shadowdark Enhancer | generate merchant: items", err));
+    if (actor.items.size < items.length) ui.notifications.warn(t("SDE.town.editor.generateFailed"));
+
+    const page = addMerchant(this._collect(), actor.id, () => foundry.utils.randomID());
+    this.draft = normalizeLanding({ ...page, merchants: page.merchants.map((m) => (m.actorId === actor.id ? { ...m, role: label } : m)) });
+    ui.notifications.info(t("SDE.town.editor.generated", { name: actor.name, n: actor.items.size }));
+    return this.render();
+  }
+
   async _onSave() {
-    // The GM's switch for the table is not the editor's: a window left open must not put back a page they took away.
-    const page = { ...this._collect(), shown: landingOf(this.scene)?.shown ?? this.draft.shown };
-    await replaceModuleFlag(this.scene, LANDING_FLAG, page);
+    // A window left open must not put back a page the GM took away, or a shelf that was restocked meanwhile.
+    const draft = this._collect();
+    await updateLanding(this.scene, (live) => mergeSave(live, draft, this.saved, today()));
     ui.notifications.info(t("SDE.town.editor.saved"));
     return this.close();
   }

@@ -1,0 +1,58 @@
+<div class="ui-shell hd-hand hd-roulette">
+  <header class="ui-head">
+    <div class="ui-art tg-crest"><i class="fa-solid {{icon}}"></i></div>
+    <div class="ui-head-text">
+      <h2 class="ui-title">{{name}}</h2>
+      <p class="ui-sub">{{townName}} · {{localize "SDE.town.roulette.limit" max=limit}}</p>
+    </div>
+    <div class="ui-stats">
+      <div class="ui-stat"><span class="ui-label">{{localize "SDE.town.roulette.onBoard"}}</span><span class="ui-value">{{stake}}</span></div>
+      <div class="ui-stat"><span class="ui-label">{{localize "SDE.town.purse"}}</span><span class="ui-value tl-purse"><i class="fa-solid fa-coins"></i> {{purse}}</span></div>
+    </div>
+  </header>
+
+  <div class="ui-body">
+    {{#if last}}
+    <div class="ui-note {{last.tone}} hd-result" role="status">
+      {{#each last.lines}}<span>{{this}}</span>{{/each}}
+    </div>
+    {{/if}}
+
+    <section class="hd-felt">
+      <div class="hd-chips" role="group" aria-label="{{localize 'SDE.town.roulette.chip'}}">
+        <span class="ui-label">{{localize "SDE.town.roulette.chip"}}</span>
+        {{#each chips}}<button type="button" class="ui-chip{{#if on}} on{{/if}}" data-action="chip" data-chip="{{copper}}">{{label}}</button>{{/each}}
+        <span class="hd-spin">
+          <button type="button" class="ui-btn ghost" data-action="clear" {{#unless canSpin}}disabled{{/unless}}>{{localize "SDE.town.roulette.clear"}}</button>
+          <button type="button" class="ui-btn" data-action="spin" {{#unless canSpin}}disabled{{/unless}}><i class="fa-solid fa-bullseye"></i> {{localize "SDE.town.roulette.spin"}}</button>
+        </span>
+      </div>
+      <div class="rl-board">
+        {{#each rows}}
+        <div class="rl-row">
+          {{#each this}}
+          <div class="rl-spot{{#if won}} won{{/if}}{{#if ball}} ball{{/if}}{{#if chips}} has{{/if}}">
+            <button type="button" class="rl-bet" data-action="bet" data-pick="{{pick}}" title="{{pay}}">{{label}}</button>
+            {{#if chips}}<button type="button" class="rl-stack" data-action="unbet" data-pick="{{pick}}" title="{{localize 'SDE.town.roulette.take'}}">{{chips}} · {{stack}}</button>{{/if}}
+          </div>
+          {{/each}}
+        </div>
+        {{/each}}
+        <div class="rl-row rl-outside">
+          {{#each outside}}
+          <div class="rl-spot{{#if won}} won{{/if}}{{#if chips}} has{{/if}}">
+            <button type="button" class="rl-bet" data-action="bet" data-pick="{{pick}}">{{label}} <small>{{pay}}</small></button>
+            {{#if chips}}<button type="button" class="rl-stack" data-action="unbet" data-pick="{{pick}}" title="{{localize 'SDE.town.roulette.take'}}">{{chips}} · {{stack}}</button>{{/if}}
+          </div>
+          {{/each}}
+        </div>
+      </div>
+      <p class="ui-muted hd-hint">{{localize "SDE.town.roulette.hint"}}</p>
+    </section>
+  </div>
+
+  <footer class="ui-status tl-foot">
+    <span class="ui-muted">{{playerName}}</span>
+    <div class="ui-right"><button type="button" class="ui-btn ghost" data-action="back"><i class="fa-solid fa-arrow-left"></i> {{localize "SDE.town.hand.btn.back"}}</button></div>
+  </footer>
+</div>

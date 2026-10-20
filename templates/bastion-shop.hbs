@@ -22,7 +22,11 @@
       {{#each stock}}
       <div class="ui-row sde-bs-row bs-row" data-name="{{key}}">
         <img src="{{img}}" alt="">
-        <div class="ui-row-main"><span class="ui-row-name bs-name" title="{{name}}">{{name}}{{#if bundle}} <span class="ui-tag">{{bundle}}</span>{{/if}}</span><span class="ui-row-sub">{{localize "SDE.bastion.shop.list"}} {{list}}</span></div>
+        <div class="ui-row-main"><span class="ui-row-name bs-name" title="{{name}}">{{name}}{{#if bundle}} <span class="ui-tag">{{bundle}}</span>{{/if}}</span><span class="ui-row-sub">{{localize "SDE.bastion.shop.list"}} {{list}}</span>
+          {{#if facts.length}}<div class="bs-facts">{{#each facts}}<span class="ui-chip">{{this}}</span>{{/each}}</div>{{/if}}
+          {{#if blurb}}<p class="bs-blurb">{{blurb}}</p>{{/if}}
+          {{#if desc}}<details class="bs-more"><summary>{{localize "SDE.town.details"}}</summary><p>{{desc}}</p></details>{{/if}}
+        </div>
         <span class="ui-row-meta bs-price">{{price}}</span>
         <input type="number" name="qty" class="ui-num-in" value="1" min="1" max="99" aria-label="{{localize 'SDE.bastion.shop.buy'}}">
         <button type="button" class="ui-btn bs-buy" data-action="buy" data-uuid="{{uuid}}"><i class="fas fa-cart-plus"></i> {{localize "SDE.bastion.shop.buy"}}</button>

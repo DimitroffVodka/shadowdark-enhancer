@@ -310,3 +310,17 @@ test("a player keeps the Town tool while the stage hosts a page on a canvas scen
   e = await setup({ stage: { ...HOSTED, shown: false }, canvasId: "E", scenes });
   assert.deepEqual(tools(), []);
 });
+
+test("switching the page off leaves a games window seated at Liar's dice open (closing it would forfeit), and closes the rest", async () => {
+  const e = await setup();
+  const shut = [];
+  const win = (id, extra = {}) => e.instances.set(id, { close() { shut.push(id); }, ...extra });
+  win("sde-town"); win("sde-town-shop"); win("sde-town-log");
+  win("sde-town-games", { client: { part: { tableId: "T1" } } });
+  e.entry.closeTown();
+  assert.deepEqual(shut, ["sde-town", "sde-town-shop", "sde-town-log"]);
+  e.instances.get("sde-town-games").client.part = null; // away from the table, it closes with the page
+  e.entry.closeTown();
+  assert.equal(shut.filter((id) => id === "sde-town-games").length, 1);
+  e.restore();
+});

@@ -5477,6 +5477,10 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-ui.sde-merchant .ms-r-gamble { grid-template-columns: minmax(0, 1fr) 104px 96px; }
 .sde-ui.sde-merchant .ms-name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
 .sde-ui.sde-merchant .ms-row .ui-row-meta { text-align: right; white-space: nowrap; }
+.sde-ui.sde-merchant .ms-facts { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.sde-ui.sde-merchant .ms-facts .ui-chip { font-size: 11px; padding: 0 6px; }
+.sde-ui.sde-merchant .ms-blurb { margin: 2px 0 0; font-size: 12px; line-height: 1.4; color: var(--ui-muted); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.sde-ui.sde-merchant .ms-details { align-self: flex-start; margin-top: 2px; height: auto; padding: 0 6px; font-size: 11px; }
 .sde-ui.sde-merchant .ms-row .ms-stock { justify-self: center; }
 .sde-ui.sde-merchant .ms-r-gamble .ui-btn { width: 100%; padding: 0 6px; }
 .sde-ui.sde-merchant .sdems-item-desc { grid-column: 1 / -1; padding: 6px 2px 2px 38px; color: var(--ui-body); font-size: 12.5px; border-top: 1px dashed var(--ui-line); }
@@ -5547,6 +5551,10 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-ui.sde-bastion-shop .sde-bs-row { background: transparent; border-radius: 0; margin: 0; display: grid; grid-template-columns: 28px minmax(0, 1fr) 104px 56px 84px; align-items: center; gap: 10px; }
 .sde-ui.sde-bastion-shop .bs-name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
 .sde-ui.sde-bastion-shop .bs-price { text-align: right; white-space: nowrap; }
+.sde-ui.sde-bastion-shop .bs-facts { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.sde-ui.sde-bastion-shop .bs-facts .ui-chip { font-size: 11px; padding: 0 6px; }
+.sde-ui.sde-bastion-shop .bs-blurb, .sde-ui.sde-bastion-shop .bs-more p { margin: 2px 0 0; font-size: 12px; line-height: 1.4; color: var(--ui-muted); }
+.sde-ui.sde-bastion-shop .bs-more summary { cursor: pointer; font-size: 12px; color: var(--ui-muted); }
 .sde-ui.sde-bastion-shop .bs-row .ui-btn { width: 100%; padding: 0 6px; min-width: 0; }
 .sde-ui.sde-bastion-shop .sde-bs-row:hover { background: var(--ui-hover); }
 .sde-ui.sde-bastion-shop .bs-row .ui-num-in { width: 100% !important; }
@@ -5752,6 +5760,9 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-ui.sde-town-editor .te-add { display: flex; gap: 8px; align-items: center; }
 .sde-ui.sde-town-editor .te-add > select { flex: 1 1 auto; width: auto; }
 @container (max-width: 520px) { .sde-ui.sde-town-editor .te-nums { grid-template-columns: repeat(2, minmax(0, 1fr)); } .sde-ui.sde-town-editor .te-nums .ui-switch { justify-self: start; } }
+.sde-ui.sde-town-editor .te-generate { margin-top: 12px; align-items: end; }
+.sde-ui.sde-town-editor .te-generate .ui-field { flex: 1 1 0; min-width: 0; }
+.sde-ui.sde-town-editor .te-generate-hint { margin: 4px 0 0; font-size: 12px; }
 
 /* Town landing page and Town shop. Tokens only (the UI kit, sde-ui.css), except the landing menu, which keeps the dark book over a painting.
    The art is the module's own bastion illustrations, so a town looks finished before the GM uploads anything. */
@@ -5799,6 +5810,8 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-ui .tl-shop .ui-head > .tl-plaque { width: 84px; height: 84px; }
 .sde-ui .tl-shop .ui-title { font-size: 30px; }
 .sde-ui .tl-shop-sub { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 4px; }
+.sde-ui .tl-haggle-chip { border-color: var(--ui-frame); color: var(--ui-text); }
+.sde-ui .tl-haggle, .sde-ui .tl-pardon { height: 22px; padding: 0 8px; font-size: 11px; }
 .sde-ui .tl-purse { color: var(--ui-gold); white-space: nowrap; }
 .sde-ui .tl-cats { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .sde-ui .tl-cats button.ui-chip { cursor: pointer; font: inherit; font-size: 12px; }
@@ -5819,6 +5832,17 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-ui .tl-coin i { font: 600 10.5px/1 var(--ui-head); font-style: normal; text-transform: uppercase; letter-spacing: .06em; color: var(--ui-muted); }
 .sde-ui .tl-ware-foot { grid-area: foot; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .sde-ui .tl-ware-foot .tl-buy { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; }
+.sde-ui .tl-cart { flex: 0 0 auto; padding: 10px 14px; border-top: 1px solid var(--ui-frame); background: var(--ui-panel); display: flex; flex-direction: column; gap: 6px; max-height: 40%; overflow: auto; }
+.sde-ui .tl-cart-title { margin: 0; font: 600 11px/1 var(--ui-head); text-transform: uppercase; letter-spacing: .08em; color: var(--ui-muted); }
+.sde-ui .tl-cart-lines { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.sde-ui .tl-cart-line { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto auto auto; align-items: center; gap: 8px; }
+.sde-ui .tl-cart-line img { width: 24px; height: 24px; object-fit: contain; }
+.sde-ui .tl-cart-line .tl-price, .sde-ui .tl-cart-foot .tl-price { grid-area: auto; align-self: center; }
+.sde-ui .tl-cart-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ui-text); font-size: 13px; }
+.sde-ui .tl-step-n { min-width: 28px; text-align: center; font-variant-numeric: tabular-nums; color: var(--ui-text); }
+.sde-ui .tl-cart-foot { display: flex; align-items: center; gap: 10px; }
+.sde-ui .tl-cart-foot .ui-btn { margin-left: auto; }
+.sde-ui .tl-cart-foot .ui-btn + .ui-btn { margin-left: 0; }
 .sde-ui .tl-step { display: inline-flex; align-items: center; border: 1px solid var(--ui-line); border-radius: var(--ui-r); overflow: hidden; background: var(--ui-page); }
 .sde-ui .tl-step .ui-icon { width: 26px; height: 26px; border: 0; border-radius: 0; }
 .sde-ui .tl-step input { width: 36px !important; height: 26px; padding: 0; border: 0; border-left: 1px solid var(--ui-line); border-right: 1px solid var(--ui-line); border-radius: 0; background: transparent; text-align: center; font-variant-numeric: tabular-nums; }
@@ -5873,13 +5897,166 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-ui .tg-name { margin: 0; font: 400 21px/1.2 var(--ui-title); color: var(--ui-text); }
 .sde-ui .tg-rules { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--ui-body); }
 .sde-ui .tg-play { grid-area: play; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+/* A hand at a town table (Bluff, Brag): the dice on the felt, the step's choice and the log. */
+.sde-ui .hd-hand .ui-stats { gap: 18px; flex-wrap: wrap; }
+.sde-ui .hd-felt { display: flex; flex-direction: column; gap: 12px; padding: 14px; background: var(--ui-panel); border: 1px solid var(--ui-line); border-radius: var(--ui-r2); }
+.sde-ui .hd-seat { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; min-height: 52px; }
+.sde-ui .hd-who { flex: 0 0 110px; overflow-wrap: anywhere; }
+.sde-ui .hd-dice { display: flex; flex-wrap: wrap; gap: 8px; }
+.sde-ui .hd-die { --hd-pip: #1b1812; display: inline-grid; place-items: center; box-sizing: border-box; width: 46px; height: 46px; margin: 0; padding: 6px; background: #f4edd9; color: #1b1812; border: 1px solid rgba(0, 0, 0, 0.45); border-radius: 9px; box-shadow: 0 2px 0 rgba(0, 0, 0, 0.55); font: 700 21px/1 var(--ui-head); font-variant-numeric: tabular-nums; cursor: default; transition: transform 0.08s; }
+.sde-ui .hd-die:disabled { opacity: 1; color: #1b1812; }
+.sde-ui .hd-die.pips { grid-template: repeat(3, 1fr) / repeat(3, 1fr); gap: 1px; }
+.sde-ui .hd-die.pips i { display: block; margin: auto; width: 78%; aspect-ratio: 1; border-radius: 50%; background: transparent; }
+.sde-ui .hd-die[data-face="1"] i:nth-child(5),
+.sde-ui .hd-die[data-face="2"] :is(i:nth-child(1), i:nth-child(9)),
+.sde-ui .hd-die[data-face="3"] :is(i:nth-child(1), i:nth-child(5), i:nth-child(9)),
+.sde-ui .hd-die[data-face="4"] :is(i:nth-child(1), i:nth-child(3), i:nth-child(7), i:nth-child(9)),
+.sde-ui .hd-die[data-face="5"] :is(i:nth-child(1), i:nth-child(3), i:nth-child(5), i:nth-child(7), i:nth-child(9)),
+.sde-ui .hd-die[data-face="6"] :is(i:nth-child(1), i:nth-child(3), i:nth-child(4), i:nth-child(6), i:nth-child(7), i:nth-child(9)) { background: var(--hd-pip); }
+.sde-ui .hd-die.cup { background: var(--ui-page); color: var(--ui-muted); border: 1px dashed var(--ui-line); box-shadow: none; font: 400 20px/1 var(--ui-title); }
+.sde-ui .hd-die.cup:disabled { color: var(--ui-muted); }
+.sde-ui .hd-die.shown { box-shadow: 0 0 0 2px var(--ui-gold), 0 2px 0 rgba(0, 0, 0, 0.55); }
+.sde-ui .hd-die.pickable { cursor: pointer; }
+.sde-ui .hd-die.pickable:hover { box-shadow: 0 0 0 2px var(--ui-frame), 0 2px 0 rgba(0, 0, 0, 0.55); }
+.sde-ui .hd-die.picked { box-shadow: 0 0 0 3px var(--ui-text), 0 2px 0 rgba(0, 0, 0, 0.55); transform: translateY(-3px); }
+.sde-ui .hd-panel { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; background: var(--ui-raised); border: 1px solid var(--ui-frame); border-radius: var(--ui-r2); }
+.sde-ui .hd-prompt { margin: 0; font: 400 19px/1.2 var(--ui-title); color: var(--ui-text); }
+.sde-ui .hd-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.sde-ui .hd-result { display: flex; flex-direction: column; gap: 2px; font-size: 13.5px; }
+.sde-ui .hd-history { margin: 0; padding-left: 18px; font-size: 12.5px; line-height: 1.5; color: var(--ui-body); }
+.sde-ui .hd-bigdie { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 14px; }
+.sde-ui .hd-bigdie b { font: 400 40px/1 var(--ui-title); color: var(--ui-gold); }
+.sde-ui .hd-chain { display: flex; flex-wrap: wrap; align-items: stretch; gap: 6px; }
+.sde-ui .hd-roll { display: inline-flex; flex-direction: column; align-items: center; min-width: 54px; padding: 4px 8px; background: var(--ui-raised); border: 1px solid var(--ui-line); border-radius: var(--ui-r); }
+.sde-ui .hd-roll small { font-size: 10.5px; color: var(--ui-muted); }
+.sde-ui .hd-roll b { font: 400 22px/1.1 var(--ui-title); color: var(--ui-text); font-variant-numeric: tabular-nums; }
+.sde-ui .hd-roll i { font-size: 10.5px; font-style: normal; color: var(--ui-muted); }
+.sde-ui .hd-roll.mine { border-color: var(--ui-frame); }
+.sde-ui .hd-roll.one { background: var(--ui-gold-bg); border-color: var(--ui-gold); }
+.sde-ui .hd-roll.one b { color: var(--ui-gold); }
+.sde-ui .hd-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.sde-ui .hd-chips .ui-label { margin-right: 4px; }
+.sde-ui .hd-chips button.ui-chip { cursor: pointer; font: inherit; font-size: 12px; }
+.sde-ui .hd-chips button.ui-chip:hover { border-color: var(--ui-frame); color: var(--ui-text); }
+.sde-ui .hd-chips button.ui-chip.on { background: var(--ui-frame); border-color: var(--ui-frame); color: var(--ui-page); }
+.sde-ui .hd-hint { margin: 0; font-size: 12px; }
+.sde-ui .rl-board { display: flex; flex-direction: column; gap: 6px; }
+.sde-ui .rl-row { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.sde-ui .rl-row.rl-outside { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 6px; }
+.sde-ui .rl-spot { position: relative; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.sde-ui .rl-bet { box-sizing: border-box; width: 100%; height: 44px; margin: 0; padding: 0 6px; display: flex; align-items: center; justify-content: center; gap: 6px; background: var(--ui-raised); color: var(--ui-text); border: 1px solid var(--ui-line); border-radius: var(--ui-r); font: 400 20px/1 var(--ui-title); cursor: pointer; }
+.sde-ui .rl-bet small { font: 400 11px/1 var(--ui-body-font, inherit); color: var(--ui-muted); }
+.sde-ui .rl-outside .rl-bet { flex-direction: column; gap: 3px; height: 50px; font: 700 14px/1.1 var(--ui-head); }
+.sde-ui .hd-spin { display: inline-flex; gap: 6px; margin-left: auto; }
+.sde-ui .rl-bet:hover { border-color: var(--ui-frame); }
+.sde-ui .rl-spot.has .rl-bet { border-color: var(--ui-gold); }
+.sde-ui .rl-spot.won .rl-bet { background: var(--ui-gold-bg); border-color: var(--ui-gold); color: var(--ui-gold); }
+.sde-ui .rl-spot.ball .rl-bet { box-shadow: 0 0 0 2px var(--ui-text); }
+.sde-ui .rl-stack { box-sizing: border-box; width: 100%; margin: 0; padding: 2px 6px; background: transparent; color: var(--ui-gold); border: 1px dashed var(--ui-gold); border-radius: 999px; font: 700 11px/1.3 var(--ui-body-font, inherit); font-variant-numeric: tabular-nums; cursor: pointer; }
+.sde-ui .rl-stack:hover { background: var(--ui-gold-bg); }
+.sde-ui .bj-seat { flex-wrap: nowrap; align-items: center; padding: 4px 6px; border: 1px solid transparent; border-radius: var(--ui-r); }
+.sde-ui .bj-hand.active { border-color: var(--ui-gold); background: var(--ui-gold-bg); }
+.sde-ui .bj-cards { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.sde-ui .bj-card { box-sizing: border-box; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; width: 44px; height: 62px; background: #f4edd9; color: #1b1812; border: 1px solid rgba(0, 0, 0, 0.45); border-radius: 7px; box-shadow: 0 2px 0 rgba(0, 0, 0, 0.55); font-variant-numeric: tabular-nums; }
+.sde-ui .bj-card b { font: 700 20px/1 var(--ui-head); }
+.sde-ui .bj-card i { font: normal 700 20px/1 var(--ui-head); }
+.sde-ui .bj-card.red { color: #a3231b; }
+.sde-ui .bj-card.down { background: repeating-linear-gradient(45deg, var(--ui-raised) 0 5px, var(--ui-frame) 5px 7px); border-color: var(--ui-frame); }
+.sde-ui .bj-total { margin-left: 4px; font: 400 26px/1 var(--ui-title); color: var(--ui-gold); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sde-ui .bj-total small { margin-left: 6px; font: 700 11px/1 var(--ui-head); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ui-muted); }
+.sde-ui .bj-bet { margin-left: auto; font-size: 12.5px; color: var(--ui-muted); white-space: nowrap; }
+.sde-ui .bj-tag { padding: 2px 9px; border: 1px solid var(--ui-frame); border-radius: 999px; font: 700 11.5px/1.4 var(--ui-head); text-transform: capitalize; white-space: nowrap; }
+.sde-ui .bj-tag.good { background: var(--ui-gold-bg); border-color: var(--ui-gold); color: var(--ui-gold); }
+.sde-ui .bj-tag.bad { background: var(--ui-danger); border-color: var(--ui-danger); color: #fff; }
 .sde-ui .tg-result { display: flex; flex-direction: column; gap: 2px; font-size: 13.5px; }
 .sde-ui .tg-result b { font: 400 19px/1.2 var(--ui-title); color: var(--ui-text); }
+
+/* Liar's Dice: the match table inside the games window. The dice are ivory with pips, like real ones, and every control is dark
+   and outlined, so a die is never mistaken for a button. The table (cups, the bid on it, your dice) and your bid are two boxes. */
+.sde-ui .ld-table { display: flex; flex-direction: column; gap: 14px; }
+.sde-ui .ld-felt { display: flex; flex-direction: column; gap: 12px; padding: 14px; background: var(--ui-panel); border: 1px solid var(--ui-line); border-radius: var(--ui-r2); }
+.sde-ui .ld-seat { display: flex; align-items: center; gap: 12px; min-height: 48px; }
+.sde-ui .ld-seat .ui-label, .sde-ui .ld-row .ui-label { flex: 0 0 110px; overflow-wrap: anywhere; }
+.sde-ui .ld-dice, .sde-ui .ld-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.sde-ui .ld-die { --ld-pip: #1b1812; display: inline-grid; box-sizing: border-box; width: 46px; height: 46px; padding: 6px; margin: 0; background: #f4edd9; border: 1px solid rgba(0, 0, 0, 0.45); border-radius: 9px; box-shadow: 0 2px 0 rgba(0, 0, 0, 0.55), inset 0 -3px 0 rgba(0, 0, 0, 0.12); }
+.sde-ui .ld-die.pips { grid-template: repeat(3, 1fr) / repeat(3, 1fr); gap: 1px; }
+.sde-ui .ld-die.pips i { display: block; margin: auto; width: 78%; aspect-ratio: 1; border-radius: 50%; background: transparent; }
+.sde-ui .ld-die[data-face="1"] i:nth-child(5),
+.sde-ui .ld-die[data-face="2"] :is(i:nth-child(1), i:nth-child(9)),
+.sde-ui .ld-die[data-face="3"] :is(i:nth-child(1), i:nth-child(5), i:nth-child(9)),
+.sde-ui .ld-die[data-face="4"] :is(i:nth-child(1), i:nth-child(3), i:nth-child(7), i:nth-child(9)),
+.sde-ui .ld-die[data-face="5"] :is(i:nth-child(1), i:nth-child(3), i:nth-child(5), i:nth-child(7), i:nth-child(9)),
+.sde-ui .ld-die[data-face="6"] :is(i:nth-child(1), i:nth-child(3), i:nth-child(4), i:nth-child(6), i:nth-child(7), i:nth-child(9)) { background: var(--ld-pip); }
+.sde-ui .ld-die.hit { box-shadow: 0 0 0 2px var(--ui-text), 0 2px 0 rgba(0, 0, 0, 0.55); }
+.sde-ui .ld-die.miss { opacity: 0.4; }
+.sde-ui .ld-die.wild { --ld-pip: #b3261e; box-shadow: 0 0 0 2px var(--ui-gold), 0 2px 0 rgba(0, 0, 0, 0.55); }
+.sde-ui .ld-die.cup { place-items: center; color: var(--ui-muted); background: var(--ui-page); border: 1px dashed var(--ui-line); box-shadow: none; font: 400 20px/1 var(--ui-title); }
+.sde-ui .ld-bid { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; padding: 10px 12px; background: var(--ui-raised); border: 1px solid var(--ui-line); border-radius: var(--ui-r2); }
+.sde-ui .ld-bid-text { font: 700 26px/1 var(--ui-head); color: var(--ui-gold); }
+.sde-ui .ld-trail { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 4px; }
+.sde-ui .ld-panel { display: flex; flex-direction: column; gap: 12px; padding: 12px 14px; background: var(--ui-raised); border: 1px solid var(--ui-frame); border-radius: var(--ui-r2); }
+.sde-ui .ld-panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.sde-ui .ld-dial { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.sde-ui .ld-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.sde-ui .ld-dial .tl-step { align-items: center; }
+.sde-ui .ld-qty { min-width: 34px; text-align: center; font: 400 22px/1 var(--ui-title); font-variant-numeric: tabular-nums; color: var(--ui-text); }
+.sde-ui .ld-faces { display: flex; flex-wrap: wrap; gap: 6px; }
+.sde-ui .ld-chip { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; height: 30px; min-width: 40px; margin: 0; padding: 0 12px; border: 1px solid var(--ui-line); border-radius: 999px; background: transparent; color: var(--ui-body); font: 700 13px/1 var(--ui-head); cursor: pointer; }
+.sde-ui .ld-chip:hover { border-color: var(--ui-frame); color: var(--ui-text); }
+.sde-ui .ld-chip.on { background: var(--ui-frame); border-color: var(--ui-frame); color: var(--ui-page); }
+.sde-ui .ld-hint { margin: -6px 0 0; font-size: 12px; line-height: 1.4; }
+.sde-ui .ld-reveal { display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; }
+.sde-ui .ld-reveal b { font: 400 19px/1.2 var(--ui-title); color: var(--ui-text); }
+.sde-ui .ld-reveal .ld-die { width: 30px; height: 30px; padding: 4px; border-radius: 6px; }
+.sde-ui .ld-rows { display: flex; flex-direction: column; gap: 6px; }
+.sde-ui .ld-seat.turn { box-shadow: -3px 0 0 var(--ui-gold); padding-left: 8px; margin-left: -11px; }
+.sde-ui .ld-seat.out { opacity: 0.5; }
+.sde-ui .ld-felt .ld-seat:not(.ld-you) { min-height: 38px; }
+.sde-ui .ld-felt .ld-seat:not(.ld-you) .ld-die.cup { width: 32px; height: 32px; font-size: 16px; }
+.sde-ui .ld-felt .ld-seat:not(.ld-you) .ld-dice { gap: 6px; }
+@container (max-width: 560px) { .sde-ui .ld-felt .ld-seat:not(.ld-you) .ld-die.cup { width: 26px; height: 26px; font-size: 13px; } .sde-ui .ld-seat .ui-label { flex-basis: 84px; } }
+.sde-ui .ld-wait { flex-basis: 100%; margin: 0; font-size: 13px; color: var(--ui-gold); }
+.sde-ui .ld-setup, .sde-ui .ld-lobby { display: flex; flex-direction: column; gap: 14px; }
+.sde-ui .ld-setup-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; background: var(--ui-panel); border: 1px solid var(--ui-line); border-radius: var(--ui-r2); }
+.sde-ui .ld-slots { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.sde-ui .ld-slot { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--ui-panel); border: 1px solid var(--ui-line); border-radius: var(--ui-r2); }
+.sde-ui .ld-slot > i { width: 18px; text-align: center; color: var(--ui-frame); }
+.sde-ui .ld-slot.open { border-style: dashed; color: var(--ui-muted); }
+.sde-ui .ld-slot.ai { color: var(--ui-muted); }
+.sde-ui .ld-slot > span:first-of-type { flex: 1; }
+.sde-ui .ld-tables { display: flex; flex-direction: column; gap: 8px; }
+.sde-ui .ld-tablerow { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--ui-panel); border: 1px solid var(--ui-frame); border-radius: var(--ui-r2); }
+.sde-ui .ld-tname { flex: 1; font-weight: 700; color: var(--ui-text); }
+.sde-ui .ld-tname i { color: var(--ui-gold); margin-right: 4px; }
+.sde-ui .ld-history { margin: 0; padding-left: 18px; font-size: 12.5px; line-height: 1.5; color: var(--ui-body); }
+/* A new round: the dice tumble in one after another, the cups shake and the round label flashes (set by the window for about a second). */
+@keyframes ld-tumble { 0% { transform: translateY(-18px) rotate(-220deg) scale(0.75); opacity: 0.15; } 55% { transform: translateY(3px) rotate(24deg) scale(1.1); opacity: 1; } 100% { transform: none; } }
+@keyframes ld-shake { 0%, 100% { transform: none; } 20% { transform: translateX(-5px) rotate(-8deg); } 40% { transform: translateX(5px) rotate(8deg); } 60% { transform: translateX(-4px) rotate(-6deg); } 80% { transform: translateX(4px) rotate(5deg); } }
+@keyframes ld-flash { 0%, 100% { color: inherit; } 30%, 70% { color: var(--ui-gold); } }
+.sde-ui .ld-rolling .ld-seat .ld-die.pips { animation: ld-tumble 0.6s cubic-bezier(0.2, 0.7, 0.3, 1) both; box-shadow: 0 2px 0 rgba(0, 0, 0, 0.55); }
+.sde-ui .ld-rolling .ld-seat .ld-die.pips:nth-child(2) { animation-delay: 0.12s; }
+.sde-ui .ld-rolling .ld-seat .ld-die.pips:nth-child(3) { animation-delay: 0.24s; }
+.sde-ui .ld-rolling .ld-seat .ld-die.pips:nth-child(4) { animation-delay: 0.36s; }
+.sde-ui .ld-rolling .ld-seat .ld-die.pips:nth-child(5) { animation-delay: 0.48s; }
+.sde-ui .ld-rolling .ld-die.cup { animation: ld-shake 0.7s ease-in-out both; }
+.sde-ui .ld-rolling .ld-round { animation: ld-flash 1s ease-in-out; }
+.sde-ui .ld-rules { display: flex; flex-direction: column; gap: 14px; }
+.sde-ui .ld-rule h4 { margin: 0 0 4px; font: 400 18px/1.2 var(--ui-title); color: var(--ui-text); }
+.sde-ui .ld-rule p { margin: 0 0 6px; font-size: 13.5px; line-height: 1.5; color: var(--ui-body); }
+.sde-ui .ld-rule ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; line-height: 1.5; color: var(--ui-body); }
+.sde-ui .ld-rule li b { color: var(--ui-text); }
+.sde-ui .ld-example { padding: 12px 14px; background: var(--ui-panel); border: 1px solid var(--ui-line); border-left: 3px solid var(--ui-gold); border-radius: var(--ui-r2); }
+.sde-ui .ld-example .ld-dice { margin: 2px 0 8px; }
+.sde-ui .ld-how { margin-left: 6px; vertical-align: middle; }
+.sde-ui .ld-turn { margin: -6px 0 0; font-size: 13px; line-height: 1.4; color: var(--ui-text); }
+@media (prefers-reduced-motion: reduce) { .sde-ui .ld-rolling .ld-die, .sde-ui .ld-rolling .ld-round { animation: none; } }
 
 /* ── what a ware is: its facts and a short description on the card, the rest under Details ─────────── */
 .sde-ui .tl-facts { display: flex; flex-wrap: wrap; gap: 4px; }
 .sde-ui .tl-facts .ui-chip { font-size: 11px; padding: 0 6px; }
 .sde-ui .tl-blurb { margin: 0; font-size: 12px; line-height: 1.4; color: var(--ui-muted); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.sde-ui .tl-lots-h { margin: 16px 0 2px; }
+.sde-ui .tl-lots-hint { margin: 0 0 8px; font-size: 12px; }
 .sde-ui .tl-ware-more { grid-column: 2 / -1; display: flex; flex-direction: column; gap: 6px; padding-top: 8px; border-top: 1px dashed var(--ui-line); }
 .sde-ui .tl-ware-more .tl-ware-desc { padding: 0; border: 0; }
 .sde-ui .tl-rules { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; font-size: 12px; line-height: 1.45; color: var(--ui-body); }

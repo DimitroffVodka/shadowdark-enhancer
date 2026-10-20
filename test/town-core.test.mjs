@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import {
   PLACE_IDS, DEFAULT_PLACE_IDS, PLACE_LABEL_KEYS, GAME_DEFAULTS, normalizeGames, normalizeMerchant, normalizeLanding, landingOf, linkableNpcs, waresCount,
-  addMerchant, removeMerchant, restockMerchant, restockAll, applyForm, idOk, setShown,
+  addMerchant, removeMerchant, restockMerchant, restockAll, applyForm, idOk, setShown, mergeSave, autoRestock,
 } from "../scripts/town/town-core.mjs";
 
 const MOD = "shadowdark-enhancer";
@@ -20,10 +20,17 @@ test("a merchant needs a usable id and an NPC, and every value is kept in range"
   assert.equal(normalizeMerchant({ id: "m.1", actorId: "a1" }), null);
   assert.equal(normalizeMerchant({ id: "m 1", actorId: "a1" }), null);
   assert.equal(normalizeMerchant({ id: "m1" }), null);
-  assert.deepEqual(normalizeMerchant({ id: "m1", actorId: "a1" }), { id: "m1", actorId: "a1", role: "", pitch: "", open: true, rev: 0, buyMultiplier: 100, sellRatio: 50 });
+  assert.deepEqual(normalizeMerchant({ id: "m1", actorId: "a1" }), { id: "m1", actorId: "a1", role: "", pitch: "", open: true, rev: 0, buyMultiplier: 100, sellRatio: 50, restockDays: 0, restockedDay: null, haggle: true });
   const m = normalizeMerchant({ id: "m1", actorId: "a1", buyMultiplier: 9000, sellRatio: -5, rev: -3, open: false, role: "  Smith  " });
   assert.deepEqual([m.buyMultiplier, m.sellRatio, m.rev, m.open, m.role], [500, 0, 0, false, "Smith"]);
   assert.equal(normalizeMerchant({ id: "m1", actorId: "a1", buyMultiplier: "abc" }).buyMultiplier, 100);
+});
+
+test("the restock clock and haggle switch are kept in range: days 0-365, a day number or null, haggle on unless off", () => {
+  const m = (over) => normalizeMerchant({ id: "m1", actorId: "a1", ...over });
+  assert.deepEqual([m({ restockDays: 9999 }).restockDays, m({ restockDays: -2 }).restockDays, m({ restockDays: "7.4" }).restockDays, m({ restockDays: "x" }).restockDays], [365, 0, 7, 0]);
+  assert.deepEqual([m({ restockedDay: 120.9 }).restockedDay, m({ restockedDay: null }).restockedDay, m({ restockedDay: "" }).restockedDay, m({ restockedDay: "x" }).restockedDay, m({ restockedDay: 0 }).restockedDay], [120, null, null, null, 0]);
+  assert.deepEqual([m({}).haggle, m({ haggle: false }).haggle, m({ haggle: "on" }).haggle], [true, false, true]);
 });
 
 test("a landing page always has every field, keeps the places in order, and drops unusable merchants", () => {
@@ -150,6 +157,14 @@ test("the form folds into the page: texts, tiles, and each merchant's own fields
   assert.equal(out.merchants[0].actorId, "a1");
 });
 
+test("the form carries the restock days and the haggle checkbox (absent = off); the restock day is never typed in", () => {
+  const page = addMerchant(undefined, "a1", counter());
+  const on = applyForm(page, { "m.m1.restockDays": "7", "m.m1.haggle": "on", "m.m1.restockedDay": "999" });
+  assert.deepEqual([on.merchants[0].restockDays, on.merchants[0].haggle, on.merchants[0].restockedDay], [7, true, null]);
+  const off = applyForm(on, { "m.m1.restockDays": "7" });
+  assert.equal(off.merchants[0].haggle, false);
+});
+
 test("a merchant the form does not mention is left alone, and a bad number is clamped", () => {
   const make = counter();
   const page = restockMerchant(addMerchant(addMerchant(undefined, "a1", make), "a2", make), "m2");
@@ -163,4 +178,81 @@ test("every tile has a label in en.json", () => {
   const en = JSON.parse(fs.readFileSync(new URL("../languages/en.json", import.meta.url), "utf8"));
   assert.deepEqual(Object.keys(PLACE_LABEL_KEYS), [...PLACE_IDS, "games"]);   // the games table is an entry too, with its own switch
   for (const key of Object.values(PLACE_LABEL_KEYS)) assert.ok(en[key], key);
+});
+
+test("Save keeps a restock that landed while the editor was open, and the live switch", () => {
+  const make = counter();
+  const opened = addMerchant(addMerchant(undefined, "a1", make), "a2", make);
+  // the editor's draft: m1's days edited, m2 restocked by hand at day 30
+  let draft = applyForm(opened, { "m.m1.restockDays": "5", "m.m1.open": "on", "m.m2.open": "on" });
+  draft = restockMerchant(draft, "m2", 30);
+  // meanwhile the auto-restock raised m1 and m2, and the GM hid the page
+  const live = setShown(restockAll(opened, 20), false);
+  const out = mergeSave(live, draft, opened);
+  assert.equal(out.shown, false);
+  assert.deepEqual(out.merchants.map((m) => [m.rev, m.restockedDay, m.restockDays]), [[1, 20, 5], [2, 30, 0]]);   // m2: the live restock plus the GM's own
+});
+
+test("Save: a draft that did not restock takes the live clock; a higher draft revision is kept", () => {
+  const opened = addMerchant(undefined, "a1", () => "m1");
+  const live = restockAll(opened, 12);
+  assert.equal(mergeSave(live, opened, opened).merchants[0].restockedDay, 12);
+  assert.equal(mergeSave(live, restockMerchant(restockMerchant(opened, "m1", 40), "m1", 41), opened).merchants[0].rev, 3);
+  assert.equal(mergeSave(null, opened, opened).merchants[0].rev, 0);
+});
+
+const clocked = (days, over = {}) => normalizeLanding({ merchants: [{ id: "m1", actorId: "a1", restockDays: days, ...over }] });
+
+test("auto-restock: a merchant never stamped starts its clock and does not restock", () => {
+  const out = autoRestock(clocked(7), 100);
+  assert.equal(out.changed, true);
+  assert.deepEqual([out.landing.merchants[0].rev, out.landing.merchants[0].restockedDay], [0, 100]);
+});
+
+test("auto-restock: it waits for the interval, and a 30-day jump raises the revision exactly once", () => {
+  assert.equal(autoRestock(clocked(7, { restockedDay: 100 }), 106).changed, false);
+  const out = autoRestock(clocked(7, { restockedDay: 100 }), 107);
+  assert.deepEqual([out.changed, out.landing.merchants[0].rev, out.landing.merchants[0].restockedDay], [true, 1, 107]);
+  const jump = autoRestock(clocked(7, { restockedDay: 100 }), 130);
+  assert.deepEqual([jump.landing.merchants[0].rev, jump.landing.merchants[0].restockedDay], [1, 130]);
+  assert.equal(autoRestock(jump.landing, 130).changed, false);   // the same tick again does nothing
+});
+
+test("auto-restock: a clock set back is restamped; days 0 is never touched; each merchant on its own interval", () => {
+  const back = autoRestock(clocked(7, { restockedDay: 100 }), 50);
+  assert.deepEqual([back.changed, back.landing.merchants[0].rev, back.landing.merchants[0].restockedDay], [true, 0, 50]);
+  const hand = clocked(0, { restockedDay: 3 });
+  assert.deepEqual([autoRestock(hand, 9999).changed, autoRestock(hand, 9999).landing.merchants[0].restockedDay], [false, 3]);
+  const two = normalizeLanding({ merchants: [{ id: "m1", actorId: "a1", restockDays: 3, restockedDay: 10 }, { id: "m2", actorId: "a2", restockDays: 10, restockedDay: 10 }] });
+  assert.deepEqual(autoRestock(two, 13).landing.merchants.map((m) => m.rev), [1, 0]);
+});
+
+test("auto-restock: two scenes are two pages, each judged on its own clock", () => {
+  const a = clocked(5, { restockedDay: 0 }), b = clocked(5, { restockedDay: 3 });
+  assert.deepEqual([autoRestock(a, 5).changed, autoRestock(b, 5).changed], [true, false]);
+});
+
+test("Save: a manual Restock pressed after an auto-restock raises the live revision by one", () => {
+  const opened = addMerchant(undefined, "a1", () => "m1");                     // editor opens at rev 0
+  const live = restockAll(opened, 20);                                          // auto-restock on day 20: rev 1
+  const draft = restockMerchant(opened, "m1", 30);                              // GM presses Restock in the editor: draft rev 1
+  const out = mergeSave(live, draft, opened, 30).merchants[0];
+  assert.deepEqual([out.rev, out.restockedDay], [2, 30]);
+});
+
+test("Save: turning an interval on starts the clock today, from a null clock or from an old manual restock", () => {
+  const opened = addMerchant(undefined, "a1", () => "m1");
+  // A: never stamped, interval set on day 100
+  const a = mergeSave(opened, applyForm(opened, { "m.m1.restockDays": "7", "m.m1.open": "on" }), opened, 100).merchants[0];
+  assert.deepEqual([a.restockDays, a.restockedDay, a.rev], [7, 100, 0]);
+  assert.equal(autoRestock({ merchants: [a] }, 106).changed, false);
+  assert.equal(autoRestock({ merchants: [a] }, 107).landing.merchants[0].rev, 1);
+  // B: restocked by hand on day 10 at 0 days, then 30 days set on day 100: no restock at once
+  const handDone = restockMerchant(opened, "m1", 10);
+  const b = mergeSave(handDone, applyForm(handDone, { "m.m1.restockDays": "30", "m.m1.open": "on" }), handDone, 100).merchants[0];
+  assert.deepEqual([b.restockedDay, b.rev], [100, 1]);
+  assert.equal(autoRestock({ merchants: [b] }, 101).changed, false);
+  // an interval that was already on keeps its live clock
+  const running = mergeSave(restockAll(clocked(7, { restockedDay: 90 }), 95), clocked(7, { restockedDay: 90 }), clocked(7, { restockedDay: 90 }), 100).merchants[0];
+  assert.equal(running.restockedDay, 95);
 });

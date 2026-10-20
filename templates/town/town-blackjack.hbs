@@ -1,0 +1,59 @@
+<div class="ui-shell hd-hand hd-blackjack">
+  <header class="ui-head">
+    <div class="ui-art tg-crest"><i class="fa-solid {{icon}}"></i></div>
+    <div class="ui-head-text">
+      <h2 class="ui-title">{{name}}</h2>
+      <p class="ui-sub">{{townName}}</p>
+    </div>
+    <div class="ui-stats">
+      <div class="ui-stat"><span class="ui-label">{{localize "SDE.town.blackjack.stake"}}</span><span class="ui-value">{{put}}</span></div>
+      <div class="ui-stat"><span class="ui-label">{{localize "SDE.town.purse"}}</span><span class="ui-value tl-purse"><i class="fa-solid fa-coins"></i> {{purse}}</span></div>
+    </div>
+  </header>
+
+  <div class="ui-body">
+    <section class="hd-felt">
+      <div class="hd-seat bj-seat">
+        <span class="ui-label hd-who">{{localize "SDE.town.blackjack.dealer"}}</span>
+        <div class="bj-cards">
+          {{#each dealer.cards}}<span class="bj-card{{#if red}} red{{/if}}{{#if down}} down{{/if}}">{{#unless down}}<b>{{rank}}</b><i>{{suit}}</i>{{/unless}}</span>{{/each}}
+        </div>
+        {{#if dealer.total}}<span class="bj-total">{{dealer.total}}</span>{{/if}}
+      </div>
+      {{#each hands}}
+      <div class="hd-seat bj-seat bj-hand{{#if active}} active{{/if}}">
+        <span class="ui-label hd-who">{{label}}</span>
+        <div class="bj-cards">
+          {{#each cards}}<span class="bj-card{{#if red}} red{{/if}}"><b>{{rank}}</b><i>{{suit}}</i></span>{{/each}}
+        </div>
+        <span class="bj-total">{{total}}{{#if soft}}<small>{{localize "SDE.town.blackjack.tag.soft"}}</small>{{/if}}</span>
+        <span class="bj-bet">{{bet}}</span>
+        {{#if tag}}<span class="bj-tag {{tag.tone}}">{{tag.text}}</span>{{/if}}
+      </div>
+      {{/each}}
+    </section>
+
+    {{#if result}}
+    <div class="ui-note {{result.tone}} hd-result" role="status">
+      {{#each result.lines}}<span>{{this}}</span>{{/each}}
+    </div>
+    {{/if}}
+
+    <section class="hd-panel">
+      <p class="hd-prompt">{{prompt}}</p>
+      <div class="hd-actions">
+        {{#if controls.hit}}<button type="button" class="ui-btn" data-action="move" data-move="hit"><i class="fa-solid fa-hand-pointer"></i> {{localize "SDE.town.blackjack.btn.hit"}}</button>{{/if}}
+        {{#if controls.stand}}<button type="button" class="ui-btn" data-action="move" data-move="stand"><i class="fa-solid fa-hand"></i> {{localize "SDE.town.blackjack.btn.stand"}}</button>{{/if}}
+        {{#if controls.double}}<button type="button" class="ui-btn ghost" data-action="move" data-move="double" {{#if controls.double.disabled}}disabled{{/if}}>{{controls.double.label}}</button>{{/if}}
+        {{#if controls.split}}<button type="button" class="ui-btn ghost" data-action="move" data-move="split" {{#if controls.split.disabled}}disabled{{/if}}>{{controls.split.label}}</button>{{/if}}
+        {{#if controls.collect}}<button type="button" class="ui-btn" data-action="collect"><i class="fa-solid fa-coins"></i> {{localize "SDE.town.hand.btn.collect"}}</button>{{/if}}
+        {{#if controls.over}}<button type="button" class="ui-btn" data-action="again"><i class="fa-solid fa-diamond"></i> {{localize "SDE.town.blackjack.btn.again"}}</button>{{/if}}
+      </div>
+    </section>
+  </div>
+
+  <footer class="ui-status tl-foot">
+    <span class="ui-muted">{{playerName}}</span>
+    <div class="ui-right"><button type="button" class="ui-btn ghost" data-action="back"><i class="fa-solid fa-arrow-left"></i> {{localize "SDE.town.hand.btn.back"}}</button></div>
+  </footer>
+</div>

@@ -1,0 +1,68 @@
+<div class="ui-shell hd-hand">
+  <header class="ui-head">
+    <div class="ui-art tg-crest"><i class="fa-solid {{icon}}"></i></div>
+    <div class="ui-head-text">
+      <h2 class="ui-title">{{name}}</h2>
+      <p class="ui-sub">{{townName}} · {{localize "SDE.town.hand.round" n=round of=rounds}}</p>
+    </div>
+    <div class="ui-stats">
+      <div class="ui-stat"><span class="ui-label">{{localize "SDE.town.hand.pot"}}</span><span class="ui-value">{{pot}}</span></div>
+      <div class="ui-stat"><span class="ui-label">{{localize "SDE.town.hand.in"}}</span><span class="ui-value">{{put}}</span></div>
+      <div class="ui-stat"><span class="ui-label">{{localize "SDE.town.purse"}}</span><span class="ui-value tl-purse"><i class="fa-solid fa-coins"></i> {{purse}}</span></div>
+    </div>
+  </header>
+
+  <div class="ui-body">
+    <section class="hd-felt">
+      {{#each rows}}
+      <div class="hd-seat">
+        <span class="ui-label hd-who">{{label}}</span>
+        <div class="hd-dice">
+          {{#each dice}}
+          <button type="button" class="hd-die {{#if d10}}num{{else}}pips{{/if}}{{#unless face}} cup{{/unless}}{{#if shown}} shown{{/if}}{{#if picked}} picked{{/if}}{{#if pickable}} pickable{{/if}}" data-i="{{i}}" data-face="{{face}}" {{#if pickable}}data-action="pick"{{else}}disabled tabindex="-1"{{/if}}>{{#if face}}{{#if d10}}{{face}}{{else}}<i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>{{/if}}{{else}}?{{/if}}</button>
+          {{/each}}
+        </div>
+      </div>
+      {{/each}}
+    </section>
+
+    {{#if result}}
+    <div class="ui-note {{result.tone}} hd-result" role="status">
+      {{#each result.lines}}<span>{{this}}</span>{{/each}}
+    </div>
+    {{/if}}
+
+    <section class="hd-panel">
+      <p class="hd-prompt">{{prompt}}</p>
+      <div class="hd-actions">
+        {{#if controls.reveal}}
+        <button type="button" class="ui-btn" data-action="show" {{#unless controls.reveal.ready}}disabled{{/unless}}><i class="fa-solid fa-eye"></i> {{localize "SDE.town.hand.btn.show"}}</button>
+        {{/if}}
+        {{#if controls.draw}}
+        <button type="button" class="ui-btn" data-action="reroll"><i class="fa-solid fa-dice"></i> {{controls.draw.label}}</button>
+        {{/if}}
+        {{#each controls.bet}}
+        <button type="button" class="ui-btn{{#if ghost}} ghost{{/if}}" data-action="move" data-move="{{type}}" {{#if disabled}}disabled{{/if}}>{{label}}</button>
+        {{/each}}
+        {{#if controls.collect}}
+        <button type="button" class="ui-btn" data-action="collect"><i class="fa-solid fa-coins"></i> {{localize "SDE.town.hand.btn.collect"}}</button>
+        {{/if}}
+        {{#if controls.over}}
+        <button type="button" class="ui-btn" data-action="again"><i class="fa-solid fa-dice"></i> {{localize "SDE.town.hand.btn.again"}}</button>
+        {{/if}}
+      </div>
+    </section>
+
+    {{#if log.length}}
+    <section class="ui-group hd-log">
+      <h3 class="ui-h"><span>{{localize "SDE.town.hand.log"}}</span></h3>
+      <ol class="hd-history">{{#each log}}<li>{{this}}</li>{{/each}}</ol>
+    </section>
+    {{/if}}
+  </div>
+
+  <footer class="ui-status tl-foot">
+    <span class="ui-muted">{{playerName}}</span>
+    <div class="ui-right"><button type="button" class="ui-btn ghost" data-action="back"><i class="fa-solid fa-arrow-left"></i> {{localize "SDE.town.hand.btn.back"}}</button></div>
+  </footer>
+</div>

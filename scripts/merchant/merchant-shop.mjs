@@ -27,6 +27,7 @@ import {
 } from "../loot/loot-pack.mjs";
 import { resolveInlineSubroll } from "../loot/subroll.mjs";
 import { IMPORTED_ITEMS_PACK, isShopType, isCatalogStock } from "./catalog-stock.mjs";
+import { loadPropertyNames, factsOf } from "./property-names.mjs";
 import { bundleOf, buyUnits, buyCopper, sellCopper, sanitizeQty } from "./shop-core.mjs";
 // Downtime's "extortion" outcome arms a ONE-SHOT ±25% swing on a single
 // character. It is deliberately per-actor (an actor flag) rather than a tweak
@@ -1770,6 +1771,7 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // character's one-shot downtime extortion swing is applied here too.
     const mult = this._buyMultiplier / 100;
     const extortion = readExtortion(playerActor);
+    await loadPropertyNames([...(this._inventory || []).map(e => e.itemData), ...(playerActor?.items ?? [])]);
     const inventory = (this._inventory || []).map(entry => {
       // One bundle, or what is left of one (_buyUnits): 13 arrows show their share of the bundle price.
       const bundle = _bundleOf(entry.itemData);
@@ -1781,6 +1783,7 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const outOfStock = entry.stock === 0;
       return {
         ...entry,
+        ...factsOf(entry.itemData, (k, d) => (d ? game.i18n.format(k, d) : game.i18n.localize(k))),
         priceDisplay: _formatPrice(adjustedCost),
         stockDisplay: entry.stock === -1 ? "∞" : String(entry.stock),
         unlimited: entry.stock === -1,
@@ -1857,6 +1860,7 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
             sellPriceDisplay: _formatPrice(sellPrice),
             sellPriceCopper: _toCopper(sellPrice),
             isJunk: !!i.getFlag(MODULE_ID, "junk"),
+            ...factsOf(i, (k, d) => (d ? game.i18n.format(k, d) : game.i18n.localize(k))),
           };
         })
         .sort((a, b) => {
@@ -1927,11 +1931,13 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
         filtered.sort((a, b) => a.name.localeCompare(b.name));
       }
 
-      // Enrich with affordability
-      catalogItems = filtered.map(e => {
+      // Enrich with affordability and the ware's facts
+      await loadPropertyNames(filtered.map(e => e.ware));
+      catalogItems = filtered.map(({ ware, ...e }) => {
         const adjCopper = applyExtortion(Math.round(e.copperValue * mult), extortion, "buy").copper;
         return {
           ...e,
+          ...factsOf(ware, (k, d) => (d ? game.i18n.format(k, d) : game.i18n.localize(k))),
           priceDisplay: _formatPrice(_fromCopper(adjCopper)),
           canAfford: walletCopper >= adjCopper,
         };
@@ -2106,7 +2112,7 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
       if (!pack) continue;
 
       const index = await pack.getIndex({
-        fields: ["system.cost", `flags.${MODULE_ID}.fromTreasureTable`, `flags.${MODULE_ID}.generated`],
+        fields: ["system.cost", "system.type", "system.range", "system.damage", "system.ac", "system.slots", "system.properties", "system.description", `flags.${MODULE_ID}.fromTreasureTable`, `flags.${MODULE_ID}.generated`],
       });
       const packLabel = pack.metadata.label;
 
@@ -2124,6 +2130,7 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
           uuid: entry.uuid,
           img: entry.img,
           cost,
+          ware: entry,   // the index row, for the fact chips (not shown as is)
           copperValue: _toCopper(cost),
           packId,
           packLabel,
@@ -2156,12 +2163,8 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     // ── Item row interactions (all tabs) ──
 
-    // Single click: toggle inline description
-    on(".sdems-item-row", "click", async (ev) => {
-      // Ignore clicks on buttons, inputs, or actions area
-      if (ev.target.closest(".sdems-item-actions") || ev.target.closest("button") || ev.target.closest("input")) return;
-
-      const row = ev.currentTarget;
+    // Single click, or the Details button: toggle inline description
+    const toggleDesc = async (row) => {
       const existing = row.querySelector(".sdems-item-desc");
       if (existing) {
         existing.remove();
@@ -2170,21 +2173,32 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
       // Get UUID from row
       const uuid = row.dataset.itemUuid || this._getUuidForRow(row);
-      if (!uuid) return;
+      if (!uuid || row.dataset.loading) return;   // a second click while the first is still loading
 
-      const doc = await fromUuid(uuid);
-      if (!doc) return;
+      row.dataset.loading = "1";
+      try {
+        const doc = await fromUuid(uuid);
+        if (!doc) return;
 
-      const desc = doc.system?.description;
-      const enriched = desc
-        ? await foundry.applications.ux.TextEditor.enrichHTML(desc, { relativeTo: doc })
-        : `<em>${game.i18n.localize("SDE.merchant.noDescription")}</em>`;
+        const desc = doc.system?.description;
+        const enriched = desc
+          ? await foundry.applications.ux.TextEditor.enrichHTML(desc, { relativeTo: doc })
+          : `<em>${game.i18n.localize("SDE.merchant.noDescription")}</em>`;
 
-      const descEl = document.createElement("div");
-      descEl.className = "sdems-item-desc";
-      descEl.innerHTML = enriched;
-      row.appendChild(descEl);
+        const descEl = document.createElement("div");
+        descEl.className = "sdems-item-desc";
+        descEl.innerHTML = enriched;
+        row.appendChild(descEl);
+      } finally {
+        delete row.dataset.loading;
+      }
+    };
+    on(".sdems-item-row", "click", (ev) => {
+      // Ignore clicks on buttons, inputs, or actions area
+      if (ev.target.closest(".sdems-item-actions") || ev.target.closest("button") || ev.target.closest("input")) return;
+      return toggleDesc(ev.currentTarget);
     });
+    on(".sdems-details-btn", "click", (ev) => toggleDesc(ev.currentTarget.closest(".sdems-item-row")));
 
     // Double click: open the full item sheet
     on(".sdems-item-row", "dblclick", async (ev) => {

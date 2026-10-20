@@ -120,6 +120,7 @@ import { registerQuestNotices } from "./quests/quest-notices.mjs";
 import { Troubles, registerTroubles } from "./troubles/troubles.mjs";
 import { Rumors, registerRumors } from "./rumors/rumors.mjs";
 import { registerTownEntryPoints } from "./town/town-entry-points.mjs";
+import { registerTownRestock } from "./town/town-restock.mjs";
 import { registerActorTypes, WARBAND_TYPE } from "./actors/register-actors.mjs";
 import { bastionApi } from "./bastion/register-bastion.mjs";
 import { registerTraps, trapsApi } from "./traps/traps.mjs";
@@ -144,7 +145,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "172219008244";
+const STYLESHEET_REV = "128a0b66dc17";
 
 // The same problem for the SCRIPTS, which cannot be solved the same way: their
 // URLs come from the manifest, which Foundry validates as real package paths,
@@ -159,7 +160,7 @@ const STYLESHEET_REV = "172219008244";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "e989853e049c";
+const BUILD_REV = "d237dd331fe9";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -402,6 +403,7 @@ Hooks.once("init", () => {
   registerRumors();
   // Town landing page: the GM's "Landing page" entry in the Scenes directory menu.
   registerTownEntryPoints();
+  registerTownRestock();
 
   // Handlebars helpers
   Handlebars.registerHelper("includes", (arr, val) => {
@@ -1167,6 +1169,18 @@ async function wireBattleMaps(name, load) {
 const preloadSocket = import("./encounter/battle-maps/encounter-preload.mjs");
 preloadSocket.catch(() => {}); // not an unhandled rejection: wireBattleMaps logs it when `setup` awaits it
 Hooks.once("setup", () => wireBattleMaps("registerPreloadSocket", () => preloadSocket));
+
+// Liar's Dice tables talk over the module's socket channel, and a person may open one while another is still loading, so
+// the listener goes in at `setup` for the same reason as the preload one above. It reads nothing but the message; the
+// file that acts on it (and holds the table logic) is loaded only when a message arrives or the games window is used.
+Hooks.once("setup", () => {
+  game.socket.on(`module.${MODULE_ID}`, (msg, senderId) => {
+    if (msg?.action === "liars") import("./town/liars-dice-live.mjs").then((m) => m.onLiarsMessage(msg, senderId)).catch((err) => console.error(`${MODULE_ID} | liar's dice`, err));
+  });
+  Hooks.on("userConnected", (user, active) => {
+    if (!active) import("./town/liars-dice-live.mjs").then((m) => m.onUserGone(user.id)).catch(() => {});
+  });
+});
 
 Hooks.once("ready", () => {
   console.log(`${MODULE_ID} | ready`);

@@ -74,6 +74,11 @@
           <label class="ui-field"><span class="ui-label">{{localize "SDE.town.editor.buyback"}}</span><input type="number" name="m.{{id}}.sellRatio" value="{{sellRatio}}" min="0" max="100" step="5"></label>
           <label class="ui-switch"><input type="checkbox" name="m.{{id}}.open" {{checked open}}><span>{{localize "SDE.town.editor.open"}}</span></label>
         </div>
+        <div class="te-nums">
+          <label class="ui-field" data-tooltip="{{localize 'SDE.town.editor.restockEveryTip'}}"><span class="ui-label">{{localize "SDE.town.editor.restockEvery"}}</span><input type="number" name="m.{{id}}.restockDays" value="{{restockDays}}" min="0" max="365" step="1"></label>
+          <span></span>
+          <label class="ui-switch"><input type="checkbox" name="m.{{id}}.haggle" {{checked haggle}}><span>{{localize "SDE.town.editor.haggle"}}</span></label>
+        </div>
       </article>
       {{else}}
       <div class="ui-empty"><i class="fa-solid fa-store-slash"></i><span>{{localize "SDE.town.editor.none"}}</span></div>
@@ -90,6 +95,15 @@
       {{else}}
       <p class="ui-note info">{{localize "SDE.town.editor.noNpcs"}}</p>
       {{/if}}
+
+      <div class="te-add te-generate">
+        <label class="ui-field"><span class="ui-label">{{localize "SDE.town.editor.generateKind"}}</span>
+          <select name="genKind">{{#each kinds}}<option value="{{id}}">{{label}}</option>{{/each}}</select></label>
+        <label class="ui-field"><span class="ui-label">{{localize "SDE.town.editor.generateSize"}}</span>
+          <select name="genSize">{{#each sizes}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></label>
+        <button type="button" class="ui-btn" data-action="generateMerchant"><i class="fa-solid fa-wand-magic-sparkles"></i> {{localize "SDE.town.editor.generate"}}</button>
+      </div>
+      <p class="ui-muted te-generate-hint">{{localize "SDE.town.editor.generateHint"}}</p>
     </section>
   </div>
 
