@@ -2193,9 +2193,9 @@ the day without a camp. It then opens the next dawn, up to fourteen days, and
 walks on once the way opens or stops and says why. A day's catch-up check that
 draws a creature pauses the days for the GM, as any encounter does.
 `overland.travelBlocked({ i, j })`
-(active GM) answers `"storm"`, `"weather"`, `"terrain"` or `null` for a
-destination; `"weather"` is worth retrying at dawn, `"terrain"` is permanent and
-stops the journey.
+answers `"terrain"`, `"storm"`, `"weather"` or `null` for a destination, on any
+tab; the ground is checked first, so `"terrain"` is permanent and stops the
+journey, while `"storm"` and `"weather"` are worth retrying at dawn.
 
 A player who moves the party, sets an automatic destination, starts its day, or
 camps must own the **party sheet** (the Party actor), not merely the travel token.
@@ -2513,7 +2513,7 @@ scene's choice changes, and once on load.
   `overland.setPace`; `overland.startDay` reads the method and the pace when they're left out.
   `overland.makeCamp` makes the camp before the night (with Shadowdark Extras' `deferRest` and
   `camping.dawn`) and needs an open travel day, and the state gains `camp` and the held encounter `interrupts`.
-- `1.36.0` adds `overland.travelBlocked({ i, j })`, why the party cannot enter a destination today (`"storm"`, `"weather"`, `"terrain"` or `null`); the automatic journey's day-walking. `"weather"` is worth retrying at dawn; `"terrain"` is permanent and stops the journey.
+- `1.36.0` adds `overland.travelBlocked({ i, j })`, why the party cannot enter a destination today (`"storm"`, `"weather"`, `"terrain"` or `null`); the automatic journey's day-walking. `"storm"` and `"weather"` are worth retrying at dawn; `"terrain"` is checked first, is permanent and stops the journey.
 - `1.35.0` remembers the automatic journey's destination as `autoGoal` and adds `overland.setAutoGoal` / `overland.resumeAutoTravel`, so a stop at a keyed location or another interruption can be picked up with Travel > Resume auto.
 - `1.34.0` adds `overland.setAutoTravel`, the standing automatic-journey switch; the travel state gains `auto`.
 - `1.33.0` adds `encounter.openCodex()`, the players' Encounters Met journal.

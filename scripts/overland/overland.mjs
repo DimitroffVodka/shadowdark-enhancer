@@ -873,9 +873,10 @@ export function moveSteps(doc, grid, origin, waypoints, read) {
 export function travelStepCost() { return costToday(); }
 
 /**
- * Why the party cannot enter `goal` from where it stands, if it cannot: "storm", when a storm on harsh
- * ground closes every hex, "weather" when only today's weather closes the hex, or "terrain" when its
- * ground is impassable even in fair weather. Priced the way a move is, so the answer matches what a
+ * Why the party cannot enter `goal` from where it stands, if it cannot: "terrain" when its ground is
+ * impassable even in fair weather (checked first, and permanent), "storm" when a storm on harsh ground
+ * closes every hex, or "weather" when only today's weather closes the hex; "storm" and "weather" are
+ * worth retrying at dawn. Priced the way a move is, so the answer matches what a
  * walk would be refused with.
  * @param {{i:number, j:number}} goal  a grid offset on the travel token's scene
  * @returns {Promise<"storm"|"weather"|"terrain"|null>}
@@ -890,13 +891,14 @@ function blockedToday(goal) {
   if (!hex) return null;
   // Ground first: a river, lava or a closed pass is impassable in fair weather too, so waiting out
   // a storm for it will never help.
-  const calm = costToday({ stormy: false, harsh: false })(hex, _state.hex);
+  // A terrain the rules don't know prices null, and a move pays 1 for it: so does this.
+  const calm = costToday({ stormy: false, harsh: false })(hex, _state.hex) ?? 1;
   if (!Number.isFinite(calm)) return "terrain";
   // A storm on harsh ground closes the whole map; otherwise a hex closed only by today's weather
   // opens when the weather does.
   const today = overlandState();
   if (today.stormy && today.harsh) return "storm";
-  return Number.isFinite(costToday()(hex, _state.hex)) ? null : "weather";
+  return Number.isFinite(costToday()(hex, _state.hex) ?? 1) ? null : "weather";
 }
 
 /**
@@ -1767,6 +1769,8 @@ export function applyAction(data, user) {
 }
 
 /** The table notices another client may raise over the socket. */
+/** The most days an automatic journey waits for its way to open before it gives up. */
+export const AUTO_WAIT_DAYS = 14;
 const SOCKET_NOTICES = new Set(["SDE.overland.notify.forageImpossible"]);
 /** Why a walked-out day halted, as the "autoDays" socket message may say it. */
 const AUTO_HALTS = new Set([null, "storm", "terrain", "weather"]);
@@ -1779,7 +1783,7 @@ export function registerOverland() {
     // The active GM's day of a journey it was walking out: every tab says which day, or why it cannot.
     // Socket payloads are forgeable: a whole number of days and a known halt only.
     if (msg?.type === "autoDays" && !isActiveGM() && AUTO_HALTS.has(msg.halted ?? null)) {
-      const days = Math.max(0, Math.trunc(Number(msg.days)) || 0);
+      const days = Math.min(AUTO_WAIT_DAYS, Math.max(0, Math.trunc(Number(msg.days)) || 0));
       ui.notifications?.info(t(msg.halted ? "SDE.route.autoNoWalk" : "SDE.route.autoDays", { days, reason: t(msg.halted === "storm" ? "SDE.route.autoStorm" : "SDE.route.autoTerrain") }));
     }
     // A shared table notice (for example, a storm forbids the day's automatic forage).

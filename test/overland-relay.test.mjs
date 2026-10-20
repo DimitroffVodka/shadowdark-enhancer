@@ -1785,7 +1785,8 @@ test("an autoDays socket message shows only a whole number of days and a known h
     handler({ type: "autoDays", days: "9999 <b>days</b>", halted: null });
     handler({ type: "autoDays", days: 2.7, halted: "the GM says" });
     handler({ type: "autoDays", days: 3, halted: "storm" });
-    assert.deepEqual(shown, ["SDE.route.autoDays 0", "SDE.route.autoNoWalk 3"]);
+    handler({ type: "autoDays", days: "1e400", halted: null });
+    assert.deepEqual(shown, ["SDE.route.autoDays 0", "SDE.route.autoNoWalk 3", "SDE.route.autoDays 14"]);
   } finally {
     globalThis.ui.notifications.info = info; globalThis.game.i18n.format = format;
     globalThis.game.socket = socket; globalThis.game.user = user;
@@ -1807,5 +1808,21 @@ test("a destination that never opens reads as its ground, not as the storm, in a
   try {
     assert.equal(await travelBlocked({ i: 3, j: 0 }), "terrain");
     assert.equal(await travelBlocked({ i: 4, j: 0 }), "storm");
+  } finally { globalThis.game.journal = journal; }
+});
+
+test("a destination whose terrain the rules do not know is walkable, as a move prices it (#551 review)", async () => {
+  campWorld({ climate: { harsh: "storm" } });
+  dice.push(1, 12, 12, 12, 12);                    // a stormy dawn, in a climate harsh in storms
+  await applyAction({ action: "startDay", method: "walking" }, gm);
+  const scene = { id: "s", grid: { isHexagonal: true, getCenterPoint: () => ({ x: 0, y: 0 }) }, getFlag: () => null };
+  stored.overlandState = { ...stored.overlandState, tokenUuid: "Scene.s.Token.t" };
+  registerOverland();
+  globalThis.fromUuidSync = (uuid) => (uuid === "Scene.s.Token.t" ? { parent: scene } : null);
+  const journal = globalThis.game.journal;
+  globalThis.game.journal = { getName: () => ({ flags: { "shadowdark-extras": { hexData: { s: { "5_0": { terrain: "swampland" } } } } } }) };
+  globalThis.game.shadowdarkEnhancer.rules.terrainCost = () => null;
+  try {
+    assert.equal(await travelBlocked({ i: 5, j: 0 }), "storm");   // the storm waits, the ground is not "never"
   } finally { globalThis.game.journal = journal; }
 });

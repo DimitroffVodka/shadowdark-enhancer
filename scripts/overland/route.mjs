@@ -16,7 +16,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { CrawlState } from "../crawl-strip/crawl-state.mjs";
 import { isHexMapScene, hexReader } from "../encounter/encounter-terrain.mjs";
 import { cheapestRoute } from "./overland-state-core.mjs";
-import { overlandState, travelStepCost, travelSettled, fastTravel, chainLeadMs, makeCamp, autoStartDay, travelBlocked, OVERLAND_CHANGED, setAutoGoal, travelParty } from "./overland.mjs";
+import { overlandState, travelStepCost, travelSettled, fastTravel, chainLeadMs, makeCamp, autoStartDay, travelBlocked, AUTO_WAIT_DAYS, OVERLAND_CHANGED, setAutoGoal, travelParty } from "./overland.mjs";
 import { campOf } from "../camping/camping.mjs";
 import { AUTO_BLOCKED } from "../camping/camping-core.mjs";
 import { ownsHexFog, hexDisclosure } from "../hex-map/hex-fog.mjs";
@@ -695,7 +695,7 @@ async function waitOutDays(token, goal, block) {
       const route = routeTo(token, goal);
       return !!route?.path && route.path.length >= 2;
     }
-    if (days >= 14) {
+    if (days >= AUTO_WAIT_DAYS) {
       game.socket?.emit(`module.${MODULE_ID}`, { type: "autoDays", days, halted: block });
       ui.notifications?.warn(t("SDE.route.autoNoWalk", { days, reason }));
       return false;

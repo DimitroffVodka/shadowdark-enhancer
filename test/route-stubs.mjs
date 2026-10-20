@@ -37,6 +37,7 @@ export const overlandState = () => structuredClone(S);
 export const travelStepCost = () => (hex) => (cfg.closed.has(hex?.num) ? Infinity : 1);
 /** `cfg.blocked`: one answer, or a list answered in turn (its last answer repeats). */
 export const travelBlocked = async () => { log.travelBlocked++; return Array.isArray(cfg.blocked) ? (cfg.blocked.length > 1 ? cfg.blocked.shift() : cfg.blocked[0]) : cfg.blocked; };
+export const AUTO_WAIT_DAYS = 14;
 const tick = (ms) => new Promise((r) => setTimeout(r, ms));
 /** The active GM's Start day: openDay is committed (the hook fires), THEN the day's card and catch-up check take a round trip. */
 export async function autoStartDay() {
