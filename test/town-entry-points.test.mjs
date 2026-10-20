@@ -151,3 +151,18 @@ test("every scene that goes active is remembered as the table's way back, by the
   e.hooks.updateScene(e.byId.get("D"), { active: true });       // another GM's client writes it
   assert.deepEqual(kept, ["D"]);
 });
+
+test("the GM's Alt+T: on the table it flips the page; anywhere else it takes everyone to the table, never making a page there", async () => {
+  const table = scene("T", { shown: true });
+  table.flags[MOD].landingTable = true;
+  const e = await setup({ gm: true, canvasId: "D", scenes: [table, scene("D", null), scene("C", { shown: true })] });
+  const did = [];
+  e.entry.townIo.table = async () => { did.push("table"); };
+  e.entry.townIo.flip = async (s, on) => { did.push(`flip ${s.id} ${on}`); };
+  await e.hooks["key:openTown"](); await null;
+  globalThis.canvas = { scene: e.byId.get("C") };              // a scene with an old page of its own
+  await e.hooks["key:openTown"](); await null;
+  globalThis.canvas = { scene: table };
+  await e.hooks["key:openTown"](); await null;
+  assert.deepEqual(did, ["table", "table", "flip T false"]);
+});

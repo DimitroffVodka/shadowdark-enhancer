@@ -9,7 +9,7 @@ const L = TABLE.layout;
 const css = `
 .sde-ui.sde-town.lt-root { position: fixed !important; inset: 0 !important; width: 100vw !important; height: 100vh !important; max-height: none !important; transform: none !important; --lt-k: .5; }
 .sde-ui.sde-town .window-header { display: none; }
-.sde-ui.sde-town .lt-stage { position: fixed !important; inset: 0 !important; }
+.sde-ui.sde-town .lt-stage { position: fixed !important; inset: 0 !important; width: 100vw !important; height: 100vh !important; }
 .sde-ui.sde-town .window-content { position: static !important; padding: 0; background: none; overflow: visible; }
 `;
 const quests = [

@@ -269,3 +269,10 @@ test("Save: turning an interval on starts the clock today, from a null clock or 
   const running = mergeSave(restockAll(clocked(7, { restockedDay: 90 }), 95), clocked(7, { restockedDay: 90 }), clocked(7, { restockedDay: 90 }), 100).merchants[0];
   assert.equal(running.restockedDay, 95);
 });
+
+test("Save keeps the market's live stock size: a size changed on the table while the editor was open is not undone", () => {
+  const opened = { merchants: [{ id: "m1", actorId: "a1", open: true, stock: { kind: "outfitter", size: "town" } }] };
+  const live = { merchants: [{ id: "m1", actorId: "a1", open: true, rev: 1, stock: { kind: "outfitter", size: "city" } }], size: "city" };
+  const out = mergeSave(live, opened, opened);
+  assert.deepEqual([out.size, out.merchants[0].stock.size, out.merchants[0].rev], ["city", "city", 1]);
+});

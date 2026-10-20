@@ -109,9 +109,16 @@ export function rememberScene(scene) {
   return updateLanding(table, (page) => page && { ...page, returnTo: scene.id });
 }
 
+let pressing = null;   // a press still running (the first one rolls the shop): a second press waits for it, not a second table
+
 /** The toolbar's button: on the table, everyone goes back; anywhere else, everyone comes to the table (made the first time). */
-export async function toggleTable() {
-  if (!game.user.isGM) return null;
+export function toggleTable() {
+  if (!game.user.isGM) return Promise.resolve(null);
+  pressing ??= pressTable().finally(() => { pressing = null; });
+  return pressing;
+}
+
+async function pressTable() {
   const table = tableScene();
   if (table && game.scenes.active?.id === table.id) return returnFromPage(table);
   const scene = table ?? await makeTable((await tableIo.sizeHere()) ?? "town");

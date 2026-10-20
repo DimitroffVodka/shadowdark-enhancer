@@ -26,6 +26,7 @@ let back = null;
 function removeBack() {
   if (!back) return;
   Hooks.off("canvasDraw", back.hook);
+  Hooks.off("updateScene", back.moved);
   back.el.remove();
   back = null;
 }
@@ -40,7 +41,11 @@ function showBack(page, map) {
   button.append(t("SDE.town.map.back", { page: page.name }));
   button.addEventListener("click", () => { removeBack(); return (game.scenes.get(page.id) ?? game.scenes.active)?.view(); });
   document.body.append(el);
-  back = { el, hook: Hooks.on("canvasDraw", (canvas) => { if (canvas.scene?.id !== map.id) removeBack(); }) };
+  back = {
+    el, hook: Hooks.on("canvasDraw", (canvas) => { if (canvas.scene?.id !== map.id) removeBack(); }),
+    // The GM moved everyone (perhaps to this very map, which draws nothing new here): the table is behind them.
+    moved: Hooks.on("updateScene", (_scene, changed) => { if (changed?.active === true) removeBack(); }),
+  };
 }
 
 /** The Map tile, clicked on the page on `page` (its scene). */

@@ -41,6 +41,17 @@ export function tableProps(page, { hasMerchant, labels = {}, layout = LAYOUT }) 
  * The frames the first `n` party members stand in (at most six), middle of the far edge first: `[{ index, x, y, w, h, face,
  * src }]`, the frame's box and its picture face (four corners) in picture pixels, and its cut-out.
  */
+/**
+ * The party sitting at the table: the one the viewer's own character is in, else the one picked, else the first. The
+ * system's own "Party" actor has no roster the module reads, so it is never seated, nor is a party whose roster
+ * cannot be read.
+ */
+export function partyAtTable(parties, { selected = null, character = null, membersOf }) {
+  const roster = (p) => { try { return membersOf(p); } catch { return null; } };
+  const ours = parties.filter((p) => p?.type !== "Party" && roster(p));
+  return (character && ours.find((p) => roster(p).includes(character.uuid))) ?? (ours.includes(selected) ? selected : null) ?? ours[0] ?? null;
+}
+
 export const framesFor = (n, layout = LAYOUT) => layout.frames.slice(0, Math.min(n, SEATS_MAX)).map((f, index) => ({ index, ...f, src: propSrc(`seat${index}`) }));
 
 /**

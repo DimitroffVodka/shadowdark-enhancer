@@ -1,12 +1,12 @@
 /**
  * Shadowdark Enhancer — a town's landing page, as the GM sets it up (pure).
  *
- * A landing page is a small flag on the scene the players arrive in. The scene's own picture is the page (set in the
- * scene's settings); the flag holds the menu drawn over it:
+ * The landing page is a small flag on the table's scene (landing-pages.mjs makes it); the flag holds what the table
+ * offers:
  *
  *   flags[MODULE_ID].landing = { title, tagline, blurb, places: [...], merchants: [...], games: {...}, shown, size, returnTo }
  *
- * `size` is the settlement's size (a stock-generator SIZES id) for a page made by Make a landing page, else null.
+ * `size` is the settlement's size (a stock-generator SIZES id) the table's market is stocked for, else null.
  * `returnTo` is the scene the table came from when the GM last took everyone here; the page's Return goes back to it.
  * `sessionTitle` is the line the GM writes on the table's title card ("Session 14: Ash Above the Styx").
  *
@@ -193,8 +193,8 @@ export function applyForm(landing, fields) {
  * the world's current day. Per merchant the draft's revision INCREASE (a Restock pressed in the editor) is added to
  * the live revision. The restock clock is the live one unless the draft itself restocked, and it starts at `day` when
  * the interval is newly turned on (from 0) or the clock was never started, so the first automatic restock is
- * `restockDays` days from the save. `shown`, `returnTo`, the session title and the size are always the live ones (the
- * table changes them, not the editor).
+ * `restockDays` days from the save. `shown`, `returnTo`, the session title, the size and each merchant's stock are
+ * always the live ones (the table changes them, not the editor).
  */
 export function mergeSave(live, draft, opened, day) {
   const now = new Map(normalizeLanding(live).merchants.map((m) => [m.id, m]));
@@ -203,7 +203,7 @@ export function mergeSave(live, draft, opened, day) {
   const merchants = page.merchants.map((m) => {
     const cur = now.get(m.id), before = was.get(m.id);
     const raised = Math.max(0, m.rev - (before?.rev ?? m.rev));
-    const out = cur ? { ...m, rev: cur.rev + raised, restockedDay: raised ? m.restockedDay : cur.restockedDay } : m;
+    const out = cur ? { ...m, stock: cur.stock, rev: cur.rev + raised, restockedDay: raised ? m.restockedDay : cur.restockedDay } : m;
     if (out.restockDays > 0 && Number.isFinite(day) && (out.restockedDay === null || !before?.restockDays)) out.restockedDay = day;
     return out;
   });

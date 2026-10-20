@@ -21,7 +21,7 @@ import { landingOf, normalizeLanding, restockAll } from "./town-core.mjs";
 import { buyerFor, characters, nightParty, openPlace, redrawOnChange, switchTown, today, updateLanding } from "./town-live.mjs";
 import { placeTiles, purseText } from "./town-view.mjs";
 import { returnScene } from "./landing-pages.mjs";
-import { TABLE, dialAngle, framesFor, homography, propAtHit, propSrc, tableProps, tomePages } from "./landing-table-core.mjs";
+import { TABLE, dialAngle, framesFor, homography, partyAtTable, propAtHit, propSrc, tableProps, tomePages } from "./landing-table-core.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -109,6 +109,7 @@ export class TownApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }).filter((m) => isGM || !m.missing);
     const market = merchants.find((m) => m.open) ?? merchants[0];
     this._marketId = market?.id ?? null;
+    this._openMarkets = merchants.filter((m) => m.open).map((m) => ({ id: m.id, name: m.name }));
     const active = Quests.list({ status: "active" });
     const { hasRumorsHeard } = await import("../rumors/rumors.mjs");
     const hasMap = page.places.includes("map") ? await (await import("./landing-map.mjs")).hasMap() : false;
@@ -118,8 +119,11 @@ export class TownApp extends HandlebarsApplicationMixin(ApplicationV2) {
     });
     const labels = Object.fromEntries(tiles.map((p) => [p.id, { name: p.label, sub: p.tag || p.sub, disabled: p.disabled, hint: p.hint }]));
     labels.market = { name: t("SDE.town.table.market"), sub: market?.name ?? "", disabled: !market?.open, hint: t("SDE.town.shut") };
-    const party = Party.selected() ?? Party.list()[0];
-    const members = party ? Party.members(party).map((uuid) => fromUuidSync(uuid)).filter(Boolean) : [];
+    // Player characters only: a mule or a hidden NPC on the roster takes no seat and shows no card.
+    const party = partyAtTable(Party.list(), { selected: Party.selected(), character: game.user.character, membersOf: (p) => Party.members(p) });
+    let members = [];
+    try { members = party ? Party.members(party, { charactersOnly: true }).map((uuid) => fromUuidSync(uuid)).filter(Boolean) : []; }
+    catch (err) { console.warn("Shadowdark Enhancer | landing table: party roster unreadable", err); }
     const buyer = buyerFor();
     const L = TABLE.layout;
     const [left, right] = tomePages(active);
@@ -276,8 +280,15 @@ export class TownApp extends HandlebarsApplicationMixin(ApplicationV2) {
       await new Promise((r) => setTimeout(r, 480));
     }
     if (id === "market") {
+      // More than one shop open: the chest asks which one.
+      const shops = this._openMarkets ?? [];
+      const pick = shops.length > 1 ? await foundry.applications.api.DialogV2.wait({
+        classes: ["sde-ui", "sde-dialog"], window: { title: t("SDE.town.table.market") }, content: `<p>${t("SDE.town.table.pickShop")}</p>`, rejectClose: false,
+        buttons: shops.map((m, i) => ({ action: m.id, label: m.name, default: i === 0 })),
+      }) : this._marketId;
+      if (!pick) return null;
       const { TownShopApp } = await import("./town-shop-app.mjs");
-      return TownShopApp.open(this.scene, this._marketId);
+      return TownShopApp.open(this.scene, pick);
     }
     return openPlace(id, this.scene);
   }

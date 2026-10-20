@@ -1,7 +1,7 @@
 /** The landing table's pure parts: which props show, the click map, the seats, the perspective quads, the tome, the dial. */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { BUTTON_PROPS, HIT_ORDER, SEATS_MAX, TABLE, dialAngle, framesFor, homography, propAtHit, sizeOfGround, tableProps, tomePages } from "../scripts/town/landing-table-core.mjs";
+import { BUTTON_PROPS, HIT_ORDER, SEATS_MAX, TABLE, dialAngle, framesFor, partyAtTable, homography, propAtHit, sizeOfGround, tableProps, tomePages } from "../scripts/town/landing-table-core.mjs";
 
 const page = (over = {}) => ({ places: ["quests", "journals", "recaps", "party", "map", "carouse"], games: { on: true }, ...over });
 
@@ -70,4 +70,17 @@ test("the dial: noon at the top, midnight at the bottom, a quarter turn every si
 
 test("a hex's ground is a settlement size only for the four settlement words", () => {
   assert.deepEqual(["village", "town", "city", "city_state", "forest", undefined].map(sizeOfGround), ["village", "town", "city", "city_state", null, null]);
+});
+
+test("the party at the table: the viewer's own, else the picked one, else the first; never the system's Party actor", () => {
+  const system = { type: "Party", uuid: "Actor.sys" }, one = { type: "NPC", uuid: "Actor.p1" }, two = { type: "NPC", uuid: "Actor.p2" }, broken = { type: "NPC", uuid: "Actor.bad" };
+  const rosters = { "Actor.p1": ["Actor.a"], "Actor.p2": ["Actor.b"] };
+  const membersOf = (p) => { if (!rosters[p.uuid]) throw new Error("SDE.party.unknownRoster"); return rosters[p.uuid]; };
+  const all = [system, broken, one, two];
+  assert.equal(partyAtTable(all, { character: { uuid: "Actor.b" }, membersOf }), two, "West March: each player sees their own party");
+  assert.equal(partyAtTable(all, { selected: one, character: { uuid: "Actor.b" }, membersOf }), two);
+  assert.equal(partyAtTable(all, { selected: two, membersOf }), two, "the GM's picked party");
+  assert.equal(partyAtTable(all, { selected: system, membersOf }), one, "a system Party actor or an unreadable roster is never picked");
+  assert.equal(partyAtTable([system], { membersOf }), null);
+  assert.equal(partyAtTable([], { membersOf }), null);
 });

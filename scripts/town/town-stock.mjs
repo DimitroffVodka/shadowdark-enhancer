@@ -1,7 +1,7 @@
 /**
  * Shadowdark Enhancer — Town: a merchant's rolled shelf (Foundry side).
  *
- * A merchant made by the module (Generate, or Make a landing page) remembers its kind and settlement size on the
+ * A merchant made by the module (Generate, or the table's own market) remembers its kind and settlement size on the
  * page (`stock`), and its shelf is rolled from the gear packs by rarity (merchant/stock-generator.mjs): once when it is
  * made, and again whenever its shelf is restocked, so the goods change between sessions. Only the items the roll put
  * there are replaced; anything the GM added by hand stays. GM only.
@@ -44,13 +44,27 @@ async function rollItems({ kind, size }) {
   return items;
 }
 
-/** Roll `actor`'s shelf again: the last roll's items go, a new roll comes in, the GM's own items stay. */
+/** The roll (tests replace it). */
+export const stockIo = { roll: rollItems };
+
+/**
+ * Roll `actor`'s shelf again: a new roll comes in, then the last roll's items go; the GM's own items stay. The new
+ * goods are made first, so a roll that cannot be made (no gear packs, or an item the world refuses) leaves the old
+ * shelf as it was and tells the GM.
+ */
 export async function rollShelf(actor, stock) {
   if (!game.user.isGM || !actor || !stock) return;
-  const items = await rollItems(stock);
   const old = actor.items.filter((i) => i.getFlag(MODULE_ID, ROLLED_FLAG)).map((i) => i.id);
+  try {
+    const items = await stockIo.roll(stock);
+    if (!items.length) throw new Error("empty roll");
+    await actor.createEmbeddedDocuments("Item", items);
+  } catch (err) {
+    console.error("Shadowdark Enhancer | restock roll failed for", actor.id, err);
+    ui.notifications.warn(t("SDE.town.restockKept", { name: actor.name }));
+    return;
+  }
   if (old.length) await actor.deleteEmbeddedDocuments("Item", old);
-  if (items.length) await actor.createEmbeddedDocuments("Item", items);
 }
 
 /** The Actor folder a scene's generated merchants go in. */

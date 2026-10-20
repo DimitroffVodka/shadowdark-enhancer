@@ -18,7 +18,7 @@ Try it in your browser, no Foundry needed: the
 ## Bringing the table up
 
 Press the **Landing page** button (a landmark icon, in the Token Controls on the
-left of the screen). Everyone is taken to the table. Press it again, or
+left of the screen), or Alt+T. Everyone is taken to the table. Press
 **Return everyone to ...** in the bar under the table, and everyone goes back to
 the scene they came from. It is Foundry's own scene change, so the party's
 tokens stay where they were and travel on a hex map waits for you. If you
@@ -95,9 +95,9 @@ list (see [Generating a merchant](#generating-a-merchant)).
 
 | Field | What it does |
 |---|---|
-| **Name, Tagline, Welcome text** | The heading, the italic line and the paragraph under it. Name defaults to the scene's name |
-| **Around town** | Which entries players see: Quest Log, Journals, Party, Map, Downtime, Carouse, Rumors (the last two are off on a new page; see A tavern page) |
-| **Games of chance** | A tick box per game: the games this place offers. Tick none and the menu has no **Games of chance** (see Games of chance) |
+| **Name** | The name the games tables and the sales log go by. Defaults to the scene's name |
+| **Around town** | Which things on the table players can use: Quest Log, Journals, Party, Map, Downtime, Carouse, Rumors (Rumors is off on a new table; see A tavern page) |
+| **Games of chance** | A tick box per game: the games this place offers. Tick none and the dice cup offers no games (see Games of chance) |
 | **Largest bet (gp)** | The most one wager may stake, 1 to 1000 gp (10 by default) |
 | **House keeps (% of winnings)** | The share of every win the town keeps, 0 to 50 (5 by default) |
 | **Role, One-line pitch** | The line under the merchant's name and the hover text |

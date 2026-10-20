@@ -176,3 +176,12 @@ test("Return is the GM's alone", async () => {
   assert.equal(await toggleTable(), null);
   assert.equal(dungeon.activated, 0);
 });
+
+test("a second press while the first is still making the table makes no second table", async () => {
+  const { make, created } = world({ active: "D" });
+  make("D");
+  const lp = await import("../scripts/town/landing-pages.mjs");
+  const [a, b] = await Promise.all([lp.toggleTable(), lp.toggleTable()]);
+  assert.equal(created.length, 1);
+  assert.equal(a, b);
+});
