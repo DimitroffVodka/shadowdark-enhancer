@@ -38,10 +38,13 @@ const partyCells = (s) => {
   return s.plate === "start" ? users : `${users}<button type="button" class="sde-hud-ib"><i class="fa-solid fa-users"></i></button>`;
 };
 
-// What _seasonBand() builds: the plate's own SVG (fill and the closed border) under the season and today's weather.
+// What _bar() builds: the day's counter at the far left, then the party's torches and rations, then the clock's tools.
+const supplies = '<span class="sde-hud-sup" data-tooltip="6 fresh torches in the party\'s packs"><i class="fa-solid fa-fire"></i><b>6</b></span><span class="sde-hud-sup" data-tooltip="8 rations in the party\'s packs"><i class="fa-solid fa-drumstick-bite"></i><b>8</b></span>';
+
+// What _seasonBand() builds: the plate's own SVG (fill and the closed border) under the season, the month button and today's weather.
 const seasonPlate = (s) => {
   const p = plateSize();
-  return `<div class="sde-hud-season" style="width:${p.w}px"><svg class="sde-hud-season-shape" viewBox="0 0 ${p.w} ${p.h}" preserveAspectRatio="none" aria-hidden="true"><path class="sde-hud-season-fill" d="M0 0 H${p.w} L${p.w - p.flare} ${p.h} H${p.flare} Z"/><path class="sde-hud-season-edge" stroke-width="${p.stroke}" d="M${p.stroke / 2} ${p.stroke / 2} H${p.w - p.stroke / 2} L${p.w - p.flare - p.stroke / 2} ${p.h - p.stroke / 2} H${p.flare + p.stroke / 2} Z"/></svg><span>${esc(s.season)}</span><i class="sde-hud-wx-dot"></i><span class="sde-hud-wx">${esc(s.word)}</span></div>`;
+  return `<div class="sde-hud-season" style="width:${p.w}px"><svg class="sde-hud-season-shape" viewBox="0 0 ${p.w} ${p.h}" preserveAspectRatio="none" aria-hidden="true"><path class="sde-hud-season-fill" d="M0 0 H${p.w} L${p.w - p.flare} ${p.h} H${p.flare} Z"/><path class="sde-hud-season-edge" stroke-width="${p.stroke}" d="M${p.stroke / 2} ${p.stroke / 2} H${p.w - p.stroke / 2} L${p.w - p.flare - p.stroke / 2} ${p.h - p.stroke / 2} H${p.flare + p.stroke / 2} Z"/></svg><span>${esc(s.season)}</span><button type="button" class="sde-hud-ib sde-hud-plate-cal" data-tooltip="Month"><i class="fa-solid fa-calendar-days"></i></button><span class="sde-hud-wx">${esc(s.word)}</span></div>`;
 };
 
 const hud = (s) => {
@@ -52,11 +55,11 @@ const hud = (s) => {
   return `<div id="shadowdark-enhancer-travel" class="sde-hud-visible"><div class="sde-hud-col">
   <div class="sde-hud-bar sde-hud-bar-3">
     <div class="sde-hud-side">
+      ${dayCell(s, tip)}
+      ${supplies}
       <button type="button" class="sde-hud-ib"><i class="fa-solid fa-backward"></i></button>
-      <button type="button" class="sde-hud-ib"><i class="fa-solid fa-calendar-days"></i></button>
       <button type="button" class="sde-hud-ib sde-hud-cloud" aria-pressed="true" data-tooltip="Hide weather effects on this device"><i class="fa-solid fa-cloud-rain"></i></button>
       <button type="button" class="sde-hud-ib"><i class="fa-solid fa-sliders"></i></button>
-      ${dayCell(s, tip)}
     </div>
     <span class="sde-hud-date sde-hud-date-mid"><span class="sde-hud-d">${esc(s.date)}</span><span class="sde-hud-t">${esc(s.time)}</span>
       <button type="button" class="sde-hud-ib sde-hud-chev" aria-pressed="true" data-tooltip="Hide the sky"><i class="fa-solid fa-chevron-up"></i></button></span>

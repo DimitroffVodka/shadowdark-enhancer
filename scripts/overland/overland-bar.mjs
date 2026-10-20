@@ -58,6 +58,7 @@ import { postEncounter } from "../encounter/encounter-draw.mjs";
 import { showNpcPreview, hideNpcPreview } from "../encounter/npc-preview.mjs";
 import { DIAL, clockShown, clockSteps, dateToTime, dialMarkup, dialModel, dialSize, monthGrid, plateSize, seasonHatch } from "./hud-core.mjs";
 import { findParty, openPartySheet } from "./find-party.mjs";
+import { partySupplies, supplyParty } from "./party-supplies.mjs";
 import { L as t } from "../shared/i18n.mjs";
 import { isPacedStep, moonEpoch, onShownTime, shownTime } from "../time/time.mjs";
 import { dayEvents, paragraphs } from "../calendar/calendar-core.mjs";
@@ -112,6 +113,14 @@ const JUMPS = { dawn: "SDE.clock.jump.dawn", noon: "SDE.clock.jump.noon", dusk: 
 const ib = (action, icon, label, { id = "", pressed = null, cls = "" } = {}) =>
   `<button type="button" class="sde-hud-ib${cls ? ` ${cls}` : ""}" data-action="${action}"${id ? ` data-id="${id}"` : ""} aria-label="${esc(label)}" data-tooltip="${esc(label)}"${
     pressed === null ? "" : ` aria-pressed="${pressed}"`}><i class="fa-solid ${icon}"></i></button>`;
+
+/** The party's torches and rations, at a glance: the units a camp spends, so the readout matches what camping will use. */
+const supplyChips = (sup) => {
+  if (!sup) return "";
+  const tip = (n, what) => esc(t(what, { n }));
+  return `<span class="sde-hud-sup" data-tooltip="${tip(sup.torches, "SDE.clock.supplies.torches")}" aria-label="${tip(sup.torches, "SDE.clock.supplies.torches")}"><i class="fa-solid fa-fire"></i><b>${sup.torches}</b></span>`
+    + `<span class="sde-hud-sup" data-tooltip="${tip(sup.rations, "SDE.clock.supplies.rations")}" aria-label="${tip(sup.rations, "SDE.clock.supplies.rations")}"><i class="fa-solid fa-drumstick-bite"></i><b>${sup.rations}</b></span>`;
+};
 
 /** A key: the framed button of the panels. */
 const key = (action, label, { id = "", hint = "", cls = "", aria = "" } = {}) =>
@@ -495,15 +504,16 @@ export const TravelBar = {
       const people = Party.list().length ? ib("findParty", "fa-location-crosshairs", t("SDE.clock.find.tip")) + ib("partySheet", "fa-shield-halved", t("SDE.clock.sheet.tip")) : "";
       party = people + (plate ? ib("open", "fa-users", t("SDE.clock.travel"), { id: "travel", pressed: this._open === "travel" }) : "");
     }
-    // Tools and the day's counter on the left, the date in the middle (the sky toggle hangs off it so it stays centred),
-    // the party's buttons on the right.
+    // The day's counter sits at the far left with the party's torches and rations beside it, then the clock's tools. The
+    // calendar has moved onto the season plate; the party's buttons stay on the right.
+    const supplies = supplyChips(isHexMapScene() ? partySupplies(supplyParty()) : null);
     return `<div class="sde-hud-bar sde-hud-bar-3">
       <div class="sde-hud-side">
+        ${day}
+        ${supplies}
         ${gm ? ib("stack", "fa-backward", t("SDE.clock.rewind"), { id: "rew", pressed: this._stack === "rew" }) : ""}
-        ${ib("open", "fa-calendar-days", t("SDE.clock.month"), { id: "month", pressed: this._open === "month" })}
         ${ib("weather", wx.icon, t(wx.labelKey), { pressed: wx.on, cls: wx.cls })}
         ${gm ? ib("open", "fa-sliders", t("SDE.clock.time"), { id: "time", pressed: this._open === "time" }) : ""}
-        ${day}
       </div>
       <span class="sde-hud-date sde-hud-date-mid"><span class="sde-hud-d">${esc(date)}</span><span class="sde-hud-t">${esc(parts.time)}</span>
         ${ib("sky", this._sky ? "fa-chevron-up" : "fa-chevron-down", t(this._sky ? "SDE.clock.skyHide" : "SDE.clock.skyShow"), { pressed: this._sky, cls: "sde-hud-chev" })}</span>
@@ -580,7 +590,9 @@ export const TravelBar = {
       ${hatchW ? `<g clip-path="url(#sde-hud-season-clip)" opacity="0.55"><rect x="${p.w - hatchW}" y="0" width="${hatchW}" height="${p.h}" fill="url(#sde-hud-season-hatch)"/></g>` : ""}
       <path class="sde-hud-season-edge" stroke-width="${p.stroke}" d="M${p.stroke / 2} ${p.stroke / 2} H${p.w - p.stroke / 2} L${p.w - p.flare - p.stroke / 2} ${p.h - p.stroke / 2} H${p.flare + p.stroke / 2} Z"/>
     </svg>`;
-    const body = `<span>${esc(name)}</span><i class="sde-hud-wx-dot"></i><span class="sde-hud-wx">${esc(w ? weatherName(w) : t("SDE.clock.unrolled"))}</span>`;
+    // The calendar sits between the season and the weather: the plate is where the date is read, so the month panel
+    // belongs there and the bar keeps its room for the day's counter and the party's supplies.
+    const body = `<span>${esc(name)}</span>${ib("open", "fa-calendar-days", t("SDE.clock.month"), { id: "month", pressed: this._open === "month", cls: "sde-hud-plate-cal" })}<span class="sde-hud-wx">${esc(w ? weatherName(w) : t("SDE.clock.unrolled"))}</span>`;
     const tip = daysLeft === null ? ""
       : t(daysLeft === 1 ? "SDE.clock.seasonNextOne" : "SDE.clock.seasonNext", { season: t(seasonAt(cal, change).name ?? ""), n: daysLeft });
     return `<div class="sde-hud-season" style="width:${p.w}px"${tip ? ` data-tooltip="${esc(tip)}"` : ""}>${shape}${body}</div>`;
