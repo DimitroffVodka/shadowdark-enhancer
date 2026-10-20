@@ -3,6 +3,20 @@
 ## [Unreleased]
 
 ### Added
+- **The landing page is a table you sit at.** One page for everything: a candle-lit table, rendered for the module, seen from a seat at it. The things on it are the buttons: the quest tome (its pages list the active quests with tick boxes), the coin chest (the party's coin; it opens to the market), the dice cup (games), the goblets (carousing), the framed map, the sealed letter (rumors), the hourglass (downtime), the journal and the tied scrolls (session recaps). The thing under the pointer comes up in warm light with its name.
+- **The party at the table.** Each member's portrait stands in a frame on the table; hover for name, level, class, hit points and purse, click for the sheet (players: their own).
+- **A session title and a day dial.** The GM types the session's title on the card on the table; the dial follows the world's clock.
+- **One click there and back.** The toolbar's Landing page button takes everyone to the table (made the first time, with nothing to set up) and back to where they were; travel on a hex map waits. While the table is up it fills the screen and Foundry's bars step aside; the GM keeps a small bar under it.
+- **The market follows the settlement.** Standing on a village, town, city or city-state hex, the table's market is stocked for that size; the GM can change it under the table.
+- **The framed map** shows the player who presses it, alone, the overland map with what their party has explored, with a Back button.
+- **A demo you can share.** The manual has a playable demo of the table: [the landing table demo](https://dimitroffvodka.github.io/shadowdark-enhancer/demo/landing-table/).
+
+### Changed
+- **Merchants stock by rarity.** Generated merchants now roll every ware against its rarity for a Village, Town, City or City-State: common goods always, rare goods now and then, even in a village. A restock rolls the shelf again; items you added by hand stay.
+- **No loot on shop shelves.** Adventure treasure (a golden rose, a gold charm necklace) is never stock in any shop, and the rolled market leaves out siege engines.
+- **Games are chosen one by one.** The landing page settings have a tick box per game instead of one games switch; a page that had the switch on keeps all ten.
+
+### Added
 
 - **Maps for this world: one list, one button per map.** The quick guide's first page has a **Maps for this world** button once your books are imported. It lists every map your books come with — the Western Reaches A0, each Cursed Scroll hex map and every adventure map — under its book, and each row shows one thing: **In this world**; **Load**, which brings the map in from the *Adventures* compendium with its pins and journals (only what is missing is created); or **Add map file**, which takes the picture from your computer and builds, numbers and pins it the way the guide does (both halves at once for the Black River). A hex map built before its book was imported still loads, and its row names the book to import for its pins. **Advanced importer** at the bottom opens the hub.
 - **Bringing a hex map into the world offers the quick guide's terrain step again.** Loading a hex map from the compendium (with **Load**, or the compendium's own **Import**) asks **Set up the terrain?**; **Open the quick guide** opens the guide's Terrain page on that map, as the first import used to, instead of leaving it for the Hex Tagger. A map you tick on the guide's Ready page is set up the same way right after the import, and the Western Reaches A0 is numbered and made playable first.

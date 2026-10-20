@@ -270,6 +270,22 @@ as lossless WebP for the module.
   text ships beside the bundle in
   [`scripts/pdf-export/lib/LICENSE`](scripts/pdf-export/lib/LICENSE).
 
+## The landing table (`assets/landing-table/`)
+
+The landing page's table is rendered for this module in Blender (`tools/landing-table/build_table.py`, made with
+`make_assets.py`). Everything on it is the module's own work except these CC0 (public domain) assets from
+[Poly Haven](https://polyhaven.com), which appear in the rendered pictures only; the models and textures are not
+included (`tools/landing-table/fetch_assets.py` downloads them for a re-render):
+
+| Asset | Used for |
+|---|---|
+| [Treasure Chest](https://polyhaven.com/a/treasure_chest) | the market's coin chest |
+| [Brass Goblets](https://polyhaven.com/a/brass_goblets) | the Carouse goblets |
+| [Wooden Candlestick](https://polyhaven.com/a/wooden_candlestick) | the candlesticks |
+| [Seadog's Compass](https://polyhaven.com/a/seadogs_compass) | the compass on the map |
+| [Wood Table 001](https://polyhaven.com/a/wood_table_001) | the tabletop's wood |
+| [Leather Red 02](https://polyhaven.com/a/leather_red_02) | the tome's cover and the dice cup |
+
 ## Ready place pictures (`assets/scenes/places/`)
 
 Three ready pictures of a tavern, a town and a market live in this folder, each

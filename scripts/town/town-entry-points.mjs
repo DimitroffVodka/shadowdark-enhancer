@@ -1,19 +1,20 @@
 /**
  * Shadowdark Enhancer — Town: the ways into the landing page.
  *
- * One switch for the whole table. The GM's "Landing page" button (scene toolbar, or Alt+T) puts the page up or away for
- * everyone on the scene: the switch is the page's own `shown` flag, so every client sees it change and follows it,
- * GM and players alike. A page is up until the GM switches it off. Arriving on a scene whose page is up opens it;
- * leaving for one without a page closes it. A player can still close their own copy and bring it back with the same
- * button while it is up.
+ * The GM's "Landing page" button (scene toolbar) takes everyone to the table, the one landing page (made the first
+ * time), and, pressed on the table, takes everyone back where they came from (landing-pages.mjs).
  *
- * Any scene can have a page. The first time the GM puts one up it is made, empty (the scene's name, the four town tiles, no
- * merchants); its pencil opens the editor, where merchants are added.
+ * One switch for the whole table. On the table, Alt+T (and the page's own eye button) puts its page up or away for
+ * everyone there: the switch is the page's own `shown` flag, so every client sees it change and follows it, GM and
+ * players alike. Off the table the GM's Alt+T does what the toolbar does. Arriving on a scene whose page is up opens
+ * it; leaving for one without a page closes it. A player can still close their own copy and bring it back with the
+ * same button while it is up.
  *
  * The windows are loaded when first asked for.
  */
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { landingOf } from "./town-core.mjs";
+import { TABLE_FLAG } from "./landing-pages-core.mjs";
 
 const WINDOWS = ["sde-town", "sde-town-shop", "sde-town-games", "sde-town-log"];
 // A games window seated at a Liar's dice table stays: closing it would walk away from the match and forfeit the wager.
@@ -31,8 +32,17 @@ async function openTown(scene = globalThis.canvas?.scene) {
   return TownApp.open(scene);
 }
 
-/** The window seam (tests replace it). */
-export const townIo = { open: openTown, close: closeTown, closeOthers };
+/** The GM's button: everyone to the table (made the first time), or, on the table, everyone back. */
+async function gmTable() {
+  return (await import("./landing-pages.mjs")).toggleTable();
+}
+
+/** The window seam, the GM's table button and switch, and the table's memory of the way back (tests replace them). */
+export const townIo = {
+  open: openTown, close: closeTown, closeOthers, table: gmTable,
+  flip: async (scene, on) => (await import("./town-live.mjs")).switchTown(scene, on),
+  remember: async (scene) => (await import("./landing-pages.mjs")).rememberScene(scene),
+};
 
 let shownId = null; // the scene the singleton window was last pointed at
 /** Point the window at `sceneId`'s page; the old page's other windows (its shop) would link back to the old scene. */
@@ -43,11 +53,14 @@ function showPage(sceneId) {
 }
 const closePage = () => { shownId = null; return townIo.close(); };
 
-/** The GM flips the page for everyone (making it first on a scene that has none). A player flips their own copy. */
+/**
+ * Alt+T. The GM, on the table, puts its page up or away for everyone; anywhere else it does what the toolbar does
+ * (everyone to the table), so no other scene ever gets a page of its own. A player flips their own copy.
+ */
 async function toggleTown() {
   const scene = globalThis.canvas?.scene, page = landingOf(scene);
   const mine = foundry.applications.instances.get("sde-town");
-  if (game.user.isGM) return (await import("./town-live.mjs")).switchTown(scene, !page?.shown);
+  if (game.user.isGM) return scene?.flags?.[MODULE_ID]?.[TABLE_FLAG] ? townIo.flip(scene, !page?.shown) : townIo.table();
   if (!page?.shown) return null;
   return mine?.rendered ? mine.close() : showPage(scene.id);
 }
@@ -61,15 +74,15 @@ export function registerTownEntryPoints() {
     onDown: () => { toggleTown(); return true; },
   });
 
-  // The toolbar button: the GM on every scene (lit while the page is up for the table), players on a scene whose
-  // page is up. The toolbar is rebuilt when the scene changes and when its page changes.
+  // The toolbar button: the GM on every scene (to the table and back), players on a scene whose page is up (their
+  // own copy of it). The toolbar is rebuilt when the scene changes and when its page changes.
   Hooks.on("getSceneControlButtons", (controls) => {
     const page = landingOf(globalThis.canvas?.scene);
     if (!game.user.isGM && !page?.shown) return;
     if (controls.tokens?.tools) controls.tokens.tools.sdeTown = {
       name: "sdeTown", title: "SDE.town.control", icon: "fa-solid fa-landmark", order: 90,
-      ...(game.user.isGM ? { toggle: true, active: !!page?.shown } : { button: true }),
-      onChange: () => toggleTown(),
+      button: true,
+      onChange: () => (game.user.isGM ? gmTable() : toggleTown()),
     };
   });
   const refreshTools = () => ui.controls?.render({ reset: true });
@@ -83,6 +96,10 @@ export function registerTownEntryPoints() {
     if (page?.shown) showPage(scene.id); else if (!page) closePage();
   };
   Hooks.on("updateScene", (scene, changed) => {
+    // Whatever scene goes active (Foundry's own navigation included), the table remembers it as the way back.
+    if (changed?.active === true && !landingOf(scene) && game.users.activeGM?.id === game.user.id) {
+      townIo.remember(scene).catch((err) => console.warn("Shadowdark Enhancer | landing page: way back not kept", err));
+    }
     // The toolbar and the windows follow the scene's page. The diff names the key with an operator when it was
     // replaced or removed ("==landing", "-=landing").
     if (!Object.keys(changed?.flags?.[MODULE_ID] ?? {}).some((k) => k.replace(/^(==|-=)/, "") === "landing")) return;

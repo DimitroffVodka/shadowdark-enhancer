@@ -20,7 +20,7 @@ test("a merchant needs a usable id and an NPC, and every value is kept in range"
   assert.equal(normalizeMerchant({ id: "m.1", actorId: "a1" }), null);
   assert.equal(normalizeMerchant({ id: "m 1", actorId: "a1" }), null);
   assert.equal(normalizeMerchant({ id: "m1" }), null);
-  assert.deepEqual(normalizeMerchant({ id: "m1", actorId: "a1" }), { id: "m1", actorId: "a1", role: "", pitch: "", open: true, rev: 0, buyMultiplier: 100, sellRatio: 50, restockDays: 0, restockedDay: null, haggle: true });
+  assert.deepEqual(normalizeMerchant({ id: "m1", actorId: "a1" }), { id: "m1", actorId: "a1", role: "", pitch: "", open: true, rev: 0, buyMultiplier: 100, sellRatio: 50, restockDays: 0, restockedDay: null, haggle: true, stock: null });
   const m = normalizeMerchant({ id: "m1", actorId: "a1", buyMultiplier: 9000, sellRatio: -5, rev: -3, open: false, role: "  Smith  " });
   assert.deepEqual([m.buyMultiplier, m.sellRatio, m.rev, m.open, m.role], [500, 0, 0, false, "Smith"]);
   assert.equal(normalizeMerchant({ id: "m1", actorId: "a1", buyMultiplier: "abc" }).buyMultiplier, 100);
@@ -33,9 +33,15 @@ test("the restock clock and haggle switch are kept in range: days 0-365, a day n
   assert.deepEqual([m({}).haggle, m({ haggle: false }).haggle, m({ haggle: "on" }).haggle], [true, false, true]);
 });
 
+test("a rolled merchant keeps its kind and settlement size; anything unknown is a hand-stocked one", () => {
+  const m = (stock) => normalizeMerchant({ id: "m1", actorId: "a1", stock }).stock;
+  assert.deepEqual(m({ kind: "outfitter", size: "city_state", extra: 1 }), { kind: "outfitter", size: "city_state" });
+  assert.deepEqual([m(undefined), m({ kind: "outfitter", size: "metropolis" }), m({ kind: "bakery", size: "town" })], [null, null, null]);
+});
+
 test("a landing page always has every field, keeps the places in order, and drops unusable merchants", () => {
   const empty = normalizeLanding(undefined);
-  assert.deepEqual(empty, { title: "", tagline: "", blurb: "", places: DEFAULT_PLACE_IDS, merchants: [], games: { on: false, maxBet: 10, edge: 5 }, shown: true });
+  assert.deepEqual(empty, { title: "", tagline: "", blurb: "", places: DEFAULT_PLACE_IDS, merchants: [], games: { on: false, list: [], maxBet: 10, edge: 5 }, shown: true, size: null, returnTo: null, sessionTitle: "" });
   const page = normalizeLanding({ title: " Hollowmere ", places: ["party", "bogus", "quests"], merchants: [{ id: "m1", actorId: "a1" }, { id: "bad.id", actorId: "a2" }, { id: "m1", actorId: "a3" }, { id: "m2", actorId: "a1" }] });
   assert.equal(page.title, "Hollowmere");
   assert.deepEqual(page.places, ["quests", "party"]);
@@ -65,21 +71,28 @@ test("the page is up for the table until the GM switches it off, and no other ed
   assert.equal(removeMerchant(off, "m1").shown, false);
 });
 
+const ALL_GAMES = ["coin", "duel", "wheel", "cards", "bluff", "brag", "death", "roulette", "blackjack", "liars"];
+
 test("the games table is off until the GM turns it on, and its limits stay in range", () => {
   assert.deepEqual(normalizeGames(undefined), GAME_DEFAULTS);
-  assert.deepEqual(normalizeGames({ on: true, maxBet: 25.4, edge: 12 }), { on: true, maxBet: 25, edge: 12 });
-  assert.deepEqual(normalizeGames({ on: "on", maxBet: 99999, edge: 99 }), { on: true, maxBet: 1000, edge: 50 });
-  assert.deepEqual(normalizeGames({ on: "false", maxBet: 0, edge: -4 }), { on: false, maxBet: 1, edge: 0 });
+  assert.deepEqual(normalizeGames({ on: true, maxBet: 25.4, edge: 12 }), { on: true, list: ALL_GAMES, maxBet: 25, edge: 12 });
+  assert.deepEqual(normalizeGames({ on: "on", maxBet: 99999, edge: 99 }), { on: true, list: ALL_GAMES, maxBet: 1000, edge: 50 });
+  assert.deepEqual(normalizeGames({ on: "false", maxBet: 0, edge: -4 }), { on: false, list: [], maxBet: 1, edge: 0 });
   assert.deepEqual(normalizeGames({ maxBet: "lots", edge: "few" }), GAME_DEFAULTS);
-  assert.deepEqual(normalizeLanding({ games: { on: true } }).games, { on: true, maxBet: 10, edge: 5 });
+  assert.deepEqual(normalizeLanding({ games: { on: true } }).games, { on: true, list: ALL_GAMES, maxBet: 10, edge: 5 });
+});
+
+test("a place offers exactly the games ticked, in the list's order; none ticked closes the table", () => {
+  assert.deepEqual(normalizeGames({ list: ["liars", "bogus", "coin"], on: false }), { on: true, list: ["coin", "liars"], maxBet: 10, edge: 5 });
+  assert.deepEqual(normalizeGames({ list: [], on: true }).on, false);   // the list wins over an old switch
 });
 
 test("the editor's form sets the games table, and a form that does not mention it leaves it alone", () => {
   const page = normalizeLanding({ games: { on: true, maxBet: 50, edge: 10 }, title: "A" });
-  assert.deepEqual(applyForm(page, { title: "B" }).games, { on: true, maxBet: 50, edge: 10 });
-  assert.deepEqual(applyForm(page, { "games.on": "on", "games.maxBet": "25", "games.edge": "3" }).games, { on: true, maxBet: 25, edge: 3 });
+  assert.deepEqual(applyForm(page, { title: "B" }).games, { on: true, list: ALL_GAMES, maxBet: 50, edge: 10 });
+  assert.deepEqual(applyForm(page, { "games.list.dice": "on", "games.list.duel": "on", "games.list.blackjack": "on", "games.maxBet": "25", "games.edge": "3" }).games, { on: true, list: ["duel", "blackjack"], maxBet: 25, edge: 3 });
   assert.equal(applyForm(page, { "games.maxBet": "25", "games.edge": "3" }).games.on, false);   // an unticked box is absent
-  assert.equal(applyForm(normalizeLanding({}), { "games.on": "on", "games.maxBet": "5", "games.edge": "0" }).games.on, true);
+  assert.equal(applyForm(normalizeLanding({}), { "games.list.coin": "on", "games.maxBet": "5", "games.edge": "0" }).games.on, true);
   // the rest of the page rides along with the games table
   assert.equal(restockAll(page).games.maxBet, 50);
   assert.equal(setShown(page, false).games.edge, 10);
@@ -255,4 +268,11 @@ test("Save: turning an interval on starts the clock today, from a null clock or 
   // an interval that was already on keeps its live clock
   const running = mergeSave(restockAll(clocked(7, { restockedDay: 90 }), 95), clocked(7, { restockedDay: 90 }), clocked(7, { restockedDay: 90 }), 100).merchants[0];
   assert.equal(running.restockedDay, 95);
+});
+
+test("Save keeps the market's live stock size: a size changed on the table while the editor was open is not undone", () => {
+  const opened = { merchants: [{ id: "m1", actorId: "a1", open: true, stock: { kind: "outfitter", size: "town" } }] };
+  const live = { merchants: [{ id: "m1", actorId: "a1", open: true, rev: 1, stock: { kind: "outfitter", size: "city" } }], size: "city" };
+  const out = mergeSave(live, opened, opened);
+  assert.deepEqual([out.size, out.merchants[0].stock.size, out.merchants[0].rev], ["city", "city", 1]);
 });

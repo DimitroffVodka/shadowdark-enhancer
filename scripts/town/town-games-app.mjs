@@ -126,7 +126,7 @@ export class TownGamesApp extends HandlebarsApplicationMixin(ApplicationV2) {
       maxBet: formatPrice(fromCopper(town.maxBet * 100)), edge: town.edge, maxSp, wagerSp: this.wagerSp,
       wagerText: formatPrice(fromCopper(wagerFromSp(this.wagerSp))),
       chips: [...CHIPS.filter((c) => c.sp < maxSp), { sp: maxSp, label: t("SDE.town.games.max") }],
-      games: TABLE_GAMES.map((id) => ({
+      games: TABLE_GAMES.filter((id) => this.page?.games.list.includes(id)).map((id) => ({
         id, icon: GAME_ICONS[id], name: t(GAME_KEYS[id].name), rules: t(GAME_KEYS[id].rules), odds: t(GAME_KEYS[id].odds), rulesBtn: id === LIARS,
         picks: id === "coin" ? SIDES.map((s) => ({ id: s, label: t(SIDE_KEYS[s]) })) : null,
       })),

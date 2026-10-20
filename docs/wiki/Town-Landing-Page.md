@@ -2,42 +2,78 @@
 
 [← Wiki home](index.md)
 
-A front door for a town. The scene's own picture fills the screen and a menu
-runs down the right: the town's name, a line for each merchant, and the Quest
-Log, the Journals, the Party and Downtime. Players shop with their own
-characters, and they can do it between sessions with you not connected. A table of games of
-chance and a sales log for the GM can be added to the same page.
+The landing page is a table the party sits at between adventures: a candle-lit
+wooden table seen from a seat at it, with the party's portraits standing in
+frames along the far edge. The things on the table are the buttons. Players
+shop with their own characters, and they can do it between sessions with you
+not connected.
 
-![The landing page: a scene's picture with the menu down the right](images/town-landing.jpg)
+![The landing table: the coin chest lit under the pointer, the party's portraits standing on the far edge](images/town-landing.jpg)
 
-*The picture here is a sample. On your table it is the scene's own picture.*
-
-Any scene can have one. Everything on it is read from your NPCs and the scene as
-they are, so changing an NPC's items or a price changes the shop.
+Try it in your browser, no Foundry needed: the
+[landing table demo](demo/landing-table/).
 
 ---
 
-## Putting it up
+## Bringing the table up
 
 Press the **Landing page** button (a landmark icon, in the Token Controls on the
-left of the screen) or **Alt+T**. The first time on a scene it makes an empty
-page: the scene's name, the four entries and no merchants. Then:
+left of the screen), or Alt+T. Everyone is taken to the table. Press
+**Return everyone to ...** in the bar under the table, and everyone goes back to
+the scene they came from. It is Foundry's own scene change, so the party's
+tokens stay where they were and travel on a hex map waits for you. If you
+brought the table up some other way (from Foundry's scene list, say), it goes
+back to the last scene that was active, else to the party's hex map, else to the
+first scene in the navigation bar.
 
-- **It is up for everyone on the scene, you included.** The button is lit while
-  it is up.
-- **Press it again** and it goes away for everyone. The page is kept, merchants
-  and all; press again to bring it back. The eye icon on the page does the same.
-- **Moving between scenes** follows the page. Arriving in a scene whose page is
-  up opens it; arriving in one without a page, or with its page taken away,
-  closes it.
+The first press makes the table: a scene called "The Table", one merchant whose
+goods are rolled for the settlement the party is in, and the page with Quests,
+Journals, Session recaps, Party, Map and Carouse on (Downtime too in a Town or
+bigger), every game offered. Nothing to upload or wire. Change anything
+afterwards with the pencil.
 
-The picture is the scene's own. Choose it, and where the camera starts, in the
-scene's settings (the editor has a **Scene settings** button for it). The menu
-fades dark on the right, so keep that side of the picture quiet. Players can
-still pan and zoom the scene as usual.
+**The settlement.** When the party's travel token stands on a village, town,
+city or city-state hex of your hex map, the market is stocked for that size each
+time you bring the table up (its goods are rolled again when the size changes).
+In open country, or with no hex map, it stays as it was (a Town at first). You
+can change it any time with **Settlement size** in the bar under the table.
 
-When Foundry's sidebar is open the menu moves left of it, and if the Crawl Strip
-is up and would cover the town's name, the menu sits just below it.
+While the table is up it is the whole screen: the scene tools, the scene list,
+the hotbar and the module's crawl bar step aside, and the sidebar folds to its
+tabs. They come back when the table goes away. Only you see the small bar under
+the table: who you are buying as, Return, the settlement size, the pencil, the
+sales log, Restock all and the eye that takes the page away for everyone (Alt+T
+brings it back).
+
+## What is on the table
+
+| On the table | Opens |
+|---|---|
+| The quest tome | The [Quest Log](Quest-Log.md). Its pages list the active quests and their steps with tick boxes, over both pages |
+| The coin chest | The market's shop (it opens to its gold first). The number on it is the party's coin |
+| The dice cup | [Games of chance](#games-of-chance) |
+| The goblets | Carouse (see [A tavern page](#a-tavern-page)) |
+| The framed map | [The Map](#the-map) |
+| The sealed letter | Rumors, when you tick it |
+| The hourglass | [Downtime](Downtime.md) (a Town or bigger) |
+| The journal | The Journal sidebar |
+| The tied scrolls | The [Session Recap](Session-Recap.md) |
+| A portrait frame | That character's sheet (players: their own). Hover for name, level, class, hit points and purse |
+| The Party sign | The [Party](Party.md) |
+| The title card | Nothing: you click it and type the session's title ("Session 14: ...") |
+| The dial | Nothing: it shows the time of day from the world's clock |
+
+At rest the table is dim; the thing under the pointer comes up in warm light with
+its name. Text on the table (quest lines, the title, the names) shrinks to fit
+whatever you write. Something that cannot open now is greyed and says why when
+you point at it: Party until the player can see a party, Downtime until you start
+a downtime session, Carouse until you start a night (or while no GM is
+connected), Rumors until a rumor has been given, the Map while the world has no
+overland map.
+
+The table is the module's own picture, rendered in Blender
+(`tools/landing-table/`); see [CREDITS](https://github.com/DimitroffVodka/shadowdark-enhancer/blob/master/CREDITS.md)
+for the CC0 pieces in it.
 
 ---
 
@@ -47,9 +83,9 @@ is up and would cover the town's name, the menu sits just below it.
    **Weapon** or **Armor**. Those items are the stock: an item's quantity is how
    many the merchant has, and its price is what it charges. Other item types
    are not sold.
-2. **Press the pencil** on the page (the GM sees four icons at the top: the
-   pencil for the settings, the receipt for the [sales log](#the-sales-log), a
-   button that restocks every shop, and the eye that takes the page away).
+2. **Press the pencil** in the bar under the table (next to it: the receipt for
+   the [sales log](#the-sales-log), a button that restocks every shop, and the
+   eye that takes the page away).
 3. **Fill in the town**, then pick an NPC under **Merchants** and press **Add
    merchant**. Set each merchant's fields (below).
 4. **Save.** Every open page updates at once.
@@ -59,9 +95,9 @@ list (see [Generating a merchant](#generating-a-merchant)).
 
 | Field | What it does |
 |---|---|
-| **Name, Tagline, Welcome text** | The heading, the italic line and the paragraph under it. Name defaults to the scene's name |
-| **Around town** | Which entries players see: Quest Log, Journals, Party, Downtime, Carouse, Rumors (the last two are off on a new page; see A tavern page) |
-| **Open a games table** | Adds **Games of chance** to the menu (see Games of chance). Off until you turn it on |
+| **Name** | The name the games tables and the sales log go by. Defaults to the scene's name |
+| **Around town** | Which things on the table players can use: Quest Log, Journals, Party, Map, Downtime, Carouse, Rumors (Rumors is off on a new table; see A tavern page) |
+| **Games of chance** | A tick box per game: the games this place offers. Tick none and the dice cup offers no games (see Games of chance) |
 | **Largest bet (gp)** | The most one wager may stake, 1 to 1000 gp (10 by default) |
 | **House keeps (% of winnings)** | The share of every win the town keeps, 0 to 50 (5 by default) |
 | **Role, One-line pitch** | The line under the merchant's name and the hover text |
@@ -78,23 +114,14 @@ stock in each. Removing a merchant and adding the NPC again starts it fresh.
 
 ---
 
-## What players see
+## The Map
 
-- **The merchants** are listed by name with their role. Pressing one opens its
-  shop. A merchant you closed shows as closed.
-- **The other entries** open the [Quest Log](Quest-Log.md), the Journal sidebar,
-  the [Party](Party.md) and [Downtime](Downtime.md), plus Carouse and Rumors if
-  you ticked them (see A tavern page below). An entry that cannot open is
-  greyed and says why: Party until the player can see a party (the
-  [Party](Party.md) needs at least Observer), Downtime until you start a
-  downtime session, Carouse until you start a night of carousing (or while no GM
-  is connected), Rumors until a rumor has been given.
-- **The foot** says which character the player is, and their purse.
-- **Their own copy.** While you have the page up, a player can close it for
-  themselves and bring it back with the same button or Alt+T. When you take it
-  away they have neither.
-
-Change the key under *Configure Controls*.
+The **framed map** shows the player who pressed it, alone, the real overland map
+(the hex map the party travels on) with what their party has explored; the rest
+of the table stays at the table. The unexplored hexes are black as usual, and
+the player sees their own party's hexes even with no token of theirs on the
+map. A **Back to** button takes them back to the table. A world with no overland
+map greys the map out.
 
 ---
 
@@ -193,8 +220,9 @@ call it "(bought back)".
 
 ![The games table](images/town-games.png)
 
-Turn on **Open a games table** in the settings and **Games of chance** joins the
-menu. A player picks their character, sets a **wager** in silver (quick buttons
+Tick the games this place offers in the settings (a page made with
+the table starts with all ten) and **Games of chance** joins the
+menu, listing only those games. A player picks their character, sets a **wager** in silver (quick buttons
 for 1 sp, 1 gp, 5 gp, 10 gp... and the table's limit) and plays one of ten
 games. Four settle on one roll. The other six open a table of their own,
 because there is something to decide. A result card is posted to the chat for
@@ -408,13 +436,19 @@ and every open shop updates as others buy.
   catches up when they next load the world.
 - **Changing an NPC's quantity** changes the shelf at once: raise it to add
   stock without a restock.
+- **A fresh roll.** A merchant the module made (the table's own, or
+  Generate merchant) gets its goods rolled again at every restock, by hand or
+  by the day count, so the shelves change between sessions (see
+  [Generating a merchant](#generating-a-merchant)). Items you added to its NPC
+  by hand stay. An NPC you stocked yourself keeps its items and only gets its
+  quantities back.
 
 ---
 
 ## Generating a merchant
 
 Under the merchants list the editor has a **Generate merchant** row. Pick a
-**kind of shop** and a **town size** and press the button.
+**kind of shop** and a **settlement size** and press the button.
 
 | Kind | Sells |
 |---|---|
@@ -423,13 +457,36 @@ Under the merchants list the editor has a **Generate merchant** row. Pick a
 | Armorer | Armor |
 | Outfitter | Basic gear, weapons and armor |
 
-| Town size | Different wares | Dearest single item | Most of one ware |
-|---|---|---|---|
-| Village | 6 | 20 gp | 3 bundles |
-| Town | 12 | 70 gp | 5 bundles |
-| City | 20 | no limit | 8 bundles |
+Every ware the shop could carry is rolled once against the chance for its
+rarity at that settlement size. Common goods are always in stock, so a player
+can always buy torches and rations; rare goods turn up now and then even in a
+village ("a bandit sold it there").
 
-Weapons and armor get half as many bundles of each ware (at least 1). Only ordinary gear is
+| | Village | Town | City | City-State |
+|---|---|---|---|---|
+| Common | always | always | always | always |
+| Uncommon | 30% | 75% | 95% | always |
+| Rare | 5% | 20% | 50% | 80% |
+| Very rare | 1% | 3% | 10% | 30% |
+
+| Rarity | Gear | Weapons | Armor |
+|---|---|---|---|
+| Common | Torch, Rations, Rope 60', Flask, Bottle, Oil flask, Flint and Steel, Backpack, Pole, Crowbar, Iron Spikes, Arrows, Crossbow Bolts | Club, Dagger, Staff, Spear, Sling, Handaxe, Javelin, Shortbow | Leather Armor, Shield |
+| Uncommon | Lantern, Grappling Hook, Caltrops, Crawling Kit, Mirror | Mace, Morningstar, Scimitar, Shortsword, Longsword, Longbow, Crossbow | Chainmail, Round Shield |
+| Rare | | Greatsword, Bastard Sword, Greataxe, Warhammer, Pike, Whip, the obsidian Club, Dagger and Spear, Boomerang, Blowgun, Bolas, Shuriken, Spear-thrower, Stave, Razor Chain | Plate Mail |
+| Very rare | | | Mithral Chainmail, Mithral Plate Mail |
+
+An item from another compendium or your world (the importer's gear, for
+example) takes its rarity from its price: 1 gp or less is common, up to 10 gp
+uncommon, up to 100 gp rare, more very rare. Never stocked: the Light spell
+entries, the Basilisk Egg, the five potions, and the Holy Symbol and Thieves'
+Tools (the system gives them no price).
+
+How many: common goods come in plenty, more in a bigger place (up to 3 bundles
+in a village, 5 in a town, 8 in a city, 12 in a city-state); uncommon goods 2
+or 3; rare and very rare one.
+
+Weapons and armor get half as many bundles of a common ware (at least 1). Only ordinary gear is
 picked, the same priced gear the Merchant Shop's Catalog lists, never magic
 items. The button makes an NPC named after the kind and the scene (for example
 "Armorer, Hollowmere") in an Actor folder called "Hollowmere merchants", gives it
@@ -475,9 +532,8 @@ the sales log reads them.
 
 ## A tavern page
 
-Tick **Carouse** and **Rumors** in the page's settings (the pencil) and the same
-page becomes a tavern. A new page does not get these two; only the four town
-entries.
+Carouse (the goblets) is on at the table; tick **Rumors** in the page's
+settings (the pencil) and the sealed letter on the table gives rumors too.
 
 - **Carouse.** You open the Carousing window on the party that has a night
   open, else on the party you have selected if it is a native one, else on the
@@ -503,4 +559,5 @@ open when it goes away.
 ## Related
 
 [Merchant Shop](Merchant-Shop.md) (the GM-run shop for the whole table),
-[Quest Log](Quest-Log.md), [Party](Party.md), [Downtime](Downtime.md).
+[Quest Log](Quest-Log.md), [Party](Party.md), [Downtime](Downtime.md),
+[Session Recap](Session-Recap.md), the [landing table demo](demo/landing-table/).

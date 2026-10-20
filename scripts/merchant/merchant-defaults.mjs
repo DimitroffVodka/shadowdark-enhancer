@@ -165,7 +165,7 @@ async function _bookStock(book, have) {
   const pack = game.packs.get(IMPORTED_ITEMS_PACK);
   if (!pack) return [];
   const index = await pack.getIndex({
-    fields: ["system.cost", "system.source.title", `flags.${MODULE_ID}.fromTreasureTable`, `flags.${MODULE_ID}.generated`],
+    fields: ["system.cost", "system.source.title", "system.treasure", `flags.${MODULE_ID}.fromTreasureTable`, `flags.${MODULE_ID}.adventureTreasure`, `flags.${MODULE_ID}.generated`],
   });
   const out = [];
   for (const row of index.contents) {

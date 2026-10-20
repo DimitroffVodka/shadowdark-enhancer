@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-2189 tracked files · ~276,400 lines of code/markup across scripts+templates+styles+test.
+2229 tracked files · ~277,600 lines of code/markup across scripts+templates+styles+test.
 `v0.19.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -226,7 +226,7 @@
 | File | Lines | Description |
 |---|---:|---|
 | `crawl-strip.mjs` | 1762 | The core feature: the top strip. Plain DOM (`#shadowdark-enhancer-strip`), not ApplicationV2. |
-| `crawl-state.mjs` | 515 | Foundry-coupled state singleton — persistence, sockets, hook emission. |
+| `crawl-state.mjs` | 516 | Foundry-coupled state singleton — persistence, sockets, hook emission. |
 | `crawl-state-core.mjs` | 428 | Pure reducer/normalizer behind crawl-state. Node-testable. |
 | `crawl-lights-core.mjs` | 93 | Pure light-source logic for the strip's flame badges. |
 | `crawl-tracker.mjs` | 347 | The out-of-combat tracker as a real sidebar tab (`AbstractSidebarTab`), registered into `Sidebar.TABS` + `CONFIG.ui` beside Combat. Hidden unless a crawl is running; carries the roll-all / advance / reset controls. |
@@ -339,11 +339,11 @@
 |---|---:|---|
 | `merchant-shop.mjs` | 2791 | Two-mode shop system (compendium global or actor NPC inventory); GM opens for all players. |
 | `merchant-defaults.mjs` | 209 | The two shipped merchant configs (Base, Western Reaches). |
-| `catalog-stock.mjs` | 37 | What the Catalog tab may sell: gear types with a list price, not loot-table props. |
+| `catalog-stock.mjs` | 40 | What the Catalog tab may sell: gear types with a list price, not loot-table props. |
 | `shop-core.mjs` | 144 | Shop price rules shared by both shops, and the town shop's per-character stock ledger (pure). |
 | `property-names.mjs` | 30 | The names of weapon properties (Finesse, Thrown...) read from their compendium links and cached, and a ware's fact chips and short description for the shop windows. |
 | `town-shop.mjs` | 322 | A town merchant's buy and sell on the player's own client, no GM needed. |
-| `stock-generator.mjs` | 53 | A generated merchant's stock (pure): which ordinary gear a kind of shop carries and how much, by town size. |
+| `stock-generator.mjs` | 102 | A generated merchant's stock (pure): which ordinary gear a kind of shop carries and how much, by town size. |
 | `haggle-core.mjs` | 72 | The haggle ladder (d20 + CHA against a scale from a quarter off to a ban) and what a character has already tried (pure). |
 | `lots-core.mjs` | 32 | What a character sold to a town merchant, kept as lots so it can be bought back at the price it was paid (pure): the newest ten per merchant. |
 
@@ -673,14 +673,20 @@ The camp picture: a full-screen picture every client shows behind Foundry's UI, 
 
 | File | Lines | Description |
 |---|---:|---|
-| `town-core.mjs` | 190 | A town's landing page flag: merchants as NPC references, restock revision, the games table, the table switch, the editor's form folded in (pure). |
-| `town-view.mjs` | 173 | What the Town window and the shopfront show: ware cards, sell rows, tiles, the buyer (pure). |
-| `town-live.mjs` | 95 | What the town windows share on the Foundry side: the buyer, redrawing on change, the serialized page writer `updateLanding`, the table switch, the tiles' windows. |
-| `town-app.mjs` | 144 | The landing page menu over the scene's picture: merchants, tiles, the GM's pencil, sales log, restock and switch; clear of the sidebar and the Crawl Strip. |
+| `town-core.mjs` | 212 | A town's landing page flag: merchants as NPC references, restock revision, the games table, the table switch, the editor's form folded in (pure). |
+| `town-view.mjs` | 174 | What the Town window and the shopfront show: ware cards, sell rows, tiles, the buyer (pure). |
+| `town-live.mjs` | 100 | What the town windows share on the Foundry side: the buyer, redrawing on change, the serialized page writer `updateLanding`, the table switch, the tiles' windows. |
+| `town-app.mjs` | 341 | The landing page menu over the scene's picture: merchants, tiles, the GM's pencil, sales log, restock and switch; clear of the sidebar and the Crawl Strip. |
 | `town-shop-app.mjs` | 260 | One merchant's shopfront: buy and sell as a chosen character with no GM, categories, search. |
-| `town-editor-app.mjs` | 190 | The GM's landing page editor window: town text, tiles, games table, merchants. |
-| `town-entry-points.mjs` | 110 | The Landing page toolbar button and Alt+T: one switch for the table, the page made on any scene, followed by every client. |
+| `town-editor-app.mjs` | 165 | The GM's landing page editor window: town text, tiles, games table, merchants. |
+| `town-entry-points.mjs` | 127 | The Landing page toolbar button and Alt+T: one switch for the table, the page made on any scene, followed by every client. |
 | `town-restock.mjs` | 28 | Shelves that restock by themselves: on a new world day the active GM runs `autoRestock` over every scene's landing page (plus a catch-up on ready). |
+| `town-stock.mjs` | 103 | A made merchant's rolled shelf: builds the gear pool, rolls it by rarity for the settlement size (`pickStock`), makes the NPC, and rolls the shelf again when a restock raises its revision (rolled items only; the GM's own stay). |
+| `landing-pages-core.mjs` | 63 | The one landing page, pure: the tiles it has by settlement size, its page and scene as made, where Return goes, and the page at a new settlement size (rolled merchants restocked). |
+| `landing-pages.mjs` | 126 | The one landing page, Foundry side: makes the table (scene, rolled merchant, page), takes everyone there and back from the toolbar, and sizes the market by the party's hex. |
+| `landing-map.mjs` | 61 | The table's Map: shows the clicker alone the overland map with their party's explored hexes, with a Back button. |
+| `landing-table-core.mjs` | 104 | The landing table, pure: which props are buttons, the click map's prop order, the seats, the perspective matrix that lays text on a prop, the tome's quest lines and the day dial's angle. |
+| `landing-table-layout.mjs` | 5 | GENERATED by tools/landing-table/make_assets.py: the props' boxes, the overlay quads and the seats in the table picture's pixels. |
 | `games-core.mjs` | 156 | The town's games of chance: the four that settle on one roll, the names and keys of the games that open a table (Liar's Dice among them), the house's cut and the wager limits (pure). |
 | `liars-dice-core.mjs` | 153 | Liar's Dice for two to six seats: the rules (bids, calls, ones wild, five dice each, forfeits) and the house's odds-based play (pure). |
 | `liars-dice-table.mjs` | 132 | A Liar's Dice table: lobby, seats, who may move, the house's turns, leaving, and the view each person may see (pure). |

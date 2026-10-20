@@ -26,7 +26,7 @@
   .prop.hot { z-index: 3; }
   .prop img { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; transition: opacity .22s, filter .22s; }
   .prop.hot img { opacity: 1; filter: brightness(1.12) drop-shadow(0 0 14px rgb(255 168 70 / 85%)) drop-shadow(0 0 40px rgb(255 140 40 / 45%)); }
-  .label { position: absolute; left: 50%; bottom: calc(100% + 6px); transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 22px 8px; white-space: nowrap; background: var(--panel); border: 2px solid var(--line); border-radius: 999px; color: var(--text); opacity: 0; transition: opacity .18s; }
+  .label { position: absolute; left: 50%; top: 8px; transform: translateX(-50%); max-width: calc(100% - 16px); display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 22px 8px; white-space: nowrap; background: var(--panel); border: 2px solid var(--line); border-radius: 999px; color: var(--text); opacity: 0; transition: opacity .18s; }
   .prop.hot .label { opacity: 1; }
   .label b { font: 400 46px/1.05 var(--title); }
   .label small { font-size: 22px; color: var(--muted); }
@@ -54,12 +54,16 @@
   .dial { filter: brightness(.75); }
   .dial svg { width: 100%; height: 100%; }
   .coin { position: absolute; transform: translate(-50%, 0); padding: 4px 18px; background: var(--panel); border: 2px solid var(--line); border-radius: 999px; font: 600 30px/1.2 var(--font); color: var(--gold); pointer-events: none; }
-  .seat { position: absolute; width: 150px; height: 150px; transform: translate(-50%, -50%); border: 5px solid rgb(231 191 98 / 75%); border-radius: 50%; background: radial-gradient(circle at 50% 35%, #4a3a2a, #1a1410); box-shadow: 0 6px 24px rgb(0 0 0 / 80%); display: grid; place-items: center; font: 400 70px/1 var(--title); color: var(--gold); filter: saturate(.55) brightness(.8); transition: filter .2s; cursor: pointer; }
-  .seat:hover, .seat:focus-visible { filter: none; box-shadow: 0 0 34px rgb(255 168 70 / 70%); outline: none; z-index: 2; }
-  .card { position: absolute; left: 50%; top: calc(100% + 12px); transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; min-width: 300px; padding: 12px 22px; background: rgb(10 7 4 / 92%); border: 2px solid var(--line); border-radius: 12px; font: 26px/1.3 var(--font); color: var(--body); white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity .18s; }
+  /* a member's portrait frame standing on the table, their picture on its face; dim at rest, lit on hover */
+  .seat { position: absolute; pointer-events: none; }
+  .seat > img.frame { position: absolute; inset: 0; width: 100%; height: 100%; filter: brightness(.55) saturate(.55); transition: filter .22s; }
+  .seat .face { position: absolute; left: 0; top: 0; transform-origin: 0 0; display: grid; place-items: center; background: radial-gradient(circle at 50% 35%, #6a5034, #2a1d12); font: 400 80px/1 var(--title); color: var(--gold); filter: brightness(.6); transition: filter .22s; }
+  .seat.hot > img.frame { filter: brightness(1.12) drop-shadow(0 0 14px rgb(255 168 70 / 85%)); }
+  .seat.hot .face { filter: none; }
+  .card { position: absolute; left: 50%; top: calc(100% + 12px); transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; min-width: 300px; padding: 12px 22px; background: rgb(10 7 4 / 92%); border: 2px solid var(--line); border-radius: 12px; font: 26px/1.3 var(--font); color: var(--body); white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity .18s; z-index: 5; }
   .card b { font: 400 40px/1.1 var(--title); color: var(--text); }
   .card .purse { color: var(--gold); }
-  .seat:hover .card, .seat:focus-visible .card { opacity: 1; }
+  .seat.hot .card { opacity: 1; }
   .plaque { position: absolute; transform: translate(-50%, 0); padding: 6px 26px; background: var(--panel); border: 2px solid var(--line); border-radius: 999px; font: 400 40px/1.1 var(--title); color: var(--text); }
 
   .toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px); max-width: min(92vw, 560px); padding: 12px 18px; background: rgb(14 10 6 / 96%); border: 1px solid var(--line); border-radius: 10px; color: var(--body); opacity: 0; transition: opacity .2s, transform .2s; pointer-events: none; z-index: 10; }
@@ -213,7 +217,9 @@ const pages = [L.tomeLeft, L.tomeRight].map((quad, i) => {
 });
 function drawTome() {
   const lines = state.quests.flatMap((q) => [`<li class="quest"><span class="tick"></span>${esc(q.name)}</li>`, ...q.steps.map((s) => `<li class="step ${s.done ? "done" : ""}"><span class="tick"></span>${esc(s.text)}</li>`)]);
-  pages[0].innerHTML = lines.slice(0, 5).join(""); pages[1].innerHTML = lines.slice(5, 10).join("");
+  // The quests are shared out over both pages, the first half on the left.
+  const half = Math.ceil(state.quests.length / 2), block = (q) => [`<li class="quest"><span class="tick"></span>${esc(q.name)}</li>`, ...q.steps.map((s) => `<li class="step ${s.done ? "done" : ""}"><span class="tick"></span>${esc(s.text)}</li>`)];
+  pages[0].innerHTML = state.quests.slice(0, half).flatMap(block).join(""); pages[1].innerHTML = state.quests.slice(half).flatMap(block).join("");
 }
 const title = el("div", "quad title-card", `<span class="title-text" contenteditable="plaintext-only" spellcheck="false">Session 14: Ash Above the Styx</span>`);
 Object.assign(title.style, { width: "700px", height: "150px", transform: homography(700, 150, L.title) }); pic.append(title);
@@ -222,17 +228,17 @@ const dial = el("div", "quad dial", `<svg viewBox="0 0 200 200"><path d="M100 10
 Object.assign(dial.style, { width: "400px", height: "400px", transform: homography(400, 400, L.dial) }); pic.append(dial);
 const coinTag = el("span", "coin"); Object.assign(coinTag.style, { left: `${L.chestFront[0]}px`, top: `${L.chestFront[1]}px` }); pic.append(coinTag);
 const seats = state.party.map((m, i) => {
-  const [x, y] = L.seats[i];
-  const s = el("button", "seat"); s.type = "button"; s.setAttribute("aria-label", m.name); Object.assign(s.style, { left: `${x}px`, top: `${y}px` });
-  s.addEventListener("click", () => openWin("sheet", i));
-  pic.append(s); return s;
+  const f = L.frames[i], s = el("div", "seat"); s.dataset.seat = `seat${i}`; box(s, f);
+  const img = el("img", "frame"); img.src = A(`props/seat${i}.webp`); img.alt = "";
+  const face = el("span", "face"); Object.assign(face.style, { width: "120px", height: "160px", transform: `translate(${-f.x}px, ${-f.y}px) ${homography(120, 160, f.face)}` });
+  s.append(img, face, el("span", "card")); pic.append(s); return s;
 });
-const plaque = el("button", "plaque", "Party"); plaque.type = "button"; plaque.style.cursor = "pointer"; Object.assign(plaque.style, { left: `${(L.seats[0][0] + L.seats[2][0]) / 2}px`, top: `${L.seats[0][1] + 92}px` });
+const plaque = el("button", "plaque", "Party"); plaque.type = "button"; plaque.style.cursor = "pointer"; Object.assign(plaque.style, { left: "1280px", top: `${Math.max(20, Math.min(...L.frames.map((f) => f.y)) - 110)}px` });
 plaque.addEventListener("click", () => openWin("party")); pic.append(plaque);
 function drawTable() {
   drawTome();
   coinTag.textContent = coins(state.party.reduce((n, m) => n + m.cp, 0));
-  state.party.forEach((m, i) => { seats[i].innerHTML = `${m.name[0]}<span class="card"><b>${m.name}</b><span>Level ${m.level} ${m.cls}</span><span>HP ${m.hp[0]} / ${m.hp[1]}</span><span class="purse">${coins(m.cp)}</span></span>`; });
+  state.party.forEach((m, i) => { seats[i].querySelector(".face").textContent = m.name[0]; seats[i].querySelector(".card").innerHTML = `<b>${m.name}</b><span>Level ${m.level} ${m.cls}</span><span>HP ${m.hp[0]} / ${m.hp[1]}</span><span class="purse">${coins(m.cp)}</span>`; });
 }
 drawTable();
 
@@ -243,27 +249,30 @@ addEventListener("resize", fit); fit();
 
 let hit = null;
 (async () => { const img = new Image(); img.src = A("hit.webp"); await img.decode(); const c = new OffscreenCanvas(img.naturalWidth, img.naturalHeight), x = c.getContext("2d"); x.drawImage(img, 0, 0); hit = { w: c.width, h: c.height, d: x.getImageData(0, 0, c.width, c.height).data }; })();
-const ORDER = ["quests", "market", "games", "carouse", "map", "rumors", "downtime", "journals", "title", "dial", "recaps"];
+const ORDER = ["quests", "market", "games", "carouse", "map", "rumors", "downtime", "journals", "title", "dial", "recaps", "seat0", "seat1", "seat2", "seat3", "seat4", "seat5"];
 function propAt(ev) {
   if (!hit) return null;
   const r = pic.getBoundingClientRect(), x = Math.floor(((ev.clientX - r.left) / r.width) * hit.w), y = Math.floor(((ev.clientY - r.top) / r.height) * hit.h);
   if (x < 0 || y < 0 || x >= hit.w || y >= hit.h) return null;
-  const id = ORDER[Math.round(hit.d[(y * hit.w + x) * 4] / 20) - 1] ?? null;
+  const id = ORDER[Math.round(hit.d[(y * hit.w + x) * 4] / (L.hitStep ?? 20)) - 1] ?? null;
+  if (id?.startsWith("seat")) return Number(id.slice(4)) < state.party.length ? id : null;
   return LABELS[id] && L.props[id] ? id : null;
 }
 function light(id) {
   if (pic.dataset.hot === (id ?? "")) return;
   pic.dataset.hot = id ?? "";
   for (const p of pic.querySelectorAll(".prop")) p.classList.toggle("hot", p.dataset.prop === id);
+  for (const p of pic.querySelectorAll(".seat")) p.classList.toggle("hot", p.dataset.seat === id);
   pic.style.cursor = id ? "pointer" : "";
 }
-pic.addEventListener("pointermove", (ev) => light(ev.target.closest(".seat, .plaque, .title-text") ? null : propAt(ev)));
+pic.addEventListener("pointermove", (ev) => light(ev.target.closest(".plaque, .title-text") ? null : propAt(ev)));
 pic.addEventListener("pointerleave", () => light(null));
 pic.addEventListener("click", (ev) => {
-  if (ev.target.closest(".seat, .plaque, .title-text")) return;
+  if (ev.target.closest(".plaque, .title-text")) return;
   const id = propAt(ev);
   if (!id) return;
   light(id);
+  if (id.startsWith("seat")) return openWin("sheet", Number(id.slice(4)));
   if (id === "market" || id === "quests") {
     stage.classList.remove("opening-market", "opening-quests"); void stage.offsetWidth; stage.classList.add(`opening-${id}`);
     setTimeout(() => stage.classList.remove(`opening-${id}`), 2300);

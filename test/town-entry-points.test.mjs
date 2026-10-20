@@ -118,7 +118,7 @@ test("the hide icon switches the page off, with the Town title; nothing in the l
   const page = Object.create(TownApp.prototype); page.scene = e.byId.get("C");
   await page._onHide();
   assert.equal(e.byId.get("C").updates.length, 1);
-  const hbs = readFileSync(new URL("../templates/town/town-landing.hbs", import.meta.url), "utf8");
+  const hbs = readFileSync(new URL("../templates/town/town-table.hbs", import.meta.url), "utf8");
   assert.match(hbs, /data-action="hideTown" data-tooltip="\{\{localize 'SDE\.town\.hide'\}\}"/);
   const app = readFileSync(new URL("../scripts/town/town-app.mjs", import.meta.url), "utf8");
   assert.match(app, /window: \{ frame: false/); // frameless: no close control, Escape is not offered
@@ -136,4 +136,33 @@ test("switching the page off leaves a games window seated at Liar's dice open (c
   e.instances.get("sde-town-games").client.part = null; // away from the table, it closes with the page
   e.entry.closeTown();
   assert.equal(shut.filter((id) => id === "sde-town-games").length, 1);
+});
+
+test("every scene that goes active is remembered as the table's way back, by the one active GM, never a landing page", async () => {
+  const e = await setup({ gm: true, scenes: [scene("C", { shown: false }), scene("D", null)] });
+  const kept = [];
+  e.entry.townIo.remember = async (s) => { kept.push(s.id); };
+  globalThis.game.user.id = "g1";
+  globalThis.game.users = { activeGM: { id: "g1" } };
+  e.hooks.updateScene(e.byId.get("D"), { active: true });
+  e.hooks.updateScene(e.byId.get("C"), { active: true });       // a landing page
+  e.hooks.updateScene(e.byId.get("D"), { navigation: true });   // not an activation
+  globalThis.game.users.activeGM = { id: "g2" };
+  e.hooks.updateScene(e.byId.get("D"), { active: true });       // another GM's client writes it
+  assert.deepEqual(kept, ["D"]);
+});
+
+test("the GM's Alt+T: on the table it flips the page; anywhere else it takes everyone to the table, never making a page there", async () => {
+  const table = scene("T", { shown: true });
+  table.flags[MOD].landingTable = true;
+  const e = await setup({ gm: true, canvasId: "D", scenes: [table, scene("D", null), scene("C", { shown: true })] });
+  const did = [];
+  e.entry.townIo.table = async () => { did.push("table"); };
+  e.entry.townIo.flip = async (s, on) => { did.push(`flip ${s.id} ${on}`); };
+  await e.hooks["key:openTown"](); await null;
+  globalThis.canvas = { scene: e.byId.get("C") };              // a scene with an old page of its own
+  await e.hooks["key:openTown"](); await null;
+  globalThis.canvas = { scene: table };
+  await e.hooks["key:openTown"](); await null;
+  assert.deepEqual(did, ["table", "table", "flip T false"]);
 });
