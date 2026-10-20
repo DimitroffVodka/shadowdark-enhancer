@@ -39,17 +39,17 @@ const cards = [];
 let cardFails = false;
 LootDelivery.postCard = (batch) => server(10, () => (cardFails ? null : (cards.push(batch), { id: `m${cards.length}` })));
 
-function npc({ coins = { gp: 5 }, extrasCoins = null, veto = false, unsetFails = false } = {}) {
-  const mk = (id, name, quantity = 1) => ({
-    id, name, type: "Weapon", system: { quantity },
-    toObject() { return { _id: id, name, type: "Weapon", system: { quantity: this.system.quantity } }; },
+function npc({ coins = { gp: 5 }, extrasCoins = null, veto = false, unsetFails = false, createFails = null } = {}) {
+  const mk = (id, name, quantity = 1, flags = {}) => ({
+    id, name, type: "Weapon", system: { quantity }, flags,
+    toObject() { return { _id: id, name, type: "Weapon", system: { quantity: this.system.quantity }, flags: structuredClone(flags) }; },
     update(changes) { return server(40, () => { this.system.quantity = changes["system.quantity"]; }); },
   });
   const items = [mk("d", "Dagger"), mk("s", "Sword")];
   items.get = (id) => items.find((i) => i.id === id);
   const flags = { "shadowdark-enhancer": coins ? { carriedCoins: coins } : {}, "shadowdark-extras": extrasCoins ? { coins: extrasCoins } : {} };
   const a = {
-    uuid: "Actor.bandit", name: "Bandit", type: "NPC", items, flags, opts: { veto, unsetFails },
+    uuid: "Actor.bandit", name: "Bandit", type: "NPC", items, flags, opts: { veto, unsetFails, createFails }, mk,
     getFlag: (s, k) => flags[s]?.[k],
     testUserPermission: (user) => user.isGM,
     deleteEmbeddedDocuments: (_t, ids) => server(5, () => {
@@ -59,7 +59,9 @@ function npc({ coins = { gp: 5 }, extrasCoins = null, veto = false, unsetFails =
     }),
     createEmbeddedDocuments: (_t, data, options) => server(5, () => {
       assert.equal(options?.keepId, true);
-      for (const d of data) items.push(mk(d._id, d.name, d.system.quantity));
+      if (a.opts.createFails === "throw") throw new Error("validation failed");
+      if (a.opts.createFails === "veto") return [];
+      for (const d of data) items.push(mk(d._id, d.name, d.system.quantity, d.flags));
     }),
     unsetFlag: (s, k) => server(5, () => { if (a.opts.unsetFails) throw new Error("update failed"); delete flags[s][k]; }),
     setFlag: (s, k, v) => server(40, () => { flags[s][k] = v; }),
@@ -99,7 +101,7 @@ test("a GM who is not the active GM asks the active GM instead of writing", asyn
   assert.equal(a.items.length, 2, "only the active GM takes the gear");
 });
 
-test("the active GM's handler drops once for two clients at once, and refuses a sender who does not own the NPC", async () => {
+test("the active GM's handler drops once for two clients at once, and refuses a player", async () => {
   reset();
   const a = npc();
   const handler = globalThis.CONFIG.queries["shadowdark-enhancer.npcDropCarried"];
@@ -165,13 +167,14 @@ test("a purse that cannot be cleared puts the gear back and posts nothing; the n
   assert.equal(gpPosted(), 5);
 });
 
-test("a card that cannot be posted puts the gear and the purse back, and a later drop can still post it", async () => {
+test("a card that cannot be posted puts the gear and the purse back, tells the GM, and a later drop can still post it", async () => {
   reset();
   const a = npc();
   cardFails = true;
-  assert.equal(await NpcInventory.dropCarried(a), false);
+  assert.equal(await NpcInventory.requestDrop(a), false);
+  assert.deepEqual(errors, ["SDE.npcInv.dropFailed"]);
   assert.equal(a.items.length, 2);
-  assert.deepEqual(a.getFlag("shadowdark-enhancer", "carriedCoins"), { gp: 5 });
+  assert.deepEqual(a.getFlag("shadowdark-enhancer", "carriedCoins"), { gp: 5, sp: 0, cp: 0 });
   cardFails = false;
   assert.equal(await NpcInventory.dropCarried(a), true);
   assert.deepEqual(posted(), ["Dagger", "Sword"]);
@@ -254,4 +257,62 @@ test("the tab stands down only while Extras' own NPC Inventory is on", async () 
   extras = { active: false, setting: undefined };
   globalThis.game.user = PLAYER;
   assert.equal(await added(), false, "players do not get the tab");
+});
+
+test("an NPC the active GM cannot look up is said, not dropped silently", async () => {
+  reset();
+  const look = globalThis.fromUuid;
+  globalThis.fromUuid = async () => { throw new Error("bad uuid"); };
+  try {
+    assert.equal(await NpcInventory.requestDrop(npc()), false);
+    assert.deepEqual(errors, ["SDE.npcInv.dropFailed"]);
+  } finally { globalThis.fromUuid = look; }
+});
+
+test("a put-back adds the taken coins to coins typed meanwhile, never over them", async () => {
+  reset();
+  const a = npc();
+  LootDelivery.postCard = () => server(10, () => { a.flags["shadowdark-enhancer"].carriedCoins = { gp: 9 }; return null; });
+  try {
+    await assert.rejects(NpcInventory.dropCarried(a));
+  } finally { LootDelivery.postCard = (batch) => server(10, () => (cardFails ? null : (cards.push(batch), { id: `m${cards.length}` }))); }
+  assert.deepEqual(a.getFlag("shadowdark-enhancer", "carriedCoins"), { gp: 14, sp: 0, cp: 0 });
+  assert.equal(a.items.length, 2);
+});
+
+for (const how of ["throw", "veto"]) {
+  test(`a put-back whose items cannot be re-created (${how}) still returns the purse, and names what was lost`, async () => {
+    reset();
+    const a = npc({ createFails: how });
+    cardFails = true;
+    await assert.rejects(NpcInventory.dropCarried(a), /Dagger, Sword/);
+    assert.deepEqual(a.getFlag("shadowdark-enhancer", "carriedCoins"), { gp: 5, sp: 0, cp: 0 });
+    a.opts.createFails = null;
+    a.items.push(a.mk("d", "Dagger"));
+    assert.equal(await NpcInventory.requestDrop(a), false, "the card is still refused");
+    assert.deepEqual(errors, ["SDE.npcInv.dropFailed"]);
+  });
+}
+
+test("an Extras container's contents leave with it but are not rows of their own on the card", async () => {
+  reset();
+  const a = npc();
+  a.items.push(a.mk("bag", "Backpack"), a.mk("rope", "Rope", 1, { "shadowdark-extras": { containerId: "bag" } }), a.mk("loose", "Torch", 1, { "shadowdark-extras": { containerId: "elsewhere" } }));
+  cardFails = true;
+  await assert.rejects(NpcInventory.dropCarried(a));
+  assert.deepEqual(a.items.map((i) => i.id).sort(), ["bag", "d", "loose", "rope", "s"], "a refused card puts the contents back too");
+  cardFails = false;
+  assert.equal(await NpcInventory.dropCarried(a), true);
+  assert.deepEqual(posted(), ["Backpack", "Dagger", "Sword", "Torch"]);
+  assert.equal(a.items.length, 0);
+});
+
+test("a player who owns the NPC cannot drop it: Drop as loot is the GM's", async () => {
+  reset();
+  const a = npc();
+  a.testUserPermission = () => true;
+  const handler = globalThis.CONFIG.queries["shadowdark-enhancer.npcDropCarried"];
+  assert.deepEqual(await handler({ actorUuid: a.uuid }, { user: PLAYER }), { ok: false, error: "SDE.shared.relay.notOwner" });
+  assert.equal(cards.length, 0);
+  assert.equal(a.items.length, 2);
 });

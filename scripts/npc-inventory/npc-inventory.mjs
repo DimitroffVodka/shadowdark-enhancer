@@ -69,13 +69,14 @@ export const NpcInventory = {
   async handleDropQuery(data, user) {
     const refusal = refuseQuery(user, L("SDE.npcInv.relayLabel"));
     if (refusal) return refusal;
-    const actor = typeof data?.actorUuid === "string" ? await fromUuid(data.actorUuid) : null;
-    if (actor?.type !== "NPC") return { ok: false, error: L("SDE.shared.relay.actorGone") };
-    if (!actor.testUserPermission(user, "OWNER")) return { ok: false, error: L("SDE.shared.relay.notOwner") };
+    // The tab and the HUD button are the GM's; a player who owns an NPC (a hireling) does not post its gear.
+    if (!user.isGM) return { ok: false, error: L("SDE.shared.relay.notOwner") };
     try {
+      const actor = typeof data?.actorUuid === "string" ? await fromUuid(data.actorUuid) : null;
+      if (actor?.type !== "NPC") return { ok: false, error: L("SDE.shared.relay.actorGone") };
       return { ok: true, dropped: await this.dropCarried(actor) };
     } catch (err) {
-      console.error(`${MODULE_ID} | dropping what ${actor.name} carried failed`, err);
+      console.error(`${MODULE_ID} | dropping what ${data?.actorUuid} carried failed`, err);
       return { ok: false, error: L("SDE.npcInv.dropFailed") };
     }
   },
@@ -83,8 +84,8 @@ export const NpcInventory = {
   /**
    * Take everything the actor carries off it and post it as a loot card. The active GM's work: one drop per
    * NPC at a time, and the card lists what the actor read back says was taken. A card that cannot be posted
-   * puts it all back.
-   * @returns {Promise<boolean>} whether a card was posted
+   * puts it all back and throws.
+   * @returns {Promise<boolean>} true when a card was posted, false when there was nothing to take
    */
   dropCarried(actor) {
     if (!actor) return Promise.resolve(false);
@@ -97,8 +98,7 @@ export const NpcInventory = {
 
   async _take(actor) {
     const [scope, key] = purseFlag();
-    const rawCoins = actor.getFlag(scope, key);
-    const coins = purse(rawCoins);
+    const coins = purse(actor.getFlag(scope, key));
     const docs = carriedDocs(actor);
     if (!docs.length && !hasCoins(coins)) return false;
 
@@ -109,29 +109,49 @@ export const NpcInventory = {
     const gone = new Set(deleted.map((d) => d.id));
     // A preDeleteItem veto resolves with fewer documents: only what really left the actor goes on the card.
     const items = data.filter((d) => gone.has(d._id) && !actor.items.get(d._id));
+    // A Shadowdark Extras container carries its contents in its own data, so they leave with it but are not
+    // rows of their own (as the party stash does): claiming the container unpacks them.
+    const takenIds = new Set(items.map((d) => d._id));
+    const rows = items.filter((d) => !takenIds.has(d.flags?.[EXTRAS_ID]?.containerId));
     let taken = purse(null);
+    let failure = new Error("loot card refused");
     try {
       if (hasCoins(coins)) {
         await actor.unsetFlag(scope, key);
+        // ponytail: two clients that both run this (a GM's second tab with no Web Lock, or the active GM
+        // changing mid-drop) both read the purse back empty and both post it; Foundry has no compare-and-set
+        // on a flag. Upgrade only if a server-side take ever exists. The item batch fails whole, so gear is safe.
         if (!hasCoins(purse(actor.getFlag(scope, key)))) taken = coins;
       }
       if (!items.length && !hasCoins(taken)) return false;
-      if (await LootDelivery.postCard(lootBatch(actor.name, items, taken))) return true;
+      if (await LootDelivery.postCard(lootBatch(actor.name, rows, taken))) return true;
     } catch (err) {
-      await this._putBack(actor, items, hasCoins(taken) && [scope, key, rawCoins]);
-      throw err;
+      failure = err;
     }
-    await this._putBack(actor, items, hasCoins(taken) && [scope, key, rawCoins]);
-    return false;
+    const lost = await this._putBack(actor, items, scope, key, taken);
+    if (lost.length) throw new Error(`${actor.name}: could not put back ${lost.join(", ")}`, { cause: failure });
+    throw failure;
   },
 
-  /** Return what a drop took when its card was not posted. */
-  async _putBack(actor, items, coins) {
-    if (items.length) await actor.createEmbeddedDocuments("Item", items, { keepId: true });
-    if (!coins) return;
-    const [scope, key, value] = coins;
-    if (scope === MODULE_ID) await replaceModuleFlag(actor, key, value);
-    else await actor.setFlag(scope, key, value);
+  /**
+   * Return what a drop took when its card was not posted. The purse and the items go back independently; the
+   * taken coins are added to the purse as it is now, so coins typed meanwhile stay.
+   * @returns {Promise<string[]>} what is still missing afterwards
+   */
+  async _putBack(actor, items, scope, key, taken) {
+    const results = await Promise.allSettled([
+      hasCoins(taken) && (async () => {
+        const now = purse(actor.getFlag(scope, key));
+        const value = { gp: now.gp + taken.gp, sp: now.sp + taken.sp, cp: now.cp + taken.cp };
+        if (scope === MODULE_ID) await replaceModuleFlag(actor, key, value);
+        else await actor.setFlag(scope, key, value);
+      })(),
+      items.length && actor.createEmbeddedDocuments("Item", items, { keepId: true }),
+    ]);
+    for (const r of results) if (r.status === "rejected") console.error(`${MODULE_ID} | putting back what ${actor.name} carried failed`, r.reason);
+    const lost = items.filter((d) => !actor.items.get(d._id)).map((d) => d.name);
+    if (results[0].status === "rejected") lost.push(L("SDE.npcInv.coins"));
+    return lost;
   },
 
   async _inject(app, html) {

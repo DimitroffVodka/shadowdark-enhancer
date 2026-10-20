@@ -354,7 +354,12 @@ NPC sheet (the GM sees it; players do not).
 - **One GM does every drop.** Whoever clicks, the active GM's Foundry takes the
   gear and coins off the NPC and posts the card, one NPC at a time, so two
   clicks never post the same loot twice. If the card cannot be posted, the gear
-  and coins go back on the NPC and the GM is told.
+  and coins go back on the NPC and the GM is told. One exception: if the active
+  GM has the world open in two tabs (over plain http, where the browser cannot
+  tell them apart), or the active GM changes while a drop runs, an NPC's coins
+  can go on two cards. Its gear never does.
+- **Containers.** A Shadowdark Extras container goes on the card as one row;
+  what is packed in it comes with it when it is claimed.
 
 ## Treasure XP
 
