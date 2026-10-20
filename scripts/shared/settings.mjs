@@ -384,6 +384,18 @@ export function registerSettings() {
     onChange: clockBarChanged,
   });
 
+  // Overland's automatic forage (#233): the day's first move rolls every
+  // member's forage for them. Off, each member forages from the Travel panel.
+  game.settings.register(MODULE_ID, "overlandAutoForage", {
+    name: "SDE.settings.overlandAutoForage.name",
+    hint: "SDE.settings.overlandAutoForage.hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: true,
+    onChange: clockBarChanged,
+  });
+
   // The clock bar at the top (#253): who sees it. Everyone by default; nobody
   // during a combat whatever this says.
   game.settings.register(MODULE_ID, "clockBar", {
@@ -700,6 +712,27 @@ export function registerSettings() {
     config: false,
     type: Boolean,
     default: true,
+  });
+
+  // Which rows of a region's points-of-interest table the party has already found,
+  // keyed by table uuid: a d20 list of one-off places should not repeat a find.
+  game.settings.register(MODULE_ID, "poiUsed", {
+    scope: "world",
+    config: false,
+    type: Object,
+    default: {},
+  });
+
+  // The book's 1-in-20: a hex that is not a keyed location can turn out to be a
+  // point of interest when the party enters it. 5 % = one face in twenty; 0 off.
+  game.settings.register(MODULE_ID, "poiArrivalChance", {
+    name: "SDE.settings.poiArrivalChance.name",
+    hint: "SDE.settings.poiArrivalChance.hint",
+    scope: "world",
+    config: false,
+    type: Number,
+    range: { min: 0, max: 100, step: 1 },
+    default: 5,
   });
 
   game.settings.register(MODULE_ID, "pauseOnEncounter", {

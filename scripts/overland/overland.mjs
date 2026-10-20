@@ -70,9 +70,15 @@ export const OVERLAND_SETTING = "overlandState";
 export const OVERLAND_QUERY = `${MODULE_ID}.overland`;
 export const OVERLAND_CHANGED = `${MODULE_ID}.overlandChanged`;
 export const WEATHER_RULE_SETTING = "overlandWeatherRule";
+export const AUTO_FORAGE_SETTING = "overlandAutoForage";
 const SOCKET = `module.${MODULE_ID}`;
 
 const serialize = makeQueue();
+
+/** Whether the day's first move forages for the party (#233; on by default). */
+export function autoForageEnabled() {
+  try { return game.settings.get(MODULE_ID, AUTO_FORAGE_SETTING) !== false; } catch { return true; }
+}
 
 /** Each forageRefusal() reason's message (literal keys, so i18n-keys can see them). */
 const FORAGE_REFUSED = {
@@ -999,7 +1005,7 @@ export function recordMove(doc, origin, dest, priced, waypoints = [dest], movedA
     const first = _state.spent === 0;
     await commit(spendMove(_state, { cost: priced.cost, hex }).state);
     // The first move settles the day's pace (setPace), and a normal pace forages: everyone, with no one asked to stop.
-    if (first && _state.spent > 0 && !_state.pushed) {
+    if (first && _state.spent > 0 && !_state.pushed && autoForageEnabled()) {
       await syncMembers();
       for (const id of [..._state.members]) { const actor = game.actors.get(id); if (actor) await tryForage(actor, true); }
     }

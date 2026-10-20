@@ -11,7 +11,8 @@ import { registerHexCoordinates } from "./hex-map/coordinate-overlay.mjs";
 import { registerMapNetwork } from "./hex-map/map-network.mjs";
 import { registerHexMapControls } from "./hex-map/hex-map-controls.mjs";
 import { HexExplorer, registerHexExplorer, ownsHexData } from "./hex-map/hex-explorer.mjs";
-import { HexRecords, isHexAdopted } from "./hex-map/hex-records.mjs";
+import { registerHexHud } from "./hex-map/hex-hud.mjs";
+import { HexRecords, isHexAdopted, registerHexRecordProjections } from "./hex-map/hex-records.mjs";
 import { adoptHexScene, registerHexAdoption } from "./hex-map/hex-adoption.mjs";
 import { HexFog, ownsHexFog, registerHexFog } from "./hex-map/hex-fog.mjs";
 import { ownsBakedMap, registerBakedMaps } from "./hex-map/baked-map.mjs";
@@ -143,7 +144,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "e42c59841fff";
+const STYLESHEET_REV = "172219008244";
 
 // The same problem for the SCRIPTS, which cannot be solved the same way: their
 // URLs come from the manifest, which Foundry validates as real package paths,
@@ -158,7 +159,7 @@ const STYLESHEET_REV = "e42c59841fff";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "40fde02c121e";
+const BUILD_REV = "e989853e049c";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -375,7 +376,11 @@ Hooks.once("init", () => {
   registerMapNetwork();
   registerHexMapControls();
   registerHexExplorer();
+  // Hex Data from the token standing in the hex, since a token hides the bare hex from the pointer.
+  registerHexHud();
   registerHexAdoption();
+  // Disclosed-hex projection journals carry player fog data; they are not reading material and stay out of the sidebar.
+  registerHexRecordProjections();
   // The route and click-to-travel on the hex map (#257).
   registerRoute();
   // Out-of-combat tracker as a sidebar tab, beside Combat. Must run in init:

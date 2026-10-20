@@ -1691,3 +1691,22 @@ test("Start from nothing and End travel are the session's two boundaries, from t
     delete globalThis.canvas;
   }
 });
+
+test("Automatic foraging off: the day's first move forages no one, and Forage still works", async () => {
+  campWorld();
+  stored.overlandAutoForage = false;
+  try {
+    dice.push(3);
+    await applyAction({ action: "startDay", method: "walking" }, gm);
+    await recordMove({ parent: null }, { x: 0, y: 0 }, { x: 100, y: 0 }, { cost: 1, blocked: null, steps: [{ hex: { num: 7 } }] });
+    await settle();
+    assert.deepEqual(statRolls, [], "no one is rolled for");
+    assert.deepEqual(stored.overlandState.foraged ?? [], []);
+    statResults.push({ success: true });
+    assert.equal((await applyAction({ action: "forage", actorId: "mine" }, { id: "player1", isGM: false })).ok, true);
+    await settle();
+    assert.deepEqual(statRolls.map((r) => r.id), ["mine"]);
+  } finally {
+    delete stored.overlandAutoForage;
+  }
+});

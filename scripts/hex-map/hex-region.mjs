@@ -36,12 +36,13 @@
  */
 
 import { offsetToCube, originOffset, hexDistance } from "./geometry.mjs";
-import { decodeRegions, decodeRegionFixes, REGIONS_FLAG } from "./region-scan.mjs";
+import { decodeRegions, decodeRegionFixes, encodeRegions, REGIONS_FLAG } from "./region-scan.mjs";
 import { KEY_LOCATION_PAGES } from "../importer/char-content/char-content-manifest.mjs";
 import { hexNum } from "../importer/hex/hex-dataset.mjs";
 import { readTags } from "./tag-store.mjs";
 import { HEX_FLAG } from "../importer/hex/hex-commit.mjs";
 import { MODULE_ID } from "../shared/module-id.mjs";
+import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { findSuitePack, sourceFolderName } from "../shared/compendium-suite.mjs";
 import { assignRegionColors, extrasPalette, REGION_COLORS } from "./tag-overlay.mjs";
 
@@ -214,6 +215,22 @@ export function sceneRegions(scene = globalThis.canvas?.scene) {
 /** The GM's own region corrections on a scene, which outrank everything else. */
 export function sceneRegionFixes(scene = globalThis.canvas?.scene) {
   return decodeRegionFixes(scene?.getFlag?.(MODULE_ID, REGIONS_FLAG));
+}
+
+/**
+ * Write the GM's correction for one hex, where every region reader looks for it: the scene carrying the scan
+ * (`hexZonesFor` answers from the scan's scene, so a baked or painted copy's own fix would be read by nothing).
+ * A blank name withdraws the correction and hands the hex back to the print. The scan's enclosures are kept.
+ * @returns {Promise<boolean>} whether the stored correction changed
+ */
+export async function setRegionFix(scene, num, region) {
+  const target = scanSceneFor(scene) ?? scene;
+  if (!target || !Number.isInteger(num)) return false;
+  const fixes = sceneRegionFixes(target), name = String(region ?? "").trim();
+  if (name ? fixes.get(num) === name : !fixes.has(num)) return false;
+  if (name) fixes.set(num, name); else fixes.delete(num);
+  await replaceModuleFlag(target, REGIONS_FLAG, encodeRegions(sceneRegions(target), fixes));
+  return true;
 }
 
 /**

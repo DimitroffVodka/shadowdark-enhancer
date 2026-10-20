@@ -12,7 +12,7 @@
  * reader of it agrees): no token's or scene's stored data changes, so the same
  * PC keeps its torch and its sight on a dungeon map.
  *
- * The party travels as one hex-shaped token: Extras' party token, or else an
+ * The party travels as one token wearing its standard: Extras' party token, or else an
  * Enhancer "Party" actor, made the first time a GM starts travel with no party
  * token on the map. Native rosters remain independent of Extras; no implicit
  * PC enrollment or writes to Extras' party flags.
@@ -21,7 +21,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { isHexRulesScene } from "../encounter/encounter-terrain.mjs";
 import { Party } from "../party/party.mjs";
-import { emblemTokenPath } from "../party/party-token.mjs";
+import { emblemStandardPath } from "../party/party-token.mjs";
 import { normalizeParty } from "../party/party-core.mjs";
 import { ownsHexFog, positionDisclosed } from "../hex-map/hex-fog.mjs";
 
@@ -29,9 +29,17 @@ import { ownsHexFog, positionDisclosed } from "../hex-map/hex-fog.mjs";
 export const PARTY_FLAG = "party";
 export const PARTY_TOKEN_IMG = `modules/${MODULE_ID}/icons/party-hex.svg`;
 
-/** Token fields that make a token the party's hex: the black hex, filling one cell, no ring. */
+/**
+ * How much of the hex the party's standard covers: the pennant stands inside the cell and the map shows
+ * around it, instead of covering the whole hex it stands in.
+ */
+export const PARTY_TOKEN_ART_SCALE = 0.85;
+
+/** Token fields that make a token the party's marker: the standard, one cell, no ring. */
 export const PARTY_TOKEN_STYLE = {
-  texture: { src: PARTY_TOKEN_IMG, fit: "fill", scaleX: 1, scaleY: 1 },
+  texture: {
+    src: PARTY_TOKEN_IMG, fit: "fill", scaleX: PARTY_TOKEN_ART_SCALE, scaleY: PARTY_TOKEN_ART_SCALE,
+  },
   width: 1, height: 1, ring: { enabled: false }, lockRotation: true,
 };
 
@@ -141,7 +149,7 @@ export async function placePartyToken(actor = null, scene = globalThis.canvas?.s
   if (!game.user?.isGM || !scene || scene !== canvas.scene) return null;
   actor ??= await partyActor();
   if (!actor) return null;
-  const art = await emblemTokenPath(actor);
+  const art = await emblemStandardPath(actor);
   if (art && actor.prototypeToken.texture.src !== art) await actor.update({ "prototypeToken.texture.src": art });
   const { x, y } = canvas.grid.getTopLeftPoint(canvas.grid.getOffset(canvas.stage.pivot));
   // Linked on the token itself: the system makes a new NPC's prototype unlinked.
@@ -151,17 +159,21 @@ export async function placePartyToken(actor = null, scene = globalThis.canvas?.s
 }
 
 /**
- * Make a party token the party's hex on a hex map (GM): its scene token only,
+ * Make a party token the party's standard on a hex map (GM): its scene token only,
  * so the actor keeps its portrait everywhere else. Once: a token already
- * wearing the hex is left alone. A larger token shrinks onto the hex under
- * its old centre, the hex travel starts from.
+ * wearing the standard, at the party's size, is left alone. A larger token shrinks
+ * onto the hex under its old centre, the hex travel starts from.
  * @param {TokenDocument} token
  */
 export async function wearPartyHex(token) {
   if (!game.user?.isGM || !token || !isHexRulesScene(token.parent)) return;
-  const src = (token.actor && await emblemTokenPath(token.actor)) || PARTY_TOKEN_IMG;
-  if (token.texture?.src === src) return;
+  const src = (token.actor && await emblemStandardPath(token.actor)) || PARTY_TOKEN_IMG;
+  const style = { ...PARTY_TOKEN_STYLE, texture: { ...PARTY_TOKEN_STYLE.texture, src } };
+  // A token dressed by an older version wears another picture at another size: re-dress it.
+  const { texture } = token;
+  if (texture?.src === src && token.width === style.width && token.height === style.height
+    && texture.scaleX === style.texture.scaleX && texture.scaleY === style.texture.scaleY) return;
   const grid = token.parent.grid;
   const { x, y } = grid.getTopLeftPoint(grid.getOffset(token.getCenterPoint()));
-  await token.update({ ...PARTY_TOKEN_STYLE, texture: { ...PARTY_TOKEN_STYLE.texture, src }, x, y });
+  await token.update({ ...style, x, y });
 }

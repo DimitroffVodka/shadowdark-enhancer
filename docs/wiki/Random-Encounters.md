@@ -151,6 +151,20 @@ book intends for the party's hex, ahead of your **Tables by terrain**:
   to import. Camp checks, Start day's checks and crawl checks roll the category
   as usual. With auto-roll off, your next **Roll** of that table after the hit
   is the travel roll.
+- **A point of interest is found once.** Each region's list is a set of one-off
+  places, so a find draws only from the places not found yet (the world keeps
+  the list), and the list starts over once all of them are found. Rolling the
+  table straight from the roller is Foundry's own draw and ignores this.
+- **A plain hex can be a point of interest.** Entering a hex that is not a keyed
+  location or a settlement rolls the book's 1-in-20 once per party, whatever it
+  gives, so walking out and back in finds nothing more. A find posts the place
+  to the GMs. The chance is the **Chance a non-keyed hex is a point of
+  interest** setting (5 %, 0 turns it off); a hex can have its own list in Hex
+  Data's **Points of interest** card.
+- **Rows that name a creature the book's way link to it.** *giant frogs*,
+  *gt. spider* and *sea hag* find **Frog, Giant**, **Spider, Giant** and
+  **Hag, Sea**, whatever the plural. Tables imported before this keep their old
+  rows until `game.shadowdarkEnhancer.tables.relinkAll()` is run.
 
 The chat card then names the column too — *Hex 2849 · forest, coast · Lowland
 Moor: Coast*. When no grid answers (no region, or a terrain the region does not
@@ -245,8 +259,10 @@ The toggle and picker only appear when the world has player characters.
 Then:
 
 - **Post** sends the card to chat.
-- **Place** drops the tokens on the canvas. They are grid-snapped, so press `ESC`
-  to cancel placement.
+- **Place** drops the tokens on the canvas, one click each. A row that names
+  two groups (*2d4 beastmen close in around 1d4 dwarf soldiers*) places each in
+  the order the row names them, each with its own count. They are grid-snapped;
+  `ESC` stops placing the rest of the encounter.
 - **Battle map** takes the encounter to the default battle map for the terrain the
   party is in, with the party and these creatures already standing on it. See
   [Encounter Battle Maps](Encounter-Battle-Maps.md).

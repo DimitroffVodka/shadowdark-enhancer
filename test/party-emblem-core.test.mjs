@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
-import { EMBLEM_ICONS, EMBLEM_COLORS, EMBLEM_ICON_COLORS, EMBLEM_ICON_KEYS, EMBLEM_COLOR_KEYS, DEFAULT_EMBLEM, emblemOf, emblemIconPath, emblemChoices, pickEmblem, emblemTokenSvg, emblemTokenName } from "../scripts/party/party-emblem-core.mjs";
+import { EMBLEM_ICONS, EMBLEM_COLORS, EMBLEM_ICON_COLORS, EMBLEM_ICON_KEYS, EMBLEM_COLOR_KEYS, DEFAULT_EMBLEM, emblemOf, emblemIconPath, emblemChoices, pickEmblem, emblemTokenSvg, emblemTokenName, emblemStandardSvg, emblemStandardName } from "../scripts/party/party-emblem-core.mjs";
 
 test("a party that chose nothing wears the lantern in white on amber", () => {
   assert.deepEqual(DEFAULT_EMBLEM, { icon: "lantern", color: "c8892b", iconColor: "ffffff" });
@@ -23,9 +23,9 @@ test("any six-digit hex is a valid tile and icon colour, not only the presets", 
   assert.equal(emblemOf({ icon: "owl", color: "12a4b8f" }).color, "c8892b", "seven digits is not a colour");
 });
 
-test("the picker offers 24 icons, 8 tile colours and 8 icon colours, every icon is vendored, and a pick changes one part", () => {
-  assert.equal(EMBLEM_ICONS.length, 24);
-  assert.equal(new Set(EMBLEM_ICONS).size, 24);
+test("the picker offers 48 icons, 8 tile colours and 8 icon colours, every icon is vendored, and a pick changes one part", () => {
+  assert.equal(EMBLEM_ICONS.length, 48);
+  assert.equal(new Set(EMBLEM_ICONS).size, 48);
   assert.equal(EMBLEM_COLORS.length, 8);
   assert.equal(EMBLEM_ICON_COLORS.length, 8);
   assert.deepEqual(EMBLEM_ICON_COLORS.slice(0, 2), ["ffffff", "000000"]);
@@ -69,7 +69,7 @@ test("every vendored emblem icon is credited to its artist in CREDITS.md", async
   const section = credits.slice(credits.indexOf("## Party emblem icons"));
   assert.ok(section.startsWith("## Party emblem icons"));
   for (const icon of EMBLEM_ICONS) assert.ok(section.includes(`\`${icon}.svg\``), icon);
-  for (const artist of ["Lorc", "Delapouite", "DarkZaitzev"]) assert.ok(section.includes(artist), artist);
+  for (const artist of ["Lorc", "Delapouite", "DarkZaitzev", "Caro Asercion"]) assert.ok(section.includes(artist), artist);
   assert.ok(section.includes("CC BY 3.0"));
 });
 
@@ -79,4 +79,13 @@ test("the token picture is a hex in the tile colour with the icon recoloured, in
   assert.match(svg, /<polygon points="0,500 289,0 866,0 1155,500 866,1000 289,1000" fill="#3a6ea5"/);
   assert.ok(!/#fff\b/i.test(svg) && svg.includes('fill="#000000"'), "the icon takes iconColor");
   assert.equal(emblemTokenName(emblem), "owl-3a6ea5-000000.svg");
+});
+
+test("the standard is the emblem on a pennant: its own file name, the tile colour on the cloth, the icon recoloured", async () => {
+  const emblem = emblemOf({ icon: "owl", color: "3a6ea5", iconColor: "000000" });
+  const svg = emblemStandardSvg(emblem, await readFile(new URL(`../${emblemIconPath("owl").replace(/^modules\/[^/]+\//, "")}`, import.meta.url), "utf8"));
+  assert.match(svg, /<path d="M430,214[^"]*" fill="#3a6ea5"/, "the cloth is the tile colour");
+  assert.ok(!/#fff\b/i.test(svg) && svg.includes('fill="#000000"'), "the icon takes iconColor");
+  assert.equal(emblemStandardName(emblem), "owl-3a6ea5-000000-standard.svg");
+  assert.notEqual(emblemStandardName(emblem), emblemTokenName(emblem), "the portrait tile and the standard never share a file");
 });

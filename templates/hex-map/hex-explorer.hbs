@@ -10,11 +10,15 @@
     </div>
   </header>
   <div class="ui-body sde-hex-explorer-body">
-    <p class="ui-note info">{{localize "SDE.hexExplorer.hint"}}</p>
-
     <section class="ui-card">
       <label class="ui-field"><span class="ui-label">{{localize "SDE.hexExplorer.terrain"}}</span><select name="terrain" required>{{#each terrainOptions}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}<option value="__other">{{localize "SDE.hexMap.label.otherOption"}}</option></select></label>
       <input name="terrainOther" value="" placeholder="{{localize 'SDE.hexMap.label.otherTerrain'}}" aria-label="{{localize 'SDE.hexMap.label.otherTerrainAria'}}" hidden>
+      {{#if canRegion}}<label class="ui-field"><span class="ui-label">{{localize "SDE.hexExplorer.region"}}</span><select name="region">
+        <option value="">{{localize "SDE.hexMap.label.asScanned"}}</option>
+        {{#each regionOptions}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+        <option value="__other">{{localize "SDE.hexMap.label.otherOption"}}</option>
+      </select></label>
+      <input name="regionOther" value="" placeholder="{{localize 'SDE.hexExplorer.ownRegion'}}" aria-label="{{localize 'SDE.hexExplorer.ownRegion'}}" hidden>{{/if}}
       <label class="ui-field"><span class="ui-label">{{localize "SDE.hexExplorer.locationTitle"}}</span><input name="title" value="{{title}}"></label>
     </section>
 
@@ -52,11 +56,29 @@
         <button type="button" class="ui-icon" data-action="openQuest" data-uuid="{{uuid}}" title="{{localize 'SDE.hexExplorer.openQuest'}}" aria-label="{{localize 'SDE.hexExplorer.openQuest'}}"><i class="fa-solid fa-scroll"></i></button>
         <button type="button" class="ui-icon danger" data-action="unlinkQuest" data-uuid="{{uuid}}" title="{{localize 'SDE.hexExplorer.unlinkQuest'}}" aria-label="{{localize 'SDE.hexExplorer.unlinkQuest'}}"><i class="fa-solid fa-link-slash"></i></button>
       </div>{{else}}<p class="ui-muted">{{localize "SDE.hexExplorer.noQuests"}}</p>{{/each}}
-      {{#if questChoices.length}}<div class="ui-inline">
-        <select name="questPick" aria-label="{{localize 'SDE.hexExplorer.pickQuest'}}">{{#each questChoices}}<option value="{{uuid}}">{{name}} ({{status}}){{where}}</option>{{/each}}</select>
-        <button type="button" class="ui-btn" data-action="linkQuest"><i class="fa-solid fa-link"></i> {{localize "SDE.hexExplorer.linkQuest"}}</button>
-      </div>{{/if}}
+      <div class="ui-inline">
+        {{#if questChoices.length}}<select class="ui-grow" name="questPick" aria-label="{{localize 'SDE.hexExplorer.pickQuest'}}">{{#each questChoices}}<option value="{{uuid}}">{{name}} ({{status}}){{where}}</option>{{/each}}</select>
+        <button type="button" class="ui-btn" data-action="linkQuest"><i class="fa-solid fa-link"></i> {{localize "SDE.hexExplorer.linkQuest"}}</button>{{/if}}
+        <button type="button" class="ui-btn" data-action="addQuest"><i class="fa-solid fa-plus"></i> {{localize "SDE.hexExplorer.newQuest"}}</button>
+      </div>
     </section>{{/if}}
+
+    <section class="ui-card">
+      <h3 class="ui-h">{{localize "SDE.hexExplorer.adventures"}}</h3>
+      {{#each adventures}}<div class="ui-row" data-row="adventure" data-index="{{index}}">
+        <input type="hidden" data-field="uuid" value="{{uuid}}"><input type="hidden" data-field="label" value="{{label}}">
+        <div class="ui-row-main"><span>{{label}}</span></div>
+        <button type="button" class="ui-icon" data-action="openPage" data-uuid="{{uuid}}" title="{{localize 'SDE.hexExplorer.openPage'}}" aria-label="{{localize 'SDE.hexExplorer.openPage'}}"><i class="fa-solid fa-book-open"></i></button>
+        <button type="button" class="ui-icon danger" data-action="remove" title="{{localize 'SDE.hexExplorer.remove'}}" aria-label="{{localize 'SDE.hexExplorer.remove'}}"><i class="fa-solid fa-trash"></i></button>
+      </div>{{else}}<p class="ui-muted">{{localize "SDE.hexExplorer.noAdventures"}}</p>{{/each}}
+      {{#if adventureChoices.length}}<div class="ui-inline">
+        <select name="adventurePick" aria-label="{{localize 'SDE.hexExplorer.adventurePick'}}">
+          <option value="">{{localize "SDE.hexExplorer.adventurePick"}}</option>
+          {{#each adventureChoices}}<optgroup label="{{label}}">{{#each entries}}<option value="{{uuid}}">{{label}}</option>{{/each}}</optgroup>{{/each}}
+        </select>
+        <button type="button" class="ui-btn" data-action="linkAdventure"><i class="fa-solid fa-plus"></i> {{localize "SDE.hexExplorer.linkAdventure"}}</button>
+      </div>{{/if}}
+    </section>
 
     <section class="ui-card">
       <h3 class="ui-h">{{localize "SDE.hexExplorer.encounters"}}</h3>
@@ -64,6 +86,16 @@
         <div class="ui-row-main"><span>{{#if encounter.uuid}}{{encounter.name}}{{else}}{{localize "SDE.hexExplorer.enc.noName"}}{{/if}}</span><span class="ui-row-sub">{{encounter.note}}</span></div>
         <button type="button" class="ui-btn" data-action="rollEncounter" {{#unless encounter.uuid}}disabled{{/unless}}><i class="fa-solid fa-dice"></i> {{localize "SDE.hexExplorer.enc.roll"}}</button>
         <button type="button" class="ui-icon" data-action="openEncounterTable" {{#unless encounter.uuid}}disabled{{/unless}} title="{{localize 'SDE.hexExplorer.enc.open'}}" aria-label="{{localize 'SDE.hexExplorer.enc.open'}}"><i class="fa-solid fa-table-list"></i></button>
+      </div>
+    </section>
+
+    <section class="ui-card" data-drop="poi">
+      <h3 class="ui-h">{{localize "SDE.hexExplorer.poiTitle"}}</h3>
+      <label class="ui-field"><span class="ui-label">{{localize "SDE.hexExplorer.poi.table"}}</span><input name="poiTable" value="{{poiTable}}" placeholder="{{localize 'SDE.hexExplorer.poi.drop'}}"></label>
+      <div class="ui-row hx-poi">
+        <div class="ui-row-main"><span>{{#if poi}}{{poi.name}}{{else}}{{localize "SDE.hexExplorer.poi.none"}}{{/if}}</span>{{#if poi}}<span class="ui-row-sub">{{poi.left}}</span>{{/if}}</div>
+        <button type="button" class="ui-btn" data-action="rollPoi" {{#unless poi}}disabled{{/unless}}><i class="fa-solid fa-dice"></i> {{localize "SDE.hexExplorer.poi.roll"}}</button>
+        <button type="button" class="ui-icon" data-action="openEncounterTable" data-uuid="{{#if poi}}{{poi.uuid}}{{/if}}" {{#unless poi}}disabled{{/unless}} title="{{localize 'SDE.hexExplorer.poi.open'}}" aria-label="{{localize 'SDE.hexExplorer.poi.open'}}"><i class="fa-solid fa-table-list"></i></button>
       </div>
     </section>
 
