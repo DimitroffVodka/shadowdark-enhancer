@@ -13,6 +13,7 @@ import { pinNumber } from "./extras-records.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { disclosure, effectiveDiscovery, bestProjection } from "./hex-fog-core.mjs";
 import { Party } from "../party/party.mjs";
+import { isActiveGM } from "../shared/gm-relay.mjs";
 import { findSuitePack, sourceFolderName } from "../shared/compendium-suite.mjs";
 import { HEX_FLAG } from "../importer/hex/hex-commit.mjs";
 import { hexNum } from "../importer/hex/hex-dataset.mjs";
@@ -341,8 +342,8 @@ export async function publishHexProjection(target) {
  * Projection journals are a data carrier for players' fog, never reading material: they hold no pages and are only
  * read from their flag. Keep them, and the folder that holds nothing else, out of the Journals sidebar on every client.
  */
-function hideProjectionJournals(_app, html) {
-  const root = html instanceof HTMLElement ? html : html?.[0];
+export function hideProjectionJournals(_app, html) {
+  const root = html?.querySelectorAll ? html : html?.[0];
   if (!root) return;
   const folders = new Set();
   for (const row of root.querySelectorAll("[data-entry-id]")) {
@@ -352,7 +353,9 @@ function hideProjectionJournals(_app, html) {
     row.remove();
   }
   for (const id of folders) {
-    if ([...game.journal].some(entry => entry.folder?.id === id && !entry.flags?.[MODULE_ID]?.[PUBLIC_FLAG])) continue;
+    // Keep a folder that still shows this viewer something: a journal they can see, or a folder inside it.
+    if ([...game.journal].some(entry => entry.folder?.id === id && entry.visible !== false && !entry.flags?.[MODULE_ID]?.[PUBLIC_FLAG])) continue;
+    if ([...game.folders ?? []].some(folder => folder.folder?.id === id)) continue;
     root.querySelector(`[data-folder-id="${id}"]`)?.remove();
   }
 }
@@ -360,7 +363,8 @@ function hideProjectionJournals(_app, html) {
 export function registerHexRecordProjections() {
   Hooks.on("renderJournalDirectory", hideProjectionJournals);
   Hooks.on("deleteScene", scene => {
-    if (!game.user?.isGM) return;
+    // One tab deletes it; a second GM tab would only log that it is already gone.
+    if (!isActiveGM()) return;
     const uuid = sceneUuid(scene);
     for (const journal of journals()) {
       if (journal.flags?.[MODULE_ID]?.[PUBLIC_FLAG]?.sceneUuid === uuid) journal.delete().catch(console.error);

@@ -246,3 +246,45 @@ test("one keyed row per document: the pinned page first, then the book's own", (
   assert.deepEqual(mergeKeyedPages([], []), []);
   assert.deepEqual(mergeKeyedPages(undefined, undefined), []);
 });
+test("projection journals leave the Journals sidebar, and so does a folder they alone fill for this viewer", async () => {
+  const { hideProjectionJournals } = await import("../scripts/hex-map/hex-records.mjs");
+  const MOD = "shadowdark-enhancer", saved = globalThis.game;
+  const projection = (id, folder) => ({ id, folder: folder ? { id: folder } : null, flags: { [MOD]: { hexRecordProjection: { sceneUuid: `Scene.${id}` } } } });
+  const journals = [projection("p1", "only"), projection("p2", "mixed"), { id: "note", folder: { id: "mixed" }, flags: {} },
+    projection("p3", "hidden"), { id: "gmOnly", folder: { id: "hidden" }, visible: false, flags: {} },
+    projection("p4", "parent")];
+  const removed = [];
+  const el = (key) => ({ remove: () => removed.push(key) });
+  const rows = journals.map(j => ({ dataset: { entryId: j.id }, ...el(j.id) }));
+  const root = { querySelectorAll: () => rows, querySelector: (sel) => el(sel.match(/data-folder-id="([^"]+)"/)[1]) };
+  globalThis.game = { journal: Object.assign([...journals], { get: id => journals.find(j => j.id === id) }), folders: [{ id: "child", folder: { id: "parent" } }] };
+  try {
+    hideProjectionJournals(null, [root]);
+    assert.deepEqual(removed.sort(), ["hidden", "only", "p1", "p2", "p3", "p4"],
+      "every projection goes; a folder of only projections goes, as does one whose other journals this viewer cannot see; one with a sub-folder stays");
+  } finally {
+    if (saved === undefined) delete globalThis.game; else globalThis.game = saved;
+  }
+});
+test("a scene with nothing disclosed gets no projection journal, while an existing one is still emptied", async () => {
+  const { publishHexProjection, cacheHexJournal } = await import("../scripts/hex-map/hex-records.mjs");
+  const MOD = "shadowdark-enhancer", saved = { game: globalThis.game, replace: globalThis._replace, JournalEntry: globalThis.JournalEntry };
+  const scene = { id: "quiet", uuid: "Scene.quiet", getFlag: () => null };
+  cacheHexJournal({ id: "jquiet", ownership: { default: 0 }, flags: { [MOD]: { hexRecords: { version: 1, sceneUuid: "Scene.quiet", cells: { "0_0": { discovery: { revealed: false } } } } } } });
+  let created = 0, published = null;
+  globalThis.JournalEntry = { create: async () => { created += 1; } };
+  globalThis._replace = (value) => value;
+  globalThis.game = { user: { isGM: true }, journal: { contents: [], get: () => null }, i18n: { format: k => k },
+    packs: { get: () => ({ ownership: { PLAYER: "NONE", TRUSTED: "NONE", ASSISTANT: "NONE" } }) } };
+  try {
+    await publishHexProjection(scene);
+    assert.equal(created, 0, "nothing disclosed: no journal");
+    game.journal.contents.push({ flags: { [MOD]: { hexRecordProjection: { sceneUuid: "Scene.quiet", cells: { "0_0": {} } } } }, update: async data => { published = data; } });
+    await publishHexProjection(scene);
+    assert.deepEqual(published[`flags.${MOD}.hexRecordProjection`].cells, {}, "an existing view is emptied, not stranded");
+  } finally {
+    globalThis._replace = saved.replace;
+    if (saved.JournalEntry === undefined) delete globalThis.JournalEntry; else globalThis.JournalEntry = saved.JournalEntry;
+    if (saved.game === undefined) delete globalThis.game; else globalThis.game = saved.game;
+  }
+});
