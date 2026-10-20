@@ -31,6 +31,19 @@ class MonsterSpellLibraryMenu extends foundry.applications.api.ApplicationV2 {
 }
 
 export function registerSettings() {
+  game.settings.register(MODULE_ID, "partyStashMode", {
+    name: "SDE.settings.partyStashMode.name",
+    hint: "SDE.settings.partyStashMode.hint",
+    scope: "world",
+    config: false,
+    type: String,
+    choices: {
+      free: "SDE.settings.partyStashMode.free",
+      donated: "SDE.settings.partyStashMode.donated",
+    },
+    default: "free",
+    onChange: () => import("../party/party-stash.mjs").then((m) => m.onStashModeChanged()),
+  });
   game.settings.register(MODULE_ID, "showHexCoordinates", {
     name: "SDE.settings.showHexCoordinates.name",
     hint: "SDE.settings.showHexCoordinates.hint",

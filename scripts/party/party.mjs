@@ -62,10 +62,13 @@ export const Party = {
   },
   rows(ref) {
     return this.members(ref).map((uuid) => {
-      const actor = worldMember(uuid);
-      // A player character shows its basic stats to the whole party; any other actor stays behind Observer, so a roster entry cannot expose a hidden NPC.
-      const visible = actor && (actor.type === "Player" || readable(actor));
-      return { uuid, actor: visible ? actor : null, group: visible ? memberGroup(actor.type) ?? "missing" : "missing" };
+      const actor = worldMember(uuid), group = actor ? memberGroup(actor.type) ?? "missing" : "missing";
+      // A player character shows its basic stats to the whole party, and a party mount is a party asset its
+      // roster entry names, so both show to everyone who can read the sheet. Any other actor stays behind
+      // Observer, so a roster entry cannot expose a hidden NPC. A mount shown this way is not made observable:
+      // its sheet and item sheets still follow its own permissions.
+      const visible = actor && (actor.type === "Player" || group === "mounts" || readable(actor));
+      return { uuid, actor: visible ? actor : null, group: visible ? group : "missing" };
     });
   },
   async adopt(ref) {

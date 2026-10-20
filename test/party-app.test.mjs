@@ -54,7 +54,8 @@ test("observer sees roster and real embedded items but cannot edit", async () =>
   world([p]);
   const context = await new PartyApp(p)._prepareContext();
   assert.equal(context.canEdit, false);
-  assert.equal(context.groups[3].rows[0].uuid, "Actor.deleted");
+  assert.equal(Party.rows(p)[0].group, "missing", "the missing ref is retained for an audit");
+  assert.equal(context.missingCount, 0, "a non-GM is not shown the missing roster note");
   assert.equal(context.items[0].name, "Real Item");
   await assert.rejects(Party.remove(p, "Actor.deleted"), /noPermission/);
 });
@@ -70,7 +71,8 @@ test("no-canvas context groups only explicit roster; missing refs retained", asy
   const pc = actor("pc", "Player"); pc.system = { isPC: true };
   world([p, pc, actor("npc"), actor("mount", "shadowdark-enhancer.mount"), actor("unrelated", "Player")]);
   const context = await new PartyApp(p)._prepareContext();
-  assert.deepEqual(context.groups.map((g) => g.rows.length), [1,1,1,1]);
+  assert.deepEqual(context.groups.map((g) => g.rows.length), [1,1,1]);
+  assert.equal(Party.rows(p).at(-1).group, "missing", "the missing ref is retained, not rendered as a card");
   assert.deepEqual(Party.members(p, { charactersOnly: true }), ["Actor.pc"]);
 });
 test("a member PC shows to a player with no permission on it; a hidden NPC stays missing", async () => {

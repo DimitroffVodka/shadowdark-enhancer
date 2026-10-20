@@ -83,7 +83,8 @@
       <div class="SD-box">
         <div class="header"><label>{{localize "SDE.mount.inventory"}}</label><span>{{derived.slotsTotal}}</span></div>
         <div class="content">
-          <div class="sde-veh-slottally"><i class="fa-solid fa-box"></i> {{localize "SDE.vehicle.slots"}} {{derived.slotsUsed}}{{#if derived.gearSlotsMax}} / {{derived.gearSlotsMax}}{{/if}}{{#if derived.riderSlots}} <span class="sde-veh-slotnote">{{localize "SDE.mount.riderSlots" slots=derived.riderSlots total=derived.slotsTotal}}</span>{{/if}}</div>
+          <div class="sde-veh-slottally {{#if derived.overloaded}}over{{/if}}"><i class="fa-solid fa-box"></i> {{localize "SDE.mount.load"}} {{derived.slotsTotal}}{{#if derived.gearSlotsMax}} / {{derived.gearSlotsMax}}{{/if}}{{#if derived.riderSlots}} <span class="sde-veh-slotnote">{{localize "SDE.mount.loadBreak" gear=derived.slotsUsed riders=derived.riderSlots}}</span>{{/if}}{{#if derived.reserved}} <span class="sde-veh-slotnote">&middot; {{localize "SDE.mount.partyStash" slots=derived.reserved}}</span>{{/if}}{{#if derived.gearFree}} <span class="sde-veh-slotnote">{{localize "SDE.mount.freeGear" slots=derived.gearFree}}</span>{{/if}}</div>
+          {{#if derived.overloaded}}<p class="sde-veh-warn">{{localize "SDE.mount.overloaded"}}</p>{{/if}}
           <div class="sde-veh-droplist" data-drop="inventory">
             {{#if inventory.length}}
               {{#each inventory}}

@@ -211,6 +211,12 @@ See [Movement Budgets](Movement-Budgets.md).
 
 See [Crawl Strip and Crawl Bar](Crawl-Strip-and-Crawl-Bar.md#overland-travel).
 
+### Party
+
+| Setting | Default | What it does |
+|---|---|---|
+| **Party stash** | Free allowance | How the Party sheet's shared inventory gets its slots. *Free allowance*: the party has its own 10 slots. *Donated by members*: the capacity is exactly the slots members reserve on their own sheets; a character carries a locked Party stash item for its share, and a mount spends its free gear room. Open the Party sheet's Items tab to set the reservations. |
+
 ### Loot & XP
 
 | Setting | Default | What it does |

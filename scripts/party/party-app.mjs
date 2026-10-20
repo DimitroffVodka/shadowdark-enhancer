@@ -5,7 +5,7 @@ import { Party, isParty, isNativeParty, isLegacyParty, registerPartyRosterGuard 
 import { offerParty } from "./party-create-option.mjs";
 import { scopedQuests } from "./party-core.mjs";
 import { fillFormation, moveToSlot } from "./party-movement-core.mjs";
-import { marchState, marchText, partyTabs, tabRow, resolveTab, sheetView, gemSummary, linkedBastion, lastMonthEntry, roomIcon, lightReadout, rationsCount, torchCount, carriesLight, luckCount, statusBar, COIN_REFUSALS, coinsOf, coinText, poolAfterAdd, planGive, planDivide, purseAfter, spellTiers, whoSelection, whoAfter, ROLL_STATS, ROLL_STAT_LABELS, DEFAULT_DC, defaultSource, downtimeSummary, warbandGroups } from "./party-sheet-core.mjs";
+import { marchState, marchText, partyTabs, tabRow, resolveTab, sheetView, gemSummary, linkedBastion, lastMonthEntry, roomIcon, lightReadout, rationsCount, torchCount, carriesLight, luckCount, statusBar, COIN_REFUSALS, coinsOf, coinText, poolAfterAdd, planGive, planDivide, purseAfter, spellTiers, whoSelection, whoAfter, ROLL_STATS, ROLL_STAT_LABELS, DEFAULT_DC, defaultSource, downtimeSummary, warbandGroups, inventorySlots } from "./party-sheet-core.mjs";
 import { registerPartyTokenArt } from "./party-token.mjs";
 import { EMBLEM_FLAG, emblemOf, emblemIconPath, emblemChoices, pickEmblem } from "./party-emblem-core.mjs";
 import { BASTION_TYPE } from "../bastion/bastion-art.mjs";
@@ -18,6 +18,9 @@ import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { PartyItemPicker } from "./party-item-picker.mjs";
 import { postRollRequest } from "./party-roll.mjs";
 import { upkeepGp } from "../actors/warband-core.mjs";
+import { isMount } from "../actors/mount-scores.mjs";
+import { mountLoad } from "../actors/mount-load.mjs";
+import { partyStashContext, setDonation, PARTY_STASH_CHANGED } from "./party-stash.mjs";
 /** A module path as an absolute route: a CSS mask url() resolves against the stylesheet, so a relative path points inside styles/. */
 const routeOf = (path) => foundry.utils?.getRoute?.(path) ?? `/${path}`;
 
@@ -26,7 +29,7 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const t = (key) => game.i18n.localize(key);
 const sayWith = (key, data) => game.i18n.format(key, data);
 const I18N = { say: t, sayWith };
-const LABELS = { characters: "SDE.party.characters", hirelings: "SDE.party.hirelings", mounts: "SDE.party.mounts", missing: "SDE.party.missing" };
+const LABELS = { characters: "SDE.party.characters", hirelings: "SDE.party.hirelings", mounts: "SDE.party.mounts" };
 /** The tab an activity API call opens: Carousing has its own, Camping lives in Travel. */
 const activityTab = (activity) => (activity === "carousing" ? "carousing" : "travel");
 /** What the Bastion tab shows of a bastion actor: its numbers, rooms and last month's result. */
@@ -53,6 +56,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
       emblem: function () { if (!sheetView({ isGM: !!game.user?.isGM, canEdit: Party.canManage(this.actor) }).emblemEdit) return; this.emblemOpen = !this.emblemOpen; this.render(); },
       pickEmblem: function (_event, el) { return this._pickEmblem({ icon: el.dataset.icon, color: el.dataset.color, iconColor: el.dataset.iconColor }); },
       remove: function (_event, el) { return this._change(() => Party.remove(this.actor, el.dataset.uuid)); },
+      removeMissing: function () { return this._change(async () => { for (const row of Party.rows(this.actor).filter((r) => r.group === "missing")) await Party.remove(this.actor, row.uuid); }); },
       member: function (_event, el) { const actor = Party.rows(this.actor).find((r) => r.uuid === el.dataset.uuid)?.actor; if (actor?.testUserPermission(game.user, "LIMITED")) actor.sheet?.render(true); },
       spendLuck: function (_event, el) { return this._memberCrawl(el, (strip, actor) => strip.spendLuck(actor)); },
       toggleLight: function (_event, el) { return this._memberCrawl(el, (strip, actor) => strip.toggleActorLight(actor)); },
@@ -323,12 +327,25 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
     try { await write(); this.render(); }
     catch (error) { console.error(`${MODULE_ID} | Party write`, error); ui.notifications.warn(t(error.message.startsWith("SDE.") ? error.message : "SDE.party.unknownRoster")); }
   }
+  /** One member's donated slots; a refusal leaves the flag and the filler item untouched. */
+  async _setDonation(memberId, value) {
+    if (!this.actor || !Party.canManage(this.actor)) return;
+    try {
+      const result = await setDonation(this.actor, memberId, value);
+      if (!result.ok) ui.notifications?.warn(sayWith(result.reason, result.data ?? {}));
+    } catch (error) {
+      console.error(`${MODULE_ID} | Party stash`, error);
+      ui.notifications?.warn(t("SDE.party.stash.failed"));
+    }
+    this.render();
+  }
   async _prepareContext() {
     const parties = Party.list().map((a) => ({ uuid: a.uuid, name: a.name, selected: a === this.actor }));
     const view = sheetView({ isGM: !!game.user?.isGM, canEdit: Party.canManage(this.actor) });
     const bastionActor = this._bastion();
     const keys = partyTabs({ hasBastion: !!bastionActor }), tab = resolveTab(this.tab, keys);
     const base = { parties, isGM: view.isGM, hasParty: !!this.actor, title: this.actor?.name,
+      stash: { mode: "free", free: true, donated: false, capacity: 10, used: 0, over: false, rows: [], donations: {}, canEdit: view.canEdit },
       tabs: tabRow(keys, tab, t),
       membersTab: tab === "members", questsTab: tab === "quests", itemsTab: tab === "items", travelTab: tab === "travel", carousingTab: tab === "carousing", downtimeTab: tab === "downtime", warbandsTab: tab === "warbands", bastionTab: tab === "bastion", descriptionTab: tab === "description", picker: !this.document };
     if (!this.actor) return base;
@@ -336,22 +353,26 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (this.actor.type === "Party") return { ...base, unsupported: true };
     try {
       const data = Party.data(this.actor), rows = Party.rows(this.actor), canEdit = view.canEdit;
+      const stash = partyStashContext(this.actor, rows, { canEdit }), donations = stash.donations;
       const members = await Promise.all(rows.map(async (row) => {
         const a = row.actor, sys = a?.system ?? {}, hp = sys.attributes?.hp ?? { value: 0, max: 0 };
         let className = "";
         if (sys.class && globalThis.fromUuid) { try { className = (await fromUuid(sys.class))?.name ?? ""; } catch { /* An unresolved class must not hide the member. */ } }
         const items = a?.items?.contents ?? [], percent = Math.max(0, Math.min(100, Math.round(hp.value / (hp.max || 1) * 100)));
-        return { ...row, memberKey: row.uuid, name: a?.name ?? t("SDE.party.missing"), img: a?.img ?? "icons/svg/mystery-man.svg", missing: !a, canEdit, isNPC: !!a?.system?.isNPC, className,
+        const mountActor = !!a && isMount(a), carried = mountActor ? mountLoad(a, { reserved: donations?.[a.id] ?? 0 }) : null;
+        const riderNames = (carried?.riders ?? []).map((uuid) => game.actors?.contents?.find((actor) => actor.uuid === uuid)?.name).filter(Boolean);
+        return { ...row, memberKey: row.uuid, name: a?.name ?? t("SDE.party.missing"), img: a?.img ?? "icons/svg/mystery-man.svg", missing: !a, canEdit, canOpen: !!a && a.testUserPermission(game.user, "LIMITED"), isNPC: !!a?.system?.isNPC, isMount: mountActor, className,
           hp: { value: hp.value ?? 0, max: hp.max ?? 0 }, ac: sys.attributes?.ac?.value ?? 0, level: sys.level?.value ?? 1,
-          xp: { current: sys.level?.xp ?? 0, next: (sys.level?.value ?? 1) * 10 }, hpPercent: percent, showAbilities: !!a && ["characters", "hirelings"].includes(row.group) && !!sys.abilities,
+          xp: { current: sys.level?.xp ?? 0, next: (sys.level?.value ?? 1) * 10 }, hpPercent: percent, showAbilities: !!a && ["characters", "hirelings", "mounts"].includes(row.group) && !!sys.abilities,
           slots: { used: inventorySlots(items, sys.coins), max: sys.slots ?? 10 }, abilities: Object.fromEntries(["str", "dex", "con", "int", "wis", "cha"].map(key => [key, sys.abilities?.[key]?.mod ?? 0])),
           abilityLabels: Object.fromEntries(["str", "dex", "con", "int", "wis", "cha"].map(key => { const mod = sys.abilities?.[key]?.mod ?? 0; return [key, mod >= 0 ? `+${mod}` : String(mod)]; })),
-          luck: luckCount(sys.luck), lightOn: carriesLight(items), spellTiers: spellTiers(items), leader: row.uuid === data.leaderUuid };
+          riderLabel: riderNames.length ? riderNames.join(", ") : t("SDE.party.mount.noRider"), gear: carried, stashDonation: a ? (donations?.[a.id] ?? 0) : 0,
+          canLight: ["characters", "hirelings"].includes(row.group), luck: luckCount(sys.luck), lightOn: carriesLight(items), spellTiers: spellTiers(items), leader: row.uuid === data.leaderUuid };
       }));
       const visible = members.filter(m => !m.missing), players = members.filter(m => m.group === "characters");
       const coins = this.actor.flags?.[MODULE_ID]?.partyCoins ?? this.actor.flags?.["shadowdark-extras"]?.coins ?? { gp: 0, sp: 0, cp: 0 };
       const coinList = Object.entries(COIN_LABELS).map(([key, labelKey]) => ({ key, labelKey, value: Math.max(0, Math.trunc(Number(coins?.[key]) || 0)) }));
-      const slotsUsed = inventorySlots(this.actor.items.contents, coins), slotsMax = this.actor.flags?.["shadowdark-extras"]?.partyMaxSlots ?? 10;
+      const slotsUsed = stash.used, slotsMax = stash.capacity;
       const gemBag = gemSummary(this.actor.items.contents);
       const description = this.actor.flags?.[MODULE_ID]?.partyDescription ?? this.actor.flags?.["shadowdark-extras"]?.description ?? "";
       const editor = globalThis.foundry?.applications?.ux?.TextEditor?.implementation;
@@ -389,7 +410,9 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
         whoLabel: who.all ? t("SDE.party.roll.whoAll") : (pcs.filter(m => who.uuids.includes(m.uuid)).map(m => m.name).join(", ") || t("SDE.party.roll.whoNone")),
         pcs: pcs.map(m => ({ uuid: m.uuid, name: m.name, checked: who.uuids.includes(m.uuid) })) } : null;
       const downtime = tab === "downtime" ? await this._downtime(rows) : null, warbandGroupsList = tab === "warbands" ? await this._warbands(rows) : [];
-      return { ...base, gmBar, downtime, warbandGroups: warbandGroupsList, actor: this.actor, canEdit, owner: canEdit, players, members, memberCount: visible.length, coins, coinList, gems: gemBag.rows, gemTotal: gemBag.total, descriptionHTML, description, editingDescription: !!this.editingDescription,
+      const mountGear = visible.filter((m) => m.isMount && m.gear).map((m) => ({ uuid: m.uuid, name: m.name, img: m.img, riderLabel: m.riderLabel, gear: m.gear }));
+      const missing = members.filter((m) => m.missing);
+      return { ...base, gmBar, downtime, warbandGroups: warbandGroupsList, mountGear, missingCount: view.isGM ? missing.length : 0, stash, actor: this.actor, canEdit, owner: canEdit, players, members, memberCount: visible.length, coins, coinList, gems: gemBag.rows, gemTotal: gemBag.total, descriptionHTML, description, editingDescription: !!this.editingDescription,
         activityHTML, questHTML,
         inventorySlots: { used: slotsUsed, max: slotsMax, over: slotsUsed > slotsMax }, coinSlots: Math.floor(["gp", "sp", "cp"].reduce((n, key) => n + coinList.find(c => c.key === key).value, 0) / 100),
         receivers: players.filter(m => !m.missing).map(m => ({ uuid: m.uuid, name: m.name })),
@@ -401,7 +424,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
         leaderName: leaderActor?.name ?? t("SDE.party.missing"),
         movementDisabled: !canEdit || !status.token || combat,
         movementReason: !status.token ? t("SDE.party.movement.noToken") : combat ? t("SDE.party.movement.combat") : t(status.deployed ? "SDE.party.movement.recallTip" : "SDE.party.movement.placeTip"),
-        groups: ["characters", "hirelings", "mounts", "missing"].map((key) => ({ label: t(LABELS[key]), rows: members.filter(r => r.group === key) })),
+        groups: ["characters", "hirelings", "mounts"].map((key) => ({ label: t(LABELS[key]), rows: members.filter(r => r.group === key) })),
 
         quests: this._quests(), items: this.actor.items.contents.filter((i) => i.type !== "Gem").map((i) => ({ id: i.id, name: i.name, img: i.img, quantity: i.system?.quantity ?? 1, slots: inventorySlots([i]), giveOpen: this.openKeys.has(`give:${i.id}`) })) };
     } catch (error) { console.error(`${MODULE_ID} | Party roster read`, error); return { ...base, unknown: true }; }
@@ -424,6 +447,9 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
       if (!this.actor?.isOwner) return;
       const coins = this.actor.flags?.[MODULE_ID]?.partyCoins ?? this.actor.flags?.["shadowdark-extras"]?.coins ?? {};
       void this._change(() => replaceModuleFlag(this.actor, "partyCoins", { ...coins, [input.dataset.coin]: Math.max(0, Math.trunc(Number(input.value) || 0)) }));
+    });
+    for (const input of this.element.querySelectorAll("[data-stash-donation]")) input.addEventListener("change", () => {
+      void this._setDonation(input.dataset.stashDonation, input.value);
     });
     // The emblem picker closes on a click anywhere else in the page, not only on its own tile and the tabs.
     globalThis.document?.removeEventListener("pointerdown", this._pickerAway, true);
@@ -478,7 +504,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
   async _onFirstRender(context, options) {
     await super._onFirstRender(context, options);
-    this._hooks = ["updateActor", "deleteActor", "createActor", "createItem", "updateItem", "deleteItem", "updateRollTable", "createCombat", "updateCombat", "deleteCombat", "canvasReady", MOVEMENT_CHANGED, QUESTS_CHANGED, DOWNTIME_CHANGED].map((name) => [name, Hooks.on(name, () => this._onStateChanged())]);
+    this._hooks = ["updateActor", "deleteActor", "createActor", "createItem", "updateItem", "deleteItem", "updateRollTable", "createCombat", "updateCombat", "deleteCombat", "canvasReady", MOVEMENT_CHANGED, QUESTS_CHANGED, DOWNTIME_CHANGED, PARTY_STASH_CHANGED].map((name) => [name, Hooks.on(name, () => this._onStateChanged())]);
     this._hooks.push(onQuestDay(() => this._onStateChanged()));   // the Overdue chip and the due line follow the clock
     await this._hookTravel();
   }
@@ -499,16 +525,6 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
 }
 
 // The SDX inventory slot calculation, independent of its runtime module.
-function inventorySlots(items, coins = {}) {
-  const seen = new Map();
-  return items.reduce((sum, item) => {
-    const s = item.system ?? {};
-    if (!s.isPhysical || s.stashed || item.type === "Gem") return sum;
-    const free = Math.max(0, Number(s.slots?.free_carry ?? 0) - (seen.get(item.name) ?? 0));
-    seen.set(item.name, (seen.get(item.name) ?? 0) + free);
-    return sum + (Math.ceil(Number(s.quantity ?? 1) / (Number(s.slots?.per_slot) || 1)) - free) * Number(s.slots?.slots_used ?? 0);
-  }, Math.floor(["gp", "sp", "cp"].reduce((n, key) => n + Math.max(0, Number(coins?.[key]) || 0), 0) / 100));
-}
 
 /** A real ActorSheetV2 for normal Actor-directory and token double-clicks. */
 export class PartySheet extends HandlebarsApplicationMixin(foundry.applications.sheets.ActorSheetV2) {
@@ -533,13 +549,13 @@ export class PartySheet extends HandlebarsApplicationMixin(foundry.applications.
   }
   async _onFirstRender(context, options) {
     await super._onFirstRender(context, options);
-    this._hooks = ["updateActor", "deleteActor", "createItem", "updateItem", "deleteItem", "updateRollTable", "createCombat", "updateCombat", "deleteCombat", "canvasReady", MOVEMENT_CHANGED, QUESTS_CHANGED, DOWNTIME_CHANGED].map(name => [name, Hooks.on(name, () => this._onStateChanged())]);
+    this._hooks = ["updateActor", "deleteActor", "createItem", "updateItem", "deleteItem", "updateRollTable", "createCombat", "updateCombat", "deleteCombat", "canvasReady", MOVEMENT_CHANGED, QUESTS_CHANGED, DOWNTIME_CHANGED, PARTY_STASH_CHANGED].map(name => [name, Hooks.on(name, () => this._onStateChanged())]);
     this._hooks.push(onQuestDay(() => this._onStateChanged()));   // the Overdue chip and the due line follow the clock
     await this._hookTravel();
   }
   _onClose(options) { for (const [name, id] of this._hooks ?? []) Hooks.off(name, id); this._hooks = null; globalThis.document?.removeEventListener("pointerdown", this._pickerAway, true); return super._onClose(options); }
 }
-for (const name of ["_prepareContext", "_change", "_pickEmblem", "_pool", "_coinInputs", "_pcs", "_refuse", "_settle", "_coinLabel", "_addCoins", "_giveCoins", "_divideCoins", "_addItemFrom", "_giveItem", "_deleteItem", "_quests", "_bastion", "_travel", "_hookTravel", "_bindControls", "_activityController", "_questController", "_onStateChanged", "_form", "_asked", "_requestRoll", "_awardParty", "_downtimeCall", "_startDowntime", "_downtime", "_warbands", "_warbandWrite"]) PartySheet.prototype[name] = PartyApp.prototype[name];
+for (const name of ["_prepareContext", "_change", "_setDonation", "_pickEmblem", "_pool", "_coinInputs", "_pcs", "_refuse", "_settle", "_coinLabel", "_addCoins", "_giveCoins", "_divideCoins", "_addItemFrom", "_giveItem", "_deleteItem", "_quests", "_bastion", "_travel", "_hookTravel", "_bindControls", "_activityController", "_questController", "_onStateChanged", "_form", "_asked", "_requestRoll", "_awardParty", "_downtimeCall", "_startDowntime", "_downtime", "_warbands", "_warbandWrite"]) PartySheet.prototype[name] = PartyApp.prototype[name];
 
 /**
  * A party item dragged onto a character's sheet moves (Ctrl copies). The sheet makes the copy by its own rules

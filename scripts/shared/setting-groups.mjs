@@ -160,6 +160,11 @@ export const SETTING_GROUPS = [
       ],
     }],
   },
+  {
+    key: "partyMenu",
+    icon: "fa-solid fa-users",
+    sections: [{ entries: ["partyStashMode"] }],
+  },
 ];
 
 /** This module's setting key for an entry, or null (a menu, a note, another package's setting). */
