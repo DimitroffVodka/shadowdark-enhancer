@@ -17,7 +17,7 @@ Left to right:
 
 | Part | Who | What it does |
 |---|---|---|
-| **Travel** | on a hex map | While travelling, a counter: how the party travels (on foot, mounted, by boat), then the day's movement points left over the day's total, with a double chevron when pushing. Hover it for the words. Before a day is open it reads **No day**, and when an encounter holds the travel clock it is lit and reads **Encounter**; its tooltip says to run it and press Continue. Or **Start travel** for a GM. |
+| **Travel** | on a hex map | While travelling, a counter: how the party travels (on foot, mounted, by boat), then the day's movement points left over the day's total, with a double chevron when pushing. Hover it for the words. Before a day is open it reads **No day**, and when an encounter holds the travel clock it is lit and reads **Encounter**; its tooltip says to run it and press Resume clock. A second chevron shows while Auto travel is on. Or **Start travel** for a GM. |
 | **Torches and rations** | on a hex map, with a party | The party's fresh torches (unlit and unused, magic ones left out) and its rations, counted across the party sheet, every member's pack and every mount's: the same stacks a camp spends. Hover each for the words. |
 | **Find the party** (crosshairs) | anyone who can see a party | Pans the map to the party token, pulses on it (on your screen only) and selects it. If the token is on another scene it names the scene. With several parties it finds the selected one, else the one travelling; if neither is known it asks you to select one rather than guess. |
 | **Party sheet** (shield) | anyone who can see a party | Opens the party sheet (the picker when there are several parties). |
@@ -26,6 +26,7 @@ Left to right:
 | **⏪** | GM | Opens a column of steps back: a day, 8 hours, an hour, 10 minutes, a round. |
 | **Weather** (cloud) | everyone | Turns the weather drawing off and on for this device only (the Show weather effects setting); the scene keeps its weather and everyone else still sees it. A bare cloud, lit, means it is off here. |
 | **Time** | GM | Opens the Time panel (below). |
+| **Auto On / Auto Off** | GM, or the party sheet's owner, while travelling | The standing Auto travel switch: on, a clicked far hex is walked over as many days as it takes (see [Overland travel](Crawl-Strip-and-Crawl-Bar.md#automatic-travel-one-click-to-a-far-destination)). Lit when on. |
 | **Travel panel** (the party icon) | on a hex map | Opens the Travel panel. |
 | **⏩** | GM | Opens a column of steps forward, the same five. |
 
@@ -83,7 +84,7 @@ rations. It needs no way there either: Shift-click open water without a boat, or
 any hex the party could not enter, and the party is simply there. The fog lifts
 along the way as a walk would lift it. Move the clock
 yourself from the bar if the trip should take time. It is refused while an
-encounter is held, until you press Continue. Players' Shift-clicks do nothing.
+encounter is held, until you press Resume clock. Players' Shift-clicks do nothing.
 
 **Make camp** sits on the Travel panel's Traveling and Resting steps for the GM and
 for a player who owns the travelling party; the camp window opens on that player's

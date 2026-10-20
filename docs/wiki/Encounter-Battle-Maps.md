@@ -102,7 +102,7 @@ The battle's panel (the **Battle map** item on the Crawl Bar, open by itself whi
 up) starts with who you are fighting: the creature and how many, and the distance,
 activity and reaction that were rolled for them, worded as the Encounter panel
 worded them on the hex map. It is kept with the battle, so it is still there after
-you press Continue, and for a battle set up from a posted card.
+you press Resume clock, and for a battle set up from a posted card.
 
 ### Bring the table
 

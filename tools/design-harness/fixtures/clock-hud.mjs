@@ -26,17 +26,19 @@ const WORD = { walking: "walking", mounted: "mounted", sailing: "sailing" };
 // What _bar() builds on the left, beside the tools: the day's counter, a word, or the GM's Start travel button.
 const dayCell = (s, tip) => {
   // A held encounter is the one thing the GM must act on, so its plate is lit; no day open is quiet and dashed.
-  if (s.plate === "encounter") return '<button type="button" class="sde-hud-plate sde-hud-count sde-hud-alert" data-tooltip="An encounter stopped the travel clock. Run it, then press Continue to finish the move."><i class="fa-solid fa-triangle-exclamation"></i> Encounter</button>';
+  if (s.plate === "encounter") return '<button type="button" class="sde-hud-plate sde-hud-count sde-hud-alert" data-tooltip="An encounter stopped the travel clock. Run it, then press Resume clock to finish the move."><i class="fa-solid fa-triangle-exclamation"></i> Encounter</button>';
   if (s.plate === "noday") return '<button type="button" class="sde-hud-plate sde-hud-count sde-hud-idle" data-tooltip="No travel day is open. Start one in the Travel panel."><i class="fa-solid fa-sun"></i> No day</button>';
   if (s.plate === "start") return '<button type="button" class="sde-hud-go"><i class="fa-solid fa-hexagon"></i> Start travel</button>';
-  return `<button type="button" class="sde-hud-plate sde-hud-count" data-tooltip="${tip}"><i class="fa-solid ${ICON[s.method]} sde-hud-how"></i><b>${s.hexes[0]}</b>/${s.hexes[1]}${s.pushed ? '<i class="fa-solid fa-angles-up sde-hud-push"></i>' : ""}</button>`;
+  return `<button type="button" class="sde-hud-plate sde-hud-count" data-tooltip="${tip}"><i class="fa-solid ${ICON[s.method]} sde-hud-how"></i><b>${s.hexes[0]}</b>/${s.hexes[1]}${s.pushed ? '<i class="fa-solid fa-angles-up sde-hud-push"></i>' : ""}<i class="fa-solid fa-angles-right sde-hud-push" style="visibility:hidden" aria-hidden="true"></i></button>`;
 };
 
 // What _bar() builds on the right: the clock's tools, then the travel panel, then the advance.
 const tools = '<button type="button" class="sde-hud-ib"><i class="fa-solid fa-backward"></i></button><button type="button" class="sde-hud-ib sde-hud-cloud" aria-pressed="true" data-tooltip="Hide weather effects on this device"><i class="fa-solid fa-cloud-rain"></i></button><button type="button" class="sde-hud-ib"><i class="fa-solid fa-sliders"></i></button>';
 // What _bar() builds on the left after the supplies: finding the party and opening its sheet.
 const peopleCells = '<button type="button" class="sde-hud-ib" data-tooltip="Find the party on the map"><i class="fa-solid fa-location-crosshairs"></i></button><button type="button" class="sde-hud-ib" data-tooltip="Open the party sheet"><i class="fa-solid fa-shield-halved"></i></button>';
-// What _bar() builds on the right after the tools: the travel panel while a day is open.
+// What _bar() builds on the right after the tools: the standing Auto travel switch while travelling (off here).
+const autoCell = (s) => (s.plate === "start" ? "" : '<button type="button" class="sde-hud-auto" aria-pressed="false" data-tooltip="Auto travel is off. Click to let the party camp and open the next day by itself.">Auto Off</button>');
+// What _bar() builds on the right after the Auto switch: the travel panel while a day is open.
 const travelCell = (s) => (s.plate === "start" ? "" : '<button type="button" class="sde-hud-ib"><i class="fa-solid fa-users"></i></button>');
 
 // What _bar() builds: the day's counter at the far left, then the party's torches and rations, then the clock's tools.
@@ -64,6 +66,7 @@ const hud = (s) => {
       <button type="button" class="sde-hud-ib sde-hud-chev" aria-pressed="true" data-tooltip="Hide the sky"><i class="fa-solid fa-chevron-up"></i></button></span>
     <div class="sde-hud-side sde-hud-side-r">
       ${tools}
+      ${autoCell(s)}
       ${travelCell(s)}
       <button type="button" class="sde-hud-ib"><i class="fa-solid fa-forward"></i></button>
     </div>
