@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-2080 tracked files · ~265,600 lines of code/markup across scripts+templates+styles+test.
+2144 tracked files · ~273,800 lines of code/markup across scripts+templates+styles+test.
 `v0.19.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 1522 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 1536 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 172 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 271 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 | `scavenger/scavenger-core.mjs` | 171 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
@@ -335,8 +335,8 @@
 | `shop-core.mjs` | 144 | Shop price rules shared by both shops, and the town shop's per-character stock ledger (pure). |
 | `property-names.mjs` | 30 | The names of weapon properties (Finesse, Thrown...) read from their compendium links and cached, and a ware's fact chips and short description for the shop windows. |
 | `town-shop.mjs` | 322 | A town merchant's buy and sell on the player's own client, no GM needed. |
-| `stock-generator.mjs` | 50 | A generated merchant's stock (pure): which ordinary gear a kind of shop carries and how much, by town size. |
-| `haggle-core.mjs` | 64 | The haggle ladder (d20 + CHA against a scale from a quarter off to a ban) and what a character has already tried (pure). |
+| `stock-generator.mjs` | 53 | A generated merchant's stock (pure): which ordinary gear a kind of shop carries and how much, by town size. |
+| `haggle-core.mjs` | 72 | The haggle ladder (d20 + CHA against a scale from a quarter off to a ban) and what a character has already tried (pure). |
 | `lots-core.mjs` | 32 | What a character sold to a town merchant, kept as lots so it can be bought back at the price it was paid (pure): the newest ten per merchant. |
 
 ### 3.10 `scripts/party-xp/`
@@ -665,17 +665,24 @@ A full-screen picture every client shows behind Foundry's UI, kept in one world 
 
 | File | Lines | Description |
 |---|---:|---|
-| `town-core.mjs` | 141 | A town's landing page flag: merchants as NPC references, restock revision, the games table, the table switch, the editor's form folded in (pure). |
-| `town-view.mjs` | 124 | What the Town window and the shopfront show: ware cards, sell rows, tiles, the buyer (pure). |
-| `town-live.mjs` | 70 | What the town windows share on the Foundry side: the buyer, redrawing on change, the table switch, the tiles' windows. |
+| `town-core.mjs` | 190 | A town's landing page flag: merchants as NPC references, restock revision, the games table, the table switch, the editor's form folded in (pure). |
+| `town-view.mjs` | 173 | What the Town window and the shopfront show: ware cards, sell rows, tiles, the buyer (pure). |
+| `town-live.mjs` | 95 | What the town windows share on the Foundry side: the buyer, redrawing on change, the serialized page writer `updateLanding`, the table switch, the tiles' windows. |
 | `town-app.mjs` | 151 | The landing page menu over the scene's picture: merchants, tiles, the GM's pencil, sales log, restock and switch; clear of the sidebar and the Crawl Strip. |
-| `town-shop-app.mjs` | 184 | One merchant's shopfront: buy and sell as a chosen character with no GM, categories, search. |
-| `town-editor-app.mjs` | 132 | The GM's landing page editor window: town text, tiles, games table, merchants. |
+| `town-shop-app.mjs` | 260 | One merchant's shopfront: buy and sell as a chosen character with no GM, categories, search. |
+| `town-editor-app.mjs` | 190 | The GM's landing page editor window: town text, tiles, games table, merchants. |
 | `town-entry-points.mjs` | 153 | The Landing page toolbar button and Alt+T: one switch for the table, the page made on any scene, followed by every client. |
 | `town-host-core.mjs` | 22 | Which scene's Town page is up: the Stage-hosted page wins over the canvas scene's, decided from the stage value only. |
-| `games-core.mjs` | 96 | The town's four games of chance, the house's cut and the wager limits (pure). |
-| `town-games.mjs` | 94 | A game at a town table on the player's own client, no GM needed: roll, settle, coins, chat card. |
-| `town-games-app.mjs` | 123 | The games table window: wager, four games, the last result, as a chosen character. |
+| `town-restock.mjs` | 28 | Shelves that restock by themselves: on a new world day the active GM runs `autoRestock` over every scene's landing page (plus a catch-up on ready). |
+| `games-core.mjs` | 156 | The town's games of chance: the four that settle on one roll, the names and keys of the games that open a table (Liar's Dice among them), the house's cut and the wager limits (pure). |
+| `liars-dice-core.mjs` | 153 | Liar's Dice for two to six seats: the rules (bids, calls, ones wild, five dice each, forfeits) and the house's odds-based play (pure). |
+| `liars-dice-table.mjs` | 132 | A Liar's Dice table: lobby, seats, who may move, the house's turns, leaving, and the view each person may see (pure). |
+| `liars-dice-net.mjs` | 329 | One person's side of a Liar's Dice table: hosting or joining, the open-tables list, moves, presence, and settling the wager (sockets and money handed in). |
+| `liars-dice-live.mjs` | 50 | Liar's Dice on Foundry: this tab's client wired to the module socket, the clock, the dice and the coins. |
+| `liars-dice-view.mjs` | 104 | What the Liar's Dice screens show: the table, lobby, set-up and open tables, and the log in lines (pure; never lists a die not yet shown). |
+| `town-games.mjs` | 96 | A game at a town table on the player's own client, no GM needed: roll, settle, coins, chat card. |
+| `town-games-app.mjs` | 362 | The games table window: wager, ten games, open tables, the last result, as a chosen character; sits the player down at a table for Bluff, Brag, the death roll, the roulette, blackjack and Liar's Dice (its set-up, lobby and table screens). |
+| `town-liars-dice.mjs` | 68 | Liar's Dice money and record on each person's own client: the wager in, refunds, the pot paid to a winner, the chat card. |
 | `town-log-core.mjs` | 76 | The town's sales log read from flagged chat cards: entries, filters, totals (pure). |
 | `hand-core.mjs` | 193 | The hand games' engine, pure: Beholder's Bluff and three-dice Brag as one game of betting over hidden dice (ante, a step with the dice, fixed-limit betting, showdown), the legal moves, the costs and what a hand pays. |
 | `hand-bot.mjs` | 133 | How the house plays a hand, pure: the odds of winning from only what it can see (its own dice, the shown ones, the bets), pot odds, a little bluffing and the Brag rerolls; the dials are at the top. |
