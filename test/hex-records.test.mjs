@@ -279,7 +279,7 @@ test("a scene with nothing disclosed gets no projection journal, while an existi
   try {
     await publishHexProjection(scene);
     assert.equal(created, 0, "nothing disclosed: no journal");
-    game.journal.contents.push({ flags: { [MOD]: { hexRecordProjection: { sceneUuid: "Scene.quiet", cells: { "0_0": {} } } } }, update: async data => { published = data; } });
+    globalThis.game.journal.contents.push({ flags: { [MOD]: { hexRecordProjection: { sceneUuid: "Scene.quiet", cells: { "0_0": {} } } } }, update: async data => { published = data; } });
     await publishHexProjection(scene);
     assert.deepEqual(published[`flags.${MOD}.hexRecordProjection`].cells, {}, "an existing view is emptied, not stranded");
   } finally {
