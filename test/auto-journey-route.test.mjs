@@ -163,3 +163,26 @@ test("an error in the journey stops it and says so, not as a day being waited ou
   assert.equal(warned("SDE.route.autoDays"), 0);
   assert.equal(store.has(KEY), false, "the journey is dropped");
 });
+
+test("a destination that never opens, met in a harsh storm, is waited out only until the storm lifts, then dropped once", async () => {
+  const w = world({ day: 1, budget: 4, hexesLeft: 4, autoGoal: { i: 3, j: 0 } });
+  cfg.closed = new Set([3]); cfg.blocked = ["storm", "storm", "terrain"]; cfg.campOk = true;
+  assert.deepEqual(await route.resumeAutoTravel(), { ok: true });
+  await wait(300);
+  assert.equal(cfg.camps, 1, "the storm day is camped out once");
+  assert.equal(warned("SDE.route.autoPermanent"), 1, "said once");
+  assert.equal(log.setAutoGoal.filter((g) => g === null).length, 1, "the destination is dropped once");
+  assert.equal(store.has(KEY), false, "and the tab's journey with it");
+  assert.ok(w.moves.length > 0);
+});
+
+test("Resume auto whose day start throws answers with the error, and the next Resume walks", async () => {
+  const w = world({ autoGoal: { i: 3, j: 0 } });
+  cfg.startError = "commit failed";
+  const first = await route.resumeAutoTravel();
+  assert.deepEqual(first, { ok: false, error: 'SDE.route.autoError {"reason":"commit failed"}' });
+  delete cfg.startError;
+  assert.deepEqual(await route.resumeAutoTravel(), { ok: true });
+  await wait(200);
+  assert.deepEqual(w.moves.map((m) => m.to), [1, 2, 3]);
+});

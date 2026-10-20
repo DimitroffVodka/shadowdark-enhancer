@@ -74,7 +74,7 @@ Object.assign(globalThis, {
     modules: { get: () => null },
   },
 });
-const { moveSteps, slowWalk, applyAction, registerOverland, overlandState, weatherNow, recordMove, advanceTravel, undergroundCheck, dawnWeather, checkNow, makeCamp, askDay } = await import("../scripts/overland/overland.mjs");
+const { moveSteps, slowWalk, applyAction, registerOverland, overlandState, weatherNow, recordMove, advanceTravel, undergroundCheck, dawnWeather, checkNow, makeCamp, askDay, travelBlocked } = await import("../scripts/overland/overland.mjs");
 const { BOAT_TYPE } = await import("../scripts/actors/register-actors.mjs");
 const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
 
@@ -1769,4 +1769,43 @@ test("a socket notice shows only the fixed forage key, never another string or i
     handler({ type: "notice", key: "SDE.overland.notify.forageImpossible", data: { x: 1 } });
     assert.deepEqual(warned, ["SDE.overland.notify.forageImpossible"]);
   } finally { globalThis.ui.notifications.warn = warn; globalThis.game.socket = socket; globalThis.game.user = user; }
+});
+
+test("an autoDays socket message shows only a whole number of days and a known halt (#551 review)", () => {
+  travelling(["mine"]);
+  let handler = null;
+  const socket = globalThis.game.socket, user = globalThis.game.user;
+  globalThis.game.socket = { emit() {}, on: (name, fn) => { handler = fn; } };
+  registerOverland();
+  const shown = [], info = globalThis.ui.notifications.info, format = globalThis.game.i18n.format;
+  globalThis.ui.notifications.info = (m) => shown.push(m);
+  globalThis.game.i18n.format = (k, d) => `${k} ${d?.days ?? ""}`;
+  globalThis.game.user = { id: "player1", isGM: false };
+  try {
+    handler({ type: "autoDays", days: "9999 <b>days</b>", halted: null });
+    handler({ type: "autoDays", days: 2.7, halted: "the GM says" });
+    handler({ type: "autoDays", days: 3, halted: "storm" });
+    assert.deepEqual(shown, ["SDE.route.autoDays 0", "SDE.route.autoNoWalk 3"]);
+  } finally {
+    globalThis.ui.notifications.info = info; globalThis.game.i18n.format = format;
+    globalThis.game.socket = socket; globalThis.game.user = user;
+  }
+});
+
+test("a destination that never opens reads as its ground, not as the storm, in a harsh storm (#551 review)", async () => {
+  campWorld({ climate: { harsh: "storm" } });
+  dice.push(1, 12, 12, 12, 12);                    // a stormy dawn, in a climate harsh in storms
+  await applyAction({ action: "startDay", method: "walking" }, gm);
+  assert.equal(stored.overlandState.weather.kind, "stormy");
+  const scene = { id: "s", grid: { isHexagonal: true, getCenterPoint: () => ({ x: 0, y: 0 }) }, getFlag: () => null };
+  stored.overlandState = { ...stored.overlandState, tokenUuid: "Scene.s.Token.t" };
+  registerOverland();
+  globalThis.fromUuidSync = (uuid) => (uuid === "Scene.s.Token.t" ? { parent: scene } : null);
+  const journal = globalThis.game.journal;
+  globalThis.game.journal = { getName: () => ({ flags: { "shadowdark-extras": { hexData: { s: { "3_0": { terrain: "lake" }, "4_0": { terrain: "plains" } } } } } }) };
+  globalThis.game.shadowdarkEnhancer.rules.terrainCost = (terrain) => (terrain === "lake" ? Infinity : 1);
+  try {
+    assert.equal(await travelBlocked({ i: 3, j: 0 }), "terrain");
+    assert.equal(await travelBlocked({ i: 4, j: 0 }), "storm");
+  } finally { globalThis.game.journal = journal; }
 });

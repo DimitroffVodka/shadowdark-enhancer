@@ -29,7 +29,7 @@ function world({ camp, partyItems = [], pcItems = [] }) {
   globalThis.game.scenes = new Map([["scene", scene]]);
   return { party, pc, user, camp: () => party.flags[M].camping };
 }
-const { autoCampNight } = await import("../scripts/camping/camping.mjs");
+const { autoCampNight, prepareCampNight } = await import("../scripts/camping/camping.mjs");
 const tonight = { day: 200, each: 1, stormy: false, harsh: false };
 const base = { participants: [{ uuid: "Actor.pc", actorId: "pc", task: "", participate: true, confirmed: true }], mounts: [], tasks: [], results: {}, effects: {} };
 
@@ -41,12 +41,11 @@ test("a camp with no day yet, left at its Night, is tonight's camp, as before Au
 });
 
 for (const [label, phase] of [["at its Night", "awaitingRest"], ["at its fire", "fuel"]]) {
-  test(`a camp left ${label} by an earlier day with no meal eaten is set aside; tonight gets a fresh camp`, async () => {
+  test(`a camp left ${label} by an earlier day with no meal eaten becomes tonight's camp`, async () => {
     const w = world({ camp: { ...base, id: "old", phase, fuel: "none", day: 199 } });
     const r = await autoCampNight(w.party, tonight, w.user);
     assert.equal(r.ready, true);
-    assert.notEqual(w.camp().id, "old");
-    assert.equal(w.camp().day, 200);
+    assert.deepEqual([w.camp().id, w.camp().day], ["old", 200]);
     // and the next night is not blocked by it either
     const again = await autoCampNight(w.party, { ...tonight, day: 201 }, w.user);
     assert.equal(again.ready, true);
@@ -82,4 +81,55 @@ test("an auto camp that stopped for rations, then a day the GM started by hand: 
   assert.equal(next.ready, true);
   assert.equal(w.camp().day, 201);
   assert.equal(food.system.quantity, 4, "tonight's meal only");
+});
+
+// Auto off: Make camp and Night go through prepareCampNight, which must not be stuck on the same leftover camp.
+test("Auto off: a camp left at its Night on an earlier day with no meal eaten becomes tonight's camp", async () => {
+  const w = world({ camp: { ...base, id: "old", phase: "awaitingRest", fuel: "none", day: 199, shortageWarning: true } });
+  const r = await prepareCampNight(w.party, tonight, w.user, true);
+  assert.equal(r.ready, true);
+  assert.deepEqual([w.camp().id, w.camp().day], ["old", 200]);
+});
+
+test("Auto off: a camp whose meal was eaten on an earlier day rests once and the window gets a fresh camp", async () => {
+  const w = world({ camp: { ...base, id: "old", phase: "awaitingRest", fuel: "none", day: 199, foodCommitted: true } });
+  w.pc.flags[M] = { campNutrition: { days: { 199: { foodDone: true, fed: true, campId: "old" } } } };
+  const r = await prepareCampNight(w.party, tonight, w.user, true);
+  assert.equal(r.ready, false);
+  assert.notEqual(w.camp().id, "old");
+  assert.equal(w.camp().phase, "setup");
+  assert.equal(w.pc.system.attributes.hp.value, 5, "the old night's rest ran");
+  const again = await prepareCampNight(w.party, tonight, w.user, true);
+  assert.equal(again.ready, false, "the fresh camp is set up in the window, never an error");
+});
+
+test("a camp left at its fire on an earlier day with torches part paid keeps them paid and lights the fire tonight", async () => {
+  const pt = torch("pt", 0); pt.flags[M] = { campFuel: "c1" };
+  const ct = torch("ct", 1);
+  const w = world({
+    camp: { ...base, id: "c1", phase: "fuel", fuel: "torches", anchor: { sceneId: "scene", x: 550, y: 550 }, day: 199,
+      fuelPlan: [{ actorUuid: "Actor.party", id: "pt", quantity: 2 }, { actorUuid: "Actor.pc", id: "ct", quantity: 1 }] },
+    partyItems: [pt], pcItems: [ct],
+  });
+  const r = await autoCampNight(w.party, tonight, w.user);
+  assert.equal(r.ready, true);
+  assert.deepEqual([w.camp().id, w.camp().day], ["c1", 200]);
+  assert.deepEqual([pt.system.quantity, ct.system.quantity], [0, 0]);
+  assert.equal(w.camp().fire?.lit, true);
+  assert.equal(w.camp().fuelShort, undefined);
+});
+
+test("a part-paid torch fire with nobody by its spot goes on without the light, never charging again", async () => {
+  const pt = torch("pt", 0); pt.flags[M] = { campFuel: "c2" };
+  const ct = torch("ct", 1);
+  const w = world({
+    camp: { ...base, id: "c2", phase: "fuel", fuel: "torches", anchor: { sceneId: "scene", x: 5500, y: 5500 }, day: 200,
+      fuelPlan: [{ actorUuid: "Actor.party", id: "pt", quantity: 2 }, { actorUuid: "Actor.pc", id: "ct", quantity: 1 }] },
+    partyItems: [pt], pcItems: [ct],
+  });
+  globalThis.canvas.scene.tokens.contents.length = 0;
+  const r = await autoCampNight(w.party, tonight, w.user);
+  assert.equal(r.ready, true);
+  assert.equal(ct.system.quantity, 1, "no second charge");
+  assert.notEqual(w.camp().phase, "fuel");
 });

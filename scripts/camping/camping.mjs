@@ -273,6 +273,22 @@ export function requestCamp(party, action, data = {}) {
   const payload = { ...data, partyId: party.id, action };
   return isActiveGM() ? handleCamp(payload, game.user) : queryActiveGM(QUERY, payload);
 }
+/**
+ * A camp left unfinished on an earlier day (an auto camp that stopped, then a day started by hand). With no meal
+ * eaten it has written nothing keyed to its day, so it becomes tonight's camp and any torches it paid stay paid.
+ * With its meals eaten, its rest is finished once and it closes, so tonight begins a fresh camp. A camp with no
+ * day yet is still tonight's. Runs inside the party's queue.
+ */
+async function retireStaleCamp(party, context) {
+  const camp = campOf(party);
+  if (!camp || ["setup", "complete"].includes(camp.phase) || camp.day === null || camp.day === undefined || camp.day === context.day) return camp;
+  if (!camp.foodCommitted) { await save(party, { ...camp, ...context }); return campOf(party); }
+  let rested = false;
+  try { await feedCamp(party, camp); await finishCampNightNow(party, camp, false); rested = true; }
+  catch (error) { console.warn(`${MODULE_ID} | an earlier day's camp could not finish its rest`, error); }
+  if (!rested) await save(party, { ...campOf(party), phase: "complete", interrupted: true });
+  return campOf(party);
+}
 /** Overland alone calls these seams; neither tasks nor rest can move the clock. */
 export function prepareCampNight(party, context, user, acceptShortages = false) {
   return queued(party, async () => {
@@ -284,6 +300,7 @@ export function prepareCampNight(party, context, user, acceptShortages = false) 
       camp = { ...camp, preview: false, ...(here ? { anchor: here } : {}) };
       await save(party, camp);
     }
+    camp = await retireStaleCamp(party, context);
     if (!camp || camp.phase === "complete") { await perform(party, "begin", {}, user); return { ready: false }; }
     if (camp.phase !== "awaitingRest") return { ready: false };
     if (camp.day === null || camp.day === undefined) { camp = { ...camp, ...context }; await save(party, camp); }
@@ -306,19 +323,7 @@ export function prepareCampNight(party, context, user, acceptShortages = false) 
 export function autoCampNight(party, context, user, acceptShortages = false) {
   return queued(party, async () => {
     if (!own(party, user)) invalid();
-    let camp = campOf(party);
-    // A camp left unfinished on an earlier day is not a camp for tonight. Its meals already eaten, its rest is
-    // finished once; with no meal eaten it is set aside unrested. Either way tonight gets a fresh camp with the
-    // same tasks. A camp with no day yet is still tonight's to use.
-    if (camp && !["setup", "complete"].includes(camp.phase) && camp.day !== null && camp.day !== undefined && camp.day !== context.day) {
-      let rested = false;
-      if (camp.foodCommitted) {
-        try { await feedCamp(party, camp); await finishCampNightNow(party, camp, false); rested = true; }
-        catch (error) { console.warn(`${MODULE_ID} | an earlier day's camp could not finish its rest`, error); }
-      }
-      if (!rested) await save(party, { ...campOf(party), phase: "complete", interrupted: true });
-      camp = campOf(party);
-    }
+    let camp = await retireStaleCamp(party, context);
     if (!camp || camp.phase === "complete") { await perform(party, "begin", {}, user); camp = campOf(party); }
     if (!camp) invalid();
     if (camp.phase === "setup") {
@@ -343,8 +348,12 @@ export function autoCampNight(party, context, user, acceptShortages = false) {
       camp = { ...camp, auto: true, ...(camp.day === null || camp.day === undefined ? context : {}), ...(here ? { anchor: here } : {}) };
       await save(party, camp);
     }
-    // A torch fire already part paid goes on from its recorded plan (perform skips the stacks charged).
-    if (camp.phase === "fuel" && camp.fuelPlan) camp = await perform(party, "fuel", { accept: true, deductions: camp.fuelPlan }, user);
+    // A torch fire already part paid goes on from its recorded plan (perform skips the stacks charged). With nobody
+    // by its spot it goes on without the light, never charging again.
+    if (camp.phase === "fuel" && camp.fuelPlan) {
+      if (!(camp.anchor && nearFire(party, camp))) { camp = { ...camp, anchor: null }; await save(party, camp); }
+      camp = await perform(party, "fuel", { accept: true, deductions: camp.fuelPlan }, user);
+    }
     if (camp.phase === "fuel") {
       const plan = campTorchPlan(party, camp);
       // A fire needs a place on the party's scene: with no anchor or nobody near it, go without one rather

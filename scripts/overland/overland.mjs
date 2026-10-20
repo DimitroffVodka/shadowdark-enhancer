@@ -888,14 +888,15 @@ function blockedToday(goal) {
   if (!read || !goal) return null;
   const hex = read(goal);
   if (!hex) return null;
-  // The storm's own rule comes first: on harsh ground it closes the map, not the terrain.
-  if (_state.stormy && _state.harsh) return "storm";
-  const cost = costToday()(hex, _state.hex);
-  if (Number.isFinite(cost)) return null;
-  // A hex closed only by today's weather opens when the weather does; a river, lava or a
-  // closed pass is still impassable in fair weather, so waiting will never help.
+  // Ground first: a river, lava or a closed pass is impassable in fair weather too, so waiting out
+  // a storm for it will never help.
   const calm = costToday({ stormy: false, harsh: false })(hex, _state.hex);
-  return Number.isFinite(calm) ? "weather" : "terrain";
+  if (!Number.isFinite(calm)) return "terrain";
+  // A storm on harsh ground closes the whole map; otherwise a hex closed only by today's weather
+  // opens when the weather does.
+  const today = overlandState();
+  if (today.stormy && today.harsh) return "storm";
+  return Number.isFinite(costToday()(hex, _state.hex)) ? null : "weather";
 }
 
 /**
@@ -1767,6 +1768,8 @@ export function applyAction(data, user) {
 
 /** The table notices another client may raise over the socket. */
 const SOCKET_NOTICES = new Set(["SDE.overland.notify.forageImpossible"]);
+/** Why a walked-out day halted, as the "autoDays" socket message may say it. */
+const AUTO_HALTS = new Set([null, "storm", "terrain", "weather"]);
 
 export function registerOverland() {
   _state = normalizeOverlandState(game.settings.get(MODULE_ID, OVERLAND_SETTING));
@@ -1774,7 +1777,11 @@ export function registerOverland() {
   game.socket.on(SOCKET, (msg) => {
     if (msg?.type === "overland") reread();
     // The active GM's day of a journey it was walking out: every tab says which day, or why it cannot.
-    if (msg?.type === "autoDays" && !isActiveGM()) ui.notifications?.info(t(msg.halted ? "SDE.route.autoNoWalk" : "SDE.route.autoDays", { days: msg.days, reason: t(msg.halted === "storm" ? "SDE.route.autoStorm" : "SDE.route.autoTerrain") }));
+    // Socket payloads are forgeable: a whole number of days and a known halt only.
+    if (msg?.type === "autoDays" && !isActiveGM() && AUTO_HALTS.has(msg.halted ?? null)) {
+      const days = Math.max(0, Math.trunc(Number(msg.days)) || 0);
+      ui.notifications?.info(t(msg.halted ? "SDE.route.autoNoWalk" : "SDE.route.autoDays", { days, reason: t(msg.halted === "storm" ? "SDE.route.autoStorm" : "SDE.route.autoTerrain") }));
+    }
     // A shared table notice (for example, a storm forbids the day's automatic forage).
     // Socket payloads are forgeable: only the fixed keys below are shown, and with no data.
     if (msg?.type === "notice" && SOCKET_NOTICES.has(msg.key) && !isActiveGM()) ui.notifications?.warn(t(msg.key));

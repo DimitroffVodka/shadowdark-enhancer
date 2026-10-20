@@ -353,7 +353,7 @@ function onUp(event) {
     }
     ui.notifications?.info(t("SDE.route.autoStart", { hexes: going.length - 1 }));
     return { walk: { token, route: { ...route, path: going, costs } } };
-  });
+  }).then((reply) => { if (reply?.error) ui.notifications?.warn(reply.error); });
 }
 
 /**
@@ -493,6 +493,7 @@ async function walk(token, route, auto = false) {
         // climate closes every hex, wherever the party stands.
         if (state.stormy && state.harsh) {
           const days = await waitOutDays(token, goal, "storm");
+          if (days === "terrain") { await dropGoal(); stopReason = "blocked"; break; }
           if (!days) { keep = true; break; }
           const next = routeTo(token, goal);
           if (!next?.path) { ui.notifications?.warn(t("SDE.route.autoNoRoute")); break; }
@@ -637,17 +638,20 @@ async function refusedHex(token, goal, attempted, avoid) {
     if (reroute?.path && reroute.path.length >= 2) return { route: reroute };
   }
   const blocked = await travelBlocked(goal);
-  if (blocked === "terrain") {
-    ui.notifications?.warn(t("SDE.route.autoPermanent"));
-    try { await setAutoGoal(null); } catch (err) { console.warn(`${MODULE_ID} | the automatic journey's goal was not cleared`, err); }
-    return { stop: "blocked" };
-  }
   if (!blocked) return attempted && offsetKey(attempted) === offsetKey(goal) ? { stop: "blocked" } : {};
-  if (!(await waitOutDays(token, goal, blocked))) return { stop: "blocked", keep: true };
+  const opened = blocked === "terrain" ? "terrain" : await waitOutDays(token, goal, blocked);
+  if (opened === "terrain") { await dropGoal(); return { stop: "blocked" }; }
+  if (!opened) return { stop: "blocked", keep: true };
   const next = routeTo(token, goal, avoid);
   if (!next?.path) { ui.notifications?.warn(t("SDE.route.autoNoRoute")); return { stop: "noRoute" }; }
   if (next.path.length < 2) return { stop: "noRoute" };
   return { route: next };
+}
+
+/** A destination whose ground never opens: said once, and the journey's goal is dropped. */
+async function dropGoal() {
+  ui.notifications?.warn(t("SDE.route.autoPermanent"));
+  try { await setAutoGoal(null); } catch (err) { console.warn(`${MODULE_ID} | the automatic journey's goal was not cleared`, err); }
 }
 
 /**
@@ -657,14 +661,11 @@ async function refusedHex(token, goal, attempted, avoid) {
  * the way opens or a fortnight of days has gone by (the journey then stops and the tab says why).
  * @param {Token} token  the travel token
  * @param {{i:number, j:number}} goal  the destination
- * @param {"storm"|"weather"|"terrain"} block  what closed the day
- * @returns {Promise<boolean>} whether a day is open and the party may walk again
+ * @param {"storm"|"weather"} block  what closed the day
+ * @returns {Promise<boolean|"terrain">} whether a day is open and the party may walk again; "terrain" when the
+ *   destination turned out never to open (the caller drops it)
  */
 async function waitOutDays(token, goal, block) {
-  if (block === "terrain") {
-    ui.notifications?.warn(t("SDE.route.autoPermanent"));
-    return false;
-  }
   const reason = t(block === "storm" ? "SDE.route.autoStorm" : "SDE.route.autoTerrain");
   let days = 0;
   for (;;) {
@@ -686,8 +687,7 @@ async function waitOutDays(token, goal, block) {
     const now = await travelBlocked(goal);
     if (now === "terrain") {
       game.socket?.emit(`module.${MODULE_ID}`, { type: "autoDays", days, halted: "terrain" });
-      ui.notifications?.warn(t("SDE.route.autoPermanent"));
-      return false;
+      return "terrain";
     }
     if (!now) {
       game.socket?.emit(`module.${MODULE_ID}`, { type: "autoDays", days, halted: null });
@@ -752,11 +752,11 @@ function maybeResumeJourney() {
   void runJourneyStep();
 }
 
-/** One attempt at the journey, with nothing thrown out of it: an error stops this tab's journey and says so. */
+/** One attempt at the journey: an error (claimWalk's reply) stops this tab's journey and says so. */
 function runJourneyStep() {
-  return journeyStep().catch((err) => {
-    console.error(`${MODULE_ID} | the automatic journey`, err);
-    ui.notifications?.warn(t("SDE.route.autoError", { reason: String(err?.message ?? err) }));
+  return journeyStep().then((reply) => {
+    if (!reply?.error) return;
+    ui.notifications?.warn(reply.error);
     forgetJourney();
   });
 }
@@ -771,7 +771,11 @@ async function claimWalk(work) {
   if (_walking) return { ok: false, error: t("SDE.route.autoBusy") };
   _walking = true;
   let reply;
-  try { reply = await work(); } finally { _walking = false; }
+  try { reply = await work(); }
+  catch (err) {
+    console.error(`${MODULE_ID} | Auto travel`, err);
+    reply = { ok: false, error: t("SDE.route.autoError", { reason: String(err?.message ?? err) }) };
+  } finally { _walking = false; }
   // Nothing awaits between the release and the walk's own claim, so nothing can start in between.
   if (reply?.walk) { void walk(reply.walk.token, reply.walk.route, true); return { ok: true }; }
   return reply ?? { ok: false };

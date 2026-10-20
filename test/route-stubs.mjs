@@ -35,7 +35,8 @@ reset();
 
 export const overlandState = () => structuredClone(S);
 export const travelStepCost = () => (hex) => (cfg.closed.has(hex?.num) ? Infinity : 1);
-export const travelBlocked = async () => { log.travelBlocked++; return cfg.blocked; };
+/** `cfg.blocked`: one answer, or a list answered in turn (its last answer repeats). */
+export const travelBlocked = async () => { log.travelBlocked++; return Array.isArray(cfg.blocked) ? (cfg.blocked.length > 1 ? cfg.blocked.shift() : cfg.blocked[0]) : cfg.blocked; };
 const tick = (ms) => new Promise((r) => setTimeout(r, ms));
 /** The active GM's Start day: openDay is committed (the hook fires), THEN the day's card and catch-up check take a round trip. */
 export async function autoStartDay() {
@@ -48,4 +49,11 @@ export async function autoStartDay() {
 }
 export async function setAutoGoal(goal) { log.setAutoGoal.push(goal); await tick(1); S.autoGoal = goal; return { ok: true }; }
 export async function travelSettled() { await tick(3); }
-export async function makeCamp() { cfg.camps++; return { ok: false, error: "no camp in this world" }; }
+/** A camp fails unless `cfg.campOk`, when it ends the day and its dawn opens the next. */
+export async function makeCamp() {
+  cfg.camps++;
+  if (!cfg.campOk) return { ok: false, error: "no camp in this world" };
+  Object.assign(S, { day: (S.day ?? 0) + 1, budget: 4, spent: 0, hexesLeft: 4 });
+  globalThis.Hooks.callAll(OVERLAND_CHANGED, structuredClone(S));
+  return { ok: true, stopped: false };
+}
