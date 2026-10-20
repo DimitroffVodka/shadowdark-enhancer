@@ -58,3 +58,14 @@ test("classifyCombatant: no actor is skipped without throwing", () => {
   assert.equal(classifyCombatant({}), null);
   assert.equal(classifyCombatant(undefined), null);
 });
+
+import { hpDrop } from "../scripts/session-recap/session-recap-core.mjs";
+
+test("hpDrop: only a fall in HP is damage; healing, no change or a missing reading is not", () => {
+  assert.deepEqual(hpDrop(10, 4), { lost: 6, to: 4 });
+  assert.deepEqual(hpDrop("3", -2), { lost: 5, to: -2 }, "a drop past 0 counts in full");
+  assert.equal(hpDrop(4, 10), null);
+  assert.equal(hpDrop(4, 4), null);
+  assert.equal(hpDrop(undefined, 4), null, "no stamp from the writer: not counted");
+  assert.equal(hpDrop(4, null), null);
+});

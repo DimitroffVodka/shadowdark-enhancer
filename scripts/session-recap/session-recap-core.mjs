@@ -103,6 +103,16 @@ export function generateSessionName(timestamp, existingNames = []) {
   return `${base} ${existing.length + 1}`;
 }
 
+/** The system's hit point field, where an update's old and new HP are read. */
+export const HP_PATH = "system.attributes.hp.value";
+
+/** HP lost between two readings as `{ lost, to }`, or null when HP did not fall or either reading is missing. */
+export function hpDrop(from, to) {
+  if (from == null || to == null) return null;
+  const a = Number(from), b = Number(to);
+  return Number.isFinite(a) && Number.isFinite(b) && b < a ? { lost: a - b, to: b } : null;
+}
+
 /**
  * Build the Discord-markdown recap from a plain `data` object. Pure — every
  * input is read off `data`, currency via {@link toCopper}/{@link formatCurrency}.

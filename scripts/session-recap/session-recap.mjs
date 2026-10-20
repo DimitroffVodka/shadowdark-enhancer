@@ -22,8 +22,8 @@
 
 import { MODULE_ID } from "../shared/module-id.mjs";
 import {
-  DEFAULT_DATA, emptyPlayerStat, formatDuration, generateSessionName,
-  formatForDiscordFromData, classifyCombatant,
+  DEFAULT_DATA, HP_PATH, emptyPlayerStat, formatDuration, generateSessionName,
+  formatForDiscordFromData, hpDrop, classifyCombatant,
 } from "./session-recap-core.mjs";
 import { CarousingFeed } from "./carousing-feed.mjs";
 import { isActiveGM } from "../shared/gm-relay.mjs";
@@ -40,7 +40,6 @@ export const SessionRecap = {
   // Transient combat state (not persisted — lives only during active combats)
   _activeCombats: new Map(),
   _killMap: new Map(),
-  _hasDamageLog: false,
   _lastAttacker: null,
 
   // ── Settings ───────────────────────────────────────────────
@@ -93,7 +92,7 @@ export const SessionRecap = {
 
   // Serializes read-modify-write cycles against the recap setting. Every
   // writer does getData() → mutate → _save(); rapid combat events (a
-  // damage-log message triggers several updatePlayerStat calls) would
+  // damage that also kills makes several updatePlayerStat calls) would
   // otherwise interleave on the same snapshot and silently drop increments
   // (last-write-wins). Routing all mutations through one promise chain makes
   // each mutator observe the previous write.
@@ -436,15 +435,13 @@ export const SessionRecap = {
 
   _initCombatHooks() {
     if (!game.user.isGM) return;
-    this._hasDamageLog = game.modules.get("damage-log")?.active ?? false;
     this._lastAttacker = null;
 
     // ── Track attacker from SD damage rolls ────────────────
     // SD appends a `damage` roll to the attack message; its speaker is the
-    // attacker. The next damage-log HP change is credited to them.
+    // attacker. The next HP drop is credited to them.
     Hooks.on("createChatMessage", (message) => {
       if (!this.isActive() || !this._isPrimaryGM()) return;
-      if (message.flags?.["damage-log"]?.changes?.length) return; // target update, handled below
       const hasDamage = (message.rolls ?? []).some(r => r.options?.type === "damage");
       if (!hasDamage) return;
       const actorId = message.speaker?.actor;
@@ -497,50 +494,50 @@ export const SessionRecap = {
       this._killMap.clear();
     });
 
-    // ── Damage-log HP changes → damage dealt/taken + kills ──
-    if (this._hasDamageLog) {
-      Hooks.on("createChatMessage", (message) => {
-        if (!this.isActive() || !this._isPrimaryGM()) return;
-        const flags = message.flags?.["damage-log"];
-        if (!flags?.changes?.length) return;
+    // ── HP drops → damage dealt/taken + kills ──────────────
+    // `updateActor` reaches every client but carries only the new HP; the old one
+    // was stamped into the update's options by `_initHpStamp` (see there).
+    Hooks.on("updateActor", (actor, changes, options) => {
+      if (!this.isActive() || !this._isPrimaryGM()) return;
+      const drop = hpDrop(options?.[MODULE_ID]?.hpFrom?.[actor.uuid], foundry.utils.getProperty(changes, HP_PATH));
+      if (!drop) return;
 
-        const targetActorId = message.speaker?.actor;
-        if (!targetActorId) return;
-        const targetActor = game.actors.get(targetActorId);
-        if (!targetActor) return;
+      const FRESH_MS = 60_000;
+      let attackerActor = null;
+      if (this._lastAttacker && Date.now() - this._lastAttacker.timestamp < FRESH_MS) {
+        attackerActor = this._lastAttacker.actor;
+      }
+      if (!attackerActor) attackerActor = game.combat?.combatant?.actor ?? null;
+      attackerActor = this._unwrapToPC(attackerActor) ?? attackerActor;
 
-        const FRESH_MS = 60_000;
-        let attackerActor = null;
-        if (this._lastAttacker && Date.now() - this._lastAttacker.timestamp < FRESH_MS) {
-          attackerActor = this._lastAttacker.actor;
-        }
-        if (!attackerActor) attackerActor = game.combat?.combatant?.actor ?? null;
-        attackerActor = this._unwrapToPC(attackerActor) ?? attackerActor;
+      const attackerIsPC = !!attackerActor?.hasPlayerOwner && attackerActor.type === "Player";
+      const targetIsPC = actor.hasPlayerOwner && actor.type === "Player";
 
-        const attackerIsPC = !!attackerActor?.hasPlayerOwner && attackerActor.type === "Player";
+      if (targetIsPC) {
+        this.updatePlayerStat(actor.id, actor.name, "damageTaken", drop.lost);
+      } else if (attackerIsPC && attackerActor) {
+        this.updatePlayerStat(attackerActor.id, attackerActor.name, "damageDealt", drop.lost);
+        const tokenId = actor.token?.id ?? actor.getActiveTokens?.()[0]?.id;
+        if (tokenId) this._killMap.set(tokenId, attackerActor.name);
+        if (drop.to <= 0) this.updatePlayerStat(attackerActor.id, attackerActor.name, "kills", 1);
+      }
+    });
+  },
 
-        for (const change of flags.changes) {
-          // damage-log keys HP changes by the system's resource id; be tolerant.
-          const id = String(change.id ?? "");
-          if (!(id === "hp" || /hp/i.test(id))) continue;
-          const diff = (Number(change.new) || 0) - (Number(change.old) || 0);
-          if (diff >= 0) continue;
-          const absDiff = Math.abs(diff);
-          const targetIsPC = targetActor.hasPlayerOwner && targetActor.type === "Player";
-
-          if (targetIsPC) {
-            this.updatePlayerStat(targetActorId, targetActor.name, "damageTaken", absDiff);
-          } else if (attackerIsPC && attackerActor) {
-            this.updatePlayerStat(attackerActor.id, attackerActor.name, "damageDealt", absDiff);
-            const tokenId = message.speaker?.token;
-            if (tokenId) this._killMap.set(tokenId, attackerActor.name);
-            if ((Number(change.new) || 0) <= 0) {
-              this.updatePlayerStat(attackerActor.id, attackerActor.name, "kills", 1);
-            }
-          }
-        }
-      });
-    }
+  /**
+   * Remember the HP an update starts from. `preUpdateActor` fires only on the
+   * client that wrote the HP (a player healing themselves, the GM hitting a
+   * monster) and no client sees the old value once `updateActor` runs, so the
+   * writer's client stamps it into the update's options, which travel with the
+   * update to the GM that counts it. Every client registers this, not only GMs.
+   */
+  _initHpStamp() {
+    Hooks.on("preUpdateActor", (actor, changes, options) => {
+      if (foundry.utils.getProperty(changes, HP_PATH) === undefined) return;
+      // Keyed by actor: one batch update of several actors shares a single options object.
+      const mine = options[MODULE_ID] ?? {};
+      options[MODULE_ID] = { ...mine, hpFrom: { ...mine.hpFrom, [actor.uuid]: actor.system?.attributes?.hp?.value } };
+    });
   },
 
   /** Resolve a combat actor to its controlling PC (polymorph / familiar), else null. */
@@ -772,6 +769,7 @@ export const SessionRecap = {
   // ── Init ───────────────────────────────────────────────────
 
   init() {
+    this._initHpStamp();
     this._initCombatHooks();
     this._initRollHooks();
     this._initFeedHooks();

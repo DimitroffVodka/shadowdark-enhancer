@@ -354,9 +354,9 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `session-recap.mjs` | 794 | Session event tracker singleton (loot, sales, XP, combats, per-PC stats). |
-| `session-recap-core.mjs` | 441 | Pure data shape, currency math, duration format, Discord-markdown export. |
-| `session-recap-app.mjs` | 354 | Recap window: Overview / Combat / Loot / XP / History. |
+| `session-recap.mjs` | 792 | Session event tracker singleton (loot, sales, XP, combats, per-PC stats). |
+| `session-recap-core.mjs` | 451 | Pure data shape, currency math, duration format, Discord-markdown export. |
+| `session-recap-app.mjs` | 352 | Recap window: Overview / Combat / Loot / XP / History. |
 | `carousing-feed.mjs` | 129 | Explicit legacy SDX result-capture compatibility and native/SDX downtime overlap read. Native outings push one stable Session Recap row directly; no hidden journal watcher or actor-effect replay. |
 | `carousing-feed-core.mjs` | 234 | Pure normalizer for both SDX carousing result shapes — original (d8 outcome + one benefit, GM applies) and expanded (d8 → XP + d100 benefit/mishap arrays, self-applying) — detected off the payload, not off SDX's mode setting, so a carouse rolled before the GM flipped it still reads. Also the shared `recapRow`, `carousingSubtotal` and `tierLine` wording the recap window and the Discord export both use. Foundry-free, node-tested. |
 
