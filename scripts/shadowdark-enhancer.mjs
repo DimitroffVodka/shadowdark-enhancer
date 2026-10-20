@@ -163,7 +163,7 @@ const STYLESHEET_REV = "a28efdb66f88";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "638b2b8ebaeb";
+const BUILD_REV = "6fe1720adc48";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -854,14 +854,9 @@ Hooks.once("init", () => {
       encounterTables: () => TableRegistry.encounterTables(),
       groups: () => TableRegistry.groups(),
       organize: (opts) => TableRegistry.organize(opts),
-      // The importer's front door: the step-by-step wizard for a world that has imported nothing yet,
-      // the hub for one that has. Either is also reachable directly (openWizard, openHub).
-      openImporter: async () => {
-        const { ImportWizardApp, wizardFirst } = await import("./importer/wizard/wizard-app.mjs");
-        return wizardFirst()
-          ? ImportWizardApp.open()
-          : (await import("./importer/importer-hub-app.mjs")).ImporterHubApp.open("import");
-      },
+      // The importer's front door is always the quick guide; once the world has imported, its first page also opens
+      // Maps for this world, and its Advanced importer link the hub (openWizard and openHub reach either directly).
+      openImporter: async () => (await import("./importer/wizard/wizard-app.mjs")).ImportWizardApp.open(),
       // File the journals and scenes the importer made into folders for their books (GM only).
       organizeWorld: async () => (await import("./importer/world-folders.mjs")).organizeWorld(),
       openWizard: async () => (await import("./importer/wizard/wizard-app.mjs")).ImportWizardApp.open(),

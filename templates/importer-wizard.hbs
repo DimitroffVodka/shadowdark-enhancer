@@ -24,6 +24,12 @@
       </ul>
       <p class="ui-muted">{{localize "SDE.importer.wizard.welcome.safe"}}</p>
     </div>
+    {{#if welcomeMaps}}
+    <div class="ui-card sde-wiz-maps-link">
+      <p>{{localize "SDE.importer.wizard.welcome.maps"}}</p>
+      <button type="button" class="ui-btn" data-action="openMaps"><i class="fas fa-map"></i> {{localize "SDE.importer.wizard.welcome.mapsButton"}}</button>
+    </div>
+    {{/if}}
     {{/if}}
 
     {{#if isKeep}}
@@ -223,6 +229,7 @@
     {{/if}}
 
     {{#if isDone}}
+    {{#if done.counts}}
     <div class="ui-card">
       <div class="ui-pairs">
         <div class="ui-pair"><span class="ui-label">{{localize "SDE.importer.wizard.done.imported"}}</span><strong class="ui-value sde-wiz-big">{{done.imported}}</strong></div>
@@ -230,6 +237,7 @@
         <div class="ui-pair"><span class="ui-label">{{localize "SDE.importer.wizard.done.attention"}}</span><strong class="ui-value sde-wiz-big">{{done.attention}}</strong></div>
       </div>
     </div>
+    {{/if}}
     {{#if done.packed}}<div class="ui-note"><p><i class="fas fa-box-archive"></i> {{done.packed}}</p></div>{{/if}}
     {{#if done.art}}
     <section class="ui-group">

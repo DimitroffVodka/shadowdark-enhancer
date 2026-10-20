@@ -5,7 +5,7 @@
  * that holds only what it is running should not be given six maps and a Legend pass before the first session: the
  * same numbered scene is built here, with the key-location journals its pins open, packed into the Adventures
  * compendium (`sde-adventures`), and the world copies taken away. Import the Adventure when the map is run; its
- * terrain is named then, in the Hex Tagger, like any other map.
+ * terrain is named then, on the quick guide's Terrain page (the import offers it).
  *
  * Packing only reads. Taking the world copies away removes the exact scene and journals this run made and nothing
  * else: a crawl deployed into the world before the run stays where it is.
@@ -15,9 +15,17 @@ import { MODULE_ID } from "../../shared/module-id.mjs";
 import { ADVENTURE_PACK_FLAG, adventureData, folderChain } from "../adventure/adventure-pack.mjs";
 import { findSuitePack } from "../../shared/compendium-suite.mjs";
 import { HEXMAP_FLAG, hexMapFromFile } from "../../hex-map/hex-map-flow.mjs";
+import { A0_PRINT } from "../../hex-map/a0-print.mjs";
 
-/** The world scene this map made, or null. */
-export const findHexScene = (mapId) => game.scenes?.find((s) => s.getFlag(MODULE_ID, HEXMAP_FLAG) === mapId) ?? null;
+/** An A0 made by hand (Hex map from image) carries no map id; its numbering covers the A0 print's field, which no other print has. */
+export const isHandMadeA0 = (scene) => {
+  const bounds = scene.getFlag(MODULE_ID, "hexTags")?.origin?.bounds;
+  return !scene.getFlag(MODULE_ID, HEXMAP_FLAG) && bounds?.cols === A0_PRINT.bounds.cols && bounds?.rows === A0_PRINT.bounds.rows;
+};
+
+/** The world scene this map made, or null. The Western Reaches A0 is also found when it was made by hand, so it is not built twice. */
+export const findHexScene = (mapId) => game.scenes?.find((s) => s.getFlag(MODULE_ID, HEXMAP_FLAG) === mapId)
+  ?? (mapId === "hex-wr" ? game.scenes?.find(isHandMadeA0) : null) ?? null;
 
 /** The map's Adventure in the Adventures pack, or null. */
 export async function findPackedHexMap(mapId) {
@@ -65,10 +73,11 @@ async function packHexMap(mapId, { scene, journals = [] }) {
  * A map already in the world, or already packed, is left alone; with the world placement an already packed map is
  * imported rather than built again.
  * @param {File|File[]} files  the map's file, or the two halves of a joined print
- * @param {{id:string, title:string, firstNum?:string, placement?:"world"|"compendium"}} opts
+ * @param {{id:string, title:string, firstNum?:string, placement?:"world"|"compendium", offer?:boolean}} opts  offer: false
+ *   when the caller names the terrain itself (the wizard's Terrain page), so importing a packed map asks nothing
  * @returns {Promise<{status:"ready"|"packed"|"already"|"needsLook"|"failed", sceneId?:string, pinned?:number, packed?:boolean, packFailed?:boolean}>}
  */
-export async function buildHexAdventure(files, { id, title, firstNum = "0000", placement = "compendium" } = {}) {
+export async function buildHexAdventure(files, { id, title, firstNum = "0000", placement = "compendium", offer = true } = {}) {
   const have = findHexScene(id);
   if (have) return { status: "already", sceneId: have.id, pinned: have.notes.size };
 
@@ -76,7 +85,7 @@ export async function buildHexAdventure(files, { id, title, firstNum = "0000", p
   if (packed) {
     if (placement === "compendium") return { status: "already", packed: true };
     const { importPackedAdventure } = await import("../adventure/adventure-pack.mjs");
-    const res = await importPackedAdventure(packed);
+    const res = await importPackedAdventure(packed, { offer });
     const made = findHexScene(id);
     return made ? { status: "ready", sceneId: made.id, pinned: made.notes.size } : { status: "failed", error: res.status };
   }

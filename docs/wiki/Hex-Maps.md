@@ -18,6 +18,11 @@ its own:
 Everything is built from your own book text and your own map image in your
 browser. Nothing is uploaded, and nothing from a book ships with the module.
 
+**To get a book's hex map into your world:** **Crawl Bar** → **Tools** →
+**Importer** → **Maps for this world** → **Load** (or **Add map file** for a map
+the module has not seen yet). Then answer **Open the quick guide** to name its
+terrain. See [Importer Hub](Importer-Hub.md#getting-a-map-into-your-world).
+
 ## Native coordinates, Hex Data and fog
 
 These work without Extras. Each user's **Show hex coordinates** setting follows
@@ -601,8 +606,10 @@ trusting a single hex.
 ## The legend
 
 The import wizard's last page before Done shows the same cards for each hex map it
-set up, one map at a time (**Apply the names** for a map, **Skip this map** to leave
-it for the tagger), so a first import never needs the tagger at all. A map already
+brought into the world, one map at a time (**Apply the names** for a map, **Skip this map** to leave
+it for the tagger), so a first import never needs the tagger at all. A hex map brought in
+later (**Load** in Maps for this world, or the compendium's **Import**) asks first, and
+**Open the quick guide** opens the same page on it. A map already
 named on an earlier run is not asked about again. Everything below is the same Legend,
 in the tagger's own window.
 
