@@ -211,3 +211,21 @@ test("a Western Reaches A0 made by hand is found as the A0, so it is not built o
     assert.equal(findHexScene("hex-cs1"), null);
   } finally { globalThis.game = before; }
 });
+
+test("a run that finds the A0 already in the world never makes it playable again; one it brought in is", async () => {
+  const before = { foundry: globalThis.foundry, game: globalThis.game };
+  globalThis.foundry = { applications: { api: { ApplicationV2: class {}, HandlebarsApplicationMixin: (c) => c } } };
+  const viewed = [];
+  const scene = { id: "a0", view: async () => { viewed.push("a0"); throw new Error("stop before makePlayable"); }, getFlag: () => undefined };
+  globalThis.game = { user: { isGM: true }, scenes: { get: (id) => (id === "a0" ? scene : undefined) } };
+  try {
+    const { runMapLegend } = await import("../scripts/importer/wizard/wizard-app.mjs");
+    assert.equal(await runMapLegend("hex-wr", { status: "already", sceneId: "a0" }), true, "its Legend was never applied");
+    assert.deepEqual(viewed, [], "the GM's own A0 is not touched");
+    assert.equal(await runMapLegend("hex-wr", { status: "packed", packed: true }), false);
+    await assert.rejects(runMapLegend("hex-wr", { status: "ready", sceneId: "a0" }), /stop before makePlayable/);
+    assert.deepEqual(viewed, ["a0"], "a map this run brought in is made playable first");
+  } finally {
+    globalThis.foundry = before.foundry; globalThis.game = before.game;
+  }
+});

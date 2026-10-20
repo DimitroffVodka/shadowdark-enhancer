@@ -56,6 +56,21 @@ export async function terrainToName(mapId, sceneId) {
 }
 
 /**
+ * The Terrain page answer for a hex map the guide's run placed in the world. Only a map this run brought in is made
+ * playable: one that was already here is the GM's, and is only asked whether its Legend was ever applied (as before #541).
+ * @param {string} mapId
+ * @param {{status:string, sceneId?:string}} made  buildHexAdventure's answer
+ * @returns {Promise<boolean>}
+ */
+export async function runMapLegend(mapId, made) {
+  if (!made.sceneId || made.status === "packed") return false;
+  if (made.status === "ready") return terrainToName(mapId, made.sceneId);
+  const scene = game.scenes.get(made.sceneId);
+  const { legendNamed } = await import("../../hex-map/hex-legend-session.mjs");
+  return !!scene && !legendNamed(scene);
+}
+
+/**
  * A hex map just came into the world (the Adventures compendium's Import, or Load in Maps for this world): offer the
  * quick guide's terrain step for it, instead of leaving the GM to find the Hex Tagger. A map already named is not asked about.
  * @param {Scene[]} scenes  the scenes the import created
@@ -235,7 +250,7 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
           const files = filesOfHex(state, id);   // a print that ships as two halves has two, in order
           if (!files.length) return { status: "failed" };
           const made = await buildHexAdventure(files, { id, title, firstNum: firstNum ?? "0000", placement, offer: false });
-          if (placement === "world" && made.sceneId && made.status !== "packed") made.legend = await terrainToName(id, made.sceneId);
+          if (placement === "world") made.legend = await runMapLegend(id, made);
           return made;
         },
         siteOf: (id) => { const site = findSite(id); return site && { ...site, src: CHAR_SOURCES[site.src]?.label ?? site.src }; },
