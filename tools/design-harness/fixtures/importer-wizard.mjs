@@ -1,6 +1,6 @@
 // The import wizard, real template, real controller: every page is the view model WizardController.viewModel() gives for
 // that state, so what is drawn is what the window draws.
-//   state: welcome | update | keep | books-empty | books | maps | check-running | check | ready | import | done
+//   state: welcome | welcome-imported | update | keep | books-empty | books | maps | check-running | check | ready | import | done
 import { readFileSync } from "node:fs";
 import { WizardController } from "../../../scripts/importer/wizard/wizard-controller.mjs";
 import { addFiles, startUpdate, HEX_MAPS } from "../../../scripts/importer/wizard/wizard-core.mjs";
@@ -23,8 +23,8 @@ const MAPS = [
 ];
 
 /** A controller on a state; `fill` picks files, `at` the page, `check` the check's outcome. */
-function make({ page, books = 0, maps = 0, check, update, keep = "once", forge = true, notice = "", progress, result, open, terrain, art }) {
-  const c = new WizardController({ t, forge, limitMB: 50, canUpload: true }, () => {});
+function make({ page, books = 0, maps = 0, check, update, keep = "once", forge = true, notice = "", progress, result, open, terrain, art, imported = false }) {
+  const c = new WizardController({ t, forge, limitMB: 50, canUpload: true, imported }, () => {});
   const s = c.state;
   s.keep = keep;
   addFiles(s, [...BOOKS.slice(0, books), ...MAPS.slice(0, maps)].map(([n, mb]) => file(n, mb)));
@@ -60,6 +60,7 @@ const CARDS = [card(0, 61, "forest"), card(1, 48, "forest"), card(2, 40), opened
 
 const STATES = {
   welcome: () => make({ page: "welcome" }),
+  "welcome-imported": () => make({ page: "welcome", imported: true }),
   update: () => make({ page: "welcome", update: { info: { n: 14, books: ["CS6", "WR"] }, have: () => false } }),
   keep: () => make({ page: "keep", books: 9, maps: 3 }),
   "books-empty": () => make({ page: "books" }),
@@ -83,6 +84,10 @@ const STATES = {
   terrain: () => make({ page: "terrain", terrain: { stage: "cards" } }),
   "terrain-review": () => make({ page: "terrain", terrain: { stage: "review" } }),
   "terrain-failed": () => make({ page: "terrain", terrain: { stage: "failed", error: "The map could not be read." } }),
+  // The Terrain page run alone, for a map imported from the Adventures compendium: no counts, just the map's row.
+  "terrain-done": () => make({ page: "done", result: { imported: 0, already: 0, needsYou: [], terrainOnly: true, hex: [
+    { id: "hex-wr", title: "Western Reaches hex map (A0)", status: "ready", legend: false, named: true, look: false, sceneId: "a0", pinned: 270 },
+  ] } }),
   done: () => make({
     art: { sources: ["Monster Manual", "Shadowdark Community Tokens", "Pathfinder: Monster Core"], stage: "offer", line: "" },
     page: "done", books: 9, maps: 4, check: (s) => ({ done: true, ready: readyIds(s).concat([`map:${HEX_MAPS[0].id}`]), items: items(s), problems: [] }),

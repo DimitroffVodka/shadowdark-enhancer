@@ -1,6 +1,6 @@
 /**
  * The five hex maps that are drawings with a grid laid over them (hex-prints.mjs `drawn`): the wizard builds them like
- * any other map and leaves their terrain for the Hex Tagger, so nothing is named during the import.
+ * any other map, but their terrain is a choice, not a step: the Terrain page after a run is for the A0 alone.
  */
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -18,7 +18,7 @@ test("the A0 is the one map whose terrain is not a drawing", () => {
   assert.equal(HEX_PRINTS["hex-wr"].drawn, undefined);
 });
 
-test("a run marks each hex map with its print and never asks for a Legend", async () => {
+test("a run marks each hex map with its print and keeps whether its terrain is still to name", async () => {
   const s = newState();
   addFiles(s, [file("Western Reaches GM Map A0.jpg", 21), file("The Gloaming Hex Map.png"), file("Jungle Hex Map North.png"), file("Jungle Hex Map South.png")]);
   s.check = { done: true, ready: [...Object.keys(s.maps).map((id) => `map:${id.split(":")[0]}`)], problems: [], items: [] };
@@ -27,7 +27,7 @@ test("a run marks each hex map with its print and never asks for a Legend", asyn
     fileAdventures: async () => ({ sites: [], failed: [] }), siteOf: () => null, isFiled: async () => true, buildScene: async () => ({ status: "built" }), keyLocations: async () => ({ hexes: 0, created: 0, failed: [] }),
     hexMap: async (id) => ({ status: "ready", sceneId: `s-${id}`, legend: true, pinned: 5 }),
   });
-  assert.deepEqual(r.hex.map((h) => [h.id, h.optional, h.legend]), [["hex-wr", false, false], ["hex-cs1", true, false], ["hex-cs4", true, false]]);
+  assert.deepEqual(r.hex.map((h) => [h.id, h.optional, h.legend]), [["hex-wr", false, true], ["hex-cs1", true, true], ["hex-cs4", true, true]]);
 });
 
 /** A controller whose run has finished with these hex results, on the page after the import. */
@@ -43,10 +43,10 @@ async function afterRun(hex) {
   return { ctl, opened };
 }
 
-test("a run of hex maps goes straight to Done; no Legend is opened", async () => {
+test("a run of hex maps whose terrain is named, or a choice, goes straight to Done; no Legend is opened", async () => {
   const { ctl, opened } = await afterRun([HEX("hex-wr"), HEX("hex-cs1", { optional: true }), HEX("hex-cs4", { optional: true })]);
   assert.equal(ctl.state.page, "done");
-  assert.deepEqual(opened, [], "the Hex Tagger names the terrain later");
+  assert.deepEqual(opened, [], "nothing is left to name");
   const done = ctl.viewModel().done;
   assert.equal(done.hexMaps.every((h) => !h.legend), true, "no map offers a Name the terrain button from the import");
   assert.equal(done.hexBody, "SDE.importer.wizard.done.hexBody");

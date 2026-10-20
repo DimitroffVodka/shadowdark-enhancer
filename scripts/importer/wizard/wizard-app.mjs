@@ -37,6 +37,52 @@ const RUN_SETTING = "importerWizardRun";
 export const wizardFirst = () => !game.settings.get(MODULE_ID, RUN_SETTING)?.at
   && !findLibraryJournal()?.pages.some((p) => p.type === "pdf");
 
+/**
+ * Does this hex map, now in the world, still have its terrain to name? A Western Reaches A0 that is not numbered yet is
+ * made playable first, quietly, as the guide always did for it (the numbering, the book's keyed hexes, borders copied
+ * from another A0); that answers whether the Legend is still to do. Any other map: whether its Legend was ever applied.
+ */
+export async function terrainToName(mapId, sceneId) {
+  const scene = game.scenes.get(sceneId);
+  if (!scene) return false;
+  if (mapId === "hex-wr" && !scene.getFlag(MODULE_ID, "hexTags")?.origin) {
+    const { ASKED_FLAG } = await import("../../hex-map/a0-prompt.mjs");
+    const { replaceModuleFlag } = await import("../../shared/module-flags.mjs");
+    await replaceModuleFlag(scene, ASKED_FLAG, true);   // the A0's own "make it playable?" question would ask over this one
+    await scene.view();
+    const made = await (await import("../../hex-map/hex-tagger-app.mjs")).HexTaggerApp.makePlayable({ quiet: true });
+    return made ? made.legend : false;
+  }
+  const { legendNamed } = await import("../../hex-map/hex-legend-session.mjs");
+  return !legendNamed(scene);
+}
+
+/**
+ * A hex map just came into the world (the Adventures compendium's Import, or Load in Maps for this world): offer the
+ * quick guide's terrain step for it, instead of leaving the GM to find the Hex Tagger. A map already named is not asked about.
+ * @param {Scene[]} scenes  the scenes the import created
+ * @returns {Promise<boolean>} whether the GM took it
+ */
+export async function offerTerrainGuide(scenes) {
+  if (!game.user?.isGM) return false;
+  const [{ HEXMAP_FLAG }, { legendNamed }] = await Promise.all([import("../../hex-map/hex-map-flow.mjs"), import("../../hex-map/hex-legend-session.mjs")]);
+  const rows = scenes.flatMap((scene) => {
+    const hex = HEX_MAPS.find((h) => h.id === scene?.getFlag(MODULE_ID, HEXMAP_FLAG));
+    return hex && !legendNamed(scene) ? [{ id: hex.id, title: hex.title, sceneId: scene.id, pinned: scene.notes?.size ?? 0 }] : [];
+  });
+  if (!rows.length) return false;
+  const yes = await foundry.applications.api.DialogV2.confirm({
+    classes: ["sde-ui", "sde-dialog"],
+    window: { title: t("SDE.importer.wizard.terrainOffer.title"), icon: "fas fa-map" },
+    content: `<p>${t("SDE.importer.wizard.terrainOffer.body", { title: rows.map((r) => r.title).join(", ") })}</p>`,
+    yes: { label: t("SDE.importer.wizard.terrainOffer.yes"), default: true },
+    no: { label: t("SDE.importer.wizard.terrainOffer.no") },
+    rejectClose: false,
+  }).catch(() => false);
+  if (yes) await ImportWizardApp.openTerrain(rows);
+  return !!yes;
+}
+
 /** Remember that this world has imported: when, with which module version, and from which books. */
 async function recordRun(books) {
   const before = game.settings.get(MODULE_ID, RUN_SETTING) ?? {};
@@ -77,6 +123,21 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return this._instance;
   }
 
+  /**
+   * Open on the Terrain page for hex maps already in the world. A guide that is open already is brought forward
+   * instead: it may be partway through an import.
+   * @param {Array<{id:string, title:string, sceneId:string, pinned?:number}>} rows
+   */
+  static async openTerrain(rows) {
+    if (!game.user?.isGM) return null;
+    if (this._instance) { this._instance.render({ force: true }); ui.notifications.info(t("SDE.importer.wizard.terrainOffer.busy")); return null; }
+    const app = this._instance = new ImportWizardApp({});
+    const run = app.ctl.startTerrain(rows);   // on the Terrain page before the first draw
+    await app.render({ force: true });
+    await run;
+    return app;
+  }
+
   constructor(options = {}, update = null, have = new Set()) {
     super(options);
     this.ctl = new WizardController(this._env(), () => this.render());
@@ -96,6 +157,7 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
       forge: onTheForge(),
       limitMB: FORGE_UPLOAD_LIMIT_MB,
       canUpload: !!game.user?.can?.("FILES_UPLOAD"),
+      imported: !wizardFirst(),
       useOnce: (src, file) => useSessionPdf(src, file),
       uploadBook: (src, file) => uploadSourcePdf(src, file),
       // Whatever the book resolves to is what the import will read: the session copy, or the uploaded file.
@@ -105,6 +167,8 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
       run: (state, hooks) => app._run(state, hooks),
       release: () => releaseLocalPdfs(),
       confirmCancel: () => app._confirmLeave(),
+      openMaps: async () => { if (!(await app._confirmLeave())) return; await app._leave(); (await import("../world-maps-app.mjs")).WorldMapsApp.open(); },
+      terrainNeed: ({ id, sceneId }) => terrainToName(id, sceneId),
       openAdvanced: async () => { if (!(await app._terrainLeaveOk())) return; await app._leave({ keepBooks: true }); (await import("../importer-hub-app.mjs")).ImporterHubApp.open(); },
       // A map the wizard was unsure of, or cannot do alone: the full Hex map from image flow, with its grid window.
       openHex: async (files, id) => {
@@ -166,12 +230,14 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
         keyBooks: keyLocationBooks(),
         keyLocations: (src, opts) => importKeyLocations(src, { ...opts, keepExisting: true }),
         holidays: async (src) => (await import("../../holidays/holidays.mjs")).importHolidays(src),
-        // A hex map is an adventure too: its numbered scene and the journals its pins open, packed when adventures are
-        // kept in the compendium. Its terrain is named later, in the Hex Tagger, once the map is imported and run.
+        // A hex map is an adventure too: its numbered scene and the journals its pins open, packed when the map is left
+        // unticked. A ticked map comes into the world and its terrain is named on the Terrain page after the run.
         hexMap: async (id, { title, firstNum, placement }) => {
           const files = filesOfHex(state, id);   // a print that ships as two halves has two, in order
           if (!files.length) return { status: "failed" };
-          return buildHexAdventure(files, { id, title, firstNum: firstNum ?? "0000", placement });
+          const made = await buildHexAdventure(files, { id, title, firstNum: firstNum ?? "0000", placement, offer: false });
+          if (placement === "world" && made.sceneId && made.status !== "packed") made.legend = await terrainToName(id, made.sceneId);
+          return made;
         },
         siteOf: (id) => { const site = findSite(id); return site && { ...site, src: CHAR_SOURCES[site.src]?.label ?? site.src }; },
         isFiled: async (id) => (await scenes.filedSiteIds()).has(id),

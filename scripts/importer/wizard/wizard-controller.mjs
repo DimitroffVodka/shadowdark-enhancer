@@ -21,7 +21,9 @@
  *   confirmCancel()         ask whether to leave; resolves true to leave
  *   artOffer()              the installed monster-art sources the Done page can offer, {sources:string[]}, or null
  *   applyArt()             apply them to the imported monsters; resolves {mapped, total}
- *   openAdvanced(), openHex(file), close()
+ *   terrainNeed({id, sceneId})  whether a hex map brought into the world still has its terrain to name (an A0 is numbered first)
+ *   imported                a run has finished in this world before: the Welcome page offers the Maps for this world list
+ *   openAdvanced(), openMaps(), openHex(file), close()
  */
 import {
   PAGES, HEX_MAPS, isHexMap, bookTitle, filesOfHex, isUsefulName, newState, addFiles, removeFile, bookRows, mapGroups, blocker, canBack, go,
@@ -53,7 +55,7 @@ const HEX_STATUS = {
 };
 
 /** Names a click may carry in data-action; wizard-app.mjs maps each to dispatch(). */
-export const ACTIONS = ["next", "back", "cancel", "choose", "remove", "setKeep", "setChoice", "toggleWorldMap", "toggleGroup", "fix", "openHex", "openLegend", "legendAnswer", "legendPick", "applyArt", "advanced", "reviewAnswer", "openBrush"];
+export const ACTIONS = ["next", "back", "cancel", "choose", "remove", "setKeep", "setChoice", "toggleWorldMap", "toggleGroup", "fix", "openHex", "openLegend", "legendAnswer", "legendPick", "applyArt", "advanced", "openMaps", "reviewAnswer", "openBrush"];
 
 export class WizardController {
   /** @param {object} env  see the file header  @param {() => void} onChange  called after every change worth redrawing */
@@ -96,6 +98,7 @@ export class WizardController {
       case "openBrush": return this.env.openBrush?.(data.scene);
       // Not while the import runs: it would close this window under the run and free the books it is reading.
       case "advanced": return this.state.page === "import" ? undefined : this.env.openAdvanced?.();
+      case "openMaps": return this.state.page === "welcome" ? this.env.openMaps?.() : undefined;
       default: return undefined;
     }
   }
@@ -223,14 +226,38 @@ export class WizardController {
       s.result = { imported: 0, already: 0, needsYou: [{ title: this.t("SDE.importer.wizard.run.failedTitle"), why: String(err?.message ?? err) }] };
     }
     await this.env.release?.();
-    // Each hex map the run set up still needs its terrain named, once; that is the page before the last.
-    // A drawn map's terrain is a choice, not a step (hex-prints.mjs): its Done row offers the Legend instead.
+    return this.toTerrain();
+  }
+
+  /**
+   * Each hex map brought into the world with its terrain still to name gets the Terrain page, once; that is the page
+   * before the last. A drawn map's terrain is a choice, not a step (hex-prints.mjs): its Done row offers the Legend instead.
+   */
+  async toTerrain() {
+    const s = this.state;
     const need = (s.result.hex ?? []).filter((h) => h.legend && h.sceneId && !h.optional);
     s.terrain = need.length ? { queue: need.map(({ id, title, sceneId }) => ({ id, title, sceneId })), i: 0, stage: "reading", error: "", named: [] } : null;
     s.page = s.terrain ? "terrain" : "done";
     this.changed();
     if (s.terrain) await this.openTerrainMap();
     else await this.offerArt();
+  }
+
+  /**
+   * Open on the Terrain page for hex maps just brought into the world (the Adventures compendium's Import, or Load):
+   * the guide's own terrain step, asked for by the GM, so a drawn map is named too. Done says what became of each.
+   * @param {Array<{id:string, title:string, sceneId:string}>} rows
+   */
+  async startTerrain(rows) {
+    const s = this.state;
+    // The Terrain page's reading state while each map is asked about (an A0 is made playable first, which takes a while).
+    s.terrain = { queue: rows.map(({ id, title, sceneId }) => ({ id, title, sceneId })), i: 0, stage: "reading", error: "", named: [] };
+    s.page = "terrain";
+    this.changed();
+    const hex = [];
+    for (const r of rows) hex.push({ ...r, status: "ready", legend: !!(await this.env.terrainNeed?.(r)), look: false, optional: false, pinned: r.pinned ?? 0 });
+    s.result = { imported: 0, already: 0, needsYou: [], hex, terrainOnly: true };
+    return this.toTerrain();
   }
 
   /** Read the current hex map and build its cards. A map that cannot be read is left for the Hex Tagger. */
@@ -317,6 +344,7 @@ export class WizardController {
   async offerArt() {
     const s = this.state;
     s.art = null;
+    if (s.result?.terrainOnly) return this.changed();   // nothing was imported for the art to skin
     try {
       const offer = await this.env.artOffer?.();
       if (offer?.sources?.length) s.art = { sources: offer.sources, stage: "offer", line: "" };
@@ -356,6 +384,7 @@ export class WizardController {
       [`is${s.page[0].toUpperCase()}${s.page.slice(1)}`]: true,
       picked,
     };
+    if (s.page === "welcome") vm.welcomeMaps = !!this.env.imported && !s.update;
     if (s.update && s.page === "welcome") {
       vm.update = { lead: t(s.update.needed.length ? "SDE.importer.wizard.update.lead" : "SDE.importer.wizard.update.leadLinked", { n: s.update.n, books: s.update.books.map(bookTitle).join(", ") }) };
     }
@@ -422,6 +451,7 @@ export class WizardController {
         : h.status === "already" && h.packed ? HEX_STATUS.alreadyPacked
         : HEX_STATUS[h.status] ?? HEX_STATUS.needsLook, { n: h.pinned ?? 0 });
       vm.done = {
+        counts: !r.terrainOnly,
         imported: r.imported, already: r.already, attention: r.needsYou.length, items: r.needsYou,
         packed: r.packed ? t("SDE.importer.wizard.done.packed", { n: r.packed }) : "",
         skipped: r.skipped?.n ? t(r.skipped.books.length ? "SDE.importer.wizard.done.skippedBooks" : "SDE.importer.wizard.done.skipped", { n: r.skipped.n, books: r.skipped.books.join(", ") }) : "",
@@ -429,7 +459,7 @@ export class WizardController {
           id: h.id, title: h.title, sceneId: h.sceneId, legend: h.legend, look: h.look, brush: !!h.named && !!h.sceneId,
           line: lineOf(h),
         })),
-        hexBody: hex.length ? t("SDE.importer.wizard.done.hexBody") : "",
+        hexBody: hex.length && !r.terrainOnly ? t("SDE.importer.wizard.done.hexBody") : "",
         art: s.art && { sources: s.art.sources.join(", "), offer: s.art.stage === "offer" || s.art.stage === "failed", applying: s.art.stage === "applying", line: s.art.line },
       };
     }

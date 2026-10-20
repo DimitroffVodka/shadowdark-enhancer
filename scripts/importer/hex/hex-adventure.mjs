@@ -5,7 +5,7 @@
  * that holds only what it is running should not be given six maps and a Legend pass before the first session: the
  * same numbered scene is built here, with the key-location journals its pins open, packed into the Adventures
  * compendium (`sde-adventures`), and the world copies taken away. Import the Adventure when the map is run; its
- * terrain is named then, in the Hex Tagger, like any other map.
+ * terrain is named then, on the quick guide's Terrain page (the import offers it).
  *
  * Packing only reads. Taking the world copies away removes the exact scene and journals this run made and nothing
  * else: a crawl deployed into the world before the run stays where it is.
@@ -65,10 +65,11 @@ async function packHexMap(mapId, { scene, journals = [] }) {
  * A map already in the world, or already packed, is left alone; with the world placement an already packed map is
  * imported rather than built again.
  * @param {File|File[]} files  the map's file, or the two halves of a joined print
- * @param {{id:string, title:string, firstNum?:string, placement?:"world"|"compendium"}} opts
+ * @param {{id:string, title:string, firstNum?:string, placement?:"world"|"compendium", offer?:boolean}} opts  offer: false
+ *   when the caller names the terrain itself (the wizard's Terrain page), so importing a packed map asks nothing
  * @returns {Promise<{status:"ready"|"packed"|"already"|"needsLook"|"failed", sceneId?:string, pinned?:number, packed?:boolean, packFailed?:boolean}>}
  */
-export async function buildHexAdventure(files, { id, title, firstNum = "0000", placement = "compendium" } = {}) {
+export async function buildHexAdventure(files, { id, title, firstNum = "0000", placement = "compendium", offer = true } = {}) {
   const have = findHexScene(id);
   if (have) return { status: "already", sceneId: have.id, pinned: have.notes.size };
 
@@ -76,7 +77,7 @@ export async function buildHexAdventure(files, { id, title, firstNum = "0000", p
   if (packed) {
     if (placement === "compendium") return { status: "already", packed: true };
     const { importPackedAdventure } = await import("../adventure/adventure-pack.mjs");
-    const res = await importPackedAdventure(packed);
+    const res = await importPackedAdventure(packed, { offer });
     const made = findHexScene(id);
     return made ? { status: "ready", sceneId: made.id, pinned: made.notes.size } : { status: "failed", error: res.status };
   }

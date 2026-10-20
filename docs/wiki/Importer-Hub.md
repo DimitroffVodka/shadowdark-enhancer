@@ -11,14 +11,39 @@ managed compendium packs.
 
 ---
 
+## Getting a map into your world
+
+**Crawl Bar** → **Tools** → **Importer** → **Maps for this world** → **Load**.
+
+Once your books are imported, the quick guide's first page has a **Maps for this
+world** button. It lists every map your books come with, under its book: the
+Western Reaches A0, the Cursed Scroll hex maps (the Gloaming, the Djurum, the
+Isles of Andrik, the Black River, Morzomotha) and every adventure map. Each row
+shows one thing:
+
+| The row shows | What it means |
+|---|---|
+| **In this world** | The map's scene is already here. Right after a Load, a **View** button takes you to it. |
+| **Load** | The map waits in the *Adventures* compendium. One click brings it in, with its pins and the journals they open; only what is missing is created, so anything you already have is left alone. |
+| **Add map file** | The module has never seen this map's picture. Pick it on your computer and it is uploaded, built, numbered and pinned, the same as the guide does. The Black River comes in two halves: pick both pictures together. |
+| *Import its book first* | An adventure map whose book was never imported: its numbered places come from the book, so run the quick guide with it. |
+
+A hex map loaded this way asks **Set up the terrain?**: **Open the quick guide**
+opens the guide's Terrain page on that map (the Western Reaches A0 is numbered
+and made playable first), **Not now** leaves it for later. A hex map built from
+its picture before its book's key locations were imported still loads; its row
+says which book to import so its places get pinned. **Add map file** needs your
+Foundry user to be allowed to upload files; the window says so when it is not.
+**Advanced importer** at the bottom opens the hub.
+
 ## Quick start: the import guide
 
 A world that has imported nothing is asked to run this guide as soon as the
 GM loads it: a prompt, "Run the quick import wizard before anything else",
 with **Open the quick wizard** and **Not now**. **Not now** is remembered until
 the next module release, and the guide stays under **Crawl Bar** → **Tools** →
-**Importer**. The first time you open the importer, it opens this step-by-step
-guide instead of the hub. You add your files once and it does the rest.
+**Importer**, which always opens this step-by-step guide (its **Advanced
+importer** link opens the hub). You add your files once and it does the rest.
 
 1. **Add your files.** Drop in your book PDFs (the Shadowdark rules, the
    Cursed Scrolls, the Western Reaches books) and your map images. You can drop
@@ -57,7 +82,8 @@ unticked one is built the same way, then packed into the *Adventures* compendium
 stays light: fewer documents to load on every join, which matters most on a weak
 device. That covers an adventure's scene, journal and creatures, and a hex map's
 numbered scene with the key-location journals its pins open. A map waits there
-until you run it; open it and press **Import**, or run the guide again with it
+until you run it; press **Load** in [Maps for this world](#getting-a-map-into-your-world)
+(or open the compendium and press **Import**), or run the guide again with it
 ticked and it imports it for you. Importing only creates what is missing: a
 creature the world already has, or one you edited, is left as it is. The map
 pictures are not in the compendium, only their place in this world's folder, so
@@ -72,9 +98,11 @@ joins them. A map it does not recognise (a different size than the print it
 knows) is marked *needs a look*, and a map that could not be built says so; either way its
 row on the Done page has **Set it up**, which opens the [Hex map from image](Hex-Maps.md)
 window with the grid step. The A0 is a 14043 px picture, so reading it needs a graphics card
-whose texture limit is at least that. The guide does not name their terrain: once
-a map is in the world, name it in the [Hex Tagger](Hex-Maps.md)'s Legend step when you
-are ready (on the Western Reaches A0, **Make this map playable** does the whole pass).
+whose texture limit is at least that. A map you ticked has its terrain named
+right after the import, on the guide's **Terrain** page (the Western Reaches A0 is
+made playable first; on the drawn Cursed Scroll maps the terrain is a choice, offered
+on the Done page). A map you bring in later from the compendium asks **Set up the
+terrain?**, and **Open the quick guide** opens that same page on it.
 See [Hex Maps](Hex-Maps.md) for the numbering and the Legend.
 
 **Run it again whenever you like.** The guide is safe to repeat: what is already
@@ -140,9 +168,9 @@ icons, and files documents into organized world compendiums.
 
 | Route | How |
 |---|---|
-| **Crawl Bar** | **Tools** → **Importer** (under *Set up*): the guide the first time, the hub after that. |
+| **Crawl Bar** | **Tools** → **Importer** (under *Set up*): the guide, whose first page opens **Maps for this world** and whose **Advanced importer** link opens the hub. |
 | **From the hub** | **Tools** tab → **Import more books** opens the guide. |
-| **API** | `game.shadowdarkEnhancer.tables.openHub()` (the hub), `openWizard()` (the guide), `openImporter()` (whichever suits) |
+| **API** | `game.shadowdarkEnhancer.tables.openHub()` (the hub), `openWizard()` (the guide), `openImporter()` (the Crawl Bar's Importer: the guide) |
 
 Opening the hub is instant; scanning your world compendiums is lazy and only
 runs when you expand the Manage review strip.

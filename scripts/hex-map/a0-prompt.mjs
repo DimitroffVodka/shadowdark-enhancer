@@ -11,7 +11,7 @@ import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { isActiveGM } from "../shared/gm-relay.mjs";
 import { isA0 } from "./a0-print.mjs";
 
-const ASKED_FLAG = "hexPlayableAsked";
+export const ASKED_FLAG = "hexPlayableAsked";
 const t = (key) => game.i18n.localize(key);
 
 /** Offer it on each scene drawn. Call at ready. */
@@ -21,6 +21,8 @@ export function registerA0Prompt() {
     const tex = c?.primary?.background?.texture;
     // Cheap checks first: only the active GM asks, only on the print, only once.
     if (!isActiveGM() || !scene || !isA0(tex?.width, tex?.height)) return;
+    // The quick guide is setting this map up itself (its import, or its Terrain page): asking here would open the Hex Tagger over it.
+    if (foundry.applications.instances.get("sde-import-wizard")) return;
     if (scene.getFlag(MODULE_ID, "hexTags")?.origin || scene.getFlag(MODULE_ID, ASKED_FLAG)) return;
     await replaceModuleFlag(scene, ASKED_FLAG, true);
     const yes = await foundry.applications.api.DialogV2.confirm({
