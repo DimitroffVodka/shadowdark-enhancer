@@ -1,9 +1,9 @@
 /**
  * Shadowdark Enhancer — the "Maps for this world" window.
  *
- * One row per map the supported books contain, each with one thing to do: nothing (it is in this world), Load (it waits
- * in the Adventures compendium), or Add map file (the module never saw its picture). Opened from the quick guide's first
- * page once the world has imported. The rows and the dispatch are world-maps-core.mjs; this file joins them to Foundry.
+ * One row per map the supported books contain, showing where it stands: in this world (a hex map whose terrain was never
+ * named also has Name its terrain), Load (it waits in the Adventures compendium), or Add map file (the module never saw
+ * its picture). Opened from the quick guide's first page once the world has imported. The rows and the dispatch are world-maps-core.mjs; this file joins them to Foundry.
  */
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { L as t } from "../shared/i18n.mjs";

@@ -19,7 +19,7 @@ Once your books are imported, the quick guide's first page has a **Maps for this
 world** button. It lists every map your books come with, under its book: the
 Western Reaches A0, the Cursed Scroll hex maps (the Gloaming, the Djurum, the
 Isles of Andrik, the Black River, Morzomotha) and every adventure map. Each row
-shows one thing:
+shows where the map stands:
 
 | The row shows | What it means |
 |---|---|

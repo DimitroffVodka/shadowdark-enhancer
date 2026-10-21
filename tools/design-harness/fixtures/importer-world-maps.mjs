@@ -19,7 +19,9 @@ const STATES = {
       "hex-cs3": { text: t("SDE.importer.maps.line.noKeys", { book: "Cursed Scroll 3: Midnight Sun" }), sceneId: "i" },
     };
     inWorld.add("hex-cs3");
-    return { groups: mapsView(mapList({ inWorld, packed, filed }), { busy: sites[2].id, lines, canUpload: true, t }), canUpload: true };
+    // The A0 and the Isles of Andrik wait for their terrain: the A0's row carries the state, Name its terrain and View.
+    const unnamed = new Set(["hex-wr", "hex-cs3"]);
+    return { groups: mapsView(mapList({ inWorld, packed, filed, unnamed }), { busy: sites[2].id, lines, canUpload: true, t }), canUpload: true };
   },
   fresh: () => ({ groups: mapsView(mapList({ inWorld: new Set(), packed: new Set(), filed: new Set() }), { busy: null, lines: {}, canUpload: true, t }), canUpload: true }),
   noupload: () => ({ groups: mapsView(mapList({ inWorld: new Set(["hex-wr"]), packed: new Set(["hex-cs1"]), filed: new Set(sites.map((s) => s.id)) }), { busy: null, lines: {}, canUpload: false, t }), canUpload: false }),
