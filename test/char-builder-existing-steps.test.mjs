@@ -318,6 +318,29 @@ test("the preview lists what the builder keeps as-is and never writes", async ()
   assert.equal((await new PreviewStep({ ...app(fresh), steps: [] }).prepareContext()).kept, null);
 });
 
+test("an art pick always brings its matching other half; a loose file fills only an empty slot", () => {
+  const st = hydrated({}, []);
+  const step = new PreviewStep({ ...app(st), steps: [] });
+  st.art = { portrait: "old-p.webp", token: "old-t.webp" };
+  step._applyGalleryPick("portrait", { portrait: "ade-p.webp", token: "ade-t.webp" });
+  assert.deepEqual({ ...st.art }, { portrait: "ade-p.webp", token: "ade-t.webp" });
+  step._applyGalleryPick("token", { portrait: "loose.webp", token: "loose.webp" });
+  assert.deepEqual({ ...st.art }, { portrait: "ade-p.webp", token: "loose.webp" });
+  st.art = { portrait: null, token: null };
+  step._applyGalleryPick("token", { portrait: "loose.webp", token: "loose.webp" });
+  assert.deepEqual({ ...st.art }, { portrait: "loose.webp", token: "loose.webp" });
+});
+
+test("a one-image row the browser spells differently is still a loose file, so it keeps the chosen portrait", () => {
+  const st = hydrated({}, []);
+  const step = new PreviewStep({ ...app(st), steps: [] });
+  for (const browsed of ["/modules/pf/art/Solo One.webp", "modules/pf/art/Solo%20One.webp"]) {
+    st.art = { portrait: "hand-p.webp", token: "hand-t.webp" };
+    step._applyGalleryPick("token", { portrait: "modules/pf/art/Solo One.webp", token: browsed });
+    assert.deepEqual({ ...st.art }, { portrait: "hand-p.webp", token: browsed }, browsed);
+  }
+});
+
 // --- The step heading's summary field -------------------------------------------------------
 
 test("each step heading's summary is supplied by its step context", async () => {
