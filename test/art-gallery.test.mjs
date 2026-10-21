@@ -230,6 +230,44 @@ test("a described entry suppresses the browsed copy of every path it owns", asyn
   assert.deepEqual(entries.map((e) => e.src), [ROW.art.token, "custom/portraits/zzz-own.webp"]);
 });
 
+const ADE = { label: "Ade", art: { portrait: "modules/pf/art/Ade Portrait.webp", token: "modules/pf/art/Ade Token.webp" } };
+
+test("the browsed copy of a described file is suppressed however the browser spells its path", async () => {
+  configure();
+  withDatasheet([ADE]);
+  // An encoded space and a leading slash: the same two files under other spellings.
+  browseResults.set(PF_FOLDER, { files: ["modules/pf/art/Ade%20Portrait.webp", "/modules/pf/art/Ade Token.webp"] });
+
+  const entries = await galleryEntries("portrait");
+  assert.deepEqual(entries.map((e) => e.label), ["Ade"], "one character, listed once");
+});
+
+test("a browsed file a datasheet describes brings its other half, however the browser spells the path", async () => {
+  configure();
+  withDatasheet([ADE]);
+  const { PreviewStep } = await import("../scripts/char-builder/steps/preview-step.mjs");
+  const savedFoundry = globalThis.foundry;
+  let picker;
+  globalThis.foundry = { applications: { apps: { FilePicker: { implementation: class { constructor(o) { picker = o; } render() {} } } } } };
+  try {
+    const cases = [
+      ["portrait", "modules/pf/art/Ade Portrait.webp", { portrait: "modules/pf/art/Ade Portrait.webp", token: "modules/pf/art/Ade Token.webp" }],
+      ["portrait", "modules/pf/art/Ade%20Portrait.webp", { portrait: "modules/pf/art/Ade%20Portrait.webp", token: "modules/pf/art/Ade Token.webp" }],
+      ["token", "/modules/pf/art/Ade Token.webp", { portrait: "modules/pf/art/Ade Portrait.webp", token: "/modules/pf/art/Ade Token.webp" }],
+      ["portrait", "modules/pf/art/unlisted.webp", { portrait: "modules/pf/art/unlisted.webp", token: "hand-t.webp" }],
+    ];
+    for (const [slot, path, want] of cases) {
+      const st = { art: { portrait: "hand-p.webp", token: "hand-t.webp" }, ancestry: null };
+      const step = new PreviewStep({ builderState: st, steps: [], render() {} });
+      await step._onPickArt(slot);
+      await picker.callback(path);
+      assert.deepEqual({ ...st.art }, want, `${slot} ${path}`);
+    }
+  } finally {
+    if (savedFoundry === undefined) delete globalThis.foundry; else globalThis.foundry = savedFoundry;
+  }
+});
+
 test("an undescribed file still carries a readable label and empty facets", async () => {
   configure();
   browseResults.set("custom/portraits", { files: ["custom/portraits/half_elf-ranger.webp"] });

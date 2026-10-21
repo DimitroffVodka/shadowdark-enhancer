@@ -331,6 +331,16 @@ test("an art pick always brings its matching other half; a loose file fills only
   assert.deepEqual({ ...st.art }, { portrait: "loose.webp", token: "loose.webp" });
 });
 
+test("a one-image row the browser spells differently is still a loose file, so it keeps the chosen portrait", () => {
+  const st = hydrated({}, []);
+  const step = new PreviewStep({ ...app(st), steps: [] });
+  for (const browsed of ["/modules/pf/art/Solo One.webp", "modules/pf/art/Solo%20One.webp"]) {
+    st.art = { portrait: "hand-p.webp", token: "hand-t.webp" };
+    step._applyGalleryPick("token", { portrait: "modules/pf/art/Solo One.webp", token: browsed });
+    assert.deepEqual({ ...st.art }, { portrait: "hand-p.webp", token: browsed }, browsed);
+  }
+});
+
 // --- The step heading's summary field -------------------------------------------------------
 
 test("each step heading's summary is supplied by its step context", async () => {

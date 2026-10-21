@@ -266,18 +266,21 @@ export class PreviewStep extends BaseStep {
    * obvious wrong answer waiting at the end of it, so every pick dresses both.
    *
    * This used to fill the other slot only when it was empty, to keep a
-   * deliberate mismatch possible. Pairing won over that:
-   * a mismatch now means picking the second half after the first.
+   * deliberate mismatch possible. Pairing won over that: two gallery picks can
+   * no longer leave one. A mismatch now comes only from "From URL…" with one box
+   * ticked, or from browsing a file no datasheet describes.
    *
    * A loose file has no separate match (it stands in for both slots), so it
-   * still fills the other slot only when that one is empty.
+   * still fills the other slot only when that one is empty. Whether the two
+   * halves are one file is decided on normalised paths: the browser and the
+   * datasheet can spell the same file two ways.
    */
   _applyGalleryPick(slot, { portrait, token }) {
     const art = this.state.art;
     const pair = { portrait, token };
     const other = slot === "portrait" ? "token" : "portrait";
     if (pair[slot]) art[slot] = pair[slot];
-    if (pair[other] && (pair[other] !== pair[slot] || !art[other])) art[other] = pair[other];
+    if (pair[other] && (!sameArtPath(pair[other], pair[slot]) || !art[other])) art[other] = pair[other];
   }
 
   async _onPickArt(slot) {

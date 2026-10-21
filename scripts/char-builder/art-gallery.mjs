@@ -154,13 +154,15 @@ async function readDatasheet(path) {
   }
 }
 
+/** An art path the way a datasheet and the file browser can each spell it: decoded, without a leading slash. */
+const artKey = (p) => { const s = String(p ?? "").replace(/^\/+/, ""); try { return decodeURIComponent(s); } catch { return s; } };
+
 /**
  * Do two art paths name the same file? A datasheet and the file browser spell one path differently: an encoded space
- * (%20), a leading slash. Compared decoded and without the slash, so a browsed file still finds its datasheet row.
+ * (%20), a leading slash. Compared by artKey, so a browsed file still finds its datasheet row.
  */
 export function sameArtPath(a, b) {
-  const norm = (p) => { const s = String(p ?? "").replace(/^\/+/, ""); try { return decodeURIComponent(s); } catch { return s; } };
-  return !!a && !!b && norm(a) === norm(b);
+  return !!a && !!b && artKey(a) === artKey(b);
 }
 
 /** Prettify a bare filename into something worth reading in the grid. */
@@ -243,10 +245,10 @@ export async function datasheetEntries(slot = "portrait") {
  */
 export async function galleryEntries(slot = "portrait") {
   const described = await datasheetEntries(slot);
-  const covered = new Set(described.flatMap((e) => e.art));
+  const covered = new Set(described.flatMap((e) => e.art).map(artKey));
   const entries = [...described];
   for (const file of await listGalleryArt()) {
-    if (covered.has(file)) continue;
+    if (covered.has(artKey(file))) continue;
     // A loose file is the only image it has, so it serves as both slots.
     entries.push({
       src: file, portrait: file, token: file, thumb: file,
