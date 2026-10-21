@@ -6796,6 +6796,8 @@
   "SDE.town.games.wagerMin": "The smallest wager is 1 sp.",
   "SDE.town.games.wagerMax": "The table limit is {max}.",
   "SDE.town.games.wagerPoor": "You cannot cover that wager.",
+  "SDE.town.games.houseBroke": "The house has lost all it will this session. Come back next session.",
+  "SDE.town.games.houseShort": "The house is out of coin for this session and pays only {price}.",
   "SDE.town.games.notSaved": "Your coins could not be saved, so the game was not played.",
   "SDE.town.hand.house": "The house",
   "SDE.town.hand.round": "Round {n} of {of}",

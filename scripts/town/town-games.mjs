@@ -2,8 +2,9 @@
  * Shadowdark Enhancer — a game of chance at a town table, played on the player's own client (no GM needs to be connected).
  *
  * Like a purchase, a game only ever changes the PLAYER'S character (coins out or in), which a Player-role user may
- * write, and posts a chat card that carries the facts for the sales log. The house has no purse to run dry: the
- * town's largest bet is what bounds a run of luck. The rules are in games-core.mjs; this rolls, settles and writes.
+ * write, and posts a chat card that carries the facts for the sales log. The house has no purse of its own: what it may
+ * lose in a session (`town.left`, read from those cards) is what bounds a run of luck. The rules are in games-core.mjs;
+ * this rolls, settles and writes.
  *
  * `io` is the Foundry side (localize, the dice, the coin writes, the chat); `liveIo()` is the real one and tests pass
  * their own. Returns `{ ok: true, ... }` or `{ ok: false, error }` with the error already localized for the player.
@@ -13,7 +14,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { formatPrice, fromCopper, spendFromPurse, toCopper } from "../shared/coins.mjs";
 import { gameCard } from "../shared/chat-cards.mjs";
 import { esc } from "../shared/esc.mjs";
-import { GAME_ICONS, GAME_IDS, GAME_KEYS, RESULT_KEYS, SIDES, SIDE_KEYS, SLOT_KEYS, WAGER_KEYS, cardName, cards, checkWager, coin, duel, settle, wheel } from "./games-core.mjs";
+import { GAME_ICONS, GAME_IDS, GAME_KEYS, RESULT_KEYS, SIDES, SIDE_KEYS, SLOT_KEYS, WAGER_KEYS, capWin, cardName, cards, checkWager, coin, duel, settle, wheel } from "./games-core.mjs";
 import { LOG_FLAG, logFlag } from "./town-log-core.mjs";
 
 const fail = (error) => ({ ok: false, error });
@@ -41,7 +42,8 @@ async function roll(game, pick, who, io) {
 }
 
 /**
- * Play one game. `town` is the table as the landing page sets it: `{ name, sceneId, on, maxBet (gp), edge (%) }`;
+ * Play one game. `town` is the table as the landing page sets it: `{ name, sceneId, on, maxBet (gp), edge (%), left }`
+ * (`left`: copper the house may still lose this session; none is no cap);
  * `wager` is in copper; `pick` is the called side for the coin toss.
  */
 export async function playGame({ player, game, wager, pick = "", town }, io = null) {
@@ -50,11 +52,13 @@ export async function playGame({ player, game, wager, pick = "", town }, io = nu
   if (!GAME_IDS.includes(game)) return fail(io.t("SDE.town.games.noGame"));
   if (!town?.on) return fail(io.t("SDE.town.games.closed"));
   if (game === "coin" && !SIDES.includes(pick)) return fail(io.t("SDE.town.games.noPick"));
-  const check = checkWager(wager, { maxBetGp: town.maxBet, purse: toCopper(player.system.coins) });
+  const check = checkWager(wager, { maxBetGp: town.maxBet, purse: toCopper(player.system.coins), left: town.left });
   if (!check.ok) return fail(io.t(WAGER_KEYS[check.why], { max: formatPrice(fromCopper(town.maxBet * 100)) }));
 
   const played = await roll(game, pick, player.name, io);
-  const { net, result } = settle(wager, played.mult, town.edge);
+  const won = settle(wager, played.mult, town.edge), net = capWin(won.net, town.left);
+  const result = net === 0 && won.net > 0 ? "push" : won.result;
+  if (net < won.net) played.line += ` ${io.t("SDE.town.games.houseShort", { price: formatPrice(fromCopper(net)) })}`;
   // A loss is taken, a win paid; both read the purse back. A write that did not land keeps nothing and posts nothing.
   if (net < 0 && !(await io.charge(player, spendFromPurse(player.system.coins, -net)))) return fail(io.t("SDE.town.games.notSaved"));
   if (net > 0 && !(await io.pay(player, fromCopper(net)))) return fail(io.t("SDE.town.games.notSaved"));

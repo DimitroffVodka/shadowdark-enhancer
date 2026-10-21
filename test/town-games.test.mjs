@@ -6,6 +6,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { playGame } from "../scripts/town/town-games.mjs";
+import { payAndPost } from "../scripts/town/town-table.mjs";
+import { startBlackjack } from "../scripts/town/town-blackjack.mjs";
+import { startDeath } from "../scripts/town/town-death.mjs";
+import { startHand } from "../scripts/town/town-hand.mjs";
+import { spinWheel } from "../scripts/town/town-roulette.mjs";
 import { LOG_FLAG, entriesFrom } from "../scripts/town/town-log-core.mjs";
 import { addToPurse, toCopper } from "../scripts/shared/coins.mjs";
 
@@ -124,4 +129,51 @@ test("coins that did not save mean no game: the player is told, and nothing is p
   const b = await playGame({ player: win, game: "coin", wager: 100, pick: "heads", town: TOWN }, ioWin);
   assert.equal(b.ok, false);
   assert.equal(ioWin.log.chat.length, 0);
+});
+
+test("a win larger than the house has left this session pays only what is left, and the log keeps what was paid", async () => {
+  const actor = player(), io = makeIo({ rolls: [{ total: 1 }] });
+  const r = await playGame({ player: actor, game: "coin", wager: 400, pick: "heads", town: { ...TOWN, left: 300 } }, io);
+  assert.deepEqual([r.ok, r.result, r.net], [true, "win", 300]);
+  assert.equal(toCopper(actor.system.coins), 800);
+  assert.match(r.lines[0], /houseShort/);
+  assert.equal(io.log.chat[0].flags[MOD][LOG_FLAG].net, 300);
+});
+
+test("a house with nothing left this session plays no game and moves no coins", async () => {
+  const actor = player(), io = makeIo({ rolls: [{ total: 1 }] });
+  const r = await playGame({ player: actor, game: "coin", wager: 100, pick: "heads", town: { ...TOWN, left: 0 } }, io);
+  assert.equal(r.ok, false);
+  assert.match(r.error, /houseBroke/);
+  assert.deepEqual([io.log.charged, io.log.paid, io.log.chat], [[], [], []]);
+});
+
+test("a sit-down table's win is cut the same way: the stake comes back, the winnings only up to what the house has left", async () => {
+  const actor = player(), io = makeIo();
+  const r = await payAndPost({ player: actor, game: "blackjack", town: { ...TOWN, left: 200 }, net: 950, result: "win", payBack: 1950, put: 1000, lines: ["dealt"] }, io);
+  assert.equal(r.ok, true);
+  assert.equal(toCopper(actor.system.coins), 500 + 1200);
+  const f = io.log.chat[0].flags[MOD][LOG_FLAG];
+  assert.deepEqual([f.net, f.result], [200, "win"]);
+  assert.match(io.log.chat[0].content, /houseShort/);
+});
+
+test("every table refuses a wager while the house has nothing left, before a coin or a die moves", async () => {
+  const actor = player(), town = { ...TOWN, left: 0 };
+  const stop = (what) => async () => { throw new Error(`${what} with the house broke`); };
+  const io = { t: (key) => key, charge: stop("charged"), pay: stop("paid"), chat: stop("posted"), roll: stop("rolled"), random: () => 0.5, deck: () => [12, 11] };
+  const tries = {
+    coin: () => playGame({ player: actor, game: "coin", wager: 100, pick: "heads", town }, io),
+    blackjack: () => startBlackjack({ player: actor, wager: 100, town }, io),
+    death: () => startDeath({ player: actor, wager: 100, town }, io),
+    bluff: () => startHand({ player: actor, game: "bluff", wager: 100, town }, io),
+    brag: () => startHand({ player: actor, game: "brag", wager: 100, town }, io),
+    roulette: () => spinWheel({ player: actor, bets: { even: 1 }, chip: 100, town }, io),
+  };
+  for (const [name, run] of Object.entries(tries)) {
+    const r = await run();
+    assert.equal(r.ok, false, name);
+    assert.match(r.error, /houseBroke/, name);
+  }
+  assert.equal(toCopper(actor.system.coins), 500, "no coin moved");
 });

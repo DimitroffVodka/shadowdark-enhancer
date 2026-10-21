@@ -3,12 +3,15 @@
  *
  * Which character buys, redrawing when the world changes under an open window, and the windows the tiles open.
  */
+import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { absDay } from "../time/time-core.mjs";
 import { LANDING_FLAG, landingOf, setShown } from "./town-core.mjs";
 import { Party, isNativeParty } from "../party/party.mjs";
 import { carousingOf } from "../carousing/carousing.mjs";
 import { pickBuyer } from "./town-view.mjs";
+import { houseLeft, houseSince } from "./games-core.mjs";
+import { entriesFrom } from "./town-log-core.mjs";
 
 const writing = new Map();
 
@@ -44,6 +47,17 @@ export const today = () => absDay(game.time.calendar, game.time.worldTime);
  */
 export async function switchTown(scene, shown) {
   await updateLanding(scene, (page) => setShown(page ?? {}, shown));
+}
+
+/**
+ * What the house at `scene`'s table may still lose this session, in copper, read from the game cards in the chat since
+ * the Session Recap's session began, or between sessions since the last saved one ended (with neither, the whole chat
+ * counts; clearing the chat clears it).
+ */
+export function houseLeftAt(scene) {
+  const recap = (key) => { try { return game.settings.get(MODULE_ID, key); } catch { return null; } };   // not registered: no recap
+  const since = houseSince(recap("sessionRecap")?.sessionStart, recap("sessionHistory"));
+  return houseLeft(entriesFrom(game.messages?.contents), { sceneId: scene?.id ?? "", since, size: landingOf(scene)?.size ?? "town" });
 }
 
 export const characters = () => game.actors.filter((a) => a.type === "Player");

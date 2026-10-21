@@ -7,7 +7,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   GAME_IDS, MIN_WAGER, ROULETTE_BETS, ROULETTE_SIZE, WHEEL,
-  bragHand, cardName, cardOf, cards, checkWager, coin, duel, isRouletteBet, roulette, settle, wagerFromSp, wheel,
+  HOUSE_BANK_GP, bragHand, capWin, cardName, cardOf, cards, checkWager, coin, duel, houseLeft, houseSince, isRouletteBet, roulette, settle, wagerFromSp, wheel,
 } from "../scripts/town/games-core.mjs";
 
 test("settle: a win pays the wager times the odds less the house's share of the winnings, rounded down", () => {
@@ -141,4 +141,34 @@ test("the house's cut makes every game return less than was staked", () => {
     assert.ok(settle(1000, 2, edge).net < 1000);                              // an even-money win pays less than even
   }
   assert.equal(GAME_IDS.length, 4);
+});
+
+test("the house's bank this session: its size's limit less what players won at that table since the session began", () => {
+  const e = (sceneId, net, at, kind = "game") => ({ kind, sceneId, net, at });
+  const entries = [e("s1", 3000, 50), e("s1", -1000, 60), e("s1", 9000, 5), e("s2", 4000, 70), e("s1", 500, 80, "sell")];
+  assert.equal(houseLeft(entries, { sceneId: "s1", since: 10, size: "village" }), HOUSE_BANK_GP.village * 100 - 2000);
+  assert.equal(houseLeft(entries, { sceneId: "s1", since: 0, size: "village" }), 5000 - 11000);
+  assert.equal(houseLeft([], { sceneId: "s1", size: null }), HOUSE_BANK_GP.town * 100);
+  assert.ok(HOUSE_BANK_GP.village < HOUSE_BANK_GP.town && HOUSE_BANK_GP.town < HOUSE_BANK_GP.city && HOUSE_BANK_GP.city < HOUSE_BANK_GP.city_state);
+});
+
+test("a win is cut to what the house has left; a loss is never touched, and a house with nothing left takes no wager", () => {
+  assert.equal(capWin(900, 400), 400);
+  assert.equal(capWin(900, -50), 0);
+  assert.equal(capWin(900), 900);
+  assert.equal(capWin(-100, 0), -100);
+  assert.deepEqual(checkWager(100, { maxBetGp: 10, purse: 1000, left: 0 }), { ok: false, why: "broke" });
+  assert.deepEqual(checkWager(100, { maxBetGp: 10, purse: 1000, left: 1 }), { ok: true });
+});
+
+test("the house's session starts at the recap's session, else when the last saved session ended, else the whole chat", () => {
+  assert.equal(houseSince(500, [{ endTime: 300 }]), 500, "a running session wins");
+  assert.equal(houseSince(null, [{ endTime: 300 }, { endTime: 100 }]), 300, "between sessions: the newest saved session's end");
+  assert.equal(houseSince(null, []), 0);
+  assert.equal(houseSince(null, undefined), 0);
+  assert.equal(houseSince(null, null), 0);
+  // The point of it: a big win in the session that ended no longer counts against the table between sessions.
+  const entries = [{ kind: "game", sceneId: "s1", net: 9000, at: 200 }, { kind: "game", sceneId: "s1", net: 1000, at: 400 }];
+  assert.equal(houseLeft(entries, { sceneId: "s1", since: houseSince(null, [{ endTime: 300 }]), size: "village" }), 5000 - 1000);
+  assert.equal(houseLeft(entries, { sceneId: "s1", since: houseSince(null, []), size: "village" }), 5000 - 10000);
 });

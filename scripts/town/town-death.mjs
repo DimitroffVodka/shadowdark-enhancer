@@ -46,7 +46,7 @@ export async function startDeath({ player, wager, town }, io = null) {
   io ??= await deathIo();
   if (!player?.isOwner) return fail(io.t("SDE.merchant.notify.actorNotFound"));
   if (!town?.on) return fail(io.t("SDE.town.games.closed"));
-  const check = checkWager(wager, { maxBetGp: town.maxBet, purse: toCopper(player.system.coins) });
+  const check = checkWager(wager, { maxBetGp: town.maxBet, purse: toCopper(player.system.coins), left: town.left });
   if (!check.ok) return fail(io.t(WAGER_KEYS[check.why], { max: formatPrice(fromCopper(town.maxBet * 100)) }));
   // A charge that did not land starts nothing: the table is never free.
   if (!(await io.charge(player, spendFromPurse(player.system.coins, wager)))) return fail(io.t("SDE.town.games.notSaved"));

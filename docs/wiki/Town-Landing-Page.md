@@ -238,6 +238,16 @@ everyone to see.
 | **Card draw** | You and the dealer draw a card each, ace high; higher wins, the same rank gives the wager back | 1 to 1 |
 | **Liar's dice** | A match against the house: five dice each under cups, bid and call until one side is out of dice (see below) | 1 to 1 |
 
+**What the house can lose.** In one session the house at a table pays out at
+most 50 gp in a village, 100 gp in a town, 500 gp in a city and 2,000 gp in a
+city-state (a page with no size counts as a town). It counts what players won
+there, less what they lost, since **Start New Session** in the Session Recap; between
+sessions (after one is saved), since the last saved session ended, so play at
+the table between sessions has a bank of its own. With no session ever saved,
+everything in the chat counts, and clearing the chat clears it. A win bigger than what is left pays only what is left, and the card
+says so. Once the house is out, every game says so and takes no wager until
+the next session.
+
 **A table of its own.** There is no GM and no house purse, so these are played
 against the house, whose moves are made for it from only what a player at the
 table could see. Closing the window, or going back, in the middle of a game

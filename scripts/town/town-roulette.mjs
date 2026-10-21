@@ -24,7 +24,7 @@ export async function spinWheel({ player, bets, chip, town }, io = null) {
   if (!validBoard(bets)) return fail(io.t("SDE.town.games.noBet"));
   if (!Number.isInteger(chip) || chip < MIN_WAGER) return fail(io.t(WAGER_KEYS.min));
   const stake = boardStake(bets, chip);
-  const check = checkWager(stake, { maxBetGp: town.maxBet, purse: toCopper(player.system.coins) });
+  const check = checkWager(stake, { maxBetGp: town.maxBet, purse: toCopper(player.system.coins), left: town.left });
   if (!check.ok) return fail(io.t(WAGER_KEYS[check.why], { max: formatPrice(fromCopper(town.maxBet * 100)) }));
 
   const spin = await io.roll("1d20");
