@@ -55,6 +55,16 @@ test("the drawn rows: one row at work locks the others, a book row says what is 
   assert.equal(row(site).line, "SDE.importer.maps.line.needsBook");
 });
 
+test("a hex map in the world with its terrain never named gets the way back to the guide's Terrain page; nothing else does", () => {
+  const known = { inWorld: new Set(["hex-wr", "hex-cs1"]), packed: new Set(["hex-cs2"]), filed: new Set(), unnamed: new Set(["hex-wr", "hex-cs2"]) };
+  const rows = mapsView(mapList(known), { busy: null, lines: {}, canUpload: true, t }).flatMap((g) => g.rows);
+  const terrain = (id) => rows.find((r) => r.id === id).terrain;
+  assert.equal(terrain("hex-wr"), true, "in the world, never named");
+  assert.equal(terrain("hex-cs1"), false, "in the world and already named");
+  assert.equal(terrain("hex-cs2"), false, "still in the compendium: Load asks about the terrain itself");
+  assert.equal(mapList(none).flatMap((g) => g.rows).some((r) => r.terrain), false, "a list built without the unnamed set offers none");
+});
+
 test("a one-file hex map takes the picked picture whatever its name; the Black River sorts its halves by name", () => {
   const any = file("my scan.jpg");
   assert.deepEqual(hexFilesFrom("hex-cs1", [any]), [any]);

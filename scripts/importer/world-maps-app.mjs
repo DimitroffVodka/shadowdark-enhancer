@@ -23,6 +23,7 @@ export class WorldMapsApp extends HandlebarsApplicationMixin(ApplicationV2) {
       load(_e, el) { return this._work(el.dataset.id, () => loadMap(el.dataset.id, this._deps())); },
       addFile(_e, el) { return this._pick(el.dataset.id); },
       view(_e, el) { return game.scenes.get(el.dataset.scene)?.view(); },
+      terrain(_e, el) { return this._terrain(el.dataset.id); },
       async advanced() { await this.close(); (await import("./importer-hub-app.mjs")).ImporterHubApp.open("import"); },
     },
   };
@@ -77,6 +78,17 @@ export class WorldMapsApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return game.scenes.find((s) => s.getFlag(MODULE_ID, this._lookup.MAP_FLAG)?.site === id) ?? null;
   }
 
+  /** A map already in the world whose terrain was never named: open the quick guide on its Terrain page, as a fresh Load does. */
+  async _terrain(id) {
+    const scene = this._sceneOf(id);
+    const hex = HEX_MAPS.find((h) => h.id === id);
+    if (!scene || !hex) return null;
+    const { ImportWizardApp } = await import("./wizard/wizard-app.mjs");
+    // A guide that is open already is brought forward, and says so; this list stays for the next try.
+    if (!ImportWizardApp._instance) this.close();
+    return ImportWizardApp.openTerrain([{ id, title: hex.title, sceneId: scene.id, pinned: scene.notes?.size ?? 0 }]);
+  }
+
   /** Ask for the map's picture (both halves at once for a print that ships in two). */
   _pick(id) {
     const input = document.createElement("input");
@@ -119,7 +131,9 @@ export class WorldMapsApp extends HandlebarsApplicationMixin(ApplicationV2) {
     ]);
     const canUpload = !!game.user?.can?.("FILES_UPLOAD");
     this._filed ??= await filedSiteIds();   // read once: nothing this window does files a book
-    const groups = mapsView(mapList({ inWorld, packed, filed: this._filed }), { busy: this._busy, lines: this._lines, canUpload, t });
+    const { legendNamed } = await import("../hex-map/hex-legend-session.mjs");
+    const unnamed = new Set(HEX_MAPS.filter((h) => { const scene = findHexScene(h.id); return scene && !legendNamed(scene); }).map((h) => h.id));
+    const groups = mapsView(mapList({ inWorld, packed, filed: this._filed, unnamed }), { busy: this._busy, lines: this._lines, canUpload, t });
     return { groups, canUpload };
   }
 }
