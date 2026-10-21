@@ -7,7 +7,7 @@
  * side of its game) and `_leave(player, io)` (what leaving in the middle of a game does: walk away from a hand, say).
  */
 import { landingOf } from "./town-core.mjs";
-import { buyerFor, redrawOnChange } from "./town-live.mjs";
+import { buyerFor, houseLeftAt, redrawOnChange } from "./town-live.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -39,7 +39,7 @@ export class TownTableApp extends HandlebarsApplicationMixin(ApplicationV2) {
   get player() { return buyerFor(this.playerId); }
   get townName() { return this.page?.title || this.scene?.name || ""; }
   /** The table as a play needs it. */
-  get town() { const g = this.page?.games; return { name: this.townName, sceneId: this.scene?.id ?? "", on: !!g?.on, maxBet: g?.maxBet ?? 0, edge: g?.edge ?? 0 }; }
+  get town() { const g = this.page?.games; return { name: this.townName, sceneId: this.scene?.id ?? "", on: !!g?.on, maxBet: g?.maxBet ?? 0, edge: g?.edge ?? 0, left: houseLeftAt(this.scene) }; }
 
   _onFirstRender(context, options) {
     super._onFirstRender?.(context, options);

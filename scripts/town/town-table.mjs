@@ -7,16 +7,24 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { formatPrice, fromCopper } from "../shared/coins.mjs";
 import { gameCard } from "../shared/chat-cards.mjs";
 import { esc } from "../shared/esc.mjs";
-import { GAME_ICONS, GAME_KEYS, RESULT_KEYS } from "./games-core.mjs";
+import { GAME_ICONS, GAME_KEYS, RESULT_KEYS, capWin } from "./games-core.mjs";
 import { LOG_FLAG, logFlag } from "./town-log-core.mjs";
 
 /**
  * Pay `payBack` (copper, the player's own coins and any winnings) and post the card: `lines` then the outcome line. The
  * pay comes first and a pay that does not land posts nothing and says so, so the caller can try again. `put` is what the
  * player had in, for the sales log; `rolls` are the Foundry Rolls to attach so the dice show with the card.
+ * A win larger than the house has `town.left` this session is cut to that, and the card says so.
  * Returns `{ ok: true, lines: [the outcome line] }` or `{ ok: false, error }`.
  */
 export async function payAndPost({ player, game, town, net, result, payBack, put, lines, rolls = [] }, io) {
+  const capped = capWin(net, town.left);
+  if (capped < net) {
+    payBack -= net - capped;
+    lines = [...lines, io.t("SDE.town.games.houseShort", { price: formatPrice(fromCopper(capped)) })];
+    if (capped === 0) result = "push";
+    net = capped;
+  }
   if (payBack > 0 && !(await io.pay(player, fromCopper(payBack)))) return { ok: false, error: io.t("SDE.town.games.notSaved") };
   const outcome = io.t(RESULT_KEYS[result], { who: player.name, price: formatPrice(fromCopper(Math.abs(net))) });
   const name = io.t(GAME_KEYS[game].name);

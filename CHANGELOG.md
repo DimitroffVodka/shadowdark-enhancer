@@ -8,6 +8,7 @@
 - **A session title and a day dial.** The GM types the session's title on the card on the table; the dial follows the world's clock.
 - **One click there and back.** The toolbar's Landing page button takes everyone to the table (made the first time, with nothing to set up) and back to where they were; travel on a hex map waits. While the table is up it fills the screen and Foundry's bars step aside; the GM keeps a small bar under it.
 - **The market follows the settlement.** Standing on a village, town, city or city-state hex, the table's market is stocked for that size; the GM can change it under the table.
+- **The house can only lose so much in a session.** A table's games pay out at most 50 gp a session in a village, 100 gp in a town, 500 gp in a city and 2,000 gp in a city-state, counted from what players won there (less what they lost) since the Session Recap's session began, or, between sessions, since the last saved session ended. A win bigger than what is left is paid only what is left, and the card says so; once the house is out, the games take no more wagers until the next session.
 - **The framed map** shows the player who presses it, alone, the overland map with what their party has explored, with a Back button.
 - **A demo you can share.** The manual has a playable demo of the table: [the landing table demo](https://dimitroffvodka.github.io/shadowdark-enhancer/demo/landing-table/).
 

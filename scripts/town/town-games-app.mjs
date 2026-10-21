@@ -20,7 +20,7 @@ import { MAX_SEATS } from "./liars-dice-core.mjs";
 import { liveClient } from "./liars-dice-live.mjs";
 import { lobbyView, pickFor, setupView, tableView, tablesView } from "./liars-dice-view.mjs";
 import { landingOf } from "./town-core.mjs";
-import { buyerChoices, buyerFor, redrawOnChange } from "./town-live.mjs";
+import { buyerChoices, buyerFor, houseLeftAt, redrawOnChange } from "./town-live.mjs";
 import { playGame, liveIo } from "./town-games.mjs";
 import { TownBlackjackApp } from "./town-blackjack-app.mjs";
 import { startBlackjack } from "./town-blackjack.mjs";
@@ -101,7 +101,7 @@ export class TownGamesApp extends HandlebarsApplicationMixin(ApplicationV2) {
   get page() { return landingOf(this.scene); }
   get townName() { return this.page?.title || this.scene?.name || ""; }
   /** The table as the player's play needs it. */
-  get town() { const g = this.page?.games; return { name: this.townName, sceneId: this.scene?.id ?? "", on: !!g?.on, maxBet: g?.maxBet ?? 0, edge: g?.edge ?? 0 }; }
+  get town() { const g = this.page?.games; return { name: this.townName, sceneId: this.scene?.id ?? "", on: !!g?.on, maxBet: g?.maxBet ?? 0, edge: g?.edge ?? 0, left: houseLeftAt(this.scene) }; }
 
   /** Which screen Liar's Dice is on: the rules, set-up, joining (waiting to be seated), lobby, table, called off, or none (the list of games). */
   get screen() {

@@ -70,7 +70,7 @@ export const SLOT_KEYS = {
   triple: "SDE.town.games.slot.triple", jackpot: "SDE.town.games.slot.jackpot",
 };
 export const RESULT_KEYS = { win: "SDE.town.games.win", lose: "SDE.town.games.lose", push: "SDE.town.games.push" };
-export const WAGER_KEYS = { min: "SDE.town.games.wagerMin", max: "SDE.town.games.wagerMax", poor: "SDE.town.games.wagerPoor" };
+export const WAGER_KEYS = { min: "SDE.town.games.wagerMin", max: "SDE.town.games.wagerMax", poor: "SDE.town.games.wagerPoor", broke: "SDE.town.games.houseBroke" };
 
 /** The wheel, by d100: the roll up to which a slot holds, and what comes back of the wager. */
 export const WHEEL = [
@@ -95,8 +95,35 @@ export function settle(wager, mult, edge) {
 /** A wager typed in silver, as copper (nothing usable gives 0). */
 export const wagerFromSp = (sp) => Math.max(0, Math.floor(Number(sp) || 0)) * 10;
 
-/** Whether `copper` may be played: at least 1 sp, within the table's limit (in gp) and within the purse (a copper total). */
-export function checkWager(copper, { maxBetGp, purse }) {
+/** The most the house at a table may lose in one session, in gp, by settlement size (a stock-generator SIZES id). */
+export const HOUSE_BANK_GP = { village: 50, town: 100, city: 500, city_state: 2000 };
+
+/**
+ * What the house at `sceneId` may still lose this session, in copper: its bank for `size` less what players have won
+ * there, net of what they lost, in the game entries (town-log-core's) made at or after `since` (ms).
+ */
+export function houseLeft(entries, { sceneId, since = 0, size }) {
+  let won = 0;
+  for (const e of entries) if (e.kind === "game" && e.sceneId === sceneId && e.at >= since) won += e.net;
+  return (HOUSE_BANK_GP[size] ?? HOUSE_BANK_GP.town) * 100 - won;
+}
+
+/**
+ * When the house's session began (ms): the Session Recap's session start; between sessions (the recap clears it when a
+ * session is saved), when the last saved session ended, so play between sessions has a bank of its own; else 0.
+ * `history` is the recap's saved sessions, newest first.
+ */
+export const houseSince = (sessionStart, history) => Number(sessionStart) || Number(history?.[0]?.endTime) || 0;
+
+/** A win cut to what the house has `left` (copper); a loss or a push is untouched. No `left` is no cap. */
+export const capWin = (net, left = Infinity) => (net > 0 ? Math.min(net, Math.max(0, left)) : net);
+
+/**
+ * Whether `copper` may be played: at least 1 sp, within the table's limit (in gp), within the purse (a copper total)
+ * and while the house has something `left` to lose this session.
+ */
+export function checkWager(copper, { maxBetGp, purse, left = Infinity }) {
+  if (left <= 0) return { ok: false, why: "broke" };
   if (!Number.isFinite(copper) || copper < MIN_WAGER) return { ok: false, why: "min" };
   if (copper > maxBetGp * 100) return { ok: false, why: "max" };
   if (copper > purse) return { ok: false, why: "poor" };
