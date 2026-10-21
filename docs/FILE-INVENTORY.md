@@ -519,7 +519,7 @@
 | `level-up.mjs` | 66 | Level up an existing character, one level (pure): `canLevelUp` (XP or GM), `startLevelUp`, `cancelLevelUp`, the odd-level talent rule, the spells-known delta and the picked talent. |
 | `entry-points.mjs` | 38 | Ways into the builder on an existing character: the Player sheet header button and the Actor directory's Edit in Character Builder entry. |
 | `art.mjs` | 77 | Ancestry/class NAME → local portrait manifest. |
-| `art-gallery.mjs` | 526 | GM-curated portrait gallery (avoids granting players `FILES_BROWSE`). |
+| `art-gallery.mjs` | 535 | GM-curated portrait gallery (avoids granting players `FILES_BROWSE`). |
 | `class-ability-uses.mjs` | 113 | Per-day/roll uses for Class Ability items. |
 | `gear-editor-app.mjs` | 152 | `ExtraGearEditor` sub-window. |
 | `steps/base-step.mjs` | 68 | Base class for character-builder wizard steps (shared lifecycle, render and validation). |
@@ -535,7 +535,7 @@
 | `steps/hp-step.mjs` | 173 | Step — Hit Points. Level-1 HP = class hit die + CON modifier (minimum 1). |
 | `steps/languages-step.mjs` | 147 | Step — Languages (runs after Class, so ancestry and class both contribute). |
 | `steps/origins-step.mjs` | 72 | Step — Origins: Background + Alignment + Deity on one tab. |
-| `steps/preview-step.mjs` | 332 | Step — Preview. Final character-sheet preview before creation. |
+| `steps/preview-step.mjs` | 336 | Step — Preview. Final character-sheet preview before creation. |
 | `steps/stats-step.mjs` | 400 | Step — Abilities. Roll or assign the six ability scores. |
 
 ### 3.15 `scripts/monster-art/`

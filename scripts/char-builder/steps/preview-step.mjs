@@ -4,7 +4,7 @@ import { coinsAfterGear } from "../commit.mjs";
 import { hpLevelUpGain } from "../commit-plan.mjs";
 import { ancestryArt, classArt } from "../art.mjs";
 import { emptyArt } from "../state.mjs";
-import { galleryEnabled, pickGalleryArt } from "../art-gallery.mjs";
+import { datasheetEntries, galleryEnabled, pickGalleryArt, sameArtPath } from "../art-gallery.mjs";
 
 /** Shown in the art thumbs when nothing is chosen and no bundled art matches. */
 const PLACEHOLDER_IMG = "icons/svg/mystery-man.svg";
@@ -257,32 +257,36 @@ export class PreviewStep extends BaseStep {
   }
 
   /**
-   * One pick fills the slot asked for, and the other one ONLY if it is empty.
+   * One pick fills the slot asked for, and always brings its matching other
+   * half along.
    *
    * The gallery's entries are characters, not loose images: each carries a
    * portrait and its matching token. Choosing a portrait and then hunting the
    * same character down again under "Token from gallery…" is busywork with an
-   * obvious wrong answer waiting at the end of it, so the first pick dresses
-   * both.
+   * obvious wrong answer waiting at the end of it, so every pick dresses both.
    *
-   * But filling the other slot every time makes a deliberate mismatch
-   * impossible — picking a token to go with an already-chosen portrait would
-   * silently replace that portrait too. So the auto-fill is a convenience for
-   * the empty case only; once a slot holds art, only a pick aimed at that slot
-   * changes it. "Reset art" empties both, which makes pairing available again.
+   * This used to fill the other slot only when it was empty, to keep a
+   * deliberate mismatch possible. Pairing won over that:
+   * a mismatch now means picking the second half after the first.
+   *
+   * A loose file has no separate match (it stands in for both slots), so it
+   * still fills the other slot only when that one is empty.
    */
   _applyGalleryPick(slot, { portrait, token }) {
     const art = this.state.art;
     const pair = { portrait, token };
     const other = slot === "portrait" ? "token" : "portrait";
     if (pair[slot]) art[slot] = pair[slot];
-    if (!art[other] && pair[other]) art[other] = pair[other];
+    if (pair[other] && (pair[other] !== pair[slot] || !art[other])) art[other] = pair[other];
   }
 
   async _onPickArt(slot) {
     const st = this.state;
-    const apply = (path) => {
-      st.art[slot] = path;
+    const apply = async (path) => {
+      // A browsed file a datasheet describes pairs like a gallery pick does.
+      const match = (await datasheetEntries(slot)).find((e) => sameArtPath(e.portrait, path) || sameArtPath(e.token, path));
+      if (match) this._applyGalleryPick(slot, { portrait: match.portrait, token: match.token, [slot]: path });
+      else st.art[slot] = path;
       this.app.render();
     };
 

@@ -318,6 +318,19 @@ test("the preview lists what the builder keeps as-is and never writes", async ()
   assert.equal((await new PreviewStep({ ...app(fresh), steps: [] }).prepareContext()).kept, null);
 });
 
+test("an art pick always brings its matching other half; a loose file fills only an empty slot", () => {
+  const st = hydrated({}, []);
+  const step = new PreviewStep({ ...app(st), steps: [] });
+  st.art = { portrait: "old-p.webp", token: "old-t.webp" };
+  step._applyGalleryPick("portrait", { portrait: "ade-p.webp", token: "ade-t.webp" });
+  assert.deepEqual({ ...st.art }, { portrait: "ade-p.webp", token: "ade-t.webp" });
+  step._applyGalleryPick("token", { portrait: "loose.webp", token: "loose.webp" });
+  assert.deepEqual({ ...st.art }, { portrait: "ade-p.webp", token: "loose.webp" });
+  st.art = { portrait: null, token: null };
+  step._applyGalleryPick("token", { portrait: "loose.webp", token: "loose.webp" });
+  assert.deepEqual({ ...st.art }, { portrait: "loose.webp", token: "loose.webp" });
+});
+
 // --- The step heading's summary field -------------------------------------------------------
 
 test("each step heading's summary is supplied by its step context", async () => {

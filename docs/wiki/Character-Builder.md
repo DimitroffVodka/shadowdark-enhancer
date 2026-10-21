@@ -287,10 +287,11 @@ Art is optional. Leaving it blank uses system defaults.
   **Token from gallery** buttons sit on the Preview step for all users.
   Players without file permissions route through the gallery automatically.
 - **Matched pairs and autofill:** Gallery entries represent characters with
-  matching portraits and tokens. Picking an artwork fills both portrait and
-  token if the other slot is empty. If a slot already holds art, picking only
-  updates that slot, preserving deliberate mismatches. Clicking **Reset art**
-  clears both slots.
+  matching portraits and tokens. Picking a portrait fills in its matching
+  token, and picking a token fills in its matching portrait, even when the
+  other slot already holds art. The file browser does the same for any file a
+  gallery datasheet describes. A loose image with no match fills the other slot
+  only if it is empty. Clicking **Reset art** clears both slots.
 - **Search and facet filters:** A left sidebar provides a search box and
   collapsible tag filters (multi-select: ANY within a group, ALL across groups).
 - **Ancestry filtering:** The gallery opens pre-filtered to the character's

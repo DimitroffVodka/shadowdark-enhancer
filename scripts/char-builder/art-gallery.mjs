@@ -154,6 +154,15 @@ async function readDatasheet(path) {
   }
 }
 
+/**
+ * Do two art paths name the same file? A datasheet and the file browser spell one path differently: an encoded space
+ * (%20), a leading slash. Compared decoded and without the slash, so a browsed file still finds its datasheet row.
+ */
+export function sameArtPath(a, b) {
+  const norm = (p) => { const s = String(p ?? "").replace(/^\/+/, ""); try { return decodeURIComponent(s); } catch { return s; } };
+  return !!a && !!b && norm(a) === norm(b);
+}
+
 /** Prettify a bare filename into something worth reading in the grid. */
 const fileLabel = (p) => String(p).split("/").pop().replace(/\.\w+$/, "").replace(/[_-]+/g, " ");
 

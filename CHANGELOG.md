@@ -12,6 +12,7 @@
 - **A demo you can share.** The manual has a playable demo of the table: [the landing table demo](https://dimitroffvodka.github.io/shadowdark-enhancer/demo/landing-table/).
 
 ### Changed
+- **Portrait and token pick each other.** In the character builder, choosing a portrait that has a matching token fills in the token too, and the other way round, even when the other slot already had art. It works from the gallery and from the file browser.
 - **Merchants stock by rarity.** Generated merchants now roll every ware against its rarity for a Village, Town, City or City-State: common goods always, rare goods now and then, even in a village. A restock rolls the shelf again; items you added by hand stay.
 - **No loot on shop shelves.** Adventure treasure (a golden rose, a gold charm necklace) is never stock in any shop, and the rolled market leaves out siege engines.
 - **Games are chosen one by one.** The landing page settings have a tick box per game instead of one games switch; a page that had the switch on keeps all ten.

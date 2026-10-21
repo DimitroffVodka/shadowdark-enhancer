@@ -56,6 +56,7 @@ const {
   galleryFolders,
   listGalleryArt,
   registerArtGalleryQuery,
+  sameArtPath,
 } = await import("../scripts/char-builder/art-gallery.mjs");
 
 function configure({ raw = "custom/portraits", canBrowse = true, activeGM = null } = {}) {
@@ -298,4 +299,12 @@ test("a loose folder file reports itself as both slots", async () => {
   const [e] = await galleryEntries("portrait");
   assert.equal(e.portrait, "custom/portraits/kyra.webp");
   assert.equal(e.token, "custom/portraits/kyra.webp");
+});
+
+test("a browsed path finds its datasheet row however it is spelled", () => {
+  assert.equal(sameArtPath("modules/x/art/Ade Portrait.webp", "modules/x/art/Ade%20Portrait.webp"), true, "an encoded space");
+  assert.equal(sameArtPath("/modules/x/art/a.webp", "modules/x/art/a.webp"), true, "a leading slash");
+  assert.equal(sameArtPath("modules/x/art/a.webp", "modules/x/art/b.webp"), false);
+  assert.equal(sameArtPath("", ""), false, "no path matches nothing");
+  assert.equal(sameArtPath("modules/x/100%.webp", "modules/x/100%.webp"), true, "a stray percent sign does not throw");
 });
