@@ -25,13 +25,20 @@ export function rowState(id, { inWorld, packed, filed }) {
   return isHexMap(id) || filed.has(id) ? "add" : "book";
 }
 
-/** Every map the supported books contain, grouped by book (Western Reaches first, a book's hex map first), each with its state. */
+/**
+ * Every map the supported books contain, grouped by book (Western Reaches first, a book's hex map first), each with its
+ * state. `known.unnamed` holds the hex maps in this world whose terrain was never named: their row also gets `terrain`,
+ * which is the way back to the quick guide's Terrain page.
+ */
 export function mapList(known) {
   return mapGroups(newState())
     .filter((g) => g.rows.length)
     .map((g) => ({
       src: g.src, title: g.title,
-      rows: g.rows.map((r) => ({ id: r.id, title: r.title, hex: isHexMap(r.id), parts: HEX_MAPS.find((h) => h.id === r.id)?.files.length ?? 1, state: rowState(r.id, known) })),
+      rows: g.rows.map((r) => {
+        const state = rowState(r.id, known);
+        return { id: r.id, title: r.title, hex: isHexMap(r.id), parts: HEX_MAPS.find((h) => h.id === r.id)?.files.length ?? 1, state, terrain: state === "world" && !!known.unnamed?.has(r.id) };
+      }),
     }));
 }
 

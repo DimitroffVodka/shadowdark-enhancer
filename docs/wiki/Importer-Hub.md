@@ -19,11 +19,11 @@ Once your books are imported, the quick guide's first page has a **Maps for this
 world** button. It lists every map your books come with, under its book: the
 Western Reaches A0, the Cursed Scroll hex maps (the Gloaming, the Djurum, the
 Isles of Andrik, the Black River, Morzomotha) and every adventure map. Each row
-shows one thing:
+shows where the map stands:
 
 | The row shows | What it means |
 |---|---|
-| **In this world** | The map's scene is already here. Right after a Load, a **View** button takes you to it. |
+| **In this world** | The map's scene is already here. Right after a Load, a **View** button takes you to it. A hex map whose terrain was never named also has **Name its terrain**, which opens the quick guide's Terrain page on it; the button goes once the terrain is named. |
 | **Load** | The map waits in the *Adventures* compendium. One click brings it in, with its pins and the journals they open; only what is missing is created, so anything you already have is left alone. |
 | **Add map file** | The module has never seen this map's picture. Pick it on your computer and it is uploaded, built, numbered and pinned, the same as the guide does. The Black River comes in two halves: pick both pictures together. |
 | *Import its book first* | An adventure map whose book was never imported: its numbered places come from the book, so run the quick guide with it. |
@@ -102,7 +102,9 @@ whose texture limit is at least that. A map you ticked has its terrain named
 right after the import, on the guide's **Terrain** page (the Western Reaches A0 is
 made playable first; on the drawn Cursed Scroll maps the terrain is a choice, offered
 on the Done page). A map you bring in later from the compendium asks **Set up the
-terrain?**, and **Open the quick guide** opens that same page on it.
+terrain?**, and **Open the quick guide** opens that same page on it. If you answered
+**Not now**, or the map was already here, **Maps for this world** has **Name its
+terrain** on its row.
 See [Hex Maps](Hex-Maps.md) for the numbering and the Legend.
 
 **Run it again whenever you like.** The guide is safe to repeat: what is already

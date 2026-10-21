@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-2230 tracked files · ~277,600 lines of code/markup across scripts+templates+styles+test.
+2230 tracked files · ~277,700 lines of code/markup across scripts+templates+styles+test.
 `v0.19.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -475,8 +475,8 @@
 | `wizard/wizard-run.mjs` | 152 | Import wizard Import page: runs the library, then each book's adventures, then each adventure map's scene, and reports what was imported, what was already there and what needs the GM. Foundry parts come in as deps, so Node tests the flow. |
 | `wizard/zip-reader.mjs` | 103 | Reads a downloaded .zip in the browser with no library (the browser's own DecompressionStream): lists the files in it and inflates only the books and maps the wizard wants, so a new user never unzips anything. |
 | `world-folders.mjs` | 137 | Files what an import makes in the world (adventure and hex-crawl journals, their scenes, the hex records) into folders for their books, touching only the module's own documents that are not in a folder yet, and removing the book folders (fixed id) that the wizard's run left empty. |
-| `world-maps-app.mjs` | 125 | The Maps for this world window (opened from the quick guide's first page): one row per map the books contain, Load and Add map file joined to the Adventures pack, uploads and the wizard's builders. |
-| `world-maps-core.mjs` | 113 | Pure model of Maps for this world: each map's row state (in this world, Load, Add map file, needs its book), the drawn rows, the Black River halves, and the Load / Add map file dispatch over injected deps. |
+| `world-maps-app.mjs` | 139 | The Maps for this world window (opened from the quick guide's first page): one row per map the books contain, Load and Add map file joined to the Adventures pack, uploads and the wizard's builders. |
+| `world-maps-core.mjs` | 120 | Pure model of Maps for this world: each map's row state (in this world, Load, Add map file, needs its book), the drawn rows, the Black River halves, and the Load / Add map file dispatch over injected deps. |
 
 ### 3.13 `scripts/actors/` — Mount, Warband & Boat sub-types
 

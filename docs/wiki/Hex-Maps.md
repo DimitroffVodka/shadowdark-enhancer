@@ -607,9 +607,10 @@ trusting a single hex.
 
 The import wizard's last page before Done shows the same cards for each hex map it
 brought into the world, one map at a time (**Apply the names** for a map, **Skip this map** to leave
-it for the tagger), so a first import never needs the tagger at all. A hex map brought in
+it for later), so a first import never needs the tagger at all. A hex map brought in
 later (**Load** in Maps for this world, or the compendium's **Import**) asks first, and
-**Open the quick guide** opens the same page on it. A map already
+**Open the quick guide** opens the same page on it. A map you skipped, or that was already
+in the world, has **Name its terrain** on its row in Maps for this world, which opens the same page. A map already
 named on an earlier run is not asked about again. Everything below is the same Legend,
 in the tagger's own window.
 

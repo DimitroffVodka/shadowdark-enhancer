@@ -87,7 +87,11 @@ body.sde-wiz-batch #sde-class-importer, body.sde-wiz-batch #sde-spell-importer, 
 .sde-wiz .sde-wiz-maps-link { flex-direction: row; align-items: center; gap: 12px; }
 .sde-wiz .sde-wiz-maps-link p { flex: 1 1 auto; margin: 0; }
 
-/* Maps for this world: one row per map, its one state or button kept whole at the right. */
+/* Maps for this world: one row per map, its state and buttons kept whole at the right; narrow, they drop under the name. */
 .sde-world-maps .ui-body { display: flex; flex-direction: column; gap: 14px; }
 .sde-world-maps .sde-maps-row > .ui-chip, .sde-world-maps .sde-maps-row > .ui-btn { flex: 0 0 auto; }
+@container (max-width: 460px) {
+  .sde-world-maps .sde-maps-row { flex-wrap: wrap; }
+  .sde-world-maps .sde-maps-row > .ui-row-main { flex: 1 1 100%; }
+}
 .sde-world-maps ul.ui-list { margin: 0; padding: 0; list-style: none; }
