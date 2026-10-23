@@ -134,3 +134,14 @@ test("hits fired together are applied in order, each against the HP the last lef
   assert.equal(a.system.attributes.hp.value, 0);
   assert.equal(conDamage(a).reduce((n, v) => n + v, 0), 7);
 });
+
+test("with the option off a hit goes straight through: no queue, no wait for updateActor, no timer", async () => {
+  settings.modeGrinderOverflowCon = false;
+  const a = new Actor({ hp: 5 });
+  await a.applyDamage(4);
+  assert.equal(a.system.attributes.hp.value, 5, "returned before the system's HP write landed");
+  assert.equal(listeners.size, 0);
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  assert.equal(a.system.attributes.hp.value, 1);
+  settings.modeGrinderOverflowCon = true;
+});

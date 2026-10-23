@@ -21,7 +21,6 @@ import { StatDamage } from "../stat-damage/stat-damage.mjs";
 import { clampHitDice, fillPick, hitDiceFormulas, overflowOf, spellRegain } from "./grinder-core.mjs";
 
 /** GM → owning player: "choose which lost spells come back". */
-const HP_LAND_MS = 5000;
 export const PICK_QUERY = `${MODULE_ID}.grinderSpellPick`;
 
 /** How long the player has to choose before the GM's client does. */
@@ -133,12 +132,8 @@ export async function pickLostSpells(actor, lostIds, count) {
   return picked;
 }
 
-/**
- * The system's applyDamage, with a hit's overflow past 0 HP put on CON as stat damage (Grinder's
- * option). This wraps the system's own method, so it sees the damage that reaches HP; the temp HP
- * wrapper goes around it (registerGrinder is called before registerTempHp, and both wrap on `ready`).
- * CON 0 is death through the stat-damage hook, and dying runs as it always does.
- */
+const HP_LAND_MS = 5000;
+
 const hitQueues = new WeakMap();
 /** Resolves once the actor's HP reads `target`: the system's applyDamage resolves before its HP write lands. */
 function hpLanded(actor, target) {
@@ -151,7 +146,15 @@ function hpLanded(actor, target) {
   });
 }
 
+/**
+ * The system's applyDamage, with a hit's overflow past 0 HP put on CON as stat damage (Grinder's
+ * option). This wraps the system's own method, so it sees the damage that reaches HP; the temp HP
+ * wrapper goes around it (registerGrinder is called before registerTempHp, and both wrap on `ready`).
+ * CON 0 is death through the stat-damage hook, and dying runs as it always does.
+ */
 export function damageWithOverflow(original, damage, multiplier) {
+  // Anything the option does not govern is the system's method exactly as it was: no queue, no wait.
+  if (this.type !== "Player" || !grinderOverflowCon()) return original.call(this, damage, multiplier);
   // One hit at a time per actor, each waiting for its HP write: the next hit must meet the HP this one left.
   const run = (hitQueues.get(this) ?? Promise.resolve()).then(() => hit.call(this, original, damage, multiplier));
   hitQueues.set(this, run.catch(() => {}));
@@ -160,9 +163,9 @@ export function damageWithOverflow(original, damage, multiplier) {
 
 async function hit(original, damage, multiplier) {
   const amount = Math.floor(parseInt(damage) * multiplier), { value, max } = this.system?.attributes?.hp ?? {};
-  const over = amount > 0 && this.type === "Player" && grinderOverflowCon() ? overflowOf(amount, value) : 0;
+  const over = amount > 0 ? overflowOf(amount, value) : 0;
   const result = await original.call(this, damage, multiplier);
-  if (amount > 0 && this.type === "Player" && Number.isFinite(value)) await hpLanded(this, Math.min(Math.max(value - amount, 0), max ?? value));
+  if (amount > 0 && Number.isFinite(value)) await hpLanded(this, Math.min(Math.max(value - amount, 0), max ?? value));
   if (over > 0 && await StatDamage.apply(this, "con", over) !== null) {
     await ChatMessage.create({
       speaker: ChatMessage.getSpeaker({ actor: this }),
