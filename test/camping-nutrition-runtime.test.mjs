@@ -221,6 +221,39 @@ test("Grinder rest: spells beyond the 1d4 wait for the player's pick, and the re
   assert.deepEqual(spells.map(s => s.system.lost), [true, false, false]);
 });
 
+test("Grinder rest: a later camper's failed write does not lose an earlier camper's spell pick, and a retry asks once", async () => {
+  const { a, b, party, camp } = grinderFixture();
+  const spells = ["s1", "s2", "s3"].map(id => lostSpell(a, id));
+  let asked = 0;
+  globalThis.foundry.applications = { api: { DialogV2: { prompt: async () => { asked++; return ["s2", "s3"]; } } } };
+  const update = b.update; let once = true;
+  b.update = async data => { if (once && "system.attributes.hp.value" in data) { once = false; throw Error("write failed"); } return update(data); };
+  await feedCamp(party, camp);
+  await assert.rejects(restCamp(party, camp, false), /write failed/);
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(asked, 1);
+  assert.deepEqual(spells.map(s => s.system.lost), [true, false, false]);
+  await restCamp(party, structuredClone(camp), false);
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(asked, 1);
+  assert.equal(nutritionDay(b, 0).rest.done, true);
+});
+
+test("Grinder rest: a pick whose dialog is still open is not asked again by a retry, and a lost ask is asked on the next pass", async () => {
+  const { a, party, camp } = grinderFixture();
+  const spells = ["s1", "s2", "s3"].map(id => lostSpell(a, id));
+  let asked = 0, release;
+  globalThis.foundry.applications = { api: { DialogV2: { prompt: () => { asked++; return new Promise(resolve => { release = () => resolve(["s2", "s3"]); }); } } } };
+  await feedCamp(party, camp); await restCamp(party, camp, false);
+  await restCamp(party, structuredClone(camp), false);
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(asked, 1);
+  release(); await new Promise(resolve => setTimeout(resolve, 0));
+  assert.deepEqual(spells.map(s => s.system.lost), [true, false, false]);
+  await restCamp(party, structuredClone(camp), false); await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(asked, 1);
+});
+
 test("Grinder rest: a closed pick still brings back the first lost spells", async () => {
   const { a, party, camp } = grinderFixture();
   const spells = ["s1", "s2", "s3"].map(id => lostSpell(a, id));

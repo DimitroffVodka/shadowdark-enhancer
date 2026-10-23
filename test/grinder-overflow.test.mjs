@@ -9,7 +9,13 @@ const MOD = "shadowdark-enhancer";
 class Replacement { constructor(value) { this.value = value; } }
 globalThis._replace = (value) => new Replacement(value);
 const ready = [];
-globalThis.Hooks = { once: (name, fn) => { if (name === "ready") ready.push(fn); }, on: () => {} };
+const listeners = new Set();
+globalThis.Hooks = {
+  once: (name, fn) => { if (name === "ready") ready.push(fn); },
+  on: (name, fn) => { if (name === "updateActor") listeners.add(fn); return fn; },
+  off: (_name, fn) => listeners.delete(fn),
+  callAll: (_name, ...args) => { for (const fn of [...listeners]) fn(...args); },
+};
 const settings = { modeGrinder: true, modeGrinderOverflowCon: true };
 globalThis.game = {
   settings: { get: (_ns, key) => settings[key], set: async () => {} },
@@ -29,7 +35,9 @@ class Actor {
   get effects() { return [...this.store.values()]; }
   async applyDamage(damage, multiplier = 1) {
     const hp = this.system.attributes.hp, amount = Math.floor(parseInt(damage) * multiplier);
-    hp.value = Math.min(Math.max(hp.value - amount, 0), hp.max);
+    const next = Math.min(Math.max(hp.value - amount, 0), hp.max);
+    // The system does not await its HP write: applyDamage resolves first, the value lands later.
+    setTimeout(() => { hp.value = next; globalThis.Hooks.callAll("updateActor", this); }, 5);
   }
   async update(data) {
     for (const [path, value] of Object.entries(data)) {
@@ -106,4 +114,23 @@ test("off unless Grinder is on as well; an NPC takes none", async () => {
   const c = new Actor({ hp: 1 });
   await c.applyDamage(5);
   assert.deepEqual(conDamage(c), []);
+});
+
+test("two awaited hits each meet the HP the one before left, not the HP before it", async () => {
+  settings.modeGrinderOverflowCon = true;
+  const a = new Actor({ hp: 5 });
+  await a.applyDamage(4);
+  await a.applyDamage(4);
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  assert.equal(a.system.attributes.hp.value, 0);
+  assert.deepEqual(conDamage(a), [3]);
+});
+
+test("hits fired together are applied in order, each against the HP the last left", async () => {
+  settings.modeGrinderOverflowCon = true;
+  const a = new Actor({ hp: 5 });
+  await Promise.all([a.applyDamage(4), a.applyDamage(4), a.applyDamage(4)]);
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  assert.equal(a.system.attributes.hp.value, 0);
+  assert.equal(conDamage(a).reduce((n, v) => n + v, 0), 7);
 });

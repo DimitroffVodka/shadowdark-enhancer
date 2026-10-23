@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-2237 tracked files · ~278,600 lines of code/markup across scripts+templates+styles+test.
+2237 tracked files · ~278,700 lines of code/markup across scripts+templates+styles+test.
 `v0.20.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -64,10 +64,10 @@
 | `camping/camping-app.mjs` | 117 | Camping controller hosted inline in Party Travel for native owner-choice task setup, food/fuel decisions and persistent results. |
 | `camping/camping-cook.mjs` | 14 | Post-eligible-rest Cook seam and active-benefit-scoped native damage/healing/expiry compatibility. |
 | `camping/camping-core.mjs` | 142 | Pure PC task choices, lock, exact shared-first torch cost and scoped Cook surplus/expiry rules. |
-| `camping/camping-nutrition.mjs` | 158 | Actor/day whole-meal accounting, personal-first then automatic Party rations, per-effect starvation and eligible normal-rest receipts across parties/reloads. |
+| `camping/camping-nutrition.mjs` | 171 | Actor/day whole-meal accounting, personal-first then automatic Party rations, per-effect starvation and eligible normal-rest receipts across parties/reloads. |
 | `camping/camping.mjs` | 440 | Authenticated owner-choice camp task relay, persistent results/rewards, nearby-PC fire and deferred native nutrition/rest seams for Overland nights. |
 | `camping/grinder-core.mjs` | 64 | Pure Grinder Mode rules: hit dice formulas, HP after the roll, which lost spells a 1d4 covers and the player's pick, and the part of a hit past 0 HP. |
-| `camping/grinder.mjs` | 161 | Grinder Mode on the client: its settings, the one-time take-over of Extras' Grinder values, the hit dice and 1d4 rolls, the player's spell pick (owner, then GM), and the applyDamage wrapper that turns damage past 0 HP into CON damage. |
+| `camping/grinder.mjs` | 182 | Grinder Mode on the client: its settings, the one-time take-over of Extras' Grinder values, the hit dice and 1d4 rolls, the player's spell pick (owner, then GM), and the applyDamage wrapper that turns damage past 0 HP into CON damage. |
 | `carousing/carousing-app.mjs` | 84 | Carousing controller hosted inline in Party Travel, with GM table/manual-place setup, each PC owner's own-spend choices, persistent results and independent history. |
 | `carousing/carousing-core.mjs` | 154 | Pure imported table adapters (basic outcome rows, and the expanded Mishaps / Benefits / % modifier / XP matrix with its d100 Benefit and Mishap rolls), owner choices/funds/holiday/cooldown preflight, supported effects, carousing-first table ordering and stable recap shaping. |
 | `carousing/carousing.mjs` | 205 | Authenticated native per-PC carousing authority, saved rolls/atomic costs and effect progress, off-duty time, independent history and recap upsert. |

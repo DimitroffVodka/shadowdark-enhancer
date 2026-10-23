@@ -95,11 +95,25 @@ export function feedCamp(party, camp) {
  * for once the rest has finished, so no pick ever holds it.
  */
 export async function restCamp(party, camp, interrupted) {
-  const picks = [];
-  await restCampNow(party, camp, interrupted, picks);
-  for (const { actor, lost, pick } of picks) void pickLostSpells(actor, lost, pick).catch(error => console.warn(`${MODULE_ID} | Grinder spells`, error));
+  try { await restCampNow(party, camp, interrupted); } finally { askPendingPicks(camp); }
 }
-function restCampNow(party, camp, interrupted, picks) {
+// A pick is saved with the rest (`pick` > 0, `pickDone` false) and asked on every pass, so a failure later
+// in the queue or a retry never drops it; in-flight keeps a pass from asking while a dialog is still open.
+const asking = new Set();
+function askPendingPicks(camp) {
+  for (const p of camp.participants) {
+    const actor = actorOf(p.uuid), rest = nutritionDay(actor, camp.day)?.rest, key = `${p.uuid}_${camp.day}`;
+    if (!rest?.done || !(rest.spells?.pick > 0) || rest.spells.pickDone || asking.has(key)) continue;
+    asking.add(key);
+    void pickLostSpells(actor, rest.spells.lost, rest.spells.pick)
+      .then(() => serial(async () => {
+        const record = nutritionDay(actor, camp.day); record.rest.spells.pickDone = true; await saveDay(actor, camp.day, record);
+      }))
+      .catch(error => console.warn(`${MODULE_ID} | Grinder spells`, error))
+      .finally(() => asking.delete(key));
+  }
+}
+function restCampNow(party, camp, interrupted) {
   return serial(async () => {
     const cook = Object.values(camp.results).some(r => r.task === "cook" && r.success);
     for (const p of camp.participants) {
@@ -152,7 +166,6 @@ function restCampNow(party, camp, interrupted, picks) {
         if (cook) await applyCookAfterRest(actor, camp.id, true);
       }
       record.rest.done = true; await saveDay(actor, camp.day, record);
-      if (record.rest.spells?.pick > 0) picks.push({ actor, lost: record.rest.spells.lost, pick: record.rest.spells.pick });
     }
   });
 }
