@@ -9,7 +9,12 @@ const candidates = [
   path.join(os.homedir(), "FoundryVTT-Projects/foundry-mcp-live/tools/design-harness"),
   path.join(os.homedir(), "git/foundry-mcp-live/tools/design-harness"),
 ].filter(Boolean);
-const dir = candidates.find((d) => fs.existsSync(path.join(d, "shot.mjs")));
+// A candidate must be a whole engine (both entry points) and never this wrapper's own folder: the
+// latter makes the wrapper import itself and die as an unsettled top-level await, with no message.
+const self = fs.realpathSync(import.meta.dirname);
+const dir = candidates.find((d) => fs.existsSync(path.join(d, "shot.mjs"))
+  && fs.existsSync(path.join(d, "serve.mjs"))
+  && fs.realpathSync(d) !== self);
 if (!dir) {
   console.error(`design harness engine not found. It ships with foundry-mcp-live (tools/design-harness); set FOUNDRY_DESIGN_HARNESS to that folder. Looked in:\n  ${candidates.join("\n  ")}`);
   process.exit(2);

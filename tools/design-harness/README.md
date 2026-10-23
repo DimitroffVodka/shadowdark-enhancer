@@ -7,8 +7,9 @@ what is the module's own: `fixtures/`, the proposals kit, and the review gallery
 `serve.mjs` and `shot.mjs` here are thin wrappers that run that engine against this module, so
 `npm run design`, `node tools/design-harness/shot.mjs <fixture>` and the other commands in
 `CONTRIBUTING.md` work as before. They find the engine through `FOUNDRY_DESIGN_HARNESS` (the engine
-folder), else `~/FoundryVTT-Projects/foundry-mcp-live` or `~/git/foundry-mcp-live`. The MCP tools
-`render_fixture` and `preview_fixture` run the same engine (pass `module` = this checkout).
+folder), else `~/FoundryVTT-Projects/foundry-mcp-live` or `~/git/foundry-mcp-live`. The MCP tools use
+the same engine — `render_fixture` its `shot.mjs`, `preview_fixture` its `serve.mjs`, whose markup it
+opens in a live client (pass `module` = this checkout).
 
 Windows built in JS (the crawl bar and strip) have no template. Capture their markup from a live world
 (`document.querySelector(".shadowdark-enhancer-strip").outerHTML`) into a fixture with an `html` key; see
