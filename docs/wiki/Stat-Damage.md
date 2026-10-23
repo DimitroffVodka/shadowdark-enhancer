@@ -49,15 +49,15 @@ a new card, and its rider applies again.
 
 ## Healing
 
-Shadowdark Extras' camping rest heals stat damage when Enhancer is installed,
-from the Extras release that adds it
-([shadowdark-extras#149](https://github.com/DimitroffVodka/shadowdark-extras/issues/149)):
+The [Camping](Camping.md#daily-food-and-eligible-rest) rest heals stat damage:
 
 - **A normal rest** heals all of it.
-- **Grinder Mode** heals 1 point of each damaged ability per rest.
+- **[Grinder Mode](Modes-of-Play.md#grinder)** heals 1 point of each damaged
+  ability per rest.
 
-Without Shadowdark Extras nothing heals it automatically; delete the line from
-the Effects tab to heal it by hand.
+A rest the character did not earn (unfed, or interrupted without passing the
+check) heals none. Shadowdark Extras' own camping rest still heals it for a
+camp begun there. Delete the line from the Effects tab to heal it by hand.
 
 ## Death at CON 0
 
