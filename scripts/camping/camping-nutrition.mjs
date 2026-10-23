@@ -4,6 +4,8 @@ import { mealPlan, restEligible } from "./camping-core.mjs";
 import { statDamageEffect, damagedAbility } from "../stat-damage/stat-damage-core.mjs";
 import { StatDamage } from "../stat-damage/stat-damage.mjs";
 import { applyCookAfterRest } from "./camping-cook.mjs";
+import { grinderOn, grinderSpells, pickLostSpells, rollGrinderHp } from "./grinder.mjs";
+import { hpAfterGrinder } from "./grinder-core.mjs";
 import { isMount, scoresOf, adoptMountScores } from "../actors/mount-scores.mjs";
 import { damageMountScores, effectiveMountScores } from "../actors/mount-scores-core.mjs";
 const flag = (a, key) => a?.flags?.[MODULE_ID]?.[key];
@@ -86,8 +88,18 @@ export function feedCamp(party, camp) {
     }
   });
 }
-/** Native normal rest: only rest-owned resources. Every effect records progress with its affected write. */
-export function restCamp(party, camp, interrupted) {
+/**
+ * Native rest: only rest-owned resources. Every effect records progress with its affected write.
+ * With Grinder on (the record keeps the choice made when the rest began) HP comes from hit dice, 1d4
+ * lost spells return and stat damage heals 1 per ability; the spells the roll does not cover are asked
+ * for once the rest has finished, so no pick ever holds it.
+ */
+export async function restCamp(party, camp, interrupted) {
+  const picks = [];
+  await restCampNow(party, camp, interrupted, picks);
+  for (const { actor, lost, pick } of picks) void pickLostSpells(actor, lost, pick).catch(error => console.warn(`${MODULE_ID} | Grinder spells`, error));
+}
+function restCampNow(party, camp, interrupted, picks) {
   return serial(async () => {
     const cook = Object.values(camp.results).some(r => r.task === "cook" && r.success);
     for (const p of camp.participants) {
@@ -106,16 +118,29 @@ export function restCamp(party, camp, interrupted) {
           passed = camp.interruptionChecks[p.actorId].passed;
         }
         const eligible = restEligible(record.fed, interrupted, bed, passed) && !actor.statuses.has("dead");
-        record.rest = { eligible, done: false, hpDone: false, effects: eligible ? actor.effects.filter(e => damagedAbility(e)).map(e => e.id) : [], resources: eligible ? actor.items.filter(i => ["Spell", "Class Ability", "Wand"].includes(i.type)).map(i => i.id) : [] };
+        const grinder = eligible && grinderOn(), spells = grinder ? await grinderSpells(actor) : null;
+        record.rest = {
+          eligible, grinder, spells, done: false, hpDone: false, statDone: false,
+          effects: eligible ? actor.effects.filter(e => damagedAbility(e)).map(e => e.id) : [],
+          resources: eligible ? actor.items.filter(i => ["Spell", "Class Ability", "Wand"].includes(i.type) && (!grinder || i.type !== "Spell" || spells.auto.includes(i.id))).map(i => i.id) : [],
+        };
         await saveDay(actor, camp.day, record);
       }
       if (record.rest.done) continue;
       if (record.rest.eligible) {
         if (!record.rest.hpDone) {
           record.rest.hpDone = true;
-          await saveDay(actor, camp.day, record, { "system.attributes.hp.value": Math.max(actor.system.attributes.hp.value, actor.system.attributes.hp.max) });
+          const { value, max } = actor.system.attributes.hp;
+          const hp = record.rest.grinder ? hpAfterGrinder(value, max, await rollGrinderHp(actor) ?? 0) : Math.max(value, max);
+          await saveDay(actor, camp.day, record, { "system.attributes.hp.value": hp });
         }
-        for (const id of record.rest.effects) if (actor.effects.has(id)) await actor.effects.get(id).delete();
+        if (!record.rest.grinder) {
+          for (const id of record.rest.effects) if (actor.effects.has(id)) await actor.effects.get(id).delete();
+        } else if (!record.rest.statDone) {
+          // Saved first: a crash between the two loses one point of healing rather than doubling it.
+          record.rest.statDone = true; await saveDay(actor, camp.day, record);
+          await StatDamage.heal(actor, { perAbility: 1 });
+        }
         for (const id of record.rest.resources) {
           const item = actor.items.get(id); if (!item || flag(item, "campRestDay") === camp.day) continue;
           const extra = {};
@@ -127,6 +152,7 @@ export function restCamp(party, camp, interrupted) {
         if (cook) await applyCookAfterRest(actor, camp.id, true);
       }
       record.rest.done = true; await saveDay(actor, camp.day, record);
+      if (record.rest.spells?.pick > 0) picks.push({ actor, lost: record.rest.spells.lost, pick: record.rest.spells.pick });
     }
   });
 }

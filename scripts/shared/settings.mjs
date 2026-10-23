@@ -871,6 +871,42 @@ export function registerSettings() {
     default: false,
   });
 
+  game.settings.register(MODULE_ID, "modeGrinder", {
+    name: "SDE.settings.modeGrinder.name",
+    hint: "SDE.settings.modeGrinder.hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: false,
+  });
+
+  game.settings.register(MODULE_ID, "modeGrinderHitDice", {
+    name: "SDE.settings.modeGrinderHitDice.name",
+    hint: "SDE.settings.modeGrinderHitDice.hint",
+    scope: "world",
+    config: false,
+    type: Number,
+    range: { min: 1, max: 4, step: 1 },
+    default: 1,
+  });
+
+  game.settings.register(MODULE_ID, "modeGrinderOverflowCon", {
+    name: "SDE.settings.modeGrinderOverflowCon.name",
+    hint: "SDE.settings.modeGrinderOverflowCon.hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: false,
+  });
+
+  // Set once the world has taken Shadowdark Extras' Grinder values, so they are read a single time.
+  game.settings.register(MODULE_ID, "grinderSeeded", {
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: false,
+  });
+
   game.settings.register(MODULE_ID, "modeHunterXp", {
     name: "SDE.settings.modeHunterXp.name",
     hint: "SDE.settings.modeHunterXp.hint",

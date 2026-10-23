@@ -1477,7 +1477,7 @@ damaged ability, shown in the sheet's Effects tab, and it is gone when healed.
 |---|---|
 | `statDamage.apply(actor, ability, amount)` | Add `amount` points to one ability (`"str"` … `"cha"`, any case, or the full name). Characters and `shadowdark-enhancer.mount` actors only. Resolves to that ability's new total, or `null` for an unrelated NPC/warband, unknown ability, or amount below 1. |
 | `statDamage.heal(actor)` | Clear all of it: a normal rest. `heal(actor, { all: true })` is the same. |
-| `statDamage.heal(actor, { perAbility: n })` | Take `n` off each damaged ability: Grinder Mode passes 1. Resolves to what is left, as `of` reads it. |
+| `statDamage.heal(actor, { perAbility: n })` | Take `n` off each damaged ability: the Camping rest under Grinder Mode passes 1. Resolves to what is left, as `of` reads it. |
 | `statDamage.of(actor)` | `{ str, dex, con, int, wis, cha }`, the points of damage on each, zero when clean. Several effects on one ability are summed. |
 
 `apply` and `heal` write Active Effects, so the caller needs owner permission

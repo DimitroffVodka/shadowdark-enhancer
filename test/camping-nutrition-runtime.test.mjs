@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { feedCamp, restCamp, foodPreview, nutritionDay } from "../scripts/camping/camping-nutrition.mjs";
+import { statDamageEffect } from "../scripts/stat-damage/stat-damage-core.mjs";
 import { finishCampNight, requestCamp } from "../scripts/camping/camping.mjs";
 import { normalizeOverlandState, makeCampState, interruptRest } from "../scripts/overland/overland-state-core.mjs";
 const M = "shadowdark-enhancer";
@@ -156,4 +157,103 @@ test("a saved night's preview shows the live on-hand rations, not zero", async (
   assert.deepEqual(after.map(p => p.saved), [true, true]);
   assert.deepEqual(after.map(p => p.own), [mine.system.quantity, theirs.system.quantity], "what each character still carries after the meal");
   assert.ok(after[0].own > 0, "a character who kept rations shows them");
+});
+
+// ─── Grinder Mode ─────────────────────────────────────────────────────────
+
+/** A fixture whose first PC is a rested d6 class with stat damage, with Grinder switched on. */
+function grinderFixture(settings = {}) {
+  const f = fixture(); f.ration(f.a, 2); f.ration(f.b, 2);
+  const { a } = f;
+  a.system.attributes.hp = { value: 1, max: 10 };
+  a.items.set("klass", doc("klass", { type: "Class", system: { hitPoints: "d6" } }));
+  // Real Foundry collections iterate their documents, which stat damage's totals rely on.
+  a.effects[Symbol.iterator] = function* () { yield* this.values(); };
+  a.deleteEmbeddedDocuments = async (_type, ids) => { for (const id of ids) a.effects.delete(id); };
+  let n = 0;
+  a.createEmbeddedDocuments = async (_type, data) => data.map(v => {
+    const e = doc(`fx${++n}`, { ...v, parent: a }); e.delete = async () => a.effects.delete(e.id); a.effects.set(e.id, e); return e;
+  });
+  const values = { modeGrinder: true, modeGrinderHitDice: 2, ...settings };
+  globalThis.game.settings = { get: (_ns, key) => values[key] };
+  globalThis.game.i18n.format = (k, d = {}) => ("ability" in d ? `${d.amount} ${d.ability} damage` : k);
+  globalThis.game.users = Object.assign([], { activeGM: f.user });
+  const formulas = [];
+  globalThis.Roll = class {
+    constructor(formula) { this.formula = formula; }
+    async evaluate() { formulas.push(this.formula); this.total = this.formula === "1d4" ? 2 : 5; return this; }
+    async toMessage() {}
+  };
+  globalThis.ChatMessage = { getSpeaker: () => ({}), create: async () => {} };
+  return { ...f, formulas, damage: (ability, amount) => a.createEmbeddedDocuments("ActiveEffect", [statDamageEffect(ability, amount, `${amount} ${ability}`)]) };
+}
+const lostSpell = (actor, id) => { const s = doc(id, { name: id, type: "Spell", system: { lost: true } }); actor.items.set(id, s); return s; };
+
+test("Grinder rest: hit dice for HP, the 1d4 covers the lost spells, stat damage heals one a rest", async () => {
+  const { a, party, camp, formulas, damage } = grinderFixture();
+  const s1 = lostSpell(a, "s1"), s2 = lostSpell(a, "s2");
+  await damage("con", 3); await damage("str", 1);
+  await feedCamp(party, camp); await restCamp(party, camp, false);
+  assert.deepEqual(formulas, ["1d4", "1d6 + 1d6"]);
+  assert.equal(a.system.attributes.hp.value, 6);
+  assert.equal(s1.system.lost, false); assert.equal(s2.system.lost, false);
+  assert.deepEqual([...a.effects.values()].map(e => e.changes[0].value), ["-2"]);
+});
+
+test("Grinder rest: HP stops at maximum, and a rest replayed after a reload heals nothing twice", async () => {
+  const { a, party, camp, damage } = grinderFixture({ modeGrinderHitDice: 4 });
+  a.system.attributes.hp.value = 8; await damage("con", 3);
+  await feedCamp(party, camp); await restCamp(party, camp, false);
+  assert.equal(a.system.attributes.hp.value, 10);
+  await restCamp(party, structuredClone(camp), false);
+  assert.deepEqual([...a.effects.values()].map(e => e.changes[0].value), ["-2"]);
+});
+
+test("Grinder rest: spells beyond the 1d4 wait for the player's pick, and the rest does not", async () => {
+  const { a, party, camp } = grinderFixture();
+  const spells = ["s1", "s2", "s3"].map(id => lostSpell(a, id));
+  let asked = null;
+  globalThis.foundry.applications = { api: { DialogV2: { prompt: async options => { asked = options; return ["s2", "s3"]; } } } };
+  await feedCamp(party, camp); await restCamp(party, camp, false);
+  assert.equal(nutritionDay(a, 0).rest.done, true);
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.ok(asked);
+  assert.deepEqual(spells.map(s => s.system.lost), [true, false, false]);
+});
+
+test("Grinder rest: a closed pick still brings back the first lost spells", async () => {
+  const { a, party, camp } = grinderFixture();
+  const spells = ["s1", "s2", "s3"].map(id => lostSpell(a, id));
+  globalThis.foundry.applications = { api: { DialogV2: { prompt: async () => null } } };
+  await feedCamp(party, camp);
+  await restCamp(party, camp, false);
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.deepEqual(spells.map(s => s.system.lost), [false, false, true]);
+});
+
+test("Grinder rest: a class with no hit die keeps its HP and the rest still finishes", async () => {
+  const { a, party, camp } = grinderFixture();
+  a.items.delete("klass");
+  await feedCamp(party, camp);
+  await restCamp(party, camp, false);
+  assert.equal(a.system.attributes.hp.value, 1);
+  assert.equal(nutritionDay(a, 0).rest.done, true);
+});
+
+test("Grinder off: the rest is the normal full rest", async () => {
+  const { a, party, camp, formulas, damage } = grinderFixture({ modeGrinder: false });
+  const s1 = lostSpell(a, "s1"); await damage("con", 3);
+  await feedCamp(party, camp);
+  await restCamp(party, camp, false);
+  assert.deepEqual(formulas, []);
+  assert.equal(a.system.attributes.hp.value, 10); assert.equal(s1.system.lost, false); assert.equal(a.effects.size, 0);
+});
+
+test("Grinder is chosen when the rest begins: switching it on mid-rest does not change a saved rest", async () => {
+  const { a, party, camp, damage } = grinderFixture({ modeGrinder: false });
+  await damage("con", 3);
+  await feedCamp(party, camp); await restCamp(party, camp, false);
+  globalThis.game.settings = { get: () => true };
+  await restCamp(party, structuredClone(camp), false);
+  assert.equal(a.effects.size, 0); assert.equal(a.system.attributes.hp.value, 10);
 });
