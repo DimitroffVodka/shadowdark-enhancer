@@ -130,7 +130,7 @@ export const SETTING_GROUPS = [
     sections: [{
       entries: [
         "crawlStripOffForAll", "crawlStripSlimForAll", "gmAvatarImage", "warnIfCrawlHelperEnabled",
-        "crawlStripDisabled", "crawlStripSlim",
+        "crawlStripDisabled", "crawlStripSlim", "tabFont",
       ],
     }],
   },

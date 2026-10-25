@@ -20,7 +20,7 @@ import { fillKeyedGround, removeKeyedGround } from "./hex-map/keyed-ground.mjs";
 import { ICONS } from "./shared/icons.mjs";
 import { claimGmTab, isActiveGM } from "./shared/gm-relay.mjs";
 
-import { registerSettings } from "./shared/settings.mjs";
+import { applyTabFont, registerSettings } from "./shared/settings.mjs";
 import { rulesApi } from "./rules-data/rules-data-core.mjs";
 import { storedRulesFor } from "./rules-data/rules-data-scope.mjs";
 import { registerRulesNotice } from "./rules-data/rules-data-notice.mjs";
@@ -149,7 +149,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "2f83c25dfed0";
+const STYLESHEET_REV = "127f884aaad6";
 
 // The same problem for the SCRIPTS, which cannot be solved the same way: their
 // URLs come from the manifest, which Foundry validates as real package paths,
@@ -164,7 +164,7 @@ const STYLESHEET_REV = "2f83c25dfed0";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "979148cb1deb";
+const BUILD_REV = "964c3bb3d622";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -1198,6 +1198,7 @@ Hooks.once("setup", () => {
 
 Hooks.once("ready", () => {
   console.log(`${MODULE_ID} | ready`);
+  applyTabFont();
   // Renown's level-up watcher. GM clients only; the award itself is gated to
   // the single ACTIVE GM inside, so the always-on Bridge client cannot make it
   // fire twice.

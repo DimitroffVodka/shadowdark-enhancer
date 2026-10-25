@@ -350,7 +350,7 @@
 
 /* ------------------------------------------------------------------ Party sheet: tabs (the row fills its width) */
 .sde-party .sdp-tabs { display: flex; flex: 0 0 auto; gap: 2px; padding: 6px 12px 0; border-bottom: 1px solid var(--ui-line); background: var(--ui-page); overflow-x: auto; }
-.sde-party .sdp-tab { display: inline-flex; flex: 1 1 auto; align-items: center; justify-content: center; gap: 6px; min-height: 30px; padding: 6px 10px; border-bottom: 3px solid transparent; border-radius: 5px 5px 0 0; color: var(--ui-muted); font: 400 15px/1 var(--ui-title); text-decoration: none; white-space: nowrap; cursor: pointer; }
+.sde-party .sdp-tab { display: inline-flex; flex: 1 1 auto; align-items: center; justify-content: center; gap: 5px; min-height: 30px; padding: 6px 7px; border-bottom: 3px solid transparent; border-radius: 5px 5px 0 0; color: var(--ui-body); font: var(--ui-tab-font); text-decoration: none; white-space: nowrap; cursor: pointer; }
 .sde-party .sdp-tab i { font-size: 12px; }
 .sde-party .sdp-tab:hover { color: var(--ui-text); background: var(--ui-panel); }
 .sde-party .sdp-tab.active { color: var(--ui-text); background: var(--ui-panel); border-bottom-color: var(--ui-frame); }
@@ -484,7 +484,7 @@
 
 /* ------------------------------------------------------------------ Party sheet: narrow windows (container queries: a window is resized, the screen is not) */
 @container (max-width: 700px) { .sde-party .sdp-cards { grid-template-columns: minmax(0, 1fr); } }
-@container (max-width: 820px) { .sde-party .sdp-tab { padding: 6px 9px; gap: 0; } .sde-party .sdp-tab i { display: none; } }
+@container (max-width: 820px) { .sde-party .sdp-tab { padding: 6px 6px; gap: 0; font-size: var(--ui-tab-narrow); } .sde-party .sdp-tab i { display: none; } }
 @container (max-width: 560px) {
   .sde-party .sdp-head { height: auto; flex-wrap: wrap; align-items: flex-start; padding: 10px 12px; }
   .sde-party .sdp-emblem { height: 72px; width: 72px; }

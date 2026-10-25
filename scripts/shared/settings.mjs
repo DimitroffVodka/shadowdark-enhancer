@@ -30,6 +30,11 @@ class MonsterSpellLibraryMenu extends foundry.applications.api.ApplicationV2 {
   }
 }
 
+/** Which face the window tabs use. Read by styles/sde-ui.css through the data attribute; Montserrat and the default are plain CSS. */
+export function applyTabFont() {
+  document.body.dataset.sdeTabFont = game.settings.get(MODULE_ID, "tabFont");
+}
+
 export function registerSettings() {
   game.settings.register(MODULE_ID, "partyStashMode", {
     name: "SDE.settings.partyStashMode.name",
@@ -172,6 +177,22 @@ export function registerSettings() {
     type: Boolean,
     default: false,
     onChange: redrawStrip,
+  });
+
+  // Per person: the tab labels were set in blackletter and some players could not read them.
+  game.settings.register(MODULE_ID, "tabFont", {
+    name: "SDE.settings.tabFont.name",
+    hint: "SDE.settings.tabFont.hint",
+    scope: "client",
+    config: false,
+    type: String,
+    choices: {
+      newspaper: "SDE.settings.tabFont.newspaper",
+      montserrat: "SDE.settings.tabFont.montserrat",
+      blackletter: "SDE.settings.tabFont.blackletter",
+    },
+    default: "newspaper",
+    onChange: applyTabFont,
   });
 
   game.settings.register(MODULE_ID, "warnIfCrawlHelperEnabled", {
