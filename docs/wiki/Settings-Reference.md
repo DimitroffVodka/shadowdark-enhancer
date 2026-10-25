@@ -196,6 +196,7 @@ See [Movement Budgets](Movement-Budgets.md).
 | **Slim crawl strip for everyone** | off | GM. Every screen shows the slim strip: no portraits, a short card per character that is never wider than a full card and narrows as more characters are on the strip, with the name, then initiative, AC and HP, then Luck, movement and light. The card itself fills to the character's HP in the HP bar's colours, so there is no bar. The round and turn buttons shrink to a small block and the Merchant Shop button is left off (the GM has it under Tools on the Crawl Bar; players use the button on the shop's chat card). Same hover menu. A player cannot switch back to full cards while this is on. |
 | **Turn off the crawl strip for me** | off | Everyone, in the Crawl Strip settings (kept per browser). Hides the strip on this computer only; the Crawl Bar and everything behind the strip keep working. Either this or the GM's switch above turns the strip off. |
 | **Slim crawl strip for me** | off | Everyone, in the Crawl Strip settings (kept per browser). Shows the slim strip described above on this computer only. Either this or the GM's switch above turns slim on. |
+| **Tab font for me** | Old Newspaper | Everyone, in the Crawl Strip settings (kept per browser). The face for tab labels in the Party sheet and the other Enhancer windows: Old Newspaper, Montserrat (plainest) or large Blackletter. |
 | **Warn when shadowdark-crawl-helper is enabled** | on | Non-blocking notice at world load if Crawl Helper is active. |
 
 ### Overland

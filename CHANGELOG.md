@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **Tab labels you can read, and a setting for them.** The tabs on the Party sheet and the other Enhancer windows were blackletter in grey, which some players could not read. They now use Old Newspaper (the book's section-title face) in the normal text colour. **Tab font for me** in the Crawl Strip settings switches this computer to Montserrat or to large Blackletter.
+
 ## [0.20.0] — 2026-10-21
 
 ### Added

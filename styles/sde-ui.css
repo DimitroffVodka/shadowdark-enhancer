@@ -57,8 +57,12 @@
 .ui-value { font: 700 15px/1.2 var(--ui-font); color: var(--ui-text); font-variant-numeric: tabular-nums; }
 
 /* tabs: 5 or fewer */
+/* Tab labels: the face is the player's choice (setting tabFont sets body[data-sde-tab-font]); Old Newspaper is the default. */
+body { --ui-tab-font: 400 17px/1 "Old Newspaper Font", "Montserrat-SemiBold", sans-serif; --ui-tab-narrow: 15px; }
+body[data-sde-tab-font="montserrat"] { --ui-tab-font: 600 14px/1 var(--ui-head); --ui-tab-narrow: 13px; }
+body[data-sde-tab-font="blackletter"] { --ui-tab-font: 400 19px/1 "JSL Blackletter", serif; --ui-tab-narrow: 15px; }
 .ui-tabs { flex: 0 0 auto; display: flex; gap: 2px; padding: 6px 12px 0; border-bottom: 1px solid var(--ui-line); background: var(--ui-page); overflow-x: auto; }
-.ui-tab { display: inline-flex; align-items: center; gap: 7px; min-height: 30px; padding: 6px 14px; border: 0; border-bottom: 3px solid transparent; border-radius: 5px 5px 0 0; background: transparent; color: var(--ui-muted); font: 400 15px/1 var(--ui-title); white-space: nowrap; cursor: pointer; }
+.ui-tab { display: inline-flex; align-items: center; gap: 7px; min-height: 30px; padding: 6px 14px; border: 0; border-bottom: 3px solid transparent; border-radius: 5px 5px 0 0; background: transparent; color: var(--ui-body); font: var(--ui-tab-font); white-space: nowrap; cursor: pointer; }
 .ui-tab:hover { color: var(--ui-text); background: var(--ui-panel); }
 .ui-tab.active { color: var(--ui-text); background: var(--ui-panel); border-bottom-color: var(--ui-frame); }
 .ui-tab .ui-count { font: 600 11px/1 var(--ui-font); color: var(--ui-muted); }

@@ -4817,7 +4817,7 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-parchment .window-header .header-control:hover { color: var(--ui-text); }
 /* player-facing controls on an actor sheet are anchors (a sheet disables buttons for viewers who cannot edit) */
 .sde-ui a.ui-tab, .sde-ui a.ui-btn, .sde-ui a.ui-icon { text-decoration: none; }
-.sde-ui a.ui-tab { color: var(--ui-muted); }
+.sde-ui a.ui-tab { color: var(--ui-body); }
 .sde-ui a.ui-tab:hover, .sde-ui a.ui-tab.active { color: var(--ui-text); }
 .sde-ui a.ui-btn { color: var(--ui-text); }
 .sde-ui a.ui-btn.ghost, .sde-ui a.ui-icon { color: var(--ui-muted); }
