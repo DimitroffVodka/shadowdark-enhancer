@@ -108,13 +108,44 @@ how each one plays.
 
 ## Grinder
 
-Grinder changes how a rest heals, and the only rest in Foundry is Shadowdark
-Extras' camping rest. So this box shows Extras' own Grinder settings, and the
-hit dice setting appears only while Grinder is on. Without a Shadowdark Extras
-that has Grinder Mode, the box says what is needed and nothing else.
+Grinder changes what the [Camping](Camping.md#daily-food-and-eligible-rest)
+rest gives back. It needs nothing but the Enhancer. A character who rests
+(fed, and past an interruption if there was one) gets:
 
-Under Grinder, Extras' rest heals 1 point of each damaged ability rather than
-all of it (see [Stat Damage](Stat-Damage.md#healing)).
+- **Hit dice instead of full HP.** One roll per hit die of the character's
+  class, as many as **Grinder hit dice** says (1 to 4), added to current HP up
+  to the maximum. A character with the Stout advantage rolls each die with
+  advantage. A character whose class has no hit die keeps the HP they have.
+- **1d4 lost spells back instead of all of them.** If the roll covers every lost
+  spell they all return. If not, the character's player chooses which: the
+  owning player is asked, and if no owner is connected, they close the
+  window, or two minutes pass, the GM's client asks instead. If that is closed
+  too, the first lost spells come back. The rest does not wait for the choice:
+  it finishes first and the choice follows. If the page is reloaded before it is
+  answered, the spells stay lost and can be switched back on the sheet.
+- **1 point of each damaged ability back instead of all of it.**
+- Class abilities and wand spells are still refreshed in full, as on any rest,
+  and Cook's temporary hit points work as on any rest.
+
+Each roll posts its own chat card. Grinder is chosen when a character's rest
+begins; switching it mid-rest does not change a rest already begun.
+
+A world that was running Grinder in Shadowdark Extras brings Extras' two Grinder
+settings across the first time it loads this version, and never reads them
+again. The Enhancer's own settings are the only ones used from then on.
+
+**Damage past 0 HP is CON damage** is an option of this box (it shows while
+Grinder is on, and the box's switch leaves it alone). A hit that takes a
+character below 0 HP puts the rest on CON as stat damage, one point for one:
+a character at 1 HP hit for 5 is at 0 HP with 4 CON damage. A character already
+at 0 HP takes the whole hit on CON. Temporary hit points are spent first, and
+the damage that reaches HP is what counts. CON 0 is death (see
+[Stat Damage](Stat-Damage.md#death-at-con-0)); a character who survives at 0 HP
+is dying as usual, with the death timer. It applies to characters only, to damage
+dealt through the system's Apply damage and the Party roll, not to a hand edit of
+the HP number, and a Parry that undoes the blow does not undo the CON damage:
+edit or delete the line in the Effects tab. The recovery is the rest above, 1
+point per ability a rest.
 
 ---
 

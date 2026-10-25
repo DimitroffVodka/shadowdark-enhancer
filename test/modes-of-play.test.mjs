@@ -28,13 +28,17 @@ test("every mode is its own box, and every rule of this module is its own settin
   for (const s of modes.sections) assert.equal(s.mode, true, `${s.label} gets a mode switch`);
   const own = modes.sections.flatMap((s) => s.entries.map(entryKey).filter(Boolean));
   assert.equal(new Set(own).size, own.length, "no rule is listed twice");
+  // A value that only means something while its rule is on (how many hit dice Grinder rolls) is not a rule.
+  const VALUES = ["modeGrinderHitDice"];
   for (const key of own) {
     const body = registration(key);
     assert.match(body, /scope:\s*"world"/, `${key} is a world setting`);
     assert.match(body, /config:\s*false/, `${key} renders in the window, not the main list`);
+    if (VALUES.includes(key)) continue;
     assert.match(body, /type:\s*Boolean/, `${key} is a checkbox`);
     assert.match(body, /default:\s*false/, `${key} is off until a GM opts in`);
   }
+  assert.match(registration("modeGrinderHitDice"), /type:\s*Number[\s\S]*min:\s*1,\s*max:\s*4[\s\S]*default:\s*1/);
 });
 
 test("the natural-1 rule moved to Hard Luck, same key, now off by default", () => {
@@ -46,15 +50,22 @@ test("the natural-1 rule moved to Hard Luck, same key, now off by default", () =
   assert.match(registration("luckRerollPreventNat1"), /default:\s*false/);
 });
 
-test("the system's and Extras' own settings render in place and stay theirs", () => {
+test("the system's own settings render in place and stay theirs", () => {
   const foreign = modes.sections.flatMap((s) => s.entries.filter((e) => e?.setting).map((e) => e.setting));
-  assert.deepEqual(foreign, ["shadowdark-extras.grinderMode", "shadowdark-extras.grinderHitDice", "shadowdark.useMomentumMode", "shadowdark.usePulpMode"]);
+  assert.deepEqual(foreign, ["shadowdark.useMomentumMode", "shadowdark.usePulpMode"]);
   for (const key of foreign) assert.ok(!GROUPED_SETTING_KEYS.includes(key), `${key} is not registered by this module`);
-  const grinder = modes.sections.find((s) => s.label.endsWith(".grinder"));
-  assert.ok(grinder.entries[0].missing, "without Extras the Grinder box says what is needed");
-  assert.equal(grinder.entries[1].showIf, "shadowdark-extras.grinderMode", "hit dice only while Grinder is on (shadowdark-extras#149)");
-  for (const key of ["shadowdark.useMomentumMode", "shadowdark.usePulpMode"]) {
+  for (const key of foreign) {
     const entry = modes.sections.flatMap((s) => s.entries).find((e) => e?.setting === key);
     assert.ok(entry.missing, `${key} says so when the installed system lacks it`);
   }
+});
+
+test("Grinder is the Enhancer's own: hit dice and the CON option follow its switch", () => {
+  const grinder = modes.sections.find((s) => s.label.endsWith(".grinder"));
+  assert.deepEqual(grinder.entries.map(entryKey), ["modeGrinder", "modeGrinderHitDice", "modeGrinderOverflowCon"]);
+  assert.ok(!grinder.entries.some((e) => e?.setting), "nothing in it is another package's setting");
+  assert.equal(grinder.entries[1].showIf, "shadowdark-enhancer.modeGrinder");
+  assert.equal(grinder.entries[2].showIf, "shadowdark-enhancer.modeGrinder");
+  assert.equal(grinder.entries[2].option, true, "the CON option is not part of what the Grinder switch flips");
+  assert.match(registration("modeGrinderOverflowCon"), /default:\s*false/);
 });

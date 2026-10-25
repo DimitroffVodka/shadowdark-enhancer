@@ -48,6 +48,11 @@ starvation during the same rest. Persistent shortage warnings allow an explicit
 hungry night. Fed PCs rest individually; interrupted rest uses saved CON checks.
 Mount full-score nutrition/death/check behavior is in [Mounts & Boats](Mounts-and-Boats.md).
 
+With [Grinder](Modes-of-Play.md#grinder) on, an eligible rest rolls hit dice for
+HP, brings back 1d4 lost spells (the player picks which when more are lost) and
+heals 1 point of each damaged ability, instead of filling HP, returning every spell and clearing the
+damage. The choice is made when the rest begins and is kept with it.
+
 Cook applies only after an eligible full rest: the meal gives two [temporary hit
 points](Dying-and-Death-Timers.md#temporary-hit-points) for one world day. HP and its
 maximum are untouched (3/3 HP with 2 temp HP). Damage spends the temp HP first and

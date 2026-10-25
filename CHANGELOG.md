@@ -2,9 +2,15 @@
 
 ## [Unreleased]
 
+### Added
+
+- **Grinder Mode is the Enhancer's own.** The Camping rest follows it: a rested character rolls their class hit dice for HP (1 to 4 of them, Stout with advantage) instead of filling to maximum, gets 1d4 lost spells back, and heals 1 point of each damaged ability instead of all of it. When the roll does not cover every lost spell, the character's player chooses which; the rest finishes first and does not wait for the choice. A world that was running Grinder in Shadowdark Extras brings Extras' two settings across once, the first time it loads this version, and never reads them again. See [Modes of Play](docs/wiki/Modes-of-Play.md#grinder).
+- **Damage past 0 HP can become CON damage.** An option of Grinder (off by default): a hit that takes a character below 0 HP puts the rest on CON as stat damage, one point for one. At 1 HP, a hit for 5 leaves 0 HP and 4 CON damage; at 0 HP the whole hit goes to CON. Temporary hit points are spent first, CON 0 is death, and dying works as usual otherwise. See [Modes of Play](docs/wiki/Modes-of-Play.md#grinder).
+
 ### Changed
 
 - **Tab labels you can read, and a setting for them.** The tabs on the Party sheet and the other Enhancer windows were blackletter in grey, which some players could not read. They now use Old Newspaper (the book's section-title face) in the normal text colour. **Tab font for me** in the Crawl Strip settings switches this computer to Montserrat or to large Blackletter.
+- **The Modes of Play window no longer shows Shadowdark Extras' Grinder settings.** Grinder is the Enhancer's own now (above). Extras' switches still decide Extras' own camping rest for a camp begun there.
 
 ## [0.20.0] — 2026-10-21
 

@@ -62,7 +62,7 @@ export class SettingsGroupMenu extends HandlebarsApplicationMixin(ApplicationV2)
     if (e.note) return { note: e.note };
     if (e.key) {
       const entry = this._settingEntry(game.settings.settings.get(`${MODULE_ID}.${e.key}`));
-      return { ...entry, pending: !!e.pending, option: !!e.option };
+      return { ...entry, pending: !!e.pending, option: !!e.option, showIf: e.showIf ?? null };
     }
     if (e.setting) {
       // Another package's setting, shown in place. Absent package or setting:

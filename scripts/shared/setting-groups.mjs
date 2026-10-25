@@ -13,7 +13,7 @@
  *   - `{ menu, icon }` for a nested editor window;
  *   - `{ setting: "namespace.key", missing, showIf }` for ANOTHER package's
  *     setting, rendered in place so it keeps one source of truth (the
- *     system's Pulp and Momentum switches, Extras' Grinder); `missing` is the
+ *     system's Pulp and Momentum switches); `missing` is the
  *     note shown when that package or setting is absent, and `showIf` names a
  *     checkbox in the same window the row only shows while ticked;
  *   - `{ note }` for a rule nothing can automate: a line of text.
@@ -86,9 +86,9 @@ export const SETTING_GROUPS = [
         entries: ["modeFatality"] },
       { label: "SDE.settings.modesOfPlayMenu.grinder", hint: "SDE.settings.modesOfPlayMenu.grinderHint", mode: true,
         entries: [
-          // The keys are the contract with Extras (DimitroffVodka/shadowdark-extras#149).
-          { setting: "shadowdark-extras.grinderMode", missing: "SDE.settings.modesOfPlayMenu.grinderNeedsExtras" },
-          { setting: "shadowdark-extras.grinderHitDice", showIf: "shadowdark-extras.grinderMode" },
+          "modeGrinder",
+          { key: "modeGrinderHitDice", showIf: "shadowdark-enhancer.modeGrinder" },
+          { key: "modeGrinderOverflowCon", option: true, showIf: "shadowdark-enhancer.modeGrinder" },
         ] },
       { label: "SDE.settings.modesOfPlayMenu.hunter", hint: "SDE.settings.modesOfPlayMenu.hunterHint", mode: true,
         entries: ["modeHunterXp"] },
