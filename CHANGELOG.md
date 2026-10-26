@@ -8,6 +8,7 @@
 
 ### Fixed
 
+- **Icon buttons show up with Multi Token Edit installed.** That module ships a global `.ui-icon` rule that pushes every icon glyph off its button, so the Enhancer's icon buttons (Give, Delete and the rest) looked empty. The Enhancer windows now reset it.
 - **Gems on the Party sheet can be removed.** Gem rows now have the same Give and Delete buttons as other party items; before, a gem dragged onto the sheet could not be taken off.
 
 ## [0.20.1] — 2026-10-26
