@@ -12,6 +12,7 @@ import { LootGenerator } from "./loot-generator.mjs";
 import { LootDelivery } from "./loot-delivery.mjs";
 import { inferSeedFromName } from "../magic-forge/magic-forge.mjs";
 import { ItemDrops } from "./item-drops.mjs";
+import { itemValueGp } from "./loot-value.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -131,7 +132,13 @@ export class LootGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
 
   _onRender(context, options) {
     super._onRender?.(context, options);
-    const sel = this.element.querySelector("select[data-loot-table]");
+    // The window element outlives re-renders, so the drop listeners go on once.
+    if (!this._dropBound) {
+      this._dropBound = true;
+      this.element.addEventListener("dragover", event => { if (game.user?.isGM) event.preventDefault(); });
+      this.element.addEventListener("drop", event => this._onDropItem(event));
+    }
+    const sel =this.element.querySelector("select[data-loot-table]");
     // The star follows the selection without a redraw (the table list is not re-read).
     if (sel) sel.addEventListener("change", () => {
       this._selectedTableUuid = sel.value || null;
@@ -142,6 +149,21 @@ export class LootGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
       star?.querySelector("i")?.classList.toggle("fas", on);
       star?.querySelector("i")?.classList.toggle("far", !on);
     });
+  }
+
+  /** An Item dragged in (an adventure's compendium, the Items directory, a sheet) becomes a history entry, ready to post for the party to claim. */
+  async _onDropItem(event) {
+    if (!game.user?.isGM) return;
+    let data;
+    try { data = JSON.parse(event.dataTransfer.getData("text/plain")); } catch { return; }
+    if (data?.type !== "Item" || !data.uuid) return;
+    event.preventDefault();
+    const doc = await fromUuid(data.uuid).catch(() => null);
+    if (!doc) return;
+    const value = itemValueGp(doc);
+    const item = { uuid: doc.uuid, name: doc.name, qty: 1, img: doc.img ?? "icons/svg/item-bag.svg", value, tier: null, xp: 0, feature: null, forgeable: false, forgeType: null };
+    this._history.unshift({ id: foundry.utils.randomID(), tableName: game.i18n.localize("SDE.loot.generator.droppedName"), batch: { tier: null, level: null, coins: { gp: 0, sp: 0, cp: 0 }, totalGp: value, totalXp: 0, items: [item], notes: [] } });
+    this.render();
   }
 
   // ─── Favourites ───

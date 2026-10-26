@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Added
+
+- **Drag any item into the Loot window.** An item dragged from a compendium, the Items directory or a sheet onto the Loot Generator becomes an entry you can post to chat for the party to claim, give, or drop on the ground.
+
+### Fixed
+
+- **Gems on the Party sheet can be removed.** Gem rows now have the same Give and Delete buttons as other party items; before, a gem dragged onto the sheet could not be taken off.
+
 ## [0.20.1] — 2026-10-26
 
 ### Added
