@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.20.1] — 2026-10-26
+
 ### Added
 
 - **Grinder Mode is the Enhancer's own.** The Camping rest follows it: a rested character rolls their class hit dice for HP (1 to 4 of them, Stout with advantage) instead of filling to maximum, gets 1d4 lost spells back, and heals 1 point of each damaged ability instead of all of it. When the roll does not cover every lost spell, the character's player chooses which; the rest finishes first and does not wait for the choice. A world that was running Grinder in Shadowdark Extras brings Extras' two settings across once, the first time it loads this version, and never reads them again. See [Modes of Play](docs/wiki/Modes-of-Play.md#grinder).
