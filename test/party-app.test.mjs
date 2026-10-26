@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import { Party } from "../scripts/party/party.mjs";
 const MOD = "shadowdark-enhancer";
 globalThis._replace = (v) => v;
+globalThis.CONFIG ??= { queries: {} };
 globalThis.foundry = { applications: { api: { ApplicationV2: class {
   constructor(options) { this.options = options; this.id = options?.id; }
   render() { if (this.id) globalThis.foundry.applications.instances.set(this.id, this); }
@@ -612,6 +613,7 @@ test("Give to moves the whole stack to a PC and not to anyone else", async () =>
   const rope = { id: "r", name: "Rope", toObject: () => ({ _id: "r", name: "Rope", system: { quantity: 3 } }), delete: async () => { deleted.push("r"); } };
   t.p.items.contents.push(rope);
   t.pcs[2].createEmbeddedDocuments = async (type, data) => { created.push([type, data]); };
+  globalThis.fromUuidSync = (uuid) => [...t.pcs, t.hireling, t.mount].find((a) => a.uuid === uuid) ?? null;
   await act(t.app, "giveItem", { dataset: { id: "r", uuid: t.pcs[2].uuid } });
   assert.deepEqual(created, [["Item", [{ name: "Rope", system: { quantity: 3 } }]]], "a copy without the old id");
   assert.deepEqual(deleted, ["r"]);

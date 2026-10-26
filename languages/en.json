@@ -71,6 +71,8 @@
   "SDE.party.item.forge": "Forge a magic item",
   "SDE.party.item.added": "{item} added to the party items.",
   "SDE.party.item.gave": "{item} given to {name}.",
+  "SDE.party.item.giveRefused": "The party cannot give that item to that character.",
+  "SDE.party.item.giveLabel": "Giving a party item",
   "SDE.party.item.delete": "Remove from the party items",
   "SDE.party.item.deleteTitle": "Remove item",
   "SDE.party.item.deleteQuestion": "Remove {item} from the party items? It goes to no one.",
