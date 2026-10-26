@@ -18,6 +18,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { inferSeedFromName } from "../magic-forge/magic-forge.mjs";
 import { esc } from "../shared/esc.mjs";
+import { itemValueGp } from "./loot-value.mjs";
 import { addToPurse } from "../shared/coins.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { poolAfterAdd } from "../party/party-sheet-core.mjs";
@@ -307,7 +308,7 @@ export const LootDelivery = {
       // Stamp the rolled gp value onto the item when the linked doc has no
       // cost (some catalog valuables were stored without a price) so the
       // claimed item is always worth what the loot card showed.
-      if ((item.value ?? 0) > (data.system?.cost?.gp ?? 0)) {
+      if ((item.value ?? 0) > itemValueGp(data)) {
         data.system = data.system ?? {};
         data.system.cost = { gp: Math.round(item.value), sp: 0, cp: 0 };
       }

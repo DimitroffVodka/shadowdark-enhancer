@@ -161,7 +161,7 @@ export class LootGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const doc = await fromUuid(data.uuid).catch(() => null);
     if (!doc) return;
     const value = itemValueGp(doc);
-    const item = { uuid: doc.uuid, name: doc.name, qty: 1, img: doc.img ?? "icons/svg/item-bag.svg", value, tier: null, xp: 0, feature: null, forgeable: false, forgeType: null };
+    const item = { uuid: doc.uuid, name: doc.name, qty: Math.max(1, Math.trunc(Number(doc.system?.quantity)) || 1), img: doc.img ?? "icons/svg/item-bag.svg", value, tier: null, xp: 0, feature: null, forgeable: false, forgeType: null };
     this._history.unshift({ id: foundry.utils.randomID(), tableName: game.i18n.localize("SDE.loot.generator.droppedName"), batch: { tier: null, level: null, coins: { gp: 0, sp: 0, cp: 0 }, totalGp: value, totalXp: 0, items: [item], notes: [] } });
     this.render();
   }

@@ -11,7 +11,9 @@ async function delivery() {
   };
   globalThis.Hooks = { on() {}, once() {}, callAll() {} };
   globalThis.game = { i18n: { localize: (k) => k, format: (k) => k }, user: { isGM: true }, settings: { get: () => null, register() {} }, socket: { on() {} } };
-  return (await import("../scripts/loot/loot-delivery.mjs")).LootDelivery;
+  const L = (await import("../scripts/loot/loot-delivery.mjs")).LootDelivery;
+  L._real ??= L._resolveItemData;   // other tests stub the resolver on this shared object
+  return L;
 }
 
 test("the items become party items and the coins join the shared pool", async () => {
@@ -62,4 +64,15 @@ test("a batch of only items writes no coin flag", async () => {
   LootDelivery._resolveItemData = async (it) => ({ name: it.name });
   await LootDelivery.depositToParty(party, { items: [{ name: "Torch" }], coins: { gp: 0, sp: 0, cp: 0 } });
   assert.equal(writes.length, 0);
+});
+
+test("a dropped 5 sp item keeps its price; a costless one still gets the rolled value", async () => {
+  const LootDelivery = await delivery();
+  LootDelivery._resolveItemData = LootDelivery._real;
+  const doc = (cost) => ({ toObject: () => ({ name: "Torch", system: { cost } }) });
+  globalThis.fromUuid = async (uuid) => doc(uuid === "cheap" ? { gp: 0, sp: 5, cp: 0 } : { gp: 0, sp: 0, cp: 0 });
+  const kept = await LootDelivery._resolveItemData({ uuid: "cheap", value: 1 });
+  assert.deepEqual(kept.system.cost, { gp: 0, sp: 5, cp: 0 });
+  const stamped = await LootDelivery._resolveItemData({ uuid: "free", value: 3 });
+  assert.deepEqual(stamped.system.cost, { gp: 3, sp: 0, cp: 0 });
 });
