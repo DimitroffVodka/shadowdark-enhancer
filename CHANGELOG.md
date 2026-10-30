@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+### Added
+
+- **Drag any item into the Loot window.** An item dragged from a compendium, the Items directory or a sheet onto the Loot Generator becomes an entry you can post to chat for the party to claim, give, or drop on the ground.
+
+### Changed
+
+- **Players can give a party item to a character.** The Give button on the Party sheet's item and gem rows was GM-only; an owner of the party now has it too. The GM's tab does the move, so it works for characters the player does not own.
+
+### Fixed
+
+- **Icon buttons show up with Multi Token Edit installed.** That module ships a global `.ui-icon` rule that pushes every icon glyph off its button, so the Enhancer's icon buttons (Give, Delete and the rest) looked empty. The Enhancer windows now reset it.
+- **Gems on the Party sheet can be removed.** Gem rows now have the same Give and Delete buttons as other party items; before, a gem dragged onto the sheet could not be taken off.
+
 ## [0.20.1] — 2026-10-26
 
 ### Added

@@ -187,7 +187,10 @@ Party's items of the Shadowdark system's Gem type. A gem is worth its cost
 (`system.cost`, as in the system's Gem Bag); the box lists each gem's quantity
 and value and the total, quantity times value. Gems are kept out of the item list
 and take no Party slots, as in the system. Quantity buttons and **New Item** are
-a manager's. This feature does not add a trade/container transfer subsystem.
+a manager's. Any owner of the party can **Give** an item or gem to a character,
+its whole stack, or delete it; a player's Give is carried out by the GM's tab, so
+it works for characters that player does not own and needs a GM online. This
+feature does not add a trade/container transfer subsystem.
 Under the list, each party mount has its own box: its rider, its load against its
 gear slots (a rider and the rider's gear take 10, as in Cursed Scroll 2) and the
 gear it carries. Mount cards on **Members** show the rider and the load too, to

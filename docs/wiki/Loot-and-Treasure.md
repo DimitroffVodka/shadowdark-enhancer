@@ -73,6 +73,11 @@ decides who takes what.
 | **Give**, dropdown on **Party (claim in chat)** *(the default)* | Posts the claimable card, same as **Post to Chat** |
 | **Give**, dropdown on a **character** | Hands the batch straight to that one actor: items created, coins added, no card |
 
+A GM can also drag any Item onto the window, from a compendium, the Items
+directory or a sheet. It becomes a **Dropped item** entry with these same
+controls, and no loot table is needed. The party receives a copy with the
+item's own quantity and price; the original stays where it was.
+
 ### The claimable chat card
 
 ![A claimable loot card in chat: a magic wand with its Claim button, and the hoard total beneath](images/loot-card.png)

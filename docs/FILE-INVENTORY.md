@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-2237 tracked files · ~278,700 lines of code/markup across scripts+templates+styles+test.
+2239 tracked files · ~278,900 lines of code/markup across scripts+templates+styles+test.
 `v0.20.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -145,10 +145,11 @@
 | `overland/sky.mjs` | 268 | The sky on scenes (#235, O9): the active GM writes the darkness of the active scene and of the party's scene, the one the travel token is on (#294; only on a 0.02 change, animated for steps under an hour, never on a locked scene; no other module is consulted) and weather effect (never over one the GM chose) on each clock move, weather change and scene activation; one pass at a time. While the clock is paced every screen paints the darkness from the time it shows and the GM writes it once the slices stop (#257). Also the per-device Show weather effects setting and its drawWeatherEffects hook (#294). Adds the Follows the sky and Shows the party's weather choices to Scene Configuration's Environment tab (the followsSky and followsWeather scene flags: darkness and weather are chosen apart, a scene that never chose follows the sky for both). |
 | `overland/travel-panel.mjs` | 230 | The clock HUD's Travel panel (#257): the day as the book's travel procedure in eight steps (weather, sight, method, speed, traveling, encounters, resting, night), the step list as the day's record with the current step marked; step bodies read Overland's state (the weather and its roll, sight in hexes by hex rules, the budget meter, forage by member with INT and DC, the checks by half for a GM) and carry the day's buttons. |
 | `overland/weather-looks.mjs` | 65 | Five extra weather looks (Drizzle, Mist, Heavy Fog, Sleet, Dust Storm): each is one of Foundry's own rain, fog or snow effects with other settings, added to CONFIG.weatherEffects at init so it appears in Scene Configuration's Weather list on every scene. A look whose core effect is gone is skipped. Overland never picks them; they are the GM's to choose. |
-| `party/party-app.mjs` | 631 | Native ApplicationV2 Party actor sheet and directory/token-HUD entry points, preserving detailed member cards with inline activities, scoped quests/payouts and description editing. |
+| `party/party-app.mjs` | 630 | Native ApplicationV2 Party actor sheet and directory/token-HUD entry points, preserving detailed member cards with inline activities, scoped quests/payouts and description editing. |
 | `party/party-core.mjs` | 32 | Pure versioned roster validation, membership permissions, groups and quest scoping. |
 | `party/party-create-option.mjs` | 15 | Adds the Enhancer's Party entry to the Create Actor type list and drops Extras' duplicate Party entry. |
 | `party/party-emblem-core.mjs` | 166 | Pure party emblem: the curated icon and colour sets, the default, the safe read of the stored flag and the picker's choices, and the two pictures it draws — the hex tile for the portrait and the standard (pennant, crossbar, pole, stone base, lifted to sit centred) the tokens wear on the map. |
+| `party/party-give.mjs` | 41 | Give a party item to a character: the GM moves it directly, a player asks the GM's client over a relay query, which checks the sender owns the party and the target is a member. |
 | `party/party-hud.mjs` | 21 | Single combat-gated Import/Export Members Party token HUD action. |
 | `party/party-item-picker.mjs` | 80 | The Party sheet's Add item > From compendium window: an ApplicationV2 that reads every Item compendium's index once, filters it by name as the GM types (searchItemIndex), and hands the picked entry to the sheet to copy onto the party actor. |
 | `party/party-light.mjs` | 49 | Runtime-only dungeon Party light mirror without duplicated fuel items; hex lights and stored vision unchanged. |
@@ -307,9 +308,9 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `loot-generator-app.mjs` | 317 | Roll a loot table, work a running batch, whisper claimable cards. |
+| `loot-generator-app.mjs` | 339 | Roll a loot table, work a running batch, whisper claimable cards. |
 | `loot-generator.mjs` | 234 | RollTable → structured loot batch (documents, coins, flavor). |
-| `loot-delivery.mjs` | 490 | Shared claimable chat card; first-claim-wins, GM-authoritative over an authenticated relay query. |
+| `loot-delivery.mjs` | 491 | Shared claimable chat card; first-claim-wins, GM-authoritative over an authenticated relay query. |
 | `loot-drops.mjs` | 202 | Auto-drop loot on NPC defeat at combat end. |
 | `loot-setup-app.mjs` | 238 | Browsable Loot & Treasure library; rows unlock from the GM's own PDF. |
 | `loot-value.mjs` | 68 | gp value → Shadowdark XP quality tiers. |
