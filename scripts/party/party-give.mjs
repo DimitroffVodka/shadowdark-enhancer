@@ -6,14 +6,21 @@ const t = (key) => game.i18n.localize(key);
 
 export const PARTY_GIVE_QUERY = `${MODULE_ID}.partyGive`;
 
+// A double-click sends two queries, and the item still exists until the first one's delete lands.
+const moving = new Set();
+
 /** Move a party item, its whole stack, onto one of the party's characters. Runs on a GM's client: a player cannot write to a sheet they do not own. */
 export async function moveItem(party, itemId, uuid) {
   const item = party.items.get(itemId), target = fromUuidSync(uuid);
+  if (moving.has(item)) return { ok: false };   // not an error: the first click is doing it
   if (!item || target?.type !== "Player" || !Party.data(party).members.includes(uuid)) return { ok: false, error: t("SDE.party.item.giveRefused") };
-  const data = item.toObject(); delete data._id;
-  await target.createEmbeddedDocuments("Item", [data]);
-  await item.delete();
-  return { ok: true, item: item.name, name: target.name };
+  moving.add(item);
+  try {
+    const data = item.toObject(); delete data._id;
+    await target.createEmbeddedDocuments("Item", [data]);
+    await item.delete();
+    return { ok: true, item: item.name, name: target.name };
+  } finally { moving.delete(item); }
 }
 
 /** The GM's side of a player's Give: the sender must own the party, and the party must hold the item. */

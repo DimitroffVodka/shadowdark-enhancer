@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-2239 tracked files · ~278,800 lines of code/markup across scripts+templates+styles+test.
+2239 tracked files · ~278,900 lines of code/markup across scripts+templates+styles+test.
 `v0.20.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -149,7 +149,7 @@
 | `party/party-core.mjs` | 32 | Pure versioned roster validation, membership permissions, groups and quest scoping. |
 | `party/party-create-option.mjs` | 15 | Adds the Enhancer's Party entry to the Create Actor type list and drops Extras' duplicate Party entry. |
 | `party/party-emblem-core.mjs` | 166 | Pure party emblem: the curated icon and colour sets, the default, the safe read of the stored flag and the picker's choices, and the two pictures it draws — the hex tile for the portrait and the standard (pennant, crossbar, pole, stone base, lifted to sit centred) the tokens wear on the map. |
-| `party/party-give.mjs` | 34 | Give a party item to a character: the GM moves it directly, a player asks the GM's client over a relay query, which checks the sender owns the party and the target is a member. |
+| `party/party-give.mjs` | 41 | Give a party item to a character: the GM moves it directly, a player asks the GM's client over a relay query, which checks the sender owns the party and the target is a member. |
 | `party/party-hud.mjs` | 21 | Single combat-gated Import/Export Members Party token HUD action. |
 | `party/party-item-picker.mjs` | 80 | The Party sheet's Add item > From compendium window: an ApplicationV2 that reads every Item compendium's index once, filters it by name as the GM types (searchItemIndex), and hands the picked entry to the sheet to copy onto the party actor. |
 | `party/party-light.mjs` | 49 | Runtime-only dungeon Party light mirror without duplicated fuel items; hex lights and stored vision unchanged. |

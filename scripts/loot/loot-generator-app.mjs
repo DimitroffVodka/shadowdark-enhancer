@@ -138,7 +138,7 @@ export class LootGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
       this.element.addEventListener("dragover", event => { if (game.user?.isGM) event.preventDefault(); });
       this.element.addEventListener("drop", event => this._onDropItem(event));
     }
-    const sel =this.element.querySelector("select[data-loot-table]");
+    const sel = this.element.querySelector("select[data-loot-table]");
     // The star follows the selection without a redraw (the table list is not re-read).
     if (sel) sel.addEventListener("change", () => {
       this._selectedTableUuid = sel.value || null;

@@ -34,3 +34,13 @@ test("a player who does not own the party, or a target outside it, moves nothing
   assert.equal((await handleGiveQuery({ partyId: "p", itemId: "nope", uuid: "Actor.pc" }, { id: "owner", isGM: false })).ok, false);
   assert.deepEqual([created, deleted], [[], []]);
 });
+
+test("a double-click gives the gem once: the second query copies nothing and warns no one", async () => {
+  const { created, deleted } = world();
+  const { handleGiveQuery } = await import("../scripts/party/party-give.mjs");
+  const query = () => handleGiveQuery({ partyId: "p", itemId: "g1", uuid: "Actor.pc" }, { id: "owner", isGM: false });
+  const replies = await Promise.all([query(), query()]);
+  assert.deepEqual(replies.map((r) => r.ok), [true, false]);
+  assert.equal(replies[1].error, undefined, "no warning: the first click worked");
+  assert.deepEqual([created.length, deleted.length], [1, 1]);
+});
