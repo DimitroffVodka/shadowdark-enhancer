@@ -670,7 +670,7 @@ export const TravelBar = {
     const notes = [
       g.fullMoon ? t("SDE.clock.fullMoonOn", { day: g.fullMoon }) : "",
       t("SDE.clock.clickDay"),
-      this._holidays.length && (this._holy.length || !earth) ? "" : t("SDE.clock.noHolidays"),
+      !earth || (this._holidays.length && this._holy.length) ? "" : t("SDE.clock.noHolidays"),
     ].filter(Boolean).join(" ");
     return `<div class="sde-hud-panel sde-hud-wide">
       <div class="sde-hud-ph sde-hud-ph-row">

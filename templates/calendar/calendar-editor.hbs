@@ -9,12 +9,12 @@
 <p class="ui-muted">{{localize "SDE.calendarEditor.intro"}}</p>
 <div class="sde-cal-cols">
   <section class="ui-card">
-    <h3 class="ui-h-text">{{localize "SDE.calendarEditor.months"}}</h3>
+    <h3 class="ui-card-name">{{localize "SDE.calendarEditor.months"}}</h3>
     <div class="sde-cal-rows" data-rows="months">{{#each months}}{{> row month=true label="SDE.calendarEditor.monthName"}}{{/each}}</div>
     <div><button type="button" class="ui-btn" data-action="addRow" data-kind="months"><i class="fa-solid fa-plus" inert></i> {{localize "SDE.calendarEditor.addMonth"}}</button></div>
   </section>
   <section class="ui-card">
-    <h3 class="ui-h-text">{{localize "SDE.calendarEditor.weekdays"}}</h3>
+    <h3 class="ui-card-name">{{localize "SDE.calendarEditor.weekdays"}}</h3>
     <div class="sde-cal-rows" data-rows="weekdays">{{#each weekdays}}{{> row label="SDE.calendarEditor.weekdayName"}}{{/each}}</div>
     <div><button type="button" class="ui-btn" data-action="addRow" data-kind="weekdays"><i class="fa-solid fa-plus" inert></i> {{localize "SDE.calendarEditor.addWeekday"}}</button></div>
     <p class="ui-muted">{{localize "SDE.calendarEditor.noOutside"}}</p>
