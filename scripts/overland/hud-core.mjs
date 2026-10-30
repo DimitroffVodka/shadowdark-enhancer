@@ -9,7 +9,7 @@
 
 import { secondsPerDay, startOfDay, moonPhase, anchor, season as seasonAt } from "../time/time-core.mjs";
 import { esc } from "../shared/esc.mjs";
-import { solarOn } from "../calendar/calendar-core.mjs";
+import { solarAt } from "../calendar/calendar-core.mjs";
 
 /**
  * Who sees the bar: the `clockBar` setting's choices, on a hex map only (#298).
@@ -217,6 +217,9 @@ export function dialMarkup({ d, hoursPerDay = 24, region = "", terrain = "", lab
  */
 export const seasonHatch = (daysLeft) => +(Math.max(0, Math.min(1, (30 - daysLeft) / 30)) * 30).toFixed(1);
 
+/** No month runs longer than a year: the bound on walking one day by day. */
+const monthCap = (cal) => (cal.days?.daysPerYear ?? 365) + 2;
+
 /**
  * The 00:00 of the first day of `t`'s month, read back from the calendar: the
  * earliest day with the same year and month. Not "day of month 0": core v14
@@ -226,7 +229,7 @@ function firstOfMonth(cal, t) {
   const spd = secondsPerDay(cal);
   let at = startOfDay(cal, t);
   const { year, month } = cal.timeToComponents(at);
-  for (let i = 0; i < 64; i++) {
+  for (let i = 0; i < monthCap(cal); i++) {
     const before = cal.timeToComponents(at - spd);
     if (before.year !== year || before.month !== month) break;
     at -= spd;
@@ -238,9 +241,16 @@ function firstOfMonth(cal, t) {
 function shiftMonth(cal, first, by) {
   const spd = secondsPerDay(cal);
   let at = first;
-  // From a month's first day, 32 days on is always inside the next month
-  // (months run 28 to 31 days); a day back is inside the one before.
-  for (let k = 0; k < Math.abs(by); k++) at = by > 0 ? firstOfMonth(cal, at + 32 * spd) : firstOfMonth(cal, at - spd);
+  // A day back is inside the month before; forward, walk out of this one, whatever its length.
+  for (let k = 0; k < Math.abs(by); k++) {
+    if (by < 0) { at = firstOfMonth(cal, at - spd); continue; }
+    const { year, month } = cal.timeToComponents(at);
+    for (let i = 0; i < monthCap(cal); i++) {
+      at += spd;
+      const c = cal.timeToComponents(at);
+      if (c.year !== year || c.month !== month) break;
+    }
+  }
   return at;
 }
 
@@ -257,9 +267,10 @@ const MOON_MARKS = [[0.25, "q1"], [0.5, "full"], [0.75, "q3"]];
  * where its own components say.
  * @param {object} cal  game.time.calendar
  * @param {number} t    now
- * @param {{offset?:number, epoch?:number, holidaysOn?:(date:object) => string[]}} [opts]
+ * @param {{offset?:number, epoch?:number, holidaysOn?:(date:object) => string[], earth?:boolean}} [opts]
+ *   earth: false on a calendar that is not Earth's (calendar-core's solarAt)
  */
-export function monthGrid(cal, t, { offset = 0, epoch = 0, holidaysOn = () => [] } = {}) {
+export function monthGrid(cal, t, { offset = 0, epoch = 0, holidaysOn = () => [], earth = true } = {}) {
   const spd = secondsPerDay(cal);
   const today = startOfDay(cal, t);
   const first = shiftMonth(cal, firstOfMonth(cal, t), offset);
@@ -270,14 +281,14 @@ export function monthGrid(cal, t, { offset = 0, epoch = 0, holidaysOn = () => []
   let seasonDay = 1;
   for (let k = 1; k <= 120 && cal.timeToComponents(first - k * spd).season === head.season; k++) seasonDay++;
   const days = [];
-  for (let at = first, i = 0; i < 64; at += spd, i++) {
+  for (let at = first, i = 0; i < monthCap(cal); at += spd, i++) {
     const c = cal.timeToComponents(at);
     if (c.month !== head.month || c.year !== head.year) break;
     const a = moonPhase(cal, at, epoch).fraction, b = moonPhase(cal, at + spd, epoch).fraction;
     const moon = b < a ? "new" : MOON_MARKS.find(([q]) => a <= q && b > q)?.[1] ?? null;
     const seasonStart = c.season !== cal.timeToComponents(at - spd).season ? c.season : null;
     if (i > 0) seasonDay = seasonStart !== null ? 1 : seasonDay + 1;
-    const solar = solarOn(c.year + (cal.years?.yearZero ?? 0), c.month + 1, c.dayOfMonth + 1);
+    const solar = solarAt(cal, at, earth);
     const date = { year: c.year, month: c.month + 1, day: c.dayOfMonth + 1, isLastFullMoonOfYear: lastFull === at, solar };
     days.push({
       day: c.dayOfMonth + 1, at, moon, today: at === today, holidays: holidaysOn(date),
@@ -285,7 +296,8 @@ export function monthGrid(cal, t, { offset = 0, epoch = 0, holidaysOn = () => []
       seasonStart, seasonDay, seasonKey: seasonAt(cal, at).key,
     });
   }
-  const lead = head.dayOfWeek % week;
+  // Before the clock's first second core's weekday is negative: a Custom world starts there.
+  const lead = ((head.dayOfWeek % week) + week) % week;
   const trail = (week - ((lead + days.length) % week)) % week;
   const before = Array.from({ length: lead }, (_, i) => ({ day: cal.timeToComponents(first - (lead - i) * spd).dayOfMonth + 1, out: true }));
   const after = Array.from({ length: trail }, (_, i) => ({ day: i + 1, out: true }));

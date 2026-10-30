@@ -4,13 +4,13 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import {
-  ENTRY_KINDS, MAX_ENTRIES, cleanEntry, customCalendar, dayEvents, eclipsesOn, paragraphs, solarOn, withEntry, withRows, withoutEntry,
+  ENTRY_KINDS, MAX_ENTRIES, cleanEntry, customCalendar, dayEvents, eclipsesOn, paragraphs, solarAt, solarOn, withEntry, withRows, withoutEntry,
 } from "../scripts/calendar/calendar-core.mjs";
 import { ECLIPSES, NEW_MOON, SEASON_DAYS } from "../scripts/calendar/eclipse-data.mjs";
 import { monthGrid, dateToTime } from "../scripts/overland/hud-core.mjs";
 import { moonPhase, season, secondsPerDay } from "../scripts/time/time-core.mjs";
 import { defaultMoonEpoch } from "../scripts/time/time.mjs";
-import { holidayEffects } from "../scripts/holidays/holidays.mjs";
+import { holidayEffects, whenMatches } from "../scripts/holidays/holidays.mjs";
 import { gregorian, at, shaped } from "./gregorian-calendar.mjs";
 
 const DAY = secondsPerDay(gregorian);
@@ -211,4 +211,63 @@ test("the editor's rows replace the months and keep what a row does not show", (
   assert.equal(longer.seasons, undefined, "a year of another shape takes fresh seasons");
   assert.equal(longer.days.hoursPerDay, 20);
   assert.equal(longer.years.yearZero, 9);
+});
+
+// ── What the calendar shows on one that is not Earth's ───────────────────────
+
+const custom = (months, week = 7) => shaped(customCalendar({
+  months: { values: months.map((days, i) => month(`M${i + 1}`, days)) },
+  days: { values: Array.from({ length: week }, (_, i) => ({ name: `W${i + 1}` })) },
+}).config);
+const dayOf = (cal, n) => n * secondsPerDay(cal);
+
+test("no eclipse on a calendar that is not Earth's, though the date matches one", () => {
+  const [y, m, d] = ECLIPSES[0];
+  const cell = { day: d, at: 0, holidays: [] };
+  assert.ok(dayEvents({ cell, year: y, month: m, spd: DAY }).some((e) => e.kind === "eclipse"));
+  assert.ok(!dayEvents({ cell, year: y, month: m, spd: DAY, earth: false }).some((e) => e.kind === "eclipse"));
+});
+
+test("off Earth the sun's four days are its own anchors, not the 1348 table", () => {
+  const cal = custom(Array(12).fill(28));
+  const grid = (m) => monthGrid(cal, dayOf(cal, (m - 1) * 28 + 28 * 1348 * 12), { earth: false }).cells.filter((c) => c.solar).map((c) => [c.day, c.solar]);
+  assert.deepEqual(grid(3), [[20, "springEquinox"]], "12 March would be the table's");
+  assert.deepEqual(grid(6), [[21, "summerSolstice"]]);
+  assert.deepEqual(grid(12), [[21, "winterSolstice"]]);
+  const ten = custom(Array(10).fill(36));
+  const found = Array.from({ length: 360 }, (_, i) => solarAt(ten, dayOf(ten, i), false)).filter(Boolean);
+  assert.deepEqual(found.sort(), ["autumnEquinox", "springEquinox", "summerSolstice", "winterSolstice"], "a calendar with no twelfth month still has all four");
+});
+
+test("the holiday that follows the sun falls on the anchor of a calendar that has no twelfth month", () => {
+  const ten = custom(Array(10).fill(36));
+  const day = Array.from({ length: 360 }, (_, i) => dayOf(ten, i)).find((at) => solarAt(ten, at, false) === "summerSolstice");
+  assert.ok(whenMatches({ anchor: "summerSolstice" }, { month: 5, day: 28, solar: solarAt(ten, day, false) }));
+  assert.ok(!whenMatches({ anchor: "summerSolstice" }, { month: 6, day: 21, solar: null }), "not the Gregorian date");
+  assert.ok(whenMatches({ anchor: "springCrossQuarter" }, { month: 5, day: 1, solar: null }), "Maytide is the 1st of the 5th month");
+});
+
+test("the month view pages through months of any length, and a long one fills its grid", () => {
+  const cal = custom([50, 10, 36], 5);
+  const names = [0, 1, 2, 3, 4].map((offset) => monthGrid(cal, 0, { offset, earth: false })).map((g) => [g.month, g.cells.filter((c) => !c.out).length]);
+  assert.deepEqual(names, [["M1", 50], ["M2", 10], ["M3", 36], ["M1", 50], ["M2", 10]]);
+  assert.deepEqual(monthGrid(cal, dayOf(cal, 55), { offset: -1, earth: false }).month, "M1");
+  const one = custom([400]);
+  assert.equal(monthGrid(one, 0, { earth: false }).cells.filter((c) => !c.out).length, 400);
+  assert.equal(monthGrid(one, 0, { earth: false, offset: 1 }).year, 1);
+});
+
+test("a Custom world at the clock's first second can look back a month", () => {
+  const cal = custom([30, 30], 7);
+  const g = monthGrid(cal, 0, { offset: -1, earth: false });
+  assert.equal(g.month, "M2");
+  assert.equal(g.year, -1);
+  assert.equal(g.cells.length % 7, 0, "the weeks stay whole before second 0");
+});
+
+test("a date round-trips through a calendar of another shape, and one it lacks is refused", () => {
+  const cal = custom([50, 10, 36], 5);
+  assert.equal(dateToTime(cal, { year: 3, month: 2, day: 10 }), dayOf(cal, 3 * 96 + 59));
+  assert.equal(dateToTime(cal, { year: 3, month: 2, day: 11 }), null);
+  assert.equal(dateToTime(cal, { year: 3, month: 4, day: 1 }), null);
 });

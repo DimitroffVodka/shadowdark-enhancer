@@ -66,7 +66,7 @@ import { isPacedStep, moonEpoch, onShownTime, shownTime } from "../time/time.mjs
 import { dayEvents, paragraphs } from "../calendar/calendar-core.mjs";
 import { holyWindows } from "../holidays/holy-days.mjs";
 import { gmOnlyKeys, holidayEffects, readHolyDayText, setGmOnly } from "../holidays/holidays.mjs";
-import { CALENDAR_CHANGED, addCalendarEntry, calendarEntries, removeCalendarEntry } from "../calendar/calendar.mjs";
+import { CALENDAR_CHANGED, addCalendarEntry, calendarEntries, earthCalendar, removeCalendarEntry } from "../calendar/calendar.mjs";
 
 const BAR_ID = "shadowdark-enhancer-travel";
 
@@ -648,10 +648,11 @@ export const TravelBar = {
     let epoch = 0;
     try { epoch = moonEpoch(); } catch { /* default */ }
     const holidaysOn = (date) => this._holidays.filter((h) => this._whenMatches?.(h.when, date)).map((h) => h.name);
-    const g = monthGrid(cal, now, { offset: this._monthOffset, epoch, holidaysOn });
+    const earth = earthCalendar();
+    const g = monthGrid(cal, now, { offset: this._monthOffset, epoch, holidaysOn, earth });
     const spd = secondsPerDay(cal);
     const entries = calendarEntries();
-    const events = g.cells.map((cell) => (cell.out ? [] : dayEvents({ cell, year: g.year, month: g.monthNumber, spd, entries, gm, holy: this._holy })));
+    const events = g.cells.map((cell) => (cell.out ? [] : dayEvents({ cell, year: g.year, month: g.monthNumber, spd, entries, gm, holy: this._holy, earth })));
     const heads = g.weekdays.map((w) => `<div class="sde-hud-dow">${esc(t(w))}</div>`).join("");
     const cells = g.cells.map((cell, i) => {
       if (cell.out) return `<div class="sde-hud-day sde-hud-out">${cell.day}</div>`;
@@ -669,7 +670,7 @@ export const TravelBar = {
     const notes = [
       g.fullMoon ? t("SDE.clock.fullMoonOn", { day: g.fullMoon }) : "",
       t("SDE.clock.clickDay"),
-      this._holidays.length && this._holy.length ? "" : t("SDE.clock.noHolidays"),
+      this._holidays.length && (this._holy.length || !earth) ? "" : t("SDE.clock.noHolidays"),
     ].filter(Boolean).join(" ");
     return `<div class="sde-hud-panel sde-hud-wide">
       <div class="sde-hud-ph sde-hud-ph-row">
@@ -822,7 +823,7 @@ export const TravelBar = {
     return `<div class="sde-hud-add">
       <span class="sde-hud-cap">${esc(t("SDE.calendar.add"))}</span>
       <div class="sde-hud-row">
-        <input class="sde-hud-field" id="sde-hud-e-date" type="date" value="${esc(date)}" aria-label="${esc(t("SDE.calendar.date"))}">
+        <input class="sde-hud-field" id="sde-hud-e-date" type="${earthCalendar() ? "date" : "text"}" value="${esc(date)}" aria-label="${esc(t("SDE.calendar.date"))}">
         <select class="sde-hud-field" id="sde-hud-e-kind" aria-label="${esc(t("SDE.calendar.type"))}">${kinds}</select>
       </div>
       <input class="sde-hud-field" id="sde-hud-e-title" type="text" maxlength="120" value="${esc(d.title ?? "")}" placeholder="${esc(t("SDE.calendar.title"))}" aria-label="${esc(t("SDE.calendar.title"))}">

@@ -24,9 +24,10 @@
  *   { year, month (1-12), day (1-31), dayOfYear (1-based), isLastFullMoonOfYear? }
  * Solar anchors follow the calendar's sun table where it reaches (1200-1500:
  * the Duke's Ball is 13 June in 1348), through `dateInfo.solar` (currentDateInfo);
- * past it they are the fixed northern dates below, read off the core calendar's
- * month and day, so a calendar that is not Gregorian gets "the 21st day of the
- * 6th month". Maytide keeps the traditional 1 May.
+ * past it they are the fixed northern dates below. A calendar that is not Earth's
+ * has no table: `solar` is the sun's own anchor (calendar-core's solarAt), the
+ * same fraction of a year of any shape. Maytide keeps the traditional 1 May,
+ * which there is the 1st day of the 5th month.
  * Lastmoon is the day of the year's last full moon, from the time API's
  * `anchor("lastFullMoon")` (#227), through currentDateInfo.
  */
@@ -35,7 +36,8 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { CHAPTER_FLAG, CHAPTER_PRESETS, commitChapterJournal, isSameChapter, nameKey, readChapter } from "../importer/chapter-journal.mjs";
 import { timeApi } from "../time/time.mjs";
 import { startOfDay } from "../time/time-core.mjs";
-import { paragraphs, solarOn } from "../calendar/calendar-core.mjs";
+import { paragraphs, solarAt } from "../calendar/calendar-core.mjs";
+import { earthCalendar } from "../calendar/calendar.mjs";
 import { HOLY_DAYS, HOLY_DAY_PRESET, HOLY_DAY_TABLES, HOLY_TEXT_SETTING, parseHolyDayRows } from "./holy-days.mjs";
 
 /** The chapter preset that imports the holiday pages (its src + pages are the journal's identity). */
@@ -176,7 +178,7 @@ export function currentDateInfo() {
   const today = startOfDay(game.time.calendar, game.time.worldTime);
   return {
     year: c.year, month: c.month + 1, day: c.dayOfMonth + 1, dayOfYear: c.day + 1,
-    solar: solarOn(c.year + (game.time.calendar.years?.yearZero ?? 0), c.month + 1, c.dayOfMonth + 1),
+    solar: solarAt(game.time.calendar, today, earthCalendar()),
     isLastFullMoonOfYear: timeApi.anchor("lastFullMoon", c.year) === today,
   };
 }
@@ -463,6 +465,8 @@ export async function calendarHolidays() {
 
 /** The holy days the month view lists for this user: a GM's from the pack, a player's from the copy. */
 export async function calendarHolyDays() {
+  // A rule counts days from Earth's seasons: on another calendar it lands on nothing true.
+  if (!earthCalendar()) return [];
   if (game.user?.isGM) return listHolyDays();
   const { holy } = readLore();
   const text = holyDayText();

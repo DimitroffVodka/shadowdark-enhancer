@@ -14,6 +14,11 @@ import { at, clockAt, gregorian } from "./gregorian-calendar.mjs";
 const byKey = Object.fromEntries(HOLIDAYS.map((h) => [h.key, h]));
 const on = (month, day, extra = {}) => ({ year: 1300, month, day, dayOfYear: 0, ...extra });
 
+// core's calendar, as earthCalendar() reads it; a test that wants another swaps worldCalendarConfig.
+const CORE_CALENDAR = {};
+globalThis.foundry = { ...globalThis.foundry, data: { ...globalThis.foundry?.data, SIMPLIFIED_GREGORIAN_CALENDAR_CONFIG: CORE_CALENDAR } };
+globalThis.CONFIG = { time: { worldCalendarConfig: CORE_CALENDAR } };
+
 test("four holidays, each with a place, a when rule, carousing mechanics and garb questions", () => {
   assert.deepEqual(HOLIDAYS.map((h) => h.name), ["Lastmoon", "Maytide", "Night of St. Anton", "The Duke's Ball"]);
   for (const h of HOLIDAYS) {
@@ -201,6 +206,19 @@ test("a player sees the holidays and holy days from the copy, with their text an
   globalThis.game.user = { isGM: true };
   assert.deepEqual((await calendarHolidays()).map((h) => h.key), ["lastmoon", "maytide", "st-anton", "dukes-ball"], "a GM's come from the journal");
   assert.ok((await calendarHolidays())[0].pageUuid);
+});
+
+test("the gods' holy days hide on a calendar that is not Earth's: their rules count Earth's seasons", async () => {
+  globalThis.game.settings = { get: () => ({ holidays: { maytide: ["Spring text."] }, holy: ["forgefire"] }) };
+  globalThis.game.user = { isGM: false };
+  assert.equal((await calendarHolyDays()).length, 1);
+  globalThis.CONFIG.time.worldCalendarConfig = { name: "Custom" };
+  try {
+    assert.deepEqual(await calendarHolyDays(), []);
+    assert.deepEqual((await calendarHolidays()).map((h) => h.key), ["maytide"], "the imported holidays stay");
+  } finally {
+    globalThis.CONFIG.time.worldCalendarConfig = CORE_CALENDAR;
+  }
 });
 
 test("a holiday or holy day switched to GM only is left out of the players' copy", () => {
