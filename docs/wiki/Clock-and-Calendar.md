@@ -226,3 +226,7 @@ A world whose clock has never been set starts on **12 March 1348, 08:00**
 instead of 1 January of year 0, once, the first time a GM loads it. A clock
 anyone has already set is left alone. Set another date any time by clicking the
 month and year in the month view.
+
+The module leaves the date alone in a world that keeps it some other way: when
+Simple Calendar, Simple Calendar Reborn, Calendaria or Simple Timekeeping is
+active, or when the world's calendar is not Foundry's own.

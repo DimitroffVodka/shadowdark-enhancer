@@ -24,6 +24,9 @@ export const CALENDAR_CHANGED = `${MODULE_ID}.calendarChanged`;
 /** The day a new campaign starts on: the Western Reaches' own, in the year of the Black Death. */
 export const CAMPAIGN_START = { year: 1348, month: 3, day: 12, hour: 8, minute: 0 };
 
+/** Modules that keep the date themselves. Most leave core's calendar as it is, so only their id gives them away. */
+export const DATE_OWNERS = ["foundryvtt-simple-calendar", "foundryvtt-simple-calendar-reborn", "calendaria", "simple-timekeeping"];
+
 /** The stored entries, oldest first. */
 export function calendarEntries() {
   try {
@@ -78,14 +81,21 @@ export function whereLine(hex) {
   return parts.join(", ");
 }
 
+/** Is the world on core's own calendar: not a module's, and not the GM's Custom one. */
+export const earthCalendar = () => CONFIG.time.worldCalendarConfig === foundry.data.SIMPLIFIED_GREGORIAN_CALENDAR_CONFIG;
+
+/** The active module that keeps this world's date, or null. */
+export const dateOwner = () => DATE_OWNERS.map((id) => game.modules.get(id)).find((m) => m?.active) ?? null;
+
 /**
  * A new world's clock sits at the calendar's first second, year 0. Once, the
  * active GM moves it to CAMPAIGN_START; a clock anyone has set already is left
- * alone. Moves like the Time panel's date: forward, off duty.
+ * alone, and so is a date that is not ours: a calendar module reads these same
+ * seconds through its own months. Moves like the Time panel's date: forward, off duty.
  */
 export async function applyCampaignStart() {
   if (!isActiveGM() || game.settings.get(MODULE_ID, STARTED_SETTING)) return;
-  if (game.time.worldTime === 0) {
+  if (game.time.worldTime === 0 && earthCalendar() && !dateOwner()) {
     const to = dateToTime(game.time.calendar, CAMPAIGN_START);
     if (to > 0) await timeApi.advanceOffDuty(to, { reason: "calendar" });
   }

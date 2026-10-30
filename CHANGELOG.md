@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **A new world no longer overwrites another calendar's date.** The campaign start jump to 12 March 1348 is counted in Foundry's own calendar, so a world running Simple Calendar, Simple Calendar Reborn, Calendaria or Simple Timekeeping, or any world calendar that is not Foundry's, read those same seconds as a different date. The jump now skips those worlds. It runs once, so a world it already moved keeps its date until a GM sets it back.
+
 ## [0.20.1] — 2026-10-26
 
 ### Added
