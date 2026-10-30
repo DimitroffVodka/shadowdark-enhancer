@@ -1,5 +1,5 @@
 // The campaign start date: it moves a new world's clock once, and never a clock
-// another calendar is reading.
+// another calendar is reading. And what Save in the calendar editor switches.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { gregorian } from "./gregorian-calendar.mjs";
@@ -7,7 +7,7 @@ import { gregorian } from "./gregorian-calendar.mjs";
 const CORE = { name: "Simplified Gregorian" };
 globalThis.foundry = { data: { SIMPLIFIED_GREGORIAN_CALENDAR_CONFIG: CORE }, applications: { api: {} } };
 
-const { CAMPAIGN_START, DATE_OWNERS, STARTED_SETTING, applyCampaignStart } = await import("../scripts/calendar/calendar.mjs");
+const { CAMPAIGN_START, CHOICE_SETTING, CUSTOM_SETTING, DATE_OWNERS, STARTED_SETTING, applyCampaignStart, saveCalendar } = await import("../scripts/calendar/calendar.mjs");
 const { timeApi } = await import("../scripts/time/time.mjs");
 const { dateToTime } = await import("../scripts/overland/hud-core.mjs");
 
@@ -54,4 +54,25 @@ test("a world calendar that is not core's gets no jump: 1348 is a Gregorian coun
   const { moves, writes } = await start({ config: { name: "Someone's" } });
   assert.deepEqual(moves, []);
   assert.deepEqual(writes, [[STARTED_SETTING, true]]);
+});
+
+/** A GM pressing Save: whether the world reloads, and what was written. */
+async function save({ config = CORE, active = [] } = {}) {
+  const writes = [];
+  globalThis.CONFIG = { time: { worldCalendarConfig: config } };
+  globalThis.game = {
+    modules: new Map(active.map((id) => [id, { id, title: id, active: true }])),
+    settings: { set: async (_ns, key, value) => writes.push([key, value]) },
+  };
+  return { live: await saveCalendar({ months: "mine" }), writes };
+}
+
+test("Save puts a Gregorian world on the GM's calendar: the one step that makes it live", async () => {
+  assert.deepEqual(await save(), { live: true, writes: [[CUSTOM_SETTING, { months: "mine" }], [CHOICE_SETTING, "custom"]] });
+});
+
+test("Save under a module that runs the calendar only keeps it, and asks for no reload", async () => {
+  const kept = { live: false, writes: [[CUSTOM_SETTING, { months: "mine" }]] };
+  assert.deepEqual(await save({ active: ["calendaria"] }), kept);
+  assert.deepEqual(await save({ config: { name: "Someone's" } }), { ...kept }, "a world calendar no id gives away");
 });

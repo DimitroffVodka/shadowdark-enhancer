@@ -118,6 +118,18 @@ export function checkedCalendar(raw) {
 }
 
 /**
+ * Keep the GM's calendar and put the world on it, or only keep it while another
+ * module runs the calendar: the switch would do nothing there.
+ * @returns {Promise<boolean>} whether the world must reload to show it
+ */
+export async function saveCalendar(raw) {
+  await game.settings.set(MODULE_ID, CUSTOM_SETTING, raw);
+  if (calendarTaker()) return false;
+  await game.settings.set(MODULE_ID, CHOICE_SETTING, "custom");
+  return true;
+}
+
+/**
  * Put a Custom world on the GM's calendar. At init: core builds `game.time`
  * from CONFIG at setupGame, once. Steps aside for a calendar that is already
  * someone else's; one that claims CONFIG later than this wins by itself.

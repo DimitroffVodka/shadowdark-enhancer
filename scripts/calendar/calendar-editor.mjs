@@ -1,13 +1,13 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { L as t } from "../shared/i18n.mjs";
-import { CHOICE_SETTING, CUSTOM_SETTING, calendarTaker, checkedCalendar } from "./calendar.mjs";
+import { CUSTOM_SETTING, calendarTaker, checkedCalendar, saveCalendar } from "./calendar.mjs";
 import { withRows } from "./calendar-core.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 /**
- * The Custom calendar's editor, a GM's window from the Overland settings: rows
- * for the months and weekdays, and the whole config as text to paste or copy.
+ * The Custom calendar's editor, a GM's window from the month view or the Overland
+ * settings: rows for the months and weekdays, and the whole config as text to paste or copy.
  * What it stores is what the GM gave; calendar.mjs turns that into core's config.
  */
 export class CalendarEditor extends HandlebarsApplicationMixin(ApplicationV2) {
@@ -24,6 +24,11 @@ export class CalendarEditor extends HandlebarsApplicationMixin(ApplicationV2) {
   static PARTS = {
     form: { template: `modules/${MODULE_ID}/templates/calendar/calendar-editor.hbs`, scrollable: [".ui-body"] },
   };
+
+  /** One window, however many times the button is pressed. */
+  static open() {
+    return (foundry.applications.instances.get(CalendarEditor.DEFAULT_OPTIONS.id) ?? new CalendarEditor()).render({ force: true });
+  }
 
   /** The stored calendar, or core's to start from. */
   _raw() {
@@ -74,9 +79,9 @@ export class CalendarEditor extends HandlebarsApplicationMixin(ApplicationV2) {
     const raw = this._read(form);
     const { error } = raw ? checkedCalendar(raw) : { error: "SDE.calendarEditor.error.json" };
     if (error) return ui.notifications.error(t(error));
-    await game.settings.set(MODULE_ID, CUSTOM_SETTING, raw);
+    const live = await saveCalendar(raw);
     await this.close();
-    if (game.settings.get(MODULE_ID, CHOICE_SETTING) === "custom") await foundry.applications.settings.SettingsConfig.reloadConfirm({ world: true });
-    else ui.notifications.info(t("SDE.calendarEditor.saved"));
+    if (live) await foundry.applications.settings.SettingsConfig.reloadConfirm({ world: true });
+    else ui.notifications.info(t("SDE.calendarEditor.saved", { name: calendarTaker() }));
   }
 }

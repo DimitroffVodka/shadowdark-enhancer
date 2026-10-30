@@ -681,6 +681,7 @@ export const TravelBar = {
       </div>
       <div class="sde-hud-pb">${gm && this._dateEdit ? this._dateRow(cal, parts) : ""}<div class="sde-hud-mgrid" style="grid-template-columns:repeat(${g.weekdays.length || 7},minmax(0,1fr))">${heads}${cells}</div>
         <span class="sde-hud-fl">${esc(notes)}</span>
+        ${gm ? `<div class="sde-hud-trow">${key("editCalendar", t("SDE.settings.calendarEditor.label"), { cls: "sde-hud-sm", hint: t("SDE.settings.calendarEditor.hint") })}</div>` : ""}
         ${this._detail(g, events, cal, gm)}
         ${agenda ? `<ul class="sde-hud-agenda">${agenda}</ul>` : `<span class="sde-hud-fl">${esc(t("SDE.calendar.empty"))}</span>`}
         ${gm ? this._entryForm(g, parts) : ""}</div>
@@ -983,6 +984,7 @@ export const TravelBar = {
       case "toggleGmOnly": await setGmOnly(id, !gmOnlyKeys().includes(id)); return this.render();
       case "readHolyText": await readHolyDayText(); await this._loadHolidays(); return this.render();
       case "closeInfo": this._info = null; return this.render();
+      case "editCalendar": return (await import("../calendar/calendar-editor.mjs")).CalendarEditor.open();
       case "openPage": {
         const page = await fromUuid(id);
         return page?.parent?.sheet?.render({ force: true, pageId: page.id });

@@ -5,7 +5,7 @@
 </div>{{/inline}}
 <div class="ui-shell sde-cal">
 <div class="ui-body">
-{{#if taken}}<p class="ui-note warn">{{taken}}</p>{{/if}}
+{{#if taken}}<p class="ui-note warn">{{taken}}</p>{{else}}<p class="ui-note">{{localize "SDE.calendarEditor.goesLive"}}</p>{{/if}}
 <p class="ui-muted">{{localize "SDE.calendarEditor.intro"}}</p>
 <div class="sde-cal-cols">
   <section class="ui-card">

@@ -236,11 +236,17 @@ active, or when the world's calendar is not Foundry's own.
 Gregorian is the default, and a world that never touches this stays exactly as
 it was. For your own months and weekdays:
 
-1. In **Configure Settings → Shadowdark Enhancer → Overland**, set **Calendar**
-   to **Custom** and save. The world reloads.
-2. Press **Edit calendar**. Name the months, give each its length, and name the
-   weekdays. It starts from Foundry's calendar, so you only change what differs.
-3. Save. The world reloads on the new calendar.
+1. As a GM, open the month view and press **Edit calendar**, under the grid. The
+   same button sits in **Configure Settings → Shadowdark Enhancer → Overland**,
+   for a world with no hex map to show the clock bar.
+2. Name the months, give each its length, and name the weekdays. It starts from
+   Foundry's calendar, so you only change what differs.
+3. Save. Calendar switches to **Custom** and the world reloads on the new
+   calendar for everyone.
+
+To go back, set **Calendar** to **Gregorian** in the Overland settings. Your
+calendar stays saved for next time. While another module runs the calendar, Save
+only keeps yours and the world stays as it is.
 
 **Paste or copy a calendar** at the bottom of that window holds the whole
 calendar as a Foundry v14 config in JSON. Copy it to share your calendar; paste
