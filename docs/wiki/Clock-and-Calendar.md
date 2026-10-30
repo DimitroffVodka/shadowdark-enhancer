@@ -230,3 +230,48 @@ month and year in the month view.
 The module leaves the date alone in a world that keeps it some other way: when
 Simple Calendar, Simple Calendar Reborn, Calendaria or Simple Timekeeping is
 active, or when the world's calendar is not Foundry's own.
+
+## A calendar of your own
+
+Gregorian is the default, and a world that never touches this stays exactly as
+it was. For your own months and weekdays:
+
+1. In **Configure Settings → Shadowdark Enhancer → Overland**, set **Calendar**
+   to **Custom** and save. The world reloads.
+2. Press **Edit calendar**. Name the months, give each its length, and name the
+   weekdays. It starts from Foundry's calendar, so you only change what differs.
+3. Save. The world reloads on the new calendar.
+
+**Paste or copy a calendar** at the bottom of that window holds the whole
+calendar as a Foundry v14 config in JSON. Copy it to share your calendar; paste
+one in and it replaces the rows when you save. A pasted calendar keeps its own
+hours in a day, leap years, seasons and year numbering. If it leaves seasons out,
+the four usual ones are spread over its year.
+
+The clock is a count of seconds, and the calendar decides what those seconds
+read as. Changing the calendar keeps every entry on the same moment but changes
+the date the world shows, so set the date you want from the month view
+afterwards.
+
+On a Custom calendar:
+
+- The clock, travel hours, sunrise and night, entries, quests and the moon all
+  work as usual. The month view shows your months and your length of week.
+- The equinoxes and solstices sit where the sun's day length turns, in the same
+  place every year, and the Cursed Scroll 6 holidays that follow the sun fall on
+  those days. Maytide is the first day of the fifth month.
+- **Eclipses and the gods' holy days are hidden.** They are Earth dates.
+- A new world stays on the first day of the calendar's first year: the jump to
+  1348 is only for Foundry's calendar.
+- The moon is a plain 29.5-day cycle. It does not follow a setting's printed moon
+  table.
+
+Foundry counts every day toward the week, so a calendar cannot have days that
+sit outside it, such as Dolmenwood's Wysendays. A long month and a weekday that
+slips is the closest it comes.
+
+If Simple Calendar, Simple Calendar Reborn, Calendaria or Simple Timekeeping is
+active, or another module sets the world calendar, that module is in charge and
+this setting does nothing. Its hint says so. The Enhancer's clock reads Foundry's
+calendar, so with a module that keeps its own calendar apart from Foundry's, such
+as Simple Calendar, the Enhancer's dates and that module's will differ.

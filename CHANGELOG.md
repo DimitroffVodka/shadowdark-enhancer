@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- **Calendar: Gregorian or Custom.** A new world setting in the Overland settings. Gregorian is the default and changes nothing. Custom uses your own month names and lengths and weekday names, or a whole Foundry v14 calendar config pasted in, and you can copy yours out to share it. Foundry has no days outside the week, so Dolmenwood's Wysendays can't be modelled. No calendars are bundled. When another module sets the world calendar, or Simple Calendar, Simple Calendar Reborn, Calendaria or Simple Timekeeping is active, this setting steps aside and says so. See [Clock and Calendar](docs/wiki/Clock-and-Calendar.md#a-calendar-of-your-own).
+
 ### Fixed
 
 - **A new world no longer overwrites another calendar's date.** The campaign start jump to 12 March 1348 is counted in Foundry's own calendar, so a world running Simple Calendar, Simple Calendar Reborn, Calendaria or Simple Timekeeping, or any world calendar that is not Foundry's, read those same seconds as a different date. The jump now skips those worlds. It runs once, so a world it already moved keeps its date until a GM sets it back.

@@ -82,3 +82,26 @@ export function at(year, month, day, hour = 0, minute = 0) {
 export const clockAt = (t, calendar = gregorian) => ({
   calendar, worldTime: t, get components() { return calendar.timeToComponents(t); },
 });
+
+/**
+ * A calendar of any shape from a config, as core's `timeToComponents` reads one:
+ * no leap years, and seasons by days or months.
+ */
+export function shaped(config) {
+  const { months, days } = config;
+  const spd = days.hoursPerDay * days.minutesPerHour * days.secondsPerMinute;
+  return {
+    ...config,
+    componentsToTime: ({ year = 0, day = 0 } = {}) => (year * days.daysPerYear + day) * spd,
+    timeToComponents(t = 0) {
+      const all = Math.floor(t / spd), year = Math.floor(all / days.daysPerYear), day = all - year * days.daysPerYear;
+      let month = 0, dayOfMonth = day;
+      while (dayOfMonth >= months.values[month].days) dayOfMonth -= months.values[month++].days;
+      const season = config.seasons.values.findIndex((s) => {
+        if (Number.isInteger(s.dayStart)) return s.dayEnd < s.dayStart ? day + 1 >= s.dayStart || day + 1 <= s.dayEnd : day + 1 >= s.dayStart && day + 1 <= s.dayEnd;
+        return month + 1 >= s.monthStart && month + 1 <= s.monthEnd;
+      });
+      return { year, day, month, dayOfMonth, season, dayOfWeek: (all + config.years.firstWeekday) % days.values.length, hour: 0, minute: 0, second: t - all * spd };
+    },
+  };
+}

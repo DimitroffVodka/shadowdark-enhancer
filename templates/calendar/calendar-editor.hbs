@@ -1,0 +1,31 @@
+{{#*inline "row"}}<div class="sde-cal-row">
+  <input type="text" data-name value="{{name}}" aria-label="{{localize label}}" placeholder="{{localize label}}">
+  {{#if month}}<input type="number" data-days min="1" step="1" value="{{days}}" aria-label="{{localize "SDE.calendarEditor.monthDays"}}" data-tooltip="{{localize "SDE.calendarEditor.monthDays"}}">{{/if}}
+  <button type="button" class="ui-icon danger" data-action="removeRow" data-tooltip="{{localize "SDE.calendarEditor.remove"}}" aria-label="{{localize "SDE.calendarEditor.remove"}}"><i class="fa-solid fa-xmark" inert></i></button>
+</div>{{/inline}}
+<div class="ui-shell sde-cal">
+<div class="ui-body">
+{{#if taken}}<p class="ui-note warn">{{taken}}</p>{{/if}}
+<p class="ui-muted">{{localize "SDE.calendarEditor.intro"}}</p>
+<div class="sde-cal-cols">
+  <section class="ui-card">
+    <h3 class="ui-h-text">{{localize "SDE.calendarEditor.months"}}</h3>
+    <div class="sde-cal-rows" data-rows="months">{{#each months}}{{> row month=true label="SDE.calendarEditor.monthName"}}{{/each}}</div>
+    <div><button type="button" class="ui-btn" data-action="addRow" data-kind="months"><i class="fa-solid fa-plus" inert></i> {{localize "SDE.calendarEditor.addMonth"}}</button></div>
+  </section>
+  <section class="ui-card">
+    <h3 class="ui-h-text">{{localize "SDE.calendarEditor.weekdays"}}</h3>
+    <div class="sde-cal-rows" data-rows="weekdays">{{#each weekdays}}{{> row label="SDE.calendarEditor.weekdayName"}}{{/each}}</div>
+    <div><button type="button" class="ui-btn" data-action="addRow" data-kind="weekdays"><i class="fa-solid fa-plus" inert></i> {{localize "SDE.calendarEditor.addWeekday"}}</button></div>
+    <p class="ui-muted">{{localize "SDE.calendarEditor.noOutside"}}</p>
+  </section>
+</div>
+<details class="ui-details"><summary>{{localize "SDE.calendarEditor.paste"}}</summary><div class="ui-details-body">
+  <p class="ui-muted">{{localize "SDE.calendarEditor.pasteHint"}}</p>
+  <textarea name="json" rows="12" spellcheck="false" aria-label="{{localize "SDE.calendarEditor.paste"}}">{{json}}</textarea>
+</div></details>
+<template data-row="months">{{> row month=true days=30 label="SDE.calendarEditor.monthName"}}</template>
+<template data-row="weekdays">{{> row label="SDE.calendarEditor.weekdayName"}}</template>
+</div>
+<footer class="ui-footer"><div class="ui-right"><button type="submit" class="ui-btn primary"><i class="fa-solid fa-floppy-disk" inert></i> {{localize "SETTINGS.Save"}}</button></div></footer>
+</div>

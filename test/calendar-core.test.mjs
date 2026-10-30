@@ -4,14 +4,14 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import {
-  ENTRY_KINDS, MAX_ENTRIES, cleanEntry, dayEvents, eclipsesOn, paragraphs, solarOn, withEntry, withoutEntry,
+  ENTRY_KINDS, MAX_ENTRIES, cleanEntry, customCalendar, dayEvents, eclipsesOn, paragraphs, solarOn, withEntry, withRows, withoutEntry,
 } from "../scripts/calendar/calendar-core.mjs";
 import { ECLIPSES, NEW_MOON, SEASON_DAYS } from "../scripts/calendar/eclipse-data.mjs";
 import { monthGrid, dateToTime } from "../scripts/overland/hud-core.mjs";
-import { moonPhase, secondsPerDay } from "../scripts/time/time-core.mjs";
+import { moonPhase, season, secondsPerDay } from "../scripts/time/time-core.mjs";
 import { defaultMoonEpoch } from "../scripts/time/time.mjs";
 import { holidayEffects } from "../scripts/holidays/holidays.mjs";
-import { gregorian, at } from "./gregorian-calendar.mjs";
+import { gregorian, at, shaped } from "./gregorian-calendar.mjs";
 
 const DAY = secondsPerDay(gregorian);
 
@@ -146,4 +146,69 @@ test("a holiday's carousing effects come out as lines, in reading order", () => 
   assert.equal(duke[2].n, 20);
   assert.deepEqual(holidayEffects({ extraBenefit: true }), [{ key: "SDE.calendar.effect.extraBenefit" }]);
   assert.deepEqual(holidayEffects(undefined), []);
+});
+
+// ── A GM's own calendar ──────────────────────────────────────────────────────
+
+const month = (name, days) => ({ name, days });
+const dolmen = { months: { values: [month("Grimvold", 30), month("Lymewald", 28)] }, days: { values: [{ name: "Colly" }, { name: "Chime" }] } };
+
+test("a calendar of names and lengths becomes a config core can build", () => {
+  const { config, error } = customCalendar(dolmen);
+  assert.equal(error, undefined);
+  assert.equal(config.name, "Custom");
+  assert.equal(config.days.daysPerYear, 58, "counted, never trusted: core walks off the months when it is too big");
+  assert.deepEqual(config.months.values[1], { name: "Lymewald", abbreviation: "Lym", ordinal: 2, days: 28 });
+  assert.deepEqual(config.years, { yearZero: 0, firstWeekday: 0, leapYear: null });
+  assert.deepEqual([config.days.hoursPerDay, config.days.minutesPerHour, config.days.secondsPerMinute], [24, 60, 60]);
+});
+
+test("a pasted calendar's daysPerYear is recounted and its own fields stay", () => {
+  const { config } = customCalendar({
+    name: "Pasted", years: { yearZero: 1000, firstWeekday: 2, leapYear: { leapStart: 4, leapInterval: 4 } },
+    months: { values: [{ ...month("One", 10), leapDays: 11, abbreviation: "1st" }] },
+    days: { values: [{ name: "Day" }], daysPerYear: 400, hoursPerDay: 20 },
+    seasons: { values: [{ name: "Always", monthStart: 1, monthEnd: 1 }] },
+  });
+  assert.equal(config.days.daysPerYear, 10);
+  assert.equal(config.days.hoursPerDay, 20);
+  assert.equal(config.years.yearZero, 1000);
+  assert.deepEqual(config.months.values[0], { name: "One", abbreviation: "1st", ordinal: 1, days: 10, leapDays: 11 });
+  assert.deepEqual(config.seasons.values, [{ name: "Always", monthStart: 1, monthEnd: 1 }]);
+});
+
+test("what core would throw on, or walk off the end of, never reaches it", () => {
+  const bad = (over) => customCalendar({ ...dolmen, ...over }).error;
+  for (const raw of [null, {}, "text", [], { months: { values: [] }, days: dolmen.days }]) assert.ok(customCalendar(raw).error, JSON.stringify(raw));
+  assert.equal(bad({ months: { values: [month("", 30)] } }), "SDE.calendarEditor.error.months");
+  assert.equal(bad({ months: { values: [month("Half", 2.5)] } }), "SDE.calendarEditor.error.months");
+  assert.equal(bad({ months: { values: [month("None", 0)] } }), "SDE.calendarEditor.error.months");
+  assert.equal(bad({ months: { values: [{ ...month("Odd", 30), leapDays: 1.5 }] } }), "SDE.calendarEditor.error.months");
+  assert.equal(bad({ days: { values: [] } }), "SDE.calendarEditor.error.weekdays");
+  assert.equal(bad({ days: { values: [{ name: " " }] } }), "SDE.calendarEditor.error.weekdays");
+  assert.equal(bad({ days: { values: [{ name: "A" }], hoursPerDay: 0 } }), "SDE.calendarEditor.error.time");
+});
+
+test("seasons the GM left out fit a year of any shape and read as the four seasons", () => {
+  const { config } = customCalendar({ ...dolmen, months: { values: Array.from({ length: 10 }, (_, i) => month(`M${i + 1}`, 36)) } });
+  const cal = shaped(config);
+  assert.deepEqual(config.seasons.values.map((s) => [s.dayStart, s.dayEnd]), [[59, 149], [150, 240], [241, 329], [330, 58]]);
+  const at = (day) => season(cal, day * secondsPerDay(cal)).key;
+  assert.deepEqual([at(0), at(100), at(200), at(300), at(350)], ["winter", "spring", "summer", "autumn", "winter"]);
+});
+
+test("the editor's rows replace the months and keep what a row does not show", () => {
+  const raw = { name: "Mine", years: { yearZero: 9 },
+    months: { values: [{ name: "KEY.Feb", abbreviation: "F", days: 28, leapDays: 29 }, month("Two", 30)] },
+    days: { values: [{ name: "KEY.Mon", abbreviation: "M" }], hoursPerDay: 20 },
+    seasons: { values: [{ name: "S", monthStart: 1, monthEnd: 2 }] } };
+  const shown = (s) => s.replace("KEY.", "");
+  const same = withRows(raw, [month("Feb", 28), month("Two", 30)], [{ name: "Mon" }], shown);
+  assert.deepEqual(same, { ...raw, months: { values: [raw.months.values[0], month("Two", 30)] }, days: { ...raw.days, values: [{ name: "KEY.Mon", abbreviation: "M" }] } });
+  const longer = withRows(raw, [month("Renamed", 31), month("Two", 30)], [{ name: "Sun" }], shown);
+  assert.deepEqual(longer.months.values[0], month("Renamed", 31), "a new name and length drop the short name and the leap days");
+  assert.deepEqual(longer.days.values, [{ name: "Sun" }]);
+  assert.equal(longer.seasons, undefined, "a year of another shape takes fresh seasons");
+  assert.equal(longer.days.hoursPerDay, 20);
+  assert.equal(longer.years.yearZero, 9);
 });
