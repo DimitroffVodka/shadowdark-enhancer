@@ -5773,6 +5773,16 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-settings-group .sg-folder { display: flex; gap: 6px; align-items: center; }
 .sde-settings-group .sg-folder > file-picker { flex: 1 1 auto; display: flex; }
 .sde-settings-group .sg-folders-group > label, .sde-settings-group .sg-folders-group > .hint { grid-column: 1 / -1; }
+
+/* The Custom calendar's editor (scripts/calendar/calendar-editor.mjs). */
+.sde-calendar-editor .ui-body { display: flex; flex-direction: column; gap: 10px; }
+.sde-calendar-editor .sde-cal-cols { display: grid; grid-template-columns: 3fr 2fr; gap: 10px; align-items: start; }
+.sde-calendar-editor .sde-cal-rows { display: flex; flex-direction: column; gap: 4px; }
+.sde-calendar-editor .sde-cal-row { display: flex; gap: 6px; align-items: center; }
+.sde-calendar-editor .sde-cal-row input[data-name] { flex: 1 1 auto; min-width: 0; }
+.sde-calendar-editor .sde-cal-even { grid-template-columns: 1fr 1fr; }
+.sde-calendar-editor .sde-cal-row input[type="number"] { flex: 0 0 56px; width: 56px; text-align: center; }
+.sde-calendar-editor textarea { width: 100%; font-family: monospace; font-size: 12px; }
 .sde-settings-group .sg-pending { margin: -4px 0 6px; font-size: 11.5px; font-style: italic; }
 .sde-settings-group .sg-details > summary { font-size: 16px; }
 .sde-settings-group fieldset { min-width: 0; }

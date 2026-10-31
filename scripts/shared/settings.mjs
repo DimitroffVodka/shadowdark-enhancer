@@ -7,6 +7,7 @@ import { defaultCrawlState } from "../crawl-strip/crawl-state-core.mjs";
 import { BOOK_CHECKS, defaultOverlandState } from "../overland/overland-state-core.mjs";
 import { DEFAULT_ENCOUNTER_SOURCES } from "../encounter/encounter-sources.mjs";
 import { RulesDataApp } from "../rules-data/rules-data-app.mjs";
+import { CalendarEditor } from "../calendar/calendar-editor.mjs";
 
 /**
  * Settings-menu entry for Build / Refresh Monster Spells.
@@ -457,6 +458,28 @@ export function registerSettings() {
     },
     default: "all",
     onChange: () => Hooks.callAll(`${MODULE_ID}.clockBarChanged`),
+  });
+
+  // The world's calendar (scripts/calendar): core's own, or the GM's, kept in
+  // calendarCustom ({} until one is saved). Core builds it once, so a change reloads.
+  game.settings.register(MODULE_ID, "calendar", {
+    name: "SDE.settings.calendar.name",
+    hint: "SDE.settings.calendar.hint",
+    scope: "world",
+    config: false,
+    type: String,
+    choices: {
+      gregorian: "SDE.settings.calendar.gregorian",
+      custom: "SDE.settings.calendar.custom",
+    },
+    default: "gregorian",
+    requiresReload: true,
+  });
+  game.settings.register(MODULE_ID, "calendarCustom", {
+    scope: "world",
+    config: false,
+    type: Object,
+    default: {},
   });
 
   // Internal world setting: a worldTime at which the moon was new; the time
@@ -1146,6 +1169,7 @@ export function registerSettings() {
     monsterSpellLibrary: MonsterSpellLibraryMenu,
     levelGuidelines: LevelGuidelinesEditor,
     monsterLoot: MonsterLootReviewApp,
+    calendarEditor: CalendarEditor,
   });
 
   // Rules data (#195): the tables the Western Reaches books consult rather

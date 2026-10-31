@@ -25,7 +25,7 @@ import { rulesApi } from "./rules-data/rules-data-core.mjs";
 import { storedRulesFor } from "./rules-data/rules-data-scope.mjs";
 import { registerRulesNotice } from "./rules-data/rules-data-notice.mjs";
 import { timeApi, registerTimeHooks } from "./time/time.mjs";
-import { registerCalendar } from "./calendar/calendar.mjs";
+import { applyWorldCalendar, registerCalendar } from "./calendar/calendar.mjs";
 import { overlandState, isOverland, rollWeather, startDay, resume, forage, makeCamp, registerOverland, partyReading, setTravelPace, setAutoTravel, setAutoGoal, travelBlocked, rulesScene } from "./overland/overland.mjs";
 import { TravelBar } from "./overland/overland-bar.mjs";
 import { registerHexRules } from "./overland/hex-rules.mjs";
@@ -149,7 +149,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "127f884aaad6";
+const STYLESHEET_REV = "c164b1225b52";
 
 // The same problem for the SCRIPTS, which cannot be solved the same way: their
 // URLs come from the manifest, which Foundry validates as real package paths,
@@ -164,7 +164,7 @@ const STYLESHEET_REV = "127f884aaad6";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "131856fc8ce4";
+const BUILD_REV = "d8ffb69cbe58";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -341,6 +341,8 @@ Hooks.once("init", () => {
   // synchronous cache operation with a fire-and-forget notification.
   initRivalClassTable({ game });
   registerSettings();
+  // Before setupGame, which builds game.time from CONFIG.
+  applyWorldCalendar();
   registerAdventurePackImport();
   // This client's Show weather effects switch (#294), before the first canvas draw.
   registerWeatherVisuals();

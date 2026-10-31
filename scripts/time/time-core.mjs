@@ -189,10 +189,10 @@ function solarAnchor(cal, name, year) {
  * of the last full moon that falls in the year. Null for an unknown name, or
  * for a year too short to hold a full moon.
  */
-export function anchor(cal, name, year, epoch = 0) {
+export function anchor(cal, name, year, epoch = 0, moonDays = SYNODIC_DAYS) {
   if (name === "lastFullMoon") {
     const [start, end] = yearBounds(cal, year);
-    const month = SYNODIC_DAYS * secondsPerDay(cal);
+    const month = moonDays * secondsPerDay(cal);
     // Full moons fall at epoch + (k + ½) months: take the last k before the year ends.
     const k = Math.ceil((end - epoch) / month - 0.5) - 1;
     const full = epoch + (k + 0.5) * month;
@@ -278,8 +278,8 @@ export function nextTimeOfDay(cal, t, which) {
  * `illumination` is the lit part of the disc, 0 to 1.
  * @returns {{index:number, key:string, fraction:number, illumination:number}}
  */
-export function moonPhase(cal, t, epoch = 0) {
-  const months = (t - epoch) / secondsPerDay(cal) / SYNODIC_DAYS;
+export function moonPhase(cal, t, epoch = 0, days = SYNODIC_DAYS) {
+  const months = (t - epoch) / secondsPerDay(cal) / days;
   const fraction = ((months % 1) + 1) % 1;
   const index = Math.round(fraction * 8) % 8;
   return { index, key: MOON_PHASES[index], fraction, illumination: (1 - Math.cos(2 * Math.PI * fraction)) / 2 };

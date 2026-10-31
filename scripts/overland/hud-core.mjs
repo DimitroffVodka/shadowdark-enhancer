@@ -7,9 +7,9 @@
  * 24th of a turn an hour, with now always at the bottom.
  */
 
-import { secondsPerDay, startOfDay, moonPhase, anchor, season as seasonAt } from "../time/time-core.mjs";
+import { SYNODIC_DAYS, secondsPerDay, startOfDay, moonPhase, anchor, season as seasonAt } from "../time/time-core.mjs";
 import { esc } from "../shared/esc.mjs";
-import { solarOn } from "../calendar/calendar-core.mjs";
+import { solarAt } from "../calendar/calendar-core.mjs";
 
 /**
  * Who sees the bar: the `clockBar` setting's choices, on a hex map only (#298).
@@ -76,16 +76,19 @@ function sector(a1, a2, r) {
  * so the hour now always sits at the bottom, under the star; day is the light
  * sector from sunrise to sunset, hatched for the twilight either side. The
  * hour ring carries a tick for each hour and a badge at sunrise and sunset,
- * which turn with the disc. The moon rides the outer track by its phase, not the hour.
- * @param {{hour:number, sunrise:number, sunset:number, moonFraction:number, hoursPerDay?:number}} sky
+ * which turn with the disc. The moon rides the outer track by its phase, not the
+ * hour; a Custom calendar's other moons (`otherMoons`, fractions) ride it smaller.
+ * @param {{hour:number, sunrise:number, sunset:number, moonFraction:number, otherMoons?:number[], hoursPerDay?:number}} sky
  */
-export function dialModel({ hour, sunrise, sunset, moonFraction, hoursPerDay = 24 }) {
+export function dialModel({ hour, sunrise, sunset, moonFraction, otherMoons = [], hoursPerDay = 24 }) {
   const perHour = 360 / hoursPerDay;
   const A = (h) => 90 - perHour * h;
   const tw = DIAL.twilight;
-  const p = ((moonFraction % 1) + 1) % 1;
-  const [mx, my] = point(30 + 120 * p, DIAL.moonTrack);
-  const r = DIAL.moonR;
+  const moonAt = (fraction, r) => {
+    const p = ((fraction % 1) + 1) % 1;
+    const [x, y] = point(30 + 120 * p, DIAL.moonTrack);
+    return { x, y, r, p, shadow: +(p < 0.5 ? -(4 * r * p) : 4 * r * (1 - p)).toFixed(2) };
+  };
   const ticks = Array.from({ length: hoursPerDay }, (_, h) => {
     const weight = h % Math.round(hoursPerDay / 4) === 0 ? 2 : h % Math.round(hoursPerDay / 8) === 0 ? 1 : 0;
     const [x1, y1] = point(A(h), DIAL.ringIn + 1), [x2, y2] = point(A(h), DIAL.ringIn + [4, 7, 10][weight]);
@@ -99,7 +102,8 @@ export function dialModel({ hour, sunrise, sunset, moonFraction, hoursPerDay = 2
     isDay: hour > sunrise + tw && hour < sunset - tw,
     // The next of sunrise and sunset, to name under the weather.
     next: hour < sunrise ? { kind: "rises", hour: sunrise } : hour < sunset ? { kind: "sets", hour: sunset } : { kind: "rises", hour: null },
-    moon: { x: mx, y: my, r, p, shadow: +(p < 0.5 ? -(4 * r * p) : 4 * r * (1 - p)).toFixed(2) },
+    moon: moonAt(moonFraction, DIAL.moonR),
+    others: otherMoons.map((f) => moonAt(f, DIAL.moonR * 0.7)),
     ticks,
     rise: point(A(sunrise), DIAL.ringMid + 2),
     set: point(A(sunset), DIAL.ringMid + 2),
@@ -186,7 +190,8 @@ export function dialMarkup({ d, hoursPerDay = 24, region = "", terrain = "", lab
     <linearGradient id="sde-hud-dayg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f2f2f2"/><stop offset="1" stop-color="#b0b0b0"/></linearGradient>
     <radialGradient id="sde-hud-moonglow"><stop offset=".55" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
     <clipPath id="sde-hud-disc"><circle cx="${cx}" cy="${cy}" r="${disc}"/></clipPath>
-    <clipPath id="sde-hud-moonc"><circle cx="${m.x}" cy="${m.y}" r="${m.r}"/></clipPath>
+    <clipPath id="sde-hud-moonc"><circle cx="${m.x}" cy="${m.y}" r="${m.r}"/></clipPath>${(d.others ?? []).map((o, i) => `
+    <clipPath id="sde-hud-moonc${i}"><circle cx="${o.x}" cy="${o.y}" r="${o.r}"/></clipPath>`).join("")}
   </defs>
   <circle cx="${cx}" cy="${cy}" r="${DIAL.frame - 1}" fill="#000"/>
   <circle cx="${cx}" cy="${cy}" r="${DIAL.moonTrack}" class="sde-hud-track"/>
@@ -206,7 +211,9 @@ export function dialMarkup({ d, hoursPerDay = 24, region = "", terrain = "", lab
   <path transform="translate(${cx} ${cy + DIAL.ringMid})"${nowTip ? ` data-tooltip="${esc(nowTip)}"` : ""} d="M0 -11 L2.6 -2.6 L11 0 L2.6 2.6 L0 11 L-2.6 2.6 L-11 0 L-2.6 -2.6 Z" fill="#ffffff" stroke="#000" stroke-width="1.5"/>
   <circle cx="${m.x}" cy="${m.y}" r="${m.r + 9}" fill="url(#sde-hud-moonglow)" opacity="${+(0.35 + 0.65 * Math.sin(Math.PI * m.p)).toFixed(2)}"/>
   <g clip-path="url(#sde-hud-moonc)"><circle cx="${m.x}" cy="${m.y}" r="${m.r}" fill="#f0f0f0"/><circle cx="${+(m.x + m.shadow).toFixed(1)}" cy="${m.y}" r="${m.r}" fill="#000"/></g>
-  <circle cx="${m.x}" cy="${m.y}" r="${m.r}" fill="none" stroke="#c9c9c9" stroke-width="1"/>
+  <circle cx="${m.x}" cy="${m.y}" r="${m.r}" fill="none" stroke="#c9c9c9" stroke-width="1"/>${(d.others ?? []).map((o, i) => `
+  <g clip-path="url(#sde-hud-moonc${i})"><circle cx="${o.x}" cy="${o.y}" r="${o.r}" fill="#f0f0f0"/><circle cx="${+(o.x + o.shadow).toFixed(1)}" cy="${o.y}" r="${o.r}" fill="#000"/></g>
+  <circle cx="${o.x}" cy="${o.y}" r="${o.r}" fill="none" stroke="#c9c9c9" stroke-width="1"/>`).join("")}
 </svg>`;
 }
 
@@ -217,6 +224,9 @@ export function dialMarkup({ d, hoursPerDay = 24, region = "", terrain = "", lab
  */
 export const seasonHatch = (daysLeft) => +(Math.max(0, Math.min(1, (30 - daysLeft) / 30)) * 30).toFixed(1);
 
+/** No month runs longer than a year: the bound on walking one day by day. */
+const monthCap = (cal) => (cal.days?.daysPerYear ?? 365) + 2;
+
 /**
  * The 00:00 of the first day of `t`'s month, read back from the calendar: the
  * earliest day with the same year and month. Not "day of month 0": core v14
@@ -226,7 +236,7 @@ function firstOfMonth(cal, t) {
   const spd = secondsPerDay(cal);
   let at = startOfDay(cal, t);
   const { year, month } = cal.timeToComponents(at);
-  for (let i = 0; i < 64; i++) {
+  for (let i = 0; i < monthCap(cal); i++) {
     const before = cal.timeToComponents(at - spd);
     if (before.year !== year || before.month !== month) break;
     at -= spd;
@@ -238,18 +248,31 @@ function firstOfMonth(cal, t) {
 function shiftMonth(cal, first, by) {
   const spd = secondsPerDay(cal);
   let at = first;
-  // From a month's first day, 32 days on is always inside the next month
-  // (months run 28 to 31 days); a day back is inside the one before.
-  for (let k = 0; k < Math.abs(by); k++) at = by > 0 ? firstOfMonth(cal, at + 32 * spd) : firstOfMonth(cal, at - spd);
+  // A day back is inside the month before; forward, walk out of this one, whatever its length.
+  for (let k = 0; k < Math.abs(by); k++) {
+    if (by < 0) { at = firstOfMonth(cal, at - spd); continue; }
+    const { year, month } = cal.timeToComponents(at);
+    for (let i = 0; i < monthCap(cal); i++) {
+      at += spd;
+      const c = cal.timeToComponents(at);
+      if (c.year !== year || c.month !== month) break;
+    }
+  }
   return at;
 }
 
 const MOON_MARKS = [[0.25, "q1"], [0.5, "full"], [0.75, "q3"]];
 
+/** The quarter of `moon` that falls on the day starting at `at`, or null. */
+function moonMark(cal, at, spd, moon) {
+  const a = moonPhase(cal, at, moon.epoch, moon.days).fraction, b = moonPhase(cal, at + spd, moon.epoch, moon.days).fraction;
+  return b < a ? "new" : MOON_MARKS.find(([q]) => a <= q && b > q)?.[1] ?? null;
+}
+
 /**
  * The month view: `offset` months from `t`'s, in weeks that start on the
  * calendar's weekday 0, each day with its 00:00, the moon's quarter when one
- * falls that day, today, the holidays `holidaysOn` names for it, the equinox
+ * falls that day (`moons`: every moon's, `moon`: the first's), today, the holidays `holidaysOn` names for it, the equinox
  * or solstice it carries (`solar`) and the season that starts on it
  * (`seasonStart`, the calendar's season index), and where it sits in its
  * season (`seasonKey`, `seasonDay` counted from 1). Days are
@@ -257,35 +280,38 @@ const MOON_MARKS = [[0.25, "q1"], [0.5, "full"], [0.75, "q3"]];
  * where its own components say.
  * @param {object} cal  game.time.calendar
  * @param {number} t    now
- * @param {{offset?:number, epoch?:number, holidaysOn?:(date:object) => string[]}} [opts]
+ * @param {{offset?:number, epoch?:number, moons?:object[], holidaysOn?:(date:object) => string[], earth?:boolean}} [opts]
+ *   moons: {name, days, epoch} each (time.mjs worldMoons), else the usual moon from `epoch`;
+ *   earth: false on a calendar that is not Earth's (calendar-core's solarAt)
  */
-export function monthGrid(cal, t, { offset = 0, epoch = 0, holidaysOn = () => [] } = {}) {
+export function monthGrid(cal, t, { offset = 0, epoch = 0, moons = [{ name: "", days: SYNODIC_DAYS, epoch }], holidaysOn = () => [], earth = true } = {}) {
   const spd = secondsPerDay(cal);
   const today = startOfDay(cal, t);
   const first = shiftMonth(cal, firstOfMonth(cal, t), offset);
   const head = cal.timeToComponents(first);
   const week = cal.days?.values?.length || 7;
-  const lastFull = anchor(cal, "lastFullMoon", head.year, epoch);
+  const lastFull = anchor(cal, "lastFullMoon", head.year, moons[0].epoch, moons[0].days);
   // The month's first day is some way into its season: count back to the season's first day.
   let seasonDay = 1;
   for (let k = 1; k <= 120 && cal.timeToComponents(first - k * spd).season === head.season; k++) seasonDay++;
   const days = [];
-  for (let at = first, i = 0; i < 64; at += spd, i++) {
+  for (let at = first, i = 0; i < monthCap(cal); at += spd, i++) {
     const c = cal.timeToComponents(at);
     if (c.month !== head.month || c.year !== head.year) break;
-    const a = moonPhase(cal, at, epoch).fraction, b = moonPhase(cal, at + spd, epoch).fraction;
-    const moon = b < a ? "new" : MOON_MARKS.find(([q]) => a <= q && b > q)?.[1] ?? null;
+    const marks = moons.map((m, index) => ({ index, name: m.name, mark: moonMark(cal, at, spd, m) })).filter((m) => m.mark);
+    const moon = marks.find((m) => m.index === 0)?.mark ?? null;
     const seasonStart = c.season !== cal.timeToComponents(at - spd).season ? c.season : null;
     if (i > 0) seasonDay = seasonStart !== null ? 1 : seasonDay + 1;
-    const solar = solarOn(c.year + (cal.years?.yearZero ?? 0), c.month + 1, c.dayOfMonth + 1);
+    const solar = solarAt(cal, at, earth);
     const date = { year: c.year, month: c.month + 1, day: c.dayOfMonth + 1, isLastFullMoonOfYear: lastFull === at, solar };
     days.push({
-      day: c.dayOfMonth + 1, at, moon, today: at === today, holidays: holidaysOn(date),
+      day: c.dayOfMonth + 1, at, moon, moons: marks, today: at === today, holidays: holidaysOn(date),
       solar,
       seasonStart, seasonDay, seasonKey: seasonAt(cal, at).key,
     });
   }
-  const lead = head.dayOfWeek % week;
+  // Before the clock's first second core's weekday is negative: a Custom world starts there.
+  const lead = ((head.dayOfWeek % week) + week) % week;
   const trail = (week - ((lead + days.length) % week)) % week;
   const before = Array.from({ length: lead }, (_, i) => ({ day: cal.timeToComponents(first - (lead - i) * spd).dayOfMonth + 1, out: true }));
   const after = Array.from({ length: trail }, (_, i) => ({ day: i + 1, out: true }));
@@ -297,6 +323,8 @@ export function monthGrid(cal, t, { offset = 0, epoch = 0, holidaysOn = () => []
     weekdays: (cal.days?.values ?? []).map((d) => d.abbreviation ?? d.name),
     cells: [...before, ...days, ...after],
     fullMoon: days.find((d) => d.moon === "full")?.day ?? null,
+    fullMoons: moons.map((m, i) => ({ name: m.name, day: days.find((d) => d.moons.some((x) => x.index === i && x.mark === "full"))?.day ?? null }))
+      .filter((m) => m.day !== null),
   };
 }
 

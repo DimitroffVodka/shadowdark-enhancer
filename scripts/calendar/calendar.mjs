@@ -14,15 +14,21 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { L as t } from "../shared/i18n.mjs";
 import { isActiveGM } from "../shared/gm-relay.mjs";
 import { dateToTime } from "../overland/hud-core.mjs";
-import { timeApi } from "../time/time.mjs";
-import { cleanEntry, withEntry, withoutEntry } from "./calendar-core.mjs";
+import { setMoons, timeApi } from "../time/time.mjs";
+import { secondsPerDay } from "../time/time-core.mjs";
+import { cleanEntry, customCalendar, holidaysOnDate, withEntry, withoutEntry } from "./calendar-core.mjs";
 
 export const ENTRIES_SETTING = "calendarEntries";
 export const STARTED_SETTING = "calendarStarted";
+export const CHOICE_SETTING = "calendar";
+export const CUSTOM_SETTING = "calendarCustom";
 export const CALENDAR_CHANGED = `${MODULE_ID}.calendarChanged`;
 
 /** The day a new campaign starts on: the Western Reaches' own, in the year of the Black Death. */
 export const CAMPAIGN_START = { year: 1348, month: 3, day: 12, hour: 8, minute: 0 };
+
+/** Modules that keep the date themselves. Most leave core's calendar as it is, so only their id gives them away. */
+export const DATE_OWNERS = ["foundryvtt-simple-calendar", "foundryvtt-simple-calendar-reborn", "calendaria", "simple-timekeeping"];
 
 /** The stored entries, oldest first. */
 export function calendarEntries() {
@@ -78,14 +84,83 @@ export function whereLine(hex) {
   return parts.join(", ");
 }
 
+/** Is the world on core's own calendar: not a module's, and not the GM's Custom one. */
+export const earthCalendar = () => CONFIG.time.worldCalendarConfig === foundry.data.SIMPLIFIED_GREGORIAN_CALENDAR_CONFIG;
+
+/** The active module that keeps this world's date, or null. */
+export const dateOwner = () => DATE_OWNERS.map((id) => game.modules.get(id)).find((m) => m?.active) ?? null;
+
+// What applyWorldCalendar did at init, for the setting's note at ready.
+let applied = null, broken = false;
+// The Custom calendar's own holidays, which core has no field for.
+let ownHolidays = [];
+
+/** The names of the Custom calendar's holidays on a date: none on any other calendar. */
+export const customHolidaysOn = (date) => holidaysOnDate(ownHolidays, date);
+
+/** Who runs this world's calendar instead of the setting, by name, or null. */
+export function calendarTaker() {
+  const owner = dateOwner();
+  if (owner) return owner.title;
+  return !earthCalendar() && CONFIG.time.worldCalendarConfig !== applied ? t("SDE.settings.calendar.anotherModule") : null;
+}
+
+/**
+ * The calendar a GM gave, ready for core, or why not. A throw from core's strict
+ * build, which runs with no catch at setupGame, would stop the world loading.
+ * An empty setting is core's own calendar, for a GM to start from.
+ * @returns {{config?:object, moons?:object[], holidays?:object[], error?:string}}
+ */
+export function checkedCalendar(raw) {
+  const made = customCalendar(Object.keys(raw ?? {}).length ? raw : foundry.data.SIMPLIFIED_GREGORIAN_CALENDAR_CONFIG);
+  if (made.error) return made;
+  try {
+    new CONFIG.time.worldCalendarClass(foundry.utils.deepClone(made.config), { strict: true });
+    return made;
+  } catch (err) {
+    console.warn(`${MODULE_ID} | calendar: core refused the custom calendar`, err);
+    return { error: "SDE.calendarEditor.error.core" };
+  }
+}
+
+/**
+ * Keep the GM's calendar and put the world on it, or only keep it while another
+ * module runs the calendar: the switch would do nothing there.
+ * @returns {Promise<boolean>} whether the world must reload to show it
+ */
+export async function saveCalendar(raw) {
+  await game.settings.set(MODULE_ID, CUSTOM_SETTING, raw);
+  if (calendarTaker()) return false;
+  await game.settings.set(MODULE_ID, CHOICE_SETTING, "custom");
+  return true;
+}
+
+/**
+ * Put a Custom world on the GM's calendar. At init: core builds `game.time`
+ * from CONFIG at setupGame, once. Steps aside for a calendar that is already
+ * someone else's; one that claims CONFIG later than this wins by itself.
+ */
+export function applyWorldCalendar() {
+  if (game.settings.get(MODULE_ID, CHOICE_SETTING) !== "custom" || !earthCalendar() || dateOwner()) return;
+  const { config, moons, holidays, error } = checkedCalendar(game.settings.get(MODULE_ID, CUSTOM_SETTING));
+  if (error) {
+    broken = true;
+    return;
+  }
+  CONFIG.time.worldCalendarConfig = applied = config;
+  ownHolidays = holidays;
+  setMoons(moons.map(({ name, days, offset }) => ({ name, days, epoch: offset * secondsPerDay(config) })));
+}
+
 /**
  * A new world's clock sits at the calendar's first second, year 0. Once, the
  * active GM moves it to CAMPAIGN_START; a clock anyone has set already is left
- * alone. Moves like the Time panel's date: forward, off duty.
+ * alone, and so is a date that is not ours: a calendar module reads these same
+ * seconds through its own months. Moves like the Time panel's date: forward, off duty.
  */
 export async function applyCampaignStart() {
   if (!isActiveGM() || game.settings.get(MODULE_ID, STARTED_SETTING)) return;
-  if (game.time.worldTime === 0) {
+  if (game.time.worldTime === 0 && earthCalendar() && !dateOwner()) {
     const to = dateToTime(game.time.calendar, CAMPAIGN_START);
     if (to > 0) await timeApi.advanceOffDuty(to, { reason: "calendar" });
   }
@@ -93,6 +168,9 @@ export async function applyCampaignStart() {
 }
 
 export function registerCalendar() {
+  const taker = calendarTaker();
+  if (taker) game.settings.settings.get(`${MODULE_ID}.${CHOICE_SETTING}`).hint = t("SDE.settings.calendar.taken", { name: taker });
+  if (broken && game.user.isGM) ui.notifications.error(t("SDE.calendarEditor.broken"));
   Hooks.on(`${MODULE_ID}.overlandStart`, (state) => {
     if (!game.user.isGM) return;
     logCalendar("travel", t("SDE.calendar.log.travelStart"), whereLine(state?.hex));

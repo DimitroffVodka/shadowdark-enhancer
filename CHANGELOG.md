@@ -4,6 +4,7 @@
 
 ### Added
 
+- **Calendar: Gregorian or Custom.** A new world setting in the Overland settings. Gregorian is the default and changes nothing. A GM presses Edit calendar in the month view (or the Overland settings) and saves: the world switches to Custom and reloads. Save with nothing changed leaves the world on its calendar. Custom uses your own month names and lengths, weekday names, holidays (shown in the month view, for players too), moons (any number, each with its own cycle and starting day, on the sky dial and in the month view; the first is the one encounter tables read) and seasons, or a whole Foundry v14 calendar config pasted in, with moons and holidays beside it, and you can copy yours out to share it. Foundry has no days outside the week, so Dolmenwood's Wysendays can't be modelled. On a Custom calendar the clock, travel hours, sunrise and night, entries and quests all carry on, the month view takes months of any length and any length of week, and the equinoxes and solstices sit where the sun's day length turns. Eclipses and the gods' holy days hide: they are Earth dates. No calendars are bundled. When another module sets the world calendar, or Simple Calendar, Simple Calendar Reborn, Calendaria or Simple Timekeeping is active, this setting steps aside and says so. See [Clock and Calendar](docs/wiki/Clock-and-Calendar.md#a-calendar-of-your-own).
 - **Drag any item into the Loot window.** An item dragged from a compendium, the Items directory or a sheet onto the Loot Generator becomes an entry you can post to chat for the party to claim, give, or drop on the ground.
 
 ### Changed
@@ -12,6 +13,7 @@
 
 ### Fixed
 
+- **A new world no longer overwrites another calendar's date.** The campaign start jump to 12 March 1348 is counted in Foundry's own calendar, so a world running Simple Calendar, Simple Calendar Reborn, Calendaria or Simple Timekeeping, or any world calendar that is not Foundry's, read those same seconds as a different date. The jump now skips those worlds. It runs once, so a world it already moved keeps its date until a GM sets it back.
 - **Icon buttons show up with Multi Token Edit installed.** That module ships a global `.ui-icon` rule that pushes every icon glyph off its button, so the Enhancer's icon buttons (Give, Delete and the rest) looked empty. The Enhancer windows now reset it.
 - **Gems on the Party sheet can be removed.** Gem rows now have the same Give and Delete buttons as other party items; before, a gem dragged onto the sheet could not be taken off.
 

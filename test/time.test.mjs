@@ -368,3 +368,18 @@ test("a paced clock step slides the time this screen shows; a tick rides along, 
     delete globalThis.requestAnimationFrame;
   }
 });
+
+test("a Custom calendar's moons replace the usual one; the first is the sky's", async () => {
+  const { moonsAt, setMoons, worldMoons } = await import("../scripts/time/time.mjs");
+  const { SYNODIC_DAYS } = await import("../scripts/time/time-core.mjs");
+  assert.equal(worldMoons().length, 1);
+  assert.deepEqual([worldMoons()[0].name, worldMoons()[0].days], ["", SYNODIC_DAYS]);
+  setMoons([{ name: "Luna", days: 10, epoch: 86400 }, { name: "Selene", days: 4, epoch: 0 }]);
+  try {
+    const [luna, selene] = moonsAt(gregorian, 86400 * 6);
+    assert.deepEqual([luna.name, luna.key], ["Luna", "full"]);
+    assert.deepEqual([selene.name, selene.fraction], ["Selene", 0.5]);
+  } finally {
+    setMoons([]);
+  }
+});
