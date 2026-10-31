@@ -1,9 +1,12 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { L as t } from "../shared/i18n.mjs";
 import { CUSTOM_SETTING, calendarTaker, checkedCalendar, saveCalendar } from "./calendar.mjs";
-import { withRows } from "./calendar-core.mjs";
+import { rowSeasons, seasonRows, withRows } from "./calendar-core.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
+
+/** Every value the form holds, to tell whether the GM changed anything. */
+const formValues = (form) => [...form.elements].filter((e) => e.matches("input, textarea")).map((e) => e.value).join("\n");
 
 /**
  * The Custom calendar's editor, a GM's window from the month view or the Overland
@@ -16,7 +19,7 @@ export class CalendarEditor extends HandlebarsApplicationMixin(ApplicationV2) {
     tag: "form",
     classes: ["sde-ui", "sde-calendar-editor"],
     window: { title: "SDE.calendarEditor.title", icon: "fa-solid fa-calendar-days", contentClasses: ["standard-form"], resizable: true },
-    position: { width: 620, height: 680 },
+    position: { width: 760, height: 680 },
     form: { handler: CalendarEditor._onSubmit, closeOnSubmit: false },
     actions: { addRow: CalendarEditor._onAddRow, removeRow: CalendarEditor._onRemoveRow },
   };
@@ -39,13 +42,23 @@ export class CalendarEditor extends HandlebarsApplicationMixin(ApplicationV2) {
   async _prepareContext() {
     const raw = this._raw();
     const taker = calendarTaker();
-    this._json = JSON.stringify(checkedCalendar(raw).config ?? raw, null, 2);
+    const { config, moons = [], holidays = [] } = checkedCalendar(raw);
+    this._json = JSON.stringify(config ? { ...config, moons, holidays } : raw, null, 2);
+    const moonRows = moons.length ? moons : [{ name: t("SDE.calendarEditor.usualMoon"), days: 29.53, offset: 0 }];
+    const seasons = seasonRows(config ?? raw, t);
+    this._shown = { moons: JSON.stringify(moonRows), seasons: JSON.stringify(seasons) };
     return {
       taken: taker ? t("SDE.settings.calendar.taken", { name: taker }) : null,
       months: (raw.months?.values ?? []).map((m) => ({ name: t(m.name), days: m.days })),
       weekdays: (raw.days?.values ?? []).map((d) => ({ name: t(d.name) })),
+      holidays, moons: moonRows, seasons,
       json: this._json,
     };
+  }
+
+  async _onRender(context, options) {
+    await super._onRender(context, options);
+    this._opened = formValues(this.element);
   }
 
   static _onAddRow(_event, button) {
@@ -67,15 +80,28 @@ export class CalendarEditor extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     const rows = (kind) => [...form.querySelectorAll(`[data-rows="${kind}"] .sde-cal-row`)];
     const name = (row) => row.querySelector("[data-name]").value.trim();
-    return withRows(
+    const num = (row, field) => Number(row.querySelector(`[data-${field}]`).value);
+    const dated = (kind) => rows(kind).map((row) => ({ name: name(row), month: num(row, "month"), day: num(row, "day") }));
+    const next = withRows(
       this._raw(),
-      rows("months").map((row) => ({ name: name(row), days: Number(row.querySelector("[data-days]").value) })),
+      rows("months").map((row) => ({ name: name(row), days: num(row, "days") })),
       rows("weekdays").map((row) => ({ name: name(row) })),
       t,
     );
+    next.holidays = dated("holidays");
+    // Rows left as they were keep what is stored: the usual moon, and seasons counted by month.
+    const moons = rows("moons").map((row) => ({ name: name(row), days: num(row, "days"), offset: num(row, "offset") }));
+    if (JSON.stringify(moons) !== this._shown.moons) next.moons = moons;
+    const seasons = dated("seasons");
+    if (JSON.stringify(seasons) !== this._shown.seasons) next.seasons = { values: rowSeasons(seasons, next.months.values) };
+    return next;
   }
 
   static async _onSubmit(_event, form) {
+    if (formValues(form) === this._opened) {
+      await this.close();
+      return ui.notifications.info(t("SDE.calendarEditor.unchanged"));
+    }
     const raw = this._read(form);
     const { error } = raw ? checkedCalendar(raw) : { error: "SDE.calendarEditor.error.json" };
     if (error) return ui.notifications.error(t(error));

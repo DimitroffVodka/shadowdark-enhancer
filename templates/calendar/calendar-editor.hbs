@@ -3,6 +3,18 @@
   {{#if month}}<input type="number" data-days min="1" step="1" value="{{days}}" aria-label="{{localize "SDE.calendarEditor.monthDays"}}" data-tooltip="{{localize "SDE.calendarEditor.monthDays"}}">{{/if}}
   <button type="button" class="ui-icon danger" data-action="removeRow" data-tooltip="{{localize "SDE.calendarEditor.remove"}}" aria-label="{{localize "SDE.calendarEditor.remove"}}"><i class="fa-solid fa-xmark" inert></i></button>
 </div>{{/inline}}
+{{#*inline "dated"}}<div class="sde-cal-row">
+  <input type="text" data-name value="{{name}}" aria-label="{{localize label}}" placeholder="{{localize label}}">
+  <input type="number" data-month min="1" step="1" value="{{month}}" aria-label="{{localize "SDE.calendarEditor.month"}}" data-tooltip="{{localize "SDE.calendarEditor.month"}}" placeholder="{{localize "SDE.calendarEditor.month"}}">
+  <input type="number" data-day min="1" step="1" value="{{day}}" aria-label="{{localize "SDE.calendarEditor.day"}}" data-tooltip="{{localize "SDE.calendarEditor.day"}}" placeholder="{{localize "SDE.calendarEditor.day"}}">
+  <button type="button" class="ui-icon danger" data-action="removeRow" data-tooltip="{{localize "SDE.calendarEditor.remove"}}" aria-label="{{localize "SDE.calendarEditor.remove"}}"><i class="fa-solid fa-xmark" inert></i></button>
+</div>{{/inline}}
+{{#*inline "moon"}}<div class="sde-cal-row">
+  <input type="text" data-name value="{{name}}" aria-label="{{localize "SDE.calendarEditor.moonName"}}" placeholder="{{localize "SDE.calendarEditor.moonName"}}">
+  <input type="number" data-days min="0" step="any" value="{{days}}" aria-label="{{localize "SDE.calendarEditor.moonDays"}}" data-tooltip="{{localize "SDE.calendarEditor.moonDays"}}" placeholder="{{localize "SDE.calendarEditor.moonDaysShort"}}">
+  <input type="number" data-offset step="any" value="{{offset}}" aria-label="{{localize "SDE.calendarEditor.moonOffset"}}" data-tooltip="{{localize "SDE.calendarEditor.moonOffset"}}" placeholder="{{localize "SDE.calendarEditor.moonOffsetShort"}}">
+  <button type="button" class="ui-icon danger" data-action="removeRow" data-tooltip="{{localize "SDE.calendarEditor.remove"}}" aria-label="{{localize "SDE.calendarEditor.remove"}}"><i class="fa-solid fa-xmark" inert></i></button>
+</div>{{/inline}}
 <div class="ui-shell sde-cal">
 <div class="ui-body">
 {{#if taken}}<p class="ui-note warn">{{taken}}</p>{{else}}<p class="ui-note">{{localize "SDE.calendarEditor.goesLive"}}</p>{{/if}}
@@ -20,12 +32,35 @@
     <p class="ui-muted">{{localize "SDE.calendarEditor.noOutside"}}</p>
   </section>
 </div>
+<div class="sde-cal-cols sde-cal-even">
+  <section class="ui-card">
+    <h3 class="ui-card-name">{{localize "SDE.calendarEditor.holidays"}}</h3>
+    <div class="sde-cal-rows" data-rows="holidays">{{#each holidays}}{{> dated label="SDE.calendarEditor.holidayName"}}{{/each}}</div>
+    <div><button type="button" class="ui-btn" data-action="addRow" data-kind="holidays"><i class="fa-solid fa-plus" inert></i> {{localize "SDE.calendarEditor.addHoliday"}}</button></div>
+    <p class="ui-muted">{{localize "SDE.calendarEditor.holidayHint"}}</p>
+  </section>
+  <section class="ui-card">
+    <h3 class="ui-card-name">{{localize "SDE.calendarEditor.moons"}}</h3>
+    <div class="sde-cal-rows" data-rows="moons">{{#each moons}}{{> moon}}{{/each}}</div>
+    <div><button type="button" class="ui-btn" data-action="addRow" data-kind="moons"><i class="fa-solid fa-plus" inert></i> {{localize "SDE.calendarEditor.addMoon"}}</button></div>
+    <p class="ui-muted">{{localize "SDE.calendarEditor.moonHint"}}</p>
+  </section>
+  <section class="ui-card">
+    <h3 class="ui-card-name">{{localize "SDE.calendarEditor.seasons"}}</h3>
+    <div class="sde-cal-rows" data-rows="seasons">{{#each seasons}}{{> dated label="SDE.calendarEditor.seasonName"}}{{/each}}</div>
+    <div><button type="button" class="ui-btn" data-action="addRow" data-kind="seasons"><i class="fa-solid fa-plus" inert></i> {{localize "SDE.calendarEditor.addSeason"}}</button></div>
+    <p class="ui-muted">{{localize "SDE.calendarEditor.seasonHint"}}</p>
+  </section>
+</div>
 <details class="ui-details"><summary>{{localize "SDE.calendarEditor.paste"}}</summary><div class="ui-details-body">
   <p class="ui-muted">{{localize "SDE.calendarEditor.pasteHint"}}</p>
   <textarea name="json" rows="12" spellcheck="false" aria-label="{{localize "SDE.calendarEditor.paste"}}">{{json}}</textarea>
 </div></details>
 <template data-row="months">{{> row month=true days=30 label="SDE.calendarEditor.monthName"}}</template>
 <template data-row="weekdays">{{> row label="SDE.calendarEditor.weekdayName"}}</template>
+<template data-row="holidays">{{> dated label="SDE.calendarEditor.holidayName"}}</template>
+<template data-row="moons">{{> moon offset=0}}</template>
+<template data-row="seasons">{{> dated label="SDE.calendarEditor.seasonName"}}</template>
 </div>
 <footer class="ui-footer"><div class="ui-right"><button type="submit" class="ui-btn primary"><i class="fa-solid fa-floppy-disk" inert></i> {{localize "SETTINGS.Save"}}</button></div></footer>
 </div>

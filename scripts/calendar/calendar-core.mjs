@@ -126,6 +126,8 @@ export function dayEvents({ cell, year, month, spd, entries = [], gm = false, ho
 
 const text = (v) => String(v ?? "").trim();
 const posInt = (v) => Number.isInteger(v) && v > 0;
+/** A month's longest length, in a leap year where it has one. */
+const longest = (m) => Math.max(m.days, m.leapDays ?? 0);
 /** The first day of each season in a 365-day year, from 0: core's own, by month. */
 const SEASON_STARTS = [["Spring", 59], ["Summer", 151], ["Fall", 243], ["Winter", 334]];
 
@@ -142,8 +144,9 @@ function evenSeasons(yearDays) {
  * language key). The gate before core: its `timeToComponents` walks off the end
  * of the months when `daysPerYear` is more than they hold, so that number is
  * always counted here. Anything core reads and the GM left out gets a default.
+ * Core has no field for moons or holidays, so they stay out of `config`, beside it.
  * @param {object} raw  an edited or pasted calendar
- * @returns {{config?:object, error?:string}}
+ * @returns {{config?:object, moons?:object[], holidays?:object[], error?:string}}
  */
 export function customCalendar(raw) {
   const months = raw?.months?.values, weekdays = raw?.days?.values;
@@ -155,14 +158,51 @@ export function customCalendar(raw) {
   const { hoursPerDay = 24, minutesPerHour = 60, secondsPerMinute = 60 } = raw.days;
   if (![hoursPerDay, minutesPerHour, secondsPerMinute].every(posInt)) return { error: "SDE.calendarEditor.error.time" };
   const { yearZero = 0, firstWeekday = 0, leapYear = null } = raw.years ?? {};
-  return { config: {
+  const seasons = raw.seasons?.values;
+  const dayCount = (d) => Number.isInteger(d) && d >= 0 && d <= yearDays;
+  if (seasons?.length && !seasons.every((s) => text(s?.name) && ([s.dayStart, s.dayEnd].every(dayCount) || [s.monthStart, s.monthEnd].every(posInt)))) return { error: "SDE.calendarEditor.error.seasons" };
+  const moons = raw.moons ?? [], holidays = raw.holidays ?? [];
+  if (!Array.isArray(moons) || !moons.every((m) => text(m?.name) && m.days > 0 && Number.isFinite(m.days) && Number.isFinite(m.offset ?? 0))) return { error: "SDE.calendarEditor.error.moons" };
+  if (!Array.isArray(holidays) || !holidays.every((h) => text(h?.name) && posInt(h.day) && h.day <= longest(months[h.month - 1] ?? { days: 0 }))) return { error: "SDE.calendarEditor.error.holidays" };
+  return {
+    moons: moons.map((m) => ({ name: text(m.name), days: m.days, offset: m.offset ?? 0 })),
+    holidays: holidays.map((h) => ({ name: text(h.name), month: h.month, day: h.day })),
+    config: {
     name: text(raw.name) || "Custom",
     description: text(raw.description),
     years: { yearZero, firstWeekday, leapYear },
     months: { values: months.map((m, i) => ({ ...row(m, i), days: m.days, ...(m.leapDays ? { leapDays: m.leapDays } : {}) })) },
     days: { values: weekdays.map(row), daysPerYear: yearDays, hoursPerDay, minutesPerHour, secondsPerMinute },
-    seasons: { values: raw.seasons?.values?.length ? raw.seasons.values : evenSeasons(yearDays) },
+    seasons: { values: seasons?.length ? seasons : evenSeasons(yearDays) },
   } };
+}
+
+/** The names of a calendar's holidays on a date (month and day from 1). */
+export const holidaysOnDate = (holidays, { month, day }) => holidays.filter((h) => h.month === month && h.day === day).map((h) => h.name);
+
+/** Where a season starts, as the editor's row: its month and day, from 1. */
+export function seasonRows(config, shown = (s) => s) {
+  const months = config?.months?.values ?? [];
+  return (config?.seasons?.values ?? []).map((s) => {
+    if (!Number.isInteger(s.dayStart)) return { name: shown(s.name), month: s.monthStart, day: 1 };
+    let month = 0, day = s.dayStart;
+    while (month < months.length - 1 && day > months[month].days) day -= months[month++].days;
+    return { name: shown(s.name), month: month + 1, day };
+  });
+}
+
+/**
+ * The editor's season rows as core's seasons: each runs to the day before the
+ * next one starts, round the end of the year. A date the year doesn't have
+ * leaves `dayStart` null, for customCalendar to refuse.
+ * @param {Array<{name:string, month:number, day:number}>} rows
+ * @param {Array<{days:number}>} months
+ */
+export function rowSeasons(rows, months) {
+  const yearDays = months.reduce((sum, m) => sum + m.days, 0);
+  const dayOfYear = ({ month, day }) => (posInt(day) && day <= (months[month - 1]?.days ?? 0) ? months.slice(0, month - 1).reduce((sum, m) => sum + m.days, day) : null);
+  const starts = rows.map((r) => ({ name: r.name, dayStart: dayOfYear(r) })).sort((a, b) => a.dayStart - b.dayStart);
+  return starts.map((s, i) => ({ ...s, dayEnd: (starts[(i + 1) % starts.length].dayStart - 1) || yearDays }));
 }
 
 /**

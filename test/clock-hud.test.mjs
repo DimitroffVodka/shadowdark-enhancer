@@ -204,3 +204,12 @@ test("finding the party picks the selected party's token, else the travelling pa
   assert.equal(pickPartyToken([tokens[0], { id: "c", actorUuid: "Actor.one" }]).id, "a", "two tokens of one party are still one party");
   assert.equal(pickPartyToken([], "Actor.one"), null);
 });
+
+test("a calendar's other moons ride the dial smaller, and the usual dial draws none", () => {
+  const sky = { hour: 12, sunrise: 6, sunset: 18, moonFraction: 0.5 };
+  assert.deepEqual(dialModel(sky).others, []);
+  assert.equal(dialMarkup({ d: dialModel(sky), hoursPerDay: 24 }).includes("sde-hud-moonc0"), false);
+  const two = dialModel({ ...sky, otherMoons: [0.25] });
+  assert.ok(two.others[0].r < two.moon.r);
+  assert.ok(dialMarkup({ d: two, hoursPerDay: 24 }).includes("sde-hud-moonc0"));
+});

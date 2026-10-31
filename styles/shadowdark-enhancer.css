@@ -5780,7 +5780,8 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-calendar-editor .sde-cal-rows { display: flex; flex-direction: column; gap: 4px; }
 .sde-calendar-editor .sde-cal-row { display: flex; gap: 6px; align-items: center; }
 .sde-calendar-editor .sde-cal-row input[data-name] { flex: 1 1 auto; min-width: 0; }
-.sde-calendar-editor .sde-cal-row input[data-days] { flex: 0 0 56px; width: 56px; text-align: center; }
+.sde-calendar-editor .sde-cal-even { grid-template-columns: 1fr 1fr; }
+.sde-calendar-editor .sde-cal-row input[type="number"] { flex: 0 0 56px; width: 56px; text-align: center; }
 .sde-calendar-editor textarea { width: 100%; font-family: monospace; font-size: 12px; }
 .sde-settings-group .sg-pending { margin: -4px 0 6px; font-size: 11.5px; font-style: italic; }
 .sde-settings-group .sg-details > summary { font-size: 16px; }

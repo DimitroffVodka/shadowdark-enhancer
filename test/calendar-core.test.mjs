@@ -4,7 +4,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import {
-  ENTRY_KINDS, MAX_ENTRIES, cleanEntry, customCalendar, dayEvents, eclipsesOn, paragraphs, solarAt, solarOn, withEntry, withRows, withoutEntry,
+  ENTRY_KINDS, MAX_ENTRIES, cleanEntry, customCalendar, dayEvents, eclipsesOn, holidaysOnDate, paragraphs, rowSeasons, seasonRows, solarAt, solarOn,
+  withEntry, withRows, withoutEntry,
 } from "../scripts/calendar/calendar-core.mjs";
 import { ECLIPSES, NEW_MOON, SEASON_DAYS } from "../scripts/calendar/eclipse-data.mjs";
 import { monthGrid, dateToTime } from "../scripts/overland/hud-core.mjs";
@@ -270,4 +271,72 @@ test("a date round-trips through a calendar of another shape, and one it lacks i
   assert.equal(dateToTime(cal, { year: 3, month: 2, day: 10 }), dayOf(cal, 3 * 96 + 59));
   assert.equal(dateToTime(cal, { year: 3, month: 2, day: 11 }), null);
   assert.equal(dateToTime(cal, { year: 3, month: 4, day: 1 }), null);
+});
+
+const sky = (over) => customCalendar({ ...dolmen, ...over });
+
+test("moons and holidays sit beside core's config, and come back through Paste or copy", () => {
+  const moons = [{ name: "Luna", days: 28, offset: 3 }, { name: "Selene", days: 9.5, offset: 0 }];
+  const holidays = [{ name: "Harvest", month: 2, day: 5 }];
+  const made = sky({ moons, holidays });
+  assert.deepEqual(made.moons, moons);
+  assert.deepEqual(made.holidays, holidays);
+  assert.equal("moons" in made.config, false, "core's strict build sees only its own fields");
+  assert.equal("holidays" in made.config, false);
+  const again = customCalendar(JSON.parse(JSON.stringify({ ...made.config, moons: made.moons, holidays: made.holidays })));
+  assert.deepEqual(again, made);
+});
+
+test("a calendar saved before moons and holidays reads as having none", () => {
+  const { moons, holidays, error } = sky({});
+  assert.equal(error, undefined);
+  assert.deepEqual([moons, holidays], [[], []]);
+});
+
+test("a moon or holiday that can't be is refused by name", () => {
+  const bad = (over) => sky(over).error;
+  assert.equal(bad({ moons: [{ name: "", days: 28 }] }), "SDE.calendarEditor.error.moons");
+  assert.equal(bad({ moons: [{ name: "Dead", days: 0 }] }), "SDE.calendarEditor.error.moons");
+  assert.equal(bad({ moons: "Luna" }), "SDE.calendarEditor.error.moons");
+  assert.equal(bad({ holidays: [{ name: "", month: 1, day: 1 }] }), "SDE.calendarEditor.error.holidays");
+  assert.equal(bad({ holidays: [{ name: "Nowhen", month: 99, day: 1 }] }), "SDE.calendarEditor.error.holidays");
+  assert.equal(bad({ holidays: [{ name: "Nowhen", month: 1, day: 999 }] }), "SDE.calendarEditor.error.holidays");
+  assert.equal(bad({ seasons: { values: [{ name: "Bad", dayStart: null, dayEnd: 3 }] } }), "SDE.calendarEditor.error.seasons");
+});
+
+test("a holiday's date reaches a leap month's extra day, and only its own date names it", () => {
+  const leap = { months: { values: [{ ...month("One", 28), leapDays: 29 }] }, holidays: [{ name: "Leap", month: 1, day: 29 }] };
+  assert.equal(sky(leap).error, undefined);
+  assert.deepEqual(holidaysOnDate([{ name: "Leap", month: 1, day: 29 }], { month: 1, day: 29 }), ["Leap"]);
+  assert.deepEqual(holidaysOnDate([{ name: "Leap", month: 1, day: 29 }], { month: 2, day: 29 }), []);
+});
+
+test("season rows read core's months or days, and rows go back as days round the year", () => {
+  const months = [month("A", 30), month("B", 30), month("C", 30)];
+  assert.deepEqual(seasonRows({ months: { values: months }, seasons: { values: [{ name: "x", monthStart: 2, monthEnd: 3 }, { name: "y", dayStart: 45, dayEnd: 12 }] } }),
+    [{ name: "x", month: 2, day: 1 }, { name: "y", month: 2, day: 15 }]);
+  const rows = [{ name: "Late", month: 3, day: 1 }, { name: "Early", month: 1, day: 11 }];
+  assert.deepEqual(rowSeasons(rows, months), [{ name: "Early", dayStart: 11, dayEnd: 60 }, { name: "Late", dayStart: 61, dayEnd: 10 }]);
+  assert.deepEqual(seasonRows({ months: { values: months }, seasons: { values: rowSeasons(rows, months) } }), [rows[1], rows[0]]);
+  assert.deepEqual(rowSeasons([{ name: "Only", month: 1, day: 1 }], months), [{ name: "Only", dayStart: 1, dayEnd: 90 }]);
+  assert.equal(sky({ months: { values: months }, seasons: { values: rowSeasons([{ name: "Lost", month: 9, day: 1 }], months) } }).error, "SDE.calendarEditor.error.seasons");
+});
+
+test("each moon marks its own quarters, and the first is the one the day's moon reads", () => {
+  const start = at(1300, 1, 1);
+  const moons = [{ name: "Luna", days: 8, epoch: start }, { name: "Selene", days: 4, epoch: start }];
+  const g = monthGrid(gregorian, start, { moons });
+  const on = (day) => g.cells.find((c) => !c.out && c.day === day);
+  assert.deepEqual(on(3).moons.map((m) => [m.name, m.mark]), [["Luna", "q1"], ["Selene", "full"]]);
+  assert.equal(on(3).moon, "q1");
+  assert.deepEqual(on(4).moons.map((m) => [m.name, m.mark]), [["Selene", "new"]]);
+  assert.equal(on(4).moon, null, "the day's moon is the first moon's, not any moon's");
+  assert.deepEqual(g.fullMoons, [{ name: "Luna", day: 5 }, { name: "Selene", day: 3 }]);
+});
+
+test("with no moons given, the month view keeps the one usual moon, unnamed", () => {
+  const g = monthGrid(gregorian, at(1348, 3, 12), { epoch: defaultMoonEpoch(gregorian) });
+  const plain = g.cells.filter((c) => c.moons?.length);
+  assert.ok(plain.every((c) => c.moons.length === 1 && c.moons[0].name === "" && c.moons[0].mark === c.moon));
+  assert.deepEqual(g.fullMoons.map((m) => m.day), [g.fullMoon]);
 });

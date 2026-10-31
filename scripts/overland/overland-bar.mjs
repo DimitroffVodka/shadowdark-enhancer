@@ -62,11 +62,11 @@ import { DIAL, clockShown, clockSteps, dateToTime, dialMarkup, dialModel, dialSi
 import { findParty, openPartySheet } from "./find-party.mjs";
 import { partySupplies, supplyActors, supplyParty } from "./party-supplies.mjs";
 import { L as t } from "../shared/i18n.mjs";
-import { isPacedStep, moonEpoch, onShownTime, shownTime } from "../time/time.mjs";
+import { isPacedStep, moonsAt, onShownTime, shownTime, worldMoons } from "../time/time.mjs";
 import { dayEvents, paragraphs } from "../calendar/calendar-core.mjs";
 import { holyWindows } from "../holidays/holy-days.mjs";
 import { gmOnlyKeys, holidayEffects, readHolyDayText, setGmOnly } from "../holidays/holidays.mjs";
-import { CALENDAR_CHANGED, addCalendarEntry, calendarEntries, earthCalendar, removeCalendarEntry } from "../calendar/calendar.mjs";
+import { CALENDAR_CHANGED, addCalendarEntry, calendarEntries, customHolidaysOn, earthCalendar, removeCalendarEntry } from "../calendar/calendar.mjs";
 
 const BAR_ID = "shadowdark-enhancer-travel";
 
@@ -123,6 +123,9 @@ const supplyChips = (sup) => {
   return `<span class="sde-hud-sup" data-tooltip="${tip(sup.torches, "SDE.clock.supplies.torches")}" aria-label="${tip(sup.torches, "SDE.clock.supplies.torches")}"><i class="fa-solid fa-fire"></i><b>${sup.torches}</b></span>`
     + `<span class="sde-hud-sup" data-tooltip="${tip(sup.rations, "SDE.clock.supplies.rations")}" aria-label="${tip(sup.rations, "SDE.clock.supplies.rations")}"><i class="fa-solid fa-drumstick-bite"></i><b>${sup.rations}</b></span>`;
 };
+
+/** Each moon's phase in words; a moon the GM named says whose. */
+const moonLine = (moons) => moons.map((m) => (m.name ? `${m.name}: ${t(MOON_NAME[m.key])}` : t(MOON_NAME[m.key]))).join(", ");
 
 /** A key: the framed button of the panels. */
 const key = (action, label, { id = "", hint = "", cls = "", aria = "" } = {}) =>
@@ -470,20 +473,19 @@ export const TravelBar = {
   /** What the bar draws besides the dial's turn and the time: the day, which side of sunrise and sunset, the moon's phase. */
   _dialKey(time) {
     const cal = game.time.calendar, hour = hourOfDay(cal, time), sun = sunAt(cal, time);
-    return `${startOfDay(cal, time)}|${hour < sun.sunrise ? 0 : hour < sun.sunset ? 1 : 2}|${game.shadowdarkEnhancer?.time?.moonPhase(time)?.key}`;
+    return `${startOfDay(cal, time)}|${hour < sun.sunrise ? 0 : hour < sun.sunset ? 1 : 2}|${moonsAt(cal, time).map((m) => m.key)}`;
   },
 
   /** The time and sky as the HUD reads them: the time this screen shows, which slides while the clock is paced. */
   _now() {
     const now = Math.floor(shownTime());
     const cal = game.time.calendar;
-    const api = game.shadowdarkEnhancer?.time;
     return {
       now, cal,
       parts: dateParts(cal, now),
       hour: hourOfDay(cal, now),
       sun: sunAt(cal, now),
-      moon: api.moonPhase(now),
+      moons: moonsAt(cal, now),
       hoursPerDay: cal.days?.hoursPerDay ?? 24,
     };
   },
@@ -610,14 +612,14 @@ export const TravelBar = {
 
   /** The sky dial: a half disc (hud-core dialMarkup), driven by the time API. The weather is in the season band. */
   _dial() {
-    const { hour, sun, moon, hoursPerDay, parts } = this._now();
-    const d = dialModel({ hour, sunrise: sun.sunrise, sunset: sun.sunset, moonFraction: moon.fraction, hoursPerDay });
+    const { hour, sun, moons, hoursPerDay, parts } = this._now();
+    const d = dialModel({ hour, sunrise: sun.sunrise, sunset: sun.sunset, moonFraction: moons[0].fraction, otherMoons: moons.slice(1).map((m) => m.fraction), hoursPerDay });
     const w = weatherNow();
     const riseTip = t("SDE.clock.sunRises", { time: hhmm(sun.sunrise) }), setTip = t("SDE.clock.sunSets", { time: hhmm(sun.sunset) });
     const here = CrawlState.isOverland && isHexMapScene() ? overlandState().hex : null;
     const region = here?.region ?? "", terrain = here?.terrain?.replace(/_/g, " ") ?? "";
     const place = [region, terrain].filter(Boolean).join(" · ");
-    const label = t("SDE.clock.dialLabel", { weather: w ? weatherName(w) : t("SDE.clock.unrolled"), sun: `${riseTip}, ${setTip}`, moon: t(MOON_NAME[moon.key]) });
+    const label = t("SDE.clock.dialLabel", { weather: w ? weatherName(w) : t("SDE.clock.unrolled"), sun: `${riseTip}, ${setTip}`, moon: moonLine(moons) });
     return dialMarkup({ d, hoursPerDay, region, terrain, label: place ? `${label}, ${place}` : label, tip: place, riseTip, setTip, nowTip: t("SDE.clock.dialNow", { time: parts.time }) });
   },
 
@@ -645,18 +647,17 @@ export const TravelBar = {
   _monthPanel() {
     const { now, cal, parts } = this._now();
     const gm = game.user.isGM;
-    let epoch = 0;
-    try { epoch = moonEpoch(); } catch { /* default */ }
-    const holidaysOn = (date) => this._holidays.filter((h) => this._whenMatches?.(h.when, date)).map((h) => h.name);
+    const moons = worldMoons();
+    const holidaysOn = (date) => [...this._holidays.filter((h) => this._whenMatches?.(h.when, date)).map((h) => h.name), ...customHolidaysOn(date)];
     const earth = earthCalendar();
-    const g = monthGrid(cal, now, { offset: this._monthOffset, epoch, holidaysOn, earth });
+    const g = monthGrid(cal, now, { offset: this._monthOffset, moons, holidaysOn, earth });
     const spd = secondsPerDay(cal);
     const entries = calendarEntries();
     const events = g.cells.map((cell) => (cell.out ? [] : dayEvents({ cell, year: g.year, month: g.monthNumber, spd, entries, gm, holy: this._holy, earth })));
     const heads = g.weekdays.map((w) => `<div class="sde-hud-dow">${esc(t(w))}</div>`).join("");
     const cells = g.cells.map((cell, i) => {
       if (cell.out) return `<div class="sde-hud-day sde-hud-out">${cell.day}</div>`;
-      const mark = cell.moon ? `<span class="sde-hud-m sde-hud-m-${cell.moon}" data-tooltip="${esc(t(MOON_MARK[cell.moon]))}"></span>` : "";
+      const mark = cell.moons.map((m, n) => `<span class="sde-hud-m sde-hud-m-${m.mark}"${n ? ` style="right:${7 + n * 14}px"` : ""} data-tooltip="${esc(m.name ? `${m.name}: ${t(MOON_MARK[m.mark])}` : t(MOON_MARK[m.mark]))}"></span>`).join("");
       const hol = cell.holidays.length ? `<span class="sde-hud-h">${esc(cell.holidays.join(", "))}</span>` : "";
       const busy = events[i].some((e) => e.kind !== "holiday") ? '<span class="sde-hud-e"></span>' : "";
       const picked = this._info?.at === cell.at;
@@ -668,7 +669,8 @@ export const TravelBar = {
     const agenda = stretches + g.cells.flatMap((cell, i) => events[i].map((ev) => this._eventRow(cell, ev, cal, gm))).join("");
     const season = cal.seasons?.values?.[g.season]?.name;
     const notes = [
-      g.fullMoon ? t("SDE.clock.fullMoonOn", { day: g.fullMoon }) : "",
+      moons[0].name ? t("SDE.clock.moonsNow", { moons: moonLine(this._now().moons) }) : "",
+      ...g.fullMoons.map((m) => (m.name ? t("SDE.clock.fullMoonNamed", { name: m.name, day: m.day }) : t("SDE.clock.fullMoonOn", { day: m.day }))),
       t("SDE.clock.clickDay"),
       !earth || (this._holidays.length && this._holy.length) ? "" : t("SDE.clock.noHolidays"),
     ].filter(Boolean).join(" ");
@@ -790,8 +792,9 @@ export const TravelBar = {
     const block = (ev) => {
       const { icon, html } = this._eventParts(ev, cal, false);
       let more = "";
-      if (ev.kind === "holiday") {
-        const h = this._holidays.find((x) => x.name === ev.name);
+      // A Custom calendar's own holidays are only a name: there is nothing more to show.
+      const h = ev.kind === "holiday" ? this._holidays.find((x) => x.name === ev.name) : null;
+      if (h) {
         const effects = holidayEffects(h?.carousing).map((e) => `<li>${esc(e.key === "SDE.calendar.effect.chance" ? t(e.key, { n: e.n, label: e.label }) : t(e.key, { n: e.n }))}</li>`).join("");
         const text = h?.paras ?? this._page(h?.pageUuid);
         more = (effects ? `<ul class="sde-hud-effects">${effects}</ul>` : "")

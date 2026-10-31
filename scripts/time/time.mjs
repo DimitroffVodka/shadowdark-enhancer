@@ -37,6 +37,16 @@ export const moonEpoch = () => {
   return Number(globalThis.game?.settings?.get?.(MODULE_ID, MOON_EPOCH)) || (cal ? defaultMoonEpoch(cal) : 0);
 };
 
+// A Custom calendar's moons, set once at init (calendar.mjs), each {name, days, epoch}.
+let ownMoons = [];
+export const setMoons = (moons) => { ownMoons = moons; };
+
+/** The world's moons: a Custom calendar's, else the one usual moon, which has no name. The first is the sky's. */
+export const worldMoons = () => (ownMoons.length ? ownMoons : [{ name: "", days: core.SYNODIC_DAYS, epoch: moonEpoch() }]);
+
+/** Every moon's phase at `t`, with its name. */
+export const moonsAt = (cal, t) => worldMoons().map((m) => ({ name: m.name, ...core.moonPhase(cal, t, m.epoch, m.days) }));
+
 const calendar = () => game.time.calendar;
 /** `t` when given, else now. */
 const when = (t) => (Number.isFinite(t) ? t : game.time.worldTime);
@@ -68,10 +78,12 @@ export const timeApi = {
     return nightWithOverride(core.isNight(calendar(), at), skyOverride(region, core.season(calendar(), at).key));
   },
   sun: (t) => core.sun(calendar(), when(t)),
-  moonPhase: (t) => core.moonPhase(calendar(), when(t), moonEpoch()),
+  moonPhase: (t) => moonsAt(calendar(), when(t))[0],
+  /** Every moon, first the sky's, each a `moonPhase` with its `name`. */
+  moons: (t) => moonsAt(calendar(), when(t)),
   /** `year` is core's count (`game.time.components.year`); the current year by default. */
   anchor: (name, year) => core.anchor(calendar(), name,
-    Number.isInteger(year) ? year : calendar().timeToComponents(game.time.worldTime).year, moonEpoch()),
+    Number.isInteger(year) ? year : calendar().timeToComponents(game.time.worldTime).year, worldMoons()[0].epoch, worldMoons()[0].days),
   format,
   /** GM only: move the clock with the party's carried lights put out, keeping their time (#228). */
   advanceOffDuty,

@@ -234,25 +234,40 @@ active, or when the world's calendar is not Foundry's own.
 ## A calendar of your own
 
 Gregorian is the default, and a world that never touches this stays exactly as
-it was. For your own months and weekdays:
+it was. Your own calendar is there if you want one, with its own months,
+weekdays, holidays, moons and seasons:
 
 1. As a GM, open the month view and press **Edit calendar**, under the grid. The
    same button sits in **Configure Settings → Shadowdark Enhancer → Overland**,
    for a world with no hex map to show the clock bar.
-2. Name the months, give each its length, and name the weekdays. It starts from
-   Foundry's calendar, so you only change what differs.
+2. Change what you want. It starts from Foundry's calendar, so you only change
+   what differs.
+   - **Months** and **Weekdays**: names, and each month's length.
+   - **Holidays**: a name, a month number and a day. They show in the month view
+     on those days, for players too. They are names on the calendar: they have
+     no carousing effects.
+   - **Moons**: a name, the days from one new moon to the next, and how many days
+     after the calendar's first day its first new moon falls. Add as many as you
+     like. The first is the one encounter tables read; the sky dial and the month
+     view show them all. With no moons left, the world keeps the usual moon.
+   - **Seasons**: a name, and the month number and day it starts. Each runs until
+     the next one.
 3. Save. Calendar switches to **Custom** and the world reloads on the new
-   calendar for everyone.
+   calendar for everyone, once you say yes to the reload.
 
-To go back, set **Calendar** to **Gregorian** in the Overland settings. Your
-calendar stays saved for next time. While another module runs the calendar, Save
-only keeps yours and the world stays as it is.
+Save with nothing changed leaves the world as it is, so looking is safe on a
+Gregorian world. To go back, set **Calendar** to **Gregorian** in the Overland
+settings. Your calendar stays saved: set it to **Custom** to return to it. While
+another module runs the calendar, Save only keeps yours and the world stays as it
+is.
 
 **Paste or copy a calendar** at the bottom of that window holds the whole
-calendar as a Foundry v14 config in JSON. Copy it to share your calendar; paste
+calendar in JSON: a Foundry v14 config, with `moons` and `holidays` lists beside
+it, because Foundry has no field for those. Copy it to share your calendar; paste
 one in and it replaces the rows when you save. A pasted calendar keeps its own
 hours in a day, leap years, seasons and year numbering. If it leaves seasons out,
-the four usual ones are spread over its year.
+the four usual ones are spread over its year. If it leaves moons out, it has the
+usual moon.
 
 The clock is a count of seconds, and the calendar decides what those seconds
 read as. Changing the calendar keeps every entry on the same moment but changes
@@ -261,16 +276,15 @@ afterwards.
 
 On a Custom calendar:
 
-- The clock, travel hours, sunrise and night, entries, quests and the moon all
-  work as usual. The month view shows your months and your length of week.
+- The clock, travel hours, sunrise and night, entries and quests all work as
+  usual. The month view shows your months and your length of week, your holidays,
+  and each moon's quarters, with a line saying what each moon is doing now.
 - The equinoxes and solstices sit where the sun's day length turns, in the same
   place every year, and the Cursed Scroll 6 holidays that follow the sun fall on
   those days. Maytide is the first day of the fifth month.
 - **Eclipses and the gods' holy days are hidden.** They are Earth dates.
 - A new world stays on the first day of the calendar's first year: the jump to
   1348 is only for Foundry's calendar.
-- The moon is a plain 29.5-day cycle. It does not follow a setting's printed moon
-  table.
 
 Foundry counts every day toward the week, so a calendar cannot have days that
 sit outside it, such as Dolmenwood's Wysendays. A long month and a weekday that

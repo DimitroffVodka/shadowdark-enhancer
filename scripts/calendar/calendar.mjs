@@ -14,8 +14,9 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { L as t } from "../shared/i18n.mjs";
 import { isActiveGM } from "../shared/gm-relay.mjs";
 import { dateToTime } from "../overland/hud-core.mjs";
-import { timeApi } from "../time/time.mjs";
-import { cleanEntry, customCalendar, withEntry, withoutEntry } from "./calendar-core.mjs";
+import { setMoons, timeApi } from "../time/time.mjs";
+import { secondsPerDay } from "../time/time-core.mjs";
+import { cleanEntry, customCalendar, holidaysOnDate, withEntry, withoutEntry } from "./calendar-core.mjs";
 
 export const ENTRIES_SETTING = "calendarEntries";
 export const STARTED_SETTING = "calendarStarted";
@@ -91,6 +92,11 @@ export const dateOwner = () => DATE_OWNERS.map((id) => game.modules.get(id)).fin
 
 // What applyWorldCalendar did at init, for the setting's note at ready.
 let applied = null, broken = false;
+// The Custom calendar's own holidays, which core has no field for.
+let ownHolidays = [];
+
+/** The names of the Custom calendar's holidays on a date: none on any other calendar. */
+export const customHolidaysOn = (date) => holidaysOnDate(ownHolidays, date);
 
 /** Who runs this world's calendar instead of the setting, by name, or null. */
 export function calendarTaker() {
@@ -103,14 +109,14 @@ export function calendarTaker() {
  * The calendar a GM gave, ready for core, or why not. A throw from core's strict
  * build, which runs with no catch at setupGame, would stop the world loading.
  * An empty setting is core's own calendar, for a GM to start from.
- * @returns {{config?:object, error?:string}}
+ * @returns {{config?:object, moons?:object[], holidays?:object[], error?:string}}
  */
 export function checkedCalendar(raw) {
-  const { config, error } = customCalendar(Object.keys(raw ?? {}).length ? raw : foundry.data.SIMPLIFIED_GREGORIAN_CALENDAR_CONFIG);
-  if (error) return { error };
+  const made = customCalendar(Object.keys(raw ?? {}).length ? raw : foundry.data.SIMPLIFIED_GREGORIAN_CALENDAR_CONFIG);
+  if (made.error) return made;
   try {
-    new CONFIG.time.worldCalendarClass(foundry.utils.deepClone(config), { strict: true });
-    return { config };
+    new CONFIG.time.worldCalendarClass(foundry.utils.deepClone(made.config), { strict: true });
+    return made;
   } catch (err) {
     console.warn(`${MODULE_ID} | calendar: core refused the custom calendar`, err);
     return { error: "SDE.calendarEditor.error.core" };
@@ -136,9 +142,14 @@ export async function saveCalendar(raw) {
  */
 export function applyWorldCalendar() {
   if (game.settings.get(MODULE_ID, CHOICE_SETTING) !== "custom" || !earthCalendar() || dateOwner()) return;
-  const { config, error } = checkedCalendar(game.settings.get(MODULE_ID, CUSTOM_SETTING));
-  if (error) broken = true;
-  else CONFIG.time.worldCalendarConfig = applied = config;
+  const { config, moons, holidays, error } = checkedCalendar(game.settings.get(MODULE_ID, CUSTOM_SETTING));
+  if (error) {
+    broken = true;
+    return;
+  }
+  CONFIG.time.worldCalendarConfig = applied = config;
+  ownHolidays = holidays;
+  setMoons(moons.map(({ name, days, offset }) => ({ name, days, epoch: offset * secondsPerDay(config) })));
 }
 
 /**
