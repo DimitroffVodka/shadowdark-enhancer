@@ -17,6 +17,7 @@ import { QuestLogApp, onQuestDay } from "../quests/quest-log-app.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { PartyItemPicker } from "./party-item-picker.mjs";
 import { postRollRequest } from "./party-roll.mjs";
+import { giveItem, registerPartyGive } from "./party-give.mjs";
 import { upkeepGp } from "../actors/warband-core.mjs";
 import { isMount } from "../actors/mount-scores.mjs";
 import { mountLoad } from "../actors/mount-load.mjs";
@@ -232,16 +233,13 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await this.actor.createEmbeddedDocuments("Item", [data]);
     ui.notifications.info(sayWith("SDE.party.item.added", { item: item.name }));
   }
-  /** Move a party item, its whole stack, to one of the party's characters. */
+  /** Move a party item, its whole stack, to one of the party's characters (a player asks the GM's client to). */
   async _giveItem(id, uuid) {
-    if (!game.user?.isGM || !this.actor?.isOwner) return;
-    const item = this.actor.items.get(id), target = this._pcs().find((row) => row.uuid === uuid)?.actor;
+    if (!this.actor?.isOwner) return;
     this.openKeys.delete(`give:${id}`);
+    const item = this.actor.items.get(id), target = this._pcs().find((row) => row.uuid === uuid)?.actor;
     if (!item || !target) return;
-    const data = item.toObject(); delete data._id;
-    await target.createEmbeddedDocuments("Item", [data]);
-    await item.delete();
-    ui.notifications.info(sayWith("SDE.party.item.gave", { item: item.name, name: target.name }));
+    if (await giveItem(this.actor, id, uuid)) ui.notifications.info(sayWith("SDE.party.item.gave", { item: item.name, name: target.name }));
   }
   /** Remove a party item, its whole stack, after a confirm: nobody receives it. */
   async _deleteItem(id) {
@@ -587,6 +585,7 @@ export function registerParty() {
   registerPartyRosterGuard();
   registerPartyTokenArt();
   registerPartyItemMove();
+  registerPartyGive();
   const ActorClass = globalThis.CONFIG?.Actor?.documentClass;
   if (ActorClass) {
     foundry.applications.apps.DocumentSheetConfig.registerSheet(ActorClass, MODULE_ID, PartySheet, { types: ["NPC"], makeDefault: false, label: "SDE.party.title" });

@@ -39,6 +39,7 @@
       </div>
       <p class="ui-sub">{{{localize "SDE.loot.generator.curatedHint"}}}</p>
     </section>
+    {{/if}}
 
     {{#if hasHistory}}
     <section class="ui-group">
@@ -80,10 +81,8 @@
       </article>
       {{/each}}
     </section>
-    {{else}}
+    {{else if hasTables}}
     <div class="ui-empty"><i class="fa-solid fa-dice-d20"></i><span>{{localize "SDE.loot.generator.rollHint"}}</span></div>
-    {{/if}}
-
     {{else}}
     <div class="ui-empty"><i class="fa-solid fa-coins"></i><span>{{{localize "SDE.loot.generator.emptyHint"}}}</span></div>
     {{/if}}

@@ -149,6 +149,8 @@ body[data-sde-tab-font="blackletter"] { --ui-tab-font: 400 19px/1 "JSL Blacklett
 .ui-btn.danger:hover:not(:disabled) { background: var(--ui-danger); color: #fff; }
 .ui-btn:disabled, .ui-btn[disabled] { opacity: .45; cursor: not-allowed; }
 .ui-icon { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; padding: 0; border: 1px solid transparent; border-radius: var(--ui-r); background: transparent; color: var(--ui-muted); cursor: pointer; font-size: 12px; }
+/* Multi Token Edit ships an unscoped .ui-icon { text-indent: -99999px; margin-top: -.25em } that throws every icon glyph off its button; the extra class wins it back. */
+.sde-ui .ui-icon { text-indent: 0; margin-top: 0; }
 .ui-icon:hover { color: var(--ui-text); border-color: var(--ui-line); background: var(--ui-raised); }
 .ui-icon.danger:hover { color: var(--ui-danger-text); border-color: var(--ui-danger); }
 

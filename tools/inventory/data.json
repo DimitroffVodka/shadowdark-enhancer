@@ -569,6 +569,7 @@
     "scripts/camping/grinder.mjs": "Grinder Mode on the client: its settings, the one-time take-over of Extras' Grinder values, the hit dice and 1d4 rolls, the player's spell pick (owner, then GM), and the applyDamage wrapper that turns damage past 0 HP into CON damage.",
     "scripts/camping/camping-app.mjs": "Camping controller hosted inline in Party Travel for native owner-choice task setup, food/fuel decisions and persistent results.",
     "scripts/camping/camping-cook.mjs": "Post-eligible-rest Cook seam and active-benefit-scoped native damage/healing/expiry compatibility.",
+    "scripts/party/party-give.mjs": "Give a party item to a character: the GM moves it directly, a player asks the GM's client over a relay query, which checks the sender owns the party and the target is a member.",
     "scripts/party/party-roll.mjs": "Request roll from the Party sheet's GM bar: posts one chat card with a Roll link per character asked; the owner's click runs the system's ability check against the DC and posts pass or fail.",
     "scripts/party/party-core.mjs": "Pure versioned roster validation, membership permissions, groups and quest scoping.",
     "scripts/party/party-movement-core.mjs": "Fixed formation fill, follow ordering, heading turns, and the wall tests: centre-line placement and a breadth-first route round walls.",
