@@ -16,7 +16,7 @@ import { isActiveGM } from "../shared/gm-relay.mjs";
 import { dateToTime } from "../overland/hud-core.mjs";
 import { setMoons, timeApi } from "../time/time.mjs";
 import { secondsPerDay } from "../time/time-core.mjs";
-import { cleanEntry, customCalendar, holidaysOnDate, withEntry, withoutEntry } from "./calendar-core.mjs";
+import { cleanEntry, customCalendar, holidaysOnDate, withEdited, withEntry, withoutEntry } from "./calendar-core.mjs";
 
 export const ENTRIES_SETTING = "calendarEntries";
 export const STARTED_SETTING = "calendarStarted";
@@ -55,6 +55,20 @@ export function addCalendarEntry(fields) {
     const entry = cleanEntry({ at: game.time.worldTime, ...fields, id: foundry.utils.randomID() });
     if (!entry) return null;
     await game.settings.set(MODULE_ID, ENTRIES_SETTING, withEntry(calendarEntries(), entry));
+    return entry;
+  });
+}
+
+/**
+ * Change an entry a GM wrote (GM). A line the module logged is left as it is.
+ * @returns {Promise<object|null>} the entry, or null when there was nothing to change
+ */
+export function updateCalendarEntry(id, fields) {
+  if (!game.user?.isGM) return Promise.resolve(null);
+  return queued(async () => {
+    const old = calendarEntries().find((e) => e.id === id);
+    const entry = old && !old.auto ? cleanEntry({ ...old, ...fields, id }) : null;
+    if (entry) await game.settings.set(MODULE_ID, ENTRIES_SETTING, withEdited(calendarEntries(), entry));
     return entry;
   });
 }

@@ -4404,6 +4404,8 @@ button.sde-hud-day:hover { border-color: var(--sd-frame); }
 .sde-hud-detail .sde-hud-row { justify-content: space-between; }
 .sde-hud-ttl2 { flex: 1; font-family: "Montserrat-Bold", sans-serif; font-size: 15px; color: var(--sd-text); }
 .sde-hud-dblock { display: flex; flex-direction: column; gap: 6px; max-height: 260px; overflow-y: auto; }
+.sde-hud-dblock[data-action] { cursor: pointer; padding: 3px 4px; border: 1px solid transparent; border-radius: 3px; }
+.sde-hud-dblock[data-action]:hover, .sde-hud-dblock[data-action]:focus-visible, .sde-hud-dblock[aria-pressed="true"] { border-color: var(--sd-frame); }
 .sde-hud-dblock p { margin: 0; font-size: 13px; color: var(--sd-text-body); }
 .sde-hud-dh { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 6px; align-items: baseline; font-size: 13px; }
 .sde-hud-dh b { font-family: "Montserrat-SemiBold", sans-serif; font-weight: normal; color: var(--sd-text); }

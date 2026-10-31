@@ -5,8 +5,8 @@
  * the equinoxes and solstices, the start of a season, and the eclipses a person
  * in Avignon could see (eclipse-data.mjs, generated; its dates are the Julian
  * ones Foundry's calendar prints). And the table's own:
- * entries, a GM's note or quest, or a line the module logged as the party
- * travelled or met something. Entries live in one world setting (calendar.mjs);
+ * entries, a GM's note, quest or yearly holiday, or a line the module logged as the
+ * party travelled or met something. Entries live in one world setting (calendar.mjs);
  * this file only shapes the list and says what falls on a day.
  */
 
@@ -15,7 +15,7 @@ import { ANCHORS, anchor } from "../time/time-core.mjs";
 import { holyOnDay } from "../holidays/holy-days.mjs";
 
 /** An entry's kinds: what the GM files by hand, and what the module logs. */
-export const ENTRY_KINDS = ["note", "quest", "travel", "encounter"];
+export const ENTRY_KINDS = ["note", "quest", "holiday", "travel", "encounter"];
 
 /** The list never grows past this; the oldest logged lines go first, written ones stay. */
 export const MAX_ENTRIES = 1000;
@@ -75,19 +75,23 @@ export function paragraphs(html) {
 }
 
 /**
- * A clean entry, or null when it has no title or no time. Text from a form is
- * trimmed and clamped; `auto` marks a line the module logged.
- * @param {{id:string, at:number, kind?:string, title:string, text?:string, gm?:boolean, auto?:boolean}} raw
+ * A clean entry, or null when it has no title or no time, or is a holiday with no
+ * date. Text from a form is trimmed and clamped; `auto` marks a line the module
+ * logged. A holiday is `yearly`: it keeps its month and day, from 1, so it holds
+ * that date in every year and through a change of calendar.
+ * @param {{id:string, at:number, kind?:string, title:string, text?:string, gm?:boolean, auto?:boolean, month?:number, day?:number}} raw
  */
 export function cleanEntry(raw) {
   const title = String(raw?.title ?? "").trim().slice(0, TITLE_MAX);
   if (!title || !raw?.id || !Number.isFinite(raw.at)) return null;
-  return {
+  const entry = {
     id: String(raw.id), at: Math.floor(raw.at),
     kind: ENTRY_KINDS.includes(raw.kind) ? raw.kind : "note",
     title, text: String(raw.text ?? "").trim().slice(0, TEXT_MAX),
     gm: !!raw.gm, auto: !!raw.auto,
   };
+  if (entry.kind !== "holiday") return entry;
+  return posInt(raw.month) && posInt(raw.day) ? { ...entry, yearly: true, month: raw.month, day: raw.day } : null;
 }
 
 /** The list with `entry` added; over the cap, the oldest logged line goes, else the oldest. */
@@ -102,23 +106,28 @@ export function withEntry(list, entry) {
 
 export const withoutEntry = (list, id) => list.filter((e) => e.id !== id);
 
+/** The list with `entry` in place of the one that has its id. */
+export const withEdited = (list, entry) => list.map((e) => (e.id === entry.id ? entry : e));
+
 /**
- * Everything on one day of the month view, in the order it reads: holidays,
- * the sun's day, a season's start, eclipses, then the entries by hour. A
- * player does not see a GM-only entry.
+ * Everything on one day of the month view, in the order it reads: holidays, a
+ * GM's yearly ones with them, the sun's day, a season's start, eclipses, then
+ * the entries by hour. A player does not see a GM-only entry.
  * @param {{cell:object, year:number, month:number, spd:number, entries?:object[], gm?:boolean, earth?:boolean}} v
  *   cell: a monthGrid day; year and month as shown (month from 1); spd: seconds in a day;
  *   earth: false on a calendar that is not Earth's, where the eclipse table's dates mean nothing
  */
 export function dayEvents({ cell, year, month, spd, entries = [], gm = false, holy = [], earth = true }) {
+  const on = (e) => (e.yearly ? e.month === month && e.day === cell.day : e.at >= cell.at && e.at < cell.at + spd);
+  const mine = entries.filter((e) => on(e) && (gm || !e.gm)).sort((a, b) => a.at - b.at);
   const out = [];
   for (const name of cell.holidays ?? []) out.push({ kind: "holiday", name });
+  for (const entry of mine) if (entry.yearly) out.push({ kind: "entry", entry });
   if (cell.solar) out.push({ kind: "solar", key: cell.solar });
   if (cell.seasonStart !== null && cell.seasonStart !== undefined) out.push({ kind: "season", index: cell.seasonStart });
   for (const h of holyOnDay(holy, cell)) out.push({ kind: "holy", holy: h });
   if (earth) for (const e of eclipsesOn(year, month, cell.day)) out.push({ kind: "eclipse", ...e });
-  const mine = entries.filter((e) => e.at >= cell.at && e.at < cell.at + spd && (gm || !e.gm)).sort((a, b) => a.at - b.at);
-  for (const entry of mine) out.push({ kind: "entry", entry });
+  for (const entry of mine) if (!entry.yearly) out.push({ kind: "entry", entry });
   return out;
 }
 

@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import {
-  ENTRY_KINDS, MAX_ENTRIES, cleanEntry, customCalendar, dayEvents, eclipsesOn, holidaysOnDate, paragraphs, rowSeasons, seasonRows, solarAt, solarOn,
+  ENTRY_KINDS, MAX_ENTRIES, cleanEntry, customCalendar, dayEvents, eclipsesOn, holidaysOnDate, paragraphs, rowSeasons, seasonRows, solarAt, solarOn, withEdited,
   withEntry, withRows, withoutEntry,
 } from "../scripts/calendar/calendar-core.mjs";
 import { ECLIPSES, NEW_MOON, SEASON_DAYS } from "../scripts/calendar/eclipse-data.mjs";
@@ -84,7 +84,37 @@ test("an entry needs a title and a time, and is trimmed and clamped", () => {
   assert.equal(e.text.length, 2000);
   assert.equal(e.gm, true);
   assert.equal(e.auto, false);
-  for (const kind of ENTRY_KINDS) assert.equal(cleanEntry({ id: "a", at: 1, kind, title: "x" }).kind, kind);
+  for (const kind of ENTRY_KINDS) assert.equal(cleanEntry({ id: "a", at: 1, kind, title: "x", month: 1, day: 1 }).kind, kind);
+});
+
+test("a holiday is yearly and keeps its date; nothing else is, whatever a form sends", () => {
+  const holiday = cleanEntry({ id: "a", at: 1, kind: "holiday", title: "Harvest", month: 3, day: 14 });
+  assert.deepEqual([holiday.yearly, holiday.month, holiday.day], [true, 3, 14]);
+  for (const date of [{}, { month: 0, day: 1 }, { month: 3, day: 1.5 }, { month: "3", day: 14 }]) {
+    assert.equal(cleanEntry({ id: "a", at: 1, kind: "holiday", title: "x", ...date }), null);
+  }
+  const note = cleanEntry({ id: "a", at: 1, kind: "note", title: "x", yearly: true, month: 3, day: 14 });
+  assert.deepEqual(Object.keys(note), ["id", "at", "kind", "title", "text", "gm", "auto"], "a stored entry's shape has not changed");
+});
+
+test("an edit replaces the entry in its place", () => {
+  const list = [{ id: "a", title: "A" }, { id: "b", title: "B" }];
+  assert.deepEqual(withEdited(list, { id: "a", title: "New" }).map((e) => e.title), ["New", "B"]);
+});
+
+test("a yearly entry falls on its month and day in every year, with the holidays", () => {
+  const year = (y) => monthGrid(gregorian, at(y, 3, 14, 8), { holidaysOn: (d) => (d.day === 14 ? ["Book Day"] : []) });
+  const harvest = cleanEntry({ id: "h", at: at(1300, 3, 14), kind: "holiday", title: "Harvest", month: 3, day: 14 });
+  const secret = cleanEntry({ id: "s", at: at(1300, 3, 14), kind: "holiday", title: "Secret", month: 3, day: 14, gm: true });
+  const dated = cleanEntry({ id: "d", at: at(1348, 3, 14, 6), title: "Once" });
+  const entries = [dated, harvest, secret];
+  const on = (g, day, gm = true) => dayEvents({ cell: g.cells.find((c) => !c.out && c.day === day), year: g.year, month: g.monthNumber, spd: DAY, entries, gm });
+
+  assert.deepEqual(on(year(1348), 14).map((e) => e.name ?? e.entry.id), ["Book Day", "h", "s", "d"]);
+  assert.deepEqual(on(year(1401), 14).map((e) => e.name ?? e.entry.id), ["Book Day", "h", "s"], "the dated one stays in its year");
+  assert.deepEqual(on(year(1348), 14, false).map((e) => e.name ?? e.entry.id), ["Book Day", "h", "d"], "a player misses the GM-only one");
+  assert.equal(on(year(1348), 15).length, 0);
+  assert.equal(on(monthGrid(gregorian, at(1348, 4, 14, 8)), 14).length, 0, "another month's 14th");
 });
 
 test("over the cap, logged lines go first, then the oldest written one", () => {

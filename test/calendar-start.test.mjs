@@ -7,7 +7,7 @@ import { gregorian } from "./gregorian-calendar.mjs";
 const CORE = { name: "Simplified Gregorian" };
 globalThis.foundry = { data: { SIMPLIFIED_GREGORIAN_CALENDAR_CONFIG: CORE }, applications: { api: {} } };
 
-const { CAMPAIGN_START, CHOICE_SETTING, CUSTOM_SETTING, DATE_OWNERS, STARTED_SETTING, applyCampaignStart, saveCalendar } = await import("../scripts/calendar/calendar.mjs");
+const { CAMPAIGN_START, CHOICE_SETTING, CUSTOM_SETTING, DATE_OWNERS, ENTRIES_SETTING, STARTED_SETTING, addCalendarEntry, applyCampaignStart, saveCalendar, updateCalendarEntry } = await import("../scripts/calendar/calendar.mjs");
 const { timeApi } = await import("../scripts/time/time.mjs");
 const { dateToTime } = await import("../scripts/overland/hud-core.mjs");
 
@@ -75,4 +75,44 @@ test("Save under a module that runs the calendar only keeps it, and asks for no 
   const kept = { live: false, writes: [[CUSTOM_SETTING, { months: "mine" }]] };
   assert.deepEqual(await save({ active: ["calendaria"] }), kept);
   assert.deepEqual(await save({ config: { name: "Someone's" } }), { ...kept }, "a world calendar no id gives away");
+});
+
+/** The entries setting as a GM (or a player) changes it; returns the list after `act`, and every setting written. */
+async function onEntries(list, act, { isGM = true } = {}) {
+  let stored = list;
+  const writes = [];
+  globalThis.foundry.utils = { randomID: () => "new" };
+  globalThis.game = {
+    user: { isGM },
+    time: { worldTime: 500 },
+    settings: { get: () => stored, set: async (_ns, key, value) => { writes.push(key); stored = value; } },
+  };
+  await act();
+  return { stored, writes };
+}
+
+const written = { id: "w", at: 100, kind: "note", title: "Mine", text: "", gm: false, auto: false };
+const logged = { id: "l", at: 100, kind: "travel", title: "Travel began", text: "", gm: false, auto: true };
+
+test("a holiday on Gregorian goes in the entries and never touches the calendar", async () => {
+  const { stored, writes } = await onEntries([], () => addCalendarEntry({ kind: "holiday", title: "Harvest", month: 3, day: 14 }));
+  assert.deepEqual(writes, [ENTRIES_SETTING]);
+  assert.deepEqual([stored[0].yearly, stored[0].month, stored[0].day], [true, 3, 14]);
+});
+
+test("an edit changes the GM's entry, and a change of kind makes or unmakes a holiday", async () => {
+  const fields = { kind: "holiday", title: "Now yearly", month: 3, day: 14 };
+  const { stored } = await onEntries([written, logged], () => updateCalendarEntry("w", fields));
+  assert.deepEqual([stored[0].title, stored[0].yearly, stored.length], ["Now yearly", true, 2]);
+  const back = await onEntries(stored, () => updateCalendarEntry("w", { kind: "note", at: 200 }));
+  assert.deepEqual([back.stored[0].yearly, back.stored[0].at], [undefined, 200]);
+});
+
+test("an edit leaves alone a logged line, a missing entry, a blank title and a player", async () => {
+  for (const [list, id, fields, who] of [
+    [[logged], "l", { title: "Changed" }, {}],
+    [[written], "gone", { title: "Changed" }, {}],
+    [[written], "w", { title: "  " }, {}],
+    [[written], "w", { title: "Changed" }, { isGM: false }],
+  ]) assert.deepEqual((await onEntries(list, () => updateCalendarEntry(id, fields), who)).writes, []);
 });

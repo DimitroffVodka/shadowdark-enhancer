@@ -143,12 +143,14 @@ The month's days, a week to a row, with the moon's new, first quarter, full
 and last quarter marked, today framed, and the City of Masks holidays on their
 days (and the gods' holy days, below). **‹** and **›** turn the months.
 
-**Click a day** to see what falls on it; nothing moves. For a holiday the panel
-shows what it does to carousing and the book's page text, with a button to open
-the page. For a holy day it shows its god, when it falls and a line on what it
-is, with a button to open the god's page. Clicking a line in the list under the
-grid does the same. A GM's **Go to this day** button in that panel moves the
-clock there, at the same hour. A small
+**Click a day** to open its panel; nothing moves. It stays open until you press
+its **×**, so a second click or a double-click does no harm: for a GM it puts the
+cursor in the panel's title box, ready to [add something](#entries). For a holiday
+the panel shows what it does to carousing and the book's page text, with a button
+to open the page. For a holy day it shows its god, when it falls and a line on
+what it is, with a button to open the god's page. Clicking a line in the list
+under the grid does the same. A GM's **Go to this day** button in that panel moves
+the clock there, at the same hour. A small
 dot on a day means something else falls on it; the list under the grid says
 what, day by day.
 
@@ -178,8 +180,8 @@ what, day by day.
   Player's Guide PDF: the import reads each god's Holy Days table when it files
   the pages, and a GM can press **Read holy day text** on a holy day that has no
   line yet. It is kept in a world setting, so players read it too.
-- **Entries**: notes and quests a GM adds, and lines the module writes as the
-  party plays.
+- **Entries**: notes, quests and yearly holidays a GM adds, and lines the module
+  writes as the party plays.
 
 The dates are the ones Foundry's own calendar prints. Its world calendar is
 "Simplified Gregorian", a leap day every fourth year, which in the 1300s is the
@@ -208,9 +210,17 @@ calendar. Press it again to show it.
 
 ### Entries
 
-A GM adds one under the list: a date, **Note** or **Quest**, a title, details,
-and **GM only** to hide it from the players' calendar. The **×** on a line removes it.
-Players see every entry that is not GM only, but cannot add or remove any.
+A GM adds one in a day's panel: click the day, type a title, and press **Add** or
+Enter. There are details, **GM only** to hide it from the players' calendar, and a
+kind: **Note**, **Quest** or **Holiday**. A holiday comes back every year on that
+month and day, on any calendar, and adding one does not change the world's
+calendar. It shows on the day like the other holidays.
+
+Click something you added, in the panel or the list under the grid, to change it:
+its title, details, kind, date and GM only, or **Delete** it. The lines the module
+logs open no form. The **×** on a line in the list removes it.
+Players see the same panel without the form: every entry that is not GM only, with
+no way to add, change or remove any.
 GM only hides an entry from the calendar, it is not a secret store: the entries are one world
 setting, which a player who goes looking for it can read.
 
@@ -245,7 +255,8 @@ weekdays, holidays, moons and seasons:
    - **Months** and **Weekdays**: names, and each month's length.
    - **Holidays**: a name, a month number and a day. They show in the month view
      on those days, for players too. They are names on the calendar: they have
-     no carousing effects.
+     no carousing effects. A holiday added on a day [in the month view](#entries)
+     needs no Custom calendar, and it is not listed here.
    - **Moons**: a name, the days from one new moon to the next, and how many days
      after the calendar's first day its first new moon falls. Add as many as you
      like. The first is the one encounter tables read; the sky dial and the month
