@@ -12,6 +12,7 @@
 
 ### Fixed
 
+- **Tables from Build Table roll their creatures.** A row that links a creature rolled as "Environmental Result" with no Place button, and showed as a flavor row in the table preview. It now rolls the creature, with its count, and can be placed. Imported tables, which name creatures in the row's text, were not affected.
 - **Icon buttons show up with Multi Token Edit installed.** That module ships a global `.ui-icon` rule that pushes every icon glyph off its button, so the Enhancer's icon buttons (Give, Delete and the rest) looked empty. The Enhancer windows now reset it.
 - **Gems on the Party sheet can be removed.** Gem rows now have the same Give and Delete buttons as other party items; before, a gem dragged onto the sheet could not be taken off.
 
