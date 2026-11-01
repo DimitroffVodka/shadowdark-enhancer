@@ -4,6 +4,7 @@
 
 ### Added
 
+- **Fog brush for hex maps.** A new button in the Hex map toolbar opens a small window: drag across the map to reveal hexes, or to hide them again, up to 19 hexes across. Hold Shift for the opposite. It paints the map of the party you have selected, or everyone's with no party in view, and it leaves visits, keyed locations and first-entry tables alone.
 - **Drag any item into the Loot window.** An item dragged from a compendium, the Items directory or a sheet onto the Loot Generator becomes an entry you can post to chat for the party to claim, give, or drop on the ground.
 
 ### Changed

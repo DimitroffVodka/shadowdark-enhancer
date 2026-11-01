@@ -1,0 +1,15 @@
+{{!-- Fog brush: what a drag on the map does. The painting itself happens on the canvas. --}}
+<div class="ui-shell hxf">
+  <div class="ui-body">
+    <div class="hxf-modes">
+      <button type="button" class="ui-btn{{#if reveal}} on{{/if}}" data-action="hxfMode" data-mode="reveal" aria-pressed="{{reveal}}"><i class="fas fa-eye"></i> {{localize "SDE.hexFog.brush.reveal"}}</button>
+      <button type="button" class="ui-btn{{#unless reveal}} on{{/unless}}" data-action="hxfMode" data-mode="hide" aria-pressed="{{#if reveal}}false{{else}}true{{/if}}"><i class="fas fa-eye-slash"></i> {{localize "SDE.hexFog.brush.hide"}}</button>
+    </div>
+    <label class="ui-field">
+      <span class="ui-label">{{localize "SDE.hexFog.brush.size"}}: <span data-hxf-across>{{across}}</span></span>
+      <input type="range" min="0" max="9" step="1" value="{{rings}}" data-hxf-size>
+    </label>
+    <p class="ui-note info">{{localize "SDE.hexFog.brush.howTo"}}</p>
+    {{#if hasParties}}<p class="ui-muted hxf-whose">{{whose}}</p>{{/if}}
+  </div>
+</div>

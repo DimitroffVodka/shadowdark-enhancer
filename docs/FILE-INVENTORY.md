@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-2239 tracked files · ~278,900 lines of code/markup across scripts+templates+styles+test.
+2242 tracked files · ~279,200 lines of code/markup across scripts+templates+styles+test.
 `v0.20.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -87,13 +87,14 @@
 | `hex-map/hex-brush-app.mjs` | 262 | The hex brush: a small window that sets one terrain (a picture tile per Legend terrain) plus features, so clicking or dragging across the tag overlay retags whole patches; a stroke is one scene write and Undo puts it back. |
 | `hex-map/hex-explorer-app.mjs` | 436 | Small scene-offset GM Hexplorer editor for terrain, line/structured features, public/private notes, document links and discovery; its header wears the hex's real tile, large (the bake's sprite, else the tile the painted map draws or its saved deal names, else the numbered tile) and opens it in Foundry's image pop-out, whose share action sends it to the players; a Tile card changes the hex's tile on the painted map. |
 | `hex-map/hex-explorer.mjs` | 422 | Player-safe Hexplorer canvas hover/select observer and GM writes over authoritative terrain tags and rich offset records; preserves discovery and imported metadata. |
-| `hex-map/hex-fog-core.mjs` | 144 | Pure shared terrain/location disclosure, lossless fog/history migration, native-grid sight, arrival/overlap decisions and the fog reset plan (resetCell, planFogReset). |
+| `hex-map/hex-fog-brush-app.mjs` | 150 | The fog brush: a small window plus canvas strokes that reveal or hide hexes in one write. |
+| `hex-map/hex-fog-core.mjs` | 171 | Pure shared terrain/location disclosure, lossless fog/history migration, native-grid sight, arrival/overlap decisions and the fog reset plan (resetCell, planFogReset). |
 | `hex-map/hex-fog-reset-dialog.mjs` | 76 | The GM's Reset fog window: whose map, which hexes (whole map or one region), first-entry tables roll again, a live count from the same plan the write uses, and undo of the last reset. |
-| `hex-map/hex-fog.mjs` | 266 | Adopted-scene native static fog overlay, GM disclosure, selected-party committed visits/arrival history, SDX ownership guard and the fog reset with its one-level undo. |
+| `hex-map/hex-fog.mjs` | 278 | Adopted-scene native static fog overlay, GM disclosure, selected-party committed visits/arrival history, SDX ownership guard and the fog reset with its one-level undo. |
 | `hex-map/hex-goto.mjs` | 46 | The hex-number links of the master Key Locations journal: one delegated click listener that pans the viewed scene to the hex (its own numbering, then the hex's map pin on any scene). |
 | `hex-map/hex-hud.mjs` | 49 | Hex Data from the token standing in the hex: a GM-only button on the token HUD that opens the Hex Data window for the cell the token occupies, shown only where that window would open, since a token hides the bare hex from the pointer. |
 | `hex-map/hex-legend-session.mjs` | 88 | The Hex Tagger's Legend without its window: runs the tagger unshown as the engine (reads the map, builds the picture cards, applies the names) and hands a page just the cards and five calls, so the import wizard can show them on its Terrain page. Also legendNamed(scene). |
-| `hex-map/hex-map-controls.mjs` | 101 | The Hex map group on the left toolbar (GM, any scene with hex numbering): show terrain tags, regions and encounter zones, the paint brush, the most-likely-wrong review and the Hex Tagger, each calling what the tagger's own buttons call; refreshed through the hexTools hook when an overlay or the brush opens or closes. |
+| `hex-map/hex-map-controls.mjs` | 111 | The Hex map group on the left toolbar (GM, any scene with hex numbering): show terrain tags, regions and encounter zones, the paint brush, the most-likely-wrong review and the Hex Tagger, each calling what the tagger's own buttons call; refreshed through the hexTools hook when an overlay or the brush opens or closes. |
 | `hex-map/hex-map-flow.mjs` | 512 | Hex map from an image: file dialog, lattice detection, confirmation preview with corners set by hand, upload into the world folder, an aligned scene (stretch to Foundry's pitches, offset to cell 0,0), tagger opened on its legend. |
 | `hex-map/hex-number-api.mjs` | 47 | `hexMaps.numberAt` / `hasNumbering`: the tagger's published hex number for a Foundry offset on a numbered scene, synchronous, so Shadowdark Extras' Map Coordinates shows what the tagger shows. |
 | `hex-map/hex-picture.mjs` | 188 | What the hex brush shows per terrain (pure): the Legend palette's terrains only, which tagged hex stands for each, the hexagon mask and printed-number patch geometry, and the edge-ink test that rejects a neighbour's border bleeding in. |

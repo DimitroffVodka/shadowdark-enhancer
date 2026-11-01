@@ -183,6 +183,19 @@ with ordinary GM/owner exceptions. GM reveal/conceal can hide a visited location
 without erasing arrival history. Dawn/manual reveal never rerolls first-entry
 tables. Adoption imports legacy fog/rolled history once and reload retains it.
 
+**The fog brush** reveals or hides hexes by hand, for a table that starts using the
+map midway through a campaign or wants to tidy it. The roller button in the Hex map
+toolbar opens a small window: pick **Reveal** or **Hide**, set how many hexes across
+the brush is (1 to 19), and drag across the map. Hold Shift to do the opposite for
+that stroke. A right-drag still pans. The hexes tint as you drag and the fog follows
+when you let go; closing the window gives the map back. It paints the map the fog is
+showing you: the selected party's, or everyone's when no party is in view, and the
+window says which. It changes only whether the terrain shows: visits, first-entry
+tables and a keyed location's own reveal stay as they were, so a revealed mountain
+still keeps its dungeon until someone visits it or you show it in Hex Data. A stroke
+is not on Reset fog's undo; paint the other way to take one back. On a scene that
+still runs Extras' Hex Fog, Ctrl-drag and Shift-drag do this instead.
+
 **Each party keeps its own map.** A table that runs several groups on one map
 (a West March) does not leak one group's travels to another. Committed travel and
 dawn reveal write to the travelling party only, and a player sees the hexes of the

@@ -6203,3 +6203,10 @@ body.sde-table-up #shadowdark-enhancer-strip, body.sde-table-up #shadowdark-enha
 .sde-town .lt-size { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ui-muted); }
 .sde-town .lt-size select { height: 26px; }
 .sde-town .lt-tools { display: flex; gap: 2px; }
+
+/* Fog brush */
+.hxf .ui-body { display: flex; flex-direction: column; gap: 10px; }
+.hxf-modes { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.hxf-modes .ui-btn.on { background: var(--ui-btn-bg); border-color: var(--ui-btn-bg); color: var(--ui-btn-fg); }
+.hxf input[type="range"] { width: 100%; }
+.hxf-whose { margin: 0; }
