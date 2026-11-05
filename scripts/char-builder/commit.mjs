@@ -20,6 +20,16 @@ export function applyTalentChoice(obj, choice) {
 }
 
 /**
+ * A talent's source data as the system's createItemWithEffect builds it, or the
+ * plain copy when that throws or refuses: Shadowdark 4.0.6's "+1 to Dexterity"
+ * ships zero-value changes, which it answers with a warning, not an item.
+ */
+export async function talentObject(doc) {
+  const obj = await shadowdark.effects.createItemWithEffect(doc).catch(() => null);
+  return obj?.system ? obj : doc.toObject();
+}
+
+/**
  * Turn a completed builder state into a Shadowdark PlayerSD actor.
  *
  * Mirrors the system generator's data shape — `system.ancestry/class/background/
@@ -242,11 +252,7 @@ async function gatherItems(state, classSys) {
       items.push(applyFix(obj));
       return;
     }
-    try {
-      items.push(applyFix(await shadowdark.effects.createItemWithEffect(doc)));
-    } catch (_e) {
-      items.push(applyFix(doc.toObject()));
-    }
+    items.push(applyFix(await talentObject(doc)));
   };
 
   // Ancestry talents: only the chosen subset (multi-talent ancestries like Elf
@@ -260,6 +266,7 @@ async function gatherItems(state, classSys) {
   // stays on the sheet for those.
   for (const b of (state.bonusRolls || [])) {
     if (b.chosenUuid) await addTalent(b.chosenUuid, choice(`bonus:${b.key}`));
+    if (b.pairUuid) await addTalent(b.pairUuid);
   }
   for (const uuid of (classSys?.classAbilities || [])) await addSource(uuid);
   // Class-granted natural weapons/gear (e.g. the Wyrdling's Pseudopod): the

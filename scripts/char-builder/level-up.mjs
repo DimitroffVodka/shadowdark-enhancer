@@ -56,11 +56,13 @@ export function spellsDue(classItem, from, to) {
   return out;
 }
 
-/** The talent picked for the new level, `{ uuid, name, choice }`, or null. */
+/** The talent picked for the new level, `{ uuid, name, choice, pair }`, or null; `pair` is the second "+1 to a stat". */
 export function levelUpTalent(state) {
   const lu = state.levelUp;
   if (!lu) return null;
   const key = levelTalentKey(lu.to);
   const b = (state.bonusRolls ?? []).find((r) => r.key === key);
-  return b?.chosenUuid ? { uuid: b.chosenUuid, name: b.chosenName, choice: state.talentChoices?.[`bonus:${key}`] ?? null } : null;
+  if (!b?.chosenUuid) return null;
+  const pair = b.pairUuid ? { uuid: b.pairUuid, name: b.pairName } : null;
+  return { uuid: b.chosenUuid, name: b.chosenName, choice: state.talentChoices?.[`bonus:${key}`] ?? null, pair };
 }

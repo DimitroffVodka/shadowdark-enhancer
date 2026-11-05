@@ -73,7 +73,7 @@ export class CharBuilderState {
     this.classTalents = [];     // rolled/chosen class talents [{ uuid, name }]
     this.classTalentRoll = null;// { total, resultText, options:[{uuid,name,isTable}] }
     this.bonusRolls = [];       // extra creation rolls (Ambitious, Black Lotus, patron boons…)
-                                // [{ key, label, tableUuid, total, options, chosenUuid, chosenName, textResult }]
+                                // [{ key, label, tableUuid, total, options, chosenUuid, chosenName, pairUuid, pairName, textResult }]
     this.talentChoices = {};    // REPLACEME-effect picks { instanceKey: { slug, label } } (Weapon Mastery weapon…)
     this.talentMemo = {};       // { classUuid: snapshot of the four fields above + hp } — restored when a class is re-picked
     this.spells = [];           // [{ uuid, name, tier }]

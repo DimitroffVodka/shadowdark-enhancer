@@ -119,6 +119,7 @@ export function planCommit(existing, state, live) {
       }
       const t = levelUpTalent(state);
       if (t) talentCreates.push({ rowId: `${state.existing.sessionId ?? ""}:levelup-talent`, kind: "talent", uuid: t.uuid, name: t.name, choice: t.choice, level: lu.to });
+      if (t?.pair) talentCreates.push({ rowId: `${state.existing.sessionId ?? ""}:levelup-talent-2`, kind: "talent", uuid: t.pair.uuid, name: t.pair.name, choice: null, level: lu.to });
     }
   }
 

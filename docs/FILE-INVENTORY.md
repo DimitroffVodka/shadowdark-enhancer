@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-2245 tracked files · ~280,200 lines of code/markup across scripts+templates+styles+test.
+2245 tracked files · ~280,400 lines of code/markup across scripts+templates+styles+test.
 `v0.20.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -512,15 +512,15 @@
 | `char-builder-app.mjs` | 406 | `ShadowdarkCharBuilder` ApplicationV2 shell; drives the step lifecycle. |
 | `state.mjs` | 158 | `CharBuilderState` — the in-progress character. |
 | `constants.mjs` | 160 | Shared constants; hands off to the system's `CharacterGeneratorSD`. |
-| `data.mjs` | 338 | Thin wrappers over the system's compendium loaders. |
-| `commit.mjs` | 304 | `commitCharacter` — final actor creation + `coinsAfterGear`. |
+| `data.mjs` | 366 | Thin wrappers over the system's compendium loaders. |
+| `commit.mjs` | 311 | `commitCharacter` — final actor creation + `coinsAfterGear`. |
 | `item-source.mjs` | 19 | `stampSource` — records the compendium link on items the builder creates. |
 | `hydrate.mjs` | 259 | Existing actor -> builder state (reads `_source` only); `describeActor` console dry run. |
-| `commit-plan.mjs` | 265 | `planCommit` — pure three-way plan (baseline, builder, live) of what Finish changes on an existing actor. |
-| `commit-apply.mjs` | 209 | `applyPlan` — resumable executor for a merge-aware plan: creates, item updates, one actor update, deletes last, each read back so a write rejected after saving is not repeated. |
+| `commit-plan.mjs` | 266 | `planCommit` — pure three-way plan (baseline, builder, live) of what Finish changes on an existing actor. |
+| `commit-apply.mjs` | 208 | `applyPlan` — resumable executor for a merge-aware plan: creates, item updates, one actor update, deletes last, each read back so a write rejected after saving is not repeated. |
 | `before-image.mjs` | 178 | `takeBeforeImage` / `restoreBeforeImage` — one actor flag holding the builder-writable fields and every item's source, and a restore that puts the character back with the executor's write discipline. |
 | `existing-finish.mjs` | 218 | The builder on an existing character: `hydrateActor`, `finishExisting` (diff dialog, before-image, `applyPlan`, then re-hydrate from the live actor) and `undoLastSave`. |
-| `level-up.mjs` | 66 | Level up an existing character, one level (pure): `canLevelUp` (XP or GM), `startLevelUp`, `cancelLevelUp`, the odd-level talent rule, the spells-known delta and the picked talent. |
+| `level-up.mjs` | 68 | Level up an existing character, one level (pure): `canLevelUp` (XP or GM), `startLevelUp`, `cancelLevelUp`, the odd-level talent rule, the spells-known delta and the picked talent. |
 | `entry-points.mjs` | 38 | Ways into the builder on an existing character: the Player sheet header button and the Actor directory's Edit in Character Builder entry. |
 | `art.mjs` | 77 | Ancestry/class NAME → local portrait manifest. |
 | `art-gallery.mjs` | 537 | GM-curated portrait gallery (avoids granting players `FILES_BROWSE`). |
@@ -531,7 +531,7 @@
 | `steps/alignment-step.mjs` | 69 | Step — Alignment. Three choice cards (Lawful / Neutral / Chaotic). |
 | `steps/ancestry-step.mjs` | 256 | Step — Ancestry. List/detail pick contributing ancestry talents and languages. |
 | `steps/background-step.mjs` | 40 | Step — Background. A simple list/detail pick. |
-| `steps/class-step.mjs` | 985 | Step — Class. List/detail pick; parses the class writeup, talent table and spellcasting. |
+| `steps/class-step.mjs` | 1006 | Step — Class. List/detail pick; parses the class writeup, talent table and spellcasting. |
 | `steps/deity-step.mjs` | 77 | Step — Deity. Optional list/detail pick showing the deity's detail. |
 | `steps/gear-step.mjs` | 345 | Step — Gear. A shop: browse purchasable equipment and buy against starting gold. |
 | `steps/gold-step.mjs` | 98 | Step — Gold. Roll 2d6×5 gp, or use the GM's fixed starting-gold setting. |
@@ -539,7 +539,7 @@
 | `steps/hp-step.mjs` | 173 | Step — Hit Points. Level-1 HP = class hit die + CON modifier (minimum 1). |
 | `steps/languages-step.mjs` | 147 | Step — Languages (runs after Class, so ancestry and class both contribute). |
 | `steps/origins-step.mjs` | 72 | Step — Origins: Background + Alignment + Deity on one tab. |
-| `steps/preview-step.mjs` | 371 | Step — Preview. Final character-sheet preview before creation. |
+| `steps/preview-step.mjs` | 372 | Step — Preview. Final character-sheet preview before creation. |
 | `steps/stats-step.mjs` | 400 | Step — Abilities. Roll or assign the six ability scores. |
 
 ### 3.15 `scripts/monster-art/`
