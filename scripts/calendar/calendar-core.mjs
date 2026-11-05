@@ -172,7 +172,7 @@ export function customCalendar(raw) {
   if (seasons?.length && !seasons.every((s) => text(s?.name) && ([s.dayStart, s.dayEnd].every(dayCount) || [s.monthStart, s.monthEnd].every(posInt)))) return { error: "SDE.calendarEditor.error.seasons" };
   const moons = raw.moons ?? [], holidays = raw.holidays ?? [];
   if (!Array.isArray(moons) || !moons.every((m) => text(m?.name) && m.days > 0 && Number.isFinite(m.days) && Number.isFinite(m.offset ?? 0))) return { error: "SDE.calendarEditor.error.moons" };
-  if (!Array.isArray(holidays) || !holidays.every((h) => text(h?.name) && posInt(h.day) && h.day <= longest(months[h.month - 1] ?? { days: 0 }))) return { error: "SDE.calendarEditor.error.holidays" };
+  if (!Array.isArray(holidays) || !holidays.every((h) => text(h?.name) && posInt(h.month) && posInt(h.day) && h.day <= longest(months[h.month - 1] ?? { days: 0 }))) return { error: "SDE.calendarEditor.error.holidays" };
   return {
     moons: moons.map((m) => ({ name: text(m.name), days: m.days, offset: m.offset ?? 0 })),
     holidays: holidays.map((h) => ({ name: text(h.name), month: h.month, day: h.day })),

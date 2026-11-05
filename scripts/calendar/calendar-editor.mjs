@@ -89,11 +89,18 @@ export class CalendarEditor extends HandlebarsApplicationMixin(ApplicationV2) {
       t,
     );
     next.holidays = dated("holidays");
-    // Rows left as they were keep what is stored: the usual moon, and seasons counted by month.
+    // Unchanged rows keep the usual moon; unchanged dates keep the stored season boundaries.
     const moons = rows("moons").map((row) => ({ name: name(row), days: num(row, "days"), offset: num(row, "offset") }));
     if (JSON.stringify(moons) !== this._shown.moons) next.moons = moons;
     const seasons = dated("seasons");
-    if (JSON.stringify(seasons) !== this._shown.seasons) next.seasons = { values: rowSeasons(seasons, next.months.values) };
+    if (JSON.stringify(seasons) !== this._shown.seasons) {
+      const was = JSON.parse(this._shown.seasons);
+      const sameDates = next.seasons?.values?.length === seasons.length && was.length === seasons.length
+        && seasons.every((s, i) => s.month === was[i].month && s.day === was[i].day);
+      next.seasons = { values: sameDates
+        ? next.seasons.values.map((s, i) => ({ ...s, name: seasons[i].name }))
+        : rowSeasons(seasons, next.months.values) };
+    }
     return next;
   }
 

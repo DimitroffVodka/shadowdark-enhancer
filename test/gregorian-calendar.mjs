@@ -85,23 +85,33 @@ export const clockAt = (t, calendar = gregorian) => ({
 
 /**
  * A calendar of any shape from a config, as core's `timeToComponents` reads one:
- * no leap years, and seasons by days or months.
+ * leap years from the configured start, and seasons by days or months.
  */
 export function shaped(config) {
   const { months, days } = config;
   const spd = days.hoursPerDay * days.minutesPerHour * days.secondsPerMinute;
+  const leap = config.years.leapYear;
+  const leapDays = months.values.reduce((sum, m) => sum + (m.leapDays ?? m.days), 0);
+  const before = (year) => year * days.daysPerYear + (leap && year > leap.leapStart
+    ? Math.ceil((year - leap.leapStart) / leap.leapInterval) * (leapDays - days.daysPerYear) : 0);
   return {
     ...config,
-    componentsToTime: ({ year = 0, day = 0 } = {}) => (year * days.daysPerYear + day) * spd,
+    componentsToTime: ({ year = 0, day = 0 } = {}) => (before(year) + day) * spd,
     timeToComponents(t = 0) {
-      const all = Math.floor(t / spd), year = Math.floor(all / days.daysPerYear), day = all - year * days.daysPerYear;
+      const all = Math.floor(t / spd);
+      let year = Math.floor(all / days.daysPerYear);
+      while (before(year) > all) year--;
+      while (before(year + 1) <= all) year++;
+      const day = all - before(year);
+      const leapYear = !!leap && year >= leap.leapStart && (year - leap.leapStart) % leap.leapInterval === 0;
+      const length = (m) => leapYear ? m.leapDays ?? m.days : m.days;
       let month = 0, dayOfMonth = day;
-      while (dayOfMonth >= months.values[month].days) dayOfMonth -= months.values[month++].days;
+      while (dayOfMonth >= length(months.values[month])) dayOfMonth -= length(months.values[month++]);
       const season = config.seasons.values.findIndex((s) => {
         if (Number.isInteger(s.dayStart)) return s.dayEnd < s.dayStart ? day + 1 >= s.dayStart || day + 1 <= s.dayEnd : day + 1 >= s.dayStart && day + 1 <= s.dayEnd;
-        return month + 1 >= s.monthStart && month + 1 <= s.monthEnd;
+        return s.monthEnd < s.monthStart ? month + 1 >= s.monthStart || month + 1 <= s.monthEnd : month + 1 >= s.monthStart && month + 1 <= s.monthEnd;
       });
-      return { year, day, month, dayOfMonth, season, dayOfWeek: (all + config.years.firstWeekday) % days.values.length, hour: 0, minute: 0, second: t - all * spd };
+      return { year, day, month, dayOfMonth, season, leapYear, dayOfWeek: (all + config.years.firstWeekday) % days.values.length, hour: 0, minute: 0, second: t - all * spd };
     },
   };
 }

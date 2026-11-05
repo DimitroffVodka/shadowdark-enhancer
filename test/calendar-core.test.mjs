@@ -296,6 +296,40 @@ test("a Custom world at the clock's first second can look back a month", () => {
   assert.equal(g.cells.length % 7, 0, "the weeks stay whole before second 0");
 });
 
+test("the month view includes every day of a leap month longer than the ordinary year", () => {
+  const cal = shaped(customCalendar({
+    ...dolmen, years: { leapYear: { leapStart: 0, leapInterval: 4 } },
+    months: { values: [{ name: "Long", days: 30, leapDays: 60 }] },
+  }).config);
+  assert.equal(cal.timeToComponents(59 * DAY).dayOfMonth, 59);
+  assert.equal(cal.timeToComponents(60 * DAY).year, 1);
+  const cells = (g) => g.cells.filter((c) => !c.out);
+  const grid = monthGrid(cal, 0, { earth: false });
+  assert.deepEqual(cells(grid).map((c) => c.day), Array.from({ length: 60 }, (_, i) => i + 1));
+  assert.equal(cells(monthGrid(cal, 59 * DAY, { earth: false }))[0].at, 0, "looking back from the leap month's last day");
+  const next = monthGrid(cal, 0, { offset: 1, earth: false });
+  assert.equal(next.year, 1);
+  assert.equal(cells(next).length, 30);
+});
+
+test("typed dates reach later months after any leap extension or shortening", () => {
+  for (const leapDays of [35, 90, 20]) {
+    const cal = shaped(customCalendar({
+      ...dolmen, years: { yearZero: 100, leapYear: { leapStart: 0, leapInterval: 4 } },
+      months: { values: [{ name: "One", days: 30, leapDays }, month("Two", 30)] },
+    }).config);
+    for (const year of [0, 1, 4]) {
+      const length = year === 1 ? 30 : leapDays;
+      const start = cal.componentsToTime({ year });
+      const actual = cal.timeToComponents(start + length * DAY);
+      assert.deepEqual([actual.year, actual.month, actual.dayOfMonth], [year, 1, 0]);
+      assert.equal(dateToTime(cal, { year: year + 100, month: 2, day: 1, hour: 9, minute: 30 }), start + length * DAY + 9 * 3600 + 30 * 60, `year ${year}, leap length ${leapDays}`);
+      assert.equal(dateToTime(cal, { year: year + 100, month: 1, day: length }), start + (length - 1) * DAY);
+      assert.equal(dateToTime(cal, { year: year + 100, month: 1, day: length + 1 }), null);
+    }
+  }
+});
+
 test("a date round-trips through a calendar of another shape, and one it lacks is refused", () => {
   const cal = custom([50, 10, 36], 5);
   assert.equal(dateToTime(cal, { year: 3, month: 2, day: 10 }), dayOf(cal, 3 * 96 + 59));
@@ -339,6 +373,15 @@ test("a holiday's date reaches a leap month's extra day, and only its own date n
   assert.equal(sky(leap).error, undefined);
   assert.deepEqual(holidaysOnDate([{ name: "Leap", month: 1, day: 29 }], { month: 1, day: 29 }), ["Leap"]);
   assert.deepEqual(holidaysOnDate([{ name: "Leap", month: 1, day: 29 }], { month: 2, day: 29 }), []);
+});
+
+test("a custom holiday requires a positive integer month, never a numeric string", () => {
+  for (const month of ["1", "01", 0, -1, 1.5, null]) {
+    assert.equal(sky({ holidays: [{ name: "Harvest", month, day: 1 }] }).error, "SDE.calendarEditor.error.holidays", JSON.stringify(month));
+  }
+  const made = sky({ holidays: [{ name: "Harvest", month: 1, day: 1 }] });
+  assert.equal(made.error, undefined);
+  assert.deepEqual(holidaysOnDate(made.holidays, { month: 1, day: 1 }), ["Harvest"]);
 });
 
 test("season rows read core's months or days, and rows go back as days round the year", () => {

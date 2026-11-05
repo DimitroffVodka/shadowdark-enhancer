@@ -224,8 +224,8 @@ export function dialMarkup({ d, hoursPerDay = 24, region = "", terrain = "", lab
  */
 export const seasonHatch = (daysLeft) => +(Math.max(0, Math.min(1, (30 - daysLeft) / 30)) * 30).toFixed(1);
 
-/** No month runs longer than a year: the bound on walking one day by day. */
-const monthCap = (cal) => (cal.days?.daysPerYear ?? 365) + 2;
+/** Bound month walks by the ordinary year or a longer leap month. */
+const monthCap = (cal) => Math.max(cal.days?.daysPerYear ?? 365, ...(cal.months?.values ?? []).map((m) => m.leapDays ?? m.days)) + 2;
 
 /**
  * The 00:00 of the first day of `t`'s month, read back from the calendar: the
@@ -338,17 +338,21 @@ export function dateToTime(cal, { year, month, day, hour = 0, minute = 0 }) {
   const spd = secondsPerDay(cal);
   const months = cal.months?.values ?? [];
   const hoursPerDay = cal.days?.hoursPerDay ?? 24, minutesPerHour = cal.days?.minutesPerHour ?? 60;
+  if (![year, month, day, hour, minute].every(Number.isInteger)) return null;
   if (month < 1 || month > months.length || day < 1) return null;
   if (hour < 0 || hour >= hoursPerDay || minute < 0 || minute >= minutesPerHour) return null;
   const start = cal.componentsToTime({ year: y });
-  const guess = months.slice(0, month - 1).reduce((s, x) => s + x.days, 0) + day - 1;
   const perMinute = cal.days?.secondsPerMinute ?? 60, perHour = minutesPerHour * perMinute;
-  for (const off of [0, 1, -1, 2, -2]) {
-    const at = start + (guess + off) * spd;
-    const c = cal.timeToComponents(at);
-    if (c.year === y && c.month === month - 1 && c.dayOfMonth === day - 1) return at + hour * perHour + minute * perMinute;
+  // Search the actual year's days, taking the first when core prints a date twice.
+  let low = 0, high = Math.ceil((cal.componentsToTime({ year: y + 1 }) - start) / spd);
+  while (low < high) {
+    const mid = Math.floor((low + high) / 2);
+    const c = cal.timeToComponents(start + mid * spd);
+    if (c.month < month - 1 || (c.month === month - 1 && c.dayOfMonth < day - 1)) low = mid + 1;
+    else high = mid;
   }
-  return null;
+  const at = start + low * spd, c = cal.timeToComponents(at);
+  return c.year === y && c.month === month - 1 && c.dayOfMonth === day - 1 ? at + hour * perHour + minute * perMinute : null;
 }
 
 // ── The Travel panel: the book's travel procedure in eight steps (GMWR p.46, #257) ──

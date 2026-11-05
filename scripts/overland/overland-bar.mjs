@@ -790,7 +790,7 @@ export const TravelBar = {
       at = info.at;
       title = `${g.cells[i].day} ${t(g.month)} ${g.year}`;
       items = events[i];
-      if (gm) form = this._entryForm(`${String(g.year).padStart(4, "0")}-${String(g.monthNumber).padStart(2, "0")}-${String(g.cells[i].day).padStart(2, "0")}`);
+      if (gm) form = this._entryForm(`${g.year < 0 ? "-" : ""}${String(Math.abs(g.year)).padStart(4, "0")}-${String(g.monthNumber).padStart(2, "0")}-${String(g.cells[i].day).padStart(2, "0")}`);
     }
     const open = (uuid) => (uuid ? key("openPage", t("SDE.calendar.openPage"), { id: uuid, cls: "sde-hud-sm" }) : "");
     // A GM can switch a holiday or holy day to GM only: players' calendars then leave it out.
@@ -860,7 +860,7 @@ export const TravelBar = {
     const { at, entry: id } = this._info ?? {};
     const old = calendarEntries().find((e) => e.id === id && !e.auto);
     const cal = game.time.calendar;
-    const [year, month, day] = read("date").split("-").map(Number);
+    const [year, month, day] = (read("date").trim().match(/^(-?\d+)-(\d+)-(\d+)$/)?.slice(1) ?? []).map(Number);
     const dayStart = old ? dateToTime(cal, { year, month, day }) : at;
     if (dayStart === null) return ui.notifications.warn(t("SDE.clock.badDate"));
     if (!read("title").trim()) return ui.notifications.warn(t("SDE.calendar.needTitle"));

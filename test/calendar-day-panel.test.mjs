@@ -2,6 +2,8 @@
 // in its panel and clicks what they added to edit it, and a player only reads it.
 import test from "node:test";
 import assert from "node:assert/strict";
+import { customCalendar } from "../scripts/calendar/calendar-core.mjs";
+import { shaped } from "./gregorian-calendar.mjs";
 
 // overland-bar.mjs pulls in crawl-state.mjs and the vehicle sheets, which touch Foundry classes at load.
 const deep = new Proxy(function () {}, {
@@ -14,7 +16,7 @@ const stored = { calendarEntries: [mine, logged], clockBar: "all" };
 const game = {
   user: { isGM: true, id: "gm" },
   i18n: { localize: (k) => k, format: (k) => k },
-  settings: { get: (ns, key) => stored[key], set: async () => {} },
+  settings: { get: (ns, key) => stored[key], set: async (ns, key, value) => { stored[key] = structuredClone(value); } },
   time: { worldTime: 0, calendar: {} },
   combat: null, combats: { get: () => undefined }, scenes: { get: () => undefined },
 };
@@ -90,4 +92,41 @@ test("a player's panel has no form and nothing to click", async () => {
   assert.match(html, /Mine/);
   assert.doesNotMatch(html, /sde-hud-e-|saveEntry|data-entry/);
   await click("closeInfo");
+});
+
+const custom = shaped(customCalendar({
+  months: { values: [{ name: "One", days: 30 }, { name: "Two", days: 30 }] },
+  days: { values: [{ name: "Day" }] },
+}).config);
+
+test("an entry's date formats the sign before a negative year's padded digits", async () => {
+  for (const [year, expected] of [[-1, "-0001"], [-12345, "-12345"], [0, "0000"], [1, "0001"]]) {
+    const at = custom.componentsToTime({ year, day: 30 });
+    stored.calendarEntries = [{ ...mine, at }];
+    await click("pickDay", String(at), { entry: mine.id });
+    const g = { year, monthNumber: 2, month: "Two", cells: [{ at, day: 1 }] };
+    const html = TravelBar._detail(g, [[{ kind: "entry", entry: stored.calendarEntries[0] }]], custom, true);
+    assert.ok(html.includes(`value="${expected}-02-01"`), `year ${year}: ${html}`);
+    await click("closeInfo");
+  }
+});
+
+test("saving an entry in a negative year keeps its date and time when only its title changes", async () => {
+  const at = custom.componentsToTime({ year: -1, day: 30 });
+  const entry = { ...mine, at: at + 9 * 3600 + 30 * 60 };
+  const previous = { el: TravelBar._el, calendar: game.time.calendar };
+  try {
+    stored.calendarEntries = [entry];
+    game.time.calendar = custom;
+    await click("pickDay", String(at), { entry: entry.id });
+    const inputs = { date: "-0001-02-01", title: "New title", text: entry.text, kind: entry.kind };
+    TravelBar._el = { ...previous.el, querySelector: (s) => s === "#sde-hud-e-gm" ? { checked: false } : { value: inputs[s.slice("#sde-hud-e-".length)] } };
+    await click("saveEntry");
+    assert.equal(stored.calendarEntries[0].title, "New title");
+    assert.equal(stored.calendarEntries[0].at, entry.at);
+  } finally {
+    TravelBar._el = previous.el;
+    game.time.calendar = previous.calendar;
+    await click("closeInfo");
+  }
 });
