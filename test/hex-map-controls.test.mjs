@@ -36,6 +36,15 @@ test("the toolbar falls back to Tokens when the selected Hex map group goes away
   assert.deepEqual(refreshOptions("tiles", false), { reset: true }, "another group stays where it is");
 });
 
+test("the fog brush is there wherever the module draws the fog, even with no tags, and shows as on while it is open", () => {
+  const numbered = scene({ hexTags: { origin: { num: "0000" } } });
+  assert.equal(hexMapTools(numbered, { isGM: true }).hexFogBrush, undefined);
+  assert.equal(hexMapTools(numbered, { isGM: true, fog: true }).hexFogBrush.active, false);
+  assert.equal(hexMapTools(numbered, { isGM: true, fog: true, fogBrush: true }).hexFogBrush.active, true);
+  const adopted = { flags: {}, getFlag: (_mod, key) => (key === "hexRecords" ? { adopted: true } : undefined) };
+  assert.ok(hexMapTools(adopted, { isGM: true, fog: true }).hexFogBrush);
+});
+
 test("the player-view switch is there only where the module draws the fog, and shows as on while it is", () => {
   const numbered = scene({ hexTags: { origin: { num: "0000" } } });
   assert.equal(hexMapTools(numbered, { isGM: true }).hexPlayerView, undefined);
@@ -73,7 +82,7 @@ test("the hover-card switch is last in the group and shows as on while the card 
 
 test("a painted scene Extras built has records but no tags: only the switches that need no tags", () => {
   const painted = scene({ hexRecords: { adopted: true } });
-  assert.deepEqual(Object.keys(hexMapTools(painted, { isGM: true, fog: true })), ["hexPlayerView", "hexFogHidden", "hexFogReset", "hexTooltip"]);
+  assert.deepEqual(Object.keys(hexMapTools(painted, { isGM: true, fog: true })), ["hexPlayerView", "hexFogHidden", "hexFogReset", "hexFogBrush", "hexTooltip"]);
   assert.deepEqual(Object.keys(hexMapTools(painted, { isGM: true })), ["hexTooltip"], "no fog switches where the module draws no fog");
   assert.equal(hexMapTools(painted, { isGM: false }), null);
   assert.equal(hexMapTools(scene({ hexRecords: { version: 1 } }), { isGM: true }), null, "records that were never adopted are not a hex scene");
@@ -93,7 +102,7 @@ test("a flag update on a scene that owns the fog redraws the toolbar only when t
     registerHexMapControls();
     const [onUpdate] = handlers;
     const changed = { flags: { "shadowdark-enhancer": { anything: 1 } } };
-    shown = ["hexPlayerView", "hexFogHidden", "hexFogReset", "hexTooltip"];
+    shown = ["hexPlayerView", "hexFogHidden", "hexFogReset", "hexFogBrush", "hexTooltip"];
     onUpdate(painted, changed);
     assert.equal(renders, 0, "the fog tools are already up and still owned: no redraw");
     shown = ["hexTooltip"];
@@ -103,7 +112,7 @@ test("a flag update on a scene that owns the fog redraws the toolbar only when t
     shown = ["hexTooltip"];
     onUpdate(painted, changed);
     assert.equal(renders, 1, "the module no longer draws the fog and the fog tools are gone: no redraw");
-    shown = ["hexPlayerView", "hexFogHidden", "hexFogReset", "hexTooltip"];
+    shown = ["hexPlayerView", "hexFogHidden", "hexFogReset", "hexFogBrush", "hexTooltip"];
     onUpdate(painted, changed);
     assert.equal(renders, 2, "the fog tools are up but no longer owned: redraw");
   } finally {

@@ -41,6 +41,47 @@ export const TALENT_DESCRIPTION_FIXES = {
     "<p>You get a +1 bonus to spellcasting checks.</p>",
 };
 
+/**
+ * Shadowdark 4.0.6 ships The Lost as neutral; they are chaotic. Keyed by
+ * deity UUID.
+ */
+export const DEITY_ALIGNMENT_FIXES = {
+  "Compendium.shadowdark.patrons-and-deities.Item.r1j3fFsxwgxvIqxl": "chaotic",
+};
+
+/** A deity doc's alignment, with any known-bad value corrected. */
+export function deityAlignment(doc) {
+  return (doc?.uuid && DEITY_ALIGNMENT_FIXES[doc.uuid]) || doc?.system?.alignment || "";
+}
+
+/**
+ * The ability a "+1 to a stat" talent raises ("str"…), or null. The system's
+ * "+2 points to distribute" rows offer one "+2 to X" talent or two of these.
+ */
+export function plusOneStat(doc) {
+  for (const effect of (doc?.effects ?? [])) {
+    for (const c of (effect.changes ?? [])) {
+      const k = String(c.key).match(/^system\.abilities\.(\w+)\.value$/)?.[1];
+      if (k && (c.type ?? "add") === "add" && Number(c.value) === 1) return k;
+    }
+  }
+  return null;
+}
+
+/** Picked talent options `[{ uuid, name, stat }]` after clicking `opt`: a "+1 to a stat" pairs with one on another stat; anything else replaces the pick. */
+export function pickTalent(picked, opt) {
+  if (!opt.stat) return [opt];
+  if (picked.some((p) => p.uuid === opt.uuid)) return picked.filter((p) => p.uuid !== opt.uuid);
+  if (picked.length === 1 && picked[0].stat && picked[0].stat !== opt.stat) return [...picked, opt];
+  return [opt];
+}
+
+/** One "+1 to a stat" picked while the roll offers a +1 on another stat: the second point is still due. */
+export function needsSecondStat(picked, options) {
+  const [first] = picked;
+  return picked.length === 1 && !!first?.stat && (options ?? []).some((o) => o.stat && o.stat !== first.stat);
+}
+
 /** A talent doc's description HTML, with any known-bad text corrected. */
 export function talentDescription(doc) {
   return (doc?.uuid && TALENT_DESCRIPTION_FIXES[doc.uuid]) || doc?.system?.description || "";

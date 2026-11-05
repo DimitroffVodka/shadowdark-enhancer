@@ -26,6 +26,15 @@ const WIZARD = "Compendium.shadowdark.classes.Item.wizard";
 const TABLE = "Compendium.shadowdark.rolltables.RollTable.talents";
 const TALENT = "Compendium.shadowdark.talents.Item.gladiator";
 const CHOICE_TALENT = "Compendium.shadowdark.talents.Item.mastery";
+const DISTRIBUTE = "Compendium.shadowdark.rollable-tables.RollTable.distribute";
+const STAT = (n, k) => `Compendium.shadowdark.talents.Item.p${n}${k}`;
+const statTalent = (n, k) => ({
+  uuid: STAT(n, k), name: `+${n} to ${k}`, documentName: "Item",
+  effects: [{ name: "Ability Score Improvement", changes: [{ key: `system.abilities.${k}.value`, type: "add", value: n }] }],
+  toObject: () => ({ name: `+${n} to ${k}`, type: "Talent", img: "t.webp", system: { level: 0 }, effects: [] }),
+});
+// The system refuses its own "+1 to Dexterity" (zero-value changes): a warning comes back, not an item.
+const STAT_TALENTS = [statTalent(2, "str"), statTalent(1, "str"), { ...statTalent(1, "dex"), refused: true }];
 const SPELL = (n) => `Compendium.shadowdark.spells.Item.s${n}`;
 
 const spellDoc = (n, tier) => ({
@@ -48,8 +57,14 @@ const DOCS = {
   [TABLE]: {
     uuid: TABLE, name: "Talents", documentName: "RollTable",
     roll: async () => ({ roll: { total: talentTotal } }),
-    results: { contents: [{ range: [2, 12], documentUuid: TALENT }] },
+    results: { contents: [{ range: [2, 11], documentUuid: TALENT }, { range: [12, 12], documentUuid: DISTRIBUTE }] },
   },
+  // The system's "Distribute to Stats": a 1d1 table listing every +2 and +1 stat talent.
+  [DISTRIBUTE]: {
+    uuid: DISTRIBUTE, name: "Distribute to Stats", documentName: "RollTable",
+    results: { contents: [{ range: [1, 1], text: "or +2 points to distribute to stats" }, ...STAT_TALENTS.map((t) => ({ range: [1, 1], documentUuid: t.uuid }))] },
+  },
+  ...Object.fromEntries(STAT_TALENTS.map((t) => [t.uuid, t])),
   [TALENT]: talentDoc(TALENT, "Gladiator"),
   [CHOICE_TALENT]: talentDoc(CHOICE_TALENT, "Weapon Mastery", [{ name: "Weapon Mastery", changes: [{ key: "system.bonuses.REPLACEME", value: "1" }] }]),
   ...Object.fromEntries(SPELLS.map((s) => [s.uuid, s])),
@@ -85,7 +100,7 @@ globalThis.Roll = class { evaluate() { this.dice = [{ total: nextDie }]; return 
 globalThis.fromUuid = async (u) => DOCS[u] ?? null;
 globalThis.shadowdark = {
   compendiums: { classes: async () => [DOCS[FIGHTER], DOCS[WIZARD]], spells: async () => SPELLS.map((s) => ({ uuid: s.uuid, name: s.name, system: s.system })) },
-  effects: { createItemWithEffect: async (doc) => doc.toObject() },
+  effects: { createItemWithEffect: async (doc) => (doc.refused ? { message: "warning" } : doc.toObject()) },
 };
 
 const { ShadowdarkCharBuilder } = await import("../scripts/char-builder/char-builder-app.mjs");
@@ -93,6 +108,7 @@ const { ACTOR_KEYS } = await import("../scripts/char-builder/before-image.mjs");
 const { planCommit } = await import("../scripts/char-builder/commit-plan.mjs");
 const { canLevelUp, startLevelUp, cancelLevelUp, talentDue, spellsDue, xpToLevelUp } = await import("../scripts/char-builder/level-up.mjs");
 const { resolveCreate } = await import("../scripts/char-builder/commit-apply.mjs");
+const { pickTalent, needsSecondStat, plusOneStat } = await import("../scripts/char-builder/data.mjs");
 const { hydrateActor } = await import("../scripts/char-builder/existing-finish.mjs");
 
 // --- a stub actor (as in char-builder-open-existing.test.mjs) ----------------------------------
@@ -393,6 +409,49 @@ test("an odd level's talent blocks Save until it is rolled and, if it offers a c
   await classStep(app).rollBonus("level-talent-3");
   await finish(app);
   assert.equal(dialogs.length, 1);
+});
+
+test("+2 points to distribute: one +2, or a +1 paired with a +1 on another stat", () => {
+  const two = { uuid: "a", stat: null }, s1 = { uuid: "b", stat: "str" }, d1 = { uuid: "c", stat: "dex" }, s1b = { uuid: "d", stat: "str" };
+  const opts = [two, s1, d1];
+  assert.equal(plusOneStat(STAT_TALENTS[1]), "str");
+  assert.equal(plusOneStat(STAT_TALENTS[0]), null, "a +2 is a whole pick");
+  assert.deepEqual(pickTalent([], s1), [s1]);
+  assert.equal(needsSecondStat([s1], opts), true);
+  assert.deepEqual(pickTalent([s1], d1), [s1, d1]);
+  assert.equal(needsSecondStat([s1, d1], opts), false);
+  assert.deepEqual(pickTalent([s1], s1b), [s1b], "never two points on one stat");
+  assert.deepEqual(pickTalent([s1, d1], s1), [d1], "clicking a picked +1 takes it back");
+  assert.deepEqual(pickTalent([s1, d1], two), [two], "a +2 replaces the pair");
+  assert.deepEqual(pickTalent([two], s1), [s1]);
+  assert.equal(needsSecondStat([s1], [s1]), false, "no second stat offered: one is enough");
+});
+
+test("a level-up talent of Distribute to Stats offers its talents and creates the two +1s", async () => {
+  const actor = makeActor({ level: 2, xp: 20, items: CARRIED() });
+  const app = await openOn(actor);
+  await levelUp(app);
+  const cls = classStep(app);
+  const st = app.builderState;
+  nextDie = 5;
+  await hpStep(app).handleAction("cb-roll-hp");
+  talentTotal = 12;
+  try { await cls.rollBonus("level-talent-3"); } finally { talentTotal = 9; }
+  const [b] = (await cls.extraContext(st.class.item)).bonusRolls;
+  assert.deepEqual(b.options.map((o) => o.name), ["+2 to str", "+1 to str", "+1 to dex"], "the nested table's talents, not the table");
+  assert.equal(b.needsChoice && b.statSplit, true);
+
+  cls.chooseBonus("level-talent-3", STAT(1, "str"));
+  assert.equal(cls.isComplete(), false, "one point is still to spend");
+  cls.chooseBonus("level-talent-3", STAT(1, "dex"));
+  assert.equal(cls.isComplete(), true);
+  assert.deepEqual((await cls.extraContext(st.class.item)).bonusRolls[0].options.filter((o) => o.selected).map((o) => o.name), ["+1 to str", "+1 to dex"]);
+
+  await finish(app);
+  const made = [...actor.items].filter((i) => i._id.startsWith("n"));
+  assert.deepEqual(made.map((i) => i.name).sort(), ["+1 to dex", "+1 to str"], "a talent the system refuses is still created");
+  assert.ok(made.every((i) => i.system.level === 3));
+  assert.deepEqual(actor._source.system.abilities.str, { value: 10 }, "the points are talents, the base score is untouched");
 });
 
 test("Cancel level up drops the die, the talent and the new spells, and keeps other edits", async () => {

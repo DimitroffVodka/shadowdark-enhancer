@@ -54,12 +54,45 @@ export class PreviewStep extends BaseStep {
     return out;
   }
 
+  /**
+   * Ability bonuses from the talents the build adds ("+2 to Strength", a chosen
+   * "+2 to a stat"). Their ActiveEffects only apply once the actor exists, so
+   * the preview adds them itself. Same talent instances as the class step's choices.
+   */
+  async _abilityBonuses() {
+    const st = this.state;
+    const choice = (key) => st.talentChoices?.[key] ?? null;
+    // An existing character's ancestry, fixed and level-1 talents are already on the sheet.
+    const instances = [
+      ...(st.existing ? [] : [
+        ...(st.ancestryTalents || []).map((u) => [u, null]),
+        ...(st.class?.item?.system?.talents || []).map((u) => [u, choice(`fixed:${u}`)]),
+        ...st.classTalents.map((t) => [t.uuid, choice(`rolled:${t.uuid}`)]),
+      ]),
+      ...(st.bonusRolls || []).filter((b) => b.chosenUuid).map((b) => [b.chosenUuid, choice(`bonus:${b.key}`)]),
+      ...(st.bonusRolls || []).filter((b) => b.pairUuid).map((b) => [b.pairUuid, null]),
+    ];
+    const bonuses = {};
+    for (const [uuid, picked] of instances) {
+      const doc = await fromUuid(uuid).catch(() => null);
+      for (const effect of (doc?.effects ?? [])) {
+        for (const c of (effect.changes ?? [])) {
+          const key = String(c.key).replace("REPLACEME", picked?.slug ?? "REPLACEME");
+          const k = key.match(/^system\.abilities\.(\w+)\.value$/)?.[1];
+          if (k && (c.type ?? "add") === "add") bonuses[k] = (bonuses[k] || 0) + (Number(c.value) || 0);
+        }
+      }
+    }
+    return bonuses;
+  }
+
   async prepareContext() {
     const st = this.state;
     const L = (k) => game.i18n.localize(k);
 
+    const bonuses = await this._abilityBonuses();
     const abilities = ABILITY_ORDER.map((k) => {
-      const v = st.stats.values[k] || 0;
+      const v = st.stats.values[k] ? st.stats.values[k] + (bonuses[k] || 0) : 0;
       const m = abilityMod(v) ?? 0;
       return { key: k.toUpperCase(), value: v || "—", mod: v ? (m >= 0 ? `+${m}` : `${m}`) : "" };
     });
