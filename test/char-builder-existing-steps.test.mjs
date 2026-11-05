@@ -322,20 +322,23 @@ test("the preview lists what the builder keeps as-is and never writes", async ()
 
 test("the preview adds the stat bonuses of the talents a new character gets", async () => {
   const boost = (key) => ({ effects: [{ changes: [{ key, type: "add", value: 2 }] }] });
-  const docs = { "t.str": boost("system.abilities.str.value"), "t.pick": boost("system.abilities.REPLACEME.value") };
+  const docs = { "t.str": boost("system.abilities.str.value"), "t.pick": boost("system.abilities.REPLACEME.value"),
+    "t.dex1": { effects: [{ changes: [{ key: "system.abilities.dex.value", type: "add", value: 1 }] }] },
+    "t.con1": { effects: [{ changes: [{ key: "system.abilities.con.value", type: "add", value: 1 }] }] } };
   const before = globalThis.fromUuid;
   globalThis.fromUuid = async (u) => docs[u] ?? null;
   try {
     const st = new CharBuilderState();
     st.stats.values = { str: 14, dex: 10, con: 10, int: 10, wis: 15, cha: 10 };
     st.classTalents = [{ uuid: "t.str", name: "+2 to Strength" }];
-    st.bonusRolls = [{ key: "lvl3", chosenUuid: "t.pick" }];
+    st.bonusRolls = [{ key: "lvl3", chosenUuid: "t.pick" }, { key: "lvl5", chosenUuid: "t.dex1", pairUuid: "t.con1" }];
     st.talentChoices = { "bonus:lvl3": { slug: "wis", label: "Wisdom" } };
     const ab = Object.fromEntries((await new PreviewStep({ ...app(st), steps: [] }).prepareContext())
       .abilities.map((a) => [a.key, [a.value, a.mod]]));
     assert.deepEqual(ab.STR, [16, "+3"]);
     assert.deepEqual(ab.WIS, [17, "+3"]);
-    assert.deepEqual(ab.DEX, [10, "+0"]);
+    assert.deepEqual(ab.DEX, [11, "+0"], "both points of a +2 split count");
+    assert.deepEqual(ab.CON, [11, "+0"]);
   } finally { globalThis.fromUuid = before; }
 });
 

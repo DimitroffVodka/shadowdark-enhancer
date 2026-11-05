@@ -260,6 +260,7 @@ async function gatherItems(state, classSys) {
   // stays on the sheet for those.
   for (const b of (state.bonusRolls || [])) {
     if (b.chosenUuid) await addTalent(b.chosenUuid, choice(`bonus:${b.key}`));
+    if (b.pairUuid) await addTalent(b.pairUuid);
   }
   for (const uuid of (classSys?.classAbilities || [])) await addSource(uuid);
   // Class-granted natural weapons/gear (e.g. the Wyrdling's Pseudopod): the
