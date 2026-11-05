@@ -41,6 +41,19 @@ export const TALENT_DESCRIPTION_FIXES = {
     "<p>You get a +1 bonus to spellcasting checks.</p>",
 };
 
+/**
+ * Shadowdark 4.0.6 ships The Lost as neutral; they are chaotic. Keyed by
+ * deity UUID.
+ */
+export const DEITY_ALIGNMENT_FIXES = {
+  "Compendium.shadowdark.patrons-and-deities.Item.r1j3fFsxwgxvIqxl": "chaotic",
+};
+
+/** A deity doc's alignment, with any known-bad value corrected. */
+export function deityAlignment(doc) {
+  return (doc?.uuid && DEITY_ALIGNMENT_FIXES[doc.uuid]) || doc?.system?.alignment || "";
+}
+
 /** A talent doc's description HTML, with any known-bad text corrected. */
 export function talentDescription(doc) {
   return (doc?.uuid && TALENT_DESCRIPTION_FIXES[doc.uuid]) || doc?.system?.description || "";
