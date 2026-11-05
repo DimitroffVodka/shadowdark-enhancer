@@ -1,4 +1,5 @@
 import { BaseStep } from "./base-step.mjs";
+import { deityAlignment } from "../data.mjs";
 
 const ORDER = ["lawful", "neutral", "chaotic"];
 
@@ -19,7 +20,7 @@ export class AlignmentStep extends BaseStep {
 
   /** Suggested alignment from the chosen deity, if any. */
   get suggested() {
-    const a = this.state.deity?.item?.system?.alignment;
+    const a = deityAlignment(this.state.deity?.item);
     return ORDER.includes(a) ? a : null;
   }
 

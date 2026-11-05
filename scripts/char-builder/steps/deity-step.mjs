@@ -1,5 +1,5 @@
 import { ListStep } from "./list-step.mjs";
-import { rollItemFromTables } from "../data.mjs";
+import { deityAlignment, rollItemFromTables } from "../data.mjs";
 
 /**
  * Step — Deity. List/detail pick, optional. The detail shows the deity's
@@ -54,8 +54,8 @@ export class DeityStep extends ListStep {
 
   async asideContext(item) {
     return {
-      alignment: this._alignLabel(item.system.alignment),
-      matchesChar: !item.system.alignment || item.system.alignment === this.state.alignment,
+      alignment: this._alignLabel(deityAlignment(item)),
+      matchesChar: !deityAlignment(item) || deityAlignment(item) === this.state.alignment,
     };
   }
 
@@ -69,7 +69,7 @@ export class DeityStep extends ListStep {
     const items = await this.items();
     const rolled = await rollItemFromTables("deity", items);
     if (rolled) return this.select(rolled.uuid);
-    const matching = items.filter((i) => !this.state.alignment || i.system.alignment === this.state.alignment);
+    const matching = items.filter((i) => !this.state.alignment || deityAlignment(i) === this.state.alignment);
     const pool = matching.length ? matching : items;
     const pick = pool[Math.floor(Math.random() * pool.length)];
     if (pick) await this.select(pick.uuid);
