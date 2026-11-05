@@ -62,6 +62,7 @@ export class HexFogBrushApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (this.container) return;
     this.show();
     this.hooks = [["canvasTearDown", Hooks.on("canvasTearDown", () => this.close())],
+      ["controlToken", Hooks.on("controlToken", () => this.render())],
       [`${MODULE_ID}.partySelected`, Hooks.on(`${MODULE_ID}.partySelected`, () => this.render())]];
     Hooks.callAll(TOOLS_HOOK);   // the toolbar's button shows as on
   }
@@ -70,7 +71,7 @@ export class HexFogBrushApp extends HandlebarsApplicationMixin(ApplicationV2) {
     for (const [name, id] of this.hooks ?? []) Hooks.off(name, id);
     this.hooks = [];
     this.container?.destroy({ children: true });
-    this.container = null;
+    this.container = this.tint = this.ring = this.hex = this.stroke = null;
     super._onClose(options);
     Hooks.callAll(TOOLS_HOOK);
   }
@@ -78,7 +79,7 @@ export class HexFogBrushApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** Over the whole map and above the tag overlay, so a drag paints and neither selects tokens nor opens Hex Data. */
   show() {
     const container = this.container = new PIXI.Container();
-    container.zIndex = 2;
+    container.zIndex = Infinity;   // input belongs to the brush, even over tokens and notes
     container.eventMode = "static";
     container.hitArea = canvas.dimensions.rect;
     this.tint = container.addChild(new PIXI.Graphics());

@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-2242 tracked files · ~279,200 lines of code/markup across scripts+templates+styles+test.
+2243 tracked files · ~279,300 lines of code/markup across scripts+templates+styles+test.
 `v0.20.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -87,7 +87,7 @@
 | `hex-map/hex-brush-app.mjs` | 262 | The hex brush: a small window that sets one terrain (a picture tile per Legend terrain) plus features, so clicking or dragging across the tag overlay retags whole patches; a stroke is one scene write and Undo puts it back. |
 | `hex-map/hex-explorer-app.mjs` | 436 | Small scene-offset GM Hexplorer editor for terrain, line/structured features, public/private notes, document links and discovery; its header wears the hex's real tile, large (the bake's sprite, else the tile the painted map draws or its saved deal names, else the numbered tile) and opens it in Foundry's image pop-out, whose share action sends it to the players; a Tile card changes the hex's tile on the painted map. |
 | `hex-map/hex-explorer.mjs` | 422 | Player-safe Hexplorer canvas hover/select observer and GM writes over authoritative terrain tags and rich offset records; preserves discovery and imported metadata. |
-| `hex-map/hex-fog-brush-app.mjs` | 150 | The fog brush: a small window plus canvas strokes that reveal or hide hexes in one write. |
+| `hex-map/hex-fog-brush-app.mjs` | 151 | The fog brush: a small window plus canvas strokes that reveal or hide hexes in one write. |
 | `hex-map/hex-fog-core.mjs` | 171 | Pure shared terrain/location disclosure, lossless fog/history migration, native-grid sight, arrival/overlap decisions and the fog reset plan (resetCell, planFogReset). |
 | `hex-map/hex-fog-reset-dialog.mjs` | 76 | The GM's Reset fog window: whose map, which hexes (whole map or one region), first-entry tables roll again, a live count from the same plan the write uses, and undo of the last reset. |
 | `hex-map/hex-fog.mjs` | 278 | Adopted-scene native static fog overlay, GM disclosure, selected-party committed visits/arrival history, SDX ownership guard and the fog reset with its one-level undo. |
