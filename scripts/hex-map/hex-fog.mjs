@@ -8,7 +8,7 @@ import { Party, isParty } from "../party/party.mjs";
 import { isActiveGM } from "../shared/gm-relay.mjs";
 import { HexRecords, isHexAdopted, sceneRef, recordJournal, offsetKey, readPass, RECORD_FLAG, publishHexProjection, assertPrivateJournal, loadHexRecords, partyMemberIds, PUBLIC_FLAG } from "./hex-records.mjs";
 import { adoptHexScene, withHexLock } from "./hex-adoption.mjs";
-import { disclosure, effectiveDiscovery, withPartyDiscovery, revealRadius, revealCells, arrivalDue, planFogReset, RESET_FIELDS } from "./hex-fog-core.mjs";
+import { disclosure, effectiveDiscovery, withPartyDiscovery, paintedDiscovery, revealRadius, revealCells, arrivalDue, planFogReset, RESET_FIELDS } from "./hex-fog-core.mjs";
 import { hexZonesFor } from "../encounter/encounter-terrain.mjs";
 import { drawPointOfInterest, poiTableFor, flavorHtml, postEncounter } from "../encounter/encounter-draw.mjs";
 import { NOT_GROUND } from "./tag-store.mjs";
@@ -99,6 +99,18 @@ export async function setHexDisclosure(offset, patch, target) {
     for (const field of ["revealed", "locationRevealed"]) if (typeof patch?.[field] === "boolean") discovery[field] = patch[field];
     if (patch?.locationRevealed === true) discovery.revealed = true;
     return structuredClone(discovery);
+  });
+}
+/**
+ * One fog brush stroke, one write, however many hexes (`keys`, "i_j"). It writes the map the GM is looking at, as Hex
+ * Data's boxes do; with no party in view that is everyone's. Not on the reset's undo: a stroke must not cost that.
+ */
+export async function paintHexFog(keys, { revealed = true, partyId = viewedPartyIds()[0] ?? null } = {}, target) {
+  const scene = sceneRef(target);
+  if (!scene) throw new Error("SDE.hexRecords.invalidCell");
+  return saveCells(scene, cells => {
+    for (const key of keys) (cells[key] ??= {}).discovery = paintedDiscovery(cells[key].discovery, revealed, partyId);
+    return { count: keys.length };
   });
 }
 /** The cells a reset would change right now, for the count the dialog shows. Reads only; a scene with no store has none. */
@@ -210,7 +222,7 @@ export async function revealParty(token, { path = null, weather = null, committe
   } catch (error) { console.error(`${MODULE_ID} | point of interest`, error); }
   return result;
 }
-export const HexFog = { owns: ownsHexFog, disclosed: hexDisclosure, setDisclosure: setHexDisclosure, revealParty,
+export const HexFog = { owns: ownsHexFog, disclosed: hexDisclosure, setDisclosure: setHexDisclosure, paint: paintHexFog, revealParty,
   reset: resetHexFog, undoReset: undoFogReset, resetPreview: previewFogReset, undoInfo: fogUndoInfo,
   async setEnabled(enabled, target) {
     if (!game.user?.isGM) throw new Error("SDE.hexRecords.gmOnly");

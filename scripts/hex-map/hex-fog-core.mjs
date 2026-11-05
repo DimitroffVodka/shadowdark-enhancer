@@ -32,6 +32,33 @@ export function withPartyDiscovery(discovery, partyId, patch) {
   for (const [field, value] of Object.entries(patch)) if (value === undefined) delete own[field]; else own[field] = value;
   return { ...discovery, by: { ...discovery?.by, [partyId]: own } };
 }
+/**
+ * A hex's discovery after the fog brush passes over it. Only `revealed` moves: visits, arrival history and a location
+ * the GM showed or hid stay. For a party, a hide writes an explicit `false` only where the shared layer would show
+ * the hex, as resetCell does, so a later reveal to everyone still works. No party is everyone: the shared layer
+ * decides, and every party's own `revealed` is dropped so it cannot outvote the GM. Nothing is mutated.
+ */
+export function paintedDiscovery(discovery, revealed, partyId = null) {
+  const d = { revealed: false, visited: false, ...discovery };
+  if (partyId) return withPartyDiscovery(d, partyId, { revealed: revealed || d.revealed ? revealed : undefined });
+  if (d.by) d.by = Object.fromEntries(Object.entries(d.by).map(([id, { revealed: _, ...own }]) => [id, own]));
+  return { ...d, revealed };
+}
+/** The hexes a fog brush covers: `rings` of native neighbours around `origin`, as key -> offset. */
+export function brushCells(grid, origin, rings) {
+  const cells = new Map([[keyOf(origin), { i: origin.i, j: origin.j }]]);
+  let frontier = [...cells.values()];
+  for (let depth = 0; depth < rings; depth++) {
+    const next = [];
+    for (const cell of frontier) for (const { i, j } of grid.getAdjacentOffsets(cell)) {
+      const key = keyOf({ i, j });
+      if (cells.has(key)) continue;
+      cells.set(key, { i, j }); next.push({ i, j });
+    }
+    frontier = next;
+  }
+  return cells;
+}
 /** The cell fields a fog reset may change, and so the only ones an undo stashes and restores. */
 export const RESET_FIELDS = ["discovery", "arrivalRolled", "arrivalRolledBy"];
 /**
