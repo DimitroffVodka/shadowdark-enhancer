@@ -24,8 +24,7 @@ import { cellNumber, foundryOffsetToCube } from "../hex-map/geometry.mjs";
 import { decodeTags, readCell, FEATURES, NOT_GROUND } from "../hex-map/tag-store.mjs";
 import { extrasRecordsByOffset } from "../hex-map/extras-records.mjs";
 import { HexRecords, isHexAdopted, readPass, recordJournal, RECORD_FLAG, PUBLIC_FLAG } from "../hex-map/hex-records.mjs";
-import { moonPhase } from "../time/time-core.mjs";
-import { moonEpoch } from "../time/time.mjs";
+import { moonsAt } from "../time/time.mjs";
 import { Party } from "../party/party.mjs";
 
 /** Scene flag holding the tag store (hex-tagger-app.mjs owns it). */
@@ -215,7 +214,7 @@ export const isNight = (hour) => hour >= DUSK || hour < DAWN;
 export function worldClock(time = globalThis.game?.time) {
   const t = time?.worldTime ?? 0;
   const hour = time?.components?.hour ?? Math.floor((((t % 86400) + 86400) % 86400) / 3600);
-  return { hour, moon: time ? moonPhase(time.calendar, t, moonEpoch()).key : null };
+  return { hour, moon: time ? moonsAt(time.calendar, t)[0].key : null };
 }
 
 /**
