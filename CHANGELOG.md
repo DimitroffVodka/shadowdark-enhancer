@@ -15,6 +15,8 @@
 ### Fixed
 
 - **A new world no longer overwrites another calendar's date.** The campaign start jump to 12 March 1348 is counted in Foundry's own calendar, so a world running Simple Calendar, Simple Calendar Reborn, Calendaria or Simple Timekeeping, or any world calendar that is not Foundry's, read those same seconds as a different date. The jump now skips those worlds. It runs once, so a world it already moved keeps its date until a GM sets it back.
+- **The Character Builder shows The Lost as chaotic.** The Shadowdark system ships them as neutral, so the deity card, the mismatch warning, the suggested alignment and a random deity all treated them as neutral.
+- **The Character Builder's preview counts stat talents.** A "+2 to Strength" talent, or a "+2 to a stat" you picked, now shows in the preview's scores before you create the character, not only on the finished sheet.
 - **Icon buttons show up with Multi Token Edit installed.** That module ships a global `.ui-icon` rule that pushes every icon glyph off its button, so the Enhancer's icon buttons (Give, Delete and the rest) looked empty. The Enhancer windows now reset it.
 - **Gems on the Party sheet can be removed.** Gem rows now have the same Give and Delete buttons as other party items; before, a gem dragged onto the sheet could not be taken off.
 

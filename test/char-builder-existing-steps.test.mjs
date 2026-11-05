@@ -13,6 +13,8 @@ import { LanguagesStep } from "../scripts/char-builder/steps/languages-step.mjs"
 import { GearStep } from "../scripts/char-builder/steps/gear-step.mjs";
 import { HpStep } from "../scripts/char-builder/steps/hp-step.mjs";
 import { GoldStep } from "../scripts/char-builder/steps/gold-step.mjs";
+import { DeityStep } from "../scripts/char-builder/steps/deity-step.mjs";
+import { AlignmentStep } from "../scripts/char-builder/steps/alignment-step.mjs";
 import { PreviewStep } from "../scripts/char-builder/steps/preview-step.mjs";
 
 /**
@@ -316,6 +318,34 @@ test("the preview lists what the builder keeps as-is and never writes", async ()
   const fresh = hydrated({}, []);
   fresh.existing = null;
   assert.equal((await new PreviewStep({ ...app(fresh), steps: [] }).prepareContext()).kept, null);
+});
+
+test("the preview adds the stat bonuses of the talents a new character gets", async () => {
+  const boost = (key) => ({ effects: [{ changes: [{ key, type: "add", value: 2 }] }] });
+  const docs = { "t.str": boost("system.abilities.str.value"), "t.pick": boost("system.abilities.REPLACEME.value") };
+  const before = globalThis.fromUuid;
+  globalThis.fromUuid = async (u) => docs[u] ?? null;
+  try {
+    const st = new CharBuilderState();
+    st.stats.values = { str: 14, dex: 10, con: 10, int: 10, wis: 15, cha: 10 };
+    st.classTalents = [{ uuid: "t.str", name: "+2 to Strength" }];
+    st.bonusRolls = [{ key: "lvl3", chosenUuid: "t.pick" }];
+    st.talentChoices = { "bonus:lvl3": { slug: "wis", label: "Wisdom" } };
+    const ab = Object.fromEntries((await new PreviewStep({ ...app(st), steps: [] }).prepareContext())
+      .abilities.map((a) => [a.key, [a.value, a.mod]]));
+    assert.deepEqual(ab.STR, [16, "+3"]);
+    assert.deepEqual(ab.WIS, [17, "+3"]);
+    assert.deepEqual(ab.DEX, [10, "+0"]);
+  } finally { globalThis.fromUuid = before; }
+});
+
+test("The Lost read as chaotic though the system ships them neutral", async () => {
+  const lost = { uuid: "Compendium.shadowdark.patrons-and-deities.Item.r1j3fFsxwgxvIqxl", system: { alignment: "neutral" } };
+  const st = new CharBuilderState();
+  st.alignment = "chaotic";
+  assert.equal((await new DeityStep(app(st)).asideContext(lost)).matchesChar, true);
+  st.deity = { uuid: lost.uuid, item: lost };
+  assert.equal(new AlignmentStep(app(st)).suggested, "chaotic");
 });
 
 test("an art pick always brings its matching other half; a loose file fills only an empty slot", () => {
