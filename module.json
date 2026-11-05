@@ -12,7 +12,7 @@
   "persistentStorage": true,
   "compatibility": {
     "minimum": "14",
-    "verified": "14.369"
+    "verified": "14.370"
   },
   "relationships": {
     "systems": [

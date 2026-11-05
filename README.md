@@ -38,7 +38,7 @@ Then enable **Shadowdark Enhancer** in your world's module settings.
 
 | | Minimum | Verified |
 |---|---|---|
-| Foundry VTT | v14 | **v14.369** |
+| Foundry VTT | v14 | **v14.370** |
 | Shadowdark RPG system | v3.6.2 | **v4.0.6** |
 
 > **Replacing `shadowdark-crawl-helper`?** Disable it. Both draw a party strip
