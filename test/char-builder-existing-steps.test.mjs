@@ -193,6 +193,32 @@ test("the existing class step offers no talent roll, bonus roll or language choi
   assert.equal(ctx.spells.caster, true);
 });
 
+test("a new build must keep a talent selected after deselecting a stat pair", async () => {
+  const st = new CharBuilderState();
+  st.class = { uuid: CLASS_UUID, item: wizardDoc({ spellcasting: { class: "__not_spellcaster__" } }) };
+  const options = [{ uuid: "t.str", name: "+1 STR", stat: "str" }, { uuid: "t.dex", name: "+1 DEX", stat: "dex" }];
+  st.classTalentRoll = { total: 12, options };
+  st.classTalents = [...options];
+  const step = new ClassStep(app(st));
+  step.langStep._cache = { slots: { common: 0, rare: 0, select: 0 } };
+  step.langStep._comboKey = step.langStep._combo();
+  const clicks = {};
+  step._onRenderExtra({
+    querySelector: () => null,
+    querySelectorAll: (selector) => (selector === "[data-cb-talent-opt]" ? options.map((o) => ({
+      dataset: { cbTalentOpt: o.uuid }, addEventListener: (_event, fn) => { clicks[o.uuid] = fn; },
+    })) : []),
+  });
+  assert.equal(step.isComplete(), true, "a pair spends both points");
+  await clicks["t.str"]();
+  assert.equal(step.isComplete(), false, "one point still needs its partner");
+  await clicks["t.dex"]();
+  assert.deepEqual(st.classTalents, []);
+  assert.equal(step.isComplete(), false, "clearing both picks must not permit Finish");
+  st.classTalentRoll = { total: 7, options: [], textResult: "A text-only talent" };
+  assert.equal(step.isComplete(), true, "text-only rolls do not need an Item pick");
+});
+
 // --- Languages -------------------------------------------------------------------------
 
 test("the languages step lists what the actor knows and never touches the state", async () => {

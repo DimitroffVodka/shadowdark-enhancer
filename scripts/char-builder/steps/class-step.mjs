@@ -229,6 +229,7 @@ export class ClassStep extends ListStep {
     // A class with a talent table must have rolled its level-1 talent —
     // committing without one produced sheet-incomplete characters (Orgarrin).
     if (this.selected?.item?.system?.classTalentTable && !this.state.classTalentRoll) return false;
+    if (this.state.classTalentRoll?.options?.length && !this.state.classTalents.length) return false;
     if (needsSecondStat(this.state.classTalents, this.state.classTalentRoll?.options)) return false;
     return this._languagesComplete();
   }

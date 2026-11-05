@@ -531,7 +531,7 @@
 | `steps/alignment-step.mjs` | 69 | Step — Alignment. Three choice cards (Lawful / Neutral / Chaotic). |
 | `steps/ancestry-step.mjs` | 256 | Step — Ancestry. List/detail pick contributing ancestry talents and languages. |
 | `steps/background-step.mjs` | 40 | Step — Background. A simple list/detail pick. |
-| `steps/class-step.mjs` | 1005 | Step — Class. List/detail pick; parses the class writeup, talent table and spellcasting. |
+| `steps/class-step.mjs` | 1006 | Step — Class. List/detail pick; parses the class writeup, talent table and spellcasting. |
 | `steps/deity-step.mjs` | 77 | Step — Deity. Optional list/detail pick showing the deity's detail. |
 | `steps/gear-step.mjs` | 345 | Step — Gear. A shop: browse purchasable equipment and buy against starting gold. |
 | `steps/gold-step.mjs` | 98 | Step — Gold. Roll 2d6×5 gp, or use the GM's fixed starting-gold setting. |
