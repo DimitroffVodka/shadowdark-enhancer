@@ -13,6 +13,8 @@
 
 ### Fixed
 
+- **The Character Builder shows The Lost as chaotic.** The Shadowdark system ships them as neutral, so the deity card, the mismatch warning, the suggested alignment and a random deity all treated them as neutral.
+- **The Character Builder's preview counts stat talents.** A "+2 to Strength" talent, or a "+2 to a stat" you picked, now shows in the preview's scores before you create the character, not only on the finished sheet.
 - **Icon buttons show up with Multi Token Edit installed.** That module ships a global `.ui-icon` rule that pushes every icon glyph off its button, so the Enhancer's icon buttons (Give, Delete and the rest) looked empty. The Enhancer windows now reset it.
 - **Gems on the Party sheet can be removed.** Gem rows now have the same Give and Delete buttons as other party items; before, a gem dragged onto the sheet could not be taken off.
 

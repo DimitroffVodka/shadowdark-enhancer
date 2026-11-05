@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-2243 tracked files · ~279,300 lines of code/markup across scripts+templates+styles+test.
+2243 tracked files · ~279,400 lines of code/markup across scripts+templates+styles+test.
 `v0.20.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -512,7 +512,7 @@
 | `char-builder-app.mjs` | 406 | `ShadowdarkCharBuilder` ApplicationV2 shell; drives the step lifecycle. |
 | `state.mjs` | 158 | `CharBuilderState` — the in-progress character. |
 | `constants.mjs` | 160 | Shared constants; hands off to the system's `CharacterGeneratorSD`. |
-| `data.mjs` | 325 | Thin wrappers over the system's compendium loaders. |
+| `data.mjs` | 338 | Thin wrappers over the system's compendium loaders. |
 | `commit.mjs` | 304 | `commitCharacter` — final actor creation + `coinsAfterGear`. |
 | `item-source.mjs` | 19 | `stampSource` — records the compendium link on items the builder creates. |
 | `hydrate.mjs` | 259 | Existing actor -> builder state (reads `_source` only); `describeActor` console dry run. |
@@ -528,7 +528,7 @@
 | `gear-editor-app.mjs` | 152 | `ExtraGearEditor` sub-window. |
 | `steps/base-step.mjs` | 68 | Base class for character-builder wizard steps (shared lifecycle, render and validation). |
 | `steps/list-step.mjs` | 216 | Base class for the list/detail/aside steps (Ancestry, Class, Background, Deity). |
-| `steps/alignment-step.mjs` | 68 | Step — Alignment. Three choice cards (Lawful / Neutral / Chaotic). |
+| `steps/alignment-step.mjs` | 69 | Step — Alignment. Three choice cards (Lawful / Neutral / Chaotic). |
 | `steps/ancestry-step.mjs` | 256 | Step — Ancestry. List/detail pick contributing ancestry talents and languages. |
 | `steps/background-step.mjs` | 40 | Step — Background. A simple list/detail pick. |
 | `steps/class-step.mjs` | 985 | Step — Class. List/detail pick; parses the class writeup, talent table and spellcasting. |
@@ -539,7 +539,7 @@
 | `steps/hp-step.mjs` | 173 | Step — Hit Points. Level-1 HP = class hit die + CON modifier (minimum 1). |
 | `steps/languages-step.mjs` | 147 | Step — Languages (runs after Class, so ancestry and class both contribute). |
 | `steps/origins-step.mjs` | 72 | Step — Origins: Background + Alignment + Deity on one tab. |
-| `steps/preview-step.mjs` | 339 | Step — Preview. Final character-sheet preview before creation. |
+| `steps/preview-step.mjs` | 371 | Step — Preview. Final character-sheet preview before creation. |
 | `steps/stats-step.mjs` | 400 | Step — Abilities. Roll or assign the six ability scores. |
 
 ### 3.15 `scripts/monster-art/`
