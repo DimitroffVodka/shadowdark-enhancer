@@ -8,6 +8,7 @@
 
 ### Changed
 
+- **The exported character sheet has a plain heading.** Export to PDF no longer prints a blackletter "Shadowdark" title. The pages read **Character Sheet** and **Spells & Notes**, marked "Designed for use with Shadowdark RPG", so the sheet can't be mistaken for an official one. All its fields are unchanged.
 - **Players can give a party item to a character.** The Give button on the Party sheet's item and gem rows was GM-only; an owner of the party now has it too. The GM's tab does the move, so it works for characters the player does not own.
 
 ### Fixed
