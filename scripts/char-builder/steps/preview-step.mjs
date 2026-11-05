@@ -70,6 +70,7 @@ export class PreviewStep extends BaseStep {
         ...st.classTalents.map((t) => [t.uuid, choice(`rolled:${t.uuid}`)]),
       ]),
       ...(st.bonusRolls || []).filter((b) => b.chosenUuid).map((b) => [b.chosenUuid, choice(`bonus:${b.key}`)]),
+      ...(st.bonusRolls || []).filter((b) => b.pairUuid).map((b) => [b.pairUuid, null]),
     ];
     const bonuses = {};
     for (const [uuid, picked] of instances) {

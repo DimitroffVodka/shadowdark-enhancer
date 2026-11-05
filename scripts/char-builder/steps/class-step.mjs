@@ -1,7 +1,7 @@
 import { ListStep } from "./list-step.mjs";
 import { LanguagesStep } from "./languages-step.mjs";
 import { classArt } from "../art.mjs";
-import { enrich, resultText, findTableByName, talentDescription } from "../data.mjs";
+import { enrich, resultText, findTableByName, talentDescription, plusOneStat, pickTalent, needsSecondStat } from "../data.mjs";
 import { builderDiceAnimation, EXTRA_CLASS_TALENT_ROLL_UUIDS } from "../constants.mjs";
 import { extraTalentLevels, levelTalentKey } from "../state.mjs";
 import { spellsDue, talentDue } from "../level-up.mjs";
@@ -208,7 +208,7 @@ export class ClassStep extends ListStep {
     const lu = this.levelUp;
     if (!item.system.classTalentTable || !talentDue(lu.to)) return true;
     const e = this._bonusEntry(levelTalentKey(lu.to));
-    return !!e && !!(e.chosenUuid || e.textResult || e.options.length === 0) && this._choicesComplete();
+    return this._bonusSettled(e) && this._choicesComplete();
   }
 
   /** Complete once patron / spells-known / bonus-roll / language requirements are met. */
@@ -229,6 +229,8 @@ export class ClassStep extends ListStep {
     // A class with a talent table must have rolled its level-1 talent —
     // committing without one produced sheet-incomplete characters (Orgarrin).
     if (this.selected?.item?.system?.classTalentTable && !this.state.classTalentRoll) return false;
+    if (this.state.classTalentRoll?.options?.length && !this.state.classTalents.length) return false;
+    if (needsSecondStat(this.state.classTalents, this.state.classTalentRoll?.options)) return false;
     return this._languagesComplete();
   }
 
@@ -403,7 +405,8 @@ export class ClassStep extends ListStep {
         canReroll: this._canRerollBonus(s, duplicate),
         total: e?.total ?? null,
         needsChoice: (e?.options?.length ?? 0) > 1,
-        options: (e?.options || []).map((o) => ({ uuid: o.uuid, name: o.name, selected: o.uuid === e?.chosenUuid })),
+        statSplit: (e?.options || []).some((o) => o.stat),
+        options: (e?.options || []).map((o) => ({ uuid: o.uuid, name: o.name, selected: o.uuid === e?.chosenUuid || o.uuid === e?.pairUuid })),
         chosenName: e?.chosenName ?? null,
         // The rolled result's description so e.g. a Corruption talent explains
         // what it grants instead of showing a bare name.
@@ -462,7 +465,7 @@ export class ClassStep extends ListStep {
 
   async _talentContext(item) {
     const roll = this.state.classTalentRoll;
-    const chosen = this.state.classTalents[0]?.uuid ?? null;
+    const chosen = new Set(this.state.classTalents.map((t) => t.uuid));
     return {
       hasTable: !!item.system.classTalentTable,
       table: (await this._classInfo(item)).table,
@@ -470,7 +473,8 @@ export class ClassStep extends ListStep {
       canRoll: !roll || !this.talentLocked,
       total: roll?.total ?? null,
       needsChoice: (roll?.options?.length ?? 0) > 1,
-      options: (roll?.options || []).map((o) => ({ uuid: o.uuid, name: o.name, selected: o.uuid === chosen })),
+      statSplit: (roll?.options || []).some((o) => o.stat),
+      options: (roll?.options || []).map((o) => ({ uuid: o.uuid, name: o.name, selected: chosen.has(o.uuid) })),
       chosenName: this.state.classTalents[0]?.name ?? null,
       textResult: roll?.textResult ?? null,
     };
@@ -564,8 +568,9 @@ export class ClassStep extends ListStep {
   }
 
   /** Roll a table and structurally extract the outcome: linked Item rows in
-   *  the rolled range are the options (several = a choice); text rows beside
-   *  them are headers; text-only ranges surface as textResult. */
+   *  the rolled range are the options (several = a choice), a linked table
+   *  ("Distribute to Stats") offers its own Item rows; text rows beside them
+   *  are headers; text-only ranges surface as textResult. */
   async _rollOnTable(table) {
     const res = await table.roll();
     const roll = res.roll;
@@ -578,9 +583,13 @@ export class ClassStep extends ListStep {
       if (uuid) {
          
         const doc = await fromUuid(uuid).catch(() => null);
-        // Only linked Talent Items are embeddable (skip nested "Distribute to
-        // Stats" RollTables etc.).
-        if (doc && doc.documentName === "Item") options.push({ uuid, name: doc.name });
+        const docs = doc?.documentName === "RollTable"
+          ? await Promise.all(doc.results.contents.filter((x) => x.documentUuid).map((x) => fromUuid(x.documentUuid).catch(() => null)))
+          : [doc];
+        // Only Talent Items are embeddable.
+        for (const d of docs) {
+          if (d?.documentName === "Item" && !options.some((o) => o.uuid === d.uuid)) options.push({ uuid: d.uuid, name: d.name, stat: plusOneStat(d) });
+        }
       } else {
         const txt = resultText(r);
         if (txt) texts.push(txt);
@@ -601,7 +610,7 @@ export class ClassStep extends ListStep {
 
     const { roll, total, options, textResult } = await this._rollOnTable(table);
     this.state.classTalentRoll = { total, options, textResult };
-    this.state.classTalents = options.length === 1 ? [{ uuid: options[0].uuid, name: options[0].name }] : [];
+    this.state.classTalents = options.length === 1 ? [options[0]] : [];
     await this._talentCard(roll, options, textResult);
     await this.app.render();
   }
@@ -809,18 +818,28 @@ export class ClassStep extends ListStep {
     }
   }
 
+  /** A bonus roll's picked options: the chosen talent and, for "+2 points to distribute", a second +1. */
+  _bonusPicked(e) {
+    return [e.chosenUuid, e.pairUuid].map((u) => u && e.options.find((o) => o.uuid === u)).filter(Boolean);
+  }
+
   chooseBonus(key, uuid) {
     const entry = this._bonusEntry(key);
     const opt = entry?.options.find((o) => o.uuid === uuid);
-    if (opt) { entry.chosenUuid = opt.uuid; entry.chosenName = opt.name; }
+    if (!opt) return;
+    const [a, b] = pickTalent(this._bonusPicked(entry), opt);
+    Object.assign(entry, { chosenUuid: a?.uuid ?? null, chosenName: a?.name ?? null, pairUuid: b?.uuid ?? null, pairName: b?.name ?? null });
   }
 
-  /** A bonus roll is settled once rolled and, if it offered a choice, chosen. */
+  /** Rolled and, if it offered a choice, chosen (both points of a stat split). */
+  _bonusSettled(e) {
+    if (!e) return false;
+    if (e.chosenUuid) return !needsSecondStat(this._bonusPicked(e), e.options);
+    return !!e.textResult || e.options.length === 0;
+  }
+
   _bonusComplete(sources) {
-    return sources.every((s) => {
-      const e = this._bonusEntry(s.key);
-      return e && (e.chosenUuid || e.textResult || e.options.length === 0);
-    });
+    return sources.every((s) => this._bonusSettled(this._bonusEntry(s.key)));
   }
 
   // ---- Talent choices (REPLACEME effects) ------------------------------------
@@ -932,12 +951,14 @@ export class ClassStep extends ListStep {
     // Bonus creation rolls (Ambitious extra talent, Black Lotus, boons…),
     // auto-picking when a roll offers a choice.
     this._bonusCache = null;
+    const any = (opts) => opts[Math.floor(Math.random() * opts.length)];
     for (const src of await this._bonusSources(item)) {
       await this.rollBonus(src.key);
       const e = this._bonusEntry(src.key);
       if (e && !e.chosenUuid && e.options.length > 1) {
-        const pick = e.options[Math.floor(Math.random() * e.options.length)];
-        e.chosenUuid = pick.uuid; e.chosenName = pick.name;
+        const pick = any(e.options);
+        this.chooseBonus(src.key, pick.uuid);
+        if (!this._bonusSettled(e)) this.chooseBonus(src.key, any(e.options.filter((o) => o.stat && o.stat !== pick.stat)).uuid);
       }
     }
     // Auto-pick any REPLACEME talent choices (Weapon Mastery weapon…).
@@ -961,7 +982,7 @@ export class ClassStep extends ListStep {
     root.querySelector("[data-cb-roll-talent]")?.addEventListener("click", async () => { await this.rollTalent(); });
     root.querySelectorAll("[data-cb-talent-opt]").forEach((el) => el.addEventListener("click", async () => {
       const opt = (this.state.classTalentRoll?.options || []).find((o) => o.uuid === el.dataset.cbTalentOpt);
-      if (opt) { this.state.classTalents = [{ uuid: opt.uuid, name: opt.name }]; await this.app.render(); }
+      if (opt) { this.state.classTalents = pickTalent(this.state.classTalents, opt); await this.app.render(); }
     }));
     root.querySelectorAll("[data-cb-spell]").forEach((el) => el.addEventListener("click", async () => {
       this.toggleSpell(el.dataset.cbSpell); await this.app.render();

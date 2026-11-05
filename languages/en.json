@@ -1635,6 +1635,7 @@
   "SDE.charBuilder.class.rollPrompt": "Roll your level-1 talent on the class talent table.",
   "SDE.charBuilder.class.rolled": "Rolled",
   "SDE.charBuilder.class.chooseOne": "Choose one of the rolled options:",
+  "SDE.charBuilder.class.chooseStats": "Choose one of the rolled options. To spend the +2 points as two +1s, pick two +1 talents on different stats:",
   "SDE.charBuilder.class.noTalent": "(no talent)",
   "SDE.charBuilder.class.talentManual": "This class's talent table isn't linked to an item — add this talent to your sheet manually.",
   "SDE.charBuilder.class.noTalentRolled": "No talent for this result — reroll.",

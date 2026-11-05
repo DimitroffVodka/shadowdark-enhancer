@@ -61,7 +61,7 @@
                 </div>
                 {{#if rolled}}
                   {{#if needsChoice}}
-                  <div class="ui-note warn">{{localize "SDE.charBuilder.class.chooseOne"}}</div>
+                  <div class="ui-note warn">{{#if statSplit}}{{localize "SDE.charBuilder.class.chooseStats"}}{{else}}{{localize "SDE.charBuilder.class.chooseOne"}}{{/if}}</div>
                   <div class="ui-inline">{{#each options}}<span class="ui-chip{{#if selected}} sel{{/if}}" data-cb-bonus-opt="{{uuid}}" data-cb-bonus-key="{{../key}}">{{name}}</span>{{/each}}</div>
                   {{else}}
                     {{#if chosenName}}<div class="cbu-talent-result"><i class="fa-solid fa-star"></i> <b>{{chosenName}}</b></div>{{#if chosenDesc}}<div class="cbu-talent-desc">{{{chosenDesc}}}</div>{{/if}}
@@ -88,7 +88,7 @@
               {{/if}}
               {{#if step.talent.rolled}}
                 {{#if step.talent.needsChoice}}
-                <div class="ui-note warn">{{localize "SDE.charBuilder.class.chooseOne"}}</div>
+                <div class="ui-note warn">{{#if step.talent.statSplit}}{{localize "SDE.charBuilder.class.chooseStats"}}{{else}}{{localize "SDE.charBuilder.class.chooseOne"}}{{/if}}</div>
                 <div class="ui-inline">{{#each step.talent.options}}<span class="ui-chip{{#if selected}} sel{{/if}}" data-cb-talent-opt="{{uuid}}">{{name}}</span>{{/each}}</div>
                 {{else}}
                   {{#if step.talent.chosenName}}<div class="cbu-talent-result"><i class="fa-solid fa-star"></i> <b>{{step.talent.chosenName}}</b></div>
