@@ -121,8 +121,8 @@ async function zoneRow(table, result, { travel, chain, also, quiet }) {
 
 /** The NPC a row names: its linked document, or the first @UUID in its text. */
 async function monsterOf(result) {
-  if (result.uuid) {
-    const doc = await fromUuid(result.uuid).catch(() => null);
+  if (result.documentUuid) {
+    const doc = await fromUuid(result.documentUuid).catch(() => null);
     if (doc instanceof Actor && doc.type === "NPC") return doc;
   }
   const uuid = resultBody(result).match(/@UUID\[([^\]]+)\]/)?.[1];
