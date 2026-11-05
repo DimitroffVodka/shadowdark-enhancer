@@ -513,11 +513,11 @@
 | `state.mjs` | 158 | `CharBuilderState` — the in-progress character. |
 | `constants.mjs` | 160 | Shared constants; hands off to the system's `CharacterGeneratorSD`. |
 | `data.mjs` | 366 | Thin wrappers over the system's compendium loaders. |
-| `commit.mjs` | 305 | `commitCharacter` — final actor creation + `coinsAfterGear`. |
+| `commit.mjs` | 311 | `commitCharacter` — final actor creation + `coinsAfterGear`. |
 | `item-source.mjs` | 19 | `stampSource` — records the compendium link on items the builder creates. |
 | `hydrate.mjs` | 259 | Existing actor -> builder state (reads `_source` only); `describeActor` console dry run. |
 | `commit-plan.mjs` | 266 | `planCommit` — pure three-way plan (baseline, builder, live) of what Finish changes on an existing actor. |
-| `commit-apply.mjs` | 209 | `applyPlan` — resumable executor for a merge-aware plan: creates, item updates, one actor update, deletes last, each read back so a write rejected after saving is not repeated. |
+| `commit-apply.mjs` | 208 | `applyPlan` — resumable executor for a merge-aware plan: creates, item updates, one actor update, deletes last, each read back so a write rejected after saving is not repeated. |
 | `before-image.mjs` | 178 | `takeBeforeImage` / `restoreBeforeImage` — one actor flag holding the builder-writable fields and every item's source, and a restore that puts the character back with the executor's write discipline. |
 | `existing-finish.mjs` | 218 | The builder on an existing character: `hydrateActor`, `finishExisting` (diff dialog, before-image, `applyPlan`, then re-hydrate from the live actor) and `undoLastSave`. |
 | `level-up.mjs` | 68 | Level up an existing character, one level (pure): `canLevelUp` (XP or GM), `startLevelUp`, `cancelLevelUp`, the odd-level talent rule, the spells-known delta and the picked talent. |

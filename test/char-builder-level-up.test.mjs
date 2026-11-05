@@ -33,7 +33,8 @@ const statTalent = (n, k) => ({
   effects: [{ name: "Ability Score Improvement", changes: [{ key: `system.abilities.${k}.value`, type: "add", value: n }] }],
   toObject: () => ({ name: `+${n} to ${k}`, type: "Talent", img: "t.webp", system: { level: 0 }, effects: [] }),
 });
-const STAT_TALENTS = [statTalent(2, "str"), statTalent(1, "str"), statTalent(1, "dex")];
+// The system refuses its own "+1 to Dexterity" (zero-value changes): a warning comes back, not an item.
+const STAT_TALENTS = [statTalent(2, "str"), statTalent(1, "str"), { ...statTalent(1, "dex"), refused: true }];
 const SPELL = (n) => `Compendium.shadowdark.spells.Item.s${n}`;
 
 const spellDoc = (n, tier) => ({
@@ -99,7 +100,7 @@ globalThis.Roll = class { evaluate() { this.dice = [{ total: nextDie }]; return 
 globalThis.fromUuid = async (u) => DOCS[u] ?? null;
 globalThis.shadowdark = {
   compendiums: { classes: async () => [DOCS[FIGHTER], DOCS[WIZARD]], spells: async () => SPELLS.map((s) => ({ uuid: s.uuid, name: s.name, system: s.system })) },
-  effects: { createItemWithEffect: async (doc) => doc.toObject() },
+  effects: { createItemWithEffect: async (doc) => (doc.refused ? { message: "warning" } : doc.toObject()) },
 };
 
 const { ShadowdarkCharBuilder } = await import("../scripts/char-builder/char-builder-app.mjs");
@@ -448,7 +449,7 @@ test("a level-up talent of Distribute to Stats offers its talents and creates th
 
   await finish(app);
   const made = [...actor.items].filter((i) => i._id.startsWith("n"));
-  assert.deepEqual(made.map((i) => i.name).sort(), ["+1 to dex", "+1 to str"]);
+  assert.deepEqual(made.map((i) => i.name).sort(), ["+1 to dex", "+1 to str"], "a talent the system refuses is still created");
   assert.ok(made.every((i) => i.system.level === 3));
   assert.deepEqual(actor._source.system.abilities.str, { value: 10 }, "the points are talents, the base score is untouched");
 });

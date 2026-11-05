@@ -1,6 +1,6 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { stampSource } from "./item-source.mjs";
-import { CRAWLING_KIT, applyTalentChoice } from "./commit.mjs";
+import { CRAWLING_KIT, applyTalentChoice, talentObject } from "./commit.mjs";
 import { newSessionId } from "./hydrate.mjs";
 
 /**
@@ -121,8 +121,7 @@ async function resolveTalent(c) {
   if (!doc || doc.documentName !== "Item") return [];
   const obj = c.choice?.slug
     ? applyTalentChoice(doc.toObject(), c.choice)
-    : await shadowdark.effects.createItemWithEffect(doc).catch(() => doc.toObject());
-  if (!obj) return [];
+    : await talentObject(doc);
   obj.system.level = c.level;
   return [stampSource(obj, doc.uuid)];
 }
