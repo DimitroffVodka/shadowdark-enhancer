@@ -417,10 +417,10 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       let flavor = true;
       let actorUuid = null;
       try {
-        // v13 canonical: TableResult.uuid is the linked document reference.
-        // Resolve it; if it's an Actor, this is a monster row.
-        if (r.uuid) {
-          const doc = await fromUuid(r.uuid).catch(() => null);
+        // TableResult.documentUuid is the linked document reference (r.uuid is
+        // the row's own id). Resolve it; if it's an Actor, this is a monster row.
+        if (r.documentUuid) {
+          const doc = await fromUuid(r.documentUuid).catch(() => null);
           if (doc instanceof Actor) {
             name = doc.name;
             flavor = false;
