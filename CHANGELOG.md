@@ -16,6 +16,7 @@
 
 ### Fixed
 
+- **Party portraits on the landing page stay behind what stands in front of them.** With five in the party, the fifth portrait was drawn over the hourglass. A portrait is now hidden wherever its frame is, so the hourglass covers it as it covers the frame.
 - **A new world no longer overwrites another calendar's date.** The campaign start jump to 12 March 1348 is counted in Foundry's own calendar, so a world running Simple Calendar, Simple Calendar Reborn, Calendaria or Simple Timekeeping, or any world calendar that is not Foundry's, read those same seconds as a different date. The jump now skips those worlds. It runs once, so a world it already moved keeps its date until a GM sets it back.
 - **Tables from Build Table roll their creatures.** A row that links a creature rolled as "Environmental Result" with no Place button, and showed as a flavor row in the table preview. It now rolls the creature, with its count, and can be placed. Imported tables, which name creatures in the row's text, were not affected.
 - **The Character Builder shows The Lost as chaotic.** The Shadowdark system ships them as neutral, so the deity card, the mismatch warning, the suggested alignment and a random deity all treated them as neutral.

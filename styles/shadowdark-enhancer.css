@@ -6193,6 +6193,8 @@ body.sde-table-up #shadowdark-enhancer-strip, body.sde-table-up #shadowdark-enha
    rest, lit with a warm glow on hover like every prop. */
 .sde-town .lt-seat { position: absolute; margin: 0; padding: 0; min-width: 0; height: auto; border: 0; border-radius: 0; background: none; box-shadow: none; pointer-events: none; overflow: visible; }
 .sde-town .lt-seat .lt-frame-img { opacity: 1; filter: brightness(.55) saturate(.55); }
+/* The frame's own cut-out masks the face, so a prop standing in front of a frame (the hourglass, the tankard) hides the portrait too. */
+.sde-town .lt-face { position: absolute; inset: 0; mask-size: 100% 100%; mask-repeat: no-repeat; pointer-events: none; }
 .sde-town .lt-portrait { filter: brightness(.6) saturate(.6); transition: filter .22s; }
 .sde-town .lt-portrait img { display: block; width: 100%; height: 100%; object-fit: cover; border: 0; }
 .sde-town .lt-seat.hot .lt-frame-img, .sde-town .lt-seat:focus-visible .lt-frame-img { filter: brightness(1.12) drop-shadow(0 0 14px rgb(255 168 70 / 85%)); }
