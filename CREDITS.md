@@ -170,6 +170,14 @@ module.
   [Public Domain Super Heroes wiki](https://pdsh.fandom.com/wiki/Halfling).
   The module's copy is on a plain background, resized, and re-encoded to WebP.
 
+## Game Master portrait (`assets/gm-avatar.jpg`)
+
+The default portrait on the crawl strip's Game Master card is "TCP Manimal 6"
+by **Jeff Preston**, from his *Terrible Character Portraits* in the free
+*Monster Fantasy Stock Art Vol. 1* on DriveThruRPG, licensed under
+[CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). The artwork is
+unchanged.
+
 ## UI button icons (`icons/game-icons/`)
 
 The following icons are from [game-icons.net](https://game-icons.net/) and are
