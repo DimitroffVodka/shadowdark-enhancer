@@ -775,7 +775,8 @@ Other: `content-registry`, `coins`, `party-xp-core`, `session-recap-core`, `pdf-
 ## 9. Tracked-but-not-shipped, and local-only
 
 **Tracked in git but excluded from module.zip** (release.yml allowlist):
-`test/`, `package.json`, `eslint.config.mjs`, `.github/`, `tools/` (the
+`test/`, `e2e/` (the release smoke check, run in a throwaway Foundry, see
+CONTRIBUTING), `package.json`, `eslint.config.mjs`, `.github/`, `tools/` (the
 `npm run inventory` generator that maintains this page), `docs/wiki/` (the
 manual) and this `docs/FILE-INVENTORY.md`. Of `docs/`, only `API.md` ships.
 

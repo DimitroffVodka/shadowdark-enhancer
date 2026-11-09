@@ -67,10 +67,14 @@ notably the combat-start flow that once enrolled every player token twice.
 **Before a release, run the smoke check.** The three gates never start Foundry.
 `e2e/smoke.spec.mjs` does: in a throwaway world with only this module on, it
 joins as a GM and as a player, fails on any console error, uncaught error or
-missing file, and opens every window the API can open (any `open…` function on
-`game.shadowdarkEnhancer`, so a new window is covered without touching the
-spec). It takes about four minutes and needs a local Foundry install, which is
-why CI does not run it:
+missing file, and calls every `open…` function on `game.shadowdarkEnhancer`.
+Each one must put a drawn window on screen within 15 seconds, so a new opener
+is covered without touching the spec and cannot pass by doing nothing. The few
+that have nothing to show in an empty world (one bastion's sheet, the
+Encounters Met journal, a battle map, the renown dialog) are listed in the spec
+as `NEEDS_SETUP` with the reason; they are only checked for errors. It takes
+about five minutes and needs a local Foundry install, which is why CI does not
+run it:
 
 ```bash
 node <foundry-mcp-live>/tools/ui-test/run.mjs --module .

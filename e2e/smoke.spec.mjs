@@ -36,47 +36,81 @@ test("a GM's fresh world starts clean", async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
+// Openers with nothing to show in an empty world, and why. They are still called and must not throw or log an error,
+// but they are not counted as opened. Any opener NOT listed here must put a drawn window on screen, so a new one
+// cannot pass by doing nothing; one listed here that does open a window fails too, so the list cannot go stale.
+const NEEDS_SETUP = {
+  "bastion.open": "opens one bastion's sheet, and there is no bastion",
+  "encounter.openCodex": "opens the Encounters Met journal, which exists once an encounter has been logged",
+  "encounterMaps.open": "stages a battle for an encounter, and none is passed",
+  "renown.open": "the award dialog lists player characters, and there are none",
+};
+
+// Where the window alone is not the proof: this must be on screen as well before the opener counts as opened.
+const ALSO_DRAWS = {
+  "monsterCreator.open": "#sde-monster-creator-host > *", // the creator mounts into the Encounter window after it draws
+};
+
+const WINDOW_WAIT_MS = 15_000;
+
 test("every window the API can open, opens", async ({ page }) => {
-  test.setTimeout(300_000); // some thirty windows at a few seconds each in a headless browser
+  test.setTimeout(600_000); // some thirty openers; one that shows nothing costs the full wait
   const errors = await join(page, "Gamemaster");
-  const result = await page.evaluate(async () => {
+  const result = await page.evaluate(async ({ needsSetup, alsoDraws, limit }) => {
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-    const base = new Set(foundry.applications.instances.keys());
-    const opened = [];
-    const failed = [];
-    // Close what a call left open, so the next call starts from a bare table and a modal can't block it.
-    const closeNew = async () => {
-      for (const [id, app] of foundry.applications.instances) if (!base.has(id)) await app.close({ force: true }).catch(() => {});
-      for (const app of Object.values(ui.windows)) await app.close({ force: true }).catch(() => {});
+    const until = async (test, ms) => {
+      for (const end = performance.now() + ms; performance.now() < end; await wait(100)) if (test()) return true;
+      return Boolean(test());
     };
-    await closeNew();
-    const api = game.shadowdarkEnhancer;
+    // A window is a framed ApplicationV2 or an ApplicationV1 pop-out; core's sidebar, hotbar and the like have no frame.
+    const windows = () => [...foundry.applications.instances.values()].filter((a) => a.hasFrame).concat(Object.values(ui.windows));
+    const drawn = (a) => a.rendered && document.body.contains(a.element instanceof HTMLElement ? a.element : a.element?.[0]);
+    const closeAll = async () => {
+      for (const app of windows()) Promise.resolve(app.close({ force: true })).catch(() => {});
+      return until(() => windows().length === 0, limit);
+    };
+
     const calls = [];
-    for (const [key, value] of Object.entries(api)) {
-      if (typeof value === "function" && key.startsWith("open")) calls.push([key, value, api]);
+    for (const [key, value] of Object.entries(game.shadowdarkEnhancer)) {
+      if (typeof value === "function" && key.startsWith("open")) calls.push([key, value, game.shadowdarkEnhancer]);
       else if (value && typeof value === "object") {
         for (const [k, fn] of Object.entries(value)) if (typeof fn === "function" && k.startsWith("open")) calls.push([`${key}.${k}`, fn, value]);
       }
     }
+    const opened = [];
+    const skipped = [];
+    const failed = Object.keys(needsSetup).filter((n) => !calls.some(([name]) => name === n)).map((n) => `${n}: listed in NEEDS_SETUP but not in the API`);
+    if (!(await closeAll())) failed.push("start: a window would not close");
+
     for (const [name, fn, owner] of calls) {
-      try {
-        // A dialog's promise settles only when it closes: three seconds is long enough for a window to draw.
-        await Promise.race([fn.call(owner), wait(3000)]);
-        await wait(100);
-        opened.push(name);
-      } catch (err) {
-        failed.push(`${name}: ${err?.message ?? err}`);
-      }
-      await Promise.race([closeNew(), wait(3000)]);
+      const stale = new Set(windows());
+      const call = { done: false, threw: null };
+      // Not awaited: a dialog's promise settles only when the dialog closes.
+      Promise.resolve().then(() => fn.call(owner)).then(() => { call.done = true; }, (err) => { call.threw = err?.message ?? String(err); });
+      const shown = () => windows().some((a) => !stale.has(a) && drawn(a)) && (!alsoDraws[name] || document.querySelector(alsoDraws[name]) !== null);
+
+      if (name in needsSetup) {
+        await until(() => call.done || call.threw, 3000);
+        if (shown()) failed.push(`${name}: opened a window, so take it off NEEDS_SETUP`);
+        else skipped.push(name);
+      } else if (await until(() => call.threw || shown(), limit) && !call.threw) opened.push(name);
+      else if (!call.threw) failed.push(`${name}: no drawn window within ${limit / 1000} s`);
+      if (call.threw) failed.push(`${name}: threw ${call.threw}`);
+
+      // Leave a bare table, so the next opener's window is its own and a modal cannot block it.
+      if (!(await closeAll())) failed.push(`${name}: its window would not close`);
     }
-    return { opened, failed };
-  });
-  expect(result.failed).toEqual([]);
-  expect(result.opened.length).toBeGreaterThan(20);
+    return { opened, skipped, failed };
+  }, { needsSetup: NEEDS_SETUP, alsoDraws: ALSO_DRAWS, limit: WINDOW_WAIT_MS });
+  // Soft, so one run reports the windows that failed and the errors they logged together.
+  expect.soft(result.failed).toEqual([]);
+  expect.soft(result.skipped.sort()).toEqual(Object.keys(NEEDS_SETUP).sort());
+  expect.soft(result.opened.length).toBeGreaterThan(20);
   expect(errors).toEqual([]);
 });
 
 test("a player's client starts clean", async ({ page, browser }) => {
+  test.setTimeout(180_000); // two joins: measured at 44 to 75 s, too close to the 90 s default
   await join(page, "Gamemaster");
   await page.evaluate(async (name) => { if (!game.users.getName(name)) await User.create({ name, role: CONST.USER_ROLES.PLAYER }); }, PLAYER);
 
