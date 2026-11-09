@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   CharBuilderState,
   applyLevelChange,
+  setLevelZero,
   extraTalentLevels,
   levelTalentKey,
 } from "../scripts/char-builder/state.mjs";
@@ -110,4 +111,26 @@ test("CON lands on the first hit die only, floored at 1", () => {
   assert.equal(hpFromDice([5, 3, 7], 2), 7 + 3 + 7);
   assert.equal(hpFromDice([1, 1, 1], -3), 1 + 1 + 1);
   assert.equal(hpFromDice([], 2), 0);
+});
+
+test("switching to level 0 drops the class, HP, gold and gear but keeps the rest", () => {
+  const st = buildAt(5, { spells: [{ uuid: "s1", tier: 1 }] });
+  st.name = "Grub";
+  st.ancestry = { uuid: "anc" };
+  st.stats.values.con = 14;
+  st.class = { uuid: "fighter" };
+  st.coins = { gp: 40, sp: 0, cp: 0 };
+  st.goldRolled = true;
+  st.gear = [{ uuid: "torch", qty: 1, costCp: 5 }];
+  setLevelZero(st, true);
+  assert.equal(st.level0, true);
+  assert.equal(st.level, 1);
+  assert.equal(st.class, null);
+  assert.deepEqual([st.classTalents, st.bonusRolls, st.spells, st.gear], [[], [], [], []]);
+  assert.deepEqual(st.hp, { max: 0, rolled: null });
+  assert.deepEqual(st.coins, { gp: 0, sp: 0, cp: 0 });
+  assert.equal(st.goldRolled, false);
+  assert.deepEqual([st.name, st.ancestry.uuid, st.stats.values.con], ["Grub", "anc", 14]);
+  setLevelZero(st, false);
+  assert.equal(st.level0, false);
 });

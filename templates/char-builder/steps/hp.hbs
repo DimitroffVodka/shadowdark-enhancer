@@ -2,6 +2,9 @@
   {{#if step.existing}}
   <div class="ui-note"><i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.hp.existingHint"}}</div>
   <div class="cbu-big-number"><span class="val">{{#if step.hp}}{{step.hp}}{{else}}&ndash;{{/if}}</span> <span class="unit">{{localize "SDE.charBuilder.hp.unit"}}</span></div>
+  {{else if step.level0}}
+  <div class="ui-note info">{{localize "SDE.charBuilder.hp.formula"}}: <b>{{localize "SDE.charBuilder.ability.con.short"}} ({{step.conModLabel}}){{#if step.hpBonus}} + {{step.hpBonus}}{{/if}}</b> &middot; {{localize "SDE.charBuilder.hp.level0"}}</div>
+  <div class="cbu-big-number"><span class="val">{{step.hp}}</span> <span class="unit">{{localize "SDE.charBuilder.hp.unit"}}</span></div>
   {{else}}
   {{#if step.hasClass}}
   <div class="ui-note info">
