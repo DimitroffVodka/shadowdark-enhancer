@@ -64,6 +64,21 @@ the in-client **Quench** batches (`test/quench/`). Install the
 `shadowdark-enhancer.combat-state` from its dialog. It guards real regressions —
 notably the combat-start flow that once enrolled every player token twice.
 
+**Before a release, run the smoke check.** The three gates never start Foundry.
+`e2e/smoke.spec.mjs` does: in a throwaway world with only this module on, it
+joins as a GM and as a player, fails on any console error, uncaught error or
+missing file, and opens every window the API can open (any `open…` function on
+`game.shadowdarkEnhancer`, so a new window is covered without touching the
+spec). It takes about four minutes and needs a local Foundry install, which is
+why CI does not run it:
+
+```bash
+node <foundry-mcp-live>/tools/ui-test/run.mjs --module .
+```
+
+or the `ui_test` tool of the foundry-mcp-live MCP server with this checkout as
+`module`. The world is created for the run and deleted after it.
+
 ## Looking at a window before it ships
 
 Foundry windows (ApplicationV2 templates and their CSS) are easy to write blind

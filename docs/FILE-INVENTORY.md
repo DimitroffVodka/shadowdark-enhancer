@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-2249 tracked files · ~280,800 lines of code/markup across scripts+templates+styles+test.
+2250 tracked files · ~280,800 lines of code/markup across scripts+templates+styles+test.
 `v0.21.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -287,7 +287,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `encounter-creator.mjs` | 1966 | Monster Creator — multi-section NPC authoring tool mounted in the roller. |
+| `encounter-creator.mjs` | 1969 | Monster Creator — multi-section NPC authoring tool mounted in the roller. |
 | `action-templates.mjs` | 126 | Quick-pick NPC attack/action catalog (FA6 Free glyphs only). |
 | `feature-templates.mjs` | 83 | Quick-pick NPC feature catalog. |
 | `monster-effect-runtime.mjs` | 547 | Provenance-backed effect overlay engine for the Creator draft. |
