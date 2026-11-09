@@ -68,13 +68,16 @@ notably the combat-start flow that once enrolled every player token twice.
 `e2e/smoke.spec.mjs` does: in a throwaway world with only this module on, it
 joins as a GM and as a player, fails on any console error, uncaught error or
 missing file, and calls every `open…` function on `game.shadowdarkEnhancer`.
-Each one must put a drawn window on screen within 15 seconds, so a new opener
-is covered without touching the spec and cannot pass by doing nothing. The few
+Each one is listed in the spec's `OPENS` table with the window it opens, and
+must put a new, drawn window of that class on screen within 15 seconds. No
+other window counts for it, so a start-up dialog that happens to arrive cannot
+stand in for a dead opener (the spec carries a test of exactly that). The few
 that have nothing to show in an empty world (one bastion's sheet, the
-Encounters Met journal, a battle map, the renown dialog) are listed in the spec
-as `NEEDS_SETUP` with the reason; they are only checked for errors. It takes
-about five minutes and needs a local Foundry install, which is why CI does not
-run it:
+Encounters Met journal, a battle map, the renown dialog) are listed as
+`NEEDS_SETUP` with the reason; they are only checked for errors. **A new
+`open…` function fails the check until you add it to one of the two lists.**
+It takes about six minutes and needs a local Foundry install, which is why CI
+does not run it:
 
 ```bash
 node <foundry-mcp-live>/tools/ui-test/run.mjs --module .
