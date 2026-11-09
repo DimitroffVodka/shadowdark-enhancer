@@ -1020,13 +1020,29 @@ class HubPasteMethods {
     let nameTables = [];
     let effectiveText = text;
     let rangeNotes = [];
+    // A whole book (readWholeBook) arrives with a form feed between its pages.
+    // The folds here and the downtime sniff below each read their text as ONE
+    // page: given a book, the first two-column table swallowed every other
+    // page. So each page gets its own, and a downtime page is set aside instead
+    // of stopping the parse. A paste has no form feed and is one page, as before.
+    const pages = text.split("\f");
+    const book = pages.length > 1;
+    const downtimeSkip = (sniff, where = "") => ({
+      name: where + t("SDE.importer.skipReason.downtimePage"),
+      reason: t(sniff.activities.length === 1 ? "SDE.importer.skipReason.downtimeSniffOne" : "SDE.importer.skipReason.downtimeSniffMany",
+        { n: sniff.activities.length, bullets: sniff.bullets }),
+    });
     if (type === "auto" || type === "tables") {
-      const expanded = expandNamePartTables(text);
-      nameTables = expanded.tables;
-      // Two-column d100 spreads (trinkets etc.) fold into one column here.
-      const normalized = normalizeTwoColumnRanges(expanded.remainder);
-      effectiveText = normalized.text;
-      rangeNotes = normalized.notes;
+      effectiveText = pages.map((page, i) => {
+        const expanded = expandNamePartTables(page);
+        nameTables.push(...expanded.tables);
+        // Two-column d100 spreads (trinkets etc.) fold into one column here.
+        const normalized = normalizeTwoColumnRanges(expanded.remainder);
+        rangeNotes.push(...normalized.notes.map((n) => (book ? `p${i + 1}: ${n}` : n)));
+        const sniff = book && type === "auto" ? looksLikeDowntimePage(normalized.text) : null;
+        if (sniff?.isDowntime) { skipped.push(downtimeSkip(sniff, `p${i + 1}: `)); return ""; }
+        return normalized.text;
+      }).join("\n\n");
     }
 
     if (type === "auto") {
@@ -1036,14 +1052,9 @@ class HubPasteMethods {
       // is seeded from its Manage → Downtime row, so Auto cannot do it — but
       // it can say so rather than quietly building the wrong thing. Reported
       // live, 2026-08-29.
-      const sniff = looksLikeDowntimePage(effectiveText);
-      if (sniff.isDowntime) {
-        const named = sniff.activities.length;
-        this._importSkipped = [{
-          name: t("SDE.importer.skipReason.downtimePage"),
-          reason: t(named === 1 ? "SDE.importer.skipReason.downtimeSniffOne" : "SDE.importer.skipReason.downtimeSniffMany",
-            { n: named, bullets: sniff.bullets }),
-        }];
+      const sniff = book ? null : looksLikeDowntimePage(effectiveText);
+      if (sniff?.isDowntime) {
+        this._importSkipped = [downtimeSkip(sniff)];
         this._importMonsters = [];
         this._importItems = [];
         this._importSpells = [];
@@ -1069,7 +1080,7 @@ class HubPasteMethods {
       items    = seg.items ?? [];
       spells   = seg.spells ?? [];
       tables   = seg.tables ?? [];
-      skipped  = [...(seg.skipped ?? [])];
+      skipped.push(...(seg.skipped ?? []));   // after any downtime pages a book set aside above
       // Hex-key runs (hex-parser) only surface in auto mode: a hex key is a
       // whole crawl, never something a GM forces a type onto.
       hexes    = seg.hexes ?? [];

@@ -126,6 +126,62 @@ export async function importSuiteBundle(app) {
   app.render();
 }
 
+/** Pages per extractPdfText call when reading a whole book, so the progress bar moves. */
+const READ_CHUNK = 10;
+
+/**
+ * Read every page of a book the importer has no recipe for (a third-party
+ * adventure, homebrew) and show what it holds on the Preview tab. The parse is
+ * the paste box's own Auto pass, so nothing is saved until the GM confirms
+ * there, and the text is left in the box for a second try. Pages are joined
+ * with a form feed, which is how that pass knows where each one ends.
+ *
+ * @param {object} app    the hub
+ * @param {string} file   resolved PDF path
+ * @param {string} label  the book's name: the Source the drafts are filed under
+ * @param {object} [pdf]  pdf-text-extract.mjs (injected by the Node test)
+ * @returns {Promise<boolean>} whether the Preview tab has something to show
+ */
+export async function readWholeBook(app, file, label, pdf) {
+  pdf ??= await import("./pdf-text-extract.mjs");
+  const pageTexts = [];   // every page, empty ones too, so an index is a page number
+  const warnings = [];
+  // Opening is the long part of a big book: the whole file comes down before page 1 can be read.
+  const note = ui.notifications?.info(t("SDE.importer.srcpdf.opening", { book: label }), { permanent: true, progress: true, console: false });
+  try {
+    let numPages = 1;
+    for (let from = 1; from <= numPages; from += READ_CHUNK) {
+      const pages = Array.from({ length: READ_CHUNK }, (_, i) => from + i);   // past the last page is dropped by the extractor
+      const r = await pdf.extractPdfText(file, { pages, columns: "auto" });
+      numPages = r.numPages;
+      pageTexts.push(...r.pages.map((p) => p.lines.join("\n")));
+      warnings.push(...(r.warnings ?? []));
+      const page = Math.min(from + READ_CHUNK - 1, numPages);
+      note?.update?.({ message: t("SDE.importer.srcpdf.reading", { book: label, page, pages: numPages }), pct: page / numPages });
+    }
+  } catch (err) {
+    console.error("Shadowdark Enhancer | PDF text extraction failed", err);
+    ui.notifications?.error(t("SDE.importer.pdf.readFailed", { error: err?.message || err }));
+    return false;
+  } finally {
+    note?.remove?.();
+  }
+  const text = pageTexts.join("\n\f\n");
+  if (!pageTexts.some(Boolean)) { ui.notifications?.warn(t("SDE.importer.srcpdf.noText", { book: label })); return false; }
+
+  app._importSeed = null;
+  app._importType = "auto";
+  app._importItemSubtype = "auto";
+  app._importSource = label;
+  app._importText = text;
+  // _onHubParse reads the paste box back, so an open box must hold the book too.
+  const box = app.element?.querySelector?.("textarea[data-import-text]");
+  if (box) box.value = text;
+  await app._onHubParseAndShow();
+  pdf.notifyGutterWarnings({ warnings });
+  return app._hasPreview();
+}
+
 /**
  * Manage the source-PDF library: show which books are linked, and upload +
  * link a PDF for a source. Uploads land in worlds/<id>/source-pdfs and are
@@ -138,7 +194,7 @@ const NEW_BOOK = "__new";
 
 export async function manageSourcePdfs(app) {
   if (!game.user?.isGM) { ui.notifications.warn(t("SDE.importer.notify.gmOnlyPdfs")); return; }
-  const { listSourcePdfs, uploadSourcePdf, registerSourcePdf, sourcePdfBookHref, customSourceKey, sourceLabel } =
+  const { listSourcePdfs, uploadSourcePdf, registerSourcePdf, sourcePdfBookHref, customSourceKey, sourceLabel, isCustomSource } =
     await import("./source-pdf-registry.mjs");
   const { useSessionPdf, onTheForge, FORGE_UPLOAD_LIMIT_MB } = await import("./session-pdf.mjs");
 
@@ -264,6 +320,13 @@ export async function manageSourcePdfs(app) {
   }
 
   const book = label || CHAR_SOURCES[src]?.label || src;
+  // A book with no recipe is read whole as soon as it is linked, and the GM is
+  // left on what it found instead of back in this dialog.
+  const afterLink = (path) => {
+    app._invalidateManageTree?.();   // the new link changes what the tree can run
+    app.render();
+    return isCustomSource(src) ? readWholeBook(app, path, label || sourceLabel(src)) : manageSourcePdfs(app);
+  };
 
   // Link where it lies: Foundry's own browser over the server's files, so the
   // book never travels through an upload the host might refuse.
@@ -278,9 +341,7 @@ export async function manageSourcePdfs(app) {
         }
         await registerSourcePdf(src, path, label);
         ui.notifications.info(t("SDE.importer.srcpdf.linked", { book, file: path.split("/").pop() }));
-        app._invalidateManageTree?.();
-        app.render();
-        return manageSourcePdfs(app);
+        return afterLink(path);
       },
     }).browse();
     return;
@@ -295,8 +356,9 @@ export async function manageSourcePdfs(app) {
   };
   if (picked.session) return fromHere();
 
+  let path;
   try {
-    const path = await uploadSourcePdf(src, picked.file, label);
+    path = await uploadSourcePdf(src, picked.file, label);
     ui.notifications.info(t("SDE.importer.srcpdf.linked", { book, file: path.split("/").pop() }));
   } catch (err) {
     console.error("[SDE] source PDF upload failed", err);
@@ -310,7 +372,5 @@ export async function manageSourcePdfs(app) {
     if (useHere) return fromHere();
     return manageSourcePdfs(app);
   }
-  app._invalidateManageTree?.();   // the new link changes what the tree can run
-  app.render();
-  return manageSourcePdfs(app);   // reopen with refreshed status for the next book
+  return afterLink(path);   // a known book: reopen with refreshed status for the next one
 }

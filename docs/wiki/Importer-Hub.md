@@ -574,7 +574,11 @@ match its PDF pages, and either printing works — the standard one or the
 - **Grab text:** Extracts clean, column-aware page text directly using
   bundled PDF.js.
 - **Custom & homebrew books:** Select **➕ Another book…** to register
-  third-party supplements or adventure modules.
+  third-party supplements or adventure modules. As soon as the book is linked
+  the Importer reads every page and opens the **Preview** tab with the
+  monsters, items, spells and tables it found, filed under the name you gave
+  the book. These are guesses: remove the wrong ones, then press Create.
+  Nothing is created before that.
 - **One copy serves every world.** **Upload & link** stores the book in
   `Data/assets/` on your server under its standard filename, and every world
   there links it on its own (the row reads "default path"). Files you place

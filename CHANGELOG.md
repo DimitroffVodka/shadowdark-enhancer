@@ -5,6 +5,7 @@
 ### Added
 
 - **Level-0 characters in the Character Builder.** The footer's Level picker now starts at 0. A level-0 character gets the system's Level 0 class, hit points from CON (minimum 1), no gold, and starting gear rolled on the system's level-0 gear table at no cost, the same character the system's own generator makes. **Roll several** beside it creates a batch of random level-0 characters at once (4 by default) for a funnel. See [Character Builder](docs/wiki/Character-Builder.md).
+- **A book the Importer does not know is read as soon as you link it.** Link a third-party adventure or your own PDF under Source PDFs → Another book, and the Importer reads every page and opens the Preview tab with the monsters, items, spells and tables it found, filed under the name you gave the book. Nothing is created until you press Create there, and you can remove a wrong guess first. No page range or paste needed.
 
 ### Fixed
 
