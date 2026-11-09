@@ -265,3 +265,46 @@ test("AL * (a stock warband's: its creatures' own) keeps N without a warning", (
   assert.equal(draft.alignment, "N");
   assert.deepEqual(warnings.filter((w) => /alignment/.test(w)), []);
 });
+
+test("Title Case names (no ALL-CAPS) split per monster, in both import paths", async () => {
+  const dump = [
+    "Gloom Newt",
+    "A pale lizard that licks lantern oil.",
+    "AC 11, HP 5, ATK 1 bite +1 (1d4), MV near (climb), S -1, D +2,",
+    "C +0, I -3, W +0, Ch -3, AL N, LV 1",
+    "Slick. Can't be grabbed.",
+    "Moth, Ember",
+    "A fluttering spark with wings of",
+    "ash.",
+    "AC 13, HP 8, ATK 2 touch +2 (1d6 + burn), MV near (fly),",
+    "S -2, D +3, C +0, I -3, W +1, Ch -3, AL N, LV 2",
+  ].join("\n");
+  const { monsters } = splitStatblocks(dump);
+  const drafts = monsters.map((m) => parseStatblock(m).draft);
+  assert.deepEqual(drafts.map((d) => d.name), ["Gloom Newt", "Moth, Ember"]);
+  assert.equal(drafts[0].features[0].name, "Slick");
+  assert.equal(drafts[1].description, "A fluttering spark with wings of ash.");
+  assert.equal(drafts[1].level, 2);
+  const { segmentDump } = await import("../scripts/importer/dump-segmenter.mjs");
+  assert.equal(segmentDump(dump).monsters.length, 2);
+});
+
+test("scrambled-case names mid-page in a room key: found by both paths, room text cut from features", async () => {
+  const dump = [
+    "2. MUD HALL",
+    "◆Puddles. Ankle deep and cold.",
+    "gloB Newt",
+    "A pale lizard that licks lantern oil.",
+    "AC 11, HP 5, ATK 1 bite +1 (1d4), MV near, S -1, D +2,",
+    "C +0, I -3, W +0, Ch -3, AL N, LV 1",
+    "Slick. Can't be grabbed.",
+    "◆Drain. A rusty grate in the floor.",
+    "3. DRY HALL",
+  ].join("\n");
+  const { monsters } = splitStatblocks(dump);
+  const { draft } = parseStatblock(monsters[0]);
+  assert.equal(draft.name, "Glob Newt");
+  assert.deepEqual(draft.features, [{ name: "Slick", description: "Can't be grabbed." }]);
+  const { segmentDump } = await import("../scripts/importer/dump-segmenter.mjs");
+  assert.equal(segmentDump(dump).monsters.length, 1);
+});

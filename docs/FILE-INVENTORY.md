@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-2249 tracked files · ~280,800 lines of code/markup across scripts+templates+styles+test.
+2249 tracked files · ~280,900 lines of code/markup across scripts+templates+styles+test.
 `v0.21.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -411,7 +411,7 @@
 | `tables/core-table-groups.mjs` | 289 | Core Rulebook table groups (`section: "gameplay"` vs roll tables) for the Manage tree. |
 | `tables/compound-table.mjs` | 92 | Mad-libs generator roll behaviour. |
 | `tables/hex-parser.mjs` | 488 | Hex-key dumps → per-hex draft journal pages. Pure. |
-| `monsters/statblock-parser.mjs` | 553 | Monster statblock dump → draft objects. Pure. |
+| `monsters/statblock-parser.mjs` | 600 | Monster statblock dump → draft objects. Pure. |
 | `monsters/monster-importer.mjs` | 233 | Drafts → NPC actors in `sde-actors`. |
 | `monsters/monster-importer-app.mjs` | 404 | Paste dump → per-monster preview/edit grid → create. |
 | `monsters/monster-census.mjs` | 241 | Pure have/gap/duplicate helpers. |

@@ -63,6 +63,51 @@ function isNameLine(line) {
   return true;
 }
 
+/**
+ * Not every source prints names in ALL CAPS: some use Title Case ("Bat,
+ * Giant"), and some display fonts extract in scrambled case ("aPPrentice",
+ * "skeleton, grasPing" — The Sunken Schola). Upper-case a short letters-only
+ * line (≤5 words, no sentence punctuation) when a stat line ("AC <n>") follows
+ * within four lines (name, then a few lines of flavor), so the ALL-CAPS name
+ * logic downstream applies unchanged; titleCaseName restores the casing. A
+ * block that already has an ALL-CAPS name above or below is left alone, so a
+ * short flavor line in a caps book is never taken for the name.
+ */
+const BARE_NAME_RE = /^[A-Za-z][A-Za-z'’-]*(?:,?\s+[A-Za-z][A-Za-z'’-]*){0,4}$/;
+// A line ending in a joining word is a sentence carrying on, never a name.
+const DANGLING_RE = /\s(?:and|or|of|the|a|an|in|on|to|for|with|while|though|at|by|from|as|that|is|are)$/i;
+export function promoteTitleCaseNames(text) {
+  const lines = String(text ?? "").split("\n");
+  const isStatStart = (l) => /^\s*AC\s+\d/.test(l);
+  const nonEmpty = (arr) => arr.filter((l) => l.trim());
+  let prevPromoted = false;
+  let prevText = "";
+  return lines.map((line, i) => {
+    const t = line.trim();
+    // A name starts fresh: after a finished sentence, a stat line's number, a
+    // blank, or another promoted line (a heading above it). A line after a
+    // mid-sentence break is wrapped flavor ("moldering, silk robes, and red").
+    const freshStart = !prevText || prevPromoted || /[.!?:;)”"’\d]$/.test(prevText);
+    const promote = freshStart && BARE_NAME_RE.test(t) && !isNameLine(t) && !DANGLING_RE.test(t) && (() => {
+      const next = nonEmpty(lines.slice(i + 1)).slice(0, 4);
+      const k = next.findIndex(isStatStart);
+      return k !== -1 && !next.slice(0, k).some(isNameLine) &&
+        !nonEmpty(lines.slice(0, i)).slice(-4).some(isNameLine);
+    })();
+    // A blank line before the name starts a new raw block there, so the dump
+    // segmenter (which starts a monster only at a block's first line) finds a
+    // statblock printed mid-page, after a room's text.
+    const out = promote ? `${prevPromoted ? "" : "\n"}${t.toUpperCase()}` : line;
+    if (t) { prevPromoted = promote; prevText = t; }
+    return out;
+  }).join("\n");
+}
+
+// Where an adventure's room key resumes after a statblock printed inside it:
+// a ◆/▷/▶ bullet or a numbered room heading ("3. CLOAKROOM"). Without the cut
+// the last feature swallows the rest of the room.
+const ROOM_TEXT_RE = /^\s*(?:[◆▷▶]|\d+\.\s+[A-Z][A-Z &'’-]+$)/;
+
 /** A standalone page-number line (PDF artifact). */
 const isPageNumber = (line) => /^\s*\d{1,4}\s*$/.test(line);
 
@@ -83,7 +128,7 @@ export const STAT_LV = /\bLV\s+(?:\d+(?:\s*\/\s*\d+)?|\*)/i;
  * @returns {{ monsters: string[], skipped: {name:string, reason:string}[] }}
  */
 export function splitStatblocks(rawText) {
-  const lines = normalizeText(String(rawText ?? "").replace(/\r\n?/g, "\n")).split("\n")
+  const lines = promoteTitleCaseNames(normalizeText(String(rawText ?? "").replace(/\r\n?/g, "\n"))).split("\n")
     .filter((l) => !isPageNumber(l));               // drop page numbers globally
 
   // Partition into name-delimited blocks. DIRECTLY consecutive ALL-CAPS lines
@@ -527,7 +572,9 @@ export function parseStatblock(chunk) {
   } else warnings.push("ATK clause not found");
 
   // ── features ──
-  draft.features = parseFeatures(lines.slice(statEnd + 1), warnings);
+  const featureLines = lines.slice(statEnd + 1);
+  const roomAt = featureLines.findIndex((l) => ROOM_TEXT_RE.test(l));
+  draft.features = parseFeatures(roomAt === -1 ? featureLines : featureLines.slice(0, roomAt), warnings);
 
   // ── spellcasting ability (from a "(XXX Spell)" feature tag) ──
   const ability = spellAbilityFromFeatures(draft.features);

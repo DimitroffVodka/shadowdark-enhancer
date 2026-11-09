@@ -29,7 +29,7 @@
  * references.  All helpers are importable by node:test directly.
  */
 
-import { splitStatblocks } from "./monsters/statblock-parser.mjs";
+import { splitStatblocks, promoteTitleCaseNames } from "./monsters/statblock-parser.mjs";
 import { parseTables } from "./tables/table-importer.mjs";
 import { itemRecognizer, RIDER_KW as ITEM_RIDER_RE, COST_RE as ITEM_COST_RE } from "./items/item-parser.mjs";
 import { spellRecognizer } from "./spells/spell-parser.mjs";
@@ -104,7 +104,7 @@ const monsterRecognizer = {
   id: "monster",
 
   claim(rawText) {
-    const allBlocks = splitRawBlocks(rawText);
+    const allBlocks = splitRawBlocks(promoteTitleCaseNames(rawText));
     const monsters = [];
     const skipped = [];
     const remainderBlocks = [];

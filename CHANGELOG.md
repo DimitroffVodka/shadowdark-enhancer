@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **The Importer reads monster names that aren't in capitals.** Books that print names in Title Case ("Bat, Giant"), or whose font comes out in mixed case (The Sunken Schola of the White Witches), imported as one monster with every stat block welded into it, or as nothing at all. Each monster now comes in on its own, in Auto and Monsters mode, including a stat block printed in the middle of a room's text; its features stop where the room text picks up again.
+
 ## [0.21.0] — 2026-11-09
 
 ### Added
