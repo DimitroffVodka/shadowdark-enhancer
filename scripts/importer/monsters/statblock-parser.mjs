@@ -73,6 +73,8 @@ function isNameLine(line) {
  * block that already has an ALL-CAPS name above or below is left alone, so a
  * short flavor line in a caps book is never taken for the name.
  */
+// A group heading's head noun is plural; see splitStatblocks.
+const isGroupHeading = (name) => /(?<!['’])S\b/.test(name);
 const BARE_NAME_RE = /^[A-Za-z][A-Za-z'’-]*(?:,?\s+[A-Za-z][A-Za-z'’-]*){0,4}$/;
 // A line ending in a joining word is a sentence carrying on, never a name.
 const DANGLING_RE = /\s(?:and|or|of|the|a|an|in|on|to|for|with|while|though|at|by|from|as|that|is|are)$/i;
@@ -82,12 +84,16 @@ export function promoteTitleCaseNames(text) {
   const nonEmpty = (arr) => arr.filter((l) => l.trim());
   let prevPromoted = false;
   let prevText = "";
+  let afterBlank = false;
   return lines.map((line, i) => {
     const t = line.trim();
-    // A name starts fresh: after a finished sentence, a stat line's number, a
-    // blank, or another promoted line (a heading above it). A line after a
-    // mid-sentence break is wrapped flavor ("moldering, silk robes, and red").
-    const freshStart = !prevText || prevPromoted || /[.!?:;)”"’\d]$/.test(prevText);
+    // A name starts fresh: after a finished sentence, a stat line's number or
+    // a blank line. A line after a mid-sentence break is wrapped flavor
+    // ("moldering, silk robes, and red"). Under a promoted line, only a group
+    // heading ("Creature Statistics" over "mimic") may have a name below it;
+    // under a name, the next short line is its description ("A pale lizard").
+    const freshStart = prevPromoted ? isGroupHeading(prevText.toUpperCase())
+      : afterBlank || !prevText || /[.!?:;)”"’\d]$/.test(prevText);
     const promote = freshStart && BARE_NAME_RE.test(t) && !isNameLine(t) && !DANGLING_RE.test(t) && (() => {
       const next = nonEmpty(lines.slice(i + 1)).slice(0, 4);
       const k = next.findIndex(isStatStart);
@@ -99,6 +105,7 @@ export function promoteTitleCaseNames(text) {
     // statblock printed mid-page, after a room's text.
     const out = promote ? `${prevPromoted ? "" : "\n"}${t.toUpperCase()}` : line;
     if (t) { prevPromoted = promote; prevText = t; }
+    afterBlank = !t;
     return out;
   }).join("\n");
 }
@@ -150,8 +157,6 @@ export function splitStatblocks(rawText) {
   // to the skip list, exactly like the "VOID CREATURES" / "WENDEL TYPES"
   // headings CS4/CS5 already skip (those carry lore lines, so they never reach
   // this branch at all).
-  const isGroupHeading = (name) => /(?<!['’])S\b/.test(name);
-
   const raw = [];
   for (const line of lines) {
     if (isNameLine(line)) raw.push({ name: line.trim(), lines: [] });

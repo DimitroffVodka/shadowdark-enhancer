@@ -289,6 +289,51 @@ test("Title Case names (no ALL-CAPS) split per monster, in both import paths", a
   assert.equal(segmentDump(dump).monsters.length, 2);
 });
 
+test("a short first description line under a Title Case name stays description, in both paths", async () => {
+  const dump = [
+    "Gloom Newt",
+    "A pale lizard",
+    "that licks lantern oil.",
+    "AC 11, HP 5, ATK 1 bite +1 (1d4), MV near, S -1, D +2,",
+    "C +0, I -3, W +0, Ch -3, AL N, LV 1",
+  ].join("\n");
+  const { segmentDump } = await import("../scripts/importer/dump-segmenter.mjs");
+  for (const monsters of [splitStatblocks(dump).monsters, segmentDump(dump).monsters]) {
+    assert.equal(monsters.length, 1);
+    const { draft } = parseStatblock(monsters[0]);
+    assert.equal(draft.name, "Gloom Newt");
+    assert.equal(draft.description, "A pale lizard that licks lantern oil.");
+  }
+});
+
+test("a blank line after unpunctuated prose starts a fresh Title Case statblock, in both paths", async () => {
+  const dump = [
+    "The cellar floor is slick with lamp oil",
+    "",
+    "Gloom Newt",
+    "A pale lizard that licks lantern oil.",
+    "AC 11, HP 5, ATK 1 bite +1 (1d4), MV near, S -1, D +2,",
+    "C +0, I -3, W +0, Ch -3, AL N, LV 1",
+  ].join("\n");
+  const { segmentDump } = await import("../scripts/importer/dump-segmenter.mjs");
+  for (const monsters of [splitStatblocks(dump).monsters, segmentDump(dump).monsters]) {
+    assert.equal(monsters.length, 1);
+    assert.equal(parseStatblock(monsters[0]).draft.name, "Gloom Newt");
+  }
+});
+
+test("a plural heading over a scrambled-case name stays a heading, not part of the name", () => {
+  const dump = [
+    "Cellar Dwellers",
+    "gloom newt",
+    "A pale lizard that licks lantern oil.",
+    "AC 11, HP 5, ATK 1 bite +1 (1d4), MV near, S -1, D +2,",
+    "C +0, I -3, W +0, Ch -3, AL N, LV 1",
+  ].join("\n");
+  const { monsters } = splitStatblocks(dump);
+  assert.deepEqual(monsters.map((m) => parseStatblock(m).draft.name), ["Gloom Newt"]);
+});
+
 test("scrambled-case names mid-page in a room key: found by both paths, room text cut from features", async () => {
   const dump = [
     "2. MUD HALL",
