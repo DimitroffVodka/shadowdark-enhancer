@@ -29,8 +29,21 @@ async function join(page, user) {
   return errors;
 }
 
+// The module's start-up goes on after ready: 2.5 s later it reads the changelog and the import library, then asks the GM
+// of a world that has imported nothing to run the wizard, once per version. It stamps the version just before it asks,
+// so the stamp is the sign that start-up is over. Not waiting for it ends the GM test while start-up is still running,
+// and lets the prompt land in the middle of the window test, where it is taken for the window being opened.
+async function startUpOver(page) {
+  const asked = (id) => game.settings.get(id, "importerWizardAsked") === game.modules.get(id).version;
+  const earlier = await page.evaluate(asked, MODULE);
+  await page.waitForFunction(asked, MODULE, { timeout: 60_000 });
+  // This page did the stamping, so its prompt is about to show: wait for it, so it cannot arrive later.
+  if (!earlier) await page.waitForFunction(() => [...foundry.applications.instances.values()].some((a) => a.hasFrame && a.rendered));
+}
+
 test("a GM's fresh world starts clean", async ({ page }) => {
   const errors = await join(page, "Gamemaster");
+  await startUpOver(page);
   const mod = await page.evaluate((id) => ({ active: game.modules.get(id)?.active, api: typeof game.shadowdarkEnhancer }), MODULE);
   expect(mod).toEqual({ active: true, api: "object" });
   expect(errors).toEqual([]);
@@ -56,6 +69,7 @@ const WINDOW_WAIT_MS = 15_000;
 test("every window the API can open, opens", async ({ page }) => {
   test.setTimeout(600_000); // some thirty openers; one that shows nothing costs the full wait
   const errors = await join(page, "Gamemaster");
+  await startUpOver(page);
   const result = await page.evaluate(async ({ needsSetup, alsoDraws, limit }) => {
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     const until = async (test, ms) => {
@@ -65,9 +79,19 @@ test("every window the API can open, opens", async ({ page }) => {
     // A window is a framed ApplicationV2 or an ApplicationV1 pop-out; core's sidebar, hotbar and the like have no frame.
     const windows = () => [...foundry.applications.instances.values()].filter((a) => a.hasFrame).concat(Object.values(ui.windows));
     const drawn = (a) => a.rendered && document.body.contains(a.element instanceof HTMLElement ? a.element : a.element?.[0]);
+    // Resolves to "" once no window is left, else to the names of the ones still up. Each window is asked once, and
+    // one that shows up while the others are closing is asked too.
     const closeAll = async () => {
-      for (const app of windows()) Promise.resolve(app.close({ force: true })).catch(() => {});
-      return until(() => windows().length === 0, limit);
+      const asked = new Set();
+      await until(() => {
+        for (const app of windows()) {
+          if (asked.has(app)) continue;
+          asked.add(app);
+          Promise.resolve().then(() => app.close({ force: true })).catch(() => {});
+        }
+        return windows().length === 0;
+      }, limit);
+      return windows().map((a) => `${a.constructor.name} (${a.id})`).join(", ");
     };
 
     const calls = [];
@@ -80,7 +104,8 @@ test("every window the API can open, opens", async ({ page }) => {
     const opened = [];
     const skipped = [];
     const failed = Object.keys(needsSetup).filter((n) => !calls.some(([name]) => name === n)).map((n) => `${n}: listed in NEEDS_SETUP but not in the API`);
-    if (!(await closeAll())) failed.push("start: a window would not close");
+    const atStart = await closeAll();
+    if (atStart) failed.push(`start: would not close: ${atStart}`);
 
     for (const [name, fn, owner] of calls) {
       const stale = new Set(windows());
@@ -98,7 +123,8 @@ test("every window the API can open, opens", async ({ page }) => {
       if (call.threw) failed.push(`${name}: threw ${call.threw}`);
 
       // Leave a bare table, so the next opener's window is its own and a modal cannot block it.
-      if (!(await closeAll())) failed.push(`${name}: its window would not close`);
+      const left = await closeAll();
+      if (left) failed.push(`${name}: would not close: ${left}`);
     }
     return { opened, skipped, failed };
   }, { needsSetup: NEEDS_SETUP, alsoDraws: ALSO_DRAWS, limit: WINDOW_WAIT_MS });
