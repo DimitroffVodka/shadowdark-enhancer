@@ -215,10 +215,9 @@ export async function pickThirdPartyBook() {
     position: { width: 560 },
     content: `
       <p>${t("SDE.importer.thirdParty.lead")}</p>
-      <div class="sde-srcpdf-upload">
-        <input type="file" name="pdf" accept="application/pdf,.pdf">
-        <label>${t("SDE.importer.thirdParty.name")} <input type="text" name="label" placeholder="${t("SDE.importer.thirdParty.namePlaceholder")}"></label>
-      </div>`,
+      <input type="file" name="pdf" accept="application/pdf,.pdf">
+      <label class="ui-field"><span class="ui-label">${t("SDE.importer.thirdParty.name")}</span>
+        <input type="text" name="label" placeholder="${t("SDE.importer.thirdParty.namePlaceholder")}"></label>`,
     buttons: [
       { action: "read", label: t("SDE.importer.thirdParty.read"), icon: "fas fa-book-open", default: true, callback: (ev, button, dialog) => read(dialog) },
       { action: "browse", label: t("SDE.importer.srcpdf.linkExisting"), callback: (ev, button, dialog) => ({ ...read(dialog), browse: true }) },
@@ -233,12 +232,14 @@ export async function pickThirdPartyBook() {
       if (!file || !name) return;
       let typed = false;
       name.addEventListener("input", () => { typed = true; });
-      const sync = () => {
-        if (go) go.disabled = !file.files.length;
-        if (file.files.length && !typed) name.value = bookNameFromFile(file.files[0].name);
-      };
-      file.addEventListener("change", sync);
-      sync();
+      file.addEventListener("change", () => { if (file.files.length && !typed) name.value = bookNameFromFile(file.files[0].name); });
+      // With no file yet, Read this book is one more way to the file chooser, not a dead button.
+      go?.addEventListener("click", (ev) => {
+        if (file.files.length) return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        file.click();
+      });
       // Straight to the file chooser: the click that opened this window still counts as the GM's.
       try { file.click(); } catch (_e) { /* the browser wants its own click: Choose file is right there */ }
     },

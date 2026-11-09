@@ -381,7 +381,7 @@
 | `importer-hub-rules.mjs` | 113 | Importer Hub Rules Data step (#299; first in the Manage strip since #311): lists each Western Reaches lookup table with its book, page and filled or empty state, runs the settings window's own import (importAndSave) from the hub, opens the Edit window, and is Import everything's last step when a book is linked. |
 | `importer-hub-shared.mjs` | 107 | Hub-shared constants/helpers + `installMethods` (the split's descriptor copier). |
 | `importer-hub-news.mjs` | 180 | What a module update added to the import library: snapshots every Manage-tree row once per module version, diffs the new snapshot against the last, and hands the hub the rows this release added but the GM has not imported (the "New" filter and badge) plus a one-time notice. |
-| `importer-hub-maintenance.mjs` | 484 | Tools-menu bodies (bundle export/import, source-PDF library). |
+| `importer-hub-maintenance.mjs` | 485 | Tools-menu bodies (bundle export/import, source-PDF library). |
 | `dump-segmenter.mjs` | 331 | Routes a mixed dump through the recognizer registry: hexcrawl → spell → monster → item → table. |
 | `bundle-io.mjs` | 411 | Whole-suite export/import as one JSON; validates, skips existing, never overwrites. |
 | `manage-tree.mjs` | 707 | Composes the folder/sub-folder unlock-review tree the Manage strip renders. |
