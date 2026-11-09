@@ -46,7 +46,7 @@
           <div class="ui-row cbu-cart-row">
             <span class="ui-chip">{{qty}}&times;</span>
             <span class="ui-row-main"><span class="ui-row-name">{{name}}{{#if magic}} <i class="fa-solid fa-wand-sparkles" title="{{localize 'SDE.charBuilder.gear.magicTip'}}"></i>{{/if}}</span></span>
-            <button type="button" class="ui-icon" data-cb-add-one="{{key}}" title="{{localize 'SDE.charBuilder.gear.addTip'}}"><i class="fa-solid fa-plus"></i></button>
+            {{#if canAdd}}<button type="button" class="ui-icon" data-cb-add-one="{{key}}" title="{{localize 'SDE.charBuilder.gear.addTip'}}"><i class="fa-solid fa-plus"></i></button>{{/if}}
             <button type="button" class="ui-icon" data-cb-remove-gear="{{key}}" title="{{localize 'SDE.charBuilder.gear.removeTip'}}"><i class="fa-solid fa-minus"></i></button>
           </div>
           {{/each}}

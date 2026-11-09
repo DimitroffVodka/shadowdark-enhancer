@@ -123,6 +123,25 @@ function trimSpells(state, spellsKnown) {
 }
 
 /**
+ * Switch a new build into or out of a level-0 character (the system's "Level 0"
+ * class, HP from CON, no gold, rolled gear). The class and everything that hung
+ * off it go, and so do HP, gold and gear: none of them carry across the switch.
+ * Stats, ancestry, background, alignment, name and art stay. Pure, like
+ * `applyLevelChange`.
+ */
+export function setLevelZero(state, on) {
+  state.level0 = !!on;
+  state.level = 1;
+  Object.assign(state, {
+    class: null, classTalents: [], classTalentRoll: null, bonusRolls: [], talentChoices: {},
+    talentMemo: {}, spells: [], patron: null,
+    languages: [], languageChoices: { common: [], rare: [], select: [] },
+    hp: { max: 0, rolled: null }, coins: { gp: 0, sp: 0, cp: 0 }, goldRolled: false, gear: [],
+  });
+  return state;
+}
+
+/**
  * Re-scope an in-progress build to a new target level — the "chose 5, set the
  * character up, actually wanted 3" path. Pure (no Foundry globals) so it is
  * testable on its own.

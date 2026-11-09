@@ -100,6 +100,9 @@ test("loadItems hides '<X> (Legacy)' only when '<X>' is also present", async () 
   try {
     const got = (await ClassStep.prototype.loadItems.call({})).map((c) => c.name);
     assert.deepEqual(got, ["Bard", "Fighter", "Ranger (Legacy)"]);
+    // A level-0 build lists the Level 0 class alone.
+    const zero = (await ClassStep.prototype.loadItems.call({ state: { level0: true } })).map((c) => c.name);
+    assert.deepEqual(zero, ["Level 0"]);
   } finally {
     if (saved === undefined) delete globalThis.shadowdark; else globalThis.shadowdark = saved;
   }
