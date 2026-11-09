@@ -126,6 +126,166 @@ export async function importSuiteBundle(app) {
   app.render();
 }
 
+/** Pages per extractPdfText call when reading a whole book, so the progress bar moves. */
+const READ_CHUNK = 10;
+
+/**
+ * Read every page of a book the importer has no recipe for (a third-party
+ * adventure, homebrew) and show what it holds on the Preview tab. The parse is
+ * the paste box's own Auto pass, so nothing is saved until the GM confirms
+ * there, and the text is left in the box for a second try. Pages are joined
+ * with a form feed, which is how that pass knows where each one ends.
+ *
+ * @param {object} app    the hub
+ * @param {string} file   resolved PDF path
+ * @param {string} label  the book's name: the Source the drafts are filed under
+ * @param {object} [pdf]  pdf-text-extract.mjs (injected by the Node test)
+ * @returns {Promise<boolean>} whether the Preview tab has something to show
+ */
+export async function readWholeBook(app, file, label, pdf) {
+  pdf ??= await import("./pdf-text-extract.mjs");
+  const pageTexts = [];   // every page, empty ones too, so an index is a page number
+  const warnings = [];
+  // Opening is the long part of a big book: the whole file comes down before page 1 can be read.
+  const note = ui.notifications?.info(t("SDE.importer.srcpdf.opening", { book: label }), { permanent: true, progress: true, console: false });
+  try {
+    let numPages = 1;
+    for (let from = 1; from <= numPages; from += READ_CHUNK) {
+      const pages = Array.from({ length: READ_CHUNK }, (_, i) => from + i);   // past the last page is dropped by the extractor
+      const r = await pdf.extractPdfText(file, { pages, columns: "auto" });
+      numPages = r.numPages;
+      pageTexts.push(...r.pages.map((p) => p.lines.join("\n")));
+      warnings.push(...(r.warnings ?? []));
+      const page = Math.min(from + READ_CHUNK - 1, numPages);
+      note?.update?.({ message: t("SDE.importer.srcpdf.reading", { book: label, page, pages: numPages }), pct: page / numPages });
+    }
+  } catch (err) {
+    console.error("Shadowdark Enhancer | PDF text extraction failed", err);
+    ui.notifications?.error(t("SDE.importer.pdf.readFailed", { error: err?.message || err }));
+    return false;
+  } finally {
+    note?.remove?.();
+  }
+  const text = pageTexts.join("\n\f\n");
+  if (!pageTexts.some(Boolean)) { ui.notifications?.warn(t("SDE.importer.srcpdf.noText", { book: label })); return false; }
+
+  app._importSeed = null;
+  app._importType = "auto";
+  app._importItemSubtype = "auto";
+  app._importSource = label;
+  app._importText = text;
+  // _onHubParse reads the paste box back, so an open box must hold the book too.
+  const box = app.element?.querySelector?.("textarea[data-import-text]");
+  if (box) box.value = text;
+  await app._onHubParseAndShow();
+  pdf.notifyGutterWarnings({ warnings });
+  return app._hasPreview();
+}
+
+/**
+ * A book's name from its file name: no folder or extension, no trailing version
+ * ("_1.2", " V1-2", "-v4-3"), no leading download id, and underscores (plus the
+ * hyphens of a name with no spaces) as spaces. A guess the GM can type over.
+ */
+export function bookNameFromFile(fileName) {
+  let s = String(fileName ?? "").split("/").pop();
+  try { s = decodeURIComponent(s); } catch (_e) { /* a literal % in the name */ }
+  s = s.replace(/\.pdf$/i, "")
+    .replace(/[\s_-]+(?:v\d+(?:[.-]\d+)*[a-z]?|\d+(?:[.-]\d+)+[a-z]?)$/i, "")   // "Issue 1" stays: a bare number is part of the title
+    .replace(/_/g, " ");
+  if (!/\s/.test(s)) s = s.replace(/-/g, " ");
+  return s.replace(/^\d{6,}\s+/, "").replace(/\s+/g, " ").trim();
+}
+
+/**
+ * The one-step way in for a book that isn't a Shadowdark book: choose the PDF,
+ * from this computer or already on the server, and it is linked under its own
+ * name, the file's unless the GM types another.
+ * @returns {Promise<{path:string, label:string}|null>} null when nothing was chosen
+ */
+export async function pickThirdPartyBook() {
+  if (!game.user?.isGM) { ui.notifications.warn(t("SDE.importer.notify.gmOnlyPdfs")); return null; }
+  const read = (dialog) => {
+    const root = dialog.element ?? dialog;
+    return { file: root.querySelector("input[name='pdf']")?.files?.[0] ?? null, label: root.querySelector("input[name='label']")?.value?.trim() ?? "" };
+  };
+  const picked = await foundry.applications.api.DialogV2.wait({
+    classes: ["sde-ui", "sde-dialog"],
+    window: { title: t("SDE.importer.thirdParty.button"), icon: "fas fa-book-open" },
+    position: { width: 560 },
+    content: `
+      <p>${t("SDE.importer.thirdParty.lead")}</p>
+      <input type="file" name="pdf" accept="application/pdf,.pdf">
+      <label class="ui-field"><span class="ui-label">${t("SDE.importer.thirdParty.name")}</span>
+        <input type="text" name="label" placeholder="${t("SDE.importer.thirdParty.namePlaceholder")}"></label>`,
+    buttons: [
+      { action: "read", label: t("SDE.importer.thirdParty.read"), icon: "fas fa-book-open", default: true, callback: (ev, button, dialog) => read(dialog) },
+      { action: "browse", label: t("SDE.importer.srcpdf.linkExisting"), callback: (ev, button, dialog) => ({ ...read(dialog), browse: true }) },
+      { action: "cancel", label: t("SDE.importer.btn.cancel") },
+    ],
+    rejectClose: false,
+    render: (_event, dialog) => {
+      const root = dialog?.element ?? dialog;
+      const file = root?.querySelector?.("input[name='pdf']");
+      const name = root?.querySelector?.("input[name='label']");
+      const go = root?.querySelector?.("[data-action='read']");
+      if (!file || !name) return;
+      let typed = false;
+      name.addEventListener("input", () => { typed = true; });
+      file.addEventListener("change", () => { if (file.files.length && !typed) name.value = bookNameFromFile(file.files[0].name); });
+      // With no file yet, Read this book is one more way to the file chooser, not a dead button.
+      go?.addEventListener("click", (ev) => {
+        if (file.files.length) return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        file.click();
+      });
+      // Straight to the file chooser: the click that opened this window still counts as the GM's.
+      try { file.click(); } catch (_e) { /* the browser wants its own click: Choose file is right there */ }
+    },
+  }).catch(() => null);
+  if (!picked || picked === "cancel") return null;
+
+  const { uploadSourcePdf, registerSourcePdf, customSourceKey } = await import("./source-pdf-registry.mjs");
+  const { file } = picked;
+  let path = "";
+  if (picked.browse) {
+    const FP = foundry.applications?.apps?.FilePicker?.implementation ?? globalThis.FilePicker;
+    // ponytail: never settles if the browser is closed without a pick; nothing waits on it but this call.
+    path = String(await new Promise((resolve) => new FP({ type: "any", current: "assets", callback: resolve }).browse()) ?? "");
+  }
+  if (picked.browse ? !/\.pdf$/i.test(path) : !file || (file.type && file.type !== "application/pdf")) {
+    ui.notifications.warn(t("SDE.importer.srcpdf.notPdf"));
+    return null;
+  }
+  const label = picked.label || bookNameFromFile(picked.browse ? path : file.name);
+  const src = customSourceKey(label);
+  if (!src) { ui.notifications.warn(t("SDE.importer.srcpdf.needName")); return null; }
+  if (picked.browse) {
+    await registerSourcePdf(src, path, label);
+    return { path, label };
+  }
+  try {
+    return { path: await uploadSourcePdf(src, file, label), label };
+  } catch (err) {
+    // A host that refuses the upload still has the file in this browser, and
+    // reading it is all the import needs.
+    console.warn("[SDE] source PDF upload failed; reading it from this computer", err);
+    const { useSessionPdf, sessionPdfPath } = await import("./session-pdf.mjs");
+    useSessionPdf(src, file);
+    ui.notifications.info(t("SDE.importer.thirdParty.notKept", { book: label }));
+    return { path: sessionPdfPath(src), label };
+  }
+}
+
+/** Import a third-party book: choose it, read all of it, land on Preview. */
+export async function importThirdPartyBook(app) {
+  const book = await pickThirdPartyBook();
+  if (!book) return false;
+  app._invalidateManageTree?.();   // the new link changes what the tree can run
+  return readWholeBook(app, book.path, book.label);
+}
+
 /**
  * Manage the source-PDF library: show which books are linked, and upload +
  * link a PDF for a source. Uploads land in worlds/<id>/source-pdfs and are
@@ -138,7 +298,7 @@ const NEW_BOOK = "__new";
 
 export async function manageSourcePdfs(app) {
   if (!game.user?.isGM) { ui.notifications.warn(t("SDE.importer.notify.gmOnlyPdfs")); return; }
-  const { listSourcePdfs, uploadSourcePdf, registerSourcePdf, sourcePdfBookHref, customSourceKey, sourceLabel } =
+  const { listSourcePdfs, uploadSourcePdf, registerSourcePdf, sourcePdfBookHref, customSourceKey, sourceLabel, isCustomSource } =
     await import("./source-pdf-registry.mjs");
   const { useSessionPdf, onTheForge, FORGE_UPLOAD_LIMIT_MB } = await import("./session-pdf.mjs");
 
@@ -229,9 +389,14 @@ export async function manageSourcePdfs(app) {
       const sel = root?.querySelector?.("select[name='src']");
       const newLabel = root?.querySelector?.("input[name='newlabel']");
       const sessionBtn = root?.querySelector?.("[data-action='session']");
+      const pdf = root?.querySelector?.("input[name='pdf']");
+      // The book's name comes from its file unless the GM has typed one.
+      const nameIt = () => { if (!newLabel.hidden && !newLabel.value && pdf?.files?.[0]) newLabel.value = bookNameFromFile(pdf.files[0].name); };
+      pdf?.addEventListener("change", nameIt);
       sel?.addEventListener("change", () => {
         if (sessionBtn) sessionBtn.hidden = sel.value === NEW_BOOK;   // only the known books can come from this computer
         newLabel.hidden = sel.value !== NEW_BOOK;
+        nameIt();
         if (!newLabel.hidden) newLabel.focus();
       });
       root?.querySelectorAll?.(".sde-srcpdf-row.linked[data-src]").forEach((li) => {
@@ -255,7 +420,7 @@ export async function manageSourcePdfs(app) {
   let { src } = picked;
   let label = "";
   if (src === NEW_BOOK) {
-    label = picked.newLabel;
+    label = picked.newLabel || bookNameFromFile(picked.file?.name);
     src = customSourceKey(label);
     if (!src) {
       ui.notifications.warn(t("SDE.importer.srcpdf.needName"));
@@ -264,6 +429,13 @@ export async function manageSourcePdfs(app) {
   }
 
   const book = label || CHAR_SOURCES[src]?.label || src;
+  // A book with no recipe is read whole as soon as it is linked, and the GM is
+  // left on what it found instead of back in this dialog.
+  const afterLink = (path) => {
+    app._invalidateManageTree?.();   // the new link changes what the tree can run
+    app.render();
+    return isCustomSource(src) ? readWholeBook(app, path, label || sourceLabel(src)) : manageSourcePdfs(app);
+  };
 
   // Link where it lies: Foundry's own browser over the server's files, so the
   // book never travels through an upload the host might refuse.
@@ -278,9 +450,7 @@ export async function manageSourcePdfs(app) {
         }
         await registerSourcePdf(src, path, label);
         ui.notifications.info(t("SDE.importer.srcpdf.linked", { book, file: path.split("/").pop() }));
-        app._invalidateManageTree?.();
-        app.render();
-        return manageSourcePdfs(app);
+        return afterLink(path);
       },
     }).browse();
     return;
@@ -295,8 +465,9 @@ export async function manageSourcePdfs(app) {
   };
   if (picked.session) return fromHere();
 
+  let path;
   try {
-    const path = await uploadSourcePdf(src, picked.file, label);
+    path = await uploadSourcePdf(src, picked.file, label);
     ui.notifications.info(t("SDE.importer.srcpdf.linked", { book, file: path.split("/").pop() }));
   } catch (err) {
     console.error("[SDE] source PDF upload failed", err);
@@ -310,7 +481,5 @@ export async function manageSourcePdfs(app) {
     if (useHere) return fromHere();
     return manageSourcePdfs(app);
   }
-  app._invalidateManageTree?.();   // the new link changes what the tree can run
-  app.render();
-  return manageSourcePdfs(app);   // reopen with refreshed status for the next book
+  return afterLink(path);   // a known book: reopen with refreshed status for the next one
 }

@@ -77,6 +77,29 @@ function isNameLine(line) {
   return true;
 }
 
+/** Lines of flavor a name may carry before its stat line. */
+const FLAVOR_LINES = 3;
+
+/**
+ * A statblock printed inside a room key has no blank line above its name, and
+ * the recognizer below starts a monster only at a block's first line: on a page
+ * of room text every statblock was missed. Open a block at an ALL-CAPS name
+ * whose stat line ("AC <n>") follows its flavor, the way promoteTitleCaseNames
+ * does for the names it promotes. The room text above stays its own block and
+ * still reaches the later recognizers.
+ */
+function openStatblocks(text) {
+  const lines = text.split("\n");
+  return lines.map((line, i) => {
+    if (!isNameLine(line) || isNameLine(lines[i - 1] ?? "")) return line;   // a wrapped name's later lines stay with its first
+    let j = i + 1;
+    while (isNameLine(lines[j] ?? "")) j++;
+    const next = lines.slice(j, j + 12).filter((l) => l.trim()).slice(0, FLAVOR_LINES + 1);
+    const k = next.findIndex((l) => /^\s*AC\s+\d/.test(l));
+    return k !== -1 && !next.slice(0, k).some(isNameLine) ? `\n${line}` : line;
+  }).join("\n");
+}
+
 // Item anchors ITEM_RIDER_RE / ITEM_COST_RE are imported from item-parser
 // (the owning module) — used to break monster continuation-block collection
 // so item blocks aren't absorbed into a preceding statblock unit.
@@ -104,7 +127,7 @@ const monsterRecognizer = {
   id: "monster",
 
   claim(rawText) {
-    const allBlocks = splitRawBlocks(promoteTitleCaseNames(rawText));
+    const allBlocks = splitRawBlocks(openStatblocks(promoteTitleCaseNames(rawText)));
     const monsters = [];
     const skipped = [];
     const remainderBlocks = [];

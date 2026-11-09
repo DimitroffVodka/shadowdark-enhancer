@@ -565,7 +565,10 @@ export function parseStatblock(chunk) {
     draft.move = move; draft.moveNote = moveNote;
   } else warnings.push("movement not found");
 
-  const atk = /\bATK\s+(.+?),\s*MV\b/i.exec(statLine);
+  // The clause ends at the movement field: an MV OUTSIDE parentheses (a rider
+  // can say "halves MV"), with or without the comma some books leave out. A
+  // clause whose parentheses a PDF broke falls back to the comma.
+  const atk = /\bATK\s+((?:\([^()]*\)|[^()])+?),?\s*MV\b/i.exec(statLine) ?? /\bATK\s+(.+?),\s*MV\b/i.exec(statLine);
   if (atk) {
     const { actions, spellAttack } = parseAttacks(atk[1], warnings);
     draft.actions = actions;
