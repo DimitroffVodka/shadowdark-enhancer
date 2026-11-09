@@ -86,6 +86,7 @@ body.sde-wiz-batch #sde-class-importer, body.sde-wiz-batch #sde-spell-importer, 
 /* The Welcome page's way to Maps for this world, once the world has imported: the sentence and its button on one line. */
 .sde-wiz .sde-wiz-maps-link { flex-direction: row; align-items: center; gap: 12px; }
 .sde-wiz .sde-wiz-maps-link p { flex: 1 1 auto; margin: 0; }
+.sde-wiz .sde-wiz-maps-link .ui-btn { flex: none; white-space: nowrap; }   /* a long label keeps its button; the sentence wraps instead */
 
 /* Maps for this world: one row per map, its state and buttons kept whole at the right; narrow, they drop under the name. */
 .sde-world-maps .ui-body { display: flex; flex-direction: column; gap: 14px; }
