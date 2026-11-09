@@ -5,9 +5,11 @@
 ### Added
 
 - **Level-0 characters in the Character Builder.** The footer's Level picker now starts at 0. A level-0 character gets the system's Level 0 class, hit points from CON (minimum 1), no gold, and starting gear rolled on the system's level-0 gear table at no cost, the same character the system's own generator makes. **Roll several** beside it creates a batch of random level-0 characters at once (4 by default) for a funnel. See [Character Builder](docs/wiki/Character-Builder.md).
+- **Import a third-party book.** A new button on the first page of the Importer guide and on the Importer's Paste tab. Choose a third-party adventure, a zine or your own PDF, from your computer or one already on the server. The book's name is filled in from the file name and you can change it. The Importer reads every page and opens the Preview tab with the monsters, items, spells and tables it found, filed under that name. Nothing is created until you press Create there, and you can remove a wrong guess first. Source PDFs → Another book does the same when it links a book, and fills the name in too.
 
 ### Fixed
 
+- **The Importer finds monsters printed inside room text.** With the type left on Auto, a statblock in the middle of a room description was missed unless a blank line came before its name; an adventure could come out with two monsters where it prints twenty. Auto now picks them up, and the room text above still goes to items and tables. A whole book keeps one copy of a statblock it reprints word for word; a copy that differs in anything stays, for you to judge on Preview. A two-column table that runs on over the page comes through as one table. Attacks are also read when the book prints no comma before MV.
 - **The Importer reads monster names that aren't in capitals.** Books that print names in Title Case ("Bat, Giant"), or whose font comes out in mixed case (The Sunken Schola of the White Witches), imported as one monster with every stat block welded into it, or as nothing at all. Each monster now comes in on its own, in Auto and Monsters mode, including a stat block printed in the middle of a room's text; its features stop where the room text picks up again.
 
 ## [0.21.0] — 2026-11-09

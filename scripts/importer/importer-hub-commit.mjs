@@ -807,6 +807,11 @@ class HubCommitMethods {
     const { manageSourcePdfs } = await import("./importer-hub-maintenance.mjs");
     return manageSourcePdfs(this);
   }
+  /** Import a third-party book: choose the PDF, read all of it, land on Preview. */
+  async _onThirdPartyBook() {
+    const { importThirdPartyBook } = await import("./importer-hub-maintenance.mjs");
+    return importThirdPartyBook(this);
+  }
   /** Commit parsed Background/Talent/Class drafts into sde-items. GM-gated. */
   async _onHubCommitChar() {
     if (!game.user?.isGM) { ui.notifications.warn(t("SDE.importer.gm.charContent")); return; }

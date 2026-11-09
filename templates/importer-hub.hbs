@@ -48,6 +48,18 @@
     </section>
     {{/if}}
 
+    {{#unless importData.seed}}
+    <section class="ui-card">
+      <div class="ui-card-head">
+        <h3 class="ui-card-name"><i class="fas fa-book-open"></i> {{localize "SDE.importer.thirdParty.cardTitle"}}</h3>
+        <div class="ui-card-actions">
+          <button type="button" class="ui-btn" data-action="hubThirdPartyBook"><i class="fas fa-book-open"></i> {{localize "SDE.importer.thirdParty.button"}}</button>
+        </div>
+      </div>
+      <p class="ui-muted">{{localize "SDE.importer.thirdParty.cardBody"}}</p>
+    </section>
+    {{/unless}}
+
     <section class="ui-card">
       <div class="imp-fields wide">
         <label class="ui-field" for="sde-hub-import-type"><span class="ui-label">{{localize "SDE.importer.type.importing"}}</span>

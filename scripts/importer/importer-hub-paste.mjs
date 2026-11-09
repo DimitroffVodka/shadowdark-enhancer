@@ -1020,13 +1020,51 @@ class HubPasteMethods {
     let nameTables = [];
     let effectiveText = text;
     let rangeNotes = [];
+    // A whole book (readWholeBook) arrives with a form feed between its pages.
+    // The folds here and the downtime sniff below each read their text as ONE
+    // page: given a book, the first two-column table swallowed every other
+    // page. So each page gets its own, and a downtime page is set aside instead
+    // of stopping the parse. A paste has no form feed and is one page, as before.
+    const pages = text.split("\f");
+    const book = pages.length > 1;
+    const downtimeSkip = (sniff, where = "") => ({
+      name: where + t("SDE.importer.skipReason.downtimePage"),
+      reason: t(sniff.activities.length === 1 ? "SDE.importer.skipReason.downtimeSniffOne" : "SDE.importer.skipReason.downtimeSniffMany",
+        { n: sniff.activities.length, bullets: sniff.bullets }),
+    });
     if (type === "auto" || type === "tables") {
-      const expanded = expandNamePartTables(text);
-      nameTables = expanded.tables;
-      // Two-column d100 spreads (trinkets etc.) fold into one column here.
-      const normalized = normalizeTwoColumnRanges(expanded.remainder);
-      effectiveText = normalized.text;
-      rangeNotes = normalized.notes;
+      const RANGE_ROW = /^(\d{1,3})\s*[-–]\s*(\d{1,3})\s/;   // a folded row: "min-max text"
+      let openMax = null;   // the last face of the folded table the page before ended on
+      effectiveText = pages.map((page, i) => {
+        const expanded = expandNamePartTables(page);
+        nameTables.push(...expanded.tables);
+        // Two-column d100 spreads (trinkets etc.) fold into one column here.
+        const normalized = normalizeTwoColumnRanges(expanded.remainder);
+        rangeNotes.push(...normalized.notes.map((n) => (book ? `p${i + 1}: ${n}` : n)));
+        const sniff = book && type === "auto" ? looksLikeDowntimePage(normalized.text) : null;
+        if (sniff?.isDowntime) { openMax = null; skipped.push(downtimeSkip(sniff, `p${i + 1}: `)); return ""; }
+        let out = normalized.text;
+        let gap = "\n\n";
+        if (book && out !== expanded.remainder) {
+          // This page folded into one table, and a table can run on over the
+          // page: the next page then starts on the face after this one's last.
+          // Those rows join the table they continue. Any other folded page
+          // gets its die line back (the fold drops it), so half a d100 reads
+          // as a d100 with a gap, which the commit gate stops, not as a whole d52.
+          const rows = out.split("\n");
+          const title = RANGE_ROW.test(rows[0]) ? [] : [rows.shift()];
+          const first = Number(rows[0]?.match(RANGE_ROW)?.[1]);
+          if (openMax !== null && first === openMax + 1) {
+            out = rows.join("\n");
+            gap = "\n";
+          } else {
+            const die = expanded.remainder.match(/^\s*(d\d{1,3})\b/im)?.[1];
+            out = [...title, ...(die ? [die] : []), ...rows].join("\n");
+          }
+          openMax = Number(rows.at(-1)?.match(RANGE_ROW)?.[2]);
+        } else openMax = null;
+        return (i ? gap : "") + out;
+      }).join("");
     }
 
     if (type === "auto") {
@@ -1036,14 +1074,9 @@ class HubPasteMethods {
       // is seeded from its Manage → Downtime row, so Auto cannot do it — but
       // it can say so rather than quietly building the wrong thing. Reported
       // live, 2026-08-29.
-      const sniff = looksLikeDowntimePage(effectiveText);
-      if (sniff.isDowntime) {
-        const named = sniff.activities.length;
-        this._importSkipped = [{
-          name: t("SDE.importer.skipReason.downtimePage"),
-          reason: t(named === 1 ? "SDE.importer.skipReason.downtimeSniffOne" : "SDE.importer.skipReason.downtimeSniffMany",
-            { n: named, bullets: sniff.bullets }),
-        }];
+      const sniff = book ? null : looksLikeDowntimePage(effectiveText);
+      if (sniff?.isDowntime) {
+        this._importSkipped = [downtimeSkip(sniff)];
         this._importMonsters = [];
         this._importItems = [];
         this._importSpells = [];
@@ -1065,11 +1098,22 @@ class HubPasteMethods {
       if (hexSummary.length) effectiveText = summary.remainder;
       // Sort a mixed dump across every recognizer.
       const seg = segmentDump(effectiveText);
-      monsters = seg.monsters.map((chunk) => parseStatblock(chunk));
+      // An adventure reprints a statblock in every room that uses it, and each
+      // repeat would raise the name-conflict dialog at Create. A book keeps one
+      // of the drafts that came out THE SAME in every field. A copy that
+      // differs at all (another attack, a trait more or less) is a variant
+      // for the GM to judge on Preview, never a repeat to drop.
+      const once = new Map();
+      seg.monsters.forEach((chunk, i) => {
+        const parsed = parseStatblock(chunk);
+        const key = book ? JSON.stringify(parsed.draft) : i;
+        if (!once.has(key)) once.set(key, parsed);
+      });
+      monsters = [...once.values()];
       items    = seg.items ?? [];
       spells   = seg.spells ?? [];
       tables   = seg.tables ?? [];
-      skipped  = [...(seg.skipped ?? [])];
+      skipped.push(...(seg.skipped ?? []));   // after any downtime pages a book set aside above
       // Hex-key runs (hex-parser) only surface in auto mode: a hex key is a
       // whole crawl, never something a GM forces a type onto.
       hexes    = seg.hexes ?? [];
