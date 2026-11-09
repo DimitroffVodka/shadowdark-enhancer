@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-2249 tracked files · ~281,000 lines of code/markup across scripts+templates+styles+test.
+2250 tracked files · ~281,100 lines of code/markup across scripts+templates+styles+test.
 `v0.21.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 1553 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 1555 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 172 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 271 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 | `scavenger/scavenger-core.mjs` | 171 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
@@ -514,7 +514,7 @@
 | `state.mjs` | 177 | `CharBuilderState` — the in-progress character. |
 | `constants.mjs` | 160 | Shared constants; hands off to the system's `CharacterGeneratorSD`. |
 | `data.mjs` | 366 | Thin wrappers over the system's compendium loaders. |
-| `commit.mjs` | 312 | `commitCharacter` — final actor creation + `coinsAfterGear`. |
+| `commit.mjs` | 357 | `commitCharacter` — final actor creation + `coinsAfterGear`. |
 | `item-source.mjs` | 19 | `stampSource` — records the compendium link on items the builder creates. |
 | `hydrate.mjs` | 259 | Existing actor -> builder state (reads `_source` only); `describeActor` console dry run. |
 | `commit-plan.mjs` | 266 | `planCommit` — pure three-way plan (baseline, builder, live) of what Finish changes on an existing actor. |
@@ -534,8 +534,8 @@
 | `steps/background-step.mjs` | 40 | Step — Background. A simple list/detail pick. |
 | `steps/class-step.mjs` | 1007 | Step — Class. List/detail pick; parses the class writeup, talent table and spellcasting. |
 | `steps/deity-step.mjs` | 77 | Step — Deity. Optional list/detail pick showing the deity's detail. |
-| `steps/gear-step.mjs` | 349 | Step — Gear. A shop: browse purchasable equipment and buy against starting gold. |
-| `steps/gold-step.mjs` | 132 | Step — Gold. Roll 2d6×5 gp, or use the GM's fixed starting-gold setting. |
+| `steps/gear-step.mjs` | 356 | Step — Gear. A shop: browse purchasable equipment and buy against starting gold. |
+| `steps/gold-step.mjs` | 134 | Step — Gold. Roll 2d6×5 gp, or use the GM's fixed starting-gold setting. |
 | `steps/hp-gold-step.mjs` | 52 | Step — Hit Points & Gold on one tab (both are single dice rolls). |
 | `steps/hp-step.mjs` | 186 | Step — Hit Points. Level-1 HP = class hit die + CON modifier (minimum 1). |
 | `steps/languages-step.mjs` | 147 | Step — Languages (runs after Class, so ancestry and class both contribute). |

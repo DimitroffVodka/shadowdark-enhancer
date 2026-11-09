@@ -269,11 +269,18 @@ export class GearStep extends ListStep {
     }
   }
 
+  /** The shop item a cart row buys more of. A rolled level-0 row may hold the table's own copy
+   *  (Arrows ×5, not the shop's ×20), so it falls back to the shop item of the same name. */
+  _shopItemFor(g) {
+    const items = this._items || [];
+    return items.find((i) => i.uuid === g.uuid) ?? (g.rowId?.startsWith("level0-") ? items.find((i) => i.name === g.name) : undefined);
+  }
+
   /** The cart's plus: an owned row rises for free, a new row is bought again. */
   addOne(key) {
     const g = this.state.gear.find((x) => rowKey(x) === key);
     if (!g) return;
-    if (!g.owned) { this.addToCart(g.uuid); return; }
+    if (!g.owned) { const item = this._shopItemFor(g); if (item) this.addToCart(item.uuid); return; }
     g.qty += 1;
     g.slots = this._rowSlots(g, g.qty);
   }
@@ -318,7 +325,7 @@ export class GearStep extends ListStep {
         inCart: this.state.gear.filter((g) => g.uuid === view.uuid).reduce((n, g) => n + g.qty, 0),
       } : null,
       hasSelection: !!view,
-      cart: this.state.gear.map((g) => ({ key: rowKey(g), name: g.name, qty: g.qty, magic: g.magic })),
+      cart: this.state.gear.map((g) => ({ key: rowKey(g), name: g.name, qty: g.qty, magic: g.magic, canAdd: !!g.owned || !!this._shopItemFor(g) })),
       cartEmpty: this.state.gear.length === 0,
       slotsUsed: totals.slots,
       slotLimit: this.slotLimit,

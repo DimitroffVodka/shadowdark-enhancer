@@ -103,7 +103,9 @@ export class GoldStep extends BaseStep {
     const table = await fromUuid(LEVEL_ZERO_GEAR_TABLE).catch(() => null);
     if (!table) { ui.notifications.warn(game.i18n.localize("SDE.charBuilder.gold.noGearTable")); return; }
     const draw = await table.draw({ displayChat: true });
-    const rows = (await shadowdark.utils.getItemsFromRollResults(draw.results)).filter(Boolean).map((doc) => ({ doc, qty: 1 }));
+    // A table result can be a stack (Arrows ×5, Iron Spikes ×10): the cart counts what Create delivers.
+    const rows = (await shadowdark.utils.getItemsFromRollResults(draw.results)).filter(Boolean)
+      .map((doc) => ({ doc, qty: Math.max(1, Number(doc.system?.quantity) || 1) }));
     // As the system's generator does: its shortbow result comes with five arrows.
     if (rows.some((r) => r.doc.name === "Shortbow and 5 arrows")) {
       const arrows = await fromUuid(ARROWS).catch(() => null);
@@ -114,7 +116,7 @@ export class GoldStep extends BaseStep {
     rows.forEach(({ doc: d, qty }, i) => {
       this.state.gear.push({
         rowId: `level0-${i}`, uuid: d.uuid, name: d.name, img: d.img, qty, type: d.type,
-        magic: !!d.system?.magicItem, costCp: 0, slots: slotsFor(d, qty),
+        magic: !!d.system?.magicItem, costCp: 0, slots: slotsFor(d, qty), slotSpec: d.system?.slots ?? null,
       });
     });
     this.state.coins = { gp: 0, sp: 0, cp: 0 };

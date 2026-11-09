@@ -1588,6 +1588,7 @@
   "SDE.charBuilder.several.button": "Roll several",
   "SDE.charBuilder.several.hint": "Create this many random level-0 characters at once, each rolled as Full Random would. The build on screen is kept.",
   "SDE.charBuilder.several.confirm": "Roll and create {count} random level-0 characters?",
+  "SDE.charBuilder.several.relayLabel": "new characters",
   "SDE.charBuilder.several.stopped": "Created {made} of {count} level-0 characters; the rest could not be made.",
   "SDE.charBuilder.searchPlaceholder": "Search…",
   "SDE.charBuilder.unlock": "Unlock",
