@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **Leaving the Monster Creator while it loads no longer throws an error.** Switching to another tab of the Encounter window, or closing it, before the creator had finished drawing left a red error in the console. It now simply stops.
+
 ## [0.21.0] — 2026-11-09
 
 ### Added
