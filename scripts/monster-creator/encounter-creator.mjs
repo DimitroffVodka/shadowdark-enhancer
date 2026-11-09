@@ -281,11 +281,14 @@ export class MonsterCreatorApp {
   // restoration) runs from _onRender after the HTML is in place.
 
   async render() {
-    if (!this._mountHost) return;
+    const host = this._mountHost;
+    if (!host) return;
     try {
       const context = await this._prepareContext();
       const html = await renderTemplate(TEMPLATE_PATH, context);
-      this._mountHost.innerHTML = html;
+      // The tab can be switched away or the window closed while the bestiary loads: nothing left to draw into.
+      if (this._mountHost !== host) return;
+      host.innerHTML = html;
       this._onRender(context);
     } catch (err) {
       // Surface template / context errors visibly in the panel
@@ -302,7 +305,7 @@ export class MonsterCreatorApp {
       const small = document.createElement("small");
       small.textContent = L("SDE.encounterCreator.renderFailedHint");
       box.append(small);
-      this._mountHost.replaceChildren(box);
+      this._mountHost?.replaceChildren(box);
     }
   }
 

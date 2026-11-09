@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-2251 tracked files · ~281,900 lines of code/markup across scripts+templates+styles+test.
+2252 tracked files · ~281,900 lines of code/markup across scripts+templates+styles+test.
 `v0.21.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -287,7 +287,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `encounter-creator.mjs` | 1966 | Monster Creator — multi-section NPC authoring tool mounted in the roller. |
+| `encounter-creator.mjs` | 1969 | Monster Creator — multi-section NPC authoring tool mounted in the roller. |
 | `action-templates.mjs` | 126 | Quick-pick NPC attack/action catalog (FA6 Free glyphs only). |
 | `feature-templates.mjs` | 83 | Quick-pick NPC feature catalog. |
 | `monster-effect-runtime.mjs` | 547 | Provenance-backed effect overlay engine for the Creator draft. |
@@ -775,7 +775,8 @@ Other: `content-registry`, `coins`, `party-xp-core`, `session-recap-core`, `pdf-
 ## 9. Tracked-but-not-shipped, and local-only
 
 **Tracked in git but excluded from module.zip** (release.yml allowlist):
-`test/`, `package.json`, `eslint.config.mjs`, `.github/`, `tools/` (the
+`test/`, `e2e/` (the release smoke check, run in a throwaway Foundry, see
+CONTRIBUTING), `package.json`, `eslint.config.mjs`, `.github/`, `tools/` (the
 `npm run inventory` generator that maintains this page), `docs/wiki/` (the
 manual) and this `docs/FILE-INVENTORY.md`. Of `docs/`, only `API.md` ships.
 
