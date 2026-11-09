@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-2251 tracked files · ~281,800 lines of code/markup across scripts+templates+styles+test.
+2251 tracked files · ~281,900 lines of code/markup across scripts+templates+styles+test.
 `v0.21.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -374,7 +374,7 @@
 | File | Lines | Description |
 |---|---:|---|
 | `importer-hub-app.mjs` | 981 | **The single front door (shell).** ApplicationV2 lifecycle, singleton, instance fields/caches, `_prepareContext`; installs the three method packs below onto the class (split 2026-07-22). |
-| `importer-hub-paste.mjs` | 1606 | Paste box, type selector, parse dispatch, per-type preview field/row wiring. |
+| `importer-hub-paste.mjs` | 1628 | Paste box, type selector, parse dispatch, per-type preview field/row wiring. |
 | `importer-hub-commit.mjs` | 980 | Conflict dialogs, quality gates, magic-bundle plan, all per-type commit flows. |
 | `importer-hub-manage.mjs` | 1322 | Manage strip: censuses + caches, manage tree, gap/seed/cull, source-PDF grab/extract. |
 | `importer-hub-batch.mjs` | 785 | Batch “Import everything” runner: seeds, grabs, parses and commits each planned entry unattended. |
@@ -411,7 +411,7 @@
 | `tables/core-table-groups.mjs` | 289 | Core Rulebook table groups (`section: "gameplay"` vs roll tables) for the Manage tree. |
 | `tables/compound-table.mjs` | 92 | Mad-libs generator roll behaviour. |
 | `tables/hex-parser.mjs` | 488 | Hex-key dumps → per-hex draft journal pages. Pure. |
-| `monsters/statblock-parser.mjs` | 605 | Monster statblock dump → draft objects. Pure. |
+| `monsters/statblock-parser.mjs` | 608 | Monster statblock dump → draft objects. Pure. |
 | `monsters/monster-importer.mjs` | 233 | Drafts → NPC actors in `sde-actors`. |
 | `monsters/monster-importer-app.mjs` | 404 | Paste dump → per-monster preview/edit grid → create. |
 | `monsters/monster-census.mjs` | 241 | Pure have/gap/duplicate helpers. |

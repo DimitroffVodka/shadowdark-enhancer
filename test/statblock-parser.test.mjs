@@ -401,3 +401,18 @@ test("the attack clause ends at MV when the book prints no comma before it", () 
   assert.equal(draft.actions[0].name.toLowerCase(), "sickle");
   assert.ok(!warnings.includes("ATK clause not found"));
 });
+
+test("an MV inside an attack's rider does not end the attack clause, with or without the comma before the real MV", () => {
+  for (const sep of [",", ""]) {
+    const { draft, warnings } = parseStatblock([
+      "MIRE GRUB",
+      `AC 12, HP 9, ATK 1 bite +2 (1d6 + halves MV)${sep} MV near, S +1, D +0,`,
+      "C +2, I -3, W +0, Ch -3, AL N, LV 2",
+    ].join("\n"));
+    assert.equal(draft.actions.length, 1, `separator "${sep}"`);
+    assert.equal(draft.actions[0].damage, "1d6");
+    assert.match(JSON.stringify(draft.actions[0]), /halves MV/);
+    assert.equal(draft.move, "near");
+    assert.ok(!warnings.some((w) => /damage|ATK/i.test(w)), warnings.join("; "));
+  }
+});

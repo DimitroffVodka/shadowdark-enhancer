@@ -4,6 +4,8 @@
 import { test, before } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import * as pdfjs from "pdfjs-dist";
+import { writePdf } from "./pdf-synth/pdf-writer.mjs";
 
 let ImporterHubApp, readWholeBook, bookNameFromFile, pickThirdPartyBook;
 const toasts = [];
@@ -113,24 +115,54 @@ test("each page is folded on its own, so one two-column table or downtime page d
   assert.equal(app._importText.split("\f").length, PAGES, "one form feed between pages, empty pages kept, so an index is a page number");
 });
 
-test("a statblock a book reprints room after room comes through once; a different stat line under the same name stays", async () => {
-  const again = `${STATBLOCK}\nThe grub here guards a sunken chest.`;   // the same monster, with room text run into it
-  const tougher = STATBLOCK.replace("HP 9", "HP 14");
+/** A stand-in book whose pages are these texts. */
+const bookOf = (pageTexts) => {
   const pdf = fakePdf();
-  const book = [STATBLOCK, "The marsh road runs on.", again, tougher];
   pdf.extractPdfText = async (file, { pages }) => ({
-    text: "", numPages: book.length, warnings: [],
-    pages: pages.filter((n) => n <= book.length).map((n) => ({ page: n, lines: book[n - 1].split("\n") })),
+    text: "", numPages: pageTexts.length, warnings: [],
+    pages: pages.filter((n) => n <= pageTexts.length).map((n) => ({ page: n, lines: pageTexts[n - 1].split("\n") })),
   });
+  return pdf;
+};
+
+test("a statblock a book reprints word for word comes through once; a copy that differs in anything stays", async () => {
+  const venom = `${STATBLOCK}\nVenom. DC 12 CON or sleep.`;   // one trait more
+  const sting = STATBLOCK.replace("1 bite +2 (1d6)", "1 sting +5 (1d8)");   // same LV, AC and HP, another attack
+  const tougher = STATBLOCK.replace("HP 9", "HP 14");
   const app = hub();
-  await readWholeBook(app, "assets/marsh.pdf", "The Marsh Road", pdf);
-  assert.deepEqual(app._importMonsters.map((m) => [m.draft.name, m.draft.hp.max]), [["Mire Grub", 9], ["Mire Grub", 14]]);
-  assert.ok(!JSON.stringify(app._importMonsters[0].draft).includes("sunken chest"), "the copy that swallowed the least room text is the one kept");
+  await readWholeBook(app, "assets/marsh.pdf", "The Marsh Road", bookOf(["The marsh road runs on.", STATBLOCK, STATBLOCK, venom, sting, tougher, STATBLOCK]));
+  const grubs = app._importMonsters.map((m) => `${m.draft.hp.max} ${m.draft.actions[0].name} ${m.draft.features.map((f) => f.name).join("+")}`);
+  assert.deepEqual(grubs, ["9 bite Slick", "9 bite Slick+Venom", "9 sting Slick", "14 bite Slick"],
+    "three identical printings are one draft; the trait, the attack and the HP variants are each kept for the GM");
 
   const paste = hub();
   paste._importText = `${STATBLOCK}\n\n${STATBLOCK}`;
   await paste._onHubParse();
   assert.equal(paste._importMonsters.length, 2, "a paste is left as the GM pasted it");
+});
+
+// A d100 printed two entries to a line: faces `from`..`to`, the left column the lower half.
+const twoColumns = (from, to) => Array.from({ length: (to - from + 1) / 4 }, (_, k) => {
+  const a = from + k * 2, b = a + (to - from + 1) / 2;
+  return `${a}-${a + 1} Reed charm ${a}   ${b}-${b + 1} Bog iron ${b}`;
+});
+
+test("a two-column table that runs on over the page is one table, with the die it was printed with", async () => {
+  const { computeBlockers } = await import("../scripts/importer/tables/table-importer.mjs");
+  const first = ["Marsh Finds", "d100 Details", ...twoColumns(1, 52)].join("\n");
+  const app = hub();
+  await readWholeBook(app, "assets/marsh.pdf", "The Marsh Road", bookOf(["The marsh road runs on.", first, twoColumns(53, 100).join("\n"), STATBLOCK]));
+  assert.deepEqual(app._importTables.map((tbl) => [tbl.name, tbl.formula, tbl.rows.length, computeBlockers(tbl).length]), [["Marsh Finds", "1d100", 50, 0]]);
+  assert.equal(app._importMonsters.length, 1, "the page after the table is still read on its own");
+
+  // The second half is missing (or another table follows): the first half must not pass as a whole, smaller table.
+  const other = ["Bog Sounds", "d8 Details", "1-2 Drip   5-6 Croak", "3-4 Splash   7-8 Silence"].join("\n");
+  const cut = hub();
+  await readWholeBook(cut, "assets/marsh.pdf", "The Marsh Road", bookOf([first, other]));
+  const [finds, sounds] = cut._importTables;
+  assert.deepEqual([finds.name, finds.formula, finds.rows.length], ["Marsh Finds", "1d100", 26]);
+  assert.ok(computeBlockers(finds).length > 0, "half a d100 is a d100 with a gap, which the commit gate stops");
+  assert.deepEqual([sounds.name, sounds.formula, sounds.rows.length, computeBlockers(sounds).length], ["Bog Sounds", "1d8", 4, 0], "a table that starts over at 1 is its own table");
 });
 
 test("a paste with no form feed is one page, as it always was: a downtime page still stops the parse", async () => {
@@ -244,4 +276,35 @@ test("the entry is on the guide's first page and on the hub's Paste tab, one but
   assert.equal(typeof ImporterHubApp.DEFAULT_OPTIONS.actions.hubThirdPartyBook, "function");
   assert.equal(typeof ImporterHubApp.prototype._onThirdPartyBook, "function");
   assert.match(read("../scripts/importer/importer-hub-maintenance.mjs"), /return readWholeBook\(app, book\.path, book\.label\);/);
+});
+
+test("from the guide, a book the server refused is still there to read after the guide closes", async () => {
+  const { ImportWizardApp } = await import("../scripts/importer/wizard/wizard-app.mjs");
+  const { _internals, releaseLocalPdfs } = await import("../scripts/importer/pdf-text-extract.mjs");
+  const { hasSessionPdf } = await import("../scripts/importer/session-pdf.mjs");
+  _internals._useLib({ getDocument: (params) => pdfjs.getDocument({ ...params, verbosity: 0 }) });
+  const file = new File([writePdf([{ runs: STATBLOCK.split("\n").map((text, i) => ({ x: 40, y: 700 - i * 14, text, size: 9 })) }])],
+    "The Marsh Road_1.2.pdf", { type: "application/pdf" });
+  await withFoundry({ file, label: "" }, () => undefined, async () => {
+    globalThis.foundry.applications.api.DialogV2.confirm = async () => true;
+    globalThis.foundry.utils = { getRoute: (p) => `/${p}` };
+    Object.assign(globalThis.game, { scenes: { viewed: null, get: () => null }, user: { isGM: true, can: () => true } });
+    const theHub = Object.assign(hub(), { rendered: true, bringToFront() { }, render: async () => { } });
+    ImporterHubApp._instance = theHub;
+    const guide = new ImportWizardApp({});
+    guide.render = () => { };
+    const warn = console.warn; console.warn = () => { };
+    try {
+      await guide._env().openThirdParty();
+      assert.equal(guide._keepBooks, true, "the guide hands its books on, as it does for the advanced importer");
+      assert.equal(hasSessionPdf("custom:the-marsh-road"), true);
+      assert.deepEqual(theHub._importMonsters.map((m) => m.draft.name), ["Mire Grub"], "read from this computer, after the guide is gone");
+      assert.equal(theHub._importSource, "The Marsh Road");
+      assert.equal(theHub._tab, "preview");
+    } finally {
+      console.warn = warn;
+      ImporterHubApp._instance = null;
+      await releaseLocalPdfs();
+    }
+  });
 });

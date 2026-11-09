@@ -190,7 +190,7 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
         if (!(await app._confirmLeave())) return;
         const book = await pickThirdPartyBook();
         if (!book) return;
-        await app._leave();
+        await app._leave({ keepBooks: true });   // a book the server refused is read from this computer: closing must not let it go
         const hub = (await import("../importer-hub-app.mjs")).ImporterHubApp.open();
         await hub.render(true);   // the parse reads the hub's window
         return readWholeBook(hub, book.path, book.label);
