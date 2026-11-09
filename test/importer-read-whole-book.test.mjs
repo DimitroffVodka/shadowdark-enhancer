@@ -113,6 +113,26 @@ test("each page is folded on its own, so one two-column table or downtime page d
   assert.equal(app._importText.split("\f").length, PAGES, "one form feed between pages, empty pages kept, so an index is a page number");
 });
 
+test("a statblock a book reprints room after room comes through once; a different stat line under the same name stays", async () => {
+  const again = `${STATBLOCK}\nThe grub here guards a sunken chest.`;   // the same monster, with room text run into it
+  const tougher = STATBLOCK.replace("HP 9", "HP 14");
+  const pdf = fakePdf();
+  const book = [STATBLOCK, "The marsh road runs on.", again, tougher];
+  pdf.extractPdfText = async (file, { pages }) => ({
+    text: "", numPages: book.length, warnings: [],
+    pages: pages.filter((n) => n <= book.length).map((n) => ({ page: n, lines: book[n - 1].split("\n") })),
+  });
+  const app = hub();
+  await readWholeBook(app, "assets/marsh.pdf", "The Marsh Road", pdf);
+  assert.deepEqual(app._importMonsters.map((m) => [m.draft.name, m.draft.hp.max]), [["Mire Grub", 9], ["Mire Grub", 14]]);
+  assert.ok(!JSON.stringify(app._importMonsters[0].draft).includes("sunken chest"), "the copy that swallowed the least room text is the one kept");
+
+  const paste = hub();
+  paste._importText = `${STATBLOCK}\n\n${STATBLOCK}`;
+  await paste._onHubParse();
+  assert.equal(paste._importMonsters.length, 2, "a paste is left as the GM pasted it");
+});
+
 test("a paste with no form feed is one page, as it always was: a downtime page still stops the parse", async () => {
   const app = hub();
   app._importText = `${DOWNTIME}\n\n${STATBLOCK}`;

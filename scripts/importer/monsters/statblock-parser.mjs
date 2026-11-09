@@ -565,7 +565,7 @@ export function parseStatblock(chunk) {
     draft.move = move; draft.moveNote = moveNote;
   } else warnings.push("movement not found");
 
-  const atk = /\bATK\s+(.+?),\s*MV\b/i.exec(statLine);
+  const atk = /\bATK\s+(.+?),?\s*MV\b/i.exec(statLine);   // some books print no comma before MV
   if (atk) {
     const { actions, spellAttack } = parseAttacks(atk[1], warnings);
     draft.actions = actions;

@@ -9,6 +9,7 @@
 
 ### Fixed
 
+- **The Importer finds monsters printed inside room text.** With the type left on Auto, a statblock in the middle of a room description was missed unless a blank line came before its name; an adventure could come out with two monsters where it prints twenty. Auto now picks them up, and the room text above still goes to items and tables. A whole book keeps one copy of a statblock it reprints room after room. Attacks are also read when the book prints no comma before MV.
 - **The Importer reads monster names that aren't in capitals.** Books that print names in Title Case ("Bat, Giant"), or whose font comes out in mixed case (The Sunken Schola of the White Witches), imported as one monster with every stat block welded into it, or as nothing at all. Each monster now comes in on its own, in Auto and Monsters mode, including a stat block printed in the middle of a room's text; its features stop where the room text picks up again.
 
 ## [0.21.0] — 2026-11-09

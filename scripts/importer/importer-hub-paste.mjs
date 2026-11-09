@@ -1076,7 +1076,18 @@ class HubPasteMethods {
       if (hexSummary.length) effectiveText = summary.remainder;
       // Sort a mixed dump across every recognizer.
       const seg = segmentDump(effectiveText);
-      monsters = seg.monsters.map((chunk) => parseStatblock(chunk));
+      // An adventure reprints a statblock in every room that uses it, and each
+      // repeat would raise the name-conflict dialog at Create. A book keeps one
+      // draft per name and stat line: the shortest chunk, which swallowed the
+      // least of the room text after it.
+      const once = new Map();
+      seg.monsters.forEach((chunk, i) => {
+        const parsed = parseStatblock(chunk);
+        const d = parsed.draft;
+        const key = book ? [d.name, d.level, d.ac, d.hp.max].join("|") : i;
+        if (!once.has(key) || chunk.length < once.get(key).size) once.set(key, { parsed, size: chunk.length });
+      });
+      monsters = [...once.values()].map((o) => o.parsed);
       items    = seg.items ?? [];
       spells   = seg.spells ?? [];
       tables   = seg.tables ?? [];

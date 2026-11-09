@@ -353,3 +353,51 @@ test("scrambled-case names mid-page in a room key: found by both paths, room tex
   const { segmentDump } = await import("../scripts/importer/dump-segmenter.mjs");
   assert.equal(segmentDump(dump).monsters.length, 1);
 });
+
+test("Auto finds ALL-CAPS statblocks printed inside room text, and the room text above still reaches the other recognizers", async () => {
+  const { segmentDump } = await import("../scripts/importer/dump-segmenter.mjs");
+  const dump = [
+    "Lantern of the Drowned",
+    "Benefit. Sheds light under water.",
+    "MIRE GRUB",
+    "A pale grub the size of a hound.",
+    "AC 12, HP 9, ATK 1 bite +2 (1d6), MV near, S +1, D +0,",
+    "C +2, I -3, W +0, Ch -3, AL N, LV 2",
+    "Slick. Can't be grabbed.",
+    "The far door is swollen shut.",
+    "BOG",
+    "WARDEN",
+    "A drowned knight in rusted mail.",
+    "Still on watch.",
+    "AC 15, HP 20, ATK 2 sword +4 (1d8), MV near, S +3, D +0,",
+    "C +2, I +0, W +1, Ch +0, AL L, LV 4",
+  ].join("\n");
+  const seg = segmentDump(dump);
+  assert.deepEqual(seg.monsters.map((m) => parseStatblock(m).draft.name), ["Mire Grub", "Bog Warden"], "a wrapped name opens one block, not two");
+  assert.deepEqual(seg.items.map((i) => i.draft.name), ["Lantern of the Drowned"], "the item above the statblock is not swallowed or skipped");
+});
+
+test("an ALL-CAPS line with no stat line under it opens nothing", async () => {
+  const { segmentDump } = await import("../scripts/importer/dump-segmenter.mjs");
+  const dump = [
+    "The hall is quiet.",
+    "THE LONG HALL",
+    "Dust lies thick here.",
+    "Nothing has walked this floor in years.",
+    "The air is cold.",
+    "A draft moves the cobwebs.",
+    "AC 12 is what the door counts as if attacked.",
+  ].join("\n");
+  assert.equal(segmentDump(dump).monsters.length, 0, "the AC line is past the name's flavor, so this is prose");
+});
+
+test("the attack clause ends at MV when the book prints no comma before it", () => {
+  const { draft, warnings } = parseStatblock([
+    "REED CUTTER",
+    "AC 10, HP 1, ATK 1 sickle +0 (1d4) MV near, S +0, D +0, C +0,",
+    "I -1, W -1, Ch -1, AL N, LV 0",
+  ].join("\n"));
+  assert.equal(draft.actions.length, 1);
+  assert.equal(draft.actions[0].name.toLowerCase(), "sickle");
+  assert.ok(!warnings.includes("ATK clause not found"));
+});
