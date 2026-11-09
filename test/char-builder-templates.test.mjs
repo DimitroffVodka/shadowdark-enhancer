@@ -25,10 +25,12 @@ test("the frame's data-actions are registered, and its tabs and footer buttons s
   const app = read("scripts/char-builder/char-builder-app.mjs");
   const frame = read("templates/char-builder/char-builder.hbs");
   for (const m of frame.matchAll(/data-action="([a-z-]+)"/g)) assert.ok(app.includes(`"${m[1]}"`), `no handler for ${m[1]}`);
-  for (const action of ["cb-goto", "cb-prev", "cb-next", "cb-finish", "cb-dismiss", "cb-random", "cb-full-random", "cb-undo", "cb-level-up", "cb-level-up-cancel"]) {
+  for (const action of ["cb-goto", "cb-prev", "cb-next", "cb-finish", "cb-dismiss", "cb-random", "cb-full-random", "cb-undo", "cb-level-up", "cb-level-up-cancel", "cb-roll-several"]) {
     assert.ok(frame.includes(`data-action="${action}"`), `missing ${action}`);
   }
   assert.match(frame, /data-cb-level/);
+  assert.match(frame, /data-cb-several/);
+  assert.match(app, /\[data-cb-several\]/);
   assert.equal([...frame.matchAll(/class="ui-btn primary"/g)].length, 1, "one primary button");
 });
 

@@ -2,6 +2,38 @@ import { ABILITY_ORDER } from "./constants.mjs";
 import { TALENT_DESCRIPTION_FIXES } from "./data.mjs";
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { stampSource } from "./item-source.mjs";
+import { queryActiveGM, refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
+
+/** A player's batch-built character, created by the active GM without opening a sheet. */
+export const CREATE_QUERY = `${MODULE_ID}.charBuilderCreate`;
+
+/** Register the GM side of CREATE_QUERY. Called on every client at init. */
+export function registerCreateQuery() {
+  registerQuery(CREATE_QUERY, async (data, { user } = {}) =>
+    refuseQuery(user, game.i18n.localize("SDE.charBuilder.several.relayLabel")) ?? createForPlayer(data, user));
+}
+
+/**
+ * GM side: create the character a player built. Type and ownership come from the
+ * authenticated sender, never the payload; the player's client gets no sheet.
+ */
+export async function createForPlayer({ characterData, characterItems } = {}, user) {
+  const failed = { ok: false, error: game.i18n.localize("SDE.charBuilder.commit.failed") };
+  if (!characterData || typeof characterData !== "object" || !Array.isArray(characterItems ?? [])) return failed;
+  const OWNER = CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER;
+  const actor = await Actor.create({ ...characterData, type: "Player", ownership: { default: 0, [user.id]: OWNER } });
+  if (!actor) return failed;
+  try {
+    if (characterItems?.length) await actor.createEmbeddedDocuments("Item", characterItems);
+  } catch (err) {
+    console.error(`${MODULE_ID} | relayed character items failed, rolling back actor`, err);
+    await actor.delete().catch(() => {});
+    return failed;
+  }
+  // As the system's relay does: a player with no character gets this one.
+  if (!user.character) await user.update({ character: actor.id }).catch(() => {});
+  return { ok: true, actorId: actor.id };
+}
 
 /** What one Crawling Kit unpacks to: [item name, quantity] (core rules pg 36). */
 export const CRAWLING_KIT = [["Backpack", 1], ["Flint and Steel", 1], ["Torch", 2], ["Rations", 3], ["Iron Spikes", 10], ["Grappling Hook", 1], ["Rope, 60'", 1]];
@@ -52,8 +84,9 @@ export async function talentObject(doc) {
  * @param {Actor|null} [actor]  Existing actor to edit in place; null = create.
  * @returns the created/updated Actor, `true` when handed off to the GM socket,
  *          or `null` when the operation failed.
+ * @param {{openSheet?: boolean}} [opts]  `openSheet: false` skips opening the new sheet (a batch).
  */
-export async function commitCharacter(state, actor = null) {
+export async function commitCharacter(state, actor = null, { openSheet = true } = {}) {
   const classSys = state.class?.item?.system;
 
   const abilities = {};
@@ -68,7 +101,7 @@ export async function commitCharacter(state, actor = null) {
       abilities,
       // The builder settles every level's HP, talent rolls and spells up front,
       // so the character is finished AT that level and starts it on 0 XP.
-      level: { value: state.level0 ? 1 : (state.level || 1), xp: 0 },
+      level: { value: state.level0 ? 0 : (state.level || 1), xp: 0 },
       alignment: state.alignment || "neutral",
       ancestry: state.ancestry?.uuid || "",
       class: state.class?.uuid || "",
@@ -100,6 +133,18 @@ export async function commitCharacter(state, actor = null) {
 
   // Player without create permission → hand off to the GM via the system socket.
   if (!(shadowdark.utils?.canCreateCharacter?.() ?? game.user.can("ACTOR_CREATE"))) {
+    // The system's relay always opens the new sheet on the player's screen, so a
+    // batch (Roll several) asks the GM through the module's own query, which does not.
+    if (!openSheet) {
+      const reply = await queryActiveGM(CREATE_QUERY, { characterData: actorData, characterItems: allItems },
+        { label: game.i18n.localize("SDE.charBuilder.several.relayLabel") });
+      if (!reply?.ok) {
+        if (reply?.error) ui.notifications.warn(reply.error);
+        return null;
+      }
+      ui.notifications.info(game.i18n.format("SDE.charBuilder.commit.created", { name: actorData.name }));
+      return true;
+    }
     // Fire-and-forget over a socket only a GM answers — if none is online the
     // character is silently lost. Guard so the UI doesn't falsely report success.
     if (!game.users.activeGM) {
@@ -130,7 +175,7 @@ export async function commitCharacter(state, actor = null) {
       return null;
     }
   }
-  created.sheet?.render(true);
+  if (openSheet) created.sheet?.render(true);
   ui.notifications.info(game.i18n.format("SDE.charBuilder.commit.created", { name: created.name }));
   return created;
 }
@@ -294,7 +339,8 @@ async function gatherItems(state, classSys) {
     const doc = await fromUuid(g.uuid).catch(() => null);
     if (!doc) continue;
     const obj = stampSource(doc.toObject(), doc.uuid);
-    if (g.qty > 1) obj.system.quantity = g.qty;
+    // A rolled level-0 row counts the stack itself, so 1 means one; a shop row of 1 keeps the item's own bundle.
+    if (g.qty > 1 || g.rowId?.startsWith("level0-")) obj.system.quantity = g.qty;
     items.push(obj);
   }
 

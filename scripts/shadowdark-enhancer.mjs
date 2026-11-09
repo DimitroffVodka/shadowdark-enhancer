@@ -138,6 +138,7 @@ import { registerWarbandCombat } from "./actors/warband-combat.mjs";
 // the roll never lands in CrawlState.
 import "./crawl-strip/initiative-manager.mjs";
 import { registerArtGalleryQuery } from "./char-builder/art-gallery.mjs";
+import { registerCreateQuery } from "./char-builder/commit.mjs";
 import { ClassAbilityUses } from "./char-builder/class-ability-uses.mjs";
 import { registerBuilderEntryPoints } from "./char-builder/entry-points.mjs";
 import { MonsterTokenArt } from "./monster-art/monster-token-art.mjs";
@@ -164,7 +165,7 @@ const STYLESHEET_REV = "a7a1da82db36";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "b9a391c0d273";
+const BUILD_REV = "677dc77f35d0";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -397,6 +398,7 @@ Hooks.once("init", () => {
   // Char-builder art gallery: registered on every client, but only ever executed on
   // the GM's, so permission-less players can browse the curated folder by proxy.
   registerArtGalleryQuery();
+  registerCreateQuery();
   LootDelivery.init();
   LootTableTag.init();
   TableRegistry.init();

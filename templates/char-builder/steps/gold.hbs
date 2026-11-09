@@ -2,6 +2,13 @@
   {{#if step.existing}}
   <div class="ui-note"><i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.gold.existingHint"}}</div>
   <div class="cbu-big-number"><span class="val">{{step.coinsText}}</span></div>
+  {{else if step.level0}}
+  <div class="ui-note info">{{localize "SDE.charBuilder.gold.level0"}}</div>
+  {{#if step.gear}}<p class="cbu-level0-gear">{{step.gear}}</p>{{/if}}
+  <div class="ui-inline cbu-stats-btns">
+    {{#if step.rollLocked}}<span class="ui-muted"><i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.lockedRoll"}}</span>
+    {{else}}<button type="button" class="ui-btn" data-action="cb-roll-gold"><i class="fa-solid fa-dice"></i> {{#if step.rolled}}{{localize "SDE.charBuilder.gold.rollGearAgain"}}{{else}}{{localize "SDE.charBuilder.gold.rollGear"}}{{/if}}</button>{{/if}}
+  </div>
   {{else}}
   {{#if step.fixed}}
   <div class="ui-note"><i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.gold.fixed"}}: <b>{{step.fixed}} {{localize "SDE.charBuilder.gold.unit"}}</b> ({{localize "SDE.charBuilder.stats.methodGm"}})</div>

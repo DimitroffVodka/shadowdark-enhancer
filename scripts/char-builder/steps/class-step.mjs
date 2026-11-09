@@ -101,8 +101,9 @@ export class ClassStep extends ListStep {
   get showPortraitInList() { return true; }
 
   async loadItems() {
+    // A level-0 build lists only the system's "Level 0" class; every other build hides it.
     const all = Array.from(await shadowdark.compendiums.classes())
-      .filter((c) => !c.name.toLowerCase().includes("level 0"))
+      .filter((c) => c.name.toLowerCase().includes("level 0") === !!this.state?.level0)
       .sort((a, b) => a.name.localeCompare(b.name));
     // A "<X> (Legacy)" class is the system's older print of <X>; once the
     // current edition is imported (the WR Bard, #157) both would offer
@@ -147,7 +148,7 @@ export class ClassStep extends ListStep {
     await this._bonusSources(item);
   }
 
-  /** Character level being built — level-0 funnel builds pick no class at all. */
+  /** Character level being built; a level-0 build reads its class's level-1 row (it has none). */
   get buildLevel() { return this.state.level0 ? 1 : (this.state.level || 1); }
 
   /** The class's `spellsknown` row for the build level: {tier: cumulative count}. */
