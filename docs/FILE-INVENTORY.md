@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-2249 tracked files · ~280,900 lines of code/markup across scripts+templates+styles+test.
+2249 tracked files · ~281,000 lines of code/markup across scripts+templates+styles+test.
 `v0.21.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -510,11 +510,11 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `char-builder-app.mjs` | 413 | `ShadowdarkCharBuilder` ApplicationV2 shell; drives the step lifecycle. |
+| `char-builder-app.mjs` | 471 | `ShadowdarkCharBuilder` ApplicationV2 shell; drives the step lifecycle. |
 | `state.mjs` | 177 | `CharBuilderState` — the in-progress character. |
 | `constants.mjs` | 160 | Shared constants; hands off to the system's `CharacterGeneratorSD`. |
 | `data.mjs` | 366 | Thin wrappers over the system's compendium loaders. |
-| `commit.mjs` | 311 | `commitCharacter` — final actor creation + `coinsAfterGear`. |
+| `commit.mjs` | 312 | `commitCharacter` — final actor creation + `coinsAfterGear`. |
 | `item-source.mjs` | 19 | `stampSource` — records the compendium link on items the builder creates. |
 | `hydrate.mjs` | 259 | Existing actor -> builder state (reads `_source` only); `describeActor` console dry run. |
 | `commit-plan.mjs` | 266 | `planCommit` — pure three-way plan (baseline, builder, live) of what Finish changes on an existing actor. |

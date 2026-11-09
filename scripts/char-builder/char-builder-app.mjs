@@ -14,6 +14,9 @@ import { HpGoldStep } from "./steps/hp-gold-step.mjs";
 import { GearStep } from "./steps/gear-step.mjs";
 import { PreviewStep } from "./steps/preview-step.mjs";
 
+/** Most level-0 characters one Roll several makes (a funnel is usually 4 per player). */
+const MAX_ROLL_SEVERAL = 20;
+
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 /**
@@ -98,6 +101,7 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
       "cb-dismiss": ShadowdarkCharBuilder._onDismiss,
       "cb-random": ShadowdarkCharBuilder._onRandom,
       "cb-full-random": ShadowdarkCharBuilder._onFullRandom,
+      "cb-roll-several": ShadowdarkCharBuilder._onRollSeveral,
       "cb-roll-stats": ShadowdarkCharBuilder._onStepAction,
       "cb-reroll-stats": ShadowdarkCharBuilder._onStepAction,
       "cb-reset-stats": ShadowdarkCharBuilder._onStepAction,
@@ -180,6 +184,8 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
         // An existing character is edited, never re-rolled.
         supportsRandom: !this.builderState.existing && (step.supportsRandom?.() ?? false),
         showFullRandom: this.stepIndex === 0 && !this.builderState.existing,
+        // Level 0 only, and never onto a sheet the builder was opened from.
+        rollSeveral: this.builderState.level0 && !this.builderState.existing && !this.actor ? { max: MAX_ROLL_SEVERAL } : null,
         allComplete: this.steps.every((s) => s.isComplete()),
         existing: !!this.builderState.existing,
         finishing: this._finishing,
@@ -260,11 +266,64 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
 
   static async _onFullRandom() {
     if (this.builderState.existing) return;
+    await this._randomizeAll();
+    await this.render();
+  }
+
+  async _randomizeAll() {
     for (const step of this.steps) {
-       
       if (step.supportsRandom?.()) await step.randomize?.();
     }
+  }
+
+  /** The steps a new build must settle before it is created. */
+  _missingRequired() {
+    return this.steps.filter((s) => ["stats", "ancestry", "class", "hp"].includes(s.id) && !s.isComplete());
+  }
+
+  /**
+   * Level 0: roll the footer's count of random level-0 characters and create each,
+   * as Full Random + Create would. The build on screen is put back afterwards.
+   */
+  static async _onRollSeveral() {
+    const st = this.builderState;
+    if (!st.level0 || st.existing || this.actor || this._finishing) return;
+    const count = Math.clamp(Math.floor(Number(this.element.querySelector("[data-cb-several]")?.value) || 0), 1, MAX_ROLL_SEVERAL);
+    const ok = await foundry.applications.api.DialogV2.confirm({
+      classes: ["sde-ui", "sde-dialog"],
+      window: { title: game.i18n.localize("SDE.charBuilder.commit.title"), icon: "fa-solid fa-users" },
+      content: `<p>${game.i18n.format("SDE.charBuilder.several.confirm", { count })}</p>`,
+    });
+    if (!ok) return;
+    const keep = { state: st, steps: this.steps };
+    this._finishing = true;
     await this.render();
+    let made = 0;
+    try {
+      for (let i = 0; i < count; i++) {
+        this.builderState = new CharBuilderState({ level0: true, statMethod: st.stats.method });
+        this.steps = this._makeSteps();
+        await this._randomizeAll();
+        // A GM stat method a random roll cannot settle (point buy) stops the batch.
+        const missing = this._missingRequired();
+        if (missing.length) {
+          ui.notifications.warn(game.i18n.format("SDE.charBuilder.commit.incomplete", {
+            steps: missing.map((s) => game.i18n.localize(s.label)).join(", "),
+          }));
+          break;
+        }
+        if (!await commitCharacter(this.builderState, null, { openSheet: false })) break;
+        made++;
+      }
+    } catch (e) {
+      console.error("shadowdark-enhancer | char-builder roll several failed:", e);
+    } finally {
+      this.builderState = keep.state;
+      this.steps = keep.steps;
+      this._finishing = false;
+    }
+    if (made < count) ui.notifications.error(game.i18n.format("SDE.charBuilder.several.stopped", { made, count }));
+    if (this.rendered) await this.render();
   }
 
   /** Delegate a step-scoped action to the active step manager. */
@@ -321,8 +380,7 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
     }
     // Require the essentials before committing.
     // The gate is for new builds: an existing character already has all of these.
-    const requiredIds = ["stats", "ancestry", "class", "hp"];
-    const missing = this.builderState.existing ? [] : this.steps.filter((s) => requiredIds.includes(s.id) && !s.isComplete());
+    const missing = this._missingRequired();
     if (missing.length) {
       ui.notifications.warn(game.i18n.format("SDE.charBuilder.commit.incomplete", {
         steps: missing.map((s) => game.i18n.localize(s.label)).join(", "),

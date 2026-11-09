@@ -52,8 +52,9 @@ export async function talentObject(doc) {
  * @param {Actor|null} [actor]  Existing actor to edit in place; null = create.
  * @returns the created/updated Actor, `true` when handed off to the GM socket,
  *          or `null` when the operation failed.
+ * @param {{openSheet?: boolean}} [opts]  `openSheet: false` skips opening the new sheet (a batch).
  */
-export async function commitCharacter(state, actor = null) {
+export async function commitCharacter(state, actor = null, { openSheet = true } = {}) {
   const classSys = state.class?.item?.system;
 
   const abilities = {};
@@ -130,7 +131,7 @@ export async function commitCharacter(state, actor = null) {
       return null;
     }
   }
-  created.sheet?.render(true);
+  if (openSheet) created.sheet?.render(true);
   ui.notifications.info(game.i18n.format("SDE.charBuilder.commit.created", { name: created.name }));
   return created;
 }

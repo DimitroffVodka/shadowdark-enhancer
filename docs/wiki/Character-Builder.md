@@ -15,6 +15,12 @@ tab's **Roll starting gear** draws the system's level-0 gear table; the rolled
 items cost nothing. Switching between level 0 and 1 to 10 clears the class, hit
 points, gold and gear; abilities, ancestry and origins stay.
 
+For a funnel, set Level to 0, put a number in the box beside **Roll several**
+(4 by default, up to 20) and press it: that many random level-0 characters are
+rolled and created at once, each as **Full Random Character** would make it.
+Their sheets are not opened; they appear in the Actors directory. The build on
+screen is left as it was.
+
 ![The Character Builder](images/char-builder.png)
 
 ---
@@ -144,7 +150,7 @@ already made are kept; the new ones are simply listed as still outstanding, and
 **Create Character** stays blocked until they are made. Nothing carries a stale
 level-5 value into a level-3 character.
 
-A level-0 funnel build has no level picker.
+Level 0 is in the same picker; it is described at the top of this page.
 
 ---
 
