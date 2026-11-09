@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.22.0] — 2026-11-09
+
 ### Added
 
 - **Level-0 characters in the Character Builder.** The footer's Level picker now starts at 0. A level-0 character gets the system's Level 0 class, hit points from CON (minimum 1), no gold, and starting gear rolled on the system's level-0 gear table at no cost, the same character the system's own generator makes. **Roll several** beside it creates a batch of random level-0 characters at once (4 by default) for a funnel. See [Character Builder](docs/wiki/Character-Builder.md).
