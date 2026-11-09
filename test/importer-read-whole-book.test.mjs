@@ -5,7 +5,7 @@ import { test, before } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-let ImporterHubApp, readWholeBook;
+let ImporterHubApp, readWholeBook, bookNameFromFile, pickThirdPartyBook;
 const toasts = [];
 before(async () => {
   globalThis.foundry = {
@@ -26,7 +26,7 @@ before(async () => {
   globalThis.ui = { notifications: { info: say("info"), warn: say("warn"), error: say("error") } };
   globalThis.CONFIG = {};
   ({ ImporterHubApp } = await import("../scripts/importer/importer-hub-app.mjs"));
-  ({ readWholeBook } = await import("../scripts/importer/importer-hub-maintenance.mjs"));
+  ({ readWholeBook, bookNameFromFile, pickThirdPartyBook } = await import("../scripts/importer/importer-hub-maintenance.mjs"));
 });
 
 const PAGES = 23;
@@ -168,4 +168,80 @@ test("only a book without a recipe is read on link; a known book reopens the lib
   const src = readFileSync(new URL("../scripts/importer/importer-hub-maintenance.mjs", import.meta.url), "utf8");
   assert.match(src, /isCustomSource\(src\) \? readWholeBook\(app, path, label \|\| sourceLabel\(src\)\) : manageSourcePdfs\(app\)/);
   assert.equal(src.match(/return afterLink\(path\)/g)?.length, 2, "both Upload and keep and Link a file on the server");
+});
+
+// ── The one-step entry: "Import a third-party book" ─────────────────────────────
+
+test("a book is named after its file: no extension, version, download id or underscores", () => {
+  for (const [file, name] of [
+    ["The Marsh Road_1.2.pdf", "The Marsh Road"],
+    ["assets/The%20Marsh%20Road_1.2.pdf", "The Marsh Road"],
+    ["Keep of the Reed King V1-2.pdf", "Keep of the Reed King"],
+    ["Reed King v4-3.PDF", "Reed King"],
+    ["The Great Eel Hunt v1.1b.pdf", "The Great Eel Hunt"],
+    ["123456789-Crypts-of-the-Fen-V3.pdf", "Crypts of the Fen"],
+    ["123456789-Against-the-Reed-Cult-1-1.pdf", "Against the Reed Cult"],
+    ["Marsh Timer Issue 2.pdf", "Marsh Timer Issue 2"],
+    ["Fen-Born Heroes.pdf", "Fen-Born Heroes"],
+    ["TheLastReed_1.3.pdf", "TheLastReed"],
+  ]) assert.equal(bookNameFromFile(file), name, file);
+});
+
+/** Foundry as the dialog and the upload see it: `answer` is what the GM did in the window; `upload` what the server says. */
+const withFoundry = async (answer, upload, run) => {
+  const saved = { game: globalThis.game, foundry: globalThis.foundry, FilePicker: globalThis.FilePicker };
+  const pages = [];
+  const uploads = [];
+  const journal = { pages, getFlag: (_m, k) => k === "sourcePdfLibrary", createEmbeddedDocuments: async (_t, data) => { pages.push(...data); return data; } };
+  globalThis.game = { ...saved.game, user: { isGM: true }, journal: { find: (fn) => (fn(journal) ? journal : null), getName: () => null } };
+  globalThis.foundry = { ...saved.foundry, applications: { ...saved.foundry.applications, api: { ...saved.foundry.applications.api, DialogV2: { wait: async () => answer } } } };
+  globalThis.FilePicker = { createDirectory: async () => {}, upload: async (_s, dir, file) => { uploads.push(file.name); return upload(dir, file); } };
+  try { return await run({ pages, uploads }); } finally { Object.assign(globalThis, saved); }
+};
+const pdfFile = (name) => new File(["x"], name, { type: "application/pdf" });
+
+test("choosing a PDF links it under the file's name, or the name the GM typed, with nothing else to fill in", async () => {
+  await withFoundry({ file: pdfFile("The Marsh Road_1.2.pdf"), label: "" }, (dir, file) => ({ path: `${dir}/${file.name}` }), async ({ pages, uploads }) => {
+    const book = await pickThirdPartyBook();
+    assert.deepEqual(book, { path: "assets/The Marsh Road_1.2.pdf", label: "The Marsh Road" });
+    assert.deepEqual(uploads, ["The Marsh Road_1.2.pdf"]);
+    assert.equal(pages[0].name, "The Marsh Road");
+    assert.equal(pages[0].flags["shadowdark-enhancer"].sourceKey, "custom:the-marsh-road");
+  });
+  await withFoundry({ file: pdfFile("scan0042.pdf"), label: "Fen Notes" }, (dir, file) => ({ path: `${dir}/${file.name}` }), async () => {
+    assert.equal((await pickThirdPartyBook()).label, "Fen Notes");
+  });
+  await withFoundry("cancel", () => null, async ({ uploads }) => {
+    assert.equal(await pickThirdPartyBook(), null);
+    assert.deepEqual(uploads, []);
+  });
+});
+
+test("a server that refuses the upload does not stop the import: the book is read from this computer", async () => {
+  toasts.length = 0;
+  await withFoundry({ file: pdfFile("The Marsh Road_1.2.pdf"), label: "" }, () => undefined, async ({ pages }) => {
+    const warn = console.warn; console.warn = () => {};
+    const book = await pickThirdPartyBook().finally(() => { console.warn = warn; });
+    assert.deepEqual(book, { path: "session-pdf:custom:the-marsh-road", label: "The Marsh Road" });
+    assert.equal(pages.length, 0, "no link to a file that was never stored");
+    assert.equal(toasts.at(-1).message, "SDE.importer.thirdParty.notKept");
+  });
+});
+
+test("the entry is on the guide's first page and on the hub's Paste tab, one button each", async () => {
+  const { WizardController, ACTIONS } = await import("../scripts/importer/wizard/wizard-controller.mjs");
+  const opened = [];
+  const ctl = new WizardController({ t: (k) => k, openThirdParty: () => opened.push("book") }, () => {});
+  assert.ok(ACTIONS.includes("thirdParty"));
+  await ctl.dispatch("thirdParty");
+  ctl.state.page = "books";
+  await ctl.dispatch("thirdParty");
+  assert.deepEqual(opened, ["book"], "only from the first page, where its button is");
+
+  const read = (p) => readFileSync(new URL(p, import.meta.url), "utf8");
+  assert.equal(read("../templates/importer-wizard.hbs").match(/data-action="thirdParty"/g)?.length, 1);
+  assert.equal(read("../templates/importer-hub.hbs").match(/data-action="hubThirdPartyBook"/g)?.length, 1);
+  assert.equal(typeof ImporterHubApp.DEFAULT_OPTIONS.actions.hubThirdPartyBook, "function");
+  assert.equal(typeof ImporterHubApp.prototype._onThirdPartyBook, "function");
+  assert.match(read("../scripts/importer/importer-hub-maintenance.mjs"), /return readWholeBook\(app, book\.path, book\.label\);/);
 });

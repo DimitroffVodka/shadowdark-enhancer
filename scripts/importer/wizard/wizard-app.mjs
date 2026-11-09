@@ -184,6 +184,17 @@ export class ImportWizardApp extends HandlebarsApplicationMixin(ApplicationV2) {
       openMaps: async () => { if (!(await app._confirmLeave())) return; await app._leave(); (await import("../world-maps-app.mjs")).WorldMapsApp.open(); },
       terrainNeed: ({ id, sceneId }) => terrainToName(id, sceneId),
       openAdvanced: async () => { if (!(await app._terrainLeaveOk())) return; await app._leave({ keepBooks: true }); (await import("../importer-hub-app.mjs")).ImporterHubApp.open(); },
+      // A book the guide has no recipe for: choose it here, then the advanced importer reads all of it and shows what it found.
+      openThirdParty: async () => {
+        const { pickThirdPartyBook, readWholeBook } = await import("../importer-hub-maintenance.mjs");
+        if (!(await app._confirmLeave())) return;
+        const book = await pickThirdPartyBook();
+        if (!book) return;
+        await app._leave();
+        const hub = (await import("../importer-hub-app.mjs")).ImporterHubApp.open();
+        await hub.render(true);   // the parse reads the hub's window
+        return readWholeBook(hub, book.path, book.label);
+      },
       // A map the wizard was unsure of, or cannot do alone: the full Hex map from image flow, with its grid window.
       openHex: async (files, id) => {
         const { hexMapFromFile } = await import("../../hex-map/hex-map-flow.mjs");

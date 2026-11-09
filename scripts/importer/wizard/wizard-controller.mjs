@@ -55,7 +55,7 @@ const HEX_STATUS = {
 };
 
 /** Names a click may carry in data-action; wizard-app.mjs maps each to dispatch(). */
-export const ACTIONS = ["next", "back", "cancel", "choose", "remove", "setKeep", "setChoice", "toggleWorldMap", "toggleGroup", "fix", "openHex", "openLegend", "legendAnswer", "legendPick", "applyArt", "advanced", "openMaps", "reviewAnswer", "openBrush"];
+export const ACTIONS = ["next", "back", "cancel", "choose", "remove", "setKeep", "setChoice", "toggleWorldMap", "toggleGroup", "fix", "openHex", "openLegend", "legendAnswer", "legendPick", "applyArt", "advanced", "openMaps", "reviewAnswer", "openBrush", "thirdParty"];
 
 export class WizardController {
   /** @param {object} env  see the file header  @param {() => void} onChange  called after every change worth redrawing */
@@ -99,6 +99,7 @@ export class WizardController {
       // Not while the import runs: it would close this window under the run and free the books it is reading.
       case "advanced": return this.state.page === "import" ? undefined : this.env.openAdvanced?.();
       case "openMaps": return this.state.page === "welcome" ? this.env.openMaps?.() : undefined;
+      case "thirdParty": return this.state.page === "welcome" ? this.env.openThirdParty?.() : undefined;
       default: return undefined;
     }
   }
