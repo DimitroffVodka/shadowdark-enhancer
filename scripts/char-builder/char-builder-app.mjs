@@ -1,6 +1,6 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { invalidateConfiguredTables } from "./data.mjs";
-import { CharBuilderState, applyLevelChange } from "./state.mjs";
+import { CharBuilderState, applyLevelChange, setLevelZero } from "./state.mjs";
 import { DEFAULT_STAT_METHOD, MAX_CHAR_LEVEL } from "./constants.mjs";
 import { commitCharacter } from "./commit.mjs";
 import { hasBeforeImage } from "./before-image.mjs";
@@ -190,12 +190,12 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
           ? { to: this.builderState.existing.baseline.level + 1 } : null,
         levelUpActive: this.builderState.existing && this.builderState.levelUp
           ? { from: this.builderState.levelUp.from, to: this.builderState.levelUp.to } : null,
-        // Target level picker — a level-0 funnel build has no level to choose. An existing
-        // character levels up with the button instead: a picker would drop the hydrated HP and spells.
-        level: (this.builderState.level0 || this.builderState.existing) ? null : {
-          value: this.builderState.level,
-          options: Array.from({ length: MAX_CHAR_LEVEL }, (_, i) => ({
-            value: i + 1, selected: i + 1 === this.builderState.level,
+        // Target level picker, 0 for a level-0 character. An existing character levels
+        // up with the button instead: a picker would drop the hydrated HP and spells.
+        level: this.builderState.existing ? null : {
+          value: this.builderState.level0 ? 0 : this.builderState.level,
+          options: Array.from({ length: MAX_CHAR_LEVEL + 1 }, (_, i) => ({
+            value: i, selected: this.builderState.level0 ? i === 0 : i === this.builderState.level,
           })),
         },
       },
@@ -217,8 +217,15 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
    */
   async _setLevel(level) {
     const st = this.builderState;
-    if (st.level0 || st.existing) return;
-    if (!Number.isInteger(level) || level < 1 || level > MAX_CHAR_LEVEL || level === st.level) return;
+    if (st.existing || !Number.isInteger(level) || level < 0 || level > MAX_CHAR_LEVEL) return;
+    // Into or out of level 0: the class list changes, so the steps start over on the kept state.
+    if ((level === 0) !== st.level0) {
+      setLevelZero(st, level === 0);
+      if (level > 1) applyLevelChange(st, level, null);
+      this.steps = this._makeSteps();
+      return this.render();
+    }
+    if (st.level0 || level === st.level) return;
     const known = st.class?.item?.system?.spellcasting?.spellsknown?.[level] ?? null;
     applyLevelChange(st, level, known);
     for (const step of this.steps) await step.onLevelChange();
@@ -336,7 +343,7 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
         + (replacingItems ? `<p class="warn">${esc(game.i18n.format("SDE.charBuilder.commit.replaceItems", { count: actor.items.size }))}</p>` : "")
       : "";
     const summary = `<div class="sde-cb-confirm"><p class="name">${esc(st.name || actor?.name || L("SDE.charBuilder.defaultName"))}</p>${notice}<ul>`
-      + (st.level0 ? "" : row("SDE.charBuilder.level", st.level))
+      + row("SDE.charBuilder.level", st.level0 ? 0 : st.level)
       + row("SDE.charBuilder.step.ancestry", st.ancestry?.name || "—")
       + row("SDE.charBuilder.step.class", st.class?.name || "—")
       + row("SDE.charBuilder.step.background", st.background?.name || "—")

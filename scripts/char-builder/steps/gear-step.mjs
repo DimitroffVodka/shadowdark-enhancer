@@ -17,6 +17,15 @@ const CATEGORIES = ["Armor", "Weapon", "Basic"];
  * Torches share it. A new row has no rowId and is keyed by its uuid, as ever.
  */
 export const rowKey = (g) => g.rowId ?? g.uuid;
+
+/** Gear slots `qty` of `item` take, after its free carry and per-slot bundling. */
+export function slotsFor(item, qty) {
+  const s = item.system?.slots || {};
+  const per = s.per_slot || 1;
+  const free = s.free_carry || 0;
+  const used = s.slots_used || 0;
+  return Math.max(0, Math.ceil(Math.max(0, qty - free) / per)) * used;
+}
 export const slug = (name) => String(name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 
 /** The fixed shop stock (user-approved starting-gear list), as name slugs of
@@ -120,13 +129,7 @@ export class GearStep extends ListStep {
     return (c.gp || 0) * 100 + (c.sp || 0) * 10 + (c.cp || 0);
   }
 
-  _slots(item, qty) {
-    const s = item.system.slots || {};
-    const per = s.per_slot || 1;
-    const free = s.free_carry || 0;
-    const used = s.slots_used || 0;
-    return Math.max(0, Math.ceil(Math.max(0, qty - free) / per)) * used;
-  }
+  _slots(item, qty) { return slotsFor(item, qty); }
 
   _fmtCoins(cp) {
     const neg = cp < 0;
@@ -253,7 +256,8 @@ export class GearStep extends ListStep {
   addToCart(uuid) {
     const item = (this._items || []).find((i) => i.uuid === uuid);
     if (!item) return;
-    const existing = this.state.gear.find((g) => !g.owned && g.uuid === uuid);
+    // Never merge into an owned or a free level-0 row: both carry a rowId.
+    const existing = this.state.gear.find((g) => !g.owned && !g.rowId && g.uuid === uuid);
     if (existing) {
       existing.qty += 1;
       existing.slots = this._slots(item, existing.qty);

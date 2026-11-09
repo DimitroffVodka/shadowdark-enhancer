@@ -1,12 +1,18 @@
 import { BaseStep } from "./base-step.mjs";
 import { MODULE_ID } from "../../shared/module-id.mjs";
 import { builderDiceAnimation } from "../constants.mjs";
+import { slotsFor } from "./gear-step.mjs";
+
+/** The system generator's level-0 starting gear table, and the arrows its shortbow result adds. */
+const LEVEL_ZERO_GEAR_TABLE = "Compendium.shadowdark.rollable-tables.RollTable.WKVfMaGkoXe3DGub";
+const ARROWS = "Compendium.shadowdark.gear.Item.XXwA9ZWajYEDmcea";
 
 /**
  * Step — Gold. Roll 2d6×5 gp, or use the GM's fixed starting-gold setting
  * (`charBuilderStartingGold` > 0). A GM-only manual field allows any amount.
  * Rolls post a chat card; with `charBuilderLockGoldRolls` on, a player's first
- * roll is their only one.
+ * roll is their only one. A level-0 character has no gold: the same button rolls
+ * its starting gear on the system's level-0 gear table instead, free of charge.
  */
 export class GoldStep extends BaseStep {
   get id() { return "gold"; }
@@ -27,12 +33,16 @@ export class GoldStep extends BaseStep {
   }
 
   async prepareContext() {
-    const fixed = this.fixed;
     if (this.readOnly) {
       const c = this.state.coins;
       const coinsText = [c.gp && `${c.gp} gp`, c.sp && `${c.sp} sp`, c.cp && `${c.cp} cp`].filter(Boolean).join(" ") || "0 gp";
       return { existing: true, coinsText, complete: true };
     }
+    if (this.state.level0) {
+      const gear = this.state.gear.filter((g) => g.rowId?.startsWith("level0-")).map((g) => g.qty > 1 ? `${g.name} (${g.qty})` : g.name);
+      return { level0: true, rollLocked: this.rollLocked, rolled: this.state.goldRolled, gear: gear.join(", "), complete: this.isComplete() };
+    }
+    const fixed = this.fixed;
     // A GM-fixed amount is applied automatically the first time this step renders.
     if (fixed > 0 && !this.state.goldRolled) {
       this.state.coins.gp = fixed;
@@ -48,7 +58,7 @@ export class GoldStep extends BaseStep {
     };
   }
 
-  supportsRandom() { return !this.readOnly && this.fixed <= 0 && !this.rollLocked; }
+  supportsRandom() { return !this.readOnly && (this.state.level0 || this.fixed <= 0) && !this.rollLocked; }
   async randomize() { if (!this.rollLocked) await this._roll(); }
 
   async handleAction(action) {
@@ -63,6 +73,7 @@ export class GoldStep extends BaseStep {
 
   async _roll() {
     if (this.readOnly) return;
+    if (this.state.level0) return this._rollLevel0Gear();
     if (this.fixed > 0) {
       this.state.coins.gp = this.fixed;
       this.state.goldRolled = true;
@@ -85,6 +96,29 @@ export class GoldStep extends BaseStep {
     } catch (e) {
       console.error("shadowdark-enhancer | char-builder gold card failed:", e);
     }
+  }
+
+  /** Draw the level-0 gear table (the system posts the result to chat) and put the items in the cart at no cost. */
+  async _rollLevel0Gear() {
+    const table = await fromUuid(LEVEL_ZERO_GEAR_TABLE).catch(() => null);
+    if (!table) { ui.notifications.warn(game.i18n.localize("SDE.charBuilder.gold.noGearTable")); return; }
+    const draw = await table.draw({ displayChat: true });
+    const rows = (await shadowdark.utils.getItemsFromRollResults(draw.results)).filter(Boolean).map((doc) => ({ doc, qty: 1 }));
+    // As the system's generator does: its shortbow result comes with five arrows.
+    if (rows.some((r) => r.doc.name === "Shortbow and 5 arrows")) {
+      const arrows = await fromUuid(ARROWS).catch(() => null);
+      if (arrows) rows.push({ doc: arrows, qty: 5 });
+    }
+    // A reroll replaces the rolled rows; anything bought in the shop stays.
+    this.state.gear = this.state.gear.filter((g) => !g.rowId?.startsWith("level0-"));
+    rows.forEach(({ doc: d, qty }, i) => {
+      this.state.gear.push({
+        rowId: `level0-${i}`, uuid: d.uuid, name: d.name, img: d.img, qty, type: d.type,
+        magic: !!d.system?.magicItem, costCp: 0, slots: slotsFor(d, qty),
+      });
+    });
+    this.state.coins = { gp: 0, sp: 0, cp: 0 };
+    this.state.goldRolled = true;
   }
 
   onRender(root) {

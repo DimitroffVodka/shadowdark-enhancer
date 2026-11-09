@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-2249 tracked files · ~280,800 lines of code/markup across scripts+templates+styles+test.
+2249 tracked files · ~280,900 lines of code/markup across scripts+templates+styles+test.
 `v0.21.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -510,8 +510,8 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `char-builder-app.mjs` | 406 | `ShadowdarkCharBuilder` ApplicationV2 shell; drives the step lifecycle. |
-| `state.mjs` | 158 | `CharBuilderState` — the in-progress character. |
+| `char-builder-app.mjs` | 413 | `ShadowdarkCharBuilder` ApplicationV2 shell; drives the step lifecycle. |
+| `state.mjs` | 177 | `CharBuilderState` — the in-progress character. |
 | `constants.mjs` | 160 | Shared constants; hands off to the system's `CharacterGeneratorSD`. |
 | `data.mjs` | 366 | Thin wrappers over the system's compendium loaders. |
 | `commit.mjs` | 311 | `commitCharacter` — final actor creation + `coinsAfterGear`. |
@@ -532,12 +532,12 @@
 | `steps/alignment-step.mjs` | 69 | Step — Alignment. Three choice cards (Lawful / Neutral / Chaotic). |
 | `steps/ancestry-step.mjs` | 256 | Step — Ancestry. List/detail pick contributing ancestry talents and languages. |
 | `steps/background-step.mjs` | 40 | Step — Background. A simple list/detail pick. |
-| `steps/class-step.mjs` | 1006 | Step — Class. List/detail pick; parses the class writeup, talent table and spellcasting. |
+| `steps/class-step.mjs` | 1007 | Step — Class. List/detail pick; parses the class writeup, talent table and spellcasting. |
 | `steps/deity-step.mjs` | 77 | Step — Deity. Optional list/detail pick showing the deity's detail. |
-| `steps/gear-step.mjs` | 345 | Step — Gear. A shop: browse purchasable equipment and buy against starting gold. |
-| `steps/gold-step.mjs` | 98 | Step — Gold. Roll 2d6×5 gp, or use the GM's fixed starting-gold setting. |
+| `steps/gear-step.mjs` | 349 | Step — Gear. A shop: browse purchasable equipment and buy against starting gold. |
+| `steps/gold-step.mjs` | 132 | Step — Gold. Roll 2d6×5 gp, or use the GM's fixed starting-gold setting. |
 | `steps/hp-gold-step.mjs` | 52 | Step — Hit Points & Gold on one tab (both are single dice rolls). |
-| `steps/hp-step.mjs` | 173 | Step — Hit Points. Level-1 HP = class hit die + CON modifier (minimum 1). |
+| `steps/hp-step.mjs` | 186 | Step — Hit Points. Level-1 HP = class hit die + CON modifier (minimum 1). |
 | `steps/languages-step.mjs` | 147 | Step — Languages (runs after Class, so ancestry and class both contribute). |
 | `steps/origins-step.mjs` | 72 | Step — Origins: Background + Alignment + Deity on one tab. |
 | `steps/preview-step.mjs` | 372 | Step — Preview. Final character-sheet preview before creation. |

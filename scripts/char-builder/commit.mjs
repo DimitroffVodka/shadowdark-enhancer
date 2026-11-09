@@ -68,7 +68,7 @@ export async function commitCharacter(state, actor = null) {
       abilities,
       // The builder settles every level's HP, talent rolls and spells up front,
       // so the character is finished AT that level and starts it on 0 XP.
-      level: { value: state.level0 ? 1 : (state.level || 1), xp: 0 },
+      level: { value: state.level0 ? 0 : (state.level || 1), xp: 0 },
       alignment: state.alignment || "neutral",
       ancestry: state.ancestry?.uuid || "",
       class: state.class?.uuid || "",

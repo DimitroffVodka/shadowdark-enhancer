@@ -42,7 +42,7 @@ export class HpStep extends BaseStep {
     return m ? Math.max(1, Number(m[1]) || 1) * Number(m[2]) : 0;
   }
   get conMod() { return abilityMod(this.state.stats.values.con) ?? 0; }
-  /** Hit dice to roll = character level (a level-0 funnel build rolls one). */
+  /** Hit dice to roll = character level (a level-0 build rolls none: `_settleLevel0`). */
   get level() { return this.levelUp || this.state.level0 ? 1 : (this.state.level || 1); }
 
   /** HP modifiers granted by the chosen ancestry talents, read structurally
@@ -78,6 +78,10 @@ export class HpStep extends BaseStep {
     if (this.readOnly) return { existing: true, hp: this.state.hp.max || null, complete: true };
     const cm = this.conMod;
     const mods = await this._hpModifiers();
+    if (this.state.level0) {
+      await this._settleLevel0();
+      return { level0: true, conModLabel: cm >= 0 ? `+${cm}` : `${cm}`, hpBonus: mods.bonus || null, hp: this.state.hp.max, complete: true };
+    }
     const lu = this.levelUp;
     return {
       hasClass: !!this.hitDie,
@@ -99,11 +103,20 @@ export class HpStep extends BaseStep {
     };
   }
 
-  supportsRandom() { return !this.readOnly && !!this.hitDie && !this.rollLocked; }
-  async randomize() { if (!this.rollLocked) await this._roll(); }
+  supportsRandom() { return !this.readOnly && (this.state.level0 || (!!this.hitDie && !this.rollLocked)); }
+  async randomize() {
+    if (this.state.level0) return this._settleLevel0();
+    if (!this.rollLocked) await this._roll();
+  }
+
+  /** Level 0 rolls nothing: the CON modifier, minimum 1 (the system's generator), plus talent HP. */
+  async _settleLevel0() {
+    const { bonus } = await this._hpModifiers();
+    this.state.hp = { max: Math.max(1, this.conMod) + bonus, rolled: null, bonus };
+  }
 
   async handleAction(action) {
-    if (this.readOnly) return false;
+    if (this.readOnly || this.state.level0) return false;
     switch (action) {
       case "cb-roll-hp": if (this.rollLocked) return false; await this._roll(); return true;
       case "cb-max-hp": if (!this.maxSetting || this.rollLocked) return false; await this._max(); return true;
