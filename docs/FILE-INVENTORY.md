@@ -681,7 +681,7 @@ The camp picture: a full-screen picture every client shows behind Foundry's UI, 
 | `town-core.mjs` | 218 | A town's landing page flag: merchants as NPC references, restock revision, the games table, the table switch, the editor's form folded in (pure). |
 | `town-view.mjs` | 174 | What the Town window and the shopfront show: ware cards, sell rows, tiles, the buyer (pure). |
 | `town-live.mjs` | 114 | What the town windows share on the Foundry side: the buyer, redrawing on change, the serialized page writer `updateLanding`, the table switch, the tiles' windows. |
-| `town-app.mjs` | 348 | The landing page menu over the scene's picture: merchants, tiles, the GM's pencil, sales log, restock and switch; clear of the sidebar and the Crawl Strip. |
+| `town-app.mjs` | 351 | The landing page menu over the scene's picture: merchants, tiles, the GM's pencil, sales log, restock and switch; clear of the sidebar and the Crawl Strip. |
 | `town-shop-app.mjs` | 260 | One merchant's shopfront: buy and sell as a chosen character with no GM, categories, search. |
 | `town-editor-app.mjs` | 186 | The GM's landing page editor window: town text, tiles, games table, merchants. |
 | `town-entry-points.mjs` | 127 | The Landing page toolbar button and Alt+T: one switch for the table, the page made on any scene, followed by every client. |

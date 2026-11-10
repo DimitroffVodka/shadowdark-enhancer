@@ -120,6 +120,9 @@ export class TownApp extends HandlebarsApplicationMixin(ApplicationV2) {
     });
     const labels = Object.fromEntries(tiles.map((p) => [p.id, { name: p.label, sub: p.tag || p.sub, disabled: p.disabled, hint: p.hint }]));
     labels.market = { name: t("SDE.town.table.market"), sub: market?.name ?? "", disabled: !market?.open, hint: t("SDE.town.shut") };
+    // A map the GM picked is named on the Map, not described as the party's explored lands.
+    const picked = page.map && game.scenes.get(page.map);
+    if (picked && labels.map) labels.map.sub = picked.name;
     // Player characters only: a mule or a hidden NPC on the roster takes no seat and shows no card.
     const party = partyAtTable(Party.list(), { selected: Party.selected(), character: game.user.character, membersOf: (p) => Party.members(p) });
     let members = [];

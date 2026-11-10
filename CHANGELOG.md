@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- **Pick the landing table's map.** The landing page editor has a Map field: the party's overland map, as before, or any scene in the world. The table's framed map opens that scene, and on Save the editor lays a small copy of that map's picture on the framed map, so the picture on the table is the map players will open. See [Town landing page](docs/wiki/Town-Landing-Page.md#the-map).
+
 ## [0.22.0] — 2026-11-09
 
 ### Added
