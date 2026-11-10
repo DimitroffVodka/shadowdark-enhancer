@@ -6197,6 +6197,14 @@ body.sde-table-up #shadowdark-enhancer-strip, body.sde-table-up #shadowdark-enha
 .sde-town .lt-face { position: absolute; inset: 0; mask-size: 100% 100%; mask-repeat: no-repeat; pointer-events: none; }
 .sde-town .lt-portrait { filter: brightness(.6) saturate(.6); transition: filter .22s; }
 .sde-town .lt-portrait img { display: block; width: 100%; height: 100%; object-fit: cover; border: 0; }
+/* The picked map's picture on the framed map's paper. The paper's own mask keeps the compass on top; it sits inside the
+   map's button, over its lit cut-out and under its label, dim with the table at rest and lit with the map. */
+.sde-town .lt-map-paper { position: absolute; mask-size: 100% 100%; mask-repeat: no-repeat; pointer-events: none; }
+.sde-town .lt-map-pic { filter: sepia(.45) brightness(.55) saturate(.7); transition: filter .22s; }
+.sde-town .lt-map-pic img { display: block; width: 100%; height: 100%; object-fit: cover; border: 0; }
+.sde-town .lt-map-pic::after { content: ""; position: absolute; inset: 0; box-shadow: inset 0 0 70px 24px rgb(40 20 5 / 65%); }
+.sde-town .lt-pic[data-hot]:not([data-hot=""]) .lt-map-pic { filter: sepia(.45) brightness(.42) saturate(.6); }
+.sde-town .lt-pic[data-hot="map"] .lt-map-pic { filter: sepia(.3) brightness(1.05) saturate(.9); }
 .sde-town .lt-seat.hot .lt-frame-img, .sde-town .lt-seat:focus-visible .lt-frame-img { filter: brightness(1.12) drop-shadow(0 0 14px rgb(255 168 70 / 85%)); }
 .sde-town .lt-seat.hot .lt-portrait, .sde-town .lt-seat:focus-visible .lt-portrait { filter: none; }
 .sde-town .lt-seat:focus-visible { outline: none; }

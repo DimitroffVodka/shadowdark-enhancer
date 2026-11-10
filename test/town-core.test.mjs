@@ -41,7 +41,7 @@ test("a rolled merchant keeps its kind and settlement size; anything unknown is 
 
 test("a landing page always has every field, keeps the places in order, and drops unusable merchants", () => {
   const empty = normalizeLanding(undefined);
-  assert.deepEqual(empty, { title: "", tagline: "", blurb: "", places: DEFAULT_PLACE_IDS, merchants: [], games: { on: false, list: [], maxBet: 10, edge: 5 }, shown: true, size: null, returnTo: null, sessionTitle: "" });
+  assert.deepEqual(empty, { title: "", tagline: "", blurb: "", places: DEFAULT_PLACE_IDS, merchants: [], games: { on: false, list: [], maxBet: 10, edge: 5 }, shown: true, size: null, returnTo: null, sessionTitle: "", map: null, mapPicture: null });
   const page = normalizeLanding({ title: " Hollowmere ", places: ["party", "bogus", "quests"], merchants: [{ id: "m1", actorId: "a1" }, { id: "bad.id", actorId: "a2" }, { id: "m1", actorId: "a3" }, { id: "m2", actorId: "a1" }] });
   assert.equal(page.title, "Hollowmere");
   assert.deepEqual(page.places, ["quests", "party"]);
@@ -50,6 +50,20 @@ test("a landing page always has every field, keeps the places in order, and drop
   assert.deepEqual(DEFAULT_PLACE_IDS, ["quests", "journals", "party", "downtime"]);   // a new page is a town, not a tavern
   assert.deepEqual(normalizeLanding({ places: ["rumors", "bogus", "carouse", "quests"] }).places, ["quests", "carouse", "rumors"]);
   assert.ok(["carouse", "rumors"].every((id) => PLACE_IDS.includes(id)));         // the editor lists every allowed tile
+});
+
+test("a page keeps the map its GM picked and that map's picture; the editor's Automatic clears the pick", () => {
+  const pic = { src: "maps/reach.webp", path: "worlds/w/shadowdark-enhancer/landing-map-s1-x.webp" };
+  const page = normalizeLanding({ map: "scene2", mapPicture: pic });
+  assert.equal(page.map, "scene2");
+  assert.deepEqual(page.mapPicture, pic);
+  assert.equal(normalizeLanding({ mapPicture: { src: "a.webp" } }).mapPicture, null);   // no uploaded copy, nothing to draw
+  assert.equal(applyForm(page, { map: "scene3" }).map, "scene3");
+  assert.equal(applyForm(page, { map: "" }).map, null);                                  // Automatic
+  assert.equal(applyForm(page, { title: "x" }).map, "scene2");                           // a form without the field keeps it
+  assert.deepEqual(applyForm(page, { map: "scene3" }).mapPicture, pic);                  // the picture is the editor's Save to make
+  assert.deepEqual(mergeSave({ map: "old" }, page, {}, 1).mapPicture, pic);              // the draft's pick and picture are saved
+  assert.equal(mergeSave({ map: "old" }, page, {}, 1).map, "scene2");
 });
 
 test("the editor's save keeps a ticked Carouse or Rumors tile and drops an unticked one", () => {

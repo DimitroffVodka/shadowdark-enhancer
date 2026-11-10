@@ -22,6 +22,9 @@
           <button type="button" class="ui-btn" data-action="openScene"><i class="fa-solid fa-image"></i> {{localize "SDE.town.editor.openScene"}}</button>
         </div>
       </div>
+      <label class="ui-field"><span class="ui-label">{{localize "SDE.town.editor.mapPick"}}</span>
+        <select name="map">{{#each maps}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select></label>
+      <p class="ui-muted te-picture-note">{{localize "SDE.town.editor.mapHint"}}</p>
     </section>
 
     <section class="ui-group">

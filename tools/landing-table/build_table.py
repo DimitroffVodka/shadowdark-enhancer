@@ -14,13 +14,15 @@ Writes to tools/landing-table/out/:
     ids.png           every prop in its own flat colour, for the per-prop masks
     beauty-open.png   the same with the chest open (for its opening)
     ids-open.png      its masks
-    projection.json   where the overlay quads (tome pages, title card, dial) and the party's seats land, in pixels
+    paper.png         the framed map's paper alone, where it shows past the compass (the chosen map's picture goes there)
+    projection.json   where the overlay quads (tome pages, title card, dial, map paper) and the party's seats land, in pixels
 
 make_assets.py turns those into the module's assets; only those rendered pictures ship, never the Poly Haven files.
 """
 import json
 import math
 import os
+import sys
 
 import bpy
 from bpy_extras.object_utils import world_to_camera_view
@@ -647,6 +649,7 @@ def write_projection():
         "tomeRight": quad("TomePage1", 0.12, 0.165, 0.015),
         "title": quad("TitleCard", 0.22, 0.055, 0.002),
         "dial": quad("DialFace", 0.095, 0.095, 0.002),
+        "mapPaper": quad("MapPaper", 0.33, 0.22, 0.002),
         "chestFront": px(bpy.data.objects["treasure_chest_lock"].matrix_world @ Vector((0, 0, -0.32))),
         "frames": [quad_xz(f"Frame{i}Face", 0.059, 0.079) for i in range(len(SEAT_X))],
     }
@@ -659,11 +662,13 @@ def render(path):
     bpy.ops.render.render(write_still=True)
 
 
-def id_pass(path):
-    """Every prop in its own flat colour, everything else black, no lighting, no colour management."""
+def id_pass(path, only=None):
+    """Every prop in its own flat colour, everything else black, no lighting, no colour management. With `only`, that
+    one object white and everything else black: where it shows past what stands on it (the map's paper under the compass)."""
     saved = {o.name: list(o.data.materials) for o in scene.objects if o.type == "MESH"}
     flats = {p: flat(f"ID_{p}", (0, 0, 0), emit=c, strength=1.0) for p, c in ID_COLOURS.items()}
     black = flat("ID_none", (0, 0, 0))
+    white = flat("ID_only", (0, 0, 0), emit=(1, 1, 1), strength=1.0)
     for o in scene.objects:
         if o.type != "MESH":
             continue
@@ -673,7 +678,7 @@ def id_pass(path):
             prop = walk.get("prop")
             walk = walk.parent
         o.data.materials.clear()
-        o.data.materials.append(flats.get(prop, black))
+        o.data.materials.append((white if o.name == only else black) if only else flats.get(prop, black))
     view, look, exposure = scene.view_settings.view_transform, scene.view_settings.look, scene.view_settings.exposure
     scene.view_settings.view_transform, scene.view_settings.look, scene.view_settings.exposure = "Standard", "None", 0
     lights = [o for o in scene.objects if o.type == "LIGHT"]
@@ -694,6 +699,11 @@ def id_pass(path):
 
 
 write_projection()
+# LT_PAPER=1: only the projection and the map paper's mask, for the picture of the chosen map, without a new table.
+if os.environ.get("LT_PAPER"):
+    id_pass("paper.png", only="MapPaper")
+    print("LANDING_TABLE_DONE")
+    sys.exit(0)
 if not PREVIEW:
     bpy.ops.wm.save_as_mainfile(filepath=os.path.join(HERE, "table.blend"), compress=True)
 show_frames(False)
@@ -704,6 +714,7 @@ if PREVIEW:
 if not PREVIEW:
     render("beauty-frames.png")
     id_pass("ids.png")
+    id_pass("paper.png", only="MapPaper")
     show_frames(False)
 if not PREVIEW:
     # The chest, open: its lid up and gold heaped inside.

@@ -17,6 +17,7 @@ import {
   removeMerchant, restockMerchant, waresCount,
 } from "./town-core.mjs";
 import { today, updateLanding } from "./town-live.mjs";
+import { mapFor, mapPicture } from "./landing-map.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -48,6 +49,8 @@ export class TownEditorApp extends HandlebarsApplicationMixin(ApplicationV2) {
   draft = null;
   /** True while Generate is running, so a second click cannot make a second merchant. */
   _generating = false;
+  /** True while Save is copying the map's picture, so a second click cannot upload a second copy. */
+  _saving = false;
 
   constructor({ scene, ...options } = {}) {
     super(options);
@@ -87,6 +90,9 @@ export class TownEditorApp extends HandlebarsApplicationMixin(ApplicationV2) {
     context.kinds = KINDS.map((k) => ({ id: k.id, label: t(k.labelKey) }));
     context.sizes = SIZES.map((z) => ({ id: z.id, label: t(z.labelKey), selected: z.id === "town" }));
     context.npcs = linkableNpcs(game.actors.contents, page).map((a) => ({ id: a.id, name: a.name }));
+    context.maps = [{ id: "", name: t("SDE.town.editor.mapAuto"), selected: !page.map },
+      ...game.scenes.filter((s) => s.id !== this.scene?.id).sort((a, b) => a.name.localeCompare(b.name))
+        .map((s) => ({ id: s.id, name: s.name, selected: s.id === page.map }))];
     return context;
   }
 
@@ -153,12 +159,27 @@ export class TownEditorApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return this.render();
   }
 
-  async _onSave() {
-    // A window left open must not put back a page the GM took away, or a shelf that was restocked meanwhile.
-    const draft = this._collect();
-    await updateLanding(this.scene, (live) => mergeSave(live, draft, this.saved, today()));
-    ui.notifications.info(t("SDE.town.editor.saved"));
-    return this.close();
+  async _onSave(_event, target) {
+    if (this._saving) return;
+    this._saving = true;
+    if (target) target.disabled = true;
+    try {
+      const draft = this._collect();
+      // The table's copy of the map's picture: kept while the map's picture is the same, else made again; on failure
+      // the table shows its own drawing rather than an older map's picture.
+      try {
+        const map = await mapFor(draft);
+        draft.mapPicture = map && map.id !== this.scene.id ? await mapPicture(map, draft.mapPicture, this.scene.id) : null;
+      } catch (err) {
+        console.warn("Shadowdark Enhancer | landing page: the map's picture could not be copied", err);
+        ui.notifications.warn(t("SDE.town.editor.mapPictureFailed"));
+        draft.mapPicture = null;
+      }
+      // A window left open must not put back a page the GM took away, or a shelf that was restocked meanwhile.
+      await updateLanding(this.scene, (live) => mergeSave(live, draft, this.saved, today()));
+      ui.notifications.info(t("SDE.town.editor.saved"));
+      return this.close();
+    } finally { this._saving = false; if (target) target.disabled = false; }
   }
 
   _onCancel() { return this.close(); }

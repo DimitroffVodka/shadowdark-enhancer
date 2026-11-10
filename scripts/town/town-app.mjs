@@ -12,6 +12,7 @@
  */
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { L as t } from "../shared/i18n.mjs";
+import { fileRoute } from "../shared/file-route.mjs";
 import { shelf } from "../merchant/shop-core.mjs";
 import { Party } from "../party/party.mjs";
 import { Quests } from "../quests/quests.mjs";
@@ -26,7 +27,7 @@ import { TABLE, dialAngle, framesFor, homography, partyAtTable, propAtHit, propS
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 /** The boxes the overlays are drawn in before they are laid onto their props (picture pixels at the prop's own scale). */
-const PAGE_BOX = [300, 410], TITLE_BOX = [700, 150], DIAL_BOX = [400, 400], FACE_BOX = [120, 160];
+const PAGE_BOX = [300, 410], TITLE_BOX = [700, 150], DIAL_BOX = [400, 400], FACE_BOX = [120, 160], MAP_BOX = [660, 440];
 /** While the table is up the page is the whole screen: Foundry's edge furniture is hidden (styles: body.sde-table-up). */
 const TABLE_UP = "sde-table-up";
 
@@ -112,7 +113,7 @@ export class TownApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._openMarkets = merchants.filter((m) => m.open).map((m) => ({ id: m.id, name: m.name }));
     const active = Quests.list({ status: "active" });
     const { hasRumorsHeard } = await import("../rumors/rumors.mjs");
-    const hasMap = page.places.includes("map") ? await (await import("./landing-map.mjs")).hasMap() : false;
+    const hasMap = page.places.includes("map") ? await (await import("./landing-map.mjs")).hasMap(this.scene) : false;
     const tiles = placeTiles([...page.places, ...(page.games.on ? ["games"] : [])], {
       isGM, hasParty: Party.list().length > 0, downtimeOpen: DowntimeSession.active, activeQuests: active.length, nightOpen: !!nightParty(),
       gmOnline: !!game.users.activeGM, rumorsHeard: hasRumorsHeard(), hasMap, t,
@@ -128,12 +129,18 @@ export class TownApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const L = TABLE.layout;
     const [left, right] = tomePages(active);
     const clock = game.time.components ?? {};
+    // The map's own picture on the framed map's paper, under the compass (the paper's mask), inside the map's button so
+    // its label stays on top: without one, the table's drawing.
+    const paper = hasMap && page.mapPicture && L.mapPaper ? {
+      ...L.mapPaper, src: fileRoute(page.mapPicture.path), mask: propSrc("map-paper"), box: MAP_BOX,
+      transform: `translate(-${L.mapPaper.x}px, -${L.mapPaper.y}px) ${homography(...MAP_BOX, L.mapPaper.quad)}`,
+    } : null;
     return Object.assign(context, {
       isGM, townName: this.townName, table: TABLE,
       sizes: SIZES.map((z) => ({ id: z.id, label: t(z.labelKey), selected: z.id === (page.size ?? "town") })),
       returnName: isGM ? returnScene(this.scene)?.name ?? "" : "",
       actorName: buyer?.name ?? "", purse: buyer ? purseText(buyer.system.coins) : "",
-      props: tableProps(page, { hasMerchant: !!market, labels }),
+      props: tableProps(page, { hasMerchant: !!market, labels }).map((p) => (p.id === "map" && paper ? { ...p, paper: { ...paper, left: paper.x - p.x, top: paper.y - p.y } } : p)),
       chestOpen: L.marketOpen ? { ...L.marketOpen, src: propSrc("market-open") } : null,
       coin: { text: purseText(sumCoins(members)), x: L.chestFront[0], y: L.chestFront[1] },
       tome: page.places.includes("quests") ? [
