@@ -2,11 +2,17 @@
 
 ## [Unreleased]
 
+## [0.23.0] — 2026-11-11
+
 ### Added
 
 - **Pick the landing table's map.** The landing page editor has a Map field: the party's overland map, as before, or any scene in the world. The table's framed map opens that scene, and on Save the editor lays a small copy of that map's picture on the framed map, so the picture on the table is the map players will open. The picture is fogged for each player as the map is: only the hexes their party has explored, or on a map with token vision only what their fog of war has kept. See [Town landing page](docs/wiki/Town-Landing-Page.md#the-map).
 - **The landing table pauses the game** when it goes up for everyone, and players can open its Map only while a GM is connected, so nobody wanders a map between sessions.
 - **The landing table names the party.** The plaque above the portraits shows the party's name instead of "Party".
+
+### Changed
+
+- **Verified on Foundry 14.370 and Shadowdark 4.1.0.** Shadowdark 4.0.6 keeps working.
 
 ### Fixed
 
