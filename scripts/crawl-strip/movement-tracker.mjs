@@ -71,6 +71,7 @@ const freeCrawl = () => crawlFree(CrawlState.mode);
  * tripleNear / far / special.
  *
  *   close       → 5 ft  (Shadowdark "Close")
+ *   doubleClose → 10 ft (system 4.1.0+)
  *   near        → 30 ft (one move)
  *   doubleNear  → 60 ft
  *   tripleNear  → 90 ft
@@ -85,6 +86,7 @@ function _npcMoveToFt(moveValue) {
   switch (moveValue) {
     case "none":       return 0;
     case "close":      return 5;
+    case "doubleClose": return 10;   // system 4.1.0+
     case "near":       return 30;
     case "doubleNear": return 60;
     case "tripleNear": return 90;

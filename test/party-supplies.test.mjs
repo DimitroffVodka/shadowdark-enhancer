@@ -64,3 +64,14 @@ test("the system's own Party actor is never counted, so the bar still draws in a
     assert.deepEqual(partySupplies(p), { rations: 2, torches: 0 });
   } finally { delete globalThis.canvas; }
 });
+
+test("a torch counts on both system versions, and a lantern never does", () => {
+  const v41 = (name) => ({ type: "Basic", name, system: { quantity: 1, light: { isSource: true, template: "", animation: "torch", active: false, hasBeenUsed: false } } });
+  const [p] = world(party("Actor.p", ["Actor.a"]), actor("Actor.a", [
+    torch(2),          // 4.0.x: "torch" template
+    v41("Torch"),      // 4.1.0: template blanked by the system's migration
+    v41("Lantern"),
+    { ...torch(1), name: "Lantern", system: { ...torch(1).system, light: { ...torch(1).system.light, template: "lantern" } } },
+  ]));
+  assert.equal(partySupplies(p).torches, 3);
+});
