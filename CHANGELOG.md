@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **Torches count again on Shadowdark 4.1.0.** The system's 4.1.0 update clears the light template that camping and the party supplies readout used to recognise a torch, so after the update the camp fire found no torches to burn and the clock bar showed none. A torch is now recognised on 4.1.0 and on 4.0.x alike; lanterns still don't count.
+- **"Double Close" NPCs get a movement budget.** Shadowdark 4.1.0 adds a Double Close move for very slow creatures; in combat they now get 10 ft per turn instead of the default.
+
 ## [0.22.0] — 2026-11-09
 
 ### Added

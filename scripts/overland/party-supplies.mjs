@@ -2,18 +2,24 @@
  * Shadowdark Enhancer — what the party is carrying, for the clock bar's glance readout.
  *
  * The party supplies the HUD shows are the same stacks camping spends: a ration is a Basic item named "Ration" or
- * "Rations", and a torch is an unlit, unused light source of the torch template. The total covers the party's own item
+ * "Rations", and a torch is an unlit, unused light source that is a torch (isTorchLight). The total covers the party's own item
  * sheet and every member's items, mounts included, so a pack left on the mule counts.
  */
 
 import { Party } from "../party/party.mjs";
 
+/**
+ * A torch, on any system version: 4.0.x marks it with the "torch" light template; 4.1.0's migration blanks every
+ * template (lights carry their own bright/dim now), so there the item's name is what is left.
+ */
+export const isTorchLight = (item) => item.system?.light?.template === "torch" || /^torch(es)?$/i.test(item.name ?? "");
+
 /** The ration test camping eats by (camping-nutrition.mjs): a Basic item named Ration/Rations. */
 const ration = (item) => item.type === "Basic" && /^rations?$/i.test(item.name);
 
-/** The torch test camping's fire spends by: an unlit, unused, non-magical light source of the torch template. */
+/** The torch test camping's fire spends by (camping.mjs): an unlit, unused, non-magical light source that is a torch. */
 const torch = (item) => item.type === "Basic" && !!item.system?.light?.isSource
-  && item.system.light.template === "torch" && !item.system.magicItem
+  && isTorchLight(item) && !item.system.magicItem
   && !item.system.light.active && !item.system.light.hasBeenUsed;
 
 const quantity = (item) => Math.max(0, Number(item.system?.quantity) || 0);
