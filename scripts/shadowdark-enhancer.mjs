@@ -165,7 +165,7 @@ const STYLESHEET_REV = "a7a1da82db36";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "012a5c7b3eb8";
+const BUILD_REV = "006ba74b8526";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -1151,6 +1151,8 @@ Hooks.on("quenchReady", async (quench) => {
     ["../test/quench/movement-rollback.batch.mjs",    "registerMovementRollbackBatch"],
     ["../test/quench/creator-update.batch.mjs",       "registerCreatorUpdateBatch"],
     ["../test/quench/gear-currency.batch.mjs",        "registerGearCurrencyBatch"],
+    ["../test/quench/settings-contract.batch.mjs",    "registerSettingsContractBatch"],
+    ["../test/quench/temp-hp-stat-damage.batch.mjs",  "registerTempHpStatDamageBatch"],
   ];
   for (const [path, fn] of batches) {
     try {
