@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **Overland travel no longer ignores a party whose members were deleted by hand.** A party placed out on the map with Place / Recall stayed marked as out after its members' tokens were deleted, and travel then charged nothing for walking the party token: no hexes spent, no time passed, no fog lifted. The party now counts as out only while one of its placed members is still on the scene.
+
 ## [0.23.0] — 2026-11-11
 
 ### Added

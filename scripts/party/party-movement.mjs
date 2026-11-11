@@ -18,7 +18,9 @@ export const MOVEMENT_LABELS = {
 };
 const t = (key, data = {}) => game.i18n.format(MOVEMENT_LABELS[key], data);
 const state = token => token?.flags?.[MODULE_ID]?.[FLAG] ?? {};
-export const isPartyDeployed = token => isParty(token?.actor) && state(token).deployed === true;
+// The flag alone goes stale when members' tokens are deleted by hand: deployed only while one placed member is still out here.
+export const isPartyDeployed = token => isParty(token?.actor) && state(token).deployed === true
+  && !!token.parent?.tokens?.contents?.some(d => d !== token && state(d).partyUuid === token.actor.uuid);
 export const inPartyCombat = scene => (game.combats?.contents ?? []).some(c => c.started && (!c.scene || c.scene.id === scene?.id));
 // With `user`, only members that user can see: the party's owner can write any uuid into its member list, and on
 // the GM's client every actor reads as visible, so a forged entry would deploy a hidden boss or move another PC.
