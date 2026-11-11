@@ -10,8 +10,8 @@
  * `returnTo` is the scene the table came from when the GM last took everyone here; the page's Return goes back to it.
  * `sessionTitle` is the line the GM writes on the table's title card ("Session 14: Ash Above the Styx").
  * `map` is the scene the table's Map opens, or null for the party's overland map (landing-map.mjs). `mapPicture` is
- * `{ src, path }`: a small copy (`path`, uploaded) of that map's picture (`src`), drawn on the table's framed map; null
- * draws the table's own map.
+ * `{ src, path, key }`: a small copy (`path`, uploaded) of that map's picture (`src`), placed as the scene places it
+ * (`key`, landing-map.mjs pictureKey), drawn on the table's framed map; null draws the table's own map.
  *
  * `games` is the town's table of games of chance: `{ on, list, maxBet, edge }` (`list` is the games this place offers,
  * ticked one by one, and `on` is true when it offers any; the largest bet in gp; the share of winnings the house keeps,
@@ -110,7 +110,8 @@ export function normalizeLanding(raw) {
     returnTo: typeof raw?.returnTo === "string" && raw.returnTo ? raw.returnTo : null,
     sessionTitle: text(raw?.sessionTitle, 120),
     map: typeof raw?.map === "string" && raw.map ? raw.map : null,
-    mapPicture: typeof raw?.mapPicture?.src === "string" && typeof raw?.mapPicture?.path === "string" && raw.mapPicture.path ? { src: raw.mapPicture.src, path: raw.mapPicture.path } : null,
+    // A copy without its key (saved before placement counted) is made again on the next Save.
+    mapPicture: typeof raw?.mapPicture?.src === "string" && typeof raw?.mapPicture?.path === "string" && raw.mapPicture.path && typeof raw.mapPicture.key === "string" ? { src: raw.mapPicture.src, path: raw.mapPicture.path, key: raw.mapPicture.key } : null,
   };
 }
 

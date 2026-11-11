@@ -134,7 +134,7 @@ export class TownApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // The map's own picture on the framed map's paper, under the compass (the paper's mask), inside the map's button so
     // its label stays on top: without one, the table's drawing.
     const mapScene = hasMap && page.mapPicture && L.mapPaper ? await (await import("./landing-map.mjs")).mapFor(page) : null;
-    const mapSrc = mapScene ? await (await import("./landing-map.mjs")).tablePicture(mapScene, page.mapPicture.path).catch((err) => {
+    const mapSrc = mapScene ? await (await import("./landing-map.mjs")).tablePicture(mapScene, page.mapPicture).catch((err) => {
       console.warn("Shadowdark Enhancer | landing table: the map's picture could not be fogged", err);
       return null;   // never the bare picture: it would show a player the hexes their party has not explored
     }) : null;

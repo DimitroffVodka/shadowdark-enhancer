@@ -53,11 +53,12 @@ test("a landing page always has every field, keeps the places in order, and drop
 });
 
 test("a page keeps the map its GM picked and that map's picture; the editor's Automatic clears the pick", () => {
-  const pic = { src: "maps/reach.webp", path: "worlds/w/shadowdark-enhancer/landing-map-s1-x.webp" };
+  const pic = { src: "maps/reach.webp", path: "worlds/w/shadowdark-enhancer/landing-map-s1-x.webp", key: "[\"maps/reach.webp\",1200,600]" };
   const page = normalizeLanding({ map: "scene2", mapPicture: pic });
   assert.equal(page.map, "scene2");
   assert.deepEqual(page.mapPicture, pic);
   assert.equal(normalizeLanding({ mapPicture: { src: "a.webp" } }).mapPicture, null);   // no uploaded copy, nothing to draw
+  assert.equal(normalizeLanding({ mapPicture: { src: pic.src, path: pic.path } }).mapPicture, null);   // made before placement counted
   assert.equal(applyForm(page, { map: "scene3" }).map, "scene3");
   assert.equal(applyForm(page, { map: "" }).map, null);                                  // Automatic
   assert.equal(applyForm(page, { title: "x" }).map, "scene2");                           // a form without the field keeps it

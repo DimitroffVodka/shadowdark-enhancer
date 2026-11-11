@@ -141,10 +141,13 @@ it on the table's framed map, under the compass, so players see the map they
 will open. The picture is fogged the way the map is for whoever looks at it: on a
 hex map under the Enhancer's fog a player sees only the hexes their party has
 explored, and on a map with token vision only what Foundry's fog of war has kept
-as explored for them. A player who has explored nothing there yet sees the
-table's own drawn map. A map without token vision is open to everyone, so it
-shows whole. The copy goes into your world's folder (`shadowdark-enhancer`
-inside it) and is made again only when the map's picture changes. A tall map is
+as explored for them (with the rest of the table's under shared fog). A player
+who has explored nothing there yet sees the table's own drawn map. A map without
+token vision is open to everyone, so it shows whole. The copy goes into your
+world's folder (`shadowdark-enhancer` inside it) and is made again only when the
+map's picture, its size or where the scene places its picture (the level's
+offset, fit, scale or rotation) changes; until you save the page again after
+such a change, the table shows its own drawn map. A tall map is
 shown by its middle band, since the paper on the table is wider than it is tall.
 A table with no map, or one saved before this, keeps the drawn map that comes
 with the table.
