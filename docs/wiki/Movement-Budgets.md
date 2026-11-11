@@ -52,6 +52,7 @@ NPC movement values map from standard Shadowdark distance keywords:
 |---|---|
 | **None** | 0 ft (immobile) |
 | **Close** | 5 ft |
+| **Double close** | 10 ft (Shadowdark 4.1.0 and later) |
 | **Near** | 30 ft |
 | **Double near** | 60 ft |
 | **Triple near** | 90 ft |

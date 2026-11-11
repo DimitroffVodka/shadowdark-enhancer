@@ -4,7 +4,14 @@
 
 ### Added
 
-- **Pick the landing table's map.** The landing page editor has a Map field: the party's overland map, as before, or any scene in the world. The table's framed map opens that scene, and on Save the editor lays a small copy of that map's picture on the framed map, so the picture on the table is the map players will open. See [Town landing page](docs/wiki/Town-Landing-Page.md#the-map).
+- **Pick the landing table's map.** The landing page editor has a Map field: the party's overland map, as before, or any scene in the world. The table's framed map opens that scene, and on Save the editor lays a small copy of that map's picture on the framed map, so the picture on the table is the map players will open. The picture is fogged for each player as the map is: only the hexes their party has explored, or on a map with token vision only what their fog of war has kept. See [Town landing page](docs/wiki/Town-Landing-Page.md#the-map).
+- **The landing table pauses the game** when it goes up for everyone, and players can open its Map only while a GM is connected, so nobody wanders a map between sessions.
+- **The landing table names the party.** The plaque above the portraits shows the party's name instead of "Party".
+
+### Fixed
+
+- **Torches count again on Shadowdark 4.1.0.** The system's 4.1.0 update clears the light template that camping and the party supplies readout used to recognise a torch, so after the update the camp fire found no torches to burn and the clock bar showed none. A torch is now recognised on 4.1.0 and on 4.0.x alike; lanterns still don't count.
+- **"Double Close" NPCs get a movement budget.** Shadowdark 4.1.0 adds a Double Close move for very slow creatures; in combat they now get 10 ft per turn instead of the default.
 
 ## [0.22.0] — 2026-11-09
 

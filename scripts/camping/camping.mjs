@@ -8,6 +8,7 @@ import { foodPreview, feedCamp, restCamp } from "./camping-nutrition.mjs";
 import { isMount, adoptMountScores } from "../actors/mount-scores.mjs";
 import { secondsPerHour } from "../time/time-core.mjs";
 import { esc } from "../shared/esc.mjs";
+import { isTorchLight } from "../overland/party-supplies.mjs";
 const QUERY = `${MODULE_ID}.camping`, queues = new Map();
 const actorOf = uuid => game.actors.contents.find(a => a.uuid === uuid);
 const own = (a, u) => !!a?.testUserPermission(u, "OWNER");
@@ -49,7 +50,7 @@ export function syncParticipants(party, camp) {
   if (!added.length && kept.length === camp.participants.length) return camp;
   return { ...camp, participants: [...kept, ...added] };
 }
-const torch = item => item.type === "Basic" && item.system?.light?.isSource && item.system.light.template === "torch" && !item.system.magicItem && !item.system.light.active && !item.system.light.hasBeenUsed;
+const torch = item => item.type === "Basic" && item.system?.light?.isSource && isTorchLight(item) && !item.system.magicItem && !item.system.light.active && !item.system.light.hasBeenUsed;
 export function campTorchPlan(party, camp = campOf(party)) {
   const stacks = [party, ...camp.participants.map(p => actorOf(p.uuid)).filter(Boolean)].flatMap(a => a.items.filter(torch).map(i => ({ actorUuid: a.uuid, id: i.id, quantity: i.system.quantity })));
   return torchPlan(stacks, party.uuid, camp.participants);
