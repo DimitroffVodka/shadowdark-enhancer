@@ -124,6 +124,14 @@ the player sees their own party's hexes even with no token of theirs on the
 map. A **Back to** button takes them back to the table. A world with no overland
 map greys the map out.
 
+When the table goes up for everyone (the toolbar button, or the table scene made
+active) the game pauses, so no token moves and no clock runs while the party is
+at the table. Unpause it yourself when play moves on.
+
+Players can open the map only while a GM is connected, so nobody wanders it
+between sessions; with no GM online the map is greyed out and says so. The GM
+can always open it.
+
 Not every table plays on a hex map. In the editor's **Map** field you can pick
 any scene instead: a city map, a region, the dungeon the party is crawling. The
 framed map then opens that scene, and its hover line names it.

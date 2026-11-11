@@ -171,6 +171,7 @@ function showBack(page, map) {
 
 /** The Map tile, clicked on the page on `page` (its scene). */
 export async function openMap(page) {
+  if (!game.user.isGM && !game.users.activeGM) return ui.notifications.info(t("SDE.town.hint.mapGM")), null;
   const map = await mapFor(landingOf(page)).catch(() => null);
   if (map && map.id !== page?.id) {
     await map.view();

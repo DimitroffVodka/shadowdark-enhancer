@@ -46,7 +46,7 @@
         <span class="lt-seat-card"><b>{{name}}</b>{{#if level}}<span>{{localize "SDE.town.table.level" n=level}}{{#if cls}} {{cls}}{{/if}}</span>{{/if}}{{#if hp}}<span>{{localize "SDE.town.table.hp" hp=hp}}</span>{{/if}}<span class="lt-purse">{{purse}}</span></span>
       </button>
       {{/each}}
-      {{#if party}}<button type="button" class="lt-party" data-action="party" style="left: {{party.x}}px; top: {{party.y}}px;">{{localize "SDE.town.place.party"}}</button>{{/if}}
+      {{#if party}}<button type="button" class="lt-party" data-action="party" style="left: {{party.x}}px; top: {{party.y}}px;">{{party.name}}</button>{{/if}}
     </div>
   </div>
 

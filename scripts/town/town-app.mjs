@@ -161,7 +161,7 @@ export class TownApp extends HandlebarsApplicationMixin(ApplicationV2) {
       },
       seats: framesFor(members.length).map((f) => this._seat(members[f.index], f)),
       // The Party plaque hangs on the wall above the portrait frames, centred on the table.
-      party: party && page.places.includes("party") ? { x: TABLE.width / 2, y: Math.max(20, Math.min(...L.frames.map((f) => f.y)) - 110) } : null,
+      party: party && page.places.includes("party") ? { name: party.name || t("SDE.town.place.party"), x: TABLE.width / 2, y: Math.max(20, Math.min(...L.frames.map((f) => f.y)) - 110) } : null,
     });
   }
 

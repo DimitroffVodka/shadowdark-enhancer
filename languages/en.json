@@ -6730,6 +6730,7 @@
   "SDE.town.hint.rumors": "Nothing has been heard yet.",
   "SDE.town.hint.party": "There is no party to open yet.",
   "SDE.town.hint.map": "This world has no overland map yet.",
+  "SDE.town.hint.mapGM": "The map opens while the GM is connected.",
   "SDE.town.hint.downtime": "Opens when the GM starts a downtime session.",
   "SDE.town.activeQuests": "{n} active",
   "SDE.town.priceNoteTip": "How far this merchant's prices sit from list.",
