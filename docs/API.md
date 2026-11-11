@@ -2064,9 +2064,10 @@ Overland uses `"downtime"`, `"carousing"` and `"rest"`. `seconds` must be 0 or
 more. Since 1.18.0, 0 puts the lights out and moves no clock: Overland's camp
 does that, then moves the clock itself with its encounter checks.
 
-This relies on the light tracker of Shadowdark 4.0.6 (its cache, its dirty
-flag and the primary GM flag); a later system version is checked live before
-it is trusted.
+This relies on the light tracker of Shadowdark 4.0.6 and 4.1.0 (its cache, its
+dirty flag and the primary GM flag; both checked live, 4.1.0 after its
+ApplicationV2 rewrite); a later system version is checked live before it is
+trusted.
 
 ## `overland` — the travel state
 
