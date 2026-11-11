@@ -41,6 +41,7 @@ async function gmTable() {
 export const townIo = {
   open: openTown, close: closeTown, closeOthers, table: gmTable,
   flip: async (scene, on) => (await import("./town-live.mjs")).switchTown(scene, on),
+  pause: async () => (await import("./town-live.mjs")).pauseForTable(),
   remember: async (scene) => (await import("./landing-pages.mjs")).rememberScene(scene),
 };
 
@@ -100,6 +101,8 @@ export function registerTownEntryPoints() {
     if (changed?.active === true && !landingOf(scene) && game.users.activeGM?.id === game.user.id) {
       townIo.remember(scene).catch((err) => console.warn("Shadowdark Enhancer | landing page: way back not kept", err));
     }
+    // Everyone is taken to a table that is up (the toolbar, or Foundry's own navigation): the game pauses, once, from the active GM.
+    if (changed?.active === true && landingOf(scene)?.shown && game.users.activeGM?.id === game.user.id) townIo.pause();
     // The toolbar and the windows follow the scene's page. The diff names the key with an operator when it was
     // replaced or removed ("==landing", "-=landing").
     if (!Object.keys(changed?.flags?.[MODULE_ID] ?? {}).some((k) => k.replace(/^(==|-=)/, "") === "landing")) return;

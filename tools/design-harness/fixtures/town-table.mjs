@@ -41,7 +41,7 @@ const build = (state) => {
       title: { text: "Session 14: Ash Above the Styx", transform: homography(700, 150, L.title), box: [700, 150] },
       dial: { angle: dialAngle(20.5), transform: homography(400, 400, L.dial), box: [400, 400], ticks: Array.from({ length: 24 }, (_, i) => ({ deg: i * 15, len: i % 6 ? 20 : 30 })) },
       seats: framesFor(members.length).map((f, i) => ({ ...f, seat: `seat${i}`, transform: homography(120, 160, f.face), box: [120, 160], id: `a${i}`, name: members[i][0], img: "icons/svg/mystery-man.svg", mine: i === 0, level: members[i][1], cls: members[i][2], hp: members[i][3], purse: purseText(COINS) })),
-      party: { x: TABLE.width / 2, y: Math.max(20, Math.min(...L.frames.map((f) => f.y)) - 110) },
+      party: { name: "The Ashen Company", x: TABLE.width / 2, y: Math.max(20, Math.min(...L.frames.map((f) => f.y)) - 110) },
     },
   };
 };

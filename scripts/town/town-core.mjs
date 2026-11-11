@@ -4,11 +4,14 @@
  * The landing page is a small flag on the table's scene (landing-pages.mjs makes it); the flag holds what the table
  * offers:
  *
- *   flags[MODULE_ID].landing = { title, tagline, blurb, places: [...], merchants: [...], games: {...}, shown, size, returnTo }
+ *   flags[MODULE_ID].landing = { title, tagline, blurb, places: [...], merchants: [...], games: {...}, shown, size, returnTo, map, mapPicture }
  *
  * `size` is the settlement's size (a stock-generator SIZES id) the table's market is stocked for, else null.
  * `returnTo` is the scene the table came from when the GM last took everyone here; the page's Return goes back to it.
  * `sessionTitle` is the line the GM writes on the table's title card ("Session 14: Ash Above the Styx").
+ * `map` is the scene the table's Map opens, or null for the party's overland map (landing-map.mjs). `mapPicture` is
+ * `{ src, path, key }`: a small copy (`path`, uploaded) of that map's picture (`src`), placed as the scene places it
+ * (`key`, landing-map.mjs pictureKey), drawn on the table's framed map; null draws the table's own map.
  *
  * `games` is the town's table of games of chance: `{ on, list, maxBet, edge }` (`list` is the games this place offers,
  * ticked one by one, and `on` is true when it offers any; the largest bet in gp; the share of winnings the house keeps,
@@ -106,6 +109,9 @@ export function normalizeLanding(raw) {
     size: SIZES.some((z) => z.id === raw?.size) ? raw.size : null,
     returnTo: typeof raw?.returnTo === "string" && raw.returnTo ? raw.returnTo : null,
     sessionTitle: text(raw?.sessionTitle, 120),
+    map: typeof raw?.map === "string" && raw.map ? raw.map : null,
+    // A copy without its key (saved before placement counted) is made again on the next Save.
+    mapPicture: typeof raw?.mapPicture?.src === "string" && typeof raw?.mapPicture?.path === "string" && raw.mapPicture.path && typeof raw.mapPicture.key === "string" ? { src: raw.mapPicture.src, path: raw.mapPicture.path, key: raw.mapPicture.key } : null,
   };
 }
 
@@ -184,6 +190,7 @@ export function applyForm(landing, fields) {
   return normalizeLanding({
     title: fields.title ?? page.title, tagline: fields.tagline ?? page.tagline, blurb: fields.blurb ?? page.blurb,
     places: PLACE_IDS.filter((p) => on(fields[`place.${p}`])), merchants, games, shown: page.shown, size: page.size, returnTo: page.returnTo, sessionTitle: page.sessionTitle,
+    map: "map" in fields ? fields.map : page.map, mapPicture: page.mapPicture,
   });
 }
 

@@ -81,5 +81,5 @@
   "socket": true,
   "url": "https://github.com/DimitroffVodka/shadowdark-enhancer",
   "download": "https://github.com/DimitroffVodka/shadowdark-enhancer/releases/latest/download/module.zip",
-  "flags": { "buildRev": "006ba74b8526" }
+  "flags": { "buildRev": "d18f2cbb6dbd" }
 }

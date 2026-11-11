@@ -26,7 +26,7 @@ import { TABLE, dialAngle, framesFor, homography, partyAtTable, propAtHit, propS
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 /** The boxes the overlays are drawn in before they are laid onto their props (picture pixels at the prop's own scale). */
-const PAGE_BOX = [300, 410], TITLE_BOX = [700, 150], DIAL_BOX = [400, 400], FACE_BOX = [120, 160];
+const PAGE_BOX = [300, 410], TITLE_BOX = [700, 150], DIAL_BOX = [400, 400], FACE_BOX = [120, 160], MAP_BOX = [660, 440];
 /** While the table is up the page is the whole screen: Foundry's edge furniture is hidden (styles: body.sde-table-up). */
 const TABLE_UP = "sde-table-up";
 
@@ -112,13 +112,16 @@ export class TownApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._openMarkets = merchants.filter((m) => m.open).map((m) => ({ id: m.id, name: m.name }));
     const active = Quests.list({ status: "active" });
     const { hasRumorsHeard } = await import("../rumors/rumors.mjs");
-    const hasMap = page.places.includes("map") ? await (await import("./landing-map.mjs")).hasMap() : false;
+    const hasMap = page.places.includes("map") ? await (await import("./landing-map.mjs")).hasMap(this.scene) : false;
     const tiles = placeTiles([...page.places, ...(page.games.on ? ["games"] : [])], {
       isGM, hasParty: Party.list().length > 0, downtimeOpen: DowntimeSession.active, activeQuests: active.length, nightOpen: !!nightParty(),
       gmOnline: !!game.users.activeGM, rumorsHeard: hasRumorsHeard(), hasMap, t,
     });
     const labels = Object.fromEntries(tiles.map((p) => [p.id, { name: p.label, sub: p.tag || p.sub, disabled: p.disabled, hint: p.hint }]));
     labels.market = { name: t("SDE.town.table.market"), sub: market?.name ?? "", disabled: !market?.open, hint: t("SDE.town.shut") };
+    // A map the GM picked is named on the Map, not described as the party's explored lands.
+    const picked = page.map && game.scenes.get(page.map);
+    if (picked && labels.map) labels.map.sub = picked.name;
     // Player characters only: a mule or a hidden NPC on the roster takes no seat and shows no card.
     const party = partyAtTable(Party.list(), { selected: Party.selected(), character: game.user.character, membersOf: (p) => Party.members(p) });
     let members = [];
@@ -128,12 +131,23 @@ export class TownApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const L = TABLE.layout;
     const [left, right] = tomePages(active);
     const clock = game.time.components ?? {};
+    // The map's own picture on the framed map's paper, under the compass (the paper's mask), inside the map's button so
+    // its label stays on top: without one, the table's drawing.
+    const mapScene = hasMap && page.mapPicture && L.mapPaper ? await (await import("./landing-map.mjs")).mapFor(page) : null;
+    const mapSrc = mapScene ? await (await import("./landing-map.mjs")).tablePicture(mapScene, page.mapPicture).catch((err) => {
+      console.warn("Shadowdark Enhancer | landing table: the map's picture could not be fogged", err);
+      return null;   // never the bare picture: it would show a player the hexes their party has not explored
+    }) : null;
+    const paper = mapSrc ? {
+      ...L.mapPaper, src: mapSrc, mask: propSrc("map-paper"), box: MAP_BOX,
+      transform: `translate(-${L.mapPaper.x}px, -${L.mapPaper.y}px) ${homography(...MAP_BOX, L.mapPaper.quad)}`,
+    } : null;
     return Object.assign(context, {
       isGM, townName: this.townName, table: TABLE,
       sizes: SIZES.map((z) => ({ id: z.id, label: t(z.labelKey), selected: z.id === (page.size ?? "town") })),
       returnName: isGM ? returnScene(this.scene)?.name ?? "" : "",
       actorName: buyer?.name ?? "", purse: buyer ? purseText(buyer.system.coins) : "",
-      props: tableProps(page, { hasMerchant: !!market, labels }),
+      props: tableProps(page, { hasMerchant: !!market, labels }).map((p) => (p.id === "map" && paper ? { ...p, paper: { ...paper, left: paper.x - p.x, top: paper.y - p.y } } : p)),
       chestOpen: L.marketOpen ? { ...L.marketOpen, src: propSrc("market-open") } : null,
       coin: { text: purseText(sumCoins(members)), x: L.chestFront[0], y: L.chestFront[1] },
       tome: page.places.includes("quests") ? [
@@ -147,7 +161,7 @@ export class TownApp extends HandlebarsApplicationMixin(ApplicationV2) {
       },
       seats: framesFor(members.length).map((f) => this._seat(members[f.index], f)),
       // The Party plaque hangs on the wall above the portrait frames, centred on the table.
-      party: party && page.places.includes("party") ? { x: TABLE.width / 2, y: Math.max(20, Math.min(...L.frames.map((f) => f.y)) - 110) } : null,
+      party: party && page.places.includes("party") ? { name: party.name || t("SDE.town.place.party"), x: TABLE.width / 2, y: Math.max(20, Math.min(...L.frames.map((f) => f.y)) - 110) } : null,
     });
   }
 

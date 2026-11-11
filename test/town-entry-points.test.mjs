@@ -152,6 +152,22 @@ test("every scene that goes active is remembered as the table's way back, by the
   assert.deepEqual(kept, ["D"]);
 });
 
+test("the game pauses when a table that is up goes active, once, from the active GM; a table that is down or another scene does not", async () => {
+  const e = await setup({ gm: true, scenes: [scene("C", { shown: true }), scene("U", { shown: false }), scene("D", null)] });
+  let paused = 0;
+  e.entry.townIo.pause = async () => { paused++; };
+  e.entry.townIo.remember = async () => {};
+  globalThis.game.user.id = "g1";
+  globalThis.game.users = { activeGM: { id: "g1" } };
+  e.hooks.updateScene(e.byId.get("C"), { active: true });
+  e.hooks.updateScene(e.byId.get("U"), { active: true });       // its page is down
+  e.hooks.updateScene(e.byId.get("D"), { active: true });       // no page
+  e.hooks.updateScene(e.byId.get("C"), { navigation: true });   // not an activation
+  globalThis.game.users.activeGM = { id: "g2" };
+  e.hooks.updateScene(e.byId.get("C"), { active: true });       // another GM's client does it
+  assert.equal(paused, 1);
+});
+
 test("the GM's Alt+T: on the table it flips the page; anywhere else it takes everyone to the table, never making a page there", async () => {
   const table = scene("T", { shown: true });
   table.flags[MOD].landingTable = true;

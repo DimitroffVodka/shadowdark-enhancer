@@ -47,6 +47,12 @@ export const today = () => absDay(game.time.calendar, game.time.worldTime);
  */
 export async function switchTown(scene, shown) {
   await updateLanding(scene, (page) => setShown(page ?? {}, shown));
+  if (shown && scene?.active) pauseForTable();
+}
+
+/** The table is up for everyone: the game pauses (GM only), so nobody moves a token or runs the clock while at it. */
+export function pauseForTable() {
+  if (game.user.isGM && !game.paused) game.togglePause(true, { broadcast: true });
 }
 
 /**

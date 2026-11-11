@@ -25,6 +25,13 @@ test("carouse tile: a GM always opens it; a player needs an open night and a GM 
   assert.deepEqual([tile("carouse", { nightOpen: true, gmOnline: false }).disabled, tile("carouse", { nightOpen: true, gmOnline: false }).hint], [true, "SDE.town.hint.carouseGM"]);
 });
 
+test("map tile: a player opens it only while a GM is connected; the GM always can", () => {
+  assert.equal(tile("map").disabled, false);
+  assert.deepEqual([tile("map", { gmOnline: false }).disabled, tile("map", { gmOnline: false }).hint], [true, "SDE.town.hint.mapGM"]);
+  assert.equal(tile("map", { isGM: true, gmOnline: false }).disabled, false);
+  assert.equal(tile("map", { gmOnline: false, hasMap: false }).hint, "SDE.town.hint.map");   // no map at all says so first
+});
+
 test("rumors tile: a GM always runs it; a player needs the Rumors Heard journal", () => {
   assert.equal(tile("rumors", { isGM: true }).disabled, false);
   assert.deepEqual([tile("rumors").disabled, tile("rumors").hint], [true, "SDE.town.hint.rumors"]);

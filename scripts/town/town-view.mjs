@@ -112,6 +112,8 @@ export function placeTiles(places, { isGM, hasParty, downtimeOpen, activeQuests,
     if (id === "quests" && activeQuests) tile.tag = t("SDE.town.activeQuests", { n: activeQuests });
     if (id === "party" && !hasParty) Object.assign(tile, { disabled: true, hint: t("SDE.town.hint.party") });
     if (id === "map" && !hasMap) Object.assign(tile, { disabled: true, hint: t("SDE.town.hint.map") });
+    // No wandering the map between sessions: a player's tokens there could still move and explore.
+    else if (id === "map" && !isGM && !gmOnline) Object.assign(tile, { disabled: true, hint: t("SDE.town.hint.mapGM") });
     if (id === "downtime" && !isGM && !downtimeOpen) Object.assign(tile, { disabled: true, hint: t("SDE.town.hint.downtime") });
     if (id === "carouse" && !isGM && !nightOpen) Object.assign(tile, { disabled: true, hint: t("SDE.town.hint.carouse") });
     if (id === "carouse" && !isGM && nightOpen && !gmOnline) Object.assign(tile, { disabled: true, hint: t("SDE.town.hint.carouseGM") });

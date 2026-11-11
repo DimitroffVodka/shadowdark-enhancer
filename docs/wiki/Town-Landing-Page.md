@@ -96,6 +96,7 @@ list (see [Generating a merchant](#generating-a-merchant)).
 | Field | What it does |
 |---|---|
 | **Name** | The name the games tables and the sales log go by. Defaults to the scene's name |
+| **Map** | The scene the framed map opens: the party's overland map (the default) or any scene in the world. Its picture is drawn on the table's map when you save (see The Map) |
 | **Around town** | Which things on the table players can use: Quest Log, Journals, Party, Map, Downtime, Carouse, Rumors (Rumors is off on a new table; see A tavern page) |
 | **Games of chance** | A tick box per game: the games this place offers. Tick none and the dice cup offers no games (see Games of chance) |
 | **Largest bet (gp)** | The most one wager may stake, 1 to 1000 gp (10 by default) |
@@ -122,6 +123,34 @@ of the table stays at the table. The unexplored hexes are black as usual, and
 the player sees their own party's hexes even with no token of theirs on the
 map. A **Back to** button takes them back to the table. A world with no overland
 map greys the map out.
+
+When the table goes up for everyone (the toolbar button, or the table scene made
+active) the game pauses, so no token moves and no clock runs while the party is
+at the table. Unpause it yourself when play moves on.
+
+Players can open the map only while a GM is connected, so nobody wanders it
+between sessions; with no GM online the map is greyed out and says so. The GM
+can always open it.
+
+Not every table plays on a hex map. In the editor's **Map** field you can pick
+any scene instead: a city map, a region, the dungeon the party is crawling. The
+framed map then opens that scene, and its hover line names it.
+
+When you save, the editor also makes a small copy of the map's picture and lays
+it on the table's framed map, under the compass, so players see the map they
+will open. The picture is fogged the way the map is for whoever looks at it: on a
+hex map under the Enhancer's fog a player sees only the hexes their party has
+explored, and on a map with token vision only what Foundry's fog of war has kept
+as explored for them (with the rest of the table's under shared fog). A player
+who has explored nothing there yet sees the table's own drawn map. A map without
+token vision is open to everyone, so it shows whole. The copy goes into your
+world's folder (`shadowdark-enhancer` inside it) and is made again only when the
+map's picture, its size or where the scene places its picture (the level's
+offset, fit, scale or rotation) changes; until you save the page again after
+such a change, the table shows its own drawn map. A tall map is
+shown by its middle band, since the paper on the table is wider than it is tall.
+A table with no map, or one saved before this, keeps the drawn map that comes
+with the table.
 
 ---
 
