@@ -130,7 +130,12 @@ framed map then opens that scene, and its hover line names it.
 
 When you save, the editor also makes a small copy of the map's picture and lays
 it on the table's framed map, under the compass, so players see the map they
-will open. The copy goes into your world's folder (`shadowdark-enhancer`
+will open. The picture is fogged the way the map is for whoever looks at it: on a
+hex map under the Enhancer's fog a player sees only the hexes their party has
+explored, and on a map with token vision only what Foundry's fog of war has kept
+as explored for them. A player who has explored nothing there yet sees the
+table's own drawn map. A map without token vision is open to everyone, so it
+shows whole. The copy goes into your world's folder (`shadowdark-enhancer`
 inside it) and is made again only when the map's picture changes. A tall map is
 shown by its middle band, since the paper on the table is wider than it is tall.
 A table with no map, or one saved before this, keeps the drawn map that comes

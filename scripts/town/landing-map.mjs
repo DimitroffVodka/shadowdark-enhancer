@@ -40,6 +40,84 @@ export async function hasMap(page) {
 /** A scene's picture: the background of the level it opens on. */
 export const pictureOf = (scene) => scene?.initialLevel?.background?.src || null;
 
+/** The last fogged picture made on this client, so a redraw of the table with nothing newly explored reuses it. */
+let fogged = null;
+
+/**
+ * The URL the table draws for `map`'s picture copy at `path`, fogged as the map itself is for this viewer, so the table
+ * never shows a player ground they have not explored:
+ *  - a hex map under the Enhancer's fog: the hexes this viewer may not see are painted over (black for a player, the
+ *    GM's 60% veil for the GM), from the same check the map's own fog draws from;
+ *  - any other map with token vision: a player sees only what Foundry's fog of war has kept as explored for them (their
+ *    own record, or the whole table's under shared fog); the GM sees it all, as on the map;
+ *  - a map without token vision is open to everyone, so it is shown whole.
+ * Null when a player has explored nothing there yet: the table keeps its own drawing rather than a black sheet.
+ */
+export async function tablePicture(map, path) {
+  const url = fileRoute(path), rect = map?.dimensions?.sceneRect;
+  if (!rect) return null;
+  const { ownsHexFog, fogCells, hexDisclosure, playerViewOn } = await import("../hex-map/hex-fog.mjs");
+  let key, paint;
+  if (ownsHexFog(map)) {
+    const { readPass } = await import("../hex-map/hex-records.mjs");
+    const pass = readPass(map), cells = fogCells(map), hidden = cells.filter((c) => !hexDisclosure(map, c, "terrain", {}, pass));
+    const alpha = game.user.isGM && !playerViewOn() ? 0.6 : 1;
+    if (alpha === 1 && hidden.length === cells.length) return null;
+    key = `${url}|hex|${alpha}|${hidden.map((c) => `${c.i}.${c.j}`).join(",")}`;
+    paint = (ctx, w, h) => {
+      const sx = w / rect.width, sy = h / rect.height;
+      ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
+      ctx.beginPath();
+      for (const cell of hidden) {
+        map.grid.getVertices(cell).forEach((p, n) => ctx[n ? "lineTo" : "moveTo"]((p.x - rect.x) * sx, (p.y - rect.y) * sy));
+        ctx.closePath();
+      }
+      ctx.fill();
+    };
+  } else if (map.tokenVision && !game.user.isGM) {
+    const records = await exploredRecords(map);
+    if (!records.length) return null;
+    key = `${url}|fog|${records.map((r) => `${r.id}.${r.timestamp}`).join(",")}`;
+    paint = async (ctx, w, h) => {
+      // The explored record is a picture of the scene's rectangle, bright where explored: its brightness keeps the picture.
+      const seen = new OffscreenCanvas(w, h), sctx = seen.getContext("2d");
+      sctx.globalCompositeOperation = "lighten";
+      for (const r of records) {
+        const img = await createImageBitmap(await (await fetch(r.explored)).blob());
+        sctx.drawImage(img, 0, 0, w, h);
+        img.close();
+      }
+      const lit = sctx.getImageData(0, 0, w, h), shade = ctx.createImageData(w, h);
+      for (let i = 0; i < lit.data.length; i += 4) shade.data[i + 3] = 255 - lit.data[i];
+      const veil = new OffscreenCanvas(w, h);
+      veil.getContext("2d").putImageData(shade, 0, 0);
+      ctx.drawImage(veil, 0, 0);
+    };
+  } else return url;
+  if (fogged?.key === key) return fogged.url;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`${path}: ${res.status}`);
+  const bitmap = await createImageBitmap(await res.blob());
+  const canvas = new OffscreenCanvas(bitmap.width, bitmap.height), ctx = canvas.getContext("2d");
+  // The picture fills the scene's rectangle (the copy is made from the level's background), so the fog scales straight onto it.
+  ctx.drawImage(bitmap, 0, 0);
+  bitmap.close();
+  await paint(ctx, canvas.width, canvas.height);
+  if (fogged) URL.revokeObjectURL(fogged.url);
+  fogged = { key, url: URL.createObjectURL(await canvas.convertToBlob({ type: "image/webp", quality: 0.85 })) };
+  return fogged.url;
+}
+
+/**
+ * This player's Foundry fog-of-war records for `map`'s opening level that hold an explored picture: their own, plus
+ * everyone's under shared fog (the server sends those with it). The map need not be on screen.
+ */
+async function exploredRecords(map) {
+  const cls = CONFIG.FogExploration.documentClass, level = map.initialLevel?.id;
+  const docs = await cls.database.get(cls, { query: { scene: map.id, level, user: game.user.id } });
+  return docs.filter((d) => d?.explored && (d.level ?? level) === level);
+}
+
 /**
  * The table's copy of `map`'s picture, `{ src, path }`: `old` while the map's picture is the one it was made from,
  * else a new copy PICTURE_W wide, uploaded into the world's folder (GM only; names are unique, so no browser shows a
