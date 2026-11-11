@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-2254 tracked files · ~282,300 lines of code/markup across scripts+templates+styles+test.
+2256 tracked files · ~282,500 lines of code/markup across scripts+templates+styles+test.
 `v0.22.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -17,7 +17,7 @@
 
 | File | What it is |
 |---|---|
-| `module.json` | Foundry manifest. id `shadowdark-enhancer`, v0.13.1, core min 14 / verified 14.369, system shadowdark min 3.6.2 / verified 4.0.6, recommends `shadowdark-extras` 6.10.45. Declares the `mount` + `boat` Actor sub-types, one ESM entry, one stylesheet, `socket: true`. |
+| `module.json` | Foundry manifest. id `shadowdark-enhancer`, v0.22.0, core min 14 / verified 14.370, system shadowdark min 3.6.2 / verified 4.1.0. Declares the `mount`, `boat`, `warband` and `bastion` Actor sub-types and the `trap` Region behavior, one ESM entry, seven stylesheets, `socket: true`. |
 | `package.json` | Dev-only. `npm test` → `node --test test/*.test.mjs`; `npm run lint` → eslint over `scripts test`. |
 | `eslint.config.mjs` | Flat ESLint config (browser + node globals, Foundry globals). |
 | `README.md` | User-facing feature docs. |
@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 1555 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 1557 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 172 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 271 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 | `scavenger/scavenger-core.mjs` | 171 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
