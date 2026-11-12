@@ -434,3 +434,10 @@ test("a type Party actor in the world breaks neither marchOf, stripParty nor the
   await leaderMove("north");
   assert.deepEqual(paths, [[[300, 200]]], "and the hook still moves the follower instead of throwing");
 });
+test("a deployed flag with no placed member left on the scene reads as not deployed (the check Overland skips travel moves on)", () => {
+  const f = fixture();
+  f.pt.flags[MOD] = { partyMovement: { deployed: true } };
+  assert.equal(movementStatus("p").deployed, false, "members' tokens deleted by hand leave only a stale flag");
+  f.pc.flags[MOD] = { partyMovement: { partyUuid: f.party.uuid } };
+  assert.equal(movementStatus("p").deployed, true);
+});
