@@ -5,6 +5,7 @@
 ### Fixed
 
 - **Overland travel no longer ignores a party whose members were deleted by hand.** A party placed out on the map with Place / Recall stayed marked as out after its members' tokens were deleted, and travel then charged nothing for walking the party token: no hexes spent, no time passed, no fog lifted. The party now counts as out only while one of its placed members is still on the scene.
+- **A Custom calendar now takes effect.** Since 0.21.0 Save in the calendar editor kept the months and weekdays and reloaded the world, but the world stayed on the Gregorian calendar. After updating, reload once; the saved calendar is used as it is, with nothing to re-enter.
 
 ## [0.23.0] — 2026-11-11
 

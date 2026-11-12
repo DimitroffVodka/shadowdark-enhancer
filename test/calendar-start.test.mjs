@@ -116,3 +116,13 @@ test("an edit leaves alone a logged line, a missing entry, a blank title and a p
     [[written], "w", { title: "Changed" }, { isGM: false }],
   ]) assert.deepEqual((await onEntries(list, () => updateCalendarEntry(id, fields), who)).writes, []);
 });
+
+// PR 567's merge dropped this call and every release from 0.21.0 to 0.23.0
+// saved a Custom calendar without ever applying it.
+test("init applies the Custom calendar after settings exist, before setupGame", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const src = await readFile(new URL("../scripts/shadowdark-enhancer.mjs", import.meta.url), "utf8");
+  const init = src.slice(src.indexOf('Hooks.once("init"'));
+  const settings = init.indexOf("registerSettings();"), apply = init.indexOf("applyWorldCalendar();");
+  assert.ok(settings >= 0 && apply > settings, "applyWorldCalendar() must run in init, after registerSettings()");
+});

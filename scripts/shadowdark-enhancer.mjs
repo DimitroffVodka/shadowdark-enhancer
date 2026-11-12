@@ -25,7 +25,7 @@ import { rulesApi } from "./rules-data/rules-data-core.mjs";
 import { storedRulesFor } from "./rules-data/rules-data-scope.mjs";
 import { registerRulesNotice } from "./rules-data/rules-data-notice.mjs";
 import { timeApi, registerTimeHooks } from "./time/time.mjs";
-import { registerCalendar } from "./calendar/calendar.mjs";
+import { applyWorldCalendar, registerCalendar } from "./calendar/calendar.mjs";
 import { overlandState, isOverland, rollWeather, startDay, resume, forage, makeCamp, registerOverland, partyReading, setTravelPace, setAutoTravel, setAutoGoal, travelBlocked, rulesScene } from "./overland/overland.mjs";
 import { TravelBar } from "./overland/overland-bar.mjs";
 import { registerHexRules } from "./overland/hex-rules.mjs";
@@ -165,7 +165,7 @@ const STYLESHEET_REV = "2fdaf5c514f4";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "149efd008fd3";
+const BUILD_REV = "6aea8637e6dc";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -342,6 +342,8 @@ Hooks.once("init", () => {
   // synchronous cache operation with a fire-and-forget notification.
   initRivalClassTable({ game });
   registerSettings();
+  // Before setupGame, which builds game.time from CONFIG.
+  applyWorldCalendar();
   registerAdventurePackImport();
   // This client's Show weather effects switch (#294), before the first canvas draw.
   registerWeatherVisuals();
