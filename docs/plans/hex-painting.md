@@ -1,6 +1,6 @@
 # Hex art: a clean rebuild in the Enhancer
 
-Status: proposal, 2026-11-12. Nothing here is built.
+Status: in progress on `experimental/hex-painting`. Steps 1 and 2 are built.
 
 This replaces the first version of this file, which moved Extras' painter
 across and adapted it. Step 2 of that plan showed it doesn't work as a move.
@@ -242,12 +242,42 @@ big release.
 8. **Art pass.** Trim `assets/hexes/` to the confirmed set, add new AI sets,
    and update CREDITS.md and FILE-INVENTORY.
 
+## Step 2 measurements
+
+Taken 2026-11-13 on the Western Reaches A0 scene (grid 174, 10,477 × 14,009),
+with the 270 real tags plus made-up terrain for the rest, held in memory and
+never saved: 4,736 numbered hexes, 4,523 drawn (the 213 `keyed_location` hexes
+wait for step 4). Screen 2007 × 1067 at device pixel ratio 1.25, Firefox.
+
+Chunks are 1,024 canvas pixels square. Tiles are shrunk once to the width a
+tile covers at zoom 1 (389 px on this grid), so zoom 1 is sharp and closer
+zooms are not sharper. Both are constants at the top of `hex-art.mjs`.
+
+| View | Chunks held | Chunk memory | Frame, with art | Frame, without |
+|---|---|---|---|---|
+| Opening view (zoom 0.29) | 54 | 57 MB | 3.2 ms | 2.6 ms |
+| Whole map (zoom 0.08) | 153 | 10 MB | 6.5 ms | 5.1 ms |
+| Zoom 0.6 | 25 | 101 MB | | |
+| Zoom 1 | 30 | 52 MB | 1.7 ms | 1.5 ms |
+| Zoom 3 | 20 | 51 MB | 1.6 ms | 1.4 ms |
+
+- A chunk renders in 0.4 ms on average, 11 ms at worst (223 renders).
+- A brush stroke on one hex re-renders 4 chunks, 6 ms from the tag change to
+  the redraw.
+- The shrunk tiles add about 85 MB of GPU memory (124 pictures).
+- The canvas itself took 2.2 s to draw.
+
+The tab was hidden, so frame time is the cost of a forced render of the whole
+canvas, not a measured frame rate. Times to fill a view are not given: a
+hidden tab throttles timers to about one a second. **Not yet checked: frame
+rate while panning in a visible tab, and the first fill's wall-clock time.**
+
 ## Open decisions
 
 - **Specials:** whether the 383 numbered Western Reaches tiles are Patrick's
   renders or need replacing.
-- **Chunk size and reduced tile size:** set by the step 2 measurements, not
-  in advance.
+- **Sharper than zoom 1:** tiles wider than 389 px would make close zooms
+  sharper. Each doubling costs about four times the tile and chunk memory.
 
 ## Not in this plan
 

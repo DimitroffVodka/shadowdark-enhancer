@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-2822 tracked files · ~282,800 lines of code/markup across scripts+templates+styles+test.
+2825 tracked files · ~283,200 lines of code/markup across scripts+templates+styles+test.
 `v0.23.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 1559 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 1564 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 172 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 271 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 | `scavenger/scavenger-core.mjs` | 171 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
@@ -85,6 +85,8 @@
 | `hex-map/extras-records.mjs` | 48 | Raw readers for what Shadowdark Extras leaves in the world, never getFlag (it throws with Extras off): its stored hex records (legacy/authoring, retained for painter-feature merges and unadopted scenes) and the hex a map note pins, its flag or the Enhancer's (native: hover card, Hex Data, Jump to pin). |
 | `hex-map/geometry.mjs` | 221 | Hex numbering by cube difference from one anchor cell; printed offset ↔ cube under the map's column-shift rule. Pure. |
 | `hex-map/hex-adoption.mjs` | 186 | Read-once SDX record adoption with negative offset parsing, lossless original archives, existing-native conflict precedence, reports and automatic eligibility hooks. |
+| `hex-map/hex-art-core.mjs` | 126 | Pure layout for the drawn hex map: each hex's picture rectangle, which chunks it lands in, which chunks the view wants, chunk sharpness per zoom, and which chunks a tag change dirties. |
+| `hex-map/hex-art.mjs` | 285 | The drawn hex map (experimental, docs/plans/hex-painting.md step 2): a SceneManager that renders each tagged hex's picture into square chunk textures at the sharpness the zoom needs, keeps only chunks near the view, and re-renders just the chunks a tag or override change touches. Only on scenes the GM switches on (`hexArtDraw`), never over a baked or Extras-painted map. |
 | `hex-map/hex-brush-app.mjs` | 262 | The hex brush: a small window that sets one terrain (a picture tile per Legend terrain) plus features, so clicking or dragging across the tag overlay retags whole patches; a stroke is one scene write and Undo puts it back. |
 | `hex-map/hex-explorer-app.mjs` | 436 | Small scene-offset GM Hexplorer editor for terrain, line/structured features, public/private notes, document links and discovery; its header wears the hex's real tile, large (the bake's sprite, else the tile the painted map draws or its saved deal names, else the numbered tile) and opens it in Foundry's image pop-out, whose share action sends it to the players; a Tile card changes the hex's tile on the painted map. |
 | `hex-map/hex-explorer.mjs` | 422 | Player-safe Hexplorer canvas hover/select observer and GM writes over authoritative terrain tags and rich offset records; preserves discovery and imported metadata. |

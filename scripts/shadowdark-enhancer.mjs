@@ -16,6 +16,7 @@ import { HexRecords, isHexAdopted, registerHexRecordProjections } from "./hex-ma
 import { adoptHexScene, registerHexAdoption } from "./hex-map/hex-adoption.mjs";
 import { HexFog, ownsHexFog, registerHexFog } from "./hex-map/hex-fog.mjs";
 import { ownsBakedMap, registerBakedMaps } from "./hex-map/baked-map.mjs";
+import { registerHexArt, setHexArtDrawn } from "./hex-map/hex-art.mjs";
 import { fillKeyedGround, removeKeyedGround } from "./hex-map/keyed-ground.mjs";
 import { ICONS } from "./shared/icons.mjs";
 import { claimGmTab, isActiveGM } from "./shared/gm-relay.mjs";
@@ -165,7 +166,7 @@ const STYLESHEET_REV = "2fdaf5c514f4";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "1059fe047b72";
+const BUILD_REV = "c1045d9bab91";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -380,6 +381,8 @@ Hooks.once("init", () => {
   registerHexRules();
   registerHexFog();
   registerBakedMaps();
+  // After the baked maps, so a baked scene keeps its manager slot.
+  registerHexArt();
   registerHexCoordinates();
   registerMapNetwork();
   registerHexMapControls();
@@ -1013,6 +1016,8 @@ Hooks.once("init", () => {
       explorer: HexExplorer,
       records: HexRecords,
       adopt: adoptHexScene,
+      // Draw the scene's hex art from its tags (docs/plans/hex-painting.md); experimental, GM only.
+      drawArt: (on, scene) => setHexArtDrawn(on, scene),
       isAdopted: isHexAdopted,
       // 1.31.0 — plain ground under keyed hexes, so a baked map has no hole where a hidden location stands.
       fillKeyedGround,
