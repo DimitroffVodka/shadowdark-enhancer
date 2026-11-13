@@ -1,6 +1,6 @@
 # Hex art: a clean rebuild in the Enhancer
 
-Status: in progress on `experimental/hex-painting`. Steps 1 and 2 are built.
+Status: in progress on `experimental/hex-painting`. Steps 1 to 3 are built.
 
 This replaces the first version of this file, which moved Extras' painter
 across and adapted it. Step 2 of that plan showed it doesn't work as a move.
@@ -288,10 +288,24 @@ with the plain print first and the drawn map second:
 
 Accepted: step 3 can build on this.
 
+## Step 3 notes
+
+- `hex-water-terrain.mjs` was not ported: it is a copy of the Enhancer's own
+  `COASTAL_WATER` (tag-store.mjs), which is used directly.
+- Rivers and roads come from the tag store's `river` and `path` features,
+  beaches from terrain plus `coast` marks. `hex-art-overlays.mjs` works in
+  printed hex numbers, so none of it needs the canvas grid.
+- The pieces are in `assets/hex-overlays/` (2.9 MB). Their provenance is in
+  the same state as the unconfirmed terrain folders.
+- On the Western Reaches with a made-up river, road and derived coasts, the
+  slowest chunk render went from 11 ms to 19 ms (more sprites per chunk).
+
 ## Open decisions
 
 - **Specials:** whether the 383 numbered Western Reaches tiles are Patrick's
   renders or need replacing.
+- **Overlay pieces:** where the river, road and beach pieces in
+  `assets/hex-overlays/` came from.
 - **Sharper than zoom 1:** tiles wider than 389 px would make close zooms
   sharper. Each doubling costs about four times the tile and chunk memory.
 

@@ -14,6 +14,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { isBakedMap } from "./baked-map-core.mjs";
 import { decodeTags } from "./tag-store.mjs";
 import { readOverrides } from "./tile-sets.mjs";
+import { LAYERS } from "./hex-art-overlays.mjs";
 import { TILE_SCALE, tileRect, hexesOf, chunkRect, chunkIndex, chunksInView, chunkResolution, changedChunks } from "./hex-art-core.mjs";
 
 /** The scene flag that switches the drawn map on. */
@@ -22,6 +23,8 @@ const TAGS_FLAG = "hexTags";
 const OVERRIDE_FLAG = "hexArt";
 const MANIFEST = `modules/${MODULE_ID}/assets/hexes/manifest.json`;
 
+/** Overlay layers in draw order (beach and ice share one). */
+const OVERLAY_ORDER = [...new Set(Object.values(LAYERS))].sort((a, b) => a - b);
 /** Canvas pixels per chunk side. */
 const CHUNK = 1024;
 /** Texture pixels per canvas pixel at the finest level: zoom 1 is sharp, closer than that is not. */
@@ -176,18 +179,29 @@ function managerClass() {
       this.#working = true;
       try {
         // Every picture the queue needs starts loading now, side by side, not chunk after chunk.
-        for (const key of this.#queue) for (const num of this.#index.get(key) ?? []) this.#tile(this.#hexes.get(num).src);
+        for (const key of this.#queue) for (const src of this.#sources(this.#index.get(key) ?? [])) this.#tile(src);
         let frame = performance.now();
         while (this.#queue.length && !this.#gone) {
           const key = this.#queue.shift(), res = this.#res;
           const nums = this.#index.get(key);
           if (!nums) { const old = this.#chunks.get(key); if (old) this.#drop(key, old); continue; }
-          const tiles = new Map(await Promise.all([...new Set(nums.map(n => this.#hexes.get(n).src))].map(async src => [src, await this.#tile(src)])));
+          const tiles = new Map(await Promise.all([...this.#sources(nums)].map(async src => [src, await this.#tile(src)])));
           if (this.#gone) return;
           this.#place(key, this.#render(key, res, nums, tiles), res);
           if (performance.now() - frame > FRAME_BUDGET) { await nextFrame(); frame = performance.now(); }
         }
       } finally { this.#working = false; }
+    }
+
+    /** Every picture the hexes draw: ground and overlays. */
+    #sources(nums) {
+      const srcs = new Set();
+      for (const num of nums) {
+        const hex = this.#hexes.get(num);
+        if (hex.src) srcs.add(hex.src);
+        for (const o of hex.overlays) srcs.add(o.src);
+      }
+      return srcs;
     }
 
     /** One tile picture, shrunk to the widest a chunk ever draws it: loaded once, mipmapped for the far zooms. */
@@ -215,14 +229,27 @@ function managerClass() {
       const r = chunkRect(key, CHUNK), side = Math.ceil(CHUNK * res);
       const texture = PIXI.RenderTexture.create({ width: side, height: side });
       const stage = new PIXI.Container();
-      for (const num of nums) {
-        const hex = this.#hexes.get(num), tile = tiles.get(hex.src);
+      // The ground of every hex first, north to south, then each overlay layer over all of it: a beach or river
+      // drawn with its own hex would be covered by the trees of the hex south of it.
+      const pieces = nums.map(num => ({ hex: this.#hexes.get(num), src: this.#hexes.get(num).src, rotation: 0, mirror: false }));
+      for (const layer of OVERLAY_ORDER) {
+        for (const num of nums) {
+          const hex = this.#hexes.get(num);
+          for (const o of hex.overlays) if (o.layer === layer) pieces.push({ hex, ...o });
+        }
+      }
+      for (const { hex, src, rotation, mirror } of pieces) {
+        const tile = tiles.get(src);
         if (!tile) continue;
         const t = tileRect(hex, this.#gridSize);
         const sprite = stage.addChild(new PIXI.Sprite(tile));
-        sprite.position.set((t.x - r.x) * res, (t.y - r.y) * res);
+        // Centred on the hex, mirrored then turned about the centre, as Extras placed its pieces.
+        sprite.anchor.set(0.5);
+        sprite.position.set((hex.x - r.x) * res, (hex.y - r.y) * res);
         sprite.width = t.w * res;
         sprite.height = t.h * res;
+        if (mirror) sprite.scale.x *= -1;
+        sprite.rotation = rotation;
       }
       canvas.app.renderer.render(stage, { renderTexture: texture, clear: true });
       stage.destroy({ children: true });

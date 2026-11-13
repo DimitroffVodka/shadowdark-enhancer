@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-2825 tracked files · ~283,200 lines of code/markup across scripts+templates+styles+test.
+2926 tracked files · ~283,600 lines of code/markup across scripts+templates+styles+test.
 `v0.23.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -85,8 +85,9 @@
 | `hex-map/extras-records.mjs` | 48 | Raw readers for what Shadowdark Extras leaves in the world, never getFlag (it throws with Extras off): its stored hex records (legacy/authoring, retained for painter-feature merges and unadopted scenes) and the hex a map note pins, its flag or the Enhancer's (native: hover card, Hex Data, Jump to pin). |
 | `hex-map/geometry.mjs` | 221 | Hex numbering by cube difference from one anchor cell; printed offset ↔ cube under the map's column-shift rule. Pure. |
 | `hex-map/hex-adoption.mjs` | 186 | Read-once SDX record adoption with negative offset parsing, lossless original archives, existing-native conflict precedence, reports and automatic eligibility hooks. |
-| `hex-map/hex-art-core.mjs` | 126 | Pure layout for the drawn hex map: each hex's picture rectangle, which chunks it lands in, which chunks the view wants, chunk sharpness per zoom, and which chunks a tag change dirties. |
-| `hex-map/hex-art.mjs` | 285 | The drawn hex map (experimental, docs/plans/hex-painting.md step 2): a SceneManager that renders each tagged hex's picture into square chunk textures at the sharpness the zoom needs, keeps only chunks near the view, and re-renders just the chunks a tag or override change touches. Only on scenes the GM switches on (`hexArtDraw`), never over a baked or Extras-painted map. |
+| `hex-map/hex-art-core.mjs` | 135 | Pure layout for the drawn hex map: each hex's ground picture and overlays (`look` sums up what it shows), its picture rectangle, which chunks it lands in, which chunks the view wants, chunk sharpness per zoom, and which chunks a tag change dirties. |
+| `hex-map/hex-art-overlays.mjs` | 231 | Rivers, roads and beaches on the drawn hex map (pure, step 3 of docs/plans/hex-painting.md), ported from Shadowdark Extras (MIT, gmdima): from the tag store's river, path and coast features it works out which edges each hex's channel or shore reaches (a spanning forest so marked hexes never ring; a river dead end runs into the water ahead; sand on the water hex along its land edges, ice on arctic sea), then picks the hand-drawn piece, turn and mirror that draw them. |
+| `hex-map/hex-art.mjs` | 312 | The drawn hex map (experimental, docs/plans/hex-painting.md step 2): a SceneManager that renders each tagged hex's picture into square chunk textures at the sharpness the zoom needs, keeps only chunks near the view, and re-renders just the chunks a tag or override change touches. Only on scenes the GM switches on (`hexArtDraw`), never over a baked or Extras-painted map. |
 | `hex-map/hex-brush-app.mjs` | 262 | The hex brush: a small window that sets one terrain (a picture tile per Legend terrain) plus features, so clicking or dragging across the tag overlay retags whole patches; a stroke is one scene write and Undo puts it back. |
 | `hex-map/hex-explorer-app.mjs` | 436 | Small scene-offset GM Hexplorer editor for terrain, line/structured features, public/private notes, document links and discovery; its header wears the hex's real tile, large (the bake's sprite, else the tile the painted map draws or its saved deal names, else the numbered tile) and opens it in Foundry's image pop-out, whose share action sends it to the players; a Tile card changes the hex's tile on the painted map. |
 | `hex-map/hex-explorer.mjs` | 422 | Player-safe Hexplorer canvas hover/select observer and GM writes over authoritative terrain tags and rich offset records; preserves discovery and imported metadata. |
@@ -769,7 +770,8 @@ Other: `content-registry`, `coins`, `party-xp-core`, `session-recap-core`, `pdf-
 |---|---|
 | `assets/icons/shikashi/` | 284 `.webp` item icons + `manifest.json`. Credited in CREDITS.md. |
 | `assets/ancestries/` | 7 ancestry portraits (WebP, ≤1024 px). |
-| `assets/hexes/` | 561 hex tiles (WebP): 383 numbered keyed-hex tiles in `Specials/` and 178 terrain tiles in one folder per terrain. Moved from Shadowdark Extras' `assets/Hexes/` with the same sub-paths (Archive left behind); see docs/plans/hex-painting.md. `manifest.json` lists every file and is rewritten by `npm run hexes:manifest`; a test fails when it and the folders disagree. Nothing draws them yet. |
+| `assets/hexes/` | 561 hex tiles (WebP): 383 numbered keyed-hex tiles in `Specials/` and 178 terrain tiles in one folder per terrain. Moved from Shadowdark Extras' `assets/Hexes/` with the same sub-paths (Archive left behind); see docs/plans/hex-painting.md. `manifest.json` lists every file and is rewritten by `npm run hexes:manifest`; a test fails when it and the folders disagree. Drawn by `scripts/hex-map/hex-art.mjs` on scenes that switch the drawn map on. |
+| `assets/hex-overlays/` | 99 overlay pieces for the drawn hex map, from Shadowdark Extras: 44 river and 44 dirt-path pieces in `Paths/`, 11 beach pieces in `Coast/` (the ice-shelf pieces stay in `assets/hexes/Specials/`). `hex-art-overlays.mjs` names each by its edge set; a test fails if one it names is missing. |
 | `assets/pdf/` | Form-fillable character sheet + field map JSON. |
 | `assets/portraits/README.md` | Gallery folder usage note. |
 | `icons/game-icons/classes/` | 25 recolored game-icons.net class emblems (fill baked in). |

@@ -329,6 +329,30 @@ sub-folders.
 - The provenance of the other folders is still being confirmed. They stay on
   the experimental branch until it is.
 
+## River, road and beach pieces (`assets/hex-overlays/`)
+
+Copied unchanged from Shadowdark Extras: `Paths/` holds its 44 river and 44
+dirt-path pieces (`assets/symbols/Paths/`), and `Coast/` its 11 beach pieces
+(`assets/symbols/Coast/`). Their provenance is still being confirmed, so they
+stay on the experimental branch until it is.
+
+## Ported code (`scripts/hex-map/hex-art-overlays.mjs`)
+
+The river, road and beach rules of the drawn hex map are ported from
+[**Shadowdark Extras**](https://github.com/gmdima/shadowdark-extras): the piece
+tables and cover search of `scripts/canvas/map-network-art.mjs`, the network
+rules of `buildMapPathNetwork` in `scripts/canvas/drawing-geometry.mjs`, and the
+shore rules of `coastTileData` in `scripts/hex/HexcrawlBuilderSD.mjs`.
+**MIT licensed**, Copyright (c) 2025 gmdima. Permission is hereby granted, free
+of charge, to any person obtaining a copy of this software and associated
+documentation files (the "Software"), to deal in the Software without
+restriction, including without limitation the rights to use, copy, modify,
+merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+to permit persons to whom the Software is furnished to do so, subject to the
+following conditions: The above copyright notice and this permission notice
+shall be included in all copies or substantial portions of the Software. THE
+SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+
 ## Ported code (`scripts/time/`)
 
 - `daylightHours` in `time-core.mjs` — the solstice-to-solstice daylight

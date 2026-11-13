@@ -30,6 +30,12 @@ test("hexesOf numbers each cell from the anchor, skips untagged, off-map and unk
   assert.match(hexes.get("101").src, /Specials\/.*farm \(lush\)/i);
   assert.deepEqual([hexes.get("100").x, hexes.get("100").y], [10, 0]);
   assert.equal(hexesOf(cells, decodeTags(null), { even: false, manifest }).size, 0);
+  // A river through the forest hex changes what it shows, not its ground.
+  const withRiver = decodeTags({ ...state, origin: state.origin, cells: { 0: "forest;river|gm", 1: "forest;river|gm" } });
+  const river = hexesOf(cells, withRiver, { even: false, manifest });
+  assert.equal(river.get("0").src, hexes.get("0").src);
+  assert.notEqual(river.get("0").look, hexes.get("0").look);
+  assert.match(river.get("0").overlays[0].src, /hex-overlays\/Paths\/Hex - River /);
 });
 
 test("chunks: a rectangle lands in every chunk it touches, and an edge belongs to the next chunk only past it", () => {
@@ -66,9 +72,9 @@ test("chunkResolution halves from the finest level, never below what the screen 
 });
 
 test("changedChunks re-renders only what a change touches", () => {
-  const a = new Map([["1", { x: 50, y: 50, src: "a" }], ["2", { x: 5000, y: 5000, src: "a" }]]);
+  const a = new Map([["1", { x: 50, y: 50, look: "a" }], ["2", { x: 5000, y: 5000, look: "a" }]]);
   assert.equal(changedChunks(a, new Map(a), 10, 512).size, 0);
-  const b = new Map(a); b.set("2", { x: 5000, y: 5000, src: "b" });
+  const b = new Map(a); b.set("2", { x: 5000, y: 5000, look: "a|river" });
   assert.deepEqual([...changedChunks(a, b, 10, 512)], ["9_9"]);
   const gone = new Map(a); gone.delete("1");
   assert.deepEqual([...changedChunks(a, gone, 10, 512)], ["0_0"]);

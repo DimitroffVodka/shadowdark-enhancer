@@ -10,6 +10,7 @@
 import { cellNumber, foundryOffsetToCube, offsetToCube, originFromFlag } from "./geometry.mjs";
 import { readCell } from "./tag-store.mjs";
 import { tileFor } from "./tile-sets.mjs";
+import { overlaysOf } from "./hex-art-overlays.mjs";
 
 /**
  * A tile's size on the canvas per unit of grid size. Shadowdark Extras drew these same 932×810 pictures 572×500 on its
@@ -25,26 +26,34 @@ export function tileRect({ x, y }, gridSize) {
 }
 
 /**
- * Every hex the map draws: its published number, centre and picture. Untagged cells, cells off the numbered map and
- * terrains with no pictures draw nothing.
+ * Every hex the map draws: its published number, centre, ground picture and the rivers, roads and shore over it
+ * (hex-art-overlays.mjs). Untagged cells and cells off the numbered map draw nothing; a terrain with no pictures
+ * draws only its overlays. `look` sums up what the hex shows, so a change is one string comparison.
  * @param {{i:number, j:number, x:number, y:number}[]} cells  the scene's grid cells and their centres
  * @param {object} state  decodeTags() of the scene's tag store
  * @param {{even:boolean, manifest:object, overrides?:Map<string,string>}} opts
- * @returns {Map<string, {x:number, y:number, src:string}>} by published number
+ * @returns {Map<string, {x:number, y:number, src:string|null, overlays:object[], look:string}>} by published number
  */
 export function hexesOf(cells, state, { even, manifest, overrides }) {
   const out = new Map();
   const origin = state?.origin ? originFromFlag(state.origin) : null;
   if (!origin) return out;
   const shifted = origin.shifted ?? "odd";
+  const tagged = new Map();
   for (const { i, j, x, y } of cells) {
     const n = cellNumber(foundryOffsetToCube({ i, j }, even), origin);
     if (n.num === null) continue;
-    const terrain = readCell(state, n.num)?.terrain;
-    if (!terrain) continue;
+    const read = readCell(state, n.num);
+    if (!read?.terrain) continue;
+    tagged.set(String(n.num), { col: n.col, row: n.row, x, y, terrain: read.terrain, features: read.features });
+  }
+  const overlays = overlaysOf(tagged, shifted);
+  for (const [num, { col, row, x, y, terrain }] of tagged) {
     // The printed cube, so the deal follows the map's numbers wherever the map sits on the canvas.
-    const src = tileFor({ num: n.num, terrain, cube: offsetToCube(n.col, n.row, shifted), manifest, overrides });
-    if (src) out.set(String(n.num), { x, y, src });
+    const src = tileFor({ num, terrain, cube: offsetToCube(col, row, shifted), manifest, overrides });
+    const over = overlays.get(num) ?? [];
+    if (!src && !over.length) continue;
+    out.set(num, { x, y, src, overlays: over, look: [src, ...over.map((o) => `${o.src}@${o.rotation}${o.mirror ? "m" : ""}`)].join("|") });
   }
   return out;
 }
@@ -110,14 +119,14 @@ export function chunkResolution(screen, max) {
 
 /**
  * The chunks a change of hexes has to re-render: every chunk under a hex that appeared, went, moved or changed
- * picture, before and after.
+ * what it shows (`look`), before and after.
  */
 export function changedChunks(before, after, gridSize, size) {
   const keys = new Set();
   const touch = (hex) => { for (const key of chunksOver(tileRect(hex, gridSize), size)) keys.add(key); };
   for (const [num, a] of before) {
     const b = after.get(num);
-    if (b && b.src === a.src && b.x === a.x && b.y === a.y) continue;
+    if (b && b.look === a.look && b.x === a.x && b.y === a.y) continue;
     touch(a);
     if (b) touch(b);
   }
