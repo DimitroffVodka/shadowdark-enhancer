@@ -8,6 +8,7 @@
     "test": "node --test test/*.test.mjs",
     "lint": "eslint scripts test --max-warnings 0",
     "lint:fix": "eslint scripts test --fix",
+    "hexes:manifest": "node tools/hex-manifest.mjs",
     "inventory": "node tools/inventory/generate.mjs && node tools/build-rev.mjs",
     "inventory:check": "node tools/inventory/generate.mjs --check && node tools/build-rev.mjs --check",
     "wiki:sync": "node tools/sync-wiki.mjs",

@@ -1,0 +1,81 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+
+// Which picture a hex wears (docs/plans/hex-painting.md, step 1).
+const { HEX_ART_ROOT, TERRAIN_RULES, poolFor, pickTile, readOverrides, tileFor } = await import("../scripts/hex-map/tile-sets.mjs");
+const { scanHexArt, HEX_ART_DIR } = await import("../tools/hex-manifest.mjs");
+const { neighbours, offsetToCube } = await import("../scripts/hex-map/geometry.mjs");
+const { TERRAIN_TAGS, SETTLEMENTS } = await import("../scripts/importer/hex/hex-summary.mjs");
+
+const manifest = JSON.parse(readFileSync(new URL("manifest.json", `file://${HEX_ART_DIR}`)));
+
+test("the shipped manifest lists exactly the files in assets/hexes (run npm run hexes:manifest)", () => {
+  assert.deepEqual(manifest, scanHexArt());
+});
+
+test("every tagger terrain and settlement has pictures to draw", () => {
+  for (const terrain of [...Object.values(TERRAIN_TAGS), ...Object.values(SETTLEMENTS)]) {
+    assert.ok(poolFor(terrain, manifest).length > 0, terrain);
+  }
+});
+
+test("a pool honours its rule: include, exclude, and never a numbered keyed tile", () => {
+  const m = { folders: { Jungle: ["Hex - Jungle 1.webp", "Hex - Jungle (dark).webp"], Specials: ["657_Extinct_Volcano.webp", "Hex - Mountain, Volcano (lush) 1.webp", "camp.webp"] } };
+  assert.deepEqual(poolFor("jungle", m), ["Jungle/Hex - Jungle 1.webp"]);
+  assert.deepEqual(poolFor("volcano", m), ["Specials/Hex - Mountain, Volcano (lush) 1.webp"]);
+});
+
+test("a terrain with no rule draws from a folder of its own name; an unknown one draws nothing", () => {
+  const m = { folders: { "Lava Fields": ["a.webp"], snow: ["s.webp"] } };
+  assert.deepEqual(poolFor("Snow", m), ["snow/s.webp"]);
+  assert.deepEqual(poolFor("lava fields", m), ["Lava Fields/a.webp"]);
+  assert.deepEqual(poolFor("nonsense", m), []);
+  assert.deepEqual(poolFor("Salt Flat", { folders: { "Salt Flats": ["x.webp"] } }), ["Salt Flats/x.webp"]);
+  assert.equal(TERRAIN_RULES.salt_flat.folder, "Salt Flats");
+});
+
+test("no two touching hexes of one terrain share a picture, for any pool of three or more", () => {
+  for (let n = 3; n <= 23; n++) {
+    const pool = Array.from({ length: n }, (_, i) => `p${i}`);
+    for (const terrain of ["forest", "ocean", "snow"]) {
+      for (let col = 0; col < 30; col++) {
+        for (let row = 0; row < 30; row++) {
+          const here = pickTile(pool, offsetToCube(col, row), terrain);
+          for (const nb of neighbours(col, row)) {
+            assert.notEqual(pickTile(pool, offsetToCube(nb.col, nb.row), terrain), here, `n=${n} ${terrain} ${col},${row}`);
+          }
+        }
+      }
+    }
+  }
+});
+
+test("every picture of a pool gets used, about equally", () => {
+  const pool = Array.from({ length: 7 }, (_, i) => `p${i}`);
+  const counts = new Map();
+  for (let col = 0; col < 70; col++) for (let row = 0; row < 70; row++) {
+    const p = pickTile(pool, offsetToCube(col, row), "forest");
+    counts.set(p, (counts.get(p) ?? 0) + 1);
+  }
+  assert.equal(counts.size, 7);
+  for (const c of counts.values()) assert.ok(Math.abs(c - 700) <= 20, String(c));
+});
+
+test("the pick is the same every time and nothing about it is stored", () => {
+  const pool = poolFor("forest", manifest);
+  const cube = offsetToCube(14, 3);
+  assert.equal(pickTile(pool, cube, "forest"), pickTile([...pool], cube, "Forest"));
+  assert.equal(pickTile([], cube, "forest"), null);
+});
+
+test("overrides: only published numbers mapped to a path count, and an override wins", () => {
+  const overrides = readOverrides({ 1403: " worlds/x/own.webp ", abc: "y.webp", 1404: "", 1405: 7 });
+  assert.deepEqual([...overrides], [["1403", "worlds/x/own.webp"]]);
+  assert.deepEqual(readOverrides(null), new Map());
+  const cube = offsetToCube(14, 3);
+  assert.equal(tileFor({ num: 1403, terrain: "forest", cube, manifest, overrides }), "worlds/x/own.webp");
+  const dealt = tileFor({ num: "1404", terrain: "forest", cube, manifest, overrides });
+  assert.ok(dealt.startsWith(`${HEX_ART_ROOT}Vegetation/`), dealt);
+  assert.equal(tileFor({ num: "1404", terrain: "nonsense", cube, manifest }), null);
+});

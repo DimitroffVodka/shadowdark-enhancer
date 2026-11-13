@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-2818 tracked files · ~282,500 lines of code/markup across scripts+templates+styles+test.
+2822 tracked files · ~282,800 lines of code/markup across scripts+templates+styles+test.
 `v0.23.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -119,6 +119,7 @@
 | `hex-map/tag-corrections.mjs` | 337 | What the GM judged about the classifier, kept on the scene: per-cell corrections (was, now, margin, whether it was flagged) and wrong/judged counts per margin band, plus the scene's review margin and the report that says what it catches. Pure. |
 | `hex-map/tag-overlay.mjs` | 912 | The tag overlay: every numbered hex drawn on the map in its terrain colour (the printed legend's swatches, multiplied into a print with no Tiles, a translucent wash on a scene with Tiles or a baked map), dots for river/path/coast, an amber ring on unsure automatic cells; hover names a hex, a click edits it through the same scene-flag write. |
 | `hex-map/tag-store.mjs` | 517 | The tagger's scene-flag store: compact `terrain;feature\|source` strings (terrain is what a hex is, features what runs through it), coast derivation, sheet selection (random/keyed/review), dataset tags. Pure. |
+| `hex-map/tile-sets.mjs` | 146 | Which picture a hex wears on the drawn hex map (pure, step 1 of docs/plans/hex-painting.md). `poolFor` maps a tag-store terrain or settlement to its files in `assets/hexes/manifest.json` by the rules carried over from Shadowdark Extras (no salt-flat art in plain desert, no "(dark)" jungle, never a numbered keyed Specials tile), falling back to a folder of the terrain's own name. `pickTile` deals one by `(q + a·r) mod n`, so no two touching hexes of a pool of three or more share a picture and nothing is stored. A GM's own picture per hex (`flags.hexArt`, `readOverrides`) wins in `tileFor`. Nothing calls it yet. |
 | `hex-map/wr-keyed-art.mjs` | 285 | The hand-picked tile and centre icon for each of the Western Reaches map's 270 keyed hexes, as hex number to an Extras tile path: the Tile art default for that print until the GM loads a file of their own. Data only, no book text. |
 | `holidays/holidays.mjs` | 510 | Holidays for carousing (#191): the four City of Masks holidays (CS6 pp.46-47) as recipes (name, page, place, `when` anchor, carousing mechanics, garb questions with modifiers), no book wording; pure `whenMatches(rule, dateInfo)` / `placeMatches`, and `holidays.list()` / `today({place})`, which list a holiday once its page is imported by the Chapter-to-journal preset. importHolidays(src) files the CS6 holidays and the Player's Guide holy days (the wizard's step 3b, and fileLinkedChapters at ready for a world that imported its books earlier), one filing at a time; a GM's month view reads the pack, a player's a world-setting copy (calendarLore) that leaves out what is switched to GM only. Solar days follow the calendar's own sun table (1200-1500), so the Duke's Ball is 13 June in 1348. `currentDateInfo()` reads the core calendar, with `isLastFullMoonOfYear` from the time API's `anchor("lastFullMoon")` (#227), so Lastmoon falls. |
 | `holidays/holy-days.mjs` | 144 | The gods' holy days for the calendar (Player's Guide pp.190-205): name, god, printed page and a timing rule over the calendar's seasons and moon (a day, a stretch of a season, or a moon), no book wording; `holyOnDay` and `holyWindows` say what shows on a day or only in a month. The four with no date are left out. |
@@ -766,7 +767,7 @@ Other: `content-registry`, `coins`, `party-xp-core`, `session-recap-core`, `pdf-
 |---|---|
 | `assets/icons/shikashi/` | 284 `.webp` item icons + `manifest.json`. Credited in CREDITS.md. |
 | `assets/ancestries/` | 7 ancestry portraits (WebP, ≤1024 px). |
-| `assets/hexes/` | 561 hex tiles (WebP): 383 numbered keyed-hex tiles in `Specials/` and 178 terrain tiles in one folder per terrain. Moved from Shadowdark Extras' `assets/Hexes/` with the same sub-paths (Archive left behind); see docs/plans/hex-painting.md. Nothing reads them yet. |
+| `assets/hexes/` | 561 hex tiles (WebP): 383 numbered keyed-hex tiles in `Specials/` and 178 terrain tiles in one folder per terrain. Moved from Shadowdark Extras' `assets/Hexes/` with the same sub-paths (Archive left behind); see docs/plans/hex-painting.md. `manifest.json` lists every file and is rewritten by `npm run hexes:manifest`; a test fails when it and the folders disagree. Nothing draws them yet. |
 | `assets/pdf/` | Form-fillable character sheet + field map JSON. |
 | `assets/portraits/README.md` | Gallery folder usage note. |
 | `icons/game-icons/classes/` | 25 recolored game-icons.net class emblems (fill baked in). |
