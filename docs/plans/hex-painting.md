@@ -1,139 +1,208 @@
-# Taking hex painting over from Shadowdark Extras
+# Hex art: a clean rebuild in the Enhancer
 
 Status: proposal, 2026-11-12. Nothing here is built.
 
-This replaces one line of [hex-ownership.md](hex-ownership.md): "Stays in
-Extras: building and painting hex maps ... and dungeons." Painting and the hex
-art stayed in Extras only because Foundry's AI Content Policy covers packages
-in the official listing, and the hex art is AI-generated. The Enhancer is no
-longer headed for the listing, so the art and the painter can come here.
+This replaces the first version of this file, which moved Extras' painter
+across and adapted it. Step 2 of that plan showed it doesn't work as a move.
+Extras' painter is tied into its tray UI, dungeon painter, Dungeondraft packs,
+tooltip and generators. The map builder alone pulls in 25,097 lines through
+one import. Patrick doesn't want that system back: the UI is clunky and
+cluttered. So the structure is rebuilt, and the few pieces of Extras that hold
+real, hard-won knowledge are kept.
 
-Dungeons are a separate plan (see "Not in this plan").
+It still replaces the line of [hex-ownership.md](hex-ownership.md) that left
+painting and hex art in Extras. Those stayed there only because of Foundry's
+AI Content Policy for listed packages, which no longer applies.
 
-## Where things stand
+## The idea: the hex data is the map
 
-The Enhancer already owns hex play: the tagger, keyed hex pages, pins, fog
-(`hex-fog*.mjs`), the coordinate overlay, the explorer and the keyed art for
-the Western Reaches (`wr-keyed-art.mjs`). It cannot put a single tile on a
-map without Extras. These are the calls it still makes into Extras' hex API:
+Extras paints by creating one Foundry Tile per hex: hundreds of documents on
+a small map, thousands on a large one. Every change is a repaint that edits
+those Tiles, and around that sit clamping, sort order, texture residency, a
+separate bake, and a record store in a hidden journal.
 
-| Call | Where | What for |
+The Enhancer already stores what every hex is, in the tag store
+(`flags.shadowdark-enhancer.hexTags`, `tag-store.mjs`): a terrain and its
+features (river, path, coast). So it doesn't paint. **It draws the art from
+that data.**
+
+- Each hex wears a picture from its terrain's tile set. The variant is picked
+  from the hex number, so the same map always looks the same and nothing
+  needs storing.
+- Rivers, roads and coasts are drawn over the ground from the features.
+- A keyed hex wears its own art, from the resolver that already exists
+  (`keyed-art.mjs`).
+- Change a hex's terrain with the hex brush or in the Hex Data window, and it
+  redraws. There is no paint step and no Tile documents.
+- A new picture dropped into a terrain's folder joins that terrain's set with
+  no code change.
+
+The cost: the art shows only while the Enhancer is active. A Tile outlives its
+module; a drawn layer doesn't. The bake (step 7) covers that. It writes plain
+images that keep showing, and can export one picture of the whole map.
+
+## What the Enhancer already has
+
+| Piece | File | Role in the rebuild |
 |---|---|---|
-| `getTilePool`, `repaintHexTiles` | `hex-map/hex-tile-chooser.mjs` | Pick and set one hex's tile |
-| `buildHexcrawl` | `importer/hex/hex-handoff.mjs` | Paint a new map from the dataset |
-| `adoptHexcrawl`, `upsertHexRecords` | `importer/hex/hex-handoff.mjs` | Take over an existing scene, write hex records |
-| `bakeMap` | `hex-map/bake-map.mjs` | Bake a painted map for play |
-| `getZoneColors` | `hex-map/tag-overlay.mjs` | Zone colours, with a local fallback |
+| What every hex is | `tag-store.mjs` | The only input. Unchanged |
+| Hex maths (offsets, cubes, numbers, neighbours, bounds) | `geometry.mjs` | Layout of every drawn hex |
+| Editing hexes in patches | `hex-brush-app.mjs` | Becomes the hand-painting tool for free |
+| Keyed hex art by number | `keyed-art.mjs`, `wr-keyed-art.mjs` | Art for keyed hexes |
+| Drawing on the canvas, piece by piece, with zoom levels | `baked-map.mjs` (`SceneManager`, `PrimaryCanvasContainer`) | The pattern the new drawer follows |
+| Fog that hides hexes and keyed sprites | `hex-fog*.mjs` | Unchanged; drawn keyed art hides the way baked sprites do |
+| Reading an Extras map's hex data | `hex-adoption.mjs`, `extras-records.mjs` | Brings old maps over (step 6) |
+| Window design rules | `docs/design-contract.md` | Every control the rebuild adds follows it |
 
-`wr-keyed-art.mjs` also names tile files by Extras' path
-(`assets/Hexes/Specials/NNN_Name.webp`).
+## What comes from Extras
+
+Kept, adapted and put under test. These four files import nothing and barely
+touch Foundry. They hold the logic that took the longest to get right.
+
+| Extras file | Lines | What it knows |
+|---|---|---|
+| `canvas/drawing-geometry.mjs` | 692 | Building the river and road network across hexes |
+| `canvas/map-network-art.mjs` | 300 | Where coast and beach art goes |
+| `hex/hex-bake-core.mjs` | 244 | Cutting a map into the image pyramid the Enhancer already draws |
+| `hex/hex-water-terrain.mjs` | 89 | Which terrains count as water or arctic |
+
+Two smaller things come as knowledge, not as code:
+
+- **The terrain-to-tile-set map** (`BIOME_TILES` / `TERRAIN_BIOMES`, and the
+  settlement rules `FEATURE_COLORED_RULES`) in `HexcrawlBuilderSD.mjs`.
+- **Texture residency** (#178, `hex-art-residency.mjs`): the 400 ms freeze
+  when PIXI unloaded hundreds of map textures at once. The drawer is built so
+  this can't happen (see "Drawing").
+
+**License.** Extras is a fork of gmdima/shadowdark-extras, MIT licensed
+(© 2025 gmdima). Its `LICENSE.txt` (AGPL-3.0, added in the commit "hexroll
+licence") covers the Hexroll data in the generators, none of which comes here.
+Ported code gets gmdima's MIT notice in CREDITS.md, the way the Calendaria
+code is credited.
+
+**Left behind:** the tray and painter UI, Tile-per-hex painting and repaint,
+the journal record store, the tooltip, decor, Dungeondraft packs, POI
+preview/history, Solo Hex Mode, Hexer import, the noise-map generator and all
+dungeon and settlement generators. Extras keeps all of it for people who run
+Extras alone.
+
+## Design
+
+### Data
+
+- **Input:** the tag store, nothing else.
+- **Tile sets:** a manifest, `assets/hexes/manifest.json`, maps each terrain
+  in the tagger's vocabulary (hex-map-dataset.md §3.2) to a folder and lists
+  its files. A script regenerates it from the folders, so adding art means
+  adding files and running the script. Settlement features map to Specials
+  tiles the way Extras' rules do.
+- **Variant pick:** a stable hash of (hex number, terrain) chooses a file
+  from the terrain's set. Pure, tested, never stored.
+- **Overrides:** a GM who wants a particular picture on a hex sets one. It is
+  kept in `flags.shadowdark-enhancer.hexArt` as `{ "1403": "<path>" }`, one
+  write per change. This replaces the Extras calls in
+  `hex-tile-chooser.mjs`.
+
+### Drawing
+
+The tiles are 932×810 pixels. The Western Reaches is 64×75, about 4,800
+hexes. Drawn at full size, that's gigabytes of GPU memory, so the drawer
+never does that:
+
+- The map is split into chunks of hexes. Each chunk is rendered once into its
+  own texture, at the resolution the zoom needs, and only chunks on screen
+  are kept. The same idea as `baked-map.mjs`'s pyramid, built live.
+- Tile pictures are drawn from a reduced copy (a quarter size, 233×203, made
+  once per picture when it is first needed). Full size is used only by the
+  bake.
+- After a chunk is rendered, the drawer holds the chunk texture, not the
+  hundreds of tile textures that went into it. That makes the #178 freeze
+  impossible by design.
+- A tag change redraws only the chunks holding the changed hexes.
+- One drawer per scene: if a scene holds a bake, Extras' painted Tiles, or an
+  Extras bake that another module draws, the Enhancer doesn't draw over it.
+  It is never drawn twice.
+
+The numbers are checked on the Western Reaches in step 2 before anything else
+is built on top: frame time while panning, GPU memory, and the time from a
+brush stroke to the redraw.
+
+### Overlays
+
+Rivers and roads come from `drawing-geometry`, coasts from `map-network-art`,
+drawn into the same chunks above the ground. Keyed hex art is drawn as
+separate sprites, so the fog can hide a location exactly as it hides a baked
+keyed sprite today.
+
+### Editing
+
+There is no paint button and no tray. The hex brush and the Hex Data window
+change tags, and the map follows. The Hex Data window gains the per-hex
+picture override.
+
+### Bake
+
+The bake is optional, for two jobs:
+
+1. Play on very large maps without live drawing: `hex-bake-core` writes the
+   pyramid into the world's folder under Enhancer flags, and `baked-map.mjs`
+   draws it.
+2. Export the whole map as one image that works without the Enhancer.
+
+It replaces the call to Extras' `bakeMap` in `bake-map.mjs`.
+
+### Old maps
+
+A map Extras painted keeps its Tiles and keeps working while Extras is
+installed. "Draw with the Enhancer" in the Hex Data window:
+
+1. adopts the map's hex data (`hex-adoption.mjs`, already built)
+2. hides Extras' painted Tiles with a flag, which can be undone, without
+   deleting them
+3. draws the map from the tags
+
+Turning it back off shows the Tiles again. Nothing of Extras' is ever
+written or deleted. Extras bakes keep being drawn by `baked-map.mjs` as
+today.
+
+### New maps
+
+The importer's hex flow stops handing the dataset to Extras' `buildHexcrawl`.
+It makes the scene (background, grid, tags) itself, and the drawer does the
+rest. `hex-handoff.mjs`'s Extras calls (`buildHexcrawl`, `adoptHexcrawl`,
+`upsertHexRecords`) go once step 6 works.
 
 ## The art
 
-`shadowdark-extras/assets/Hexes`: 631 files, 28 MB, all WebP. Some tiles are
-Patrick's own renders: the seed and batch numbers are still in the original
-names (see `Archive/RENAME-MAP-*.json`), for example the `lora` canyons and
-the `gen` salt flats. Not all of them are, though. `Water/` is 2-Minute
-Tabletop (CC BY-NC 4.0) and the other `Water-*` folders are colour adaptations
-of it (see CREDITS.md). Several terrain folders also use 2-Minute Tabletop's
-`Hex - <Terrain> (<variant>)` naming, so their origin needs confirming before
-the branch merges.
+The 561 files copied into `assets/hexes/` (commit 4592479a) are a starting
+point, not the final set.
 
-| Folder | Files |
-|---|---|
-| Specials (numbered keyed-hex tiles, `NNN_Name.webp`) | 383 |
-| Terrain folders (Snow, Vegetation, Salt Flats, Autumn, Swamp, Badlands, Water x4, Mountains, Desert, Canyons, Lava Fields, Jungle) | 178 |
-| Archive (unreferenced, see its MANIFEST) | 70 |
-
-The Archive does not move.
-
-**Where it ships (decided 2026-11-12): inside the Enhancer**, at
-`assets/hexes/` with the same sub-paths as Extras' `assets/Hexes/` so the
-path migration is a prefix swap. The painter always has its art; there is
-no second module to install or keep in step.
-
-The cost is size. The Enhancer's release zip is 55.5 MB and this adds about
-23 MB (WebP, so the zip barely compresses it). Extras' 101.9 MB zip already hits The Forge's 30-second setup timeout,
-so the Enhancer gets closer to that line with every AI set. Each art PR
-states the zip size before and after, and a set that pushes the zip past
-90 MB is re-encoded or trimmed before it ships.
-
-## Scope
-
-Lines are Extras' `scripts/hex/` today.
-
-| Extras code | Lines | Plan |
-|---|---|---|
-| Tile pool and painting: `HexPainterSD`, `hex-paint-session`, `hex-tile-selection`, `hex-colored-tiles`, `hex-custom-tiles`, `hex-special-tiles`, `hex-tile-clamp`, `hex-tile-labels`, `hex-water-terrain`, `hex-scene-format`, `hex-decor`, `hex-art-residency`, `hex-map-effects` | ~2,850 | **Move.** Reads `assets/hexes/` |
-| Map building: `HexcrawlBuilderSD` (`buildHexcrawl`, `adoptHexcrawl`, `upsertHexRecords`, `getTilePool`), `hex-record-prune` | ~1,680 | **Move.** `hex-handoff.mjs` calls it in-process; the dataset contract stays as written in hex-map-dataset.md |
-| Bake: `hex-bake`, `hex-bake-core`, `hex-bake-worker.js`, `hex-baked-scene` | ~935 | **Move**, and merge with the Enhancer's `bake-map.mjs` / `baked-map*.mjs` so one bake exists |
-| Zone colours (`getZoneColors`) | small | **Move**; the fallback in `tag-overlay.mjs` becomes the only copy |
-| Already replaced here: `SDXCoordsSD`, `SDXCoordsSettingsSD`, `SDXHexFogSD`, `hex-visibility`, `HexTooltipSD` | ~4,400 | **Nothing to move** |
-| Generators: `HexGeneratorSD` (noise map), `HexContentGenerator`, `SettlementGenerator`, `HexDungeonBridgeSD`, `ContentRegistry` | ~2,900 | **Not here.** They belong to the generator plan |
-| `SoloHexMode`, `HexerImporterSD`/`hexer-data`, `hex-poi-preview`/`hex-poi-history` | ~1,200 | **Decide** (see "Open decisions") |
-
-About 5,500 lines move.
-
-**Move and adapt, not rebuild (decided 2026-11-12).** hex-ownership.md
-rebuilds play features because Patrick wanted them to work differently. The
-painter should work exactly as it does: existing maps must repaint and bake
-the same after the move, and Extras' fixes (the zoom-out freeze #178, the
-coast and beach rules, tile clamping) must stay fixed. A rebuild would have
-to reproduce all of that, taking weeks for the same result. Each file is
-adapted on the way in, not pasted: module ID and flag namespace, the
-Enhancer's settings and i18n, AppV2 where a window is still AppV1, and tests
-for the pure parts in the Node harness. Anything that reads badly gets
-cleaned up later, one piece at a time, once it is here and under test.
-
-Before step 2, check where Extras was forked from. Any painter code that
-came from that project carries its license, and an MIT notice, for example,
-has to travel with the code.
-
-## Flags and existing maps
-
-A painted Tile carries `flags.shadowdark-extras.painted` and points at
-`modules/shadowdark-extras/assets/Hexes/...`. Worlds are full of these.
-
-- **Reading.** The Enhancer's painter treats a Tile as painted when either
-  module's flag says so (`holdsTiles` in `hex-tile-chooser.mjs` already reads
-  Extras' flag). New Tiles get the Enhancer's flag.
-- **Paths.** A migration, once per world on the active GM's first load,
-  rewrites a Tile's texture from `modules/shadowdark-extras/assets/Hexes/` to
-  `modules/shadowdark-enhancer/assets/hexes/` only when the Enhancer holds a
-  file of the same relative name.
-  Nothing else on the Tile changes. It is safe to run again and is logged to
-  the console with a count per scene. Without this, a world that later turns
-  Extras off loses every tile.
-- **Manifests.** `wr-keyed-art.mjs` and any GM-loaded assignment file are
-  read with either prefix, so an old manifest keeps working.
-- Extras' own flags are read, never written, as hex-ownership.md already
-  requires.
+- **Keep:** Patrick's own renders, whose seed and batch numbers are still in
+  the original names (`Archive/RENAME-MAP-*.json` in Extras), such as the
+  `lora` canyons and the `gen` salt flats.
+- **Keep, credited:** `Water/` from 2-Minute Tabletop (CC BY-NC 4.0) and its
+  colour adaptations in `Water-*`. Already in CREDITS.md.
+- **Unconfirmed:** several terrain folders use 2-Minute Tabletop's
+  `Hex - <Terrain> (<variant>)` naming (Badlands, Desert, snow, swamp,
+  Vegetation, Mountains), and the 383 numbered Specials are unchecked.
+  Anything not confirmed is replaced with new AI sets rather than traced.
+- **New sets:** made offline with the same pipeline, at 932×810, named
+  `Hex - <Terrain> <n>.webp` in the terrain's folder. Each set is checked on
+  a real map at play zoom before it ships, because a tile that looks fine
+  alone can repeat badly across 200 hexes.
+- **Size:** each art commit states the release zip before and after.
+  Currently 52.9 MiB on master, 73.3 MiB with the 561 files. The ceiling is
+  90 MiB.
 
 ## Living alongside Extras
 
-The rules in hex-ownership.md hold:
-
-- Extras keeps its painter and its art for people who run Extras alone.
-- With both active, the Enhancer's painter runs. Extras hides its painter
-  controls when `game.shadowdarkEnhancer.hexPainting` is there. That needs one
-  Extras issue: the contract, an acceptance check and a not-needed list.
-- `module.json` raises the recommended Extras version in the same release.
-- The Enhancer still stands on its own: with Extras absent, everything here
-  works.
-
-## AI art from here on
-
-New tile sets come from the same rendering pipeline and land in
-`assets/hexes/` under the existing naming: `Hex - <Terrain> <n>.webp` in the terrain's
-folder, numbered keyed tiles as `NNN_Name.webp` in Specials. The tile pool
-scans the folders (`loadColoredTileAssets`) but caches the catalogue per
-world, so a new file only appears after a rescan. The moved pool rescans when
-the Enhancer's version differs from the one the cache was built from.
-
-First additions, in order of what maps lack today: more Jungle (6) and Lava
-Fields (8), then terrains with no folder yet. Each set is checked on a real
-map at play zoom before it ships, because a tile that looks fine alone can
-repeat badly across 200 hexes.
+- Extras keeps its painter and art for people who run it alone.
+- With both active, each scene has one drawer (see "Drawing"). An Extras
+  painted map is Extras' until the GM chooses "Draw with the Enhancer".
+- Extras needs no change for this to work. An issue asking Extras to step
+  aside comes later, only if the two get in each other's way in practice.
+- The Enhancer still stands on its own: everything here works with Extras
+  absent.
 
 ## Branch
 
@@ -141,48 +210,51 @@ All of this lives on `experimental/hex-painting`, cut from `master` at
 `fd4e6369` (v0.23.1) on 2026-11-12. The release date is open and this is a
 big release.
 
-- No PR per step (decided 2026-11-12, after PR 584). Each step is committed
-  straight to `experimental/hex-painting`, one or more commits per step, with
-  `npm test` and `npm run inventory:check` passing before each push. Review
-  happens once, on the PR from the branch into `master`, as an independent
-  review, since it will be large.
+- No PR per step. Each step is committed straight to the branch, one or more
+  small commits per step, with `npm test` and `npm run inventory:check`
+  passing before each push. Review happens once, on the PR from the branch
+  into `master`, as an independent review.
 - `master` keeps taking small fixes and releases as usual.
 - Merge `master` into the branch often and in small steps, then run the tests
   and `npm run inventory:check`. A large late merge is how PR 567 silently
   dropped the Custom calendar's init call.
 - When it is ready: one PR from the branch into `master`, then a minor
   release.
-- Extras steps aside (step 6) only after that Enhancer release is out, or
-  Extras users with an older Enhancer would have no painter at all.
+- The branch does not merge until the art provenance above is settled.
 
 ## Order
 
-1. **Art.** 561 live files into `assets/hexes/`, no Archive. Run
-   `npm run inventory`; note the zip size before and after.
-2. **Tile pool and painter.** `getTilePool`/`repaintHexTiles` become local and
-   `hex-tile-chooser.mjs` stops needing Extras.
-3. **Map building.** `buildHexcrawl`/`adoptHexcrawl`/`upsertHexRecords` move;
-   `hex-handoff.mjs` calls them in-process.
-4. **Bake.** One bake. `bake-map.mjs` stops calling `api.bakeMap`.
-5. **Path migration and zone colours.** After this, `extras-records.mjs` and
-   `extrasHexApi` have no hex callers left; delete what has none.
-6. **Extras steps aside** (the Extras issue, then its release).
-7. **New AI tile sets.**
+1. **Tile sets.** Manifest, its generator script, the terrain map, the
+   variant pick and the override flag. Pure, with tests.
+2. **Drawer.** Ground only, from tags, in chunks, live redraw on tag change.
+   Measure on the Western Reaches. Nothing else starts until the numbers are
+   acceptable.
+3. **Overlays.** Port `drawing-geometry`, `map-network-art` and
+   `hex-water-terrain`, with tests and the CREDITS.md entry. Draw rivers,
+   roads and coasts.
+4. **Keyed art and fog.** Keyed hexes as sprites the fog hides.
+5. **Per-hex override** in the Hex Data window. `hex-tile-chooser.mjs` stops
+   calling Extras.
+6. **Old and new maps.** "Draw with the Enhancer" for Extras maps; the
+   importer builds its own scenes; the handoff's Extras calls go.
+7. **Bake.** Port `hex-bake-core`, write Enhancer flags, export one image.
+   `bake-map.mjs` stops calling Extras.
+8. **Art pass.** Trim `assets/hexes/` to the confirmed set, add new AI sets,
+   and update CREDITS.md and FILE-INVENTORY.
 
 ## Open decisions
 
-- **Solo Hex Mode, Hexer import, POI preview/history:** move with the
-  painter, move later, or leave in Extras.
+- **Specials:** whether the 383 numbered Western Reaches tiles are Patrick's
+  renders or need replacing.
+- **Chunk size and reduced tile size:** set by the step 2 measurements, not
+  in advance.
 
 ## Not in this plan
 
 - **One site and dungeon generator.** Extras has the noise map generator, the
-  content generator, settlements, the hex-to-dungeon bridge
-  (`buildHexDungeonScene`: scene, journal and numbered room pins from a hex),
-  the dungeon layout generator, caves, multi-level, reskin and the painter.
-  The next plan picks one in-Foundry path, from a keyed hex to a playable
-  site, and retires or merges the rest. Adventure Studio stays a desktop tool:
-  its exported sites can ship as ready-made content the generator offers
-  alongside a fresh roll.
-- **AI calls at runtime** (text or images generated in Foundry). Nothing here
-  needs them; the art is made offline.
+  content generator, settlements, the hex-to-dungeon bridge, the dungeon
+  layout generator, caves, multi-level and reskin. A later plan picks one
+  in-Foundry path from a keyed hex to a playable site. Adventure Studio stays
+  a desktop tool whose exported sites can ship as ready-made content.
+- **AI at runtime** (text or images generated inside Foundry). The art is
+  made offline.
