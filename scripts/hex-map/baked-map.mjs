@@ -188,10 +188,21 @@ function refresh() {
     mesh.visible = view.visible;
     mesh.alpha = view.alpha;
   }
-  // A location the party has just reached. The first pass of a canvas only says what was already known.
+  known = announceFinds(scene, known, seenNow);
+}
+
+/**
+ * Announce the locations this client sees now and didn't before: a party has just reached them. The first pass of
+ * a canvas (`known` null) only says what was already known, and more than MAX_FINDS at once is a reveal, not a find.
+ * Shared with the drawn hex map (hex-art.mjs).
+ * @param {Set<string>|null} known  what was seen at the last pass
+ * @param {Map<string, {i:number, j:number}>} seenNow  what is seen now, with each one's offset
+ * @returns {Set<string>} the new `known`
+ */
+export function announceFinds(scene, known, seenNow) {
   const found = known ? [...seenNow].filter(([key]) => !known.has(key)).map(([, offset]) => offset) : [];
-  known = new Set(seenNow.keys());
   if (found.length && found.length <= MAX_FINDS) announce(scene, found);
+  return new Set(seenNow.keys());
 }
 
 /**

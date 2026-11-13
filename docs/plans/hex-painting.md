@@ -1,6 +1,6 @@
 # Hex art: a clean rebuild in the Enhancer
 
-Status: in progress on `experimental/hex-painting`. Steps 1 to 3 are built.
+Status: in progress on `experimental/hex-painting`. Steps 1 to 4 are built.
 
 This replaces the first version of this file, which moved Extras' painter
 across and adapted it. Step 2 of that plan showed it doesn't work as a move.
@@ -268,7 +268,8 @@ big release.
    `hex-water-terrain`, with tests and the CREDITS.md entry. Draw rivers,
    roads and coasts.
 4. **Keyed art and fog.** Keyed hexes as sprites the fog hides.
-5. **Per-hex override** in the Hex Data window. `hex-tile-chooser.mjs` stops
+5. **Per-hex override** in the Hex Data window, written into the `hexArt`
+   flag's existing `{ art, icon }` shape. `hex-tile-chooser.mjs` stops
    calling Extras. Off-map numbers refused on the way in, and tags stranded
    by an edge change listed for removal (see "No more grid errors").
 6. **Old and new maps.** "Draw with the Enhancer" for Extras maps; the
@@ -336,6 +337,39 @@ Accepted: step 3 can build on this.
   the same state as the unconfirmed terrain folders.
 - On the Western Reaches with a made-up river, road and derived coasts, the
   slowest chunk render went from 11 ms to 19 ms (more sprites per chunk).
+
+## Step 4 notes
+
+- A keyed hex's picture comes from `artAssignments` (keyed-art.mjs): the
+  GM's own `hexArt` flag, else the Western Reaches table. A path into Extras'
+  folder is pointed at the Enhancer's copy in `assets/hexes/` when it ships
+  one (all 270 Western Reaches pictures do), so keyed art draws without
+  Extras.
+- The picture is drawn into its chunk straight over the hex's ground, not as
+  a separate clipped sprite as on a baked map, so the hex south of it still
+  overlaps it like any other hex. It replaces its hex's rivers and roads.
+- Chunks are per client, so the fog decides per client: a player sees the
+  picture once the hex's locations are disclosed, the GM always, at half
+  strength until then (`keyedSpriteView`, shared with baked-map.mjs). A fog
+  change re-renders only the chunks under keyed hexes whose answer changed.
+  The "found something" announcement is shared with baked-map.mjs
+  (`announceFinds`).
+- A hex tagged `keyed_location` gets its ground from what most of its tagged
+  neighbours are, water included, so a player who hasn't found it sees
+  ordinary country or sea.
+- Settlement tags still draw their generic settlement picture to everyone,
+  found or not.
+- Step 1's override read the `hexArt` flag as `{ num: "path" }`, but that
+  flag already held the GM's keyed-art manifest as `{ num: { art, icon } }`.
+  The string reader is gone; step 5's per-hex override writes the existing
+  shape.
+- Not drawn yet: a manifest entry's `icon` (3 of the 270 Western Reaches
+  entries have one; they show their base picture only).
+- Checked live on the Western Reaches: all 270 tagged hexes draw (before
+  this step the keyed-location ones drew nothing). In Player view a keyed hex
+  showed only the print until its location was marked found. Then its
+  picture appeared, 2 chunks re-rendered, and "The party found something:
+  Bear-Man" showed. Done in memory only, nothing saved.
 
 ## Open decisions
 

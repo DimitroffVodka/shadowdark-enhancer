@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 // The drawn hex map's layout (docs/plans/hex-painting.md, step 2).
-const { TILE_SCALE, tileRect, hexesOf, chunkRect, chunksOver, chunkIndex, chunksInView, chunkResolution, changedChunks } = await import("../scripts/hex-map/hex-art-core.mjs");
+const { TILE_SCALE, tileRect, hexesOf, piecesOf, ownCopy, chunkRect, chunksOver, chunkIndex, chunksInView, chunkResolution, changedChunks } = await import("../scripts/hex-map/hex-art-core.mjs");
 const { decodeTags } = await import("../scripts/hex-map/tag-store.mjs");
 const { HEX_ART_ROOT } = await import("../scripts/hex-map/tile-sets.mjs");
 
@@ -15,7 +15,7 @@ test("a picture is centred on its hex at Extras' size", () => {
   assert.equal(TILE_SCALE.w * 174, tileRect({ x: 0, y: 0 }, 174).w);
 });
 
-test("hexesOf numbers each cell from the anchor, skips untagged, off-map and unknown terrain, and honours overrides", () => {
+test("hexesOf numbers each cell from the anchor, skips untagged, off-map and unknown terrain, and carries keyed art", () => {
   // Anchor: Foundry offset i=0, j=0 is printed hex 0000; a 3×3 map.
   const state = decodeTags({
     origin: { i: 0, j: 0, q: 0, r: 0, num: "0000", shifted: "odd", bounds: { cols: 3, rows: 3 } },
@@ -23,10 +23,14 @@ test("hexesOf numbers each cell from the anchor, skips untagged, off-map and unk
   });
   const cells = [];
   for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) cells.push({ i, j, x: j * 10, y: i * 10 });
-  const hexes = hexesOf(cells, state, { even: false, manifest, overrides: new Map([["100", "worlds/w/sea.webp"]]) });
+  const hexes = hexesOf(cells, state, { even: false, manifest, keyed: { 100: { art: "worlds/w/sea.webp" } } });
   assert.deepEqual([...hexes.keys()].sort(), ["0", "100", "101"]);
   assert.ok(hexes.get("0").src.startsWith(`${HEX_ART_ROOT}Vegetation/`));
-  assert.equal(hexes.get("100").src, "worlds/w/sea.webp");
+  // A keyed picture sits over the hex's own ground, never in its place: the fog may hide it.
+  assert.equal(hexes.get("100").keyed, "worlds/w/sea.webp");
+  assert.ok(hexes.get("100").src.startsWith(`${HEX_ART_ROOT}Water`), hexes.get("100").src);
+  assert.equal(hexes.get("0").keyed, null);
+  assert.deepEqual([hexes.get("100").i, hexes.get("100").j], [0, 1]);
   assert.match(hexes.get("101").src, /Specials\/.*farm \(lush\)/i);
   assert.deepEqual([hexes.get("100").x, hexes.get("100").y], [10, 0]);
   assert.equal(hexesOf(cells, decodeTags(null), { even: false, manifest }).size, 0);
@@ -46,6 +50,45 @@ test("a map numbered from 0001, which Extras' grid cannot express, draws every t
   const grid = [];
   for (let i = 0; i < 20; i++) for (let j = 0; j < 20; j++) grid.push({ i, j, x: j, y: i });
   assert.equal(hexesOf(grid, state, { even: false, manifest }).size, 154);
+});
+
+test("a keyed location's ground is what most of its neighbours are, water included", () => {
+  const cells = [];
+  for (let i = 0; i < 6; i++) for (let j = 0; j < 6; j++) cells.push({ i, j, x: j * 10, y: i * 10 });
+  const origin = { i: 0, j: 0, q: 0, r: 0, num: "0000", shifted: "odd" };
+  const at = (tags) => hexesOf(cells, decodeTags({ origin, cells: tags }), { even: false, manifest }).get("202");
+  // 2,2's neighbours on an odd-shifted map: 3,2 3,1 2,1 1,1 1,2 2,3.
+  const sea = at({ 202: "keyed_location|gm", 302: "ocean|gm", 301: "ocean|gm", 201: "ocean|gm", 101: "forest|gm", 203: "village|gm" });
+  assert.ok(sea.src.startsWith(`${HEX_ART_ROOT}Water`), sea.src);
+  const wood = at({ 202: "keyed_location|gm", 301: "forest|gm", 201: "forest|gm", 101: "ocean|gm" });
+  assert.ok(wood.src.startsWith(`${HEX_ART_ROOT}Vegetation/`), wood.src);
+  // Nothing around it says: no ground, and with no picture of its own it draws nothing.
+  assert.equal(at({ 202: "keyed_location|gm" }), undefined);
+});
+
+test("ownCopy points Extras' picture at the Enhancer's copy, and leaves any other path alone", () => {
+  const file = manifest.folders.Specials.find((f) => /^\d+_/.test(f));
+  assert.equal(ownCopy(`modules/shadowdark-extras/assets/Hexes/Specials/${file}`, manifest), `${HEX_ART_ROOT}Specials/${file}`);
+  assert.equal(ownCopy("modules/shadowdark-extras/assets/Hexes/Specials/not-shipped.webp", manifest), "modules/shadowdark-extras/assets/Hexes/Specials/not-shipped.webp");
+  assert.equal(ownCopy("worlds/w/own.webp", manifest), "worlds/w/own.webp");
+  assert.equal(ownCopy(undefined, manifest), null);
+});
+
+test("piecesOf: ground north to south, a shown keyed picture straight over its ground in place of its overlays, then overlays", () => {
+  const river = { src: "river.webp", rotation: 1, mirror: true, layer: 2 };
+  const beach = { src: "beach.webp", rotation: 0, mirror: false, layer: 1 };
+  const hexes = new Map([
+    ["1", { src: "a.webp", keyed: "k.webp", overlays: [river] }],
+    ["2", { src: "b.webp", keyed: null, overlays: [river, beach] }],
+  ]);
+  const order = (shown) => piecesOf(["1", "2"], hexes, shown).map((p) => `${p.src}${p.alpha === 1 ? "" : `@${p.alpha}`}`);
+  // Hidden by the fog: the hex looks like its ground, overlays and all.
+  assert.deepEqual(order(new Map()), ["a.webp", "b.webp", "beach.webp", "river.webp", "river.webp"]);
+  // Found: the picture covers its own river, and the next hex south still draws over it.
+  assert.deepEqual(order(new Map([["1", 1]])), ["a.webp", "k.webp", "b.webp", "beach.webp", "river.webp"]);
+  // The GM before the players find it: faded.
+  assert.deepEqual(order(new Map([["1", 0.5]])), ["a.webp", "k.webp@0.5", "b.webp", "beach.webp", "river.webp"]);
+  assert.equal(piecesOf(["2"], hexes)[2].mirror, true);
 });
 
 test("chunks: a rectangle lands in every chunk it touches, and an edge belongs to the next chunk only past it", () => {

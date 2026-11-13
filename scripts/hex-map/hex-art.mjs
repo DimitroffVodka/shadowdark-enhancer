@@ -9,22 +9,26 @@
  *
  * A scene is drawn only when the GM switches it on (the `hexArtDraw` flag) and nothing else draws it: a v14 scene has
  * one manager slot, a baked map takes it first (baked-map.mjs), and a scene Extras painted keeps its Tiles.
+ *
+ * A keyed hex's own picture (keyed-art.mjs) is drawn into its chunk over its ground, per client: a player sees it once
+ * the fog discloses the hex's locations, the GM always, faded until then, as baked-map.mjs shows its keyed sprites.
  */
 import { MODULE_ID } from "../shared/module-id.mjs";
-import { isBakedMap } from "./baked-map-core.mjs";
+import { isBakedMap, keyedSpriteView } from "./baked-map-core.mjs";
+import { announceFinds } from "./baked-map.mjs";
 import { decodeTags } from "./tag-store.mjs";
-import { readOverrides } from "./tile-sets.mjs";
-import { LAYERS } from "./hex-art-overlays.mjs";
-import { TILE_SCALE, tileRect, hexesOf, chunkRect, chunkIndex, chunksInView, chunkResolution, changedChunks } from "./hex-art-core.mjs";
+import { ART_FLAG, artAssignments } from "./keyed-art.mjs";
+import { hexDisclosure, ownsHexFog, fogHiddenOn, playerViewOn } from "./hex-fog.mjs";
+import { readPass } from "./hex-records.mjs";
+import {
+  TILE_SCALE, tileRect, hexesOf, piecesOf, chunkRect, chunksOver, chunkIndex, chunksInView, chunkResolution, changedChunks,
+} from "./hex-art-core.mjs";
 
 /** The scene flag that switches the drawn map on. */
 export const DRAW_FLAG = "hexArtDraw";
 const TAGS_FLAG = "hexTags";
-const OVERRIDE_FLAG = "hexArt";
 const MANIFEST = `modules/${MODULE_ID}/assets/hexes/manifest.json`;
 
-/** Overlay layers in draw order (beach and ice share one). */
-const OVERLAY_ORDER = [...new Set(Object.values(LAYERS))].sort((a, b) => a - b);
 /** Canvas pixels per chunk side. */
 const CHUNK = 1024;
 /** Texture pixels per canvas pixel at the finest level: zoom 1 is sharp, closer than that is not. */
@@ -74,6 +78,10 @@ function managerClass() {
     /** Shrunk tile pictures: src → Promise<PIXI.Texture|null>. */
     #tiles = new Map();
     #dirty = new Set();
+    /** Keyed hex → the alpha its picture shows at on this client (absent: hidden by the fog). */
+    #shown = new Map();
+    /** Keyed hexes this client has seen, for announcing a find. Null until the first fog pass. */
+    #known = null;
     #queue = [];
     #res = MAX_RES;
     #working = false;
@@ -88,6 +96,7 @@ function managerClass() {
       this.#manifest = await manifest();
       this.#cells = sceneCells(this.scene);
       this.#read();
+      this.#refog();
     }
 
     async _onReady() {
@@ -102,8 +111,14 @@ function managerClass() {
       this.registerHook("canvasPan", () => this.#schedule());
       this.registerHook("updateScene", (scene, changed) => {
         const touched = changed.flags?.[MODULE_ID];
-        if (scene !== this.scene || !touched || !((TAGS_FLAG in touched) || (OVERRIDE_FLAG in touched) || (`-=${OVERRIDE_FLAG}` in touched))) return;
+        if (scene !== this.scene || !touched || !((TAGS_FLAG in touched) || (ART_FLAG in touched) || (`-=${ART_FLAG}` in touched))) return;
         this.#retag();
+      });
+      // One per redraw of the fog: a reveal, a party move, the GM's veil or Player view switch.
+      this.registerHook(`${MODULE_ID}.hexFogChanged`, ({ sceneId } = {}) => {
+        if (sceneId !== this.scene.id) return;
+        this.#refog();
+        this.#update();
       });
     }
 
@@ -120,7 +135,7 @@ function managerClass() {
     #read() {
       const flags = flagsOf(this.scene);
       this.#hexes = hexesOf(this.#cells, decodeTags(flags[TAGS_FLAG]), {
-        even: !!this.scene.grid.even, manifest: this.#manifest, overrides: readOverrides(flags[OVERRIDE_FLAG]),
+        even: !!this.scene.grid.even, manifest: this.#manifest, keyed: artAssignments(this.scene),
       });
       this.#index = chunkIndex(this.#hexes, this.#gridSize, CHUNK);
     }
@@ -132,8 +147,39 @@ function managerClass() {
       for (const key of changedChunks(before, this.#hexes, this.#gridSize, CHUNK)) {
         if (this.#chunks.has(key)) this.#dirty.add(key);
       }
+      this.#refog();
       this.stats.retaggedAt = performance.now();
       this.#update();
+    }
+
+    /**
+     * Which keyed pictures this client may see, as baked-map.mjs shows its keyed sprites: a player once the fog
+     * discloses the hex's locations, the GM always, faded where the players can't. Re-renders the chunks under each
+     * hex whose answer changed, and announces a find.
+     */
+    #refog() {
+      const scene = this.scene;
+      // Not owned, or the GM switched the veil off for map review: nothing is hidden.
+      const veiled = ownsHexFog(scene) && !(game.user.isGM && fogHiddenOn());
+      const pass = veiled ? readPass(scene) : null;
+      const isGM = game.user.isGM && !playerViewOn();
+      const shown = new Map(), seenNow = new Map();
+      for (const [num, hex] of this.#hexes) {
+        if (!hex.keyed) continue;
+        const offset = { i: hex.i, j: hex.j };
+        const seen = !veiled || hexDisclosure(scene, offset, "location", {}, pass);
+        if (seen) seenNow.set(num, offset);
+        const view = keyedSpriteView({ isGM, seen });
+        if (view.visible) shown.set(num, view.alpha);
+      }
+      for (const num of new Set([...shown.keys(), ...this.#shown.keys()])) {
+        if (shown.get(num) === this.#shown.get(num)) continue;
+        const hex = this.#hexes.get(num);
+        if (!hex) continue;
+        for (const key of chunksOver(tileRect(hex, this.#gridSize), CHUNK)) if (this.#chunks.has(key)) this.#dirty.add(key);
+      }
+      this.#shown = shown;
+      this.#known = announceFinds(scene, this.#known, seenNow);
     }
 
     #schedule() {
@@ -193,15 +239,9 @@ function managerClass() {
       } finally { this.#working = false; }
     }
 
-    /** Every picture the hexes draw: ground and overlays. */
+    /** Every picture the hexes draw on this client. */
     #sources(nums) {
-      const srcs = new Set();
-      for (const num of nums) {
-        const hex = this.#hexes.get(num);
-        if (hex.src) srcs.add(hex.src);
-        for (const o of hex.overlays) srcs.add(o.src);
-      }
-      return srcs;
+      return new Set(piecesOf(nums, this.#hexes, this.#shown).map(p => p.src));
     }
 
     /** One tile picture, shrunk to the widest a chunk ever draws it: loaded once, mipmapped for the far zooms. */
@@ -229,16 +269,7 @@ function managerClass() {
       const r = chunkRect(key, CHUNK), side = Math.ceil(CHUNK * res);
       const texture = PIXI.RenderTexture.create({ width: side, height: side });
       const stage = new PIXI.Container();
-      // The ground of every hex first, north to south, then each overlay layer over all of it: a beach or river
-      // drawn with its own hex would be covered by the trees of the hex south of it.
-      const pieces = nums.map(num => ({ hex: this.#hexes.get(num), src: this.#hexes.get(num).src, rotation: 0, mirror: false }));
-      for (const layer of OVERLAY_ORDER) {
-        for (const num of nums) {
-          const hex = this.#hexes.get(num);
-          for (const o of hex.overlays) if (o.layer === layer) pieces.push({ hex, ...o });
-        }
-      }
-      for (const { hex, src, rotation, mirror } of pieces) {
+      for (const { hex, src, rotation, mirror, alpha } of piecesOf(nums, this.#hexes, this.#shown)) {
         const tile = tiles.get(src);
         if (!tile) continue;
         const t = tileRect(hex, this.#gridSize);
@@ -250,6 +281,7 @@ function managerClass() {
         sprite.height = t.h * res;
         if (mirror) sprite.scale.x *= -1;
         sprite.rotation = rotation;
+        sprite.alpha = alpha;
       }
       canvas.app.renderer.render(stage, { renderTexture: texture, clear: true });
       stage.destroy({ children: true });

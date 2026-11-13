@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 // Which picture a hex wears (docs/plans/hex-painting.md, step 1).
-const { HEX_ART_ROOT, TERRAIN_RULES, poolFor, pickTile, readOverrides, tileFor } = await import("../scripts/hex-map/tile-sets.mjs");
+const { HEX_ART_ROOT, TERRAIN_RULES, poolFor, pickTile, tileFor } = await import("../scripts/hex-map/tile-sets.mjs");
 const { scanHexArt, HEX_ART_DIR } = await import("../tools/hex-manifest.mjs");
 const { neighbours, offsetToCube } = await import("../scripts/hex-map/geometry.mjs");
 const { TERRAIN_TAGS, SETTLEMENTS } = await import("../scripts/importer/hex/hex-summary.mjs");
@@ -69,13 +69,9 @@ test("the pick is the same every time and nothing about it is stored", () => {
   assert.equal(pickTile([], cube, "forest"), null);
 });
 
-test("overrides: only published numbers mapped to a path count, and an override wins", () => {
-  const overrides = readOverrides({ 1403: " worlds/x/own.webp ", abc: "y.webp", 1404: "", 1405: 7 });
-  assert.deepEqual([...overrides], [["1403", "worlds/x/own.webp"]]);
-  assert.deepEqual(readOverrides(null), new Map());
+test("tileFor deals from the terrain's pool, and null when nothing fits", () => {
   const cube = offsetToCube(14, 3);
-  assert.equal(tileFor({ num: 1403, terrain: "forest", cube, manifest, overrides }), "worlds/x/own.webp");
-  const dealt = tileFor({ num: "1404", terrain: "forest", cube, manifest, overrides });
+  const dealt = tileFor({ terrain: "forest", cube, manifest });
   assert.ok(dealt.startsWith(`${HEX_ART_ROOT}Vegetation/`), dealt);
-  assert.equal(tileFor({ num: "1404", terrain: "nonsense", cube, manifest }), null);
+  assert.equal(tileFor({ terrain: "nonsense", cube, manifest }), null);
 });

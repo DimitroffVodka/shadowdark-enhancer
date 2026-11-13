@@ -120,27 +120,12 @@ export function pickTile(pool, { q, r }, terrain) {
 }
 
 /**
- * The GM's own picture per hex, from `flags.shadowdark-enhancer.hexArt` ({ "1403": "<src>" }).
- * Anything that isn't a published number mapped to a non-empty path is ignored.
- * @returns {Map<string, string>}
- */
-export function readOverrides(flag) {
-  const out = new Map();
-  if (!flag || typeof flag !== "object") return out;
-  for (const [num, src] of Object.entries(flag)) {
-    if (/^\d+$/.test(num) && typeof src === "string" && src.trim()) out.set(num, src.trim());
-  }
-  return out;
-}
-
-/**
- * The src a hex is drawn with: the GM's override, else the dealt picture, else null (nothing fits).
- * @param {{num:string|number, terrain:string, cube:{q:number, r:number}, manifest:object, overrides?:Map<string,string>}} hex
+ * The ground picture a hex is dealt, or null when nothing fits. A hex's own picture is not ground: it is the
+ * `hexArt` flag's ({ "1403": { art } }, keyed-art.mjs), drawn over this where the fog allows (hex-art-core.mjs).
+ * @param {{terrain:string, cube:{q:number, r:number}, manifest:object}} hex
  * @returns {string|null}
  */
-export function tileFor({ num, terrain, cube, manifest, overrides }) {
-  const own = overrides?.get(String(num));
-  if (own) return own;
+export function tileFor({ terrain, cube, manifest }) {
   const picked = pickTile(poolFor(terrain, manifest), cube, terrain);
   return picked ? HEX_ART_ROOT + picked : null;
 }

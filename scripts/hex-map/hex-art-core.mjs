@@ -7,10 +7,35 @@
  * every picture goes, which chunks hold it, which chunks the view wants and how sharp they must be.
  */
 
-import { cellNumber, foundryOffsetToCube, offsetToCube, originFromFlag } from "./geometry.mjs";
-import { readCell } from "./tag-store.mjs";
-import { tileFor } from "./tile-sets.mjs";
-import { overlaysOf } from "./hex-art-overlays.mjs";
+import { cellNumber, foundryOffsetToCube, neighbours, numberFor, offsetToCube, originFromFlag } from "./geometry.mjs";
+import { readCell, NOT_GROUND } from "./tag-store.mjs";
+import { HEX_ART_ROOT, tileFor } from "./tile-sets.mjs";
+import { LAYERS, overlaysOf } from "./hex-art-overlays.mjs";
+
+/** Overlay layers in draw order (beach and ice share one). */
+const OVERLAY_ORDER = [...new Set(Object.values(LAYERS))].sort((a, b) => a - b);
+
+/**
+ * The ground under a keyed location the tags don't name: what most of its tagged neighbours are, water included, so
+ * a sunken ship sits in sea and not in a forest. Ties go to the alphabetically first; null when no neighbour says.
+ */
+function groundAround(tagged, col, row, shifted) {
+  const votes = new Map();
+  for (const n of neighbours(col, row, shifted)) {
+    const t = tagged.get(String(numberFor(n.col, n.row)))?.terrain;
+    if (t && !NOT_GROUND.has(t)) votes.set(t, (votes.get(t) ?? 0) + 1);
+  }
+  return [...votes].sort((a, b) => (b[1] - a[1]) || a[0].localeCompare(b[0]))[0]?.[0] ?? null;
+}
+
+/**
+ * The Enhancer's own copy of a picture named in Extras' folder, when it ships one (assets/hexes/), so keyed art
+ * draws without Extras installed. Any other path is kept as it is.
+ */
+export function ownCopy(src, manifest) {
+  const m = /\/Hexes\/([^/]+)\/([^/]+)$/.exec(src ?? "");
+  return m && manifest?.folders?.[m[1]]?.includes(m[2]) ? `${HEX_ART_ROOT}${m[1]}/${m[2]}` : (src || null);
+}
 
 /**
  * A tile's size on the canvas per unit of grid size. Shadowdark Extras drew these same 932×810 pictures 572×500 on its
@@ -26,15 +51,17 @@ export function tileRect({ x, y }, gridSize) {
 }
 
 /**
- * Every hex the map draws: its published number, centre, ground picture and the rivers, roads and shore over it
- * (hex-art-overlays.mjs). Untagged cells and cells off the numbered map draw nothing; a terrain with no pictures
- * draws only its overlays. `look` sums up what the hex shows, so a change is one string comparison.
+ * Every hex the map draws: its published number, centre, ground picture, the rivers, roads and shore over it
+ * (hex-art-overlays.mjs) and its own keyed picture, which the fog may hide (piecesOf). Untagged cells and cells off
+ * the numbered map draw nothing. A keyed location's ground is its neighbours' (groundAround), so a player who hasn't
+ * found it sees ordinary country. `look` sums up what the hex can show, so a change is one string comparison.
  * @param {{i:number, j:number, x:number, y:number}[]} cells  the scene's grid cells and their centres
  * @param {object} state  decodeTags() of the scene's tag store
- * @param {{even:boolean, manifest:object, overrides?:Map<string,string>}} opts
- * @returns {Map<string, {x:number, y:number, src:string|null, overlays:object[], look:string}>} by published number
+ * @param {{even:boolean, manifest:object, keyed?:Object<string, {art:string}>}} opts  keyed: artAssignments()
+ * @returns {Map<string, {i:number, j:number, x:number, y:number, src:string|null, overlays:object[], keyed:string|null, look:string}>}
+ *   by published number
  */
-export function hexesOf(cells, state, { even, manifest, overrides }) {
+export function hexesOf(cells, state, { even, manifest, keyed }) {
   const out = new Map();
   const origin = state?.origin ? originFromFlag(state.origin) : null;
   if (!origin) return out;
@@ -45,17 +72,53 @@ export function hexesOf(cells, state, { even, manifest, overrides }) {
     if (n.num === null) continue;
     const read = readCell(state, n.num);
     if (!read?.terrain) continue;
-    tagged.set(String(n.num), { col: n.col, row: n.row, x, y, terrain: read.terrain, features: read.features });
+    tagged.set(String(n.num), { col: n.col, row: n.row, i, j, x, y, terrain: read.terrain, features: read.features });
   }
+  // Read from the tags as they stand, so one keyed hex's filled-in ground never votes for the next.
+  const filled = [...tagged.values()].filter((h) => h.terrain === "keyed_location").map((h) => [h, groundAround(tagged, h.col, h.row, shifted)]);
+  for (const [h, ground] of filled) h.terrain = ground;
   const overlays = overlaysOf(tagged, shifted);
-  for (const [num, { col, row, x, y, terrain }] of tagged) {
+  for (const [num, { col, row, i, j, x, y, terrain }] of tagged) {
     // The printed cube, so the deal follows the map's numbers wherever the map sits on the canvas.
-    const src = tileFor({ num, terrain, cube: offsetToCube(col, row, shifted), manifest, overrides });
+    const src = terrain ? tileFor({ terrain, cube: offsetToCube(col, row, shifted), manifest }) : null;
     const over = overlays.get(num) ?? [];
-    if (!src && !over.length) continue;
-    out.set(num, { x, y, src, overlays: over, look: [src, ...over.map((o) => `${o.src}@${o.rotation}${o.mirror ? "m" : ""}`)].join("|") });
+    const own = ownCopy(keyed?.[num]?.art, manifest);
+    if (!src && !over.length && !own) continue;
+    const look = [src, ...over.map((o) => `${o.src}@${o.rotation}${o.mirror ? "m" : ""}`), own ? `keyed:${own}` : ""].join("|");
+    out.set(num, { i, j, x, y, src, overlays: over, keyed: own, look });
   }
   return out;
+}
+
+/**
+ * What a chunk draws, in order: every hex's ground north to south, a keyed hex's own picture straight over its
+ * ground where this client may see it, then each overlay layer over all of that. A beach or river drawn with its own
+ * hex would be covered by the trees of the hex south of it. A keyed picture that shows replaces its hex's overlays:
+ * the picture is the whole hex.
+ * @param {string[]} nums  the chunk's hexes, in draw order (chunkIndex)
+ * @param {Map<string, object>} hexes  hexesOf()
+ * @param {Map<string, number>} [shown]  keyed hex → the alpha its picture shows at on this client; absent is hidden
+ * @returns {{hex:object, src:string, rotation:number, mirror:boolean, alpha:number}[]}
+ */
+export function piecesOf(nums, hexes, shown = new Map()) {
+  const pieces = [], covered = new Set();
+  for (const num of nums) {
+    const hex = hexes.get(num);
+    if (hex.src) pieces.push({ hex, src: hex.src, rotation: 0, mirror: false, alpha: 1 });
+    const alpha = hex.keyed ? (shown.get(num) ?? 0) : 0;
+    if (alpha > 0) {
+      pieces.push({ hex, src: hex.keyed, rotation: 0, mirror: false, alpha });
+      covered.add(num);
+    }
+  }
+  for (const layer of OVERLAY_ORDER) {
+    for (const num of nums) {
+      if (covered.has(num)) continue;
+      const hex = hexes.get(num);
+      for (const o of hex.overlays) if (o.layer === layer) pieces.push({ hex, src: o.src, rotation: o.rotation, mirror: o.mirror, alpha: 1 });
+    }
+  }
+  return pieces;
 }
 
 /** "3_5": the chunk of side `size` holding the canvas point. */
