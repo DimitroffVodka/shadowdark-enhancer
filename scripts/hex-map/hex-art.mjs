@@ -68,8 +68,9 @@ export const extrasPainted = tile => !!tile?.flags?.["shadowdark-extras"]?.paint
 
 /** The scene flag naming a drawn scene's print, whose tags it shares. */
 export const SOURCE_FLAG = "hexArtSource";
-/** The print's flags a drawn copy starts with: its tags, its regions and its keyed art, all by hex number. */
-const COPIED_FLAGS = [TAGS_FLAG, "hexRegions", ART_FLAG];
+/** The print's flags a drawn copy starts with: its tags, regions and keyed art by hex number, and which print it is
+ *  (hexMapId), so its keyed pages and book are the print's. */
+const COPIED_FLAGS = [TAGS_FLAG, "hexRegions", ART_FLAG, "hexMapId"];
 
 /** A fresh look (SEED_FLAG): any number but 0, which is the look of a map that never had one. */
 const freshSeed = () => 1 + Math.floor(Math.random() * 0x7ffffffe);
