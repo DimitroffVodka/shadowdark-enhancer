@@ -267,10 +267,26 @@ zooms are not sharper. Both are constants at the top of `hex-art.mjs`.
 - The shrunk tiles add about 85 MB of GPU memory (124 pictures).
 - The canvas itself took 2.2 s to draw.
 
-The tab was hidden, so frame time is the cost of a forced render of the whole
-canvas, not a measured frame rate. Times to fill a view are not given: a
-hidden tab throttles timers to about one a second. **Not yet checked: frame
-rate while panning in a visible tab, and the first fill's wall-clock time.**
+The table's frame times are forced renders of the whole canvas, taken in a
+hidden tab. Then, in the visible tab (a 144 Hz screen; Foundry's own ticker is
+capped at 60), panning diagonally across the map for 3 seconds at each zoom,
+with the plain print first and the drawn map second:
+
+| Pan at | Print only: fps, median / 95th % frame | Drawn map: fps, median / 95th % frame |
+|---|---|---|
+| Zoom 0.29 | 153, 6 / 9 ms | 143, 6 / 14 ms |
+| Zoom 1 | 154, 6 / 8 ms | 142, 6 / 14 ms |
+| Whole map | 163, 6 / 12 ms | 161, 6 / 11 ms |
+
+- Each pan has one or two frames over 33 ms whether the art is on or off,
+  the worst about 120 ms. They aren't the drawer's.
+- 308 chunks were rendered during those pans, the slowest in 9 ms.
+- The first fill, from the canvas being ready to the screen full of art, takes
+  1.6 s, almost all of it loading 124 tiles; the first chunk shows at 1.4 s.
+- Re-filling the screen after a zoom from the whole map to zoom 1 takes about
+  15 ms once the tiles are loaded.
+
+Accepted: step 3 can build on this.
 
 ## Open decisions
 
