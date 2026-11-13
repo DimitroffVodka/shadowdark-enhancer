@@ -136,7 +136,11 @@ All of this lives on `experimental/hex-painting`, cut from `master` at
 `fd4e6369` (v0.23.1) on 2026-11-12. The release date is open and this is a
 big release.
 
-- Each PR below targets `experimental/hex-painting`, not `master`.
+- No PR per step (decided 2026-11-12, after PR 584). Each step is committed
+  straight to `experimental/hex-painting`, one or more commits per step, with
+  `npm test` and `npm run inventory:check` passing before each push. Review
+  happens once, on the PR from the branch into `master`, as an independent
+  review, since it will be large.
 - `master` keeps taking small fixes and releases as usual.
 - Merge `master` into the branch often and in small steps, then run the tests
   and `npm run inventory:check`. A large late merge is how PR 567 silently
@@ -147,8 +151,6 @@ big release.
   Extras users with an older Enhancer would have no painter at all.
 
 ## Order
-
-Each lands as its own PR.
 
 1. **Art.** 561 live files into `assets/hexes/`, no Archive. Run
    `npm run inventory`; note the zip size before and after.
