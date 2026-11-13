@@ -119,13 +119,20 @@ export function pickTile(pool, { q, r }, terrain) {
   return pool[order[mod(q + a * r, n)]];
 }
 
+/** The scene flag holding the GM's choice of ground picture per hex: { "1403": "<src>" } (the Hex Data window). */
+export const PICK_FLAG = "hexTile";
+
 /**
- * The ground picture a hex is dealt, or null when nothing fits. A hex's own picture is not ground: it is the
- * `hexArt` flag's ({ "1403": { art } }, keyed-art.mjs), drawn over this where the fog allows (hex-art-core.mjs).
- * @param {{terrain:string, cube:{q:number, r:number}, manifest:object}} hex
+ * The ground picture a hex wears: the GM's pick while it is still one of its terrain's pictures (retag the hex and
+ * the pick lapses with the old terrain), else the dealt one, else null when nothing fits. A keyed hex's own picture
+ * is not ground: it is the `hexArt` flag's ({ "1403": { art } }, keyed-art.mjs), drawn over this where the fog
+ * allows (hex-art-core.mjs).
+ * @param {{terrain:string, cube:{q:number, r:number}, manifest:object, pick?:string}} hex
  * @returns {string|null}
  */
-export function tileFor({ terrain, cube, manifest }) {
-  const picked = pickTile(poolFor(terrain, manifest), cube, terrain);
+export function tileFor({ terrain, cube, manifest, pick }) {
+  const pool = poolFor(terrain, manifest);
+  if (pick && pool.some((file) => HEX_ART_ROOT + file === pick)) return pick;
+  const picked = pickTile(pool, cube, terrain);
   return picked ? HEX_ART_ROOT + picked : null;
 }

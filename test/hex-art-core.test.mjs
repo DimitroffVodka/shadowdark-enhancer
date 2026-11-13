@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 // The drawn hex map's layout (docs/plans/hex-painting.md, step 2).
-const { TILE_SCALE, tileRect, hexesOf, piecesOf, ownCopy, chunkRect, chunksOver, chunkIndex, chunksInView, chunkResolution, changedChunks } = await import("../scripts/hex-map/hex-art-core.mjs");
+const { TILE_SCALE, tileRect, hexesOf, piecesOf, ownCopy, groundOf, chunkRect, chunksOver, chunkIndex, chunksInView, chunkResolution, changedChunks } = await import("../scripts/hex-map/hex-art-core.mjs");
 const { decodeTags } = await import("../scripts/hex-map/tag-store.mjs");
 const { HEX_ART_ROOT } = await import("../scripts/hex-map/tile-sets.mjs");
 
@@ -64,6 +64,21 @@ test("a keyed location's ground is what most of its neighbours are, water includ
   assert.ok(wood.src.startsWith(`${HEX_ART_ROOT}Vegetation/`), wood.src);
   // Nothing around it says: no ground, and with no picture of its own it draws nothing.
   assert.equal(at({ 202: "keyed_location|gm" }), undefined);
+});
+
+test("groundOf gives the chooser a hex's picture and its pool, the GM's pick included, and nothing for a keyed location", () => {
+  const origin = { i: 0, j: 0, q: 0, r: 0, num: "0000", shifted: "odd" };
+  const state = decodeTags({ origin, cells: { 202: "forest|gm", 203: "keyed_location|gm" } });
+  const g = groundOf(state, 202, { manifest });
+  assert.equal(g.terrain, "forest");
+  assert.ok(g.pool.length > 1 && g.pool.includes(g.src));
+  const other = g.pool.find((src) => src !== g.src);
+  assert.equal(groundOf(state, 202, { manifest, picks: { 202: other } }).src, other);
+  // The drawer agrees with the chooser.
+  const cells = [{ i: 2, j: 2, x: 0, y: 0 }];
+  assert.equal(hexesOf(cells, state, { even: false, manifest, picks: { 202: other } }).get("202").src, other);
+  assert.equal(groundOf(state, 203, { manifest }), null);
+  assert.equal(groundOf(state, 404, { manifest }), null);
 });
 
 test("ownCopy points Extras' picture at the Enhancer's copy, and leaves any other path alone", () => {

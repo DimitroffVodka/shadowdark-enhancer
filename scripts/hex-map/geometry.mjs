@@ -131,6 +131,21 @@ export function onMap(col, row, bounds, shifted = "odd") {
   return !(c < 0 || (bounds.cols && c >= bounds.cols) || (rows && r >= rows) || r < first);
 }
 
+/**
+ * The map's first and last hexes, padded as printed ("0001", "1014"), for telling a GM where the map ends: the first
+ * hex of its first column and the last of its last, whichever rows those columns really have (onMap).
+ * Null without bounds: such a map has no edge.
+ */
+export function mapRange(bounds, shifted = "odd") {
+  if (!bounds?.cols || !bounds?.rows) return null;
+  const col = bounds.base?.col ?? 0, row = bounds.base?.row ?? 0, end = col + bounds.cols - 1;
+  const rows = [...Array(Math.max(bounds.rows, bounds.rowsLowered ?? 0)).keys()].map((k) => row + k);
+  const first = rows.find((r) => onMap(col, r, bounds, shifted)), last = rows.findLast((r) => onMap(end, r, bounds, shifted));
+  if (first === undefined || last === undefined) return null;
+  const pad = (n) => String(n).padStart(4, "0");
+  return { first: pad(numberFor(col, first)), last: pad(numberFor(end, last)) };
+}
+
 /** The six neighbours of a printed cell, same shift rule. */
 export function neighbours(col, row, shifted = "odd") {
   const c = offsetToCube(col, row, shifted);

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { offsetToCube, cubeToOffset, numberFor, cellNumber, onMap, withAnchorNumber, boundsFromRow, framesTopRow, neighbours, foundryOffsetToCube, extrasNumbersAlike } from "../scripts/hex-map/geometry.mjs";
+import { offsetToCube, cubeToOffset, numberFor, cellNumber, onMap, withAnchorNumber, boundsFromRow, framesTopRow, neighbours, foundryOffsetToCube, extrasNumbersAlike, mapRange } from "../scripts/hex-map/geometry.mjs";
 
 test("cube round trip under both shift rules", () => {
   for (const shifted of ["odd", "even"]) for (let col = 0; col < 5; col++) for (let row = 0; row < 5; row++) {
@@ -197,4 +197,13 @@ test("extrasNumbersAlike: a print whose first hex is the top-left cell numbers l
   assert.equal(extrasNumbersAlike({ cube: at(0, 0), num: "0101", shifted: "odd" }, 1), false);
   assert.equal(extrasNumbersAlike(null, 0), false);
   assert.equal(extrasNumbersAlike({ num: "0000" }, 0), false, "no anchor cell");
+});
+
+test("mapRange names the map's first and last printed numbers, as printed", () => {
+  assert.deepEqual(mapRange({ cols: 11, rows: 14, base: { col: 0, row: 1 } }), { first: "0001", last: "1014" });
+  // The Western Reaches: the raised columns start a row late, the lowered ones end a row early.
+  assert.deepEqual(mapRange({ cols: 64, rows: 75, rowsLowered: 74, firstRow: 1 }), { first: "0001", last: "6373" });
+  assert.deepEqual(mapRange({ cols: 3, rows: 2 }, "even"), { first: "0000", last: "0201" });
+  assert.equal(mapRange(null), null);
+  assert.equal(mapRange({ cols: 3 }), null);
 });

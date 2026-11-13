@@ -74,4 +74,10 @@ test("tileFor deals from the terrain's pool, and null when nothing fits", () => 
   const dealt = tileFor({ terrain: "forest", cube, manifest });
   assert.ok(dealt.startsWith(`${HEX_ART_ROOT}Vegetation/`), dealt);
   assert.equal(tileFor({ terrain: "nonsense", cube, manifest }), null);
+  // The GM's pick wins while it is one of the terrain's pictures, and lapses once the hex is retagged.
+  const pool = poolFor("forest", manifest).map((f) => HEX_ART_ROOT + f);
+  const other = pool.find((src) => src !== dealt);
+  assert.equal(tileFor({ terrain: "forest", cube, manifest, pick: other }), other);
+  assert.equal(tileFor({ terrain: "swamp", cube, manifest, pick: other }), tileFor({ terrain: "swamp", cube, manifest }));
+  assert.equal(tileFor({ terrain: "forest", cube, manifest, pick: "worlds/x/elsewhere.webp" }), dealt);
 });

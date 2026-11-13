@@ -381,13 +381,12 @@ export function applySheet(state, answers) {
  * features alone.
  */
 export function tagsForDataset(state) {
-  const shifted = state?.origin?.shifted ?? "odd";
-  const bounds = state?.origin?.bounds;
+  const off = new Set(offMapNums(state));
   const out = {};
   for (const [num, c] of state?.cells ?? []) {
     if (!c?.terrain) continue;
     const n = parseInt(num, 10);
-    if (!Number.isInteger(n) || !onMap(Math.floor(n / 100), n % 100, bounds, shifted)) continue;
+    if (!Number.isInteger(n) || off.has(n)) continue;
     const { terrain, features } = readCell(state, n, c);
     out[String(num).padStart(3, "0")] = terrain ? { terrain, features } : { features };
   }
@@ -462,22 +461,45 @@ export function summarize(state, total) {
  * first tag as the terrain, the same rule compareTags applies to a truth CSV
  * (167 of the Western Reaches table's 4768 rows are like that). Imported rows
  * replace the cell; `origin` is taken only when the store has none (it is tied
- * to the scene's grid). Returns the number of cells written.
+ * to the scene's grid). Returns how many cells were written and
+ * the numbers refused because the map does not have them.
  */
 export function importTags(state, rows, { origin = null } = {}) {
-  let n = 0;
+  let written = 0;
+  const refused = [];
+  // The map these numbers land on: the store's own, or the file's when the store has none yet.
+  const map = state.origin ?? origin;
   for (const r of rows ?? []) {
     const num = parseInt(r?.num, 10);
     const tags = (r?.tags ?? []).map((t) => String(t).trim().toLowerCase().replace(/\s+/g, "_")).filter(Boolean);
     const terrain = tags.find((t) => !FEATURES.includes(t)) ?? tags[0];
     if (!Number.isInteger(num) || num < 0 || !terrain) continue;
+    // A number the map doesn't have never gets in: the GM is told which, here, rather than meeting it later.
+    if (!isOnMap(num, map)) { refused.push(num); continue; }
     const cell = { terrain, features: tags.filter((t) => FEATURES.includes(t) && t !== terrain), source: r.source === "auto" ? "auto" : "gm", review: !!r.review };
     if (Number.isFinite(r.margin)) cell.margin = Number(r.margin);
     state.cells.set(String(num), cell);
-    n++;
+    written++;
   }
   if (origin && !state.origin) state.origin = origin;
-  return n;
+  return { written, refused: refused.sort((a, b) => a - b) };
+}
+
+/** Is this published number a hex of the map `origin` describes (its bounds, its shift)? Any number counts without bounds. */
+const isOnMap = (num, origin) => onMap(Math.floor(num / 100), num % 100, origin?.bounds, origin?.shifted ?? "odd");
+
+/**
+ * The tagged numbers the map doesn't have, in order: tags written before the map's edges were set or moved, or by
+ * an older version that let a file in unchecked. They draw nothing; the Tagger lists them so the GM can remove them.
+ * @returns {number[]}
+ */
+export function offMapNums(state) {
+  const out = [];
+  for (const num of state?.cells?.keys() ?? []) {
+    const n = parseInt(num, 10);
+    if (Number.isInteger(n) && !isOnMap(n, state.origin)) out.push(n);
+  }
+  return out.sort((a, b) => a - b);
 }
 
 /**

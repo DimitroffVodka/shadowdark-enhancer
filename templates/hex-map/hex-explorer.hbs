@@ -31,7 +31,7 @@
         <button type="button" class="ui-btn" data-action="tileChoose" aria-expanded="{{#if tilePickerOpen}}true{{else}}false{{/if}}"><i class="fa-solid fa-table-cells-large"></i> {{localize "SDE.hexExplorer.tile.choose"}}</button>
       </div>
       {{#if tilePickerOpen}}
-      <label class="ui-field"><span class="ui-label">{{localize "SDE.hexExplorer.tile.tilesOf"}}</span><select name="tileTerrain">{{#each tileTerrains}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></label>
+      {{#if tileTerrains.length}}<label class="ui-field"><span class="ui-label">{{localize "SDE.hexExplorer.tile.tilesOf"}}</span><select name="tileTerrain">{{#each tileTerrains}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></label>{{/if}}
       <div class="hx-tile-grid">{{#each tileChoices}}<button type="button" class="hx-tile-opt{{#if current}} current{{/if}}" data-action="tileSet" data-src="{{src}}" title="{{name}}" aria-label="{{name}}" aria-pressed="{{#if current}}true{{else}}false{{/if}}"><svg class="hx-pic" viewBox="215 150 500 505" aria-hidden="true"><image href="{{src}}" width="932" height="810"/></svg></button>{{else}}<p class="ui-muted">{{localize "SDE.hexExplorer.tile.none"}}</p>{{/each}}</div>
       {{/if}}
       {{/unless}}

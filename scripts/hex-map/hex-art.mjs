@@ -18,6 +18,7 @@ import { isBakedMap, keyedSpriteView } from "./baked-map-core.mjs";
 import { announceFinds } from "./baked-map.mjs";
 import { decodeTags } from "./tag-store.mjs";
 import { ART_FLAG, artAssignments } from "./keyed-art.mjs";
+import { PICK_FLAG } from "./tile-sets.mjs";
 import { hexDisclosure, ownsHexFog, fogHiddenOn, playerViewOn } from "./hex-fog.mjs";
 import { readPass } from "./hex-records.mjs";
 import {
@@ -44,7 +45,7 @@ const nextFrame = () => new Promise(resolve => (document.hidden ? setTimeout(res
 
 let manifestLoad = null;
 /** The shipped tile list, fetched once per client. */
-const manifest = () => manifestLoad ??= fetch(MANIFEST).then(r => r.json()).catch(() => ({ folders: {} }));
+export const hexManifest = () => manifestLoad ??= fetch(MANIFEST).then(r => r.json()).catch(() => ({ folders: {} }));
 
 /** Does this scene want the drawn map, with nothing else drawing it? */
 export function drawsHexArt(scene) {
@@ -93,7 +94,7 @@ function managerClass() {
     get #gridSize() { return this.scene.grid.size; }
 
     async _onInit() {
-      this.#manifest = await manifest();
+      this.#manifest = await hexManifest();
       this.#cells = sceneCells(this.scene);
       this.#read();
       this.#refog();
@@ -111,7 +112,8 @@ function managerClass() {
       this.registerHook("canvasPan", () => this.#schedule());
       this.registerHook("updateScene", (scene, changed) => {
         const touched = changed.flags?.[MODULE_ID];
-        if (scene !== this.scene || !touched || !((TAGS_FLAG in touched) || (ART_FLAG in touched) || (`-=${ART_FLAG}` in touched))) return;
+        const keys = [TAGS_FLAG, ART_FLAG, `-=${ART_FLAG}`, PICK_FLAG, `-=${PICK_FLAG}`];
+        if (scene !== this.scene || !touched || !keys.some(key => key in touched)) return;
         this.#retag();
       });
       // One per redraw of the fog: a reveal, a party move, the GM's veil or Player view switch.
@@ -135,7 +137,7 @@ function managerClass() {
     #read() {
       const flags = flagsOf(this.scene);
       this.#hexes = hexesOf(this.#cells, decodeTags(flags[TAGS_FLAG]), {
-        even: !!this.scene.grid.even, manifest: this.#manifest, keyed: artAssignments(this.scene),
+        even: !!this.scene.grid.even, manifest: this.#manifest, keyed: artAssignments(this.scene), picks: flags[PICK_FLAG],
       });
       this.#index = chunkIndex(this.#hexes, this.#gridSize, CHUNK);
     }

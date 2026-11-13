@@ -22,8 +22,8 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { findSuitePack, sourceFolderName } from "../shared/compendium-suite.mjs";
 import { sceneCells, sourceImage, CellSampler, backgroundTransform } from "./sampler.mjs";
-import { cellNumber, neighbours, framesTopRow, extrasNumbersAlike, withAnchorNumber, boundsFromRow, originFromFlag } from "./geometry.mjs";
-import { decodeTags, encodeTags, nextSheet, applySheet, strandedRiver, tagsForDataset, summarize, importTags, rowsFromJson, sheetRisk, deriveCoasts, paletteTags, normalizeTerrainWord, tagsWrittenElsewhere, WRITER_OPTION, FEATURES, OTHER } from "./tag-store.mjs";
+import { cellNumber, neighbours, framesTopRow, extrasNumbersAlike, withAnchorNumber, boundsFromRow, originFromFlag, mapRange } from "./geometry.mjs";
+import { decodeTags, encodeTags, nextSheet, applySheet, strandedRiver, tagsForDataset, summarize, importTags, rowsFromJson, sheetRisk, deriveCoasts, paletteTags, normalizeTerrainWord, tagsWrittenElsewhere, WRITER_OPTION, FEATURES, OTHER, offMapNums } from "./tag-store.mjs";
 import { FIXES_FLAG, BASELINE_FLAG, emptyLog, decodeFixes, encodeFixes, recordEdits, recordLegend, legendReport, accuracyReport, encodeBaseline, decodeBaseline, baselineReport } from "./tag-corrections.mjs";
 import { cellBoxOf, referenceTilePlacement, gridCellBox, loweredColumns, placeReferenceTile } from "./reference-tile.mjs";
 import { createClassifier, compareTags, parseTruthCsv, featureVector, keepMask, scoreClassifier, smoothTerrain } from "./classify.mjs";
@@ -38,6 +38,9 @@ import { datasetFromEntries, handoffDataset, handoffToPrint, extrasHexApi, extra
 import { buildHexDataset, validateHexDataset, hexNum, assignmentsFromManifest } from "../importer/hex/hex-dataset.mjs";
 import { A0_PRINT, A0_TOTAL, isA0, a0Origin, copyTags, copiedTerrain, copySource, regionSource, playablePlan } from "./a0-print.mjs";
 import { L as t } from "../shared/i18n.mjs";
+
+/** Hex numbers as printed, the first ten and a count of the rest: "1000, 1101, … (+126)". */
+const listNums = (nums) => nums.slice(0, 10).map((n) => String(n).padStart(4, "0")).join(", ") + (nums.length > 10 ? `, … (+${nums.length - 10})` : "");
 import { artAssignments, ART_FLAG } from "./keyed-art.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -316,6 +319,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       hxtLearnFrom:    function (...a) { return this._onLearnFrom(...a); },
       hxtApplyLegend:  function (...a) { return this._onApplyLegend(...a); },
       hxtCancelLegend: function () { this._legend = null; this.render(); },
+      hxtRemoveOffMap: function () { return this._onRemoveOffMap(); },
       hxtAddTerrain:   function (...a) { return this._onAddTerrain(...a); },
       hxtPingHex:      function (...a) { return this._onPingHex(...a); },
       hxtPlayable:     function () { return HexTaggerApp.makePlayable(); },
@@ -1215,7 +1219,29 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       sheet, hasSheet: sheet.length > 0, needsOrigin: sampled && !origin, viaExtras: !!extrasHexApi(), error: this._error,
       features: FEATURES, overlayShown: !!this._overlayMode, overlayMode: this._overlayMode ?? "",
       canClassify: !!origin && summarize(state, this._numbered.size || state.cells.size).gm > 0, sensitivity: this._sensitivity, progress: this._progress,
+      offMap: this._offMapNote(state),
     };
+  }
+
+  /**
+   * The tags the map doesn't have, said once at the top with a way out. Shown whatever made them: an edge or first
+   * number changed after tagging, or a file an older version let in. They draw nothing and send nothing.
+   */
+  _offMapNote(state) {
+    const range = mapRange(state.origin?.bounds, state.origin?.shifted);
+    const off = range ? offMapNums(state) : [];
+    return off.length ? t("SDE.hexMap.note.offMap", { n: off.length, ...range, nums: listNums(off) }) : "";
+  }
+
+  /** Remove every tag the map doesn't have (the note's button). */
+  async _onRemoveOffMap() {
+    if (!this._requireCurrentScene()) return;
+    const off = offMapNums(this._state);
+    if (!off.length) return;
+    for (const num of off) this._state.cells.delete(String(num));
+    await this._saveState();
+    ui.notifications?.info(t("SDE.hexMap.notify.removedOffMap", { n: off.length }));
+    this.render();
   }
 
   _setProgress(text) {
@@ -1857,7 +1883,11 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     if (!rows.length) { ui.notifications?.warn(t("SDE.hexMap.notify.importEmpty", { file: file.name })); return; }
     if (!this._requireCurrentScene()) return;
-    const n = importTags(this._state, rows, { origin });
+    const { written: n, refused } = importTags(this._state, rows, { origin });
+    if (refused.length) {
+      const range = mapRange(this._state.origin?.bounds, this._state.origin?.shifted) ?? { first: "?", last: "?" };
+      ui.notifications?.warn(t("SDE.hexMap.notify.importOffMap", { n: refused.length, file: file.name, ...range, nums: listNums(refused) }), { permanent: true });
+    }
     await this._saveState();
     this._renumber();
     this._sheet = this._numbered.size ? nextSheet(this._state, { nums: [...this._numbered.keys()], size: SHEET_SIZE, mode: this._mode, keyed: this._keyedNumbers() }) : [];

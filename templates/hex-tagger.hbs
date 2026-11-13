@@ -25,6 +25,7 @@
 
   <div class="ui-body hxt-body">
     {{#if error}}<p class="ui-note bad"><i class="fas fa-triangle-exclamation"></i> {{error}}</p>{{/if}}
+    {{#if offMap}}<p class="ui-note warn"><i class="fas fa-triangle-exclamation"></i> {{offMap}} <button type="button" class="ui-btn" data-action="hxtRemoveOffMap">{{localize "SDE.hexMap.btn.removeOffMap"}}</button></p>{{/if}}
 
     {{!-- ===== Sheet: the work ===== --}}
     <div class="hxt-panel hxt-p1">

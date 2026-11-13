@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { emptyState, decodeTags, encodeTags, nextSheet, applySheet, sheetAnswers, tagsForDataset, summarize, lcg, importTags, rowsFromJson, errorRate, sheetRisk, strandedRiver, STRANDED_RIVER_RATE, REVIEW_BANDS, readTags, readCell, paletteTags, normalizeTerrainWord, tagsWrittenElsewhere, WRITER_OPTION } from "../scripts/hex-map/tag-store.mjs";
+import { emptyState, decodeTags, encodeTags, nextSheet, applySheet, sheetAnswers, tagsForDataset, summarize, lcg, importTags, rowsFromJson, errorRate, sheetRisk, strandedRiver, STRANDED_RIVER_RATE, REVIEW_BANDS, readTags, readCell, paletteTags, normalizeTerrainWord, tagsWrittenElsewhere, WRITER_OPTION, offMapNums } from "../scripts/hex-map/tag-store.mjs";
 import { buildHexDataset } from "../scripts/importer/hex/hex-dataset.mjs";
 import { neighbours } from "../scripts/hex-map/geometry.mjs";
 import { TERRAIN_TAGS } from "../scripts/importer/hex/hex-summary.mjs";
@@ -176,7 +176,7 @@ test("applySheet writes gm answers, clears on empty terrain, and tagsForDataset 
 test("importTags: first non-feature tag is the terrain, sources normalised, origin only when missing", () => {
   const s = emptyState();
   s.cells.set("101", { terrain: "swamp", features: [], source: "gm" });
-  const n = importTags(s, [
+  const { written: n, refused } = importTags(s, [
     { num: "0101", tags: ["river", "Forest"] },                   // overwrites, terrain after the feature
     { num: 203, tags: ["salt flat", "path"], source: "auto", margin: 1.1, review: true },
     { num: 305, tags: ["forest"], source: "llm" },                // unknown source → gm
@@ -186,6 +186,7 @@ test("importTags: first non-feature tag is the terrain, sources normalised, orig
     { num: "x", tags: ["forest"] },
   ], { origin: { i: 0, j: 0, q: 0, r: 0, num: "0000", shifted: "odd", bounds: null } });
   assert.equal(n, 5);
+  assert.deepEqual(refused, [], "a map without bounds takes any number");
   assert.deepEqual(s.cells.get("101"), { terrain: "forest", features: ["river"], source: "gm", review: false });
   assert.deepEqual(s.cells.get("203"), { terrain: "salt_flat", features: ["path"], source: "auto", review: true, margin: 1.1 });
   assert.equal(s.cells.get("305").source, "gm");
@@ -200,6 +201,25 @@ test("importTags: first non-feature tag is the terrain, sources normalised, orig
   importTags(s, [], { origin: { num: "9999" } });
   assert.equal(s.origin.num, "0000", "an existing origin is kept");
   assert.equal(encodeTags(s).cells["203"], "salt_flat;path|auto:1.10?");
+});
+
+test("importTags refuses and names numbers the map doesn't have; offMapNums lists the ones already stored", () => {
+  // Numbered from 0001, 3 columns × 2 rows: 0001-0002, 0101-0102, 0201-0202.
+  const origin = { i: 0, j: 0, q: 0, r: 0, num: "0001", shifted: "odd", bounds: { cols: 3, rows: 2, base: { col: 0, row: 1 } } };
+  const s = emptyState();
+  s.origin = origin;
+  const out = importTags(s, [{ num: 1, tags: ["forest"] }, { num: 202, tags: ["swamp"] }, { num: 300, tags: ["forest"] }, { num: 0, tags: ["forest"] }, { num: 103, tags: ["forest"] }]);
+  assert.deepEqual(out, { written: 2, refused: [0, 103, 300] });
+  assert.deepEqual([...s.cells.keys()].sort(), ["1", "202"]);
+  // A file that brings its own map is checked against it when the store has none.
+  const fresh = emptyState();
+  assert.deepEqual(importTags(fresh, [{ num: 300, tags: ["forest"] }], { origin }).refused, [300]);
+  // Tags stored before the edges moved: listed, in order, and kept out of a dataset.
+  s.cells.set("300", { terrain: "forest", features: [], source: "gm" });
+  s.cells.set("0", { terrain: "forest", features: [], source: "gm" });
+  assert.deepEqual(offMapNums(s), [0, 300]);
+  assert.deepEqual(Object.keys(tagsForDataset(s)).sort(), ["001", "202"]);
+  assert.deepEqual(offMapNums(emptyState()), []);
 });
 
 test("rowsFromJson: the tag flag round-trips, a dataset yields regions, keyed terrain and networks", () => {

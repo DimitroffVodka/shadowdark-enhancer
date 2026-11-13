@@ -11,7 +11,10 @@ import { rulesFrom } from "../rules-data/rules-data-core.mjs";
 import { storedRulesFor } from "../rules-data/rules-data-scope.mjs";
 import { Quests } from "../quests/quests.mjs";
 import { questsAtHex, STATUS_LABELS } from "../quests/quest-core.mjs";
-import { hexArtSources, paintedTileOf } from "./keyed-art.mjs";
+import { hexArtSources, paintedTileOf, artAssignments } from "./keyed-art.mjs";
+import { drawsHexArt, hexManifest } from "./hex-art.mjs";
+import { groundOf } from "./hex-art-core.mjs";
+import { PICK_FLAG } from "./tile-sets.mjs";
 import { paintedScenesFor, extrasHexApi } from "../importer/hex/hex-handoff.mjs";
 import { terrainWord } from "../importer/hex/hex-dataset.mjs";
 import { SETTLEMENTS } from "../importer/hex/hex-summary.mjs";
@@ -180,6 +183,7 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
    */
   async _tileContext(record) {
     this.tileTarget = null;
+    if (drawsHexArt(this.scene)) return this._drawnTileContext(record);
     const api = extrasHexApi();
     if (!tilesAvailable(api) || !Number.isInteger(record.num)) return { tileSection: false };
     const target = paintTarget(this.scene, this._paintedCopies());
@@ -204,6 +208,23 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       tilePickerOpen: !!this.tilePick, tileChoices: tileChoices(pool, here.src),
       // What sits on a hex (a village, a keyed location) is tagged beside its terrain but has no tiles of its own.
       tileTerrains: terrainChoices(words, word, [...Object.values(SETTLEMENTS), "keyed_location"].map(terrainWord)),
+    };
+  }
+  /**
+   * The tile section on a map the Enhancer draws (hex-art.mjs): the hex's ground from its terrain's own pictures, the
+   * choice kept on the scene (PICK_FLAG) and drawn at once. No Extras involved. A keyed hex wears its own art, and a
+   * keyed location the tags give no ground takes its neighbours'; neither has a choice here.
+   */
+  async _drawnTileContext(record) {
+    if (!Number.isInteger(record.num)) return { tileSection: false };
+    if (artAssignments(this.scene)?.[record.num]) return { tileSection: true, tileKeyed: true, tileNote: t("SDE.hexExplorer.tile.keyed") };
+    const state = decodeTags(this.scene.getFlag(MODULE_ID, "hexTags"));
+    const ground = groundOf(state, record.num, { manifest: await hexManifest(), picks: this.scene.getFlag(MODULE_ID, PICK_FLAG) });
+    if (!ground?.pool.length) return { tileSection: false };
+    this.tileTarget = { drawn: true, num: record.num, src: ground.src, pool: ground.pool };
+    return {
+      tileSection: true, tileKeyed: false, bakeAvailable: false, tileNote: t("SDE.hexExplorer.tile.drawn"),
+      tilePickerOpen: !!this.tilePick, tileChoices: this.tilePick ? tileChoices(ground.pool, ground.src) : [], tileTerrains: [],
     };
   }
   /**
@@ -252,7 +273,13 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!held || !game.user?.isGM) return;
     this._capture();
     try {
-      if (reroll) await rerollTile(held.id, held.num, held.terrain);
+      if (held.drawn) {
+        // Another tile: any of the terrain's pictures but the one it wears now.
+        const others = held.pool.filter(p => p !== held.src);
+        const pick = reroll ? others[Math.floor(Math.random() * others.length)] : src;
+        if (pick) await this.scene.setFlag(MODULE_ID, PICK_FLAG, { [held.num]: pick });
+      }
+      else if (reroll) await rerollTile(held.id, held.num, held.terrain);
       else if (src) await setTile(held.id, held.num, held.terrain, src);
     } catch (error) {
       console.error(`${MODULE_ID} | Hex Data tile`, error);

@@ -1,6 +1,6 @@
 # Hex art: a clean rebuild in the Enhancer
 
-Status: in progress on `experimental/hex-painting`. Steps 1 to 4 are built.
+Status: in progress on `experimental/hex-painting`. Steps 1 to 5 are built.
 
 This replaces the first version of this file, which moved Extras' painter
 across and adapted it. Step 2 of that plan showed it doesn't work as a move.
@@ -66,12 +66,15 @@ there is no fix the GM can make.
 2. **Off-map numbers are stopped at the door.** A tag can arrive by number
    rather than by clicking a hex: a CSV, a tag file, the importer, or an
    adopted Extras map. Each number is checked with `onMap` when it arrives.
-   Numbers that aren't on the map are refused and named, with the reason
-   ("the map ends at column 10"), in the window where the GM can fix them.
-   Nothing off the map is ever stored.
-3. **Moving the map's edges can't strand a tag.** When the GM changes the
-   anchor or bounds, tags that fall off the map are listed in the Hex Data
-   window with a button to remove them, instead of silently not drawing.
+   Numbers that aren't on the map are refused and named, with the map's
+   first and last hex, in the window where the GM can fix them. Nothing off
+   the map is ever stored. (Built in step 5: `importTags`. Adoption already
+   numbers through `cellNumber`, which never gives an off-map number.)
+3. **Moving the map's edges can't strand a tag.** Whenever the store holds
+   tags the map doesn't have, the Tagger says so at the top, names them and
+   offers "Remove them", instead of silently not drawing. (Built in step 5.
+   It is a standing note rather than a check at the moment of the change, so
+   it also catches worlds that already hold stray tags.)
 
 Tested: a map numbered from 0001 draws every tagged hex
 (`test/hex-art-core.test.mjs`). Steps 5 and 6 add tests for 2 and 3.
@@ -268,9 +271,9 @@ big release.
    `hex-water-terrain`, with tests and the CREDITS.md entry. Draw rivers,
    roads and coasts.
 4. **Keyed art and fog.** Keyed hexes as sprites the fog hides.
-5. **Per-hex override** in the Hex Data window, written into the `hexArt`
-   flag's existing `{ art, icon }` shape. `hex-tile-chooser.mjs` stops
-   calling Extras. Off-map numbers refused on the way in, and tags stranded
+5. **Per-hex override** in the Hex Data window, kept in its own `hexTile`
+   flag (see "Step 5 notes"). `hex-tile-chooser.mjs` stops calling Extras on
+   a drawn map; an Extras-painted map keeps the Extras path until step 6. Off-map numbers refused on the way in, and tags stranded
    by an edge change listed for removal (see "No more grid errors").
 6. **Old and new maps.** "Draw with the Enhancer" for Extras maps; the
    importer builds its own scenes; the handoff's Extras calls go, and with
@@ -361,8 +364,8 @@ Accepted: step 3 can build on this.
   found or not.
 - Step 1's override read the `hexArt` flag as `{ num: "path" }`, but that
   flag already held the GM's keyed-art manifest as `{ num: { art, icon } }`.
-  The string reader is gone; step 5's per-hex override writes the existing
-  shape.
+  The string reader is gone. (Step 5's per-hex ground pick turned out to need
+  its own flag, `hexTile`; see "Step 5 notes".)
 - Not drawn yet: a manifest entry's `icon` (3 of the 270 Western Reaches
   entries have one; they show their base picture only).
 - Checked live on the Western Reaches: all 270 tagged hexes draw (before
@@ -370,6 +373,26 @@ Accepted: step 3 can build on this.
   showed only the print until its location was marked found. Then its
   picture appeared, 2 chunks re-rendered, and "The party found something:
   Bear-Man" showed. Done in memory only, nothing saved.
+
+## Step 5 notes
+
+- The Hex Data window's tile section, on a drawn map, offers the hex's
+  terrain pictures from `assets/hexes/` ("Another tile", "Choose tile"). The
+  choice goes in the scene flag `hexTile` (`{ "1006": "<src>" }`) and the map
+  redraws the chunks under it at once. No Extras call.
+- Not in `hexArt`, as step 4's notes said it would be: `hexArt` is keyed
+  art, which the fog hides until the location is found. A plain hex's ground
+  must always show, so it has its own flag.
+- A pick lasts while it is one of the hex's terrain's pictures. Retag the
+  hex and the pick lapses with the old terrain; nothing has to clean it up.
+- A keyed hex says it wears its own art. A `keyed_location` hex with no
+  ground of its own (it follows its neighbours) has no tile section.
+- Off-map tags: see "No more grid errors", parts 2 and 3.
+- Checked live on the Western Reaches, in memory only: the picker listed
+  the hex's 7 forest pictures with the current one marked. Choosing another
+  redrew 2 chunks and the map showed it. The Tagger's note named two planted
+  off-map tags ("runs from 0001 to 6373: 6500, 7001"), and "Remove them"
+  cleared both. The file-import refusal is covered by tests only.
 
 ## Open decisions
 
