@@ -37,7 +37,7 @@ original names, see `Archive/RENAME-MAP-*.json`).
 | Folder | Files |
 |---|---|
 | Specials (numbered keyed-hex tiles, `NNN_Name.webp`) | 383 |
-| Terrain folders (Snow, Vegetation, Salt Flats, Autumn, Swamp, Badlands, Water x4, Mountains, Desert, Canyons, Lava Fields, Jungle) | 175 |
+| Terrain folders (Snow, Vegetation, Salt Flats, Autumn, Swamp, Badlands, Water x4, Mountains, Desert, Canyons, Lava Fields, Jungle) | 178 |
 | Archive (unreferenced, see its MANIFEST) | 70 |
 
 The Archive does not move.
@@ -150,7 +150,7 @@ big release.
 
 Each lands as its own PR.
 
-1. **Art.** 558 live files into `assets/hexes/`, no Archive. Run
+1. **Art.** 561 live files into `assets/hexes/`, no Archive. Run
    `npm run inventory`; note the zip size before and after.
 2. **Tile pool and painter.** `getTilePool`/`repaintHexTiles` become local and
    `hex-tile-chooser.mjs` stops needing Extras.

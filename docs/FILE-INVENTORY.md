@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-2256 tracked files · ~282,500 lines of code/markup across scripts+templates+styles+test.
+2818 tracked files · ~282,500 lines of code/markup across scripts+templates+styles+test.
 `v0.23.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -766,6 +766,7 @@ Other: `content-registry`, `coins`, `party-xp-core`, `session-recap-core`, `pdf-
 |---|---|
 | `assets/icons/shikashi/` | 284 `.webp` item icons + `manifest.json`. Credited in CREDITS.md. |
 | `assets/ancestries/` | 7 ancestry portraits (WebP, ≤1024 px). |
+| `assets/hexes/` | 561 hex tiles (WebP): 383 numbered keyed-hex tiles in `Specials/` and 178 terrain tiles in one folder per terrain. Moved from Shadowdark Extras' `assets/Hexes/` with the same sub-paths (Archive left behind); see docs/plans/hex-painting.md. Nothing reads them yet. |
 | `assets/pdf/` | Form-fillable character sheet + field map JSON. |
 | `assets/portraits/README.md` | Gallery folder usage note. |
 | `icons/game-icons/classes/` | 25 recolored game-icons.net class emblems (fill baked in). |
