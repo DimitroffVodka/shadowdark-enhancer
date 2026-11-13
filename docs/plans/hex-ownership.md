@@ -23,7 +23,8 @@ Extras keeps its versions. See "Living alongside Extras" below.
 
 **Stays in Extras:** building and painting hex maps (painter, bake, tiles,
 art, decor, generators, Solo Hex Mode, `buildHexcrawl`/`adoptHexcrawl`/
-`upsertHexRecords`/`repaintHexTiles`) and dungeons.
+`upsertHexRecords`/`repaintHexTiles`) and dungeons. *Superseded 2026-11-12
+for painting and hex art: see [hex-painting.md](hex-painting.md).*
 
 ## Notes per feature
 
