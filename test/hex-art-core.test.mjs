@@ -38,6 +38,16 @@ test("hexesOf numbers each cell from the anchor, skips untagged, off-map and unk
   assert.match(river.get("0").overlays[0].src, /hex-overlays\/Paths\/Hex - River /);
 });
 
+test("a map numbered from 0001, which Extras' grid cannot express, draws every tagged hex", () => {
+  // Columns from 0, rows from 1, 11×14: the shape behind "N hexes outside the grid" (docs/plans/hex-painting.md).
+  const cells = {};
+  for (let c = 0; c < 11; c++) for (let r = 1; r <= 14; r++) cells[(c * 100) + r] = "grassland|gm";
+  const state = decodeTags({ origin: { i: 0, j: 0, q: 0, r: 0, num: "0001", shifted: "odd", bounds: { cols: 11, rows: 14, base: { col: 0, row: 1 } } }, cells });
+  const grid = [];
+  for (let i = 0; i < 20; i++) for (let j = 0; j < 20; j++) grid.push({ i, j, x: j, y: i });
+  assert.equal(hexesOf(grid, state, { even: false, manifest }).size, 154);
+});
+
 test("chunks: a rectangle lands in every chunk it touches, and an edge belongs to the next chunk only past it", () => {
   assert.deepEqual(chunksOver({ x: 0, y: 0, w: 100, h: 100 }, 100), ["0_0"]);
   assert.deepEqual(chunksOver({ x: 50, y: -10, w: 100, h: 20 }, 100).sort(), ["0_-1", "0_0", "1_-1", "1_0"]);

@@ -41,6 +41,41 @@ The cost: the art shows only while the Enhancer is active. A Tile outlives its
 module; a drawn layer doesn't. The bake (step 7) covers that. It writes plain
 images that keep showing, and can export one picture of the whole map.
 
+## No more grid errors
+
+Users keep hitting "Hex dataset failed its contract check: N hexes outside
+the grid", and it is hard to explain how to fix. The rebuild must make it
+impossible, not just rarer.
+
+**Why it happens.** Before handing a map to Extras, the Enhancer converts its
+hex numbers into Extras' grid format and checks Extras will take them
+(`validateHexDataset` in `hex-dataset.mjs`). Extras counts columns and rows
+from the same start, both from 0 or both from 1. A map numbered from 0001
+(columns from 0, rows from 1, as on the Cursed Scroll maps) can't be written
+that way, so the converted grid sits one off from the numbers and nearly every
+hex lands "outside" it. Renumbering would break the match with the book, so
+there is no fix the GM can make.
+
+**The rule.** One description of the map, and nothing translates it.
+
+1. **No conversion.** The drawer reads the tag store with the same numbering
+   the tagger wrote it with (`cellNumber`, `onMap` in `geometry.mjs`), so a
+   map numbered from any start draws. When step 6 removes the hand-off to
+   Extras, `validateHexDataset`'s grid check and the "datasetInvalid"
+   messages go with it, from the Hex Data window and the importer both.
+2. **Off-map numbers are stopped at the door.** A tag can arrive by number
+   rather than by clicking a hex: a CSV, a tag file, the importer, or an
+   adopted Extras map. Each number is checked with `onMap` when it arrives.
+   Numbers that aren't on the map are refused and named, with the reason
+   ("the map ends at column 10"), in the window where the GM can fix them.
+   Nothing off the map is ever stored.
+3. **Moving the map's edges can't strand a tag.** When the GM changes the
+   anchor or bounds, tags that fall off the map are listed in the Hex Data
+   window with a button to remove them, instead of silently not drawing.
+
+Tested: a map numbered from 0001 draws every tagged hex
+(`test/hex-art-core.test.mjs`). Steps 5 and 6 add tests for 2 and 3.
+
 ## What the Enhancer already has
 
 | Piece | File | Role in the rebuild |
@@ -234,9 +269,11 @@ big release.
    roads and coasts.
 4. **Keyed art and fog.** Keyed hexes as sprites the fog hides.
 5. **Per-hex override** in the Hex Data window. `hex-tile-chooser.mjs` stops
-   calling Extras.
+   calling Extras. Off-map numbers refused on the way in, and tags stranded
+   by an edge change listed for removal (see "No more grid errors").
 6. **Old and new maps.** "Draw with the Enhancer" for Extras maps; the
-   importer builds its own scenes; the handoff's Extras calls go.
+   importer builds its own scenes; the handoff's Extras calls go, and with
+   them the contract check and its error message.
 7. **Bake.** Port `hex-bake-core`, write Enhancer flags, export one image.
    `bake-map.mjs` stops calling Extras.
 8. **Art pass.** Trim `assets/hexes/` to the confirmed set, add new AI sets,
