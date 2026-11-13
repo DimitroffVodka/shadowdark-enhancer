@@ -8,17 +8,27 @@
  * the changed hexes touch.
  *
  * A scene is drawn only when the GM switches it on (the `hexArtDraw` flag) and nothing else draws it: a v14 scene has
- * one manager slot, a baked map takes it first (baked-map.mjs), and a scene Extras painted keeps its Tiles.
+ * one manager slot, and a baked map takes it first (baked-map.mjs). On a scene Extras painted, switching it on hides
+ * Extras' Tiles on this client instead of drawing under them; nothing of Extras' is written, and switching it off
+ * shows them again.
+ *
+ * "Build drawn map" (step 6 of docs/plans/hex-painting.md) copies a tagged print into a new scene drawn from the same
+ * tags: the same grid cell for cell, so no hex number is converted, and its own seed (SEED_FLAG), so each copy deals
+ * the terrains' pictures differently. The print and its copies keep one set of tags: a retag on any of them is
+ * written to the others (shareTags).
  *
  * A keyed hex's own picture (keyed-art.mjs) is drawn into its chunk over its ground, per client: a player sees it once
  * the fog discloses the hex's locations, the GM always, faded until then, as baked-map.mjs shows its keyed sprites.
  */
 import { MODULE_ID } from "../shared/module-id.mjs";
+import { replaceModuleFlag } from "../shared/module-flags.mjs";
+import { extrasOrigin } from "./geometry.mjs";
+import { adoptHexScene } from "./hex-adoption.mjs";
 import { isBakedMap, keyedSpriteView } from "./baked-map-core.mjs";
 import { announceFinds } from "./baked-map.mjs";
 import { decodeTags } from "./tag-store.mjs";
 import { ART_FLAG, artAssignments } from "./keyed-art.mjs";
-import { PICK_FLAG } from "./tile-sets.mjs";
+import { PICK_FLAG, SEED_FLAG } from "./tile-sets.mjs";
 import { hexDisclosure, ownsHexFog, fogHiddenOn, playerViewOn } from "./hex-fog.mjs";
 import { readPass } from "./hex-records.mjs";
 import {
@@ -50,9 +60,79 @@ export const hexManifest = () => manifestLoad ??= fetch(MANIFEST).then(r => r.js
 /** Does this scene want the drawn map, with nothing else drawing it? */
 export function drawsHexArt(scene) {
   if (!scene || !flagsOf(scene)[DRAW_FLAG] || !flagsOf(scene)[TAGS_FLAG]?.origin) return false;
-  if (isBakedMap(scene)) return false;
-  // A map Extras painted is Extras' until step 6 of the plan hides its Tiles.
-  return !scene.tiles.some(t => t.flags?.["shadowdark-extras"]?.painted);
+  return !isBakedMap(scene);
+}
+
+/** A Tile Shadowdark Extras painted onto a hex. */
+export const extrasPainted = tile => !!tile?.flags?.["shadowdark-extras"]?.painted;
+
+/** The scene flag naming a drawn scene's print, whose tags it shares. */
+export const SOURCE_FLAG = "hexArtSource";
+/** The print's flags a drawn copy starts with: its tags, its regions and its keyed art, all by hex number. */
+const COPIED_FLAGS = [TAGS_FLAG, "hexRegions", ART_FLAG];
+
+/** A fresh look (SEED_FLAG): any number but 0, which is the look of a map that never had one. */
+const freshSeed = () => 1 + Math.floor(Math.random() * 0x7ffffffe);
+
+/** The print and every drawn copy of it, the scene given included. */
+export function sharingTags(scene, scenes = game.scenes) {
+  if (!scene) return [];
+  const root = scenes.get(flagsOf(scene)[SOURCE_FLAG]) ?? scene;
+  return [root, ...scenes.filter(s => s !== root && flagsOf(s)[SOURCE_FLAG] === root.id)];
+}
+
+/**
+ * A new scene drawn from a tagged print's tags (GM): the print's grid, picture and pins, none of its tokens or tiles,
+ * a look of its own, and the print's tags kept in step with it. The print is not changed.
+ * @param {Scene} print  a scene with a tag anchor
+ * @returns {Promise<Scene|null>}
+ */
+export async function buildDrawnMap(print) {
+  if (!game.user?.isGM || !flagsOf(print)[TAGS_FLAG]?.origin) return null;
+  const root = game.scenes.get(flagsOf(print)[SOURCE_FLAG]) ?? print;
+  const data = root.toObject();
+  const own = data.flags?.[MODULE_ID] ?? {};
+  const flags = { [MODULE_ID]: { ...Object.fromEntries(COPIED_FLAGS.filter(k => k in own).map(k => [k, own[k]])),
+    [DRAW_FLAG]: true, [SOURCE_FLAG]: root.id, [SEED_FLAG]: freshSeed() } };
+  const n = sharingTags(root).length;
+  for (const key of ["_id", "active", "thumb", "tokens", "tiles", "sort", "folder"]) delete data[key];
+  return Scene.create({ ...data, name: game.i18n.format("SDE.hexMap.drawn.name", { name: root.name, n }), flags });
+}
+
+/**
+ * "Draw with the Enhancer" on a map Shadowdark Extras painted (GM): number it from Extras' layout when it has no tag
+ * anchor yet, bring Extras' terrains into the tags (hex-adoption.mjs; tags already there win), and switch the drawing
+ * on, which hides Extras' Tiles. False when the map can't be numbered.
+ * @param {Scene} scene
+ * @returns {Promise<boolean>}
+ */
+export async function drawWithEnhancer(scene = canvas?.scene) {
+  if (!game.user?.isGM || !scene?.grid?.isHexagonal) return false;
+  if (!flagsOf(scene)[TAGS_FLAG]?.origin) {
+    const layout = scene.flags?.["shadowdark-extras"]?.hexcrawl?.grid;
+    const origin = scene.grid.type === CONST.GRID_TYPES.HEXODDQ ? extrasOrigin(layout) : null;
+    if (!origin) return false;
+    await replaceModuleFlag(scene, TAGS_FLAG, { ...(flagsOf(scene)[TAGS_FLAG] ?? {}), origin });
+  }
+  await adoptHexScene(scene, { rerun: true });
+  await setHexArtDrawn(true, scene);
+  return true;
+}
+
+/** Deal this drawn scene's pictures again (GM). The GM's own picks (PICK_FLAG) stay. */
+export async function newLook(scene = canvas?.scene) {
+  if (!game.user?.isGM || !drawsHexArt(scene)) return;
+  await scene.setFlag(MODULE_ID, SEED_FLAG, freshSeed());
+}
+
+/** Write a scene's tags onto its print and the print's other drawn copies, where they differ (active GM). */
+async function shareTags(scene) {
+  const tags = flagsOf(scene)[TAGS_FLAG], text = JSON.stringify(tags ?? null);
+  for (const other of sharingTags(scene)) {
+    if (other === scene || JSON.stringify(flagsOf(other)[TAGS_FLAG] ?? null) === text) continue;
+    try { await replaceModuleFlag(other, TAGS_FLAG, tags); }
+    catch (error) { console.error(`${MODULE_ID} | sharing hex tags with ${other.name}`, error); }
+  }
 }
 
 /** Every grid cell of the scene and its centre. */
@@ -112,7 +192,7 @@ function managerClass() {
       this.registerHook("canvasPan", () => this.#schedule());
       this.registerHook("updateScene", (scene, changed) => {
         const touched = changed.flags?.[MODULE_ID];
-        const keys = [TAGS_FLAG, ART_FLAG, `-=${ART_FLAG}`, PICK_FLAG, `-=${PICK_FLAG}`];
+        const keys = [TAGS_FLAG, ART_FLAG, `-=${ART_FLAG}`, PICK_FLAG, `-=${PICK_FLAG}`, SEED_FLAG];
         if (scene !== this.scene || !touched || !keys.some(key => key in touched)) return;
         this.#retag();
       });
@@ -137,7 +217,7 @@ function managerClass() {
     #read() {
       const flags = flagsOf(this.scene);
       this.#hexes = hexesOf(this.#cells, decodeTags(flags[TAGS_FLAG]), {
-        even: !!this.scene.grid.even, manifest: this.#manifest, keyed: artAssignments(this.scene), picks: flags[PICK_FLAG],
+        even: !!this.scene.grid.even, manifest: this.#manifest, keyed: artAssignments(this.scene), picks: flags[PICK_FLAG], seed: Number(flags[SEED_FLAG]) || 0,
       });
       this.#index = chunkIndex(this.#hexes, this.#gridSize, CHUNK);
     }
@@ -338,9 +418,18 @@ export function registerHexArt() {
   Hooks.once("setup", () => game.scenes.forEach(claim));
   Hooks.on("createScene", claim);
   Hooks.on("updateScene", (scene, changed) => {
-    if (!(DRAW_FLAG in (changed.flags?.[MODULE_ID] ?? {}))) return;
+    const touched = changed.flags?.[MODULE_ID] ?? {};
+    if (TAGS_FLAG in touched && game.users.activeGM?.isSelf) shareTags(scene);
+    if (!(DRAW_FLAG in touched)) return;
     const held = managedHere(scene);
     claim(scene);
-    if (scene.isView && (held !== managedHere(scene))) canvas.draw();
+    // A painted scene's Tiles stay drawn unless the canvas is redrawn, which runs refreshTile below.
+    if (scene.isView && ((held !== managedHere(scene)) || scene.tiles.some(t => extrasPainted(t)))) canvas.draw();
+  });
+  // The drawn map stands in for Extras' painted Tiles on this client; they are hidden, never changed.
+  Hooks.on("refreshTile", tile => {
+    if (!extrasPainted(tile.document) || !drawsHexArt(tile.document.parent)) return;
+    tile.visible = false;
+    if (tile.mesh) tile.mesh.visible = false;
   });
 }

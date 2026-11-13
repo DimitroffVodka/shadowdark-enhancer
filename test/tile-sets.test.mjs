@@ -81,3 +81,20 @@ test("tileFor deals from the terrain's pool, and null when nothing fits", () => 
   assert.equal(tileFor({ terrain: "swamp", cube, manifest, pick: other }), tileFor({ terrain: "swamp", cube, manifest }));
   assert.equal(tileFor({ terrain: "forest", cube, manifest, pick: "worlds/x/elsewhere.webp" }), dealt);
 });
+
+test("a scene's seed deals another look: other pictures, still no two touching alike; seed 0 is the old deal", () => {
+  const pool = poolFor("forest", manifest);
+  assert.ok(pool.length >= 3);
+  let differs = 0;
+  for (let col = 0; col < 12; col++) {
+    for (let row = 0; row < 12; row++) {
+      const cube = offsetToCube(col, row);
+      const mine = pickTile(pool, cube, "forest", 12345);
+      assert.equal(pickTile(pool, cube, "forest", 0), pickTile(pool, cube, "forest"));
+      if (mine !== pickTile(pool, cube, "forest")) differs++;
+      for (const n of neighbours(col, row)) assert.notEqual(pickTile(pool, offsetToCube(n.col, n.row), "forest", 12345), mine);
+    }
+  }
+  assert.ok(differs > 72, `only ${differs} of 144 hexes changed`);
+  assert.equal(tileFor({ terrain: "forest", cube: offsetToCube(3, 3), manifest, seed: 12345 }), HEX_ART_ROOT + pickTile(pool, offsetToCube(3, 3), "forest", 12345));
+});

@@ -1,8 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { WR_KEYED_ART, WR_MAP_ID } from "../scripts/hex-map/wr-keyed-art.mjs";
-import { assignmentsFromManifest, buildHexDataset, validateHexDataset } from "../scripts/importer/hex/hex-dataset.mjs";
+import { assignmentsFromManifest } from "../scripts/importer/hex/hex-dataset.mjs";
 import { hexPrint } from "../scripts/hex-map/hex-prints.mjs";
+import { onMap } from "../scripts/hex-map/geometry.mjs";
+import { hexIdKey } from "../scripts/importer/tables/hex-parser.mjs";
 
 test("the shipped Western Reaches art is 270 tile choices and nothing else", () => {
   const rows = Object.values(WR_KEYED_ART);
@@ -19,9 +21,12 @@ test("a numbered tile belongs to the hex whose number it carries", () => {
   for (const [id, v] of own) assert.equal(v.base_hex.split("/").pop().split("_")[0], id);
 });
 
-test("it is a known print and its hexes pass the contract check on the A0 grid", () => {
+test("it is a known print and every keyed hex is on the A0 grid", () => {
   assert.ok(hexPrint(WR_MAP_ID));
-  const dataset = buildHexDataset({ name: "WR", assignments: assignmentsFromManifest(WR_KEYED_ART), gridHint: { cols: 64, rows: 75, firstRow: 1, rowsLowered: 74 } });
-  assert.deepEqual(validateHexDataset(dataset).errors ?? [], []);
-  assert.equal(dataset.hexes.filter((h) => h.art).length, 270);
+  const bounds = { cols: 64, rows: 75, firstRow: 1, rowsLowered: 74 };
+  const off = Object.keys(assignmentsFromManifest(WR_KEYED_ART)).filter((num) => {
+    const [col, row] = hexIdKey(String(num).padStart(3, "0")).split(",").map(Number);
+    return !onMap(col, row, bounds, "odd");
+  });
+  assert.deepEqual(off, []);
 });

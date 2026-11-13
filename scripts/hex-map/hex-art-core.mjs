@@ -57,12 +57,12 @@ export function tileRect({ x, y }, gridSize) {
  * found it sees ordinary country. `look` sums up what the hex can show, so a change is one string comparison.
  * @param {{i:number, j:number, x:number, y:number}[]} cells  the scene's grid cells and their centres
  * @param {object} state  decodeTags() of the scene's tag store
- * @param {{even:boolean, manifest:object, keyed?:Object<string, {art:string}>, picks?:Object<string, string>}} opts
- *   keyed: artAssignments(); picks: the GM's ground pictures (tile-sets.mjs PICK_FLAG)
+ * @param {{even:boolean, manifest:object, keyed?:Object<string, {art:string}>, picks?:Object<string, string>, seed?:number}} opts
+ *   keyed: artAssignments(); picks: the GM's ground pictures (tile-sets.mjs PICK_FLAG); seed: the scene's look (SEED_FLAG)
  * @returns {Map<string, {i:number, j:number, x:number, y:number, src:string|null, overlays:object[], keyed:string|null, look:string}>}
  *   by published number
  */
-export function hexesOf(cells, state, { even, manifest, keyed, picks }) {
+export function hexesOf(cells, state, { even, manifest, keyed, picks, seed = 0 }) {
   const out = new Map();
   const origin = state?.origin ? originFromFlag(state.origin) : null;
   if (!origin) return out;
@@ -81,7 +81,7 @@ export function hexesOf(cells, state, { even, manifest, keyed, picks }) {
   const overlays = overlaysOf(tagged, shifted);
   for (const [num, { col, row, i, j, x, y, terrain }] of tagged) {
     // The printed cube, so the deal follows the map's numbers wherever the map sits on the canvas.
-    const src = terrain ? tileFor({ terrain, cube: offsetToCube(col, row, shifted), manifest, pick: picks?.[num] }) : null;
+    const src = terrain ? tileFor({ terrain, cube: offsetToCube(col, row, shifted), manifest, pick: picks?.[num], seed }) : null;
     const over = overlays.get(num) ?? [];
     const own = ownCopy(keyed?.[num]?.art, manifest);
     if (!src && !over.length && !own) continue;
@@ -99,13 +99,13 @@ export function hexesOf(cells, state, { even, manifest, keyed, picks }) {
  * @param {number} num  the hex's published number
  * @returns {{terrain:string, src:string|null, pool:string[]}|null}
  */
-export function groundOf(state, num, { manifest, picks }) {
+export function groundOf(state, num, { manifest, picks, seed = 0 }) {
   const terrain = readCell(state, num)?.terrain;
   if (!terrain || terrain === "keyed_location" || !Number.isInteger(num)) return null;
   const shifted = state.origin?.shifted ?? "odd";
   const cube = offsetToCube(Math.floor(num / 100), num % 100, shifted);
   const pool = poolFor(terrain, manifest).map((file) => HEX_ART_ROOT + file);
-  return { terrain, src: tileFor({ terrain, cube, manifest, pick: picks?.[num] }), pool };
+  return { terrain, src: tileFor({ terrain, cube, manifest, pick: picks?.[num], seed }), pool };
 }
 
 /**

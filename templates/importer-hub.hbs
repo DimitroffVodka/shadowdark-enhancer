@@ -403,14 +403,13 @@
     </section>
     {{/if}}
 
-    {{!-- Hex crawl hand-off --}}
+    {{!-- Hex crawl filed --}}
     {{#if importData.hexCrawlDone}}
     <section class="ui-group">
       <h3 class="ui-h"><span><i class="fas fa-map-location-dot"></i> {{localize "SDE.importer.hex.filed" title=importData.hexCrawlDone.title}}</span></h3>
-      <div class="ui-note good">{{#if importData.hexPinScene}}{{{localize "SDE.importer.hex.pinNote"}}} {{else}}{{{localize "SDE.importer.hex.noSceneNote"}}} {{/if}}{{#if importData.hexViaExtras}}{{{localize "SDE.importer.hex.extrasNote"}}}{{else}}{{{localize "SDE.importer.hex.downloadNote"}}}{{/if}}</div>
+      <div class="ui-note good">{{#if importData.hexPinScene}}{{{localize "SDE.importer.hex.pinNote"}}} {{else}}{{{localize "SDE.importer.hex.noSceneNote"}}} {{/if}}{{{localize "SDE.importer.hex.drawNote"}}}</div>
       <div class="ui-inline">
         {{#if importData.hexPinScene}}<button type="button" class="ui-btn" data-action="hubPinHexes" data-uuid="{{importData.hexCrawlDone.uuid}}" title="{{localize 'SDE.importer.hex.pinTip'}}"><i class="fas fa-map-pin"></i> {{localize "SDE.importer.hex.pinOn" scene=importData.hexPinScene}}</button>{{/if}}
-        <button type="button" class="ui-btn" data-action="hubHexDataset" data-uuid="{{importData.hexCrawlDone.uuid}}">{{#if importData.hexViaExtras}}<i class="fas fa-paper-plane"></i> {{localize "SDE.importer.hex.sendExtras"}}{{else}}<i class="fas fa-download"></i> {{localize "SDE.importer.hex.download"}}{{/if}}</button>
       </div>
     </section>
     {{/if}}

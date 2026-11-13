@@ -6,9 +6,8 @@
  * the scene flag `hexTags` (tag-store.mjs), one write per sheet. Numbering
  * comes from ONE anchor cell whose printed number the GM reads off its
  * thumbnail (geometry.mjs), so the map's own column shift never has to match
- * the scene's grid parity. "Build dataset" folds the tags into the Extras
- * dataset, on top of a filed crawl entry when one is chosen, and hands it over
- * or downloads it (hex-handoff.mjs). Phase 2 of docs/plans/hex-map-dataset.md.
+ * the scene's grid parity. "Build drawn map" makes a new scene drawn from the
+ * tags, sharing them with this one (hex-art.mjs, docs/plans/hex-painting.md).
  * Phase 4 adds the side doors (Import a CSV or JSON of tags, Export the tag
  * flag) and the hidden reference tile: the print placed on the painted scene,
  * automatically after an Extras hand-off (the builder's summary carries the
@@ -23,7 +22,7 @@ import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { findSuitePack, sourceFolderName } from "../shared/compendium-suite.mjs";
 import { sceneCells, sourceImage, CellSampler, backgroundTransform } from "./sampler.mjs";
 import { cellNumber, neighbours, framesTopRow, extrasNumbersAlike, withAnchorNumber, boundsFromRow, originFromFlag, mapRange } from "./geometry.mjs";
-import { decodeTags, encodeTags, nextSheet, applySheet, strandedRiver, tagsForDataset, summarize, importTags, rowsFromJson, sheetRisk, deriveCoasts, paletteTags, normalizeTerrainWord, tagsWrittenElsewhere, WRITER_OPTION, FEATURES, OTHER, offMapNums } from "./tag-store.mjs";
+import { decodeTags, encodeTags, nextSheet, applySheet, strandedRiver, summarize, importTags, rowsFromJson, sheetRisk, deriveCoasts, paletteTags, normalizeTerrainWord, tagsWrittenElsewhere, WRITER_OPTION, FEATURES, OTHER, offMapNums } from "./tag-store.mjs";
 import { FIXES_FLAG, BASELINE_FLAG, emptyLog, decodeFixes, encodeFixes, recordEdits, recordLegend, legendReport, accuracyReport, encodeBaseline, decodeBaseline, baselineReport } from "./tag-corrections.mjs";
 import { cellBoxOf, referenceTilePlacement, gridCellBox, loweredColumns, placeReferenceTile } from "./reference-tile.mjs";
 import { createClassifier, compareTags, parseTruthCsv, featureVector, keepMask, scoreClassifier, smoothTerrain } from "./classify.mjs";
@@ -34,14 +33,14 @@ import { regionSeeds, nameComponents, sceneBookFolder } from "./hex-region.mjs";
 import { TERRAIN_TAGS, SETTLEMENTS, rowTag } from "../importer/hex/hex-summary.mjs";
 import { HEX_FLAG } from "../importer/hex/hex-commit.mjs";
 import { resolveTab } from "./hex-tagger-tabs.mjs";
-import { datasetFromEntries, handoffDataset, handoffToPrint, extrasHexApi, extrasHexRecords, importDatasetRecords, paintedScenesFor, terrainCorrections } from "../importer/hex/hex-handoff.mjs";
-import { buildHexDataset, validateHexDataset, hexNum, assignmentsFromManifest } from "../importer/hex/hex-dataset.mjs";
+import { hexNum, assignmentsFromManifest } from "../importer/hex/hex-dataset.mjs";
 import { A0_PRINT, A0_TOTAL, isA0, a0Origin, copyTags, copiedTerrain, copySource, regionSource, playablePlan } from "./a0-print.mjs";
 import { L as t } from "../shared/i18n.mjs";
 
 /** Hex numbers as printed, the first ten and a count of the rest: "1000, 1101, … (+126)". */
 const listNums = (nums) => nums.slice(0, 10).map((n) => String(n).padStart(4, "0")).join(", ") + (nums.length > 10 ? `, … (+${nums.length - 10})` : "");
 import { artAssignments, ART_FLAG } from "./keyed-art.mjs";
+import { buildDrawnMap, newLook, drawsHexArt } from "./hex-art.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -225,7 +224,6 @@ async function playableFacts(scene, app, tf) {
   const from = copySource(here, others, app._state);
   const bordersFrom = regionSource(here, others);
   const terrainOf = (cells) => [...cells.values()].filter((c) => c.terrain).length;
-  const api = extrasHexApi();
   const parties = new Set((game.modules.get("shadowdark-extras")?.api?.party?.list?.() ?? []).map((a) => a?.id));
   let tables = 0;
   try { tables = (await (await import("../encounter/encounter-terrain.mjs")).encounterZonesByRegion()).size; } catch { /* no tables pack */ }
@@ -241,14 +239,6 @@ async function playableFacts(scene, app, tf) {
     rules: Number(game.shadowdarkEnhancer?.rules?.hexesPerDay?.("walking")) > 0,
     tables,
     party: scene.tokens.some((tok) => tok.actor && (tok.actor.getFlag(MODULE_ID, "party") || parties.has(tok.actor.id))),
-    extras: {
-      hex: !!api,
-      // As isHexRulesScene reads it: Extras marks a map it has taken as a hexcrawl.
-      adopted: !!scene.flags?.["shadowdark-extras"]?.hexcrawl,
-      // Extras' fog switch, used only with its reading (Extras #185), so a press never re-sets it blind.
-      fogApi: typeof api?.setFogEnabled === "function" && typeof api?.isFogEnabled === "function",
-      fogOn: !!api?.isFogEnabled?.(scene.id),
-    },
   };
 }
 
@@ -262,22 +252,18 @@ const CHECKLIST = [
   ["rules", "SDE.hexMap.playable.row.rules", "SDE.hexMap.playable.todo.rules", (f) => f.rules],
   ["tables", "SDE.hexMap.playable.row.tables", "SDE.hexMap.playable.todo.tables", (f) => f.tables > 0],
   ["party", "SDE.hexMap.playable.row.party", "SDE.hexMap.playable.todo.party", (f) => f.party],
-  ["extras", "SDE.hexMap.playable.row.extras", "SDE.hexMap.playable.todo.extras", (f) => f.extras.adopted],
 ];
 
 /** What the map has now, as a list the GM can act on. */
 async function showPlayableChecklist(scene, f) {
   const esc = foundry.utils.escapeHTML;
   const data = { n: f.terrain, total: f.total, keyed: f.wrEntries, regions: f.regions, pins: f.pins, tables: f.tables };
-  const rows = CHECKLIST.map(([id, row, todo, ok]) => {
-    // Without Extras its row says it's optional, and nothing is missing.
-    const done = id === "extras" && !f.extras.hex ? null : ok(f);
-    const icon = done === null ? "fa-circle-minus" : done ? "fa-circle-check" : "fa-circle-xmark";
-    const note = done === null ? t("SDE.hexMap.playable.todo.extrasOptional") : (!done && todo ? t(todo) : "");
-    return `<li class="sde-hxt-check${done === false ? " sde-hxt-missing" : ""}"><i class="fa-solid ${icon}"></i> <span>${esc(t(row, data))}</span>${
+  const rows = CHECKLIST.map(([, row, todo, ok]) => {
+    const done = ok(f);
+    const note = !done && todo ? t(todo) : "";
+    return `<li class="sde-hxt-check${done ? "" : " sde-hxt-missing"}"><i class="fa-solid ${done ? "fa-circle-check" : "fa-circle-xmark"}"></i> <span>${esc(t(row, data))}</span>${
       note ? `<br><span class="hint">${esc(note)}</span>` : ""}</li>`;
   });
-  if (f.extras.hex && !f.extras.fogApi) rows.push(`<li class="sde-hxt-check"><i class="fa-solid fa-circle-info"></i> <span>${esc(t("SDE.hexMap.playable.todo.fog"))}</span></li>`);
   await foundry.applications.api.DialogV2.prompt({
     classes: ["sde-ui", "sde-dialog"],
     window: { title: t("SDE.hexMap.playable.checklistTitle", { scene: scene.name }), icon: "fa-solid fa-list-check" },
@@ -302,9 +288,8 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       hxtApplySheet:   function (...a) { return this._onApplySheet(...a); },
       hxtSetNumber:    function (...a) { return this._onSetNumber(...a); },
       hxtSetBounds:    function (...a) { return this._onSetBounds(...a); },
-      hxtBuildDataset: function (...a) { return this._onBuildDataset(...a); },
-      hxtBuildPainted: function (...a) { return this._onBuildPainted(...a); },
-      hxtUpdatePainted: function (...a) { return this._onUpdatePainted(...a); },
+      hxtBuildDrawn:   function () { return this._onBuildDrawn(); },
+      hxtNewLook:      function () { return this._onNewLook(); },
       hxtClearTags:    function (...a) { return this._onClearTags(...a); },
       hxtClassify:     function (...a) { return this._onClassify(...a); },
       hxtImport:       function (...a) { return this._onImport(...a); },
@@ -429,12 +414,6 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
         const { pinCrawlOnActiveScene } = await import("./hex-pins.mjs");
         for (const e of app._entries) await pinCrawlOnActiveScene(e.doc);
       }
-      if (run.includes("handoff")) {
-        say("SDE.hexMap.playable.progress.extras");
-        await app._onBuildDataset();
-      }
-      // Extras' own switch, when it has one (Extras #185): this module never writes Extras' flags.
-      if (run.includes("fog")) await extrasHexApi()?.setFogEnabled?.(scene.id, true);
     } catch (err) {
       console.error(`${MODULE_ID} | make this map playable`, err);
       ui.notifications?.error(t("SDE.hexMap.playable.failed", { error: err.message }));
@@ -1216,7 +1195,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
         .map(([v, k]) => ({ value: v, label: t(k), selected: v === this._mode })),
       entries: this._entries.map((e) => ({ uuid: e.uuid, name: e.name, selected: e.uuid === this._entryUuid })),
       allCrawls: this._entries.length > 1 && !this._mixedBooks(), allSelected: this._entryUuid === ALL_CRAWLS,
-      sheet, hasSheet: sheet.length > 0, needsOrigin: sampled && !origin, viaExtras: !!extrasHexApi(), error: this._error,
+      sheet, hasSheet: sheet.length > 0, needsOrigin: sampled && !origin, drawn: drawsHexArt(scene), error: this._error,
       features: FEATURES, overlayShown: !!this._overlayMode, overlayMode: this._overlayMode ?? "",
       canClassify: !!origin && summarize(state, this._numbered.size || state.cells.size).gm > 0, sensitivity: this._sensitivity, progress: this._progress,
       offMap: this._offMapNote(state),
@@ -1690,170 +1669,18 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render();
   }
 
-  /**
-   * The hand-off dataset for this map: its tags, the chosen crawl's keyed
-   * pages, the GM's tile art and every hex's region. Null after telling the GM
-   * why there is none.
-   * The scene and anchor come back with it, taken before the awaits below: a GM
-   * who switches scenes meanwhile must not have this map's data sent to the next.
-   * @returns {Promise<{dataset:object, tags:object, chosen:JournalEntry[], sceneId:string, origin:object}|null>}
-   */
-  async _handoffDataset() {
-    // The crawl entries load with the first render. A send made before that
-    // (from a macro, right after openTagger) read no keyed rows, and so sent a
-    // different dataset from the next send; load them here instead.
-    if (!this._entries.length) await this._loadEntries();
-    if (!this._requireCurrentScene()) return null;
-    this._readHeader();
-    if (!this._state.origin) { ui.notifications?.warn(t("SDE.hexMap.notify.setAnchor")); return null; }
-    const sceneId = this._stateSceneId;
-    const origin = this._originForGeometry();
-    const tags = tagsForDataset(this._state);
-    const b = this._state.origin.bounds;
-    // The numbering origin is NOT taken from the in-memory sample. It used to
-    // be — "does any sampled cell sit in column 0 or row 0" — and the sample is
-    // dropped on a reload while the tags are not. Sending the dataset without
-    // re-reading the map therefore produced `origin: 1` over hexes numbered
-    // from 0, and Extras rejected the first one: "hex 1 is outside the
-    // published grid". buildHexDataset works it out from the hexes it is about
-    // to emit, which cannot disagree with them.
-    const gridHint = b?.cols ? { cols: b.cols, rows: b.rows, firstRow: b.firstRow, rowsLowered: b.rowsLowered } : undefined;
-    const chosen = this._selectedEntries();
-    const assignments = this._artAssignments();
-    // Every hex's region as its Extras zone, from this print's border scan.
-    // Only the tagged hexes: a scan older than the bounds can still hold
-    // margin cells, and one hex outside the grid fails the whole build.
-    const { sceneZones } = await import("./hex-region.mjs");
-    const zones = new Map([...(await sceneZones(this._scene())).byNum].filter(([num]) => tags[String(num).padStart(3, "0")]));
-    const dataset = chosen.length ? datasetFromEntries(chosen, { tags, gridHint, assignments, zones })
-      : buildHexDataset({ name: this._scene()?.name ?? t("SDE.hexMap.app.defaultName"), source: "", tags, assignments, zones, gridHint });
-    const check = validateHexDataset(dataset);
-    if (!check.ok) { ui.notifications?.error(t("SDE.hexMap.notify.datasetInvalid", { error: check.errors[0] })); console.warn(`${MODULE_ID} | hex dataset`, check.errors); return null; }
-    return { dataset, tags, chosen, sceneId, origin };
+  /** Build drawn map: a new scene drawn from this map's tags, sharing them, with a look of its own (hex-art.mjs). */
+  async _onBuildDrawn() {
+    if (!this._requireCurrentScene()) return;
+    if (!this._state.origin) { ui.notifications?.warn(t("SDE.hexMap.notify.setAnchor")); return; }
+    const made = await buildDrawnMap(this._scene());
+    if (made) ui.notifications?.info(t("SDE.hexMap.notify.drawnBuilt", { name: made.name }));
   }
 
-  /**
-   * Send to Extras: put the hex details on THIS map (shadowdark-enhancer#175).
-   * Extras adopts the print and takes every hex's record; nothing is painted,
-   * so the publisher's art and the pins stay. Without Extras the dataset
-   * downloads, as before. Building a separate painted scene is under More.
-   */
-  async _onBuildDataset() {
-    const built = await this._handoffDataset();
-    if (!built) return;
-    const { dataset, tags, sceneId, origin } = built;
-    const cells = Object.keys(tags).length;
-    if (!extrasHexApi()) {
-      const res = await handoffDataset(dataset);
-      if (res.via === "download") ui.notifications?.info(t("SDE.hexMap.notify.downloaded", { file: res.filename, hexes: dataset.hexes.length, cells, art: "" }));
-      return;
-    }
-    // Building the dataset awaited the region scan and the journal pack; if the
-    // GM changed scenes meanwhile, the data is the old map's and must not land
-    // on the new one. From here on only the scene captured with the data is used.
-    if (!this._requireCurrentScene() || this._stateSceneId !== sceneId) return;
-    const base = dataset.grid.origin ?? 1;
-    if (!extrasNumbersAlike(origin, base)) {
-      ui.notifications?.warn(t("SDE.hexMap.notify.notTopLeft", { first: base ? "0101" : "0000" }));
-      return;
-    }
-    const res = await handoffToPrint(sceneId, dataset, { tags });
-    if (res.via === "extras") {
-      const hexes = res.summary?.records ?? dataset.hexes.length;
-      ui.notifications?.info(t(res.adopted ? "SDE.hexMap.notify.onPrintFirst" : "SDE.hexMap.notify.onPrint", { hexes }));
-      if (res.featuresUnread) ui.notifications?.warn(t("SDE.hexMap.notify.featuresUnread"));
-    } else if (res.reason === "no-adopt") ui.notifications?.warn(t("SDE.hexMap.notify.needsAdopt"));
-    else if (res.reason === "extras-error" && res.error) ui.notifications?.error(t("SDE.hexMap.notify.adoptFailed", { error: res.error }));
-  }
-
-  /** Build painted map (More): a new Extras scene painted from the tags, the hand-off before #175. */
-  async _onBuildPainted() {
-    const built = await this._handoffDataset();
-    if (!built) return;
-    const { dataset, tags, chosen } = built;
-    // The painted scene must not share the print scene's name.
-    const res = await handoffDataset(dataset, { sceneName: chosen.length ? dataset.name : `${dataset.name} (painted)` });
-    const n = Object.keys(tags).length;
-    const painted = dataset.hexes.filter((h) => h.art).length;
-    const art = painted ? t("SDE.hexMap.notify.withArt", { n: painted }) : "";
-    if (res.via === "extras") ui.notifications?.info(t("SDE.hexMap.notify.sent", { name: dataset.name, hexes: dataset.hexes.length, cells: n, art }));
-    else if (res.via === "download") ui.notifications?.info(t("SDE.hexMap.notify.downloaded", { file: res.filename, hexes: dataset.hexes.length, cells: n, art }));
-  }
-
-  /**
-   * Update painted map (More): after retagging, repaint on a painted Extras
-   * scene just the hexes whose terrain now differs from what that scene holds.
-   * Words, tokens, pins, notes and fog on it are left alone, which a rebuild
-   * (Build painted map) would not do.
-   */
-  async _onUpdatePainted() {
-    const built = await this._handoffDataset();
-    if (!built) return;
-    const { dataset, sceneId } = built;
-    if (typeof extrasHexApi()?.repaintHexTiles !== "function") {
-      ui.notifications?.warn(t("SDE.importer.hexHandoff.notify.noExtras"));
-      return;
-    }
-    const scenes = paintedScenesFor(game.scenes, sceneId, dataset.grid);
-    if (!scenes.length) { ui.notifications?.warn(t("SDE.hexMap.notify.noPainted")); return; }
-    const target = scenes.length === 1 ? scenes[0] : await this._pickPainted(scenes);
-    if (!target) return;
-    const records = await extrasHexRecords(target.id, dataset.grid.origin ?? 1).catch(() => null);
-    // {} is refused with null: nothing recorded would read as "every hex differs".
-    if (!records || !Object.keys(records).length) {
-      ui.notifications?.warn(t("SDE.hexMap.notify.paintedUnreadable", { scene: target.name }));
-      return;
-    }
-    const changes = terrainCorrections(dataset, records);
-    if (!changes.length) { ui.notifications?.info(t("SDE.hexMap.notify.paintedCurrent", { scene: target.name })); return; }
-    const esc = foundry.utils.escapeHTML;
-    const SHOWN = 15;
-    const rows = changes.slice(0, SHOWN).map((c) => `<li>${esc(t("SDE.hexMap.updatePainted.row", {
-      num: String(c.num).padStart(4, "0"), was: c.was || t("SDE.hexMap.updatePainted.noneBefore"), terrain: c.terrain }))}</li>`).join("");
-    const more = changes.length > SHOWN ? `<p class="hint">${esc(t("SDE.hexMap.updatePainted.more", { n: changes.length - SHOWN }))}</p>` : "";
-    const ok = await foundry.applications.api.DialogV2.confirm({
-      classes: ["sde-ui", "sde-dialog"],
-      window: { title: t("SDE.hexMap.updatePainted.title") },
-      content: `<p>${esc(t("SDE.hexMap.updatePainted.confirm", { scene: target.name, n: changes.length }))}</p><ul>${rows}</ul>${more}
-        <p class="hint">${esc(t("SDE.hexMap.updatePainted.hint"))}</p>`,
-      yes: { label: t("SDE.hexMap.updatePainted.apply") },
-      rejectClose: false,
-    });
-    if (!ok) return;
-    // The dialog awaited the GM: as in _onBuildDataset, data from the old map must not land after a scene switch.
-    if (!this._requireCurrentScene() || this._stateSceneId !== sceneId) return;
-    // Tiles first. Extras refuses the whole batch for one art id it does not know, and records written ahead
-    // of that would name the new terrain over tiles showing the old one, so a retry would find nothing to do.
-    const edits = changes.map(({ num, terrain, art }) => ({ num, terrain, ...(art ? { art } : {}) }));
-    let repaint;
-    try {
-      repaint = await extrasHexApi().repaintHexTiles(target.id, edits);
-    } catch (err) {
-      console.error(`${MODULE_ID} | hex tile repaint failed`, err);
-      ui.notifications?.error(t("SDE.importer.hexHandoff.notify.refused", { error: err.message }));
-      return;
-    }
-    const res = await importDatasetRecords(target.id, { hexes: edits }, { repaint: false, quiet: true });
-    if (res.via !== "extras") return;
-    ui.notifications?.info(t(edits.length === 1 ? "SDE.importer.hexHandoff.notify.updatedOne" : "SDE.importer.hexHandoff.notify.updatedMany",
-      { n: edits.length, painted: repaint ? t("SDE.importer.hexHandoff.notify.repainted", { n: repaint.repainted }) : "" }));
-  }
-
-  /** Which painted scene a correction goes to, when more than one matches. Null when cancelled. */
-  async _pickPainted(scenes) {
-    const esc = foundry.utils.escapeHTML;
-    const options = scenes.map((s) => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join("");
-    const id = await foundry.applications.api.DialogV2.wait({
-      classes: ["sde-ui", "sde-dialog"],
-      window: { title: t("SDE.hexMap.updatePainted.title") },
-      content: `<p>${esc(t("SDE.hexMap.updatePainted.pick"))}</p><select name="painted-scene">${options}</select>`,
-      buttons: [
-        { action: "pick", label: t("SDE.hexMap.btn.updatePainted"), default: true, callback: (ev, button, dialog) => (dialog.element ?? dialog)?.querySelector?.("select[name='painted-scene']")?.value ?? null },
-        { action: "cancel", label: t("SDE.hexMap.btn.cancel") },
-      ],
-      rejectClose: false,
-    }).catch(() => null);
-    return scenes.find((s) => s.id === id) ?? null;
+  /** New look: deal this drawn scene's pictures again; the tags and the GM's own picks stay. */
+  async _onNewLook() {
+    if (!this._requireCurrentScene()) return;
+    await newLook(this._scene());
   }
 
   /** Side door in: a CSV (hex_id, tags or terrain_tags, source) or a JSON (the exported tag flag, or a dataset). */

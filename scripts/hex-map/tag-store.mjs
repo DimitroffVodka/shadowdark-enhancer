@@ -366,34 +366,6 @@ export function applySheet(state, answers) {
 }
 
 /**
- * Tags in the shape hex-dataset's buildHexDataset takes: { num: { terrain, features } }.
- *
- * Cells the map does not have are dropped. A tag can arrive by NUMBER rather
- * than by position — a truth CSV, an exported tag file, tags written before the
- * map's size was set — so the store can hold a cell in the frame, and the
- * store is not where that is noticed. Shadowdark Extras bakes the grid into a
- * built scene and refuses a record outside it ("hex N is outside the published
- * grid"), which would surface as a failed hand-off AFTER the scene was built.
- * Dropping them here keeps that from ever leaving.
- *
- * Each cell goes out as readCell reads it, so a legacy "coast" terrain never
- * leaves as a terrain; a cell whose ground nothing names goes with its
- * features alone.
- */
-export function tagsForDataset(state) {
-  const off = new Set(offMapNums(state));
-  const out = {};
-  for (const [num, c] of state?.cells ?? []) {
-    if (!c?.terrain) continue;
-    const n = parseInt(num, 10);
-    if (!Number.isInteger(n) || off.has(n)) continue;
-    const { terrain, features } = readCell(state, n, c);
-    out[String(num).padStart(3, "0")] = terrain ? { terrain, features } : { features };
-  }
-  return out;
-}
-
-/**
  * What a list of tags says about a hex, read the #196 way.
  *
  * The persisted store can hold a feature word where the terrain goes, and so

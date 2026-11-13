@@ -16,7 +16,7 @@ import { HexRecords, isHexAdopted, registerHexRecordProjections } from "./hex-ma
 import { adoptHexScene, registerHexAdoption } from "./hex-map/hex-adoption.mjs";
 import { HexFog, ownsHexFog, registerHexFog } from "./hex-map/hex-fog.mjs";
 import { ownsBakedMap, registerBakedMaps } from "./hex-map/baked-map.mjs";
-import { registerHexArt, setHexArtDrawn } from "./hex-map/hex-art.mjs";
+import { registerHexArt, setHexArtDrawn, buildDrawnMap, newLook } from "./hex-map/hex-art.mjs";
 import { fillKeyedGround, removeKeyedGround } from "./hex-map/keyed-ground.mjs";
 import { ICONS } from "./shared/icons.mjs";
 import { claimGmTab, isActiveGM } from "./shared/gm-relay.mjs";
@@ -166,7 +166,7 @@ const STYLESHEET_REV = "2fdaf5c514f4";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "3dc8e231deee";
+const BUILD_REV = "800dcd934dc4";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -540,7 +540,7 @@ Hooks.once("init", () => {
   // game.modules.get(MODULE_ID).api on ready; consumers should listen for
   // the "shadowdarkEnhancer.ready" hook. Reference: docs/API.md.
   game.shadowdarkEnhancer = {
-    // 1.5.0 — additive: hexMaps namespace (hex tagger, dataset, hand-off).
+    // 1.5.0 — additive: hexMaps namespace (hex tagger, drawn maps).
     // 1.6.0 — additive: statDamage namespace (tracked ability damage).
     // 1.7.0 — additive: quests namespace (the Quest Log) and questsChanged.
     // 1.8.0 — additive: dying namespace and the crawlRound hook (#181).
@@ -1007,7 +1007,7 @@ Hooks.once("init", () => {
     },
     // 1.5.0 — additive: hex maps. The Hex Tagger reads the active hex scene's
     // background cell by cell and stores the GM's terrain tags on the scene;
-    // datasets go to Shadowdark Extras' hexcrawl builder or download as JSON.
+    // a drawn map is made from those tags (hex-art.mjs).
     // Nothing from a published map ships with the module (docs/plans/hex-map-dataset.md).
     owns: (feature, target) => (feature === "hex.fog" && ownsHexFog(target)) || (feature === "hex.tooltip" && ownsHexData(target))
       || (feature === "hex.baked" && ownsBakedMap(target)),
@@ -1018,6 +1018,9 @@ Hooks.once("init", () => {
       adopt: adoptHexScene,
       // Draw the scene's hex art from its tags (docs/plans/hex-painting.md); experimental, GM only.
       drawArt: (on, scene) => setHexArtDrawn(on, scene),
+      // A new scene drawn from a tagged scene's tags, sharing them, with its own look; and a new look for a drawn one (GM only).
+      buildDrawn: (scene) => buildDrawnMap(scene ?? canvas?.scene),
+      newLook: (scene) => newLook(scene),
       isAdopted: isHexAdopted,
       // 1.31.0 — plain ground under keyed hexes, so a baked map has no hole where a hidden location stands.
       fillKeyedGround,
@@ -1031,7 +1034,7 @@ Hooks.once("init", () => {
       hasNumbering: (scene) => hasHexNumbering(scene),
       // The contact-sheet tagger for the active scene (GM only). Lazy.
       openTagger: async (opts) => (await import("./hex-map/hex-tagger-app.mjs")).HexTaggerApp.open(opts),
-      // Make the viewed Western Reaches A0 scene playable: numbered, keyed, pinned, handed to Extras (GM only).
+      // Make the viewed Western Reaches A0 scene playable: numbered, keyed and pinned (GM only).
       makePlayable: async () => (await import("./hex-map/hex-tagger-app.mjs")).HexTaggerApp.makePlayable(),
       // The active scene's tags drawn on the map for review; toggles (GM only).
       showTags: async (opts) => (await import("./hex-map/tag-overlay.mjs")).HexTagOverlay.toggle(opts),
@@ -1057,8 +1060,6 @@ Hooks.once("init", () => {
       buildKeyIndex: async (src) => (await import("./importer/hex/key-location-index.mjs")).buildKeyLocationIndex(src),
       // Pan the viewed scene to a published hex number, as a hex link in a journal does.
       goto: async (num, src) => (await import("./hex-map/hex-goto.mjs")).gotoHex(num, src),
-      // Pure builder for the Extras dataset from drafts, keyed rows and tags.
-      buildDataset: async (args) => (await import("./importer/hex/hex-dataset.mjs")).buildHexDataset(args),
       // Dev check: what a first-time user would get on a map you have verified,
       // with no tags of their own. The one number that says whether a change to
       // the module helps somebody who has never used it. Ships no data.
@@ -1070,31 +1071,6 @@ Hooks.once("init", () => {
       // Dev check: score the active scene's tags against a truth CSV
       // (hex_id + tags or terrain_tags). Ships no data; the CSV is the GM's.
       compare: async (csvText, opts) => (await import("./hex-map/hex-tagger-app.mjs")).compareSceneTags(canvas?.scene, csvText, opts),
-      // Dataset from a filed crawl entry (journals pack), then hand-off or download.
-      handoff: async (entryOrDataset) => {
-        const h = await import("./importer/hex/hex-handoff.mjs");
-        const ds = entryOrDataset?.pages ? h.datasetFromEntry(entryOrDataset) : entryOrDataset;
-        return h.handoffDataset(ds);
-      },
-      // Write hex details onto a hexcrawl scene Extras already built, instead
-      // of rebuilding it and losing the scene's tokens, pins and fog progress.
-      // Repaints the tiles to match unless { repaint: false }. Defaults to the
-      // active scene. Given crawl entries (one, several, or [] for zones only),
-      // every hex also gets its region as zone + zoneColor from the print's
-      // border scan: { regionScene } names the print when the world has more
-      // than one scanned scene. A target scene that resolves a print of a different book than that scan gets no
-      // zones (the names would be another book's); the result then carries zonesSkipped: { target, scan }.
-      importDetails: async (entriesOrDataset, sceneId, opts = {}) => {
-        const h = await import("./importer/hex/hex-handoff.mjs");
-        const target = sceneId ?? canvas?.scene?.id;
-        const x = entriesOrDataset;
-        // The scan's names are its book's: a target of another book gets none, and `zonesSkipped` says so. A
-        // regionScene the GM names is their own choice of scan and is not second-guessed.
-        const ds = (Array.isArray(x) || x?.pages)
-          ? await h.detailsDataset(x, opts.regionScene ?? target, { target: opts.regionScene ? undefined : target }) : x;
-        const out = await h.importDatasetRecords(target, ds, opts);
-        return ds?.zonesSkipped ? { ...out, zonesSkipped: ds.zonesSkipped } : out;
-      },
     },
     // 1.6.0 — additive: stat damage. One Active Effect per damaged ability,
     // nothing on the sheet until it happens. Shadowdark Extras' rests heal it

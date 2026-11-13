@@ -15,8 +15,6 @@ import { resolveSpellClass, ClassIndex } from "./char-content/class-index.mjs";
 import { MonsterImporter } from "./monsters/monster-importer.mjs";
 import { BoatImporter } from "./boats/boat-importer.mjs";
 import { commitHexDrafts } from "./hex/hex-commit.mjs";
-import { datasetFromEntry, handoffDataset } from "./hex/hex-handoff.mjs";
-import { validateHexDataset } from "./hex/hex-dataset.mjs";
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { installMethods, t } from "./importer-hub-shared.mjs";
 import { ImporterHubApp } from "./importer-hub-app.mjs";
@@ -323,28 +321,6 @@ class HubCommitMethods {
       }));
     }
     ui.notifications.info(t("SDE.importer.done.pinned", { scene: canvas.scene?.name, bits: bits.join(", "), journal: res.journal.name }));
-  }
-
-  /**
-   * Hand-off: rebuild the Extras dataset from a committed crawl entry (pages
-   * plus the keyed rows on its flag) and send it to Shadowdark Extras when its
-   * builder entry point exists, else download it as JSON (hex-handoff.mjs).
-   */
-  async _onHubHexDataset(event, target) {
-    if (!game.user?.isGM) { ui.notifications.warn(t("SDE.importer.gm.hexExport")); return; }
-    const uuid = target?.dataset?.uuid || this._lastHexCrawl?.uuid;
-    const entry = uuid ? await fromUuid(uuid) : null;
-    if (!entry) { ui.notifications.warn(t("SDE.importer.empty.crawlGone")); return; }
-    const dataset = datasetFromEntry(entry);
-    const check = validateHexDataset(dataset);
-    if (!check.ok) {
-      console.warn(`${MODULE_ID} | hex dataset failed its contract check`, check.errors);
-      ui.notifications.error(t("SDE.importer.done.datasetInvalid", { error: check.errors[0] }));
-      return;
-    }
-    const res = await handoffDataset(dataset);
-    if (res.via === "extras") ui.notifications.info(t("SDE.importer.done.sentExtras", { name: dataset.name, n: dataset.hexes.length }));
-    else if (res.via === "download") ui.notifications.info(t("SDE.importer.done.downloaded", { file: res.filename, n: dataset.hexes.length }));
   }
 
   /**

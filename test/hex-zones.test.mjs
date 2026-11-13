@@ -1,8 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { hexZones } from "../scripts/hex-map/hex-region.mjs";
-import { buildHexDataset, validateHexDataset } from "../scripts/importer/hex/hex-dataset.mjs";
-import { importDatasetRecords } from "../scripts/importer/hex/hex-handoff.mjs";
 
 // Invented fixtures (D1): two made-up regions and an unkeyed islet on a small
 // patch of hexes. Enclosure 1 is columns 10-11, enclosure 2 columns 12-13,
@@ -48,39 +46,4 @@ test("an enclosure holding two regions is reported; no scan or no seeds says not
   assert.equal(conflicts.length, 1);
   assert.equal(hexZones({ seeds }).byNum.size, 0);
   assert.equal(hexZones({ components }).byNum.size, 0);
-});
-
-test("the dataset carries every hex's zone, the scan's name over the keyed row's abbreviation", () => {
-  const { byNum: zones } = hexZones({ components, fixes, seeds });
-  const ds = buildHexDataset({
-    name: "Invented Reaches",
-    summaryRows: [{ num: "1001", key: "10,1", zone: "Grey Rch", terrain: ["forest"], name: "Old Mill", feature: "keyed_location" }],
-    zones,
-  });
-  assert.equal(validateHexDataset(ds).ok, true);
-  assert.equal(ds.hexes.length, 20);
-  const h = Object.fromEntries(ds.hexes.map((x) => [x.num, x]));
-  assert.equal(h[1001].zone, "Grey Reach");
-  assert.equal(h[1001].name, "Old Mill");
-  assert.match(h[1402].zoneColor, /^#[0-9a-f]{6}$/);
-  assert.equal(validateHexDataset({ ...ds, hexes: [{ num: 1001, zone: "Z", zoneColor: "red" }] }).ok, false);
-});
-
-test("import sends zoneColor, and drops only the colour Extras could not parse", async () => {
-  let sent;
-  globalThis.game = { user: { isGM: true }, shadowdarkExtras: { hex: { buildHexcrawl: async () => {}, upsertHexRecords: async (_id, records) => { sent = records; return {}; } } } };
-  globalThis.ui = { notifications: { info() {}, warn() {}, error() {} } };
-  try {
-    await importDatasetRecords("scene", { hexes: [
-      { num: 1001, zone: "Grey Reach", zoneColor: "#aabbcc" },
-      { num: 1002, zone: "Grey Reach", zoneColor: "grey" },
-    ] }, { repaint: false });
-    assert.deepEqual(sent, [
-      { num: 1001, zone: "Grey Reach", zoneColor: "#aabbcc" },
-      { num: 1002, zone: "Grey Reach" },
-    ]);
-  } finally {
-    delete globalThis.game;
-    delete globalThis.ui;
-  }
 });

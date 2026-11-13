@@ -148,3 +148,15 @@ test("changedChunks re-renders only what a change touches", () => {
   assert.deepEqual([...changedChunks(a, gone, 10, 512)], ["0_0"]);
   assert.deepEqual([...changedChunks(gone, a, 10, 512)], ["0_0"]);
 });
+
+test("a scene's seed changes which picture a hex wears, and the chooser agrees with the drawer", () => {
+  const origin = { i: 0, j: 0, q: 0, r: 0, num: "0000", shifted: "odd" };
+  const tags = {};
+  for (let c = 0; c < 6; c++) for (let r = 0; r < 6; r++) tags[(c * 100) + r] = "forest|gm";
+  const state = decodeTags({ origin, cells: tags });
+  const cells = [];
+  for (let i = 0; i < 6; i++) for (let j = 0; j < 6; j++) cells.push({ i, j, x: j * 10, y: i * 10 });
+  const plain = hexesOf(cells, state, { even: false, manifest }), seeded = hexesOf(cells, state, { even: false, manifest, seed: 99 });
+  assert.ok([...plain.keys()].some((num) => plain.get(num).src !== seeded.get(num).src));
+  assert.equal(groundOf(state, 202, { manifest, seed: 99 }).src, seeded.get("202").src);
+});

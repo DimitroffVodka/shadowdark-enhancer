@@ -29,8 +29,9 @@ test("the brush and the tag overlay are offered on a numbered map with nothing t
   }
 });
 
-test("sending the tags to Extras still waits for a tag, since there is nothing to send before", () => {
-  assert.ok(conditionsAround(template, 'data-action="hxtBuildDataset"').includes("if hasTags"));
+test("building a drawn map waits for a tag, since there is nothing to draw before", () => {
+  assert.ok(conditionsAround(template, 'data-action="hxtBuildDrawn"').includes("if hasTags"));
+  assert.ok(conditionsAround(template, 'data-action="hxtNewLook"').includes("if drawn"), "a new look is for a drawn map");
 });
 
 test("a map the importer made lists only its own book's keyed hexes (another book's number must not star a hex)", () => {

@@ -22,6 +22,12 @@
       <label class="ui-field"><span class="ui-label">{{localize "SDE.hexExplorer.locationTitle"}}</span><input name="title" value="{{title}}"></label>
     </section>
 
+    {{#if extrasPainted}}<section class="ui-card">
+      <h3 class="ui-h">{{localize "SDE.hexExplorer.draw.title"}}</h3>
+      <p class="ui-muted">{{#if drawnHere}}{{localize "SDE.hexExplorer.draw.onHint"}}{{else}}{{localize "SDE.hexExplorer.draw.offHint"}}{{/if}}</p>
+      <div class="ui-inline">{{#if drawnHere}}<button type="button" class="ui-btn" data-action="drawExtras"><i class="fa-solid fa-eye"></i> {{localize "SDE.hexExplorer.draw.showExtras"}}</button>{{else}}<button type="button" class="ui-btn" data-action="drawEnhancer"><i class="fa-solid fa-paintbrush"></i> {{localize "SDE.hexExplorer.draw.button"}}</button>{{/if}}</div>
+    </section>{{/if}}
+
     {{#if tileSection}}<section class="ui-card hx-tile">
       <h3 class="ui-h">{{localize "SDE.hexExplorer.tile.title"}}</h3>
       <p class="ui-muted">{{tileNote}}</p>

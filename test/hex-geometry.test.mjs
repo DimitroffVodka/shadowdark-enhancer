@@ -207,3 +207,21 @@ test("mapRange names the map's first and last printed numbers, as printed", () =
   assert.equal(mapRange(null), null);
   assert.equal(mapRange({ cols: 3 }), null);
 });
+
+test("extrasOrigin numbers a scene Extras built the way Extras does: its first hex at Foundry offset {0, 0}", async () => {
+  const { extrasOrigin, originFromFlag } = await import("../scripts/hex-map/geometry.mjs");
+  for (const base of [0, 1]) {
+    const flag = extrasOrigin({ cols: 6, rows: 5, origin: base });
+    const origin = originFromFlag(flag);
+    // Extras puts printed (col, row) at Foundry offset {i: row - base, j: col - base}.
+    for (let col = base; col < base + 6; col++) {
+      for (let row = base; row < base + 5; row++) {
+        assert.equal(cellNumber(foundryOffsetToCube({ i: row - base, j: col - base }, false), origin).num, numberFor(col, row), `${base}: ${col},${row}`);
+      }
+    }
+    assert.equal(cellNumber(foundryOffsetToCube({ i: 5, j: 0 }, false), origin).num, null, "past the last row");
+  }
+  assert.equal(extrasOrigin({ cols: 6, rows: 5, flipX: true }), null);
+  assert.equal(extrasOrigin({ rows: 5 }), null);
+  assert.deepEqual(extrasOrigin({ cols: 6, rows: 5, origin: 1, firstRow: 2, rowsLowered: 4 }).bounds, { cols: 6, rows: 5, base: { col: 1, row: 1 }, rowsLowered: 4, firstRow: 1 });
+});

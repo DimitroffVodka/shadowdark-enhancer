@@ -3,7 +3,8 @@
  *
  * Step 1 of docs/plans/hex-painting.md. The drawn map reads a hex's terrain from the tag store and
  * asks this file for its picture. Nothing is stored for the ordinary case: the same hex on the same
- * map always gets the same picture, and a GM's own choice for one hex (the `hexArt` flag) wins.
+ * scene always gets the same picture, a scene's seed (SEED_FLAG) gives it another look, and a GM's own choice for
+ * one hex (PICK_FLAG) wins.
  *
  * The terrain-to-folder rules carry over what Shadowdark Extras learned (BIOME_TILES,
  * TERRAIN_COLORED_RULES, DRAW_EXCLUDES and FEATURE_COLORED_RULES in its HexcrawlBuilderSD /
@@ -102,13 +103,14 @@ const mod = (a, n) => ((a % n) + n) % n;
  * @param {string[]} pool
  * @param {{q:number, r:number}} cube
  * @param {string} terrain
+ * @param {number} [look]  the scene's seed (SEED_FLAG); 0 is the look every map had before seeds
  * @returns {string|null}
  */
-export function pickTile(pool, { q, r }, terrain) {
+export function pickTile(pool, { q, r }, terrain, look = 0) {
   const n = pool?.length ?? 0;
   if (!n) return null;
-  if (n < 3) return pool[mod(q + 2 * r, n)]; // a hex grid can't be coloured with fewer than three
-  const seed = hash(normTerrain(terrain));
+  if (n < 3) return pool[mod(q + 2 * r + look, n)]; // a hex grid can't be coloured with fewer than three
+  const seed = hash(look ? `${normTerrain(terrain)}#${look}` : normTerrain(terrain));
   const a = 2 + (seed % (n - 2));
   const order = [...pool.keys()];
   const rng = lcg(seed);
@@ -122,17 +124,20 @@ export function pickTile(pool, { q, r }, terrain) {
 /** The scene flag holding the GM's choice of ground picture per hex: { "1403": "<src>" } (the Hex Data window). */
 export const PICK_FLAG = "hexTile";
 
+/** The scene flag holding its look: a number that deals every hex a different picture of its terrain (pickTile). */
+export const SEED_FLAG = "hexArtSeed";
+
 /**
  * The ground picture a hex wears: the GM's pick while it is still one of its terrain's pictures (retag the hex and
  * the pick lapses with the old terrain), else the dealt one, else null when nothing fits. A keyed hex's own picture
  * is not ground: it is the `hexArt` flag's ({ "1403": { art } }, keyed-art.mjs), drawn over this where the fog
  * allows (hex-art-core.mjs).
- * @param {{terrain:string, cube:{q:number, r:number}, manifest:object, pick?:string}} hex
+ * @param {{terrain:string, cube:{q:number, r:number}, manifest:object, pick?:string, seed?:number}} hex
  * @returns {string|null}
  */
-export function tileFor({ terrain, cube, manifest, pick }) {
+export function tileFor({ terrain, cube, manifest, pick, seed = 0 }) {
   const pool = poolFor(terrain, manifest);
   if (pick && pool.some((file) => HEX_ART_ROOT + file === pick)) return pick;
-  const picked = pickTile(pool, cube, terrain);
+  const picked = pickTile(pool, cube, terrain, seed);
   return picked ? HEX_ART_ROOT + picked : null;
 }

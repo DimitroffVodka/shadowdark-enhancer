@@ -145,14 +145,11 @@ export function regionSource(here, others) {
  * - copy: terrain from another scene of the same print, where it fills hexes
  * - regions: region borders from another scene of the print, when this one has none
  * - pins: the book's keyed hexes as map notes
- * - handoff: the hex records to Shadowdark Extras, once every hex has terrain
- * - fog: Extras' hex fog on, when Extras can be asked to
  * - legend: name the print's pictures, while hexes still have no terrain (last:
  *   it opens the tagger, and a second press after it does the rest)
  *
  * @param {{anchored:boolean, anchor:"keep"|"rebuild", placed:number, terrain:number, total:number,
- *   copyTerrain:number, regions?:number, regionsFrom?:number, wrEntries:number, pins:number,
- *   extras:{hex:boolean, adopted:boolean, fogApi:boolean, fogOn:boolean}}} f
+ *   copyTerrain:number, regions?:number, regionsFrom?:number, wrEntries:number, pins:number}} f
  *   copyTerrain: the hexes with terrain after a copy from another scene of the print (copiedTerrain), 0 with none
  * @returns {{run:string[], confirm:boolean}}  confirm: the rebuild moves the map under what is placed on it
  */
@@ -166,8 +163,6 @@ export function playablePlan(f) {
   if (!f.regions && f.regionsFrom > 0) run.push("regions");
   if (f.wrEntries > 0 && f.pins === 0) run.push("pins");
   const terrain = copy ? f.copyTerrain : f.terrain;
-  if (f.extras.hex && terrain >= f.total && !f.extras.adopted) run.push("handoff");
-  if (f.extras.hex && f.extras.fogApi && !f.extras.fogOn) run.push("fog");
   if (terrain < f.total) run.push("legend");
   return { run, confirm: !f.anchored && f.anchor === "rebuild" && f.placed > 0 };
 }

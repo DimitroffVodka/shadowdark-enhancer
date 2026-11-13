@@ -12,7 +12,7 @@
  * the next bake — the window says so.
  */
 
-import { extrasHexApi } from "../importer/hex/hex-handoff.mjs";
+import { extrasHexApi } from "./extras-records.mjs";
 
 const EXTRAS = "shadowdark-extras";
 

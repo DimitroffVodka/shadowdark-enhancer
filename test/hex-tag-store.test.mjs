@@ -1,7 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { emptyState, decodeTags, encodeTags, nextSheet, applySheet, sheetAnswers, tagsForDataset, summarize, lcg, importTags, rowsFromJson, errorRate, sheetRisk, strandedRiver, STRANDED_RIVER_RATE, REVIEW_BANDS, readTags, readCell, paletteTags, normalizeTerrainWord, tagsWrittenElsewhere, WRITER_OPTION, offMapNums } from "../scripts/hex-map/tag-store.mjs";
-import { buildHexDataset } from "../scripts/importer/hex/hex-dataset.mjs";
+import { emptyState, decodeTags, encodeTags, nextSheet, applySheet, sheetAnswers, summarize, lcg, importTags, rowsFromJson, errorRate, sheetRisk, strandedRiver, STRANDED_RIVER_RATE, REVIEW_BANDS, readTags, readCell, paletteTags, normalizeTerrainWord, tagsWrittenElsewhere, WRITER_OPTION, offMapNums } from "../scripts/hex-map/tag-store.mjs";
 import { neighbours } from "../scripts/hex-map/geometry.mjs";
 import { TERRAIN_TAGS } from "../scripts/importer/hex/hex-summary.mjs";
 
@@ -65,7 +64,6 @@ test("readCell: a hex whose ground nothing names takes its neighbours' land terr
   at(1333, ["swamp"]); at(1335, ["grassland"]); at(1434, ["river", "grassland"]); at(1435, ["grassland", "path"]);
   at(1234, ["ocean"]); at(1235, ["ocean"]);
   assert.deepEqual(readCell(s, 1334), { terrain: "grassland", features: ["river", "coast"] });
-  assert.deepEqual(tagsForDataset(s)["1334"], { terrain: "grassland", features: ["river", "coast"] });
   // Settlements, keyed locations and water are not ground; with nothing else around, the ground stays unknown.
   const t = emptyState();
   t.origin = { shifted: "odd" };
@@ -73,7 +71,6 @@ test("readCell: a hex whose ground nothing names takes its neighbours' land terr
   t.cells.set("1335", { terrain: "town", features: [] });
   t.cells.set("1234", { terrain: "ocean", features: [] });
   assert.deepEqual(readCell(t, 1334), { terrain: null, features: ["coast"] });
-  assert.deepEqual(tagsForDataset(t)["1334"], { features: ["coast"] }, "no terrain goes rather than a guess of nothing");
   assert.equal(readCell(t, 9999), null);
   // Ties go to the alphabetically first, so the answer never depends on iteration order.
   const u = emptyState();
@@ -161,15 +158,15 @@ test("sheetAnswers: a hex the GM changed takes the draft, every other hex keeps 
   assert.deepEqual(sheetAnswers([2], { 2: { select: "hills" } }, cells), { 2: { terrain: "hills", features: [] } }, "a draft with no features keeps the hex's own");
 });
 
-test("applySheet writes gm answers, clears on empty terrain, and tagsForDataset reflects it", () => {
+test("applySheet writes gm answers, clears on empty terrain, and readCell reflects it", () => {
   const s = emptyState();
   applySheet(s, { "0101": { terrain: "forest", features: ["river", "bogus"] }, "102": { terrain: "swamp" } });
   assert.deepEqual(s.cells.get("101"), { terrain: "forest", features: ["river"], source: "gm" });
   applySheet(s, { "102": { terrain: "" } });
   assert.equal(s.cells.has("102"), false);
-  assert.deepEqual(tagsForDataset(s), { "101": { terrain: "forest", features: ["river"] } });
+  assert.deepEqual(readCell(s, 101), { terrain: "forest", features: ["river"] });
   s.cells.set("0", { terrain: "forest", features: [] });
-  assert.equal(tagsForDataset(s)["000"].terrain, "forest");
+  assert.equal(readCell(s, 0).terrain, "forest");
   assert.deepEqual(summarize(s, 10), { total: 10, tagged: 2, gm: 2, auto: 0, untagged: 8 });
 });
 
@@ -191,11 +188,10 @@ test("importTags: first non-feature tag is the terrain, sources normalised, orig
   assert.deepEqual(s.cells.get("203"), { terrain: "salt_flat", features: ["path"], source: "auto", review: true, margin: 1.1 });
   assert.equal(s.cells.get("305").source, "gm");
   assert.deepEqual(s.cells.get("400"), { terrain: "river", features: [], source: "gm", review: false });
-  assert.deepEqual(tagsForDataset(s)["400"], { terrain: "river", features: [] },
+  assert.deepEqual(readCell(s, 400), { terrain: "river", features: [] },
     "a river terrain tile is not a river running through another terrain");
-  // The store keeps "path" where the terrain goes (no migration); read for the
-  // dataset it is a path on ground nothing names (#196).
-  assert.deepEqual(tagsForDataset(s)["402"], { features: ["path"] });
+  // The store keeps "path" where the terrain goes (no migration); read, it is a path on ground nothing names (#196).
+  assert.deepEqual(readCell(s, 402), { terrain: null, features: ["path"] });
   assert.equal(s.cells.has("401"), false);
   assert.equal(s.origin.num, "0000");
   importTags(s, [], { origin: { num: "9999" } });
@@ -214,11 +210,10 @@ test("importTags refuses and names numbers the map doesn't have; offMapNums list
   // A file that brings its own map is checked against it when the store has none.
   const fresh = emptyState();
   assert.deepEqual(importTags(fresh, [{ num: 300, tags: ["forest"] }], { origin }).refused, [300]);
-  // Tags stored before the edges moved: listed, in order, and kept out of a dataset.
+  // Tags stored before the edges moved: listed, in order.
   s.cells.set("300", { terrain: "forest", features: [], source: "gm" });
   s.cells.set("0", { terrain: "forest", features: [], source: "gm" });
   assert.deepEqual(offMapNums(s), [0, 300]);
-  assert.deepEqual(Object.keys(tagsForDataset(s)).sort(), ["001", "202"]);
   assert.deepEqual(offMapNums(emptyState()), []);
 });
 
@@ -251,10 +246,6 @@ test("rowsFromJson: the tag flag round-trips, a dataset yields regions, keyed te
   assert.deepEqual(t.cells.get("303"), { terrain: "swamp", features: ["river"], source: "gm", review: false });
   assert.equal(t.cells.get("101").terrain, "plains");
   assert.equal(t.cells.size, 12, "terrain.default expands across the declared grid");
-  const rebuilt = buildHexDataset({ tags: tagsForDataset(t), gridHint: ds.grid });
-  assert.equal(rebuilt.terrain.default, "plains");
-  assert.deepEqual(new Set(rebuilt.terrain.regions.map((r) => r.biome)), new Set(["hills", "mountains", "plains", "swamp", "water"]));
-  assert.deepEqual(rebuilt.networks, { river: [201, 303], road: [202], spanning: true });
 
   const allDefault = rowsFromJson({ grid: { cols: 2, rows: 2 }, terrain: { default: "water", regions: [] }, hexes: [] });
   assert.equal(allDefault.rows.length, 4, "an all-default dataset is importable");
@@ -301,7 +292,7 @@ test("the review queue serves a stranded river before every thin margin", () => 
   assert.deepEqual(nextSheet(s, { nums, mode: "review", size: 1 }), [303]);
 });
 
-test("a tag on the frame never reaches the dataset", () => {
+test("a tag on the frame is off the map", () => {
   // The Western Reaches shape: lowered (odd) columns run 0..73, raised (even)
   // ones 1..74 — their row 0 is the half-cell the print writes labels in.
   const state = emptyState();
@@ -311,16 +302,16 @@ test("a tag on the frame never reaches the dataset", () => {
   state.cells.set("1900", { terrain: "arctic_sea", features: [] });   // lowered column, row 0: map
   state.cells.set("6400", { terrain: "forest", features: [] });       // past the last column
   state.cells.set("1974", { terrain: "forest", features: [] });       // lowered column, one row short
-  assert.deepEqual(Object.keys(tagsForDataset(state)).sort(), ["1900", "2001"]);
+  assert.deepEqual(offMapNums(state), [1974, 2000, 6400]);
 });
 
-test("with no bounds set, every tagged cell still goes", () => {
+test("with no bounds set, every tagged cell is on the map", () => {
   // Before the map's size is known, dropping cells would throw away real work.
   const state = emptyState();
   state.origin = { shifted: "odd" };
   state.cells.set("2000", { terrain: "arctic_sea", features: [] });
   state.cells.set("6400", { terrain: "forest", features: [] });
-  assert.deepEqual(Object.keys(tagsForDataset(state)).sort(), ["2000", "6400"]);
+  assert.deepEqual(offMapNums(state), []);
 });
 
 test("the map's terrain palette survives a save, and a map without one reads as unset", () => {

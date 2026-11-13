@@ -80,14 +80,14 @@ test("regionSource and the regions step: borders come across when this scene has
   const fewer = { id: "t3", file: here.file, tags: decodeTags({ origin: ORIGIN, cells: {} }), regions: 3 };
   assert.equal(regionSource(here, [fewer, withBorders]).id, "t4");
   assert.equal(regionSource(here, [{ ...withBorders, file: "other.jpg" }]), null);
-  const done = { anchored: true, terrain: A0_TOTAL, copyTerrain: A0_TOTAL, pins: 270, extras: { adopted: true } };
+  const done = { anchored: true, terrain: A0_TOTAL, copyTerrain: A0_TOTAL, pins: 270 };
   assert.deepEqual(plan({ ...done, regions: 0, regionsFrom: 12 }).run, ["regions"], "complete terrain, no borders: they're copied");
   assert.deepEqual(plan({ ...done, regions: 5, regionsFrom: 12 }).run, [], "borders drawn here stay");
 });
 
 const plan = (over = {}) => playablePlan({
   anchored: false, anchor: "rebuild", placed: 0, terrain: 0, total: A0_TOTAL, copyTerrain: 0, wrEntries: 15, pins: 0,
-  ...over, extras: { hex: true, adopted: false, fogApi: false, fogOn: false, ...over.extras },
+  ...over,
 });
 
 test("playablePlan: a fresh drop is numbered, pinned, then named in the Legend", () => {
@@ -96,14 +96,13 @@ test("playablePlan: a fresh drop is numbered, pinned, then named in the Legend",
   assert.equal(plan({ placed: 3, anchor: "keep" }).confirm, false);
 });
 
-test("playablePlan: a second scene of the same print copies it and hands off to Extras", () => {
-  assert.deepEqual(plan({ copyTerrain: A0_TOTAL }).run, ["anchor", "copy", "pins", "handoff"]);
-  assert.deepEqual(plan({ copyTerrain: A0_TOTAL, extras: { fogApi: true } }).run, ["anchor", "copy", "pins", "handoff", "fog"]);
-  assert.deepEqual(plan({ copyTerrain: 1200 }).run, ["anchor", "copy", "pins", "legend"], "part of the map: the Legend, no hand-off yet");
+test("playablePlan: a second scene of the same print copies it; nothing goes to Extras", () => {
+  assert.deepEqual(plan({ copyTerrain: A0_TOTAL }).run, ["anchor", "copy", "pins"]);
+  assert.deepEqual(plan({ copyTerrain: 1200 }).run, ["anchor", "copy", "pins", "legend"], "part of the map: the Legend");
 });
 
 test("playablePlan: a partly tagged scene still copies the rest, keeping its hand tags (#281 review)", () => {
-  assert.deepEqual(plan({ terrain: 1, copyTerrain: A0_TOTAL }).run, ["anchor", "copy", "pins", "handoff"]);
+  assert.deepEqual(plan({ terrain: 1, copyTerrain: A0_TOTAL }).run, ["anchor", "copy", "pins"]);
   assert.deepEqual(plan({ terrain: 300, copyTerrain: 300 }).run, ["anchor", "pins", "legend"], "nothing to add: no copy");
 });
 
@@ -114,11 +113,10 @@ test("copiedTerrain: a dry run of the copy; the hand tag stays and the scene is 
   assert.deepEqual([into.cells.size, into.cells.get("1404").terrain], [1, "swamp"]);
 });
 
-test("playablePlan: a second run runs nothing; without Extras there is no hand-off or fog", () => {
+test("playablePlan: a second run runs nothing", () => {
   const done = { anchored: true, terrain: A0_TOTAL, pins: 270 };
-  assert.deepEqual(plan({ ...done, extras: { adopted: true, fogApi: true, fogOn: true } }).run, []);
-  assert.deepEqual(plan({ ...done, extras: { hex: false } }).run, []);
-  assert.deepEqual(plan({ anchored: true, pins: 270, extras: { hex: false } }).run, ["legend"]);
+  assert.deepEqual(plan(done).run, []);
+  assert.deepEqual(plan({ anchored: true, pins: 270 }).run, ["legend"]);
   assert.deepEqual(plan({ anchored: true, pins: 270, terrain: 270 }).run, ["legend"], "only the book's keyed hexes: the Legend again");
   assert.deepEqual(plan({ wrEntries: 0 }).run, ["anchor", "legend"], "no key locations imported: nothing to pin");
 });

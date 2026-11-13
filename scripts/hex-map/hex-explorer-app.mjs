@@ -12,10 +12,10 @@ import { storedRulesFor } from "../rules-data/rules-data-scope.mjs";
 import { Quests } from "../quests/quests.mjs";
 import { questsAtHex, STATUS_LABELS } from "../quests/quest-core.mjs";
 import { hexArtSources, paintedTileOf, artAssignments } from "./keyed-art.mjs";
-import { drawsHexArt, hexManifest } from "./hex-art.mjs";
+import { drawsHexArt, hexManifest, drawWithEnhancer, setHexArtDrawn, extrasPainted } from "./hex-art.mjs";
 import { groundOf } from "./hex-art-core.mjs";
-import { PICK_FLAG } from "./tile-sets.mjs";
-import { paintedScenesFor, extrasHexApi } from "../importer/hex/hex-handoff.mjs";
+import { PICK_FLAG, SEED_FLAG } from "./tile-sets.mjs";
+import { paintedScenesFor, extrasHexApi } from "./extras-records.mjs";
 import { terrainWord } from "../importer/hex/hex-dataset.mjs";
 import { SETTLEMENTS } from "../importer/hex/hex-summary.mjs";
 import { tilesAvailable, paintTarget, tileChoices, terrainChoices, rerollTile, setTile } from "./hex-tile-chooser.mjs";
@@ -87,6 +87,8 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       tileSet: function (_event, el) { return this._changeTile({ src: el.dataset.src }); },
       tileChoose: function () { this._capture(); this.tilePick = this.tilePick ? null : { terrain: null }; this.render(); },
       bakeMap: function () { return this._bakeMap(); },
+      drawEnhancer: function () { return this._drawExtrasMap(true); },
+      drawExtras: function () { return this._drawExtrasMap(false); },
     },
   };
   static PARTS = { body: { template: `modules/${MODULE_ID}/templates/hex-map/hex-explorer.hbs`, scrollable: [".sde-hex-explorer-body"] } };
@@ -158,7 +160,9 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.artTitle = number;
     this.artSrc = await this._artSrc(record);
     const tile = await this._tileContext(record);
-    return { ...d, ...tile, links, arrivalName, keyed, keyedSection: keyed.length > 0 || explain, keyedNote: explain ? t(book?.book ? "SDE.hexExplorer.noKeyedPages" : "SDE.hexExplorer.noBook") : "",
+    // A map Extras painted can be drawn by the Enhancer instead, and back (hex-art.mjs drawWithEnhancer).
+    const extrasMap = !!this.scene.tiles?.some?.(extrasPainted);
+    return { ...d, ...tile, extrasPainted: extrasMap, drawnHere: extrasMap && drawsHexArt(this.scene), links, arrivalName, keyed, keyedSection: keyed.length > 0 || explain, keyedNote: explain ? t(book?.book ? "SDE.hexExplorer.noKeyedPages" : "SDE.hexExplorer.noBook") : "",
       questSection: numbered, quests: here.map(row),
       // A quest already tied to another hex says so, so moving it is a choice and not a surprise.
       questChoices: all.filter(q => !here.includes(q)).map(q => ({ ...row(q), where: q.hex === null ? "" : ` → ${pad(q.hex)}` })),
@@ -219,7 +223,7 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!Number.isInteger(record.num)) return { tileSection: false };
     if (artAssignments(this.scene)?.[record.num]) return { tileSection: true, tileKeyed: true, tileNote: t("SDE.hexExplorer.tile.keyed") };
     const state = decodeTags(this.scene.getFlag(MODULE_ID, "hexTags"));
-    const ground = groundOf(state, record.num, { manifest: await hexManifest(), picks: this.scene.getFlag(MODULE_ID, PICK_FLAG) });
+    const ground = groundOf(state, record.num, { manifest: await hexManifest(), picks: this.scene.getFlag(MODULE_ID, PICK_FLAG), seed: Number(this.scene.getFlag(MODULE_ID, SEED_FLAG)) || 0 });
     if (!ground?.pool.length) return { tileSection: false };
     this.tileTarget = { drawn: true, num: record.num, src: ground.src, pool: ground.pool };
     return {
@@ -265,6 +269,19 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       yes: { label: t("SDE.hexExplorer.bake.makeActive") }, no: { label: t("SDE.hexExplorer.bake.notNow") }, rejectClose: false,
     });
     if (activate) await scene.activate();
+    this.render();
+  }
+  /** Draw this Extras-painted map with the Enhancer (its Tiles hidden), or show Extras' Tiles again. Written at once, like a tile. */
+  async _drawExtrasMap(on) {
+    if (!game.user?.isGM) return;
+    this._capture();
+    try {
+      if (!on) await setHexArtDrawn(false, this.scene);
+      else if (!(await drawWithEnhancer(this.scene))) ui.notifications.warn(t("SDE.hexExplorer.draw.cannot"));
+    } catch (error) {
+      console.error(`${MODULE_ID} | Hex Data draw`, error);
+      ui.notifications.warn(game.i18n.format("SDE.hexExplorer.draw.failed", { error: error.message }));
+    }
     this.render();
   }
   /** Another tile (a fresh draw) or this exact one, on the painted map; the window then draws again with what it now wears. */

@@ -189,6 +189,29 @@ export function extrasNumbersAlike(origin, base) {
   });
 }
 
+/**
+ * The tag anchor (flags.shadowdark-enhancer.hexTags.origin) for a scene Shadowdark Extras built, read from its layout:
+ * Extras puts its first hex at Foundry offset {0, 0} of a HEXODDQ grid, numbered from `origin` (0000 or 0101). The
+ * lowered columns are whichever parity makes the Enhancer number every cell as Extras does (extrasNumbersAlike).
+ * Null for a layout it can't number the same way: flipped, landscape, or without a size.
+ * @param {{cols:number, rows:number, origin?:0|1, firstRow?:number, rowsLowered?:number}} layout  Extras' hexcrawl grid
+ * @returns {object|null}
+ */
+export function extrasOrigin(layout) {
+  if (!(layout?.cols > 0) || !(layout?.rows > 0) || layout.flipX || layout.flipY || layout.landscape) return null;
+  const base = layout.origin ?? 1, { q, r } = foundryOffsetToCube({ i: 0, j: 0 }, false);
+  const bounds = { cols: layout.cols, rows: layout.rows };
+  if (base) bounds.base = { col: base, row: base };
+  if (Number.isInteger(layout.rowsLowered) && layout.rowsLowered !== layout.rows) bounds.rowsLowered = layout.rowsLowered;
+  // Extras gives the first row as printed; the bounds count from the map's first number.
+  if (Number.isInteger(layout.firstRow) && layout.firstRow !== base) bounds.firstRow = layout.firstRow - base;
+  for (const shifted of ["odd", "even"]) {
+    const flag = { i: 0, j: 0, q, r, num: base ? "0101" : "0000", shifted, bounds };
+    if (extrasNumbersAlike(originFromFlag(flag), base)) return flag;
+  }
+  return null;
+}
+
 /** Hexes between two cubes — the usual cube distance. */
 export const hexDistance = (a, b) =>
   (Math.abs(a.q - b.q) + Math.abs(a.q + a.r - b.q - b.r) + Math.abs(a.r - b.r)) / 2;

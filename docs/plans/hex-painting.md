@@ -1,6 +1,6 @@
 # Hex art: a clean rebuild in the Enhancer
 
-Status: in progress on `experimental/hex-painting`. Steps 1 to 5 are built.
+Status: in progress on `experimental/hex-painting`. Steps 1 to 6 are built.
 
 This replaces the first version of this file, which moved Extras' painter
 across and adapted it. Step 2 of that plan showed it doesn't work as a move.
@@ -62,7 +62,8 @@ there is no fix the GM can make.
    the tagger wrote it with (`cellNumber`, `onMap` in `geometry.mjs`), so a
    map numbered from any start draws. When step 6 removes the hand-off to
    Extras, `validateHexDataset`'s grid check and the "datasetInvalid"
-   messages go with it, from the Hex Data window and the importer both.
+   messages go with it, from the Hex Data window and the importer both
+   (done in step 6).
 2. **Off-map numbers are stopped at the door.** A tag can arrive by number
    rather than by clicking a hex: a CSV, a tag file, the importer, or an
    adopted Extras map. Each number is checked with `onMap` when it arrives.
@@ -205,10 +206,14 @@ today.
 
 ### New maps
 
-The importer's hex flow stops handing the dataset to Extras' `buildHexcrawl`.
-It makes the scene (background, grid, tags) itself, and the drawer does the
-rest. `hex-handoff.mjs`'s Extras calls (`buildHexcrawl`, `adoptHexcrawl`,
-`upsertHexRecords`) go once step 6 works.
+Tag a print once, then "Build drawn map" in the Tagger makes a new scene
+drawn from those tags. Each drawn scene deals the terrains' pictures its own
+way (a seed), so one tagged map gives as many looks as the GM builds; "New
+look" deals a drawn scene again. The print and its drawn scenes share one set
+of tags, so a retag on any of them redraws all of them and nothing drifts.
+The importer's hex flow no longer builds anything: the map is made with "Hex
+map from image", tagged, then drawn. `hex-handoff.mjs` is gone, with
+`buildHexcrawl`, `adoptHexcrawl` and `upsertHexRecords`.
 
 ## The art
 
@@ -275,9 +280,9 @@ big release.
    flag (see "Step 5 notes"). `hex-tile-chooser.mjs` stops calling Extras on
    a drawn map; an Extras-painted map keeps the Extras path until step 6. Off-map numbers refused on the way in, and tags stranded
    by an edge change listed for removal (see "No more grid errors").
-6. **Old and new maps.** "Draw with the Enhancer" for Extras maps; the
-   importer builds its own scenes; the handoff's Extras calls go, and with
-   them the contract check and its error message.
+6. **Old and new maps.** "Draw with the Enhancer" for Extras maps; "Build
+   drawn map" and "New look" in the Tagger (see "Step 6 notes"); the
+   hand-off goes, and with it the contract check and its error message.
 7. **Bake.** Port `hex-bake-core`, write Enhancer flags, export one image.
    `bake-map.mjs` stops calling Extras.
 8. **Art pass.** Trim `assets/hexes/` to the confirmed set, add new AI sets,
@@ -393,6 +398,33 @@ Accepted: step 3 can build on this.
   redrew 2 chunks and the map showed it. The Tagger's note named two planted
   off-map tags ("runs from 0001 to 6373: 6500, 7001"), and "Remove them"
   cleared both. The file-import refusal is covered by tests only.
+
+## Step 6 notes
+
+- Patrick's picture of it: tag the map once (this is forest, this is swamp),
+  then draw it, with several versions of the same map each dealt different
+  pictures of the same terrains. "Build drawn map" makes each version.
+- A drawn scene is a copy of the print's scene (grid, picture, pins; no
+  tokens or tiles) with its own seed (`hexArtSeed`) and a link back
+  (`hexArtSource`). The grid is the print's cell for cell, so no number is
+  converted: the "outside the grid" error has nowhere to come from.
+- Shared tags: when the tags on any scene of a print's group change, the
+  active GM writes them to the others where they differ. Fog, discovery and
+  the GM's per-hex picks (`hexTile`) stay per scene.
+- A seed of 0 is the deal every map had before seeds, so maps drawn in steps
+  2 to 5 look the same.
+- "Draw with the Enhancer" (Hex Data, on a map Extras painted): numbers the
+  map from Extras' layout when it has no tag anchor (`extrasOrigin`), brings
+  Extras' terrains into the tags (adoption), and switches the drawing on.
+  Extras' Tiles are hidden on each client, never written. "Show Extras'
+  tiles" switches it back. They still load their textures while hidden.
+- Gone: the Tagger's "Send to Extras", "Build painted map" and "Update painted
+  map", the playable wizard's hand-off and Extras fog steps, the importer's
+  "Send to Extras" / "Download dataset", the `hexMaps.handoff`,
+  `importDetails` and `buildDataset` API, `validateHexDataset` and both
+  "contract check" messages. New API: `hexMaps.buildDrawn`, `hexMaps.newLook`.
+- Kept until step 7: Hex Data's Extras tile tools and bake on a map Extras
+  still draws, since the bake runs through them.
 
 ## Open decisions
 
