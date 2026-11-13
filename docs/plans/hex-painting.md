@@ -80,7 +80,7 @@ Enhancer's settings and i18n, AppV2 where a window is still AppV1, and tests
 for the pure parts in the Node harness. Anything that reads badly gets
 cleaned up later, one piece at a time, once it is here and under test.
 
-Before PR 2, check where Extras was forked from. Any painter code that
+Before step 2, check where Extras was forked from. Any painter code that
 came from that project carries its license, and an MIT notice, for example,
 has to travel with the code.
 
