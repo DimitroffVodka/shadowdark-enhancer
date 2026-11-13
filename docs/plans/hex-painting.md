@@ -30,9 +30,14 @@ map without Extras. These are the calls it still makes into Extras' hex API:
 
 ## The art
 
-`shadowdark-extras/assets/Hexes`: 631 files, 28 MB, all WebP. The terrain
-tiles are Patrick's own renders (the seed and batch numbers are still in the
-original names, see `Archive/RENAME-MAP-*.json`).
+`shadowdark-extras/assets/Hexes`: 631 files, 28 MB, all WebP. Some tiles are
+Patrick's own renders: the seed and batch numbers are still in the original
+names (see `Archive/RENAME-MAP-*.json`), for example the `lora` canyons and
+the `gen` salt flats. Not all of them are, though. `Water/` is 2-Minute
+Tabletop (CC BY-NC 4.0) and the other `Water-*` folders are colour adaptations
+of it (see CREDITS.md). Several terrain folders also use 2-Minute Tabletop's
+`Hex - <Terrain> (<variant>)` naming, so their origin needs confirming before
+the branch merges.
 
 | Folder | Files |
 |---|---|

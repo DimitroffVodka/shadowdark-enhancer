@@ -313,6 +313,22 @@ separate from the module's own code license.
 | `town.webp` | Town | [Town Center](https://2minutetabletop.com/product/town-center/) (Volume 7) | Clear, Day |
 | `market.webp` | Market | [Market Festival](https://2minutetabletop.com/product/market-festival/) (Volume 3) | the battle map |
 
+## Hex tiles (`assets/hexes/`)
+
+Copied unchanged from Shadowdark Extras' `assets/Hexes/`, with the same
+sub-folders.
+
+- `Water/*.webp` is from **[2-Minute Tabletop](https://2minutetabletop.com)**'s
+  [World Map Hex Tiles](https://2minutetabletop.com/product/world-map-hex-tiles/),
+  licensed under [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/).
+  `Water-Arctic/`, `Water-Lake/` and `Water-River/` are colour adaptations of
+  those files: Arctic Sea is darkened and tinted cool blue, Lake is lightened,
+  and River is lightened further. The **non-commercial** designation is a
+  licensing boundary of these files, separate from the module's own code
+  license.
+- The provenance of the other folders is still being confirmed. They stay on
+  the experimental branch until it is.
+
 ## Ported code (`scripts/time/`)
 
 - `daylightHours` in `time-core.mjs` — the solstice-to-solstice daylight
