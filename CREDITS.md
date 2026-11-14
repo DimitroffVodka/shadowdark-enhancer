@@ -316,33 +316,50 @@ separate from the module's own code license.
 ## Hex tiles (`assets/hexes/`)
 
 Copied unchanged from Shadowdark Extras' `assets/Hexes/`, with the same
-sub-folders.
+sub-folders. Where each picture came from was traced on 2026-11-13 by matching
+it against the original files, not by its name.
 
-- `Water/*.webp` is from **[2-Minute Tabletop](https://2minutetabletop.com)**'s
-  [World Map Hex Tiles](https://2minutetabletop.com/product/world-map-hex-tiles/),
-  licensed under [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/).
-  `Water-Arctic/`, `Water-Lake/` and `Water-River/` are colour adaptations of
-  those files: Arctic Sea is darkened and tinted cool blue, Lake is lightened,
-  and River is lightened further. The **non-commercial** designation is a
-  licensing boundary of these files, separate from the module's own code
-  license.
-- `Badlands/`, `Desert/`, `snow/`, `swamp/`, `Vegetation/`, `Mountains/`,
-  `Autumn/`, `Jungle/` and the un-numbered pictures in `Specials/` (volcanoes,
-  farms, towns, cities, rocky ground, ice floes and the named sites) are also
-  **[2-Minute Tabletop](https://2minutetabletop.com)** hex tiles, licensed under
-  [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/), with the same
-  **non-commercial** boundary. Supporting the artists is encouraged at their
-  [Patreon](https://www.patreon.com/2minutetabletop).
-- `Canyons/`, `Lava Fields/`, `Salt Flats/` and the numbered pictures in
-  `Specials/` (`NNNN_Name.webp`, one per Western Reaches keyed hex) are the
-  module author's own renders.
+**From [2-Minute Tabletop](https://2minutetabletop.com)**, licensed under
+[CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/). The
+**non-commercial** designation is a licensing boundary of these files, separate
+from the module's own code license. Supporting the artists is encouraged at
+their [Patreon](https://www.patreon.com/2minutetabletop).
+
+- Unchanged from [World Map Hex Tiles](https://2minutetabletop.com/product/world-map-hex-tiles/):
+  `Badlands/`, `Desert/`, `snow/`, `Water/`, most of `Mountains/`,
+  `Vegetation/` and `swamp/`, and 24 pictures in `Specials/`.
+- Adapted from World Map Hex Tiles (recoloured, or with pieces added):
+  `Water-Arctic/`, `Water-Lake/` and `Water-River/` (the ocean tiles
+  recoloured), `Jungle/` (lush tiles made greener, with 2-Minute Tabletop palm
+  sprites), the two `Autumn/` tiles, a few `Vegetation/` and `swamp/` tiles,
+  and 29 pictures in `Specials/`.
+- `Specials/Hex - Mountain, Volcano (badlands|cursed)` are the World Map Hex
+  Tiles Pack's extended-set tiles, enlarged; `Specials/Hex - Lava Field 1-3`
+  use the lava of the [Rock Pools](https://2minutetabletop.com) battle map.
+
+**The module author's own AI renders:** `Canyons/`, `Lava Fields/`, all but one
+of `Salt Flats/`, and the numbered pictures in `Specials/` (`NNNN_Name.webp`,
+one per Western Reaches keyed hex). Most were made locally with FLUX.2 klein and
+a LoRA trained on 2-Minute Tabletop's hex tiles, or with their tiles as style
+references, so they follow 2-Minute Tabletop's style; 13 numbered pictures
+were made with Google's and OpenAI's image tools. `Salt Flats/Hex - Salt Flat
+1` and `Specials/Hex - Salt Flat (Pillars)` are the author's own region tiles.
+
+**From Shadowdark Extras (gmdima), source not confirmed:** the three
+`Specials/Hex - Coast - Ice Floats` pieces (they look hand-edited from a
+2-Minute Tabletop beach piece) and six pictures the Western Reaches keyed
+hexes wear (`goblinhole`, `skull`, `lava`, `pyramid`, `gate`,
+`whitemonolith`). Shadowdark Extras credits 2-Minute Tabletop for "some" of its
+hex tiles and points of interest without saying which.
 
 ## River, road and beach pieces (`assets/hex-overlays/`)
 
 Copied unchanged from Shadowdark Extras: `Paths/` holds its 44 river and 44
 dirt-path pieces (`assets/symbols/Paths/`), and `Coast/` its 11 beach pieces
-(`assets/symbols/Coast/`). They are **[2-Minute Tabletop](https://2minutetabletop.com)**
-hex pieces, licensed under
+(`assets/symbols/Coast/`). They are unchanged pieces of
+**[2-Minute Tabletop](https://2minutetabletop.com)**'s
+[World Map Hex Tiles](https://2minutetabletop.com/product/world-map-hex-tiles/),
+licensed under
 [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/); the
 **non-commercial** designation is a licensing boundary of these files, separate
 from the module's own code license.

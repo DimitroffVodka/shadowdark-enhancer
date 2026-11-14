@@ -221,17 +221,24 @@ map from image", tagged, then drawn. `hex-handoff.mjs` is gone, with
 The 561 files copied into `assets/hexes/` (commit 4592479a) are a starting
 point, not the final set.
 
-- **Settled 2026-11-13 (Patrick):**
-  - Patrick's own renders: `Canyons/`, `Lava Fields/`, `Salt Flats/` (the
-    `lora`, `gen` and `lava` names; seed and batch numbers in Extras'
-    `assets/Hexes/Archive/RENAME-MAP-2026-10-11-canyons-lava-salt.json`) and
-    the 257 numbered `Specials/` pictures (`NNNN_Name.webp`).
-  - 2-Minute Tabletop, CC BY-NC 4.0, credited in CREDITS.md: `Water/` and its
-    `Water-*` adaptations, `Badlands/`, `Desert/`, `snow/`, `swamp/`,
-    `Vegetation/`, `Mountains/`, `Autumn/`, `Jungle/`, the 126 un-numbered
-    `Specials/`, and every piece in `assets/hex-overlays/`.
-  - Nothing has to be replaced for provenance, so step 8 no longer gates the
-    merge. It is now only about how the sets look on a real map.
+- **Traced 2026-11-13** by matching every picture against the original
+  files (2-Minute Tabletop packs in `~/Downloads/two-minute/`, the ComfyUI
+  render batches in `~/hex-tools/comfy/batches/`, the Photon composites, the
+  rename maps in Extras' `assets/Hexes/Archive/`). CREDITS.md says what each
+  folder is. In short: the plain terrain folders and every overlay piece are
+  2-Minute Tabletop unchanged; the water variants, Jungle and some Specials
+  are adaptations of it; Canyons, Lava Fields, Salt Flats and the numbered
+  Specials are Patrick's AI renders (FLUX.2 klein with a LoRA trained on
+  2-Minute Tabletop tiles; 13 Specials from Google and OpenAI image tools).
+- **Dropped:** 54 pictures from Extras' upstream (gmdima, February 2026) with
+  no traceable source that nothing drew: most of `Autumn/`, two `Mountains/`,
+  one `swamp/` and the dark point-of-interest `Specials/`. They stay in
+  Extras.
+- **Kept, source unconfirmed:** the three Ice Floats pieces (the icy shore
+  overlay) and six pictures Western Reaches keyed hexes wear (643, 1038, 1164,
+  1965, 2849, 3124). Replace them with renders, or confirm them with gmdima.
+- Not checked: whether 2-Minute Tabletop's licence allows training the LoRA
+  on their tiles.
 - **New sets:** made offline with the same pipeline, at 932×810, named
   `Hex - <Terrain> <n>.webp` in the terrain's folder. Each set is checked on
   a real map at play zoom before it ships, because a tile that looks fine
