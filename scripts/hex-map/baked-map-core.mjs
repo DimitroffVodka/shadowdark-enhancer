@@ -1,23 +1,84 @@
 /**
- * Baked hex maps, the pure parts (baked-map.mjs draws them).
+ * Baked hex maps, the pure parts (baked-map.mjs draws them, bake-map.mjs makes them).
  *
- * Shadowdark Extras bakes a painted hex map into an image pyramid: the map cut
- * into square pieces at full size (level 0) and at every halving below it, down
- * to one piece. The scene keeps the pieces' folder and `meta` in a flag in
- * Extras' namespace, and the keyed locations as sprites by hex offset. The
- * Enhancer only reads that flag; nothing here needs Extras to be installed.
+ * A bake is an image pyramid: the map cut into square pieces at full size (level 0) and at every halving below it,
+ * down to one piece, as KTX2 files in the world's folder. The scene keeps the pieces' folder and `meta` in a flag,
+ * and the keyed locations as sprites by hex offset, so each shows only when the fog discloses its hex.
  * meta = { tile, sceneRect: {x, y, width, height}, levels: [{width, height, cols, rows}] }.
+ *
+ * The Enhancer bakes its own drawn maps into its own namespace; a map Shadowdark Extras baked keeps its flags in
+ * Extras' namespace, and is drawn the same way, without Extras installed.
+ *
+ * pyramidLevels, padPiece and mipChain come from Shadowdark Extras' hex-bake-core.mjs (MIT, (c) 2025 gmdima; see
+ * CREDITS.md), as do the drawing helpers below.
  */
 
-/** Flags a bake leaves on its scene, in Extras' namespace. */
-export const BAKED_NAMESPACE = "shadowdark-extras";
+/** Where a bake's flags live: the Enhancer's own first, then a bake Shadowdark Extras made. */
+export const BAKED_NAMESPACES = ["shadowdark-enhancer", "shadowdark-extras"];
 export const PYRAMID_FLAG = "bakedPyramid";
 export const KEYED_FLAG = "bakedKeyed";
-export const pyramidOf = scene => scene?.flags?.[BAKED_NAMESPACE]?.[PYRAMID_FLAG];
-/** A scene Extras baked, whether or not Extras is installed. */
+/** The flag block holding a scene's bake, off `scene.flags`: never getFlag, which throws for a module that is not active. */
+const bakedFlags = scene => BAKED_NAMESPACES.map(n => scene?.flags?.[n]).find(f => f?.[PYRAMID_FLAG]?.meta);
+export const pyramidOf = scene => bakedFlags(scene)?.[PYRAMID_FLAG];
+/** A baked hex map, whoever baked it and whether or not Extras is installed. */
 export const isBakedMap = scene => !!scene?.grid?.isHexagonal && !!pyramidOf(scene)?.meta;
-/** The keyed sprites a bake left, off `scene.flags` — never getFlag, which throws for a module that is not active. */
-export const keyedOf = scene => scene?.flags?.[BAKED_NAMESPACE]?.[KEYED_FLAG];
+/** The keyed sprites a bake left: from the namespace holding its pyramid, else the first that has any. */
+export const keyedOf = scene => (bakedFlags(scene) ?? BAKED_NAMESPACES.map(n => scene?.flags?.[n]).find(f => f?.[KEYED_FLAG]))?.[KEYED_FLAG];
+
+/**
+ * The levels of a pyramid over a `width` × `height` picture: full size, then halved (rounding up) until a level fits
+ * in one piece.
+ * @returns {Array<{width:number, height:number, cols:number, rows:number}>}
+ */
+export function pyramidLevels(width, height, tile) {
+  const levels = [];
+  for (;;) {
+    const cols = Math.ceil(width / tile), rows = Math.ceil(height / tile);
+    levels.push({ width, height, cols, rows });
+    if (cols === 1 && rows === 1) return levels;
+    width = Math.ceil(width / 2);
+    height = Math.ceil(height / 2);
+  }
+}
+
+/**
+ * Fills a square piece's padding in place: the picture sits top-left, `width` × `height` of `size` × `size` RGBA
+ * pixels, and the rest repeats its last column and row, so filtering at the picture's edge never reaches past it.
+ * Compressed formats want whole squares, so edge pieces are padded.
+ * @returns {Uint8Array} the same pixels
+ */
+export function padPiece(pixels, size, width, height) {
+  const row = size * 4;
+  for (let y = 0; y < height; y++) {
+    const edge = (y * row) + ((width - 1) * 4);
+    for (let x = width; x < size; x++) pixels.copyWithin((y * row) + (x * 4), edge, edge + 4);
+  }
+  const last = (height - 1) * row;
+  for (let y = height; y < size; y++) pixels.copyWithin(y * row, last, last + row);
+  return pixels;
+}
+
+/**
+ * A square RGBA picture and its mip levels down to 1 px, each averaging 2 × 2 pixels of the last, as WebGL's
+ * generateMipmap does: on the stored values (Foundry draws in gamma space) and on premultiplied pixels (so edges don't
+ * darken).
+ * @returns {Uint8Array[]} level 0 first
+ */
+export function mipChain(pixels, size) {
+  const out = [pixels];
+  for (let s = size >> 1, src = pixels; s >= 1; s >>= 1) {
+    const dst = new Uint8Array(s * s * 4), stride = s * 8;
+    for (let y = 0; y < s; y++) {
+      for (let x = 0; x < s; x++) {
+        const a = (y * 2 * stride) + (x * 8), b = a + stride, o = ((y * s) + x) * 4;
+        for (let c = 0; c < 4; c++) dst[o + c] = (src[a + c] + src[a + 4 + c] + src[b + c] + src[b + 4 + c] + 2) >> 2;
+      }
+    }
+    out.push(dst);
+    src = dst;
+  }
+  return out;
+}
 
 /**
  * The level whose pixels match the screen best: level 0 at 1 screen px per

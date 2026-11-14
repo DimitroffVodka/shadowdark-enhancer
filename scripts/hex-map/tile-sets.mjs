@@ -127,6 +127,9 @@ export const PICK_FLAG = "hexTile";
 /** The scene flag holding its look: a number that deals every hex a different picture of its terrain (pickTile). */
 export const SEED_FLAG = "hexArtSeed";
 
+/** The scene flag naming a drawn or baked scene's print, whose tags it shares (hex-art.mjs). */
+export const SOURCE_FLAG = "hexArtSource";
+
 /**
  * The ground picture a hex wears: the GM's pick while it is still one of its terrain's pictures (retag the hex and
  * the pick lapses with the old terrain), else the dealt one, else null when nothing fits. A keyed hex's own picture

@@ -14,7 +14,8 @@ import { assignmentsFromManifest } from "../importer/hex/hex-dataset.mjs";
 import { backgroundTransform } from "./sampler.mjs";
 import { decodeTags } from "./tag-store.mjs";
 import { A0_PRINT, isA0 } from "./a0-print.mjs";
-import { keyedOf, BAKED_NAMESPACE } from "./baked-map-core.mjs";
+import { keyedOf } from "./baked-map-core.mjs";
+import { EXTRAS_ID } from "./extras-records.mjs";
 import { WR_KEYED_ART, WR_MAP_ID } from "./wr-keyed-art.mjs";
 
 /** Scene flag: the GM's own tile-art manifest for this map. Read at hand-off; never shipped. */
@@ -72,13 +73,13 @@ export function paintedTileOf(scene, offset) {
   if (!at) return null;
   const tolerance = Math.max(4, (scene.grid.size ?? 100) * 0.25);
   const here = tiles.filter((tile) => {
-    const own = tile.flags?.[BAKED_NAMESPACE];
+    const own = tile.flags?.[EXTRAS_ID];
     return own?.painted && !own.coast && !tile.hidden
       && Math.abs(tile.x + (tile.width / 2) - at.x) <= tolerance && Math.abs(tile.y + (tile.height / 2) - at.y) <= tolerance;
   });
   const base = here.reduce((low, tile) => (low === null || (tile.sort ?? 0) < (low.sort ?? 0) ? tile : low), null);
   const src = base?.texture?.src;
-  return src ? { src, keyed: base.flags[BAKED_NAMESPACE].hexNum != null, id: base.id ?? null } : null;
+  return src ? { src, keyed: base.flags[EXTRAS_ID].hexNum != null, id: base.id ?? null } : null;
 }
 
 /** {@link paintedTileOf}'s picture alone. */
@@ -93,7 +94,7 @@ export const paintedTileSrc = (scene, offset) => paintedTileOf(scene, offset)?.s
  * @returns {string|null}
  */
 export function dealtTileSrc(scene, num) {
-  const layout = scene?.flags?.[BAKED_NAMESPACE]?.paintLayout;
+  const layout = scene?.flags?.[EXTRAS_ID]?.paintLayout;
   if (!Number.isInteger(num) || layout?.version !== 1 || !Array.isArray(layout.files)) return null;
   const file = layout.files[layout.picks?.[num]];
   return typeof file === "string" ? file : null;

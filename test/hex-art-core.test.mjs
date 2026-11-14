@@ -160,3 +160,13 @@ test("a scene's seed changes which picture a hex wears, and the chooser agrees w
   assert.ok([...plain.keys()].some((num) => plain.get(num).src !== seeded.get(num).src));
   assert.equal(groundOf(state, 202, { manifest, seed: 99 }).src, seeded.get("202").src);
 });
+
+test("keyedSprites: each keyed picture centred on its hex by offset, at the drawn size; drawOrder is north first", async () => {
+  const { keyedSprites, drawOrder } = await import("../scripts/hex-map/hex-art-core.mjs");
+  const hexes = new Map([["1403", { i: 3, j: 14, x: 500, y: 300, keyed: "k.webp" }], ["1402", { i: 2, j: 14, x: 500, y: 100, keyed: null }]]);
+  const sprites = keyedSprites(hexes, 256);
+  assert.deepEqual(Object.keys(sprites), ["3-14"]);
+  assert.deepEqual(sprites["3-14"][0], { src: "k.webp", x: 500, y: 300, width: 572, height: 500, anchorX: 0.5, anchorY: 0.5, rotation: 0,
+    fit: "fill", scaleX: 1, scaleY: 1, tint: "#ffffff", alpha: 1, sort: 0, elevation: 0, num: 1403 });
+  assert.deepEqual(drawOrder(hexes), ["1402", "1403"]);
+});

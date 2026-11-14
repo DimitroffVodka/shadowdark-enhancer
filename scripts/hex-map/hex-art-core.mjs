@@ -139,6 +139,28 @@ export function piecesOf(nums, hexes, shown = new Map()) {
   return pieces;
 }
 
+/**
+ * The keyed pictures of a bake, as sprites by hex offset "i-j" (the key the fog and baked-map.mjs use): each centred
+ * on its hex at the drawn map's size, so the baked map shows them where the drawn one did.
+ * @param {Map<string, object>} hexes  hexesOf()
+ * @returns {Object<string, object[]>}
+ */
+export function keyedSprites(hexes, gridSize) {
+  const out = {};
+  for (const [num, hex] of hexes) {
+    if (!hex.keyed) continue;
+    const { w, h } = tileRect(hex, gridSize);
+    out[`${hex.i}-${hex.j}`] = [{
+      src: hex.keyed, x: hex.x, y: hex.y, width: w, height: h, anchorX: 0.5, anchorY: 0.5, rotation: 0,
+      fit: "fill", scaleX: 1, scaleY: 1, tint: "#ffffff", alpha: 1, sort: 0, elevation: 0, num: Number(num),
+    }];
+  }
+  return out;
+}
+
+/** Hex numbers in draw order, north to south then west to east: a southern hex's trees overlap the hex above it. */
+export const drawOrder = (hexes, nums = [...hexes.keys()]) => nums.sort((a, b) => (hexes.get(a).y - hexes.get(b).y) || (hexes.get(a).x - hexes.get(b).x));
+
 /** "3_5": the chunk of side `size` holding the canvas point. */
 const keyAt = (cx, cy) => `${cx}_${cy}`;
 
@@ -172,7 +194,7 @@ export function chunkIndex(hexes, gridSize, size) {
       index.get(key).push(num);
     }
   }
-  for (const list of index.values()) list.sort((a, b) => (hexes.get(a).y - hexes.get(b).y) || (hexes.get(a).x - hexes.get(b).x));
+  for (const list of index.values()) drawOrder(hexes, list);
   return index;
 }
 

@@ -28,7 +28,7 @@ import { isBakedMap, keyedSpriteView } from "./baked-map-core.mjs";
 import { announceFinds } from "./baked-map.mjs";
 import { decodeTags } from "./tag-store.mjs";
 import { ART_FLAG, artAssignments } from "./keyed-art.mjs";
-import { PICK_FLAG, SEED_FLAG } from "./tile-sets.mjs";
+import { PICK_FLAG, SEED_FLAG, SOURCE_FLAG } from "./tile-sets.mjs";
 import { hexDisclosure, ownsHexFog, fogHiddenOn, playerViewOn } from "./hex-fog.mjs";
 import { readPass } from "./hex-records.mjs";
 import {
@@ -66,8 +66,7 @@ export function drawsHexArt(scene) {
 /** A Tile Shadowdark Extras painted onto a hex. */
 export const extrasPainted = tile => !!tile?.flags?.["shadowdark-extras"]?.painted;
 
-/** The scene flag naming a drawn scene's print, whose tags it shares. */
-export const SOURCE_FLAG = "hexArtSource";
+export { SOURCE_FLAG };
 /** The print's flags a drawn copy starts with: its tags, regions and keyed art by hex number, and which print it is
  *  (hexMapId), so its keyed pages and book are the print's. */
 const COPIED_FLAGS = [TAGS_FLAG, "hexRegions", ART_FLAG, "hexMapId"];
@@ -137,7 +136,7 @@ async function shareTags(scene) {
 }
 
 /** Every grid cell of the scene and its centre. */
-function sceneCells(scene) {
+export function sceneCells(scene) {
   const grid = scene.grid, r = scene.dimensions.sceneRect;
   const tl = grid.getOffset({ x: r.x, y: r.y }), br = grid.getOffset({ x: r.x + r.width, y: r.y + r.height });
   const cells = [];
@@ -145,6 +144,32 @@ function sceneCells(scene) {
     for (let j = tl.j - 1; j <= br.j + 1; j++) cells.push({ i, j, ...grid.getCenterPoint({ i, j }) });
   }
   return cells;
+}
+
+/** What every hex of a scene draws, from its flags as they stand (hexesOf): the drawer's view and the bake's. */
+export function readHexes(scene, manifest, cells = sceneCells(scene)) {
+  const flags = flagsOf(scene);
+  return hexesOf(cells, decodeTags(flags[TAGS_FLAG]), {
+    even: !!scene.grid.even, manifest, keyed: artAssignments(scene), picks: flags[PICK_FLAG], seed: Number(flags[SEED_FLAG]) || 0,
+  });
+}
+
+/** The widest a tile picture is ever drawn on a scene of this grid size, at full sharpness. */
+export const tileWidth = gridSize => Math.min(ART_WIDTH, Math.ceil(TILE_SCALE.w * gridSize * MAX_RES));
+
+/** One tile picture, shrunk to `width` and mipmapped for the far zooms; null when it doesn't load. */
+export async function loadTile(src, width) {
+  try {
+    const response = await fetch(src);
+    if (!response.ok) return null;
+    const bitmap = await createImageBitmap(await response.blob(), { resizeWidth: width, resizeQuality: "high" });
+    const board = document.createElement("canvas");
+    board.width = bitmap.width;
+    board.height = bitmap.height;
+    board.getContext("2d").drawImage(bitmap, 0, 0);
+    bitmap.close();
+    return PIXI.Texture.from(board, { mipmap: PIXI.MIPMAP_MODES.ON });
+  } catch { return null; }
 }
 
 let ManagerClass = null;
@@ -216,10 +241,7 @@ function managerClass() {
 
     /** The hexes and chunks the scene's flags describe now. */
     #read() {
-      const flags = flagsOf(this.scene);
-      this.#hexes = hexesOf(this.#cells, decodeTags(flags[TAGS_FLAG]), {
-        even: !!this.scene.grid.even, manifest: this.#manifest, keyed: artAssignments(this.scene), picks: flags[PICK_FLAG], seed: Number(flags[SEED_FLAG]) || 0,
-      });
+      this.#hexes = readHexes(this.scene, this.#manifest, this.#cells);
       this.#index = chunkIndex(this.#hexes, this.#gridSize, CHUNK);
     }
 
@@ -330,19 +352,8 @@ function managerClass() {
     /** One tile picture, shrunk to the widest a chunk ever draws it: loaded once, mipmapped for the far zooms. */
     #tile(src) {
       if (!this.#tiles.has(src)) {
-        const width = Math.min(ART_WIDTH, Math.ceil(TILE_SCALE.w * this.#gridSize * MAX_RES));
-        this.#tiles.set(src, (async () => {
-          const response = await fetch(src);
-          if (!response.ok) return null;
-          const bitmap = await createImageBitmap(await response.blob(), { resizeWidth: width, resizeQuality: "high" });
-          const board = document.createElement("canvas");
-          board.width = bitmap.width;
-          board.height = bitmap.height;
-          board.getContext("2d").drawImage(bitmap, 0, 0);
-          bitmap.close();
-          this.stats.tileLoads++;
-          return PIXI.Texture.from(board, { mipmap: PIXI.MIPMAP_MODES.ON });
-        })().catch(() => null));
+        this.stats.tileLoads++;
+        this.#tiles.set(src, loadTile(src, tileWidth(this.#gridSize)));
       }
       return this.#tiles.get(src);
     }

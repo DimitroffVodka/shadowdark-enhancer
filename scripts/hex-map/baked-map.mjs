@@ -1,9 +1,9 @@
 /**
  * Baked hex maps, drawn by the Enhancer itself (the pure parts are in baked-map-core.mjs).
  *
- * A map baked with Shadowdark Extras has no Tiles: its ground is an image pyramid and its keyed locations are
- * sprites, both described by flags in Extras' namespace. Those flags stay on the scene when Extras is removed, so
- * this draws them without it: a v14 SceneManager keeps the smallest level under everything and loads the pieces
+ * A baked map has no Tiles: its ground is an image pyramid and its keyed locations are sprites, both described by
+ * flags, in the Enhancer's namespace for its own bakes (bake-map.mjs) and in Extras' for one Extras baked. Those stay
+ * on the scene when Extras is removed, so this draws them without it: a v14 SceneManager keeps the smallest level under everything and loads the pieces
  * on screen at the level the zoom needs, and each keyed sprite shows when the Enhancer's own fog discloses its hex.
  *
  * One scene has one manager slot. This takes it only when nothing else has (an Extras that draws baked maps keeps
@@ -18,7 +18,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { HexRecords, keyedTitle, readPass, sceneRef } from "./hex-records.mjs";
 import { hexDisclosure, ownsHexFog, fogHiddenOn, playerViewOn } from "./hex-fog.mjs";
 import {
-  BAKED_NAMESPACE, PYRAMID_FLAG, KEYED_FLAG, keyedOf, pyramidOf, isBakedMap,
+  BAKED_NAMESPACES, PYRAMID_FLAG, KEYED_FLAG, keyedOf, pyramidOf, isBakedMap,
   pyramidLevel, pieceSize, pieceFrame, piecesInView, transcodeTarget, keyedOffset, keyedSpriteView,
 } from "./baked-map-core.mjs";
 
@@ -279,7 +279,7 @@ export function registerBakedMaps() {
   Hooks.once("setup", () => game.scenes.forEach(claim));
   Hooks.on("createScene", claim);
   Hooks.on("updateScene", (scene, changed) => {
-    const touched = Object.keys(changed.flags?.[BAKED_NAMESPACE] ?? {});
+    const touched = BAKED_NAMESPACES.flatMap(n => Object.keys(changed.flags?.[n] ?? {}));
     if (touched.some(k => k.includes(PYRAMID_FLAG))) {
       // Read before claim() lets the slot go: a manager that was ours has to be torn down by a redraw as well.
       const held = managedHere(scene);

@@ -11,15 +11,13 @@ import { rulesFrom } from "../rules-data/rules-data-core.mjs";
 import { storedRulesFor } from "../rules-data/rules-data-scope.mjs";
 import { Quests } from "../quests/quests.mjs";
 import { questsAtHex, STATUS_LABELS } from "../quests/quest-core.mjs";
-import { hexArtSources, paintedTileOf, artAssignments } from "./keyed-art.mjs";
-import { drawsHexArt, hexManifest, drawWithEnhancer, setHexArtDrawn, extrasPainted } from "./hex-art.mjs";
+import { hexArtSources, artAssignments } from "./keyed-art.mjs";
+import { drawsHexArt, hexManifest, drawWithEnhancer, setHexArtDrawn, extrasPainted, sharingTags } from "./hex-art.mjs";
 import { groundOf } from "./hex-art-core.mjs";
 import { PICK_FLAG, SEED_FLAG } from "./tile-sets.mjs";
-import { paintedScenesFor, extrasHexApi } from "./extras-records.mjs";
-import { terrainWord } from "../importer/hex/hex-dataset.mjs";
-import { SETTLEMENTS } from "../importer/hex/hex-summary.mjs";
-import { tilesAvailable, paintTarget, tileChoices, terrainChoices, rerollTile, setTile } from "./hex-tile-chooser.mjs";
-import { bakeAvailable, bakedCopies, previousBake, playSigns, bakedName, bakePainted } from "./bake-map.mjs";
+import { paintedScenesFor } from "./extras-records.mjs";
+import { tileChoices } from "./hex-tile-chooser.mjs";
+import { bakedCopies, previousBake, playSigns } from "./bake-map.mjs";
 import { recordJournal } from "./hex-records.mjs";
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const t = (key) => game.i18n.localize(key);
@@ -87,6 +85,7 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       tileSet: function (_event, el) { return this._changeTile({ src: el.dataset.src }); },
       tileChoose: function () { this._capture(); this.tilePick = this.tilePick ? null : { terrain: null }; this.render(); },
       bakeMap: function () { return this._bakeMap(); },
+      exportMap: function () { return this._exportMap(); },
       drawEnhancer: function () { return this._drawExtrasMap(true); },
       drawExtras: function () { return this._drawExtrasMap(false); },
     },
@@ -180,39 +179,10 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       terrainOptions: this._terrainOptions(d.terrain),
       lineRows: FEATURES.map(type => ({ type, label: t(LABELS[type]), checked: d.lines.includes(type) })) };
   }
-  /**
-   * The tile section: shown for a numbered hex whose painted map is in this world and whose Extras can read a terrain's tiles.
-   * A keyed hex wears its art (set in the Tagger), so it only says so. A baked scene holds no Tiles, so the change goes to
-   * the painted copy it was made from; the note says the bake shows it once baked again.
-   */
+  /** The tile section: on a map the Enhancer draws, and nowhere else (a map Extras paints offers to be drawn instead). */
   async _tileContext(record) {
     this.tileTarget = null;
-    if (drawsHexArt(this.scene)) return this._drawnTileContext(record);
-    const api = extrasHexApi();
-    if (!tilesAvailable(api) || !Number.isInteger(record.num)) return { tileSection: false };
-    const target = paintTarget(this.scene, this._paintedCopies());
-    const here = target ? paintedTileOf(target, this.offset) : null;
-    if (!here) return { tileSection: false };
-    const canBake = bakeAvailable(api);
-    if (here.keyed) return { tileSection: true, tileKeyed: true, tileNote: t("SDE.hexExplorer.tile.keyed"), bakeAvailable: canBake };
-    // The painted map's own word for this hex is the terrain its pool is read for, and the one a repaint must keep.
-    // Read through an async function so that a call that throws before it returns (a stale number, a scene that is
-    // gone) is a rejection like any other, and the cell's own word is the fallback the guard is there for.
-    const read = async () => api.getHexRecords?.(target.id, [record.num]);
-    const held = (await read().catch(() => null))?.[record.num]?.terrain || terrainWord(record.terrain);
-    if (!held) return { tileSection: false };
-    this.tileTarget = { id: target.id, num: record.num, terrain: held };
-    const word = this.tilePick?.terrain || held;
-    const poolOf = async () => api.getTilePool(word);
-    const pool = this.tilePick ? await poolOf().catch(() => []) : [];
-    const words = this._terrainOptions(this.draft?.terrain ?? record.terrain).map(o => terrainWord(o.value));
-    return {
-      tileSection: true, tileKeyed: false, bakeAvailable: canBake,
-      tileNote: game.i18n.format(target.id === this.scene.id ? "SDE.hexExplorer.tile.onScene" : "SDE.hexExplorer.tile.onCopy", { scene: target.name }),
-      tilePickerOpen: !!this.tilePick, tileChoices: tileChoices(pool, here.src),
-      // What sits on a hex (a village, a keyed location) is tagged beside its terrain but has no tiles of its own.
-      tileTerrains: terrainChoices(words, word, [...Object.values(SETTLEMENTS), "keyed_location"].map(terrainWord)),
-    };
+    return drawsHexArt(this.scene) ? this._drawnTileContext(record) : { tileSection: false };
   }
   /**
    * The tile section on a map the Enhancer draws (hex-art.mjs): the hex's ground from its terrain's own pictures, the
@@ -220,28 +190,29 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * keyed location the tags give no ground takes its neighbours'; neither has a choice here.
    */
   async _drawnTileContext(record) {
-    if (!Number.isInteger(record.num)) return { tileSection: false };
+    if (!Number.isInteger(record.num)) return { tileSection: true, tileKeyed: true, tileNote: "" };
+    // The bake and the export are the whole map's, so they show on every hex, a keyed one or one with no ground too.
     if (artAssignments(this.scene)?.[record.num]) return { tileSection: true, tileKeyed: true, tileNote: t("SDE.hexExplorer.tile.keyed") };
     const state = decodeTags(this.scene.getFlag(MODULE_ID, "hexTags"));
     const ground = groundOf(state, record.num, { manifest: await hexManifest(), picks: this.scene.getFlag(MODULE_ID, PICK_FLAG), seed: Number(this.scene.getFlag(MODULE_ID, SEED_FLAG)) || 0 });
-    if (!ground?.pool.length) return { tileSection: false };
+    if (!ground?.pool.length) return { tileSection: true, tileKeyed: true, tileNote: "" };
     this.tileTarget = { drawn: true, num: record.num, src: ground.src, pool: ground.pool };
     return {
-      tileSection: true, tileKeyed: false, bakeAvailable: false, tileNote: t("SDE.hexExplorer.tile.drawn"),
+      tileSection: true, tileKeyed: false, tileNote: t("SDE.hexExplorer.tile.drawn"),
       tilePickerOpen: !!this.tilePick, tileChoices: this.tilePick ? tileChoices(ground.pool, ground.src) : [], tileTerrains: [],
     };
   }
   /**
-   * Bake the painted map into a new scene, here in this GM's own client (the GPU is this tab's). The sequence is bake-map.mjs;
-   * this is the asking: what it does, what a scene being played on would not carry over, and whether to switch to the result.
+   * Bake the drawn map into a new scene, here in this GM's own client (the GPU is this tab's). The sequence is
+   * hex-bake.mjs; this is the asking: what it does, what a scene being played on would not carry over, and whether to
+   * switch to the result.
    */
   async _bakeMap() {
-    const api = extrasHexApi(), held = this.tileTarget, source = held ? game.scenes.get(held.id) : null;
-    if (!game.user?.isGM || !source || !bakeAvailable(api)) return;
+    const source = this.scene;
+    if (!game.user?.isGM || !drawsHexArt(source)) return;
     if (!canvas?.app?.renderer) { ui.notifications.warn(t("SDE.hexExplorer.bake.noCanvas")); return; }
     const esc = foundry.utils.escapeHTML;
-    const grid = this.scene.flags?.["shadowdark-extras"]?.hexcrawl?.grid;
-    const previous = grid ? previousBake(this.scene, bakedCopies(game.scenes, { cols: grid.cols, rows: grid.rows, origin: grid.origin ?? 1 }), game.scenes.active) : null;
+    const previous = previousBake(source, bakedCopies(game.scenes, sharingTags(source)[0].id), game.scenes.active);
     const signs = playSigns(previous, scene => { try { return Object.keys(recordJournal(scene)?.flags?.[MODULE_ID]?.hexRecords?.cells ?? {}).length; } catch { return 0; } });
     const warning = signs ? `<p class="ui-note warn">${esc(game.i18n.format("SDE.hexExplorer.bake.played", { scene: previous.name, recorded: signs.recorded, tokens: signs.tokens }))}</p>` : "";
     const go = await foundry.applications.api.DialogV2.confirm({
@@ -251,25 +222,40 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     });
     if (!go) return;
     this._capture();
-    ui.notifications.info(game.i18n.format("SDE.hexExplorer.bake.progress", { source: source.name }));
-    let made = null;
-    try { made = await bakePainted(source, api, game.shadowdarkEnhancer.hexMaps); }
-    catch (error) {
+    const note = ui.notifications.info(game.i18n.format("SDE.hexExplorer.bake.progress", { source: source.name, done: 0, total: "?" }), { progress: true });
+    let scene = null;
+    try {
+      const { bakeDrawnMap } = await import("./hex-bake.mjs");
+      scene = await bakeDrawnMap(source, { progress: (done, total) => note.update({ pct: done / total, message: game.i18n.format("SDE.hexExplorer.bake.progress", { source: source.name, done, total }) }) });
+    } catch (error) {
       console.error(`${MODULE_ID} | Hex Data bake`, error);
       ui.notifications.error(game.i18n.format("SDE.hexExplorer.bake.failed", { error: error.message }));
       return;
+    } finally {
+      if (ui.notifications.has(note)) ui.notifications.remove(note);
     }
-    if (!made) return; // Extras said why
-    const scene = game.scenes.get(made.sceneId);
-    if (scene) await scene.update({ name: bakedName(source) });
-    ui.notifications.info(game.i18n.format("SDE.hexExplorer.bake.done", { name: scene?.name ?? made.name }));
-    const activate = scene && await foundry.applications.api.DialogV2.confirm({
+    ui.notifications.info(game.i18n.format("SDE.hexExplorer.bake.done", { name: scene.name }));
+    const activate = await foundry.applications.api.DialogV2.confirm({
       classes: ["sde-ui", "sde-dialog"], window: { title: t("SDE.hexExplorer.bake.activateTitle") },
       content: `<p>${esc(game.i18n.format("SDE.hexExplorer.bake.activate", { name: scene.name }))}</p>`,
       yes: { label: t("SDE.hexExplorer.bake.makeActive") }, no: { label: t("SDE.hexExplorer.bake.notNow") }, rejectClose: false,
     });
     if (activate) await scene.activate();
     this.render();
+  }
+  /** The whole drawn map as one picture, saved by the browser. */
+  async _exportMap() {
+    if (!game.user?.isGM || !drawsHexArt(this.scene)) return;
+    this._capture();
+    ui.notifications.info(game.i18n.format("SDE.hexExplorer.export.progress", { source: this.scene.name }));
+    try {
+      const { exportMapImage } = await import("./hex-bake.mjs");
+      const file = await exportMapImage(this.scene);
+      ui.notifications.info(game.i18n.format("SDE.hexExplorer.export.done", { file }));
+    } catch (error) {
+      console.error(`${MODULE_ID} | Hex Data export`, error);
+      ui.notifications.error(game.i18n.format("SDE.hexExplorer.export.failed", { error: error.message }));
+    }
   }
   /** Draw this Extras-painted map with the Enhancer (its Tiles hidden), or show Extras' Tiles again. Written at once, like a tile. */
   async _drawExtrasMap(on) {
@@ -290,14 +276,10 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!held || !game.user?.isGM) return;
     this._capture();
     try {
-      if (held.drawn) {
-        // Another tile: any of the terrain's pictures but the one it wears now.
-        const others = held.pool.filter(p => p !== held.src);
-        const pick = reroll ? others[Math.floor(Math.random() * others.length)] : src;
-        if (pick) await this.scene.setFlag(MODULE_ID, PICK_FLAG, { [held.num]: pick });
-      }
-      else if (reroll) await rerollTile(held.id, held.num, held.terrain);
-      else if (src) await setTile(held.id, held.num, held.terrain, src);
+      // Another tile: any of the terrain's pictures but the one it wears now.
+      const others = held.pool.filter(p => p !== held.src);
+      const pick = reroll ? others[Math.floor(Math.random() * others.length)] : src;
+      if (pick) await this.scene.setFlag(MODULE_ID, PICK_FLAG, { [held.num]: pick });
     } catch (error) {
       console.error(`${MODULE_ID} | Hex Data tile`, error);
       ui.notifications.warn(game.i18n.format("SDE.hexExplorer.tile.failed", { error: error.message }));

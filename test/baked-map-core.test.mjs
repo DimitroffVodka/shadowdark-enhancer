@@ -59,3 +59,29 @@ test("keyedSpriteView: a player sees a sprite only once its hex is disclosed; th
   assert.deepEqual(keyedSpriteView({ isGM: true, seen: false }), { visible: true, alpha: 0.5 });
   assert.deepEqual(keyedSpriteView({ isGM: true, seen: true }), { visible: true, alpha: 1 });
 });
+
+test("a bake's flags are read from the Enhancer's namespace first, then Extras'", async () => {
+  const { pyramidOf, keyedOf, isBakedMap } = await import("../scripts/hex-map/baked-map-core.mjs");
+  const grid = { isHexagonal: true };
+  const ours = { grid, flags: { "shadowdark-enhancer": { bakedPyramid: { meta: { tile: 1 }, base: "mine" }, bakedKeyed: { "1-1": [] } } } };
+  const theirs = { grid, flags: { "shadowdark-extras": { bakedPyramid: { meta: { tile: 1 }, base: "theirs" }, bakedKeyed: { "2-2": [] } } } };
+  assert.equal(pyramidOf(ours).base, "mine");
+  assert.deepEqual(Object.keys(keyedOf(ours)), ["1-1"]);
+  assert.equal(pyramidOf(theirs).base, "theirs");
+  assert.deepEqual(Object.keys(keyedOf(theirs)), ["2-2"]);
+  assert.equal(isBakedMap(ours) && isBakedMap(theirs), true);
+  assert.equal(isBakedMap({ grid, flags: {} }), false);
+});
+
+test("pyramidLevels halves to one piece; padPiece repeats the edge; mipChain averages 2 x 2", async () => {
+  const { pyramidLevels, padPiece, mipChain } = await import("../scripts/hex-map/baked-map-core.mjs");
+  assert.deepEqual(pyramidLevels(3000, 1500, 1024), [
+    { width: 3000, height: 1500, cols: 3, rows: 2 }, { width: 1500, height: 750, cols: 2, rows: 1 }, { width: 750, height: 375, cols: 1, rows: 1 },
+  ]);
+  // A 2 x 2 square holding a 1 x 1 picture: the rest is that pixel.
+  const px = padPiece(new Uint8Array([9, 8, 7, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 2, 1, 1);
+  assert.deepEqual([...px], [9, 8, 7, 6, 9, 8, 7, 6, 9, 8, 7, 6, 9, 8, 7, 6]);
+  const chain = mipChain(new Uint8Array([0, 0, 0, 0, 4, 4, 4, 4, 8, 8, 8, 8, 12, 12, 12, 12]), 2);
+  assert.equal(chain.length, 2);
+  assert.deepEqual([...chain[1]], [6, 6, 6, 6]);
+});
