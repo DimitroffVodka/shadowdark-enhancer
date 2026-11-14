@@ -102,3 +102,10 @@ test("a beach piece is turned to face the land: the straight side on the shared 
   const k = south.src.endsWith("(small) S.webp") ? S : N;
   assert.equal((((south.mirror ? (6 - k) % 6 : k) + Math.round(south.rotation / (Math.PI / 3))) % 6), S);
 });
+
+test("an island hex is sea around its island: the ocean beside it grows no beach, and land beside it lines the island hex", () => {
+  const nextToIsland = overlaysOf(mapOf({ "2,2": "ocean", "2,1": "island" }));
+  assert.equal(edgesOf(nextToIsland.get("202") ?? [], "Beach"), 0);
+  const besideLand = overlaysOf(mapOf({ "2,2": "island", "2,1": "forest" }));
+  assert.ok(edgesOf(besideLand.get("202") ?? [], "Beach") > 0);
+});

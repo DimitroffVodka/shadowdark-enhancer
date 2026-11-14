@@ -16,6 +16,9 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { offsetToCube } from "./geometry.mjs";
 import { COASTAL_WATER } from "./tag-store.mjs";
 
+/** Water for the shore rules: the coastal water terrains, and an island hex, which is sea around its island. */
+const WATER = new Set([...COASTAL_WATER, "island"]);
+
 const ROOT = `modules/${MODULE_ID}/assets/`;
 const PIECE_FILES = {
   river: `${ROOT}hex-overlays/Paths/Hex - River`,
@@ -190,10 +193,10 @@ export function shoreEdges(terrainOf, coastal, around) {
   const marked = coastal.size > 0;
   const out = new Map();
   for (const [num, terrain] of terrainOf) {
-    if (!COASTAL_WATER.has(terrain)) continue;
+    if (!WATER.has(terrain)) continue;
     const edges = [];
     around.get(num)?.forEach((there, edge) => {
-      const land = there && terrainOf.has(there) && !COASTAL_WATER.has(terrainOf.get(there));
+      const land = there && terrainOf.has(there) && !WATER.has(terrainOf.get(there));
       if (land && (!marked || coastal.has(there) || coastal.has(num))) edges.push(edge);
     });
     if (edges.length) out.set(num, { style: terrain === "arctic_sea" ? "ice" : "beach", edges });
@@ -211,7 +214,7 @@ export function overlaysOf(cells, shifted = "odd") {
   const around = neighbourTable(cells, shifted);
   const terrainOf = new Map([...cells].map(([num, c]) => [num, c.terrain]));
   const having = (feature) => new Set([...cells].filter(([, c]) => c.features?.includes(feature)).map(([num]) => num));
-  const isWater = (num) => COASTAL_WATER.has(terrainOf.get(num));
+  const isWater = (num) => WATER.has(terrainOf.get(num));
   const wanted = [
     ...[...shoreEdges(terrainOf, having("coast"), around)].map(([num, { style, edges }]) => [num, style, edges]),
     ...[...networkEdges(having("river"), around, isWater)].map(([num, edges]) => [num, "river", edges]),

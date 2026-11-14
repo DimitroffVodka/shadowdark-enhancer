@@ -41,7 +41,7 @@ export const TERRAIN_RULES = {
   forest: { folder: "Vegetation", include: ["forest", "trees"] },
   jungle: { folder: "Jungle", exclude: ["(dark)"] },
   mountain: { folder: "Mountains", exclude: ["bridge", "mountains spikes"] },
-  deep_tunnels: { folder: "Specials", include: ["rocky"] },
+  deep_tunnels: { folder: "Specials", include: ["rocky"], exclude: ["(blank)"] },
   volcano: { folder: "Specials", include: ["volcano"] },
   lava: { folder: "Lava Fields" },
   canyon: { folder: "Canyons" },
