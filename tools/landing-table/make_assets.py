@@ -5,7 +5,7 @@ Shadowdark Enhancer: turn the table renders (build_table.py, in out/) into the l
 
 Writes assets/landing-table/:
     table.webp               the table at rest, the page's background
-    hit.webp                 the click map: which prop is under each pixel
+    hit.bin                  the click map: which prop is under each pixel
     props/<prop>.webp        each prop cut out of the render with its own alpha, lit on hover over the dimmed table
     props/market-open.webp   the chest with its lid open (its opening)
     props/map-paper.webp     where the framed map's paper shows (the chosen map's picture is masked by it)
@@ -125,7 +125,18 @@ hit = np.zeros((H // 4, W // 4), dtype=np.uint8)
 for i, (prop, mask) in enumerate(masks(os.path.join(OUT, "ids.png")).items()):
     small = np.asarray(mask.resize((W // 4, H // 4), Image.BILINEAR)) > 100
     hit[small] = (i + 1) * HIT_STEP
-Image.fromarray(hit, "L").save(os.path.join(ASSETS, "hit.webp"), "WEBP", lossless=True)
+# Written as plain bytes, (run length, grey level) pairs row by row, not as a picture: the page would have to read a
+# picture back through a canvas, and a browser that guards against fingerprinting scrambles that.
+flat = hit.ravel()
+change = np.flatnonzero(np.diff(flat)) + 1
+packed = bytearray()
+for start, end in zip(np.concatenate(([0], change)), np.concatenate((change, [flat.size]))):
+    left = int(end - start)
+    while left > 0:
+        packed += bytes((min(left, 255), int(flat[start])))
+        left -= min(left, 255)
+with open(os.path.join(ASSETS, "hit.bin"), "wb") as f:
+    f.write(packed)
 
 opened = Image.open(os.path.join(OUT, "beauty-open.png")).convert("RGB")
 open_mask = masks(os.path.join(OUT, "ids-open.png"))["market"]

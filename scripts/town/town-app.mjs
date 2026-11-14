@@ -21,7 +21,7 @@ import { landingOf, normalizeLanding, restockAll } from "./town-core.mjs";
 import { buyerFor, characters, nightParty, openPlace, redrawOnChange, switchTown, today, updateLanding } from "./town-live.mjs";
 import { placeTiles, purseText } from "./town-view.mjs";
 import { returnScene } from "./landing-pages.mjs";
-import { TABLE, dialAngle, framesFor, homography, partyAtTable, propAtHit, propSrc, tableProps, tomePages } from "./landing-table-core.mjs";
+import { TABLE, dialAngle, framesFor, homography, partyAtTable, propAtHit, propSrc, tableProps, tomePages, unpackHit } from "./landing-table-core.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -43,16 +43,17 @@ function fitText(el, min = 10, inner = null) {
   while (size > min && over()) el.style.fontSize = `${--size}px`;
 }
 
-/** The click map, read once: which prop is under each quarter-size pixel of the picture. */
+/**
+ * The click map, read once: which prop is under each quarter-size pixel of the picture. Fetched as bytes, never read
+ * back from a canvas: a browser that guards against fingerprinting scrambles a canvas read, and no prop could be clicked.
+ */
 let hitMap = null;
 async function loadHitMap() {
   if (hitMap) return hitMap;
-  const img = new Image();
-  img.src = TABLE.hit;
-  await img.decode();
-  const c = new OffscreenCanvas(img.naturalWidth, img.naturalHeight), ctx = c.getContext("2d");
-  ctx.drawImage(img, 0, 0);
-  hitMap = { w: c.width, h: c.height, data: ctx.getImageData(0, 0, c.width, c.height).data };
+  const response = await fetch(TABLE.hit);
+  if (!response.ok) throw new Error(`click map: ${response.status}`);
+  const w = TABLE.width / 4, h = TABLE.height / 4;
+  hitMap = { w, h, data: unpackHit(new Uint8Array(await response.arrayBuffer()), w * h) };
   return hitMap;
 }
 
@@ -214,8 +215,10 @@ export class TownApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // The prop under the pointer, read from the click map, so the light follows the prop's own outline.
     pic?.addEventListener("pointermove", (event) => this._hover(event, pic));
     pic?.addEventListener("pointerleave", () => this._light(pic, null));
-    pic?.addEventListener("click", (event) => {
+    pic?.addEventListener("click", async (event) => {
       if (event.target.closest("[contenteditable], select, .lt-party, .lt-side")) return;
+      // A tap on a touch screen has no hover before it, so the click finds its own prop.
+      if (event.detail) await this._hover(event, pic);
       const id = pic.dataset.hot;
       if (id?.startsWith("seat")) return this._onSeat(event, pic.querySelector(`.lt-seat[data-seat="${id}"]`));
       if (id) this._onProp(event, pic.querySelector(`.lt-prop[data-prop="${id}"]`));
@@ -259,7 +262,7 @@ export class TownApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!map) return;
     const r = pic.getBoundingClientRect();
     const x = Math.floor(((event.clientX - r.left) / r.width) * map.w), y = Math.floor(((event.clientY - r.top) / r.height) * map.h);
-    const id = x >= 0 && y >= 0 && x < map.w && y < map.h ? propAtHit(map.data[(y * map.w + x) * 4]) : null;
+    const id = x >= 0 && y >= 0 && x < map.w && y < map.h ? propAtHit(map.data[y * map.w + x]) : null;
     this._light(pic, event.target.closest(".lt-side, .lt-party, [contenteditable]") ? null : id);
   }
 

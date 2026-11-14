@@ -1,7 +1,8 @@
 /** The landing table's pure parts: which props show, the click map, the seats, the perspective quads, the tome, the dial. */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { BUTTON_PROPS, HIT_ORDER, SEATS_MAX, TABLE, dialAngle, framesFor, partyAtTable, homography, propAtHit, sizeOfGround, tableProps, tomePages } from "../scripts/town/landing-table-core.mjs";
+import { BUTTON_PROPS, HIT_ORDER, SEATS_MAX, TABLE, dialAngle, framesFor, partyAtTable, homography, propAtHit, sizeOfGround, tableProps, tomePages, unpackHit } from "../scripts/town/landing-table-core.mjs";
+import { readFileSync } from "node:fs";
 
 const page = (over = {}) => ({ places: ["quests", "journals", "recaps", "party", "map", "carouse"], games: { on: true }, ...over });
 
@@ -29,6 +30,17 @@ test("the click map names the prop or portrait frame under a pixel, a few grey l
   assert.equal(propAtHit(12 * step - 3), "seat0");
   assert.equal(propAtHit(17 * step), "seat5");
   assert.equal(propAtHit(18 * step), null);
+});
+
+test("the shipped click map is plain bytes that fill the quarter-size picture and name every prop and frame", () => {
+  assert.deepEqual([...unpackHit(Uint8Array.of(2, 0, 3, 14, 1, 28), 6)], [0, 0, 14, 14, 14, 28]);
+  assert.match(TABLE.hit, /\/hit\.bin\?v=\w+$/, "no picture to read back through a canvas");
+  const runs = new Uint8Array(readFileSync(new URL("../assets/landing-table/hit.bin", import.meta.url)));
+  const size = (TABLE.width / 4) * (TABLE.height / 4);
+  let total = 0;
+  for (let i = 0; i < runs.length; i += 2) total += runs[i];
+  assert.equal(total, size, "the runs cover every pixel exactly");
+  assert.deepEqual([...new Set(unpackHit(runs, size))].map((v) => propAtHit(v)).filter(Boolean).sort(), [...HIT_ORDER].sort());
 });
 
 test("the party's portrait frames: one per member, six at most, each with its own cut-out and face", () => {

@@ -15,7 +15,7 @@ import LAYOUT from "./landing-table-layout.mjs";
 
 const DIR = `modules/${MODULE_ID}/assets/landing-table`;
 const REV = LAYOUT.rev ? `?v=${LAYOUT.rev}` : "";   // a new render gets new addresses, so no browser shows an old table
-export const TABLE = { src: `${DIR}/table.webp${REV}`, hit: `${DIR}/hit.webp${REV}`, width: LAYOUT.width, height: LAYOUT.height, layout: LAYOUT };
+export const TABLE = { src: `${DIR}/table.webp${REV}`, hit: `${DIR}/hit.bin${REV}`, width: LAYOUT.width, height: LAYOUT.height, layout: LAYOUT };
 export const propSrc = (id) => `${DIR}/props/${id}.webp${REV}`;
 
 /** The props that are buttons, in the order the hit map numbers them (1-based): the same order the render uses. */
@@ -26,6 +26,13 @@ export const BUTTON_PROPS = ["quests", "market", "games", "carouse", "map", "rum
 export const SEATS_MAX = 6;
 
 /** The prop (or seat, `seat<n>`) under a hit-map value: the map stores `hitStep` grey levels per entry, so a pixel off by a few still rounds right. */
+/** The click map's grey levels, one per quarter-size pixel, from its file: (run length, grey level) byte pairs, row by row. */
+export function unpackHit(runs, size) {
+  const data = new Uint8Array(size);
+  for (let i = 0, at = 0; i + 1 < runs.length; at += runs[i], i += 2) data.fill(runs[i + 1], at, at + runs[i]);
+  return data;
+}
+
 export const propAtHit = (value, step = LAYOUT.hitStep ?? 20) => HIT_ORDER[Math.round(value / step) - 1] ?? null;
 
 /**

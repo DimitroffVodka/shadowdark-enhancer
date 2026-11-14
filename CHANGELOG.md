@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **The landing table's props can be clicked in every browser.** The table found the prop under the pointer by reading a picture back from a hidden canvas, which a browser that guards against fingerprinting scrambles: only the Party plaque still worked. The click map is now read as plain data. A tap on a touch screen opens a prop too; it used to need a hover first.
+
 ## [0.23.1] — 2026-11-11
 
 ### Fixed
