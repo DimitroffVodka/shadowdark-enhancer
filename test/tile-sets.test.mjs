@@ -98,3 +98,12 @@ test("a scene's seed deals another look: other pictures, still no two touching a
   assert.ok(differs > 72, `only ${differs} of 144 hexes changed`);
   assert.equal(tileFor({ terrain: "forest", cube: offsetToCube(3, 3), manifest, seed: 12345 }), HEX_ART_ROOT + pickTile(pool, offsetToCube(3, 3), "forest", 12345));
 });
+
+test("Spectralicy's tiles draw for a terrain word a GM adds, and the rocky bases join deep tunnels", () => {
+  assert.equal(poolFor("island", manifest).length, 13);
+  assert.equal(poolFor("Mushroom Forest", manifest).length, 4);
+  assert.equal(poolFor("ice spikes", manifest).length, 2);
+  assert.equal(poolFor("onyx_spikes", manifest).length, 2);
+  assert.ok(poolFor("deep_tunnels", manifest).includes("Specials/Hex - Base Rocky (Lush).webp"));
+  assert.ok(!poolFor("forest", manifest).some((f) => /Mushroom|Stone Circle/.test(f)), "plain forest keeps its own pictures");
+});

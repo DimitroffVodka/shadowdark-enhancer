@@ -239,6 +239,15 @@ point, not the final set.
   Spectralicy/`, matched by picture); the six pictures Western Reaches keyed
   hexes wear (643, 1038, 1164, 1965, 2849, 3124) are credited to gmdima,
   Extras' original author, by Patrick's recollection.
+- **Added from Spectralicy's "2MT New Hex Tiles"** (2026-11-13): 27 full-hex
+  tiles, enlarged from 72 DPI to 932 x 810. `Island/`, `Mushroom Forest/`,
+  `Ice Spikes/` and `Onyx Spikes/` draw when a GM adds that terrain word in
+  the Tagger's palette; the rocky bases join deep tunnels; Anvil Rock, Stone
+  Circle and Sea Spires sit in `Specials/` for keyed art. Not added: the
+  Great Wall, River 14, River 4b and Dirt Path 7b pieces (the overlay rules
+  don't know them), the flying-island underside, and the small sprites
+  (buildings, mushrooms, standing stones, vehicles), which the drawn map has
+  no place for.
 - Not checked: whether 2-Minute Tabletop's licence allows training the LoRA
   on their tiles.
 - **New sets:** made offline with the same pipeline, at 932×810, named

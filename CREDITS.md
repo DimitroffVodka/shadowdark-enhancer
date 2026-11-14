@@ -346,9 +346,12 @@ were made with Google's and OpenAI's image tools. `Salt Flats/Hex - Salt Flat
 1` and `Specials/Hex - Salt Flat (Pillars)` are the author's own region tiles.
 
 **From Spectralicy's "2MT New Hex Tiles"**, a community set built on
-2-Minute Tabletop's hex tiles: the three `Specials/Hex - Coast - Ice Floats`
-pieces, unchanged. The set carries no licence file of its own; the
-2-Minute Tabletop art under it is CC BY-NC 4.0.
+2-Minute Tabletop's hex tiles: `Island/`, `Mushroom Forest/`, `Ice Spikes/`,
+`Onyx Spikes/`, the three `Specials/Hex - Coast - Ice Floats` pieces, and
+`Specials/` Anvil Rock, Forest Stone Circle, Base Rocky (Lush and blank) and
+Sea Spires. The set's 72 DPI tiles were enlarged to 932 x 810 to match the
+rest; nothing else was changed. The set carries no licence file of its own;
+the 2-Minute Tabletop art under it is CC BY-NC 4.0.
 
 **By gmdima, the original author of [Shadowdark Extras](https://github.com/gmdima/shadowdark-extras)**
 (MIT licensed), as the module author recalls: six pictures the Western Reaches

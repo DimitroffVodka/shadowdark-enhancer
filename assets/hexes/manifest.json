@@ -43,6 +43,25 @@
    "Hex - Plains (desert) 4.webp",
    "Hex - Plains (desert) 5.webp"
   ],
+  "Ice Spikes": [
+   "Flat Hex - Hills (Ice Spikes) 1.webp",
+   "Flat Hex - Hills (Ice Spikes) 3.webp"
+  ],
+  "Island": [
+   "Hex - Island - Lush (ending) 1.webp",
+   "Hex - Island - Lush (ending) 2.webp",
+   "Hex - Island - Lush (huge) 1.webp",
+   "Hex - Island - Lush (huge) 2.webp",
+   "Hex - Island - Lush (large) 1.webp",
+   "Hex - Island - Lush (large) 2.webp",
+   "Hex - Island - Lush (medium) 1.webp",
+   "Hex - Island - Lush (medium) 2.webp",
+   "Hex - Island - Lush (small) 1.webp",
+   "Hex - Island - Lush (small) 2.webp",
+   "Hex - Island - Lush (small) 3.webp",
+   "Hex - Island - Lush (solo) 1.webp",
+   "Hex - Island - Lush (solo) 2.webp"
+  ],
   "Jungle": [
    "Hex - Jungle (dark).webp",
    "Hex - Jungle 1.webp",
@@ -70,6 +89,16 @@
    "Hex - Mountains, medium (rocky).webp",
    "Hex - Mountains, peak (lush).webp",
    "Hex - Mountains, peak (rocky).webp"
+  ],
+  "Mushroom Forest": [
+   "Flat Hex - Forest, Mushroom (red) 1.webp",
+   "Flat Hex - Forest, Mushroom (red) 2.webp",
+   "Flat Hex - Forest, Mushroom (white) 1.webp",
+   "Flat Hex - Forest, Mushroom (white) 2.webp"
+  ],
+  "Onyx Spikes": [
+   "Flat Hex - Hills (Onyx Spikes) 1.webp",
+   "Flat Hex - Hills (Onyx Spikes) 3.webp"
   ],
   "Salt Flats": [
    "Hex - Salt Flat 1.webp",
@@ -348,10 +377,16 @@
    "905_Bear-Man.webp",
    "909_Sea_Dragon.webp",
    "918_Chapel_of_St_Ignus.webp",
+   "Flat Hex - Anvil Rock.webp",
+   "Flat Hex - Forest, Stone Circle (lush).webp",
    "Hex - Base (rocky).webp",
+   "Hex - Base Rocky (Lush).webp",
+   "Hex - Base Rocky (blank).webp",
    "Hex - Coast - Ice Floats (big) N.webp",
    "Hex - Coast - Ice Floats (medium) NW.webp",
    "Hex - Coast - Ice Floats (small) N.webp",
+   "Hex - Coast - Sea Spires (big).webp",
+   "Hex - Coast - Sea Spires (medium).webp",
    "Hex - Lava Field 1.webp",
    "Hex - Lava Field 2.webp",
    "Hex - Lava Field 3.webp",
