@@ -96,7 +96,8 @@ is up, selected tokens are released so the arrow keys do not move tokens on the
 hidden map. A reload or a late joiner sees it too.
 
 A camp never raises it by itself. The button then reads **Hide camp picture**
-and takes it down. It also goes when:
+and takes it down; the GM also has a **Hide camp picture** button at the top of
+the picture itself. It also goes when:
 
 - the camp it was raised for ends or is cancelled (a picture raised with no camp
   running stays until you hide it, unless a camp for that party begins while it is up), or
