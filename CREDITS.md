@@ -345,9 +345,13 @@ references, so they follow 2-Minute Tabletop's style; 13 numbered pictures
 were made with Google's and OpenAI's image tools. `Salt Flats/Hex - Salt Flat
 1` and `Specials/Hex - Salt Flat (Pillars)` are the author's own region tiles.
 
+**From Spectralicy's "2MT New Hex Tiles"**, a community set built on
+2-Minute Tabletop's hex tiles: the three `Specials/Hex - Coast - Ice Floats`
+pieces, unchanged. The set carries no licence file of its own; the
+2-Minute Tabletop art under it is CC BY-NC 4.0.
+
 **By gmdima, the original author of [Shadowdark Extras](https://github.com/gmdima/shadowdark-extras)**
-(MIT licensed), as the module author recalls: the three
-`Specials/Hex - Coast - Ice Floats` pieces and six pictures the Western Reaches
+(MIT licensed), as the module author recalls: six pictures the Western Reaches
 keyed hexes wear (`goblinhole`, `skull`, `lava`, `pyramid`, `gate`,
 `whitemonolith`). No original file of them was found to confirm it.
 

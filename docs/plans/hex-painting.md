@@ -234,10 +234,11 @@ point, not the final set.
   no traceable source that nothing drew: most of `Autumn/`, two `Mountains/`,
   one `swamp/` and the dark point-of-interest `Specials/`. They stay in
   Extras.
-- **Kept, credited to gmdima** (Patrick's recollection: Extras' original
-  author made them): the three Ice Floats pieces (the icy shore overlay) and
-  six pictures Western Reaches keyed hexes wear (643, 1038, 1164, 1965, 2849,
-  3124).
+- **Kept:** the three Ice Floats pieces (the icy shore overlay) are
+  Spectralicy's "2MT New Hex Tiles" (`~/Downloads/New Hex Tiles by
+  Spectralicy/`, matched by picture); the six pictures Western Reaches keyed
+  hexes wear (643, 1038, 1164, 1965, 2849, 3124) are credited to gmdima,
+  Extras' original author, by Patrick's recollection.
 - Not checked: whether 2-Minute Tabletop's licence allows training the LoRA
   on their tiles.
 - **New sets:** made offline with the same pipeline, at 932×810, named
