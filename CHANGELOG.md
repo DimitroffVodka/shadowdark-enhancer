@@ -4,7 +4,7 @@
 
 ### Fixed
 
-- **The camp picture has its own Hide button.** Show camp picture covers the map for everyone and stays up through a reload or a restart, and its only off switch was in the Party sheet's Camping tab. The GM now gets a Hide camp picture button on the picture itself.
+- **The camp picture has its own Hide button.** Show camp picture covers the map for everyone and stays up through a reload or a restart, and its only off switch was in the Party sheet's Travel tab. The GM now gets a Hide camp picture button on the picture itself.
 
 ## [0.23.1] — 2026-11-11
 

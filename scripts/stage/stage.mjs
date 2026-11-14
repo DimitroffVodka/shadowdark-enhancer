@@ -27,7 +27,7 @@ function drawStage() {
     el = document.createElement("div");
     el.id = "sde-stage";
     if (game.user?.isGM) {
-      // The other off switch is in the Party sheet's Camping tab, which a reload closes; a GM must never be left without one.
+      // The other off switch is in the Party sheet's Travel tab, which a reload closes; a GM must never be left without one.
       const off = document.createElement("button");
       off.type = "button";
       off.textContent = game.i18n.localize("SDE.stage.hideCampPicture");
