@@ -26,7 +26,14 @@ function drawStage() {
   if (!el) {
     el = document.createElement("div");
     el.id = "sde-stage";
-    el.setAttribute("aria-hidden", "true");
+    if (game.user?.isGM) {
+      // The other off switch is in the Party sheet's Camping tab, which a reload closes; a GM must never be left without one.
+      const off = document.createElement("button");
+      off.type = "button";
+      off.textContent = game.i18n.localize("SDE.stage.hideCampPicture");
+      off.addEventListener("click", () => hideStage());
+      el.append(off);
+    } else el.setAttribute("aria-hidden", "true");
     document.body.append(el);
   }
   el.style.backgroundImage = `url("${fileRoute(stage.image).replace(/["\\]/g, "\\$&")}")`;

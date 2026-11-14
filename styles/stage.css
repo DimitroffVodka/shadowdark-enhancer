@@ -9,6 +9,9 @@
   animation: sde-stage-in 0.3s ease-out;
 }
 
+/* The GM's off switch, on the picture itself. */
+#sde-stage button { position: absolute; top: 12px; left: 50%; translate: -50% 0; width: auto; }
+
 @keyframes sde-stage-in {
   from { opacity: 0; }
   to { opacity: 1; }

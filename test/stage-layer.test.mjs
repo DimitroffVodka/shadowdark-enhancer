@@ -24,13 +24,14 @@ test("the stylesheet is in the manifest after the kit, scoped, at z 0, reduced-m
 function setup({ gm = true, stage = null, actors = [] } = {}) {
   const store = { stage }, hooks = {}, registered = {}, written = [], body = [];
   const released = { n: 0 }, apps = new Map();
-  const mk = () => ({ attrs: {}, style: {}, setAttribute(k, v) { this.attrs[k] = v; }, remove() { body.splice(body.indexOf(this), 1); } });
+  const mk = () => ({ attrs: {}, style: {}, kids: [], on: {}, setAttribute(k, v) { this.attrs[k] = v; }, append(k) { this.kids.push(k); }, addEventListener(n, f) { this.on[n] = f; }, remove() { body.splice(body.indexOf(this), 1); } });
   globalThis.document = { body: { append: (e) => body.push(e) }, createElement: mk, querySelector: () => body[0] ?? null };
   globalThis.foundry = { utils: { getRoute: (p) => `/route/${p}` }, applications: { instances: apps } };
   globalThis.canvas = { tokens: { releaseAll: () => { released.n++; } } };
   globalThis.ui = {};
   globalThis.Hooks = { once: (n, f) => { hooks[n] = f; }, on: (n, f) => { hooks[n] = f; } };
   globalThis.game = {
+    i18n: { localize: (k) => k },
     user: { isGM: gm },
     actors: { contents: actors },
     settings: {
@@ -51,8 +52,19 @@ test("the setting registers world-scoped, hidden from config, with the normalize
   assert.deepEqual(s.default, normalizeStage(null));
 });
 
-test("drawStage keeps exactly one aria-hidden layer, updates it, removes it, releases tokens only on raise", async () => {
+test("the GM's layer carries a Hide button that hides the picture; a player's is aria-hidden with none", async () => {
   const e = setup({ stage: { shown: true, place: "camp", image: "a.webp" } });
+  e.hooks.ready();
+  const [off] = e.body[0].kids;
+  assert.equal(off.textContent, "SDE.stage.hideCampPicture");
+  assert.equal(e.body[0].attrs["aria-hidden"], undefined);
+  await off.on.click();
+  assert.equal(e.store.stage.shown, false);
+  assert.equal(e.body.length, 0);
+});
+
+test("drawStage keeps exactly one aria-hidden layer, updates it, removes it, releases tokens only on raise", async () => {
+  const e = setup({ gm: false, stage: { shown: true, place: "camp", image: "a.webp" } });
   e.hooks.ready();
   assert.equal(e.body.length, 1);
   assert.equal(e.body[0].id, "sde-stage");
