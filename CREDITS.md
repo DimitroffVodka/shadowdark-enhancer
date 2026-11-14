@@ -326,15 +326,26 @@ sub-folders.
   and River is lightened further. The **non-commercial** designation is a
   licensing boundary of these files, separate from the module's own code
   license.
-- The provenance of the other folders is still being confirmed. They stay on
-  the experimental branch until it is.
+- `Badlands/`, `Desert/`, `snow/`, `swamp/`, `Vegetation/`, `Mountains/`,
+  `Autumn/`, `Jungle/` and the un-numbered pictures in `Specials/` (volcanoes,
+  farms, towns, cities, rocky ground, ice floes and the named sites) are also
+  **[2-Minute Tabletop](https://2minutetabletop.com)** hex tiles, licensed under
+  [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/), with the same
+  **non-commercial** boundary. Supporting the artists is encouraged at their
+  [Patreon](https://www.patreon.com/2minutetabletop).
+- `Canyons/`, `Lava Fields/`, `Salt Flats/` and the numbered pictures in
+  `Specials/` (`NNNN_Name.webp`, one per Western Reaches keyed hex) are the
+  module author's own renders.
 
 ## River, road and beach pieces (`assets/hex-overlays/`)
 
 Copied unchanged from Shadowdark Extras: `Paths/` holds its 44 river and 44
 dirt-path pieces (`assets/symbols/Paths/`), and `Coast/` its 11 beach pieces
-(`assets/symbols/Coast/`). Their provenance is still being confirmed, so they
-stay on the experimental branch until it is.
+(`assets/symbols/Coast/`). They are **[2-Minute Tabletop](https://2minutetabletop.com)**
+hex pieces, licensed under
+[CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/); the
+**non-commercial** designation is a licensing boundary of these files, separate
+from the module's own code license.
 
 ## Ported code (`scripts/hex-map/hex-art-overlays.mjs`)
 

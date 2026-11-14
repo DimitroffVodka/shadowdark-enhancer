@@ -221,15 +221,17 @@ map from image", tagged, then drawn. `hex-handoff.mjs` is gone, with
 The 561 files copied into `assets/hexes/` (commit 4592479a) are a starting
 point, not the final set.
 
-- **Keep:** Patrick's own renders, whose seed and batch numbers are still in
-  the original names (`Archive/RENAME-MAP-*.json` in Extras), such as the
-  `lora` canyons and the `gen` salt flats.
-- **Keep, credited:** `Water/` from 2-Minute Tabletop (CC BY-NC 4.0) and its
-  colour adaptations in `Water-*`. Already in CREDITS.md.
-- **Unconfirmed:** several terrain folders use 2-Minute Tabletop's
-  `Hex - <Terrain> (<variant>)` naming (Badlands, Desert, snow, swamp,
-  Vegetation, Mountains), and the 383 numbered Specials are unchecked.
-  Anything not confirmed is replaced with new AI sets rather than traced.
+- **Settled 2026-11-13 (Patrick):**
+  - Patrick's own renders: `Canyons/`, `Lava Fields/`, `Salt Flats/` (the
+    `lora`, `gen` and `lava` names; seed and batch numbers in Extras'
+    `assets/Hexes/Archive/RENAME-MAP-2026-10-11-canyons-lava-salt.json`) and
+    the 257 numbered `Specials/` pictures (`NNNN_Name.webp`).
+  - 2-Minute Tabletop, CC BY-NC 4.0, credited in CREDITS.md: `Water/` and its
+    `Water-*` adaptations, `Badlands/`, `Desert/`, `snow/`, `swamp/`,
+    `Vegetation/`, `Mountains/`, `Autumn/`, `Jungle/`, the 126 un-numbered
+    `Specials/`, and every piece in `assets/hex-overlays/`.
+  - Nothing has to be replaced for provenance, so step 8 no longer gates the
+    merge. It is now only about how the sets look on a real map.
 - **New sets:** made offline with the same pipeline, at 932×810, named
   `Hex - <Terrain> <n>.webp` in the terrain's folder. Each set is checked on
   a real map at play zoom before it ships, because a tile that looks fine
@@ -264,7 +266,7 @@ big release.
   dropped the Custom calendar's init call.
 - When it is ready: one PR from the branch into `master`, then a minor
   release.
-- The branch does not merge until the art provenance above is settled.
+- The art provenance is settled (see "The art"), so it no longer holds the merge.
 
 ## Order
 
@@ -286,8 +288,9 @@ big release.
    hand-off goes, and with it the contract check and its error message.
 7. **Bake.** Port `hex-bake-core`, write Enhancer flags, export one image.
    `bake-map.mjs` stops calling Extras (see "Step 7 notes").
-8. **Art pass.** Trim `assets/hexes/` to the confirmed set, add new AI sets,
-   and update CREDITS.md and FILE-INVENTORY.
+8. **Art pass.** Provenance is settled and credited (see "The art"). What
+   is left: check each set on a real map at play zoom, add new AI sets where a
+   terrain looks thin or repeats badly, and keep the zip under 90 MiB.
 
 ## Step 2 measurements
 
@@ -342,8 +345,8 @@ Accepted: step 3 can build on this.
 - Rivers and roads come from the tag store's `river` and `path` features,
   beaches from terrain plus `coast` marks. `hex-art-overlays.mjs` works in
   printed hex numbers, so none of it needs the canvas grid.
-- The pieces are in `assets/hex-overlays/` (2.9 MB). Their provenance is in
-  the same state as the unconfirmed terrain folders.
+- The pieces are in `assets/hex-overlays/` (2.9 MB): 2-Minute Tabletop, CC
+  BY-NC 4.0 (settled in "The art").
 - On the Western Reaches with a made-up river, road and derived coasts, the
   slowest chunk render went from 11 ms to 19 ms (more sprites per chunk).
 
@@ -451,10 +454,6 @@ Accepted: step 3 can build on this.
 
 ## Open decisions
 
-- **Specials:** whether the 383 numbered Western Reaches tiles are Patrick's
-  renders or need replacing.
-- **Overlay pieces:** where the river, road and beach pieces in
-  `assets/hex-overlays/` came from.
 - **Sharper than zoom 1:** tiles wider than 389 px would make close zooms
   sharper. Each doubling costs about four times the tile and chunk memory.
 
