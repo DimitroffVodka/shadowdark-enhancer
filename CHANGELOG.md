@@ -4,6 +4,10 @@
 
 ### Fixed
 
+- **The landing table's props can be clicked on a hosted game.** Where module files are served from another address than the game itself (The Forge, for one), the browser would not let the table read the hidden picture it used to tell which prop is under the pointer, so nothing lit and only the Party plaque worked. That data now ships inside the module's script.
+
+### Fixed
+
 - **The camp picture has its own Hide button.** Show camp picture covers the map for everyone and stays up through a reload or a restart, and its only off switch was in the Party sheet's Travel tab. The GM now gets a Hide camp picture button on the picture itself.
 
 ## [0.23.1] — 2026-11-11
