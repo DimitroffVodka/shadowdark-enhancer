@@ -163,12 +163,9 @@ export async function loadTile(src, width) {
     const response = await fetch(src);
     if (!response.ok) return null;
     const bitmap = await createImageBitmap(await response.blob(), { resizeWidth: width, resizeQuality: "high" });
-    const board = document.createElement("canvas");
-    board.width = bitmap.width;
-    board.height = bitmap.height;
-    board.getContext("2d").drawImage(bitmap, 0, 0);
-    bitmap.close();
-    return PIXI.Texture.from(board, { mipmap: PIXI.MIPMAP_MODES.ON });
+    // The bitmap itself, not a 2D canvas it was drawn on: Firefox uploads an accelerated canvas with red and blue
+    // swapped, which drew the sea brown and the rivers rust.
+    return PIXI.Texture.from(bitmap, { mipmap: PIXI.MIPMAP_MODES.ON });
   } catch { return null; }
 }
 
