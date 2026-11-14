@@ -1,6 +1,6 @@
 # Hex art: a clean rebuild in the Enhancer
 
-Status: in progress on `experimental/hex-painting`. Steps 1 to 6 are built.
+Status: in progress on `experimental/hex-painting`. Steps 1 to 7 are built.
 
 This replaces the first version of this file, which moved Extras' painter
 across and adapted it. Step 2 of that plan showed it doesn't work as a move.
@@ -188,7 +188,8 @@ The bake is optional, for two jobs:
    draws it.
 2. Export the whole map as one image that works without the Enhancer.
 
-It replaces the call to Extras' `bakeMap` in `bake-map.mjs`.
+It replaces the call to Extras' `bakeMap` in `bake-map.mjs`. (Built in step 7:
+see "Step 7 notes".)
 
 ### Old maps
 
@@ -284,7 +285,7 @@ big release.
    drawn map" and "New look" in the Tagger (see "Step 6 notes"); the
    hand-off goes, and with it the contract check and its error message.
 7. **Bake.** Port `hex-bake-core`, write Enhancer flags, export one image.
-   `bake-map.mjs` stops calling Extras.
+   `bake-map.mjs` stops calling Extras (see "Step 7 notes").
 8. **Art pass.** Trim `assets/hexes/` to the confirmed set, add new AI sets,
    and update CREDITS.md and FILE-INVENTORY.
 
@@ -425,6 +426,28 @@ Accepted: step 3 can build on this.
   "contract check" messages. New API: `hexMaps.buildDrawn`, `hexMaps.newLook`.
 - Kept until step 7: Hex Data's Extras tile tools and bake on a map Extras
   still draws, since the bake runs through them.
+
+## Step 7 notes
+
+- Bake (Hex Data, on a drawn map): `hex-bake.mjs` draws the hexes' ground,
+  rivers, roads and shores into a KTX2 pyramid exactly as Extras' bake did
+  (same pieces, Foundry's libktx in Web Workers, same encoder settings), so
+  `baked-map.mjs` draws it unchanged. The flags are the Enhancer's own
+  (`bakedPyramid`, `bakedKeyed`); `baked-map-core.mjs` reads them first and
+  Extras' second, so old Extras bakes still draw. Keyed pictures stay sprites
+  the fog hides. The baked scene shares the print's tags (`hexArtSource`).
+- Export image: the whole map, keyed pictures included, as one WebP of at
+  most 8192 px a side, saved by the browser.
+- Hex Data's Extras tile tools and Extras bake are gone; a map Extras paints
+  is drawn with the Enhancer first, then baked. `hex-tile-chooser.mjs` keeps
+  only the picker's list.
+- Found while checking the bake: the drawn map has shown red and blue swapped
+  since step 2 (the sea brown, rivers rust). `loadTile` drew each shrunk
+  picture onto a 2D canvas, and Firefox uploads an accelerated canvas with
+  the channels swapped. It now uploads the bitmap itself.
+- Checked live on a 20 x 14 test map: the bake (14 pieces, 3.7 s) matches the
+  drawn map at the same spot, the keyed picture is its own sprite, and the
+  export is 2700 x 2500 in the files' true colours.
 
 ## Open decisions
 
