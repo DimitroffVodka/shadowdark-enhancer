@@ -345,12 +345,11 @@ references, so they follow 2-Minute Tabletop's style; 13 numbered pictures
 were made with Google's and OpenAI's image tools. `Salt Flats/Hex - Salt Flat
 1` and `Specials/Hex - Salt Flat (Pillars)` are the author's own region tiles.
 
-**From Shadowdark Extras (gmdima), source not confirmed:** the three
-`Specials/Hex - Coast - Ice Floats` pieces (they look hand-edited from a
-2-Minute Tabletop beach piece) and six pictures the Western Reaches keyed
-hexes wear (`goblinhole`, `skull`, `lava`, `pyramid`, `gate`,
-`whitemonolith`). Shadowdark Extras credits 2-Minute Tabletop for "some" of its
-hex tiles and points of interest without saying which.
+**By gmdima, the original author of [Shadowdark Extras](https://github.com/gmdima/shadowdark-extras)**
+(MIT licensed), as the module author recalls: the three
+`Specials/Hex - Coast - Ice Floats` pieces and six pictures the Western Reaches
+keyed hexes wear (`goblinhole`, `skull`, `lava`, `pyramid`, `gate`,
+`whitemonolith`). No original file of them was found to confirm it.
 
 ## River, road and beach pieces (`assets/hex-overlays/`)
 
