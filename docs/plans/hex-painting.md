@@ -1,6 +1,6 @@
 # Hex art: a clean rebuild in the Enhancer
 
-Status: in progress on `experimental/hex-painting`. Steps 1 to 7 are built.
+Status: in progress on `experimental/hex-painting`. Steps 1 to 7 are built; step 8's look pass is done (see "Step 8 notes").
 
 This replaces the first version of this file, which moved Extras' painter
 across and adapted it. Step 2 of that plan showed it doesn't work as a move.
@@ -469,6 +469,29 @@ Accepted: step 3 can build on this.
 - Checked live on a 20 x 14 test map: the bake (14 pieces, 3.7 s) matches the
   drawn map at the same spot, the keyed picture is its own sprite, and the
   export is 2700 x 2500 in the files' true colours.
+
+## Step 8 notes (look pass, 2026-11-15)
+
+Every terrain drawn as a 6 x 4 block on a test map ("SDE step8 look pass")
+and looked at at play zoom. Release zip: 73.0 MiB of the 90 MiB ceiling.
+
+- **Good as they are:** ocean, arctic sea, lake, river, forest, jungle,
+  mountain, volcano, lava, canyon, salt flat (17), island, mushroom forest,
+  the settlements, and the spike hills (2 pictures each, but busy enough that
+  the alternation doesn't show).
+- **Rules that pick the wrong pictures** (code, no new art needed):
+  - deep tunnels takes the rocky volcano tiles ("rocky" in their names);
+  - snow deals snowy forests and mountain peaks into plain snow (the folder
+    holds all of them);
+  - badlands draws `Badlands/`, which holds damp plains and wetlands: it
+    looks like a marsh, not badlands;
+  - swamp is only the dark swamp-water tiles and reads as a black hole on the
+    map, while the damp wetlands that suit it sit in `Badlands/`.
+- **Thin sets** (new renders would help): deep tunnels (2 once the volcanoes
+  are out, and plain), autumn (2, stripes visible), grassland/coast/path (5
+  plains), desert (8 of 10 are hills).
+- `coast` and `path` alone draw nothing: they are features, not ground
+  (readCell), so a hex tagged only coast takes its neighbours' ground.
 
 ## Open decisions
 
