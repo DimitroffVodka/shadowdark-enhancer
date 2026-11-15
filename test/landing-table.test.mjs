@@ -1,7 +1,7 @@
 /** The landing table's pure parts: which props show, the click map, the seats, the perspective quads, the tome, the dial. */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { BUTTON_PROPS, HIT_ORDER, SEATS_MAX, TABLE, dialAngle, framesFor, partyAtTable, homography, propAtHit, sizeOfGround, tableProps, tomePages } from "../scripts/town/landing-table-core.mjs";
+import { BUTTON_PROPS, HIT_ORDER, SEATS_MAX, TABLE, dialAngle, framesFor, partyAtTable, hitMap, homography, propAtHit, sizeOfGround, tableProps, tomePages } from "../scripts/town/landing-table-core.mjs";
 
 const page = (over = {}) => ({ places: ["quests", "journals", "recaps", "party", "map", "carouse"], games: { on: true }, ...over });
 
@@ -29,6 +29,22 @@ test("the click map names the prop or portrait frame under a pixel, a few grey l
   assert.equal(propAtHit(12 * step - 3), "seat0");
   assert.equal(propAtHit(17 * step), "seat5");
   assert.equal(propAtHit(18 * step), null);
+});
+
+test("the click map ships inside the layout, fills the quarter-size picture and names every prop and frame", () => {
+  assert.equal(TABLE.hit, undefined, "no picture file to read back: another host's picture cannot be read");
+  const small = hitMap({ width: 12, height: 8, hit: btoa(String.fromCharCode(2, 0, 3, 14, 1, 28)) });
+  assert.deepEqual([small.w, small.h, ...small.data], [3, 2, 0, 0, 14, 14, 14, 28]);
+  const map = hitMap();
+  assert.deepEqual([map.w, map.h], [TABLE.width / 4, TABLE.height / 4]);
+  const runs = Uint8Array.from(atob(TABLE.layout.hit), (ch) => ch.charCodeAt(0));
+  let total = 0;
+  for (let i = 0; i < runs.length; i += 2) total += runs[i];
+  assert.equal(total, map.w * map.h, "the runs cover every pixel exactly");
+  assert.deepEqual([...new Set(map.data)].map((v) => propAtHit(v)).filter(Boolean).sort(), [...HIT_ORDER].sort());
+  // The middle of each prop's box in the layout lands on a pixel the map gives to something (boxes are tight to the prop).
+  const at = (x, y) => propAtHit(map.data[Math.floor(y / 4) * map.w + Math.floor(x / 4)]);
+  assert.equal(at(TABLE.layout.props.market.x + TABLE.layout.props.market.w / 2, TABLE.layout.props.market.y + TABLE.layout.props.market.h / 2), "market");
 });
 
 test("the party's portrait frames: one per member, six at most, each with its own cut-out and face", () => {

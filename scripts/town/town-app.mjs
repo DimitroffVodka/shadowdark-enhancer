@@ -21,7 +21,7 @@ import { landingOf, normalizeLanding, restockAll } from "./town-core.mjs";
 import { buyerFor, characters, nightParty, openPlace, redrawOnChange, switchTown, today, updateLanding } from "./town-live.mjs";
 import { placeTiles, purseText } from "./town-view.mjs";
 import { returnScene } from "./landing-pages.mjs";
-import { TABLE, dialAngle, framesFor, homography, partyAtTable, propAtHit, propSrc, tableProps, tomePages } from "./landing-table-core.mjs";
+import { TABLE, dialAngle, framesFor, hitMap, homography, partyAtTable, propAtHit, propSrc, tableProps, tomePages } from "./landing-table-core.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -41,19 +41,6 @@ function fitText(el, min = 10, inner = null) {
   const over = () => (inner ? inner.scrollWidth > room + 1 : el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1);
   let size = parseFloat(cs.fontSize);
   while (size > min && over()) el.style.fontSize = `${--size}px`;
-}
-
-/** The click map, read once: which prop is under each quarter-size pixel of the picture. */
-let hitMap = null;
-async function loadHitMap() {
-  if (hitMap) return hitMap;
-  const img = new Image();
-  img.src = TABLE.hit;
-  await img.decode();
-  const c = new OffscreenCanvas(img.naturalWidth, img.naturalHeight), ctx = c.getContext("2d");
-  ctx.drawImage(img, 0, 0);
-  hitMap = { w: c.width, h: c.height, data: ctx.getImageData(0, 0, c.width, c.height).data };
-  return hitMap;
 }
 
 const sumCoins = (actors) => actors.reduce((s, a) => {
@@ -254,12 +241,11 @@ export class TownApp extends HandlebarsApplicationMixin(ApplicationV2) {
     root.style.setProperty("--lt-k", String(Math.max(0.1, k)));
   }
 
-  async _hover(event, pic) {
-    const map = await loadHitMap().catch(() => null);
-    if (!map) return;
+  _hover(event, pic) {
+    const map = hitMap();
     const r = pic.getBoundingClientRect();
     const x = Math.floor(((event.clientX - r.left) / r.width) * map.w), y = Math.floor(((event.clientY - r.top) / r.height) * map.h);
-    const id = x >= 0 && y >= 0 && x < map.w && y < map.h ? propAtHit(map.data[(y * map.w + x) * 4]) : null;
+    const id = x >= 0 && y >= 0 && x < map.w && y < map.h ? propAtHit(map.data[y * map.w + x]) : null;
     this._light(pic, event.target.closest(".lt-side, .lt-party, [contenteditable]") ? null : id);
   }
 
