@@ -41,7 +41,8 @@ export const TERRAIN_RULES = {
   forest: { folder: "Vegetation", include: ["forest", "trees"] },
   jungle: { folder: "Jungle", exclude: ["(dark)"] },
   mountain: { folder: "Mountains", exclude: ["bridge", "mountains spikes"] },
-  deep_tunnels: { folder: "Specials", include: ["rocky"], exclude: ["(blank)", "volcano"] },
+  // One plain grey rock until tunnel art exists: the green "(Lush)" base striped the block.
+  deep_tunnels: { folder: "Specials", include: ["base (rocky)"] },
   volcano: { folder: "Specials", include: ["volcano"] },
   lava: { folder: "Lava Fields" },
   canyon: { folder: "Canyons" },

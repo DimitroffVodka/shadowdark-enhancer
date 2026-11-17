@@ -37,7 +37,7 @@ test("a terrain with no rule draws from a folder of its own name; an unknown one
 
 test("the step 8 look pass: each terrain draws only pictures of itself (shipped art)", () => {
   const names = (terrain) => poolFor(terrain, manifest).map((f) => f.toLowerCase());
-  assert.ok(names("deep_tunnels").length && !names("deep_tunnels").some((f) => f.includes("volcano")));
+  assert.deepEqual(poolFor("deep_tunnels", manifest), ["Specials/Hex - Base (rocky).webp"]);
   assert.ok(names("snow").length && !names("snow").some((f) => /forest|hills|mountains|trees/.test(f)));
   assert.ok(names("badlands").length && names("badlands").every((f) => f.startsWith("desert/") && f.includes("hills")));
   assert.ok(names("swamp").some((f) => f.includes("wetlands")) && !names("swamp").some((f) => f.includes("plains")));
@@ -107,11 +107,10 @@ test("a scene's seed deals another look: other pictures, still no two touching a
   assert.equal(tileFor({ terrain: "forest", cube: offsetToCube(3, 3), manifest, seed: 12345 }), HEX_ART_ROOT + pickTile(pool, offsetToCube(3, 3), "forest", 12345));
 });
 
-test("Spectralicy's tiles draw for a terrain word a GM adds, and the rocky bases join deep tunnels", () => {
+test("Spectralicy's tiles draw for a terrain word a GM adds", () => {
   assert.equal(poolFor("island", manifest).length, 13);
   assert.equal(poolFor("Mushroom Forest", manifest).length, 4);
   assert.equal(poolFor("ice spikes", manifest).length, 2);
   assert.equal(poolFor("onyx_spikes", manifest).length, 2);
-  assert.ok(poolFor("deep_tunnels", manifest).includes("Specials/Hex - Base Rocky (Lush).webp"));
   assert.ok(!poolFor("forest", manifest).some((f) => /Mushroom|Stone Circle/.test(f)), "plain forest keeps its own pictures");
 });
