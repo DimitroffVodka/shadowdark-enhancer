@@ -23,7 +23,7 @@ export const HEX_ART_ROOT = `modules/${MODULE_ID}/assets/hexes/`;
 export const normTerrain = (t) => String(t ?? "").trim().toLowerCase().replace(/[\s-]+/g, "_");
 
 /**
- * Tag-store terrain (hex-summary TERRAIN_TAGS, plus settlements) → folder, with substrings of the
+ * Tag-store terrain (hex-summary TERRAIN_TAGS, plus settlements) → folder (or folders), with substrings of the
  * lower-cased file name a file must hold (`include`, any one) or must not (`exclude`).
  * A terrain with no rule falls back to a folder of its own name ("snow", "badlands", "autumn").
  */
@@ -41,11 +41,16 @@ export const TERRAIN_RULES = {
   forest: { folder: "Vegetation", include: ["forest", "trees"] },
   jungle: { folder: "Jungle", exclude: ["(dark)"] },
   mountain: { folder: "Mountains", exclude: ["bridge", "mountains spikes"] },
-  deep_tunnels: { folder: "Specials", include: ["rocky"], exclude: ["(blank)"] },
+  deep_tunnels: { folder: "Specials", include: ["rocky"], exclude: ["(blank)", "volcano"] },
   volcano: { folder: "Specials", include: ["volcano"] },
   lava: { folder: "Lava Fields" },
   canyon: { folder: "Canyons" },
-  swamp: { folder: "swamp" },
+  // The Badlands folder holds 2MT's damp wetlands, not badlands: they lighten the dark swamp water.
+  swamp: { folder: ["swamp", "Badlands"], include: ["swamp", "wetlands"] },
+  // Dry, broken ground: the dune hills, not the damp plains its namesake folder holds.
+  badlands: { folder: "Desert", include: ["hills"] },
+  // The snow folder also holds snowy forests, hills and peaks; plain snow draws only flat snow.
+  snow: { folder: "snow", exclude: ["forest", "hills", "mountains", "trees"] },
   desert: { folder: "Desert", exclude: ["salt flat"] },
   salt_flat: { folder: "Salt Flats" },
   // A settlement draws as its settlement, not its ground; thirty villages are thirty farmsteads.
@@ -71,15 +76,14 @@ export function poolFor(terrain, manifest) {
   const rule = Object.hasOwn(TERRAIN_RULES, key)
     ? TERRAIN_RULES[key]
     : { folder: Object.keys(folders).find((name) => normTerrain(name) === key) };
-  const files = (rule.folder && folders[rule.folder]) || [];
-  return files
+  return [rule.folder ?? []].flat().flatMap((folder) => (folders[folder] ?? [])
     .filter((file) => {
       const text = file.toLowerCase();
       return !KEYED_SPECIAL.test(file)
         && (!rule.include || rule.include.some((part) => text.includes(part)))
         && !rule.exclude?.some((part) => text.includes(part));
     })
-    .map((file) => `${rule.folder}/${file}`);
+    .map((file) => `${folder}/${file}`));
 }
 
 /** FNV-1a: a stable 32-bit number for a string. */

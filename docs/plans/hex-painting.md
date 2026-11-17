@@ -479,7 +479,9 @@ and looked at at play zoom. Release zip: 73.0 MiB of the 90 MiB ceiling.
   mountain, volcano, lava, canyon, salt flat (17), island, mushroom forest,
   the settlements, and the spike hills (2 pictures each, but busy enough that
   the alternation doesn't show).
-- **Rules that pick the wrong pictures** (code, no new art needed):
+- **Rules that picked the wrong pictures** (fixed in `TERRAIN_RULES`: deep tunnels
+  drops volcanoes, snow draws only flat snow (10), badlands draws the desert
+  hills, swamp adds the 7 damp wetlands (18)):
   - deep tunnels takes the rocky volcano tiles ("rocky" in their names);
   - snow deals snowy forests and mountain peaks into plain snow (the folder
     holds all of them);

@@ -27,12 +27,20 @@ test("a pool honours its rule: include, exclude, and never a numbered keyed tile
 });
 
 test("a terrain with no rule draws from a folder of its own name; an unknown one draws nothing", () => {
-  const m = { folders: { "Lava Fields": ["a.webp"], snow: ["s.webp"] } };
-  assert.deepEqual(poolFor("Snow", m), ["snow/s.webp"]);
+  const m = { folders: { "Lava Fields": ["a.webp"], Autumn: ["s.webp"] } };
+  assert.deepEqual(poolFor("autumn", m), ["Autumn/s.webp"]);
   assert.deepEqual(poolFor("lava fields", m), ["Lava Fields/a.webp"]);
   assert.deepEqual(poolFor("nonsense", m), []);
   assert.deepEqual(poolFor("Salt Flat", { folders: { "Salt Flats": ["x.webp"] } }), ["Salt Flats/x.webp"]);
   assert.equal(TERRAIN_RULES.salt_flat.folder, "Salt Flats");
+});
+
+test("the step 8 look pass: each terrain draws only pictures of itself (shipped art)", () => {
+  const names = (terrain) => poolFor(terrain, manifest).map((f) => f.toLowerCase());
+  assert.ok(names("deep_tunnels").length && !names("deep_tunnels").some((f) => f.includes("volcano")));
+  assert.ok(names("snow").length && !names("snow").some((f) => /forest|hills|mountains|trees/.test(f)));
+  assert.ok(names("badlands").length && names("badlands").every((f) => f.startsWith("desert/") && f.includes("hills")));
+  assert.ok(names("swamp").some((f) => f.includes("wetlands")) && !names("swamp").some((f) => f.includes("plains")));
 });
 
 test("no two touching hexes of one terrain share a picture, for any pool of three or more", () => {
