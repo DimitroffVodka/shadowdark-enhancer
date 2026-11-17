@@ -22,14 +22,17 @@ const MANIFEST = JSON.parse(fs.readFileSync(
 const MANIFEST_IDS = new Set(MANIFEST.fields.map((f) => f.id));
 
 // ── shared Foundry-global stubs (buildFieldValues reads these at call time) ──
-function installGlobals(uuidMap = {}) {
+function installGlobals(uuidMap = {}, { pulp = false } = {}) {
   const prev = {
     fromUuid: globalThis.fromUuid, fromUuidSync: globalThis.fromUuidSync, CONFIG: globalThis.CONFIG,
     game: globalThis.game,
   };
   // i18n stub: a key comes back as itself and `format` appends its data, so an
   // assertion still sees which phrase was picked and what went into it.
-  globalThis.game = { i18n: { localize: (k) => k, format: (k, d) => k + JSON.stringify(d) } };
+  globalThis.game = {
+    i18n: { localize: (k) => k, format: (k, d) => k + JSON.stringify(d) },
+    settings: { get: (m, k) => m === "shadowdark" && k === "usePulpMode" ? pulp : null },
+  };
   globalThis.fromUuid = async (u) => uuidMap[u] ?? null;
   globalThis.fromUuidSync = (u) => uuidMap[u] ?? null;
   globalThis.CONFIG = {
@@ -107,12 +110,14 @@ test("luck renders as a number: base token ⇒ 1, pulp remaining ⇒ count, none
   const cases = [
     { luck: { available: true, remaining: 0 }, expected: "1" },   // base rule, has token
     { luck: { available: false, remaining: 0 }, expected: "" },   // base rule, spent ⇒ blank
-    { luck: { available: true, remaining: 3 }, expected: "3" },   // pulp mode, 3 remaining
-    { luck: { available: false, remaining: 0 }, expected: "" },   // pulp mode, none ⇒ blank
+    { luck: { available: true, remaining: 3 }, expected: "1" },   // base rule ignores a hidden 1d4 (Initialize Luck)
+    { luck: { available: false, remaining: 3 }, expected: "" },   // base rule, unchecked ⇒ blank
+    { luck: { available: true, remaining: 3 }, pulp: true, expected: "3" },   // pulp mode, 3 remaining
+    { luck: { available: true, remaining: 0 }, pulp: true, expected: "" },    // pulp mode, none ⇒ blank
   ];
-  for (const { luck, expected } of cases) {
+  for (const { luck, pulp, expected } of cases) {
     const actor = makeActor({ luck });
-    const restore = installGlobals(actor.uuidMap);
+    const restore = installGlobals(actor.uuidMap, { pulp });
     try {
       const { text, checks } = await buildFieldValues(actor);
       assert.equal(text.luck, expected);
@@ -376,6 +381,7 @@ function installExportHarness({ saveFilePicker = false } = {}) {
   globalThis.ui = { notifications: { info() {}, error(message) { throw new Error(message); } } };
   globalThis.game = {
     user: { id: "tester" },
+    settings: { get: () => null },
     i18n: {
       localize: (k) => k,
       format: (k, data) => String(k).replace(/\{(\w+)\}/g, (_, n) => data[n]),

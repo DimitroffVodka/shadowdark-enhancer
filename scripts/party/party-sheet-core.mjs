@@ -152,13 +152,16 @@ export function lightReadout(itemLists = []) {
 export const carriesLight = (items = []) => computeLightState(items).state === "lit";
 
 /**
- * A character's Luck as a count for the sheet: the system keeps a luck token as `available`
- * (and, in Pulp mode, how many `remaining`). A token in hand counts as at least one.
+ * A character's Luck tokens as the system counts them (PlayerSD hasLuckToken): Pulp mode
+ * uses `remaining`, standard mode only the `available` checkbox. Standard mode hides
+ * `remaining` but the system's Initialize Luck macro still rolls 1d4 into it, so reading
+ * it there shows tokens the checkbox can't clear.
  * @param {{ available?: boolean, remaining?: number }|undefined} luck `system.luck`
+ * @param {boolean} pulp the `shadowdark.usePulpMode` setting
  */
-export function luckCount(luck) {
-  const remaining = Math.max(0, Math.trunc(Number(luck?.remaining)) || 0);
-  return luck?.available ? Math.max(1, remaining) : remaining;
+export function luckCount(luck, pulp = false) {
+  if (!pulp) return luck?.available === true ? 1 : 0;
+  return Math.max(0, Math.trunc(Number(luck?.remaining)) || 0);
 }
 
 /** The Party's rations: the stacks named "Rations" among these item lists, as camp food counts them (Basic items). */

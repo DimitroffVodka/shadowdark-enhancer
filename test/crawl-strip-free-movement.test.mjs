@@ -116,3 +116,21 @@ test("render hands the strip's root to the march binder, so the switch and the g
   marching({}, el);
   for (const wanted of ["switch:click", "cell:click", "cell:keydown", "cell:dragstart", "cell:drop"]) assert.ok(registered.includes(wanted), `${wanted} registered after render`);
 });
+
+// Standard mode: the system's Initialize Luck macro rolls 1d4 into the hidden luck.remaining,
+// which the pill used to show (4, 1, 3...) and the sheet's checkbox could not clear.
+test("the luck pill counts the checkbox outside Pulp mode, and remaining in Pulp mode", () => {
+  const pill = () => draw(false).match(/luck\w*Tip">[\s\S]*?(\d+)<\/div>/)[1];
+  const saved = pc.system.luck;
+  try {
+    pc.system.luck = { available: true, remaining: 4 };
+    assert.equal(pill(), "1");
+    pc.system.luck = { available: false, remaining: 4 };
+    assert.equal(pill(), "0", "unchecking the sheet's box empties the pill");
+    settings.usePulpMode = true;
+    assert.equal(pill(), "4");
+  } finally {
+    pc.system.luck = saved;
+    delete settings.usePulpMode;
+  }
+});

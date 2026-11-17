@@ -15,6 +15,7 @@
  */
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { L } from "../shared/i18n.mjs";
+import { luckCount } from "../party/party-sheet-core.mjs";
 
 const TEMPLATE_PATH = `modules/${MODULE_ID}/assets/pdf/shadowdark-character-sheet.pdf`;
 const PDFLIB_PATH = `modules/${MODULE_ID}/scripts/pdf-export/lib/pdf-lib.esm.min.js`;
@@ -170,11 +171,8 @@ export async function buildFieldValues(actor) {
   T("level", level);
   T("xp", sys.level?.xp ?? 0);
   T("xp_next", level * 10);
-  // Luck is a numeric field on the sheet now (was a checkbox): show the token
-  // count from the pulp-mode variant, falling back to 1 for the base
-  // single-token rule. Leave the box blank when they have no luck.
-  const luckCount = sys.luck?.remaining || (sys.luck?.available ? 1 : 0);
-  T("luck", luckCount || "");
+  // Leave the box blank when they have no luck.
+  T("luck", luckCount(sys.luck, game.settings.get("shadowdark", "usePulpMode") === true) || "");
   // Renown is a plain integer on the Player model (reputation with a patron /
   // faction). Blank at 0, matching Luck — an unused counter leaves the box open
   // for manual entry rather than printing "0" on every sheet.

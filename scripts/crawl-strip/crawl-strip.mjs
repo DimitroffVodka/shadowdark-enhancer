@@ -23,6 +23,7 @@ import { oocOrderComplete, stripShown, stripOptions } from "./crawl-state-core.m
 import { crawlFree } from "./crawl-free.mjs";
 import { marchOf, stripParty } from "../party/party-movement.mjs";
 import { Party, isParty } from "../party/party.mjs";
+import { luckCount } from "../party/party-sheet-core.mjs";
 import { marchGridHTML, marchButtonHTML, bindMarchControls } from "./march-controls.mjs";
 import { combatantEntry, isHiddenFromStrip, isTurnless, commanderCombatant } from "./turn-skip-core.mjs";
 import { showOocReset } from "./crawl-tracker-core.mjs";
@@ -1105,23 +1106,7 @@ export const CrawlStrip = {
     const hp = s.attributes?.hp ?? { value: 0, max: 0 };
     const ac = s.attributes?.ac?.value ?? null;   // Shadowdark stores derived AC at system.attributes.ac.value
 
-    // Luck count for the shamrock pill.
-    //   - Pulp Mode (`shadowdark.usePulpMode` setting): luck is numeric; show
-    //     `remaining` directly (which can be 0). `available` is leftover from
-    //     non-pulp use and must be ignored.
-    //   - Classic mode: a fresh PC has `{available: true, remaining: 0}` (one
-    //     base token). After spending, `available` flips to false. Show
-    //     `remaining` if > 0, else 1 if `available`, else 0.
-    const luckObj = s.luck ?? {};
-    const pulp = game.settings.get("shadowdark", "usePulpMode") === true;
-    let luck = 0;
-    if (pulp) {
-      luck = typeof luckObj.remaining === "number" ? luckObj.remaining : 0;
-    } else if (typeof luckObj.remaining === "number" && luckObj.remaining > 0) {
-      luck = luckObj.remaining;
-    } else if (luckObj.available === true) {
-      luck = 1;
-    }
+    const luck = this._luckCount(actor);
 
     // Movement — module setting drives the budget. No per-actor speed in Shadowdark.
     // Reads the per-token moveRemaining flag directly (Vagabond pattern).
@@ -1747,16 +1732,8 @@ export const CrawlStrip = {
     return { ok: true };
   },
 
-  /**
-   * Count displayable luck tokens for a player actor.
-   * Mirrors the logic in _extractData so the count matches what's on the pill.
-   */
+  /** Luck tokens a player actor holds, as the system counts them (see luckCount). */
   _luckCount(actor) {
-    const luck = actor.system?.luck ?? {};
-    const pulp = game.settings.get("shadowdark", "usePulpMode") === true;
-    if (pulp) return typeof luck.remaining === "number" ? luck.remaining : 0;
-    if (typeof luck.remaining === "number" && luck.remaining > 0) return luck.remaining;
-    if (luck.available === true) return 1;
-    return 0;
+    return luckCount(actor.system?.luck, game.settings.get("shadowdark", "usePulpMode") === true);
   },
 };
