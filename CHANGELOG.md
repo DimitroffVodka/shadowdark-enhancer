@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **Luck counts follow the sheet's checkbox when Pulp Mode is off.** The crawl strip's clover, the Party sheet and the PDF export showed a hidden luck number that the system's Initialize Luck macro rolls (1d4), so characters showed 4, 1 or 3 clovers that unchecking Luck on the sheet could not clear. Outside Pulp Mode each now shows 1 when Luck is checked and 0 when it is not; Pulp Mode still shows the number.
+
 ## [0.23.2] — 2026-11-14
 
 ### Fixed
