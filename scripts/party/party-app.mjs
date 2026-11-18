@@ -365,7 +365,7 @@ export class PartyApp extends HandlebarsApplicationMixin(ApplicationV2) {
           slots: { used: inventorySlots(items, sys.coins), max: sys.slots ?? 10 }, abilities: Object.fromEntries(["str", "dex", "con", "int", "wis", "cha"].map(key => [key, sys.abilities?.[key]?.mod ?? 0])),
           abilityLabels: Object.fromEntries(["str", "dex", "con", "int", "wis", "cha"].map(key => { const mod = sys.abilities?.[key]?.mod ?? 0; return [key, mod >= 0 ? `+${mod}` : String(mod)]; })),
           riderLabel: riderNames.length ? riderNames.join(", ") : t("SDE.party.mount.noRider"), gear: carried, stashDonation: a ? (donations?.[a.id] ?? 0) : 0,
-          canLight: ["characters", "hirelings"].includes(row.group), luck: luckCount(sys.luck), lightOn: carriesLight(items), spellTiers: spellTiers(items), leader: row.uuid === data.leaderUuid };
+          canLight: ["characters", "hirelings"].includes(row.group), luck: luckCount(sys.luck, game.settings.get("shadowdark", "usePulpMode") === true), lightOn: carriesLight(items), spellTiers: spellTiers(items), leader: row.uuid === data.leaderUuid };
       }));
       const visible = members.filter(m => !m.missing), players = members.filter(m => m.group === "characters");
       const coins = this.actor.flags?.[MODULE_ID]?.partyCoins ?? this.actor.flags?.["shadowdark-extras"]?.coins ?? { gp: 0, sp: 0, cp: 0 };

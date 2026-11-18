@@ -20,7 +20,7 @@ function actor(id, type = "NPC", flags = {}, permissions = 3) {
 function world(actors, isGM = false, journal = []) {
   globalThis.foundry.applications.instances.clear();
   globalThis.canvas = null;
-  globalThis.game = { actors: { contents: actors, get: (id) => actors.find((a) => a.id === id) }, user: { id: "player", isGM }, modules: new Map(), journal: { contents: journal }, i18n: { localize: (k) => k, format: (k, data = {}) => `${k} ${Object.values(data).join(" ")}`.trim() } };
+  globalThis.game = { actors: { contents: actors, get: (id) => actors.find((a) => a.id === id) }, user: { id: "player", isGM }, modules: new Map(), journal: { contents: journal }, settings: { get: () => null }, i18n: { localize: (k) => k, format: (k, data = {}) => `${k} ${Object.values(data).join(" ")}`.trim() } };
 }
 test("owner writes roster through safe replacement without touching second party, PC or items", async () => {
   const p = actor("p", "NPC", { [MOD]: { party: true } }), second = actor("second", "NPC", { [MOD]: { party: true } }), pc = actor("pc", "Player"), other = actor("other", "Player", {}, 2);

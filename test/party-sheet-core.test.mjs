@@ -123,13 +123,17 @@ test("rations count Basic stacks named Rations, and nothing else", () => {
   assert.equal(rationsCount([[{ name: "Rations", type: "Basic", system: { quantity: "x" } }]]), 0);
 });
 
-test("Luck counts a token in hand as at least one and Pulp's remaining tokens as they are", () => {
+test("Luck counts the checkbox in standard mode and Pulp's remaining tokens in Pulp mode", () => {
   assert.equal(luckCount(undefined), 0);
   assert.equal(luckCount({ available: false, remaining: 0 }), 0);
   assert.equal(luckCount({ available: true }), 1);
-  assert.equal(luckCount({ available: true, remaining: 3 }), 3);
-  assert.equal(luckCount({ available: false, remaining: 2 }), 2);
-  assert.equal(luckCount({ available: true, remaining: -4 }), 1);
+  // Standard mode: a 1d4 left in the hidden counter (Initialize Luck) is not a token.
+  assert.equal(luckCount({ available: true, remaining: 3 }), 1);
+  assert.equal(luckCount({ available: false, remaining: 2 }), 0);
+  assert.equal(luckCount(undefined, true), 0);
+  assert.equal(luckCount({ available: true, remaining: 3 }, true), 3);
+  assert.equal(luckCount({ available: true, remaining: 0 }, true), 0, "a spent Pulp token leaves available true");
+  assert.equal(luckCount({ available: false, remaining: -4 }, true), 0);
 });
 
 test("a member carries light only while one of the items is burning", () => {

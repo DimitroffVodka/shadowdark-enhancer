@@ -158,7 +158,7 @@
 | `party/party-movement-core.mjs` | 140 | Fixed formation fill, follow ordering, heading turns, and the wall tests: centre-line placement and a breadth-first route round walls. |
 | `party/party-movement.mjs` | 267 | Authenticated Party-owner gather/deploy relay, linked token configuration preservation and native marching: followers keep the formation, turned to the leader's heading, and never pause. |
 | `party/party-roll.mjs` | 138 | Request roll from the Party sheet's GM bar: posts one chat card with a Roll link per character asked; the owner's click runs the system's ability check against the DC and posts pass or fail. |
-| `party/party-sheet-core.mjs` | 502 | Pure Party sheet decisions: the tab row and view flags (GM vs player), the Marching order status line, Gems, the linked Bastion and its last month, and the Today / Light / Rations status bar. |
+| `party/party-sheet-core.mjs` | 505 | Pure Party sheet decisions: the tab row and view flags (GM vs player), the Marching order status line, Gems, the linked Bastion and its last month, and the Today / Light / Rations status bar. |
 | `party/party-stash-core.mjs` | 60 | Pure party stash rules: free vs donated capacity, donation normalization and limits, and refusal of reductions the carried inventory cannot cover. |
 | `party/party-stash.mjs` | 260 | Party stash authority: the party flag, the locked Party stash filler item on characters, mount reservations, reconciliation hooks and the Items-tab context. |
 | `party/party-token.mjs` | 95 | Uploads both pictures of the party emblem — the hex tile for the actor's portrait and the standard (pennant on a pole) for its tokens — and keeps the actor, its prototype token and every scene token wearing the right one. |
@@ -230,7 +230,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `crawl-strip.mjs` | 1762 | The core feature: the top strip. Plain DOM (`#shadowdark-enhancer-strip`), not ApplicationV2. |
+| `crawl-strip.mjs` | 1739 | The core feature: the top strip. Plain DOM (`#shadowdark-enhancer-strip`), not ApplicationV2. |
 | `crawl-state.mjs` | 516 | Foundry-coupled state singleton — persistence, sockets, hook emission. |
 | `crawl-state-core.mjs` | 428 | Pure reducer/normalizer behind crawl-state. Node-testable. |
 | `crawl-lights-core.mjs` | 93 | Pure light-source logic for the strip's flame badges. |
@@ -557,7 +557,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `pdf-sheet-export.mjs` | 426 | "Export to PDF" header button; fills the bundled form-fillable sheet from SD data-model getters. |
+| `pdf-sheet-export.mjs` | 424 | "Export to PDF" header button; fills the bundled form-fillable sheet from SD data-model getters. |
 
 ### 3.17 `scripts/character-sheet/` — Shadowdark sheet injections
 
