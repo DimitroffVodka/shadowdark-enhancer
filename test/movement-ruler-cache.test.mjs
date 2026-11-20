@@ -66,6 +66,14 @@ test("one refresh reads the settings a fixed number of times, however long the p
   assert.ok(short <= 3, `expected a handful of reads per refresh, got ${short}`);
 });
 
+test("a refresh with no path to style reads nothing", () => {
+  CrawlState._state = normalizeCrawlState({ ...defaultCrawlState(), mode: "crawl", members: ["pc"] });
+  const ruler = new Ruler({ document: { actorId: "pc", getFlag: () => undefined }, actor: { system: {} } });
+  settingReads = 0;
+  ruler.refresh({ waypoints: [] });  // core still refreshes when movement history is cleared
+  assert.equal(settingReads, 0);
+});
+
 test("the cached budget still colours and labels the path", () => {
   CrawlState._state = normalizeCrawlState({ ...defaultCrawlState(), mode: "crawl", members: ["pc"] });
   const token = { document: { actorId: "pc", getFlag: (scope, key) => (scope === MODULE_ID && key === "moveRemaining" ? 10 : undefined) }, actor: { system: {} } };
