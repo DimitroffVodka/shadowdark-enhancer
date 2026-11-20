@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.24.0] — 2026-11-20
+
 ### Added
 
 - **Safe rest for a night at an inn or in town.** The Travel panel's GM row has a Safe rest button next to Start a new day. It ends the travel day and gives the party a full rest, as camp does (HP, stat damage, spells, talents and wands; Grinder Mode's rolls when it is on), without rations or a watch. The clock moves to the next morning with the party's lights out, and the new day starts with a full day of hexes. No encounter check rolls from the rest until the party moves on: checks that fall due while it stays in town are passed. Before this, Start a new day restarted the day at the current hour without moving the clock, and skipping time on its own never reset the hexes.
