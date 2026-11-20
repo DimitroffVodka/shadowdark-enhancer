@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- **Free movement combat.** A new setting under Movement turns off feet in combat for tables that judge range by eye. The ruler measures in Foundry's own colours, moves are never charged or refused, and the crawl strip shows no feet left. Initiative and turn order are unchanged, and Lock movement out of turn still applies when it is on. With Free movement crawl also on, movement is untracked everywhere.
+
 ### Fixed
 
 - **No more hitch when you drop a token during a crawl or combat.** The crawl strip rebuilt itself three times as the token started to move: once for the move, which it does not show, and twice for the new feet left. It now rebuilds once.

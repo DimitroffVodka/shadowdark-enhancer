@@ -86,6 +86,7 @@ Configure strict movement rules under **Configure Settings → Shadowdark Enhanc
 | **Enforce combat movement budget** | Off | Refuses combat moves exceeding remaining movement |
 | **Lock movement out of turn** | Off | Only the token holding the active turn may move |
 | **Free movement crawl** | Off | Dungeon crawl only: no feet, no crawl initiative, no lock; the GM ends each round |
+| **Free movement combat** | Off | Combat only: no feet; turn order and the out-of-turn lock are unchanged |
 
 ### Free movement crawl
 
@@ -106,6 +107,15 @@ strip says so (see
 [Marching order in the strip](Crawl-Strip-and-Crawl-Bar.md#marching-order-in-the-strip)),
 and the followers' automatic steps are never charged to them. Combat applies feet
 and initiative as usual.
+
+### Free movement combat
+
+Turn this on for a table that judges range by eye in combat. The ruler measures
+in Foundry's own colours, moves are never charged, counted or refused, and the
+[Crawl Strip](Crawl-Strip-and-Crawl-Bar.md) shows no feet left on any card.
+Initiative and turn order work as usual, and **Lock movement out of turn** still
+keeps players to their own turn when it is on. Turn this and **Free movement
+crawl** both on to drop feet everywhere.
 
 ### How out-of-turn locking works
 

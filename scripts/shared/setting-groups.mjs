@@ -116,6 +116,7 @@ export const SETTING_GROUPS = [
       entries: [
         "combatMovementDefault",
         "crawlFreeMovement",
+        "combatFreeMovement",
         "oocMovementBudget",
         "oocEnforceBudget",
         "combatEnforceBudget",
