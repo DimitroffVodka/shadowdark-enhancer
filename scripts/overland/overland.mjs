@@ -53,7 +53,7 @@ import {
   defaultOverlandState, normalizeOverlandState, startTravel, setHex, setAutoGoal as setAutoGoalState, recordForage,
   pickTravelToken, forageRefusal, setWeather, weatherHolds, weatherAdvantage, weatherFormula,
   weatherFromRoll, harshToday, WEATHER_RULES, METHODS, openDay, spendMove, priceMove, moveVerdict, hexCost,
-  dayChecks, dueChecks, markCheck, setPending, setEncounter, forageDC, closeDay, planRations, partyMethod, setPace,
+  dayChecks, dueChecks, markCheck, passChecks, setPending, setEncounter, forageDC, closeDay, planRations, partyMethod, setPace,
   checkSettings, encounterChance, checkHalf, makeCampState, campEndAt, campLightsOut, interruptRest, walkMs, walkSlices, lapseMs, WALK_SLICE_MS,
 } from "./overland-state-core.mjs";
 import { PARTY_FLAG, extrasParties, joinExtras, placePartyToken, wearPartyHex } from "./hex-rules.mjs";
@@ -61,6 +61,7 @@ import { Party, isNativeParty, isLegacyParty } from "../party/party.mjs";
 import { chooseParty } from "./party-choice.mjs";
 import { isPartyDeployed } from "../party/party-movement.mjs";
 import { prepareCampNight, autoCampNight, finishCampNight, campOf, requestCamp } from "../camping/camping.mjs";
+import { restSafely } from "../camping/camping-nutrition.mjs";
 import { ownsHexFog, revealParty } from "../hex-map/hex-fog.mjs";
 import { weatherCard } from "../shared/chat-cards.mjs";
 import { L as t } from "../shared/i18n.mjs";
@@ -508,6 +509,8 @@ async function travelTo(target, reason, ms) {
   // One deadline for the whole advance: each stretch of clock owns its share of the ms, and what a slice
   // leaves of it is waited out before the next check, so a check that misses can't shorten the walk (#324 review).
   const pace = { t0: performance.now(), used: 0 };
+  // Sheltered after a Safe rest: the clock moves, and the checks it passes are passed, not rolled.
+  if (_state.sheltered) await commit(passChecks(_state, target).state);
   for (const i of dueChecks(_state.checks, target)) {
     const c = _state.checks[i];
     const gap = c.at - game.time.worldTime;
@@ -1139,7 +1142,7 @@ export function recordMove(doc, origin, dest, priced, waypoints = [dest], movedA
     if (!priced.steps.length) return true;
     const hex = await withRegion(priced.steps.at(-1).hex, doc.parent);
     const first = _state.spent === 0;
-    await commit(spendMove(_state, { cost: priced.cost, hex }).state);
+    await commit(spendMove(_state, { cost: priced.cost, hex, now: game.time.worldTime }).state);
     // The first move settles the day's pace (setPace), and a normal pace forages: everyone, with no one asked to stop.
     if (first && _state.spent > 0 && !_state.pushed && autoForageEnabled()) {
       await syncMembers();
@@ -1267,12 +1270,32 @@ export async function makeCamp(party = null, acceptShortages = false) {
 function campEnd() {
   const cal = game.time.calendar, now = game.time.worldTime, day = secondsPerDay(cal);
   const today = startOfDay(cal, now);
-  const wake = (start) => Math.max(start + 6 * hourSeconds(), dawnAfter(cal, start - 1));
-  const end = wake(today) > now ? wake(today) : wake(today + day);
+  const end = nextWake();
   const nextSix = today + 6 * hourSeconds() > now ? today + 6 * hourSeconds() : today + 6 * hourSeconds() + day;
   const night = _state.checks.filter((c) => c.half === "night" && !c.rolled).map((c) => c.at);
   // campEndAt (#428) drops night checks past nextSix; the 06:00 floor (#440) already covers the ones before it.
   return campEndAt(end, night, nextSix);
+}
+
+/** The next waking morning: its 06:00, or its sunrise if later; today's if still ahead (camp and safe rest wake at it). */
+function nextWake() {
+  const cal = game.time.calendar, now = game.time.worldTime;
+  const today = startOfDay(cal, now);
+  const wake = (start) => Math.max(start + 6 * hourSeconds(), dawnAfter(cal, start - 1));
+  return wake(today) > now ? wake(today) : wake(today + secondsPerDay(cal));
+}
+
+/**
+ * Safe rest (GM): a night at an inn or in town. The open day ends, the clock moves to the next morning with the
+ * party's lights out, and no encounter check or ration comes into it. Then the new day opens as Start day opens it:
+ * on the spot when the rules data or a boat says how many hexes, else through the Start day dialog.
+ * @returns {Promise<{ok:boolean, error?:string}|null>}  null: the Start day dialog was closed
+ */
+export async function safeRest() {
+  if (!game.user?.isGM) return { ok: false, error: t("SDE.overland.notify.dayGmOnly") };
+  const data = { action: "safeRest" };
+  const reply = isActiveGM() ? await applyAction(data, game.user) : await queryActiveGM(OVERLAND_QUERY, data, { label: t("SDE.overland.relayLabel") });
+  return reply?.ok ? startDayFromParty() : reply;
 }
 
 /**
@@ -1736,6 +1759,28 @@ export function applyAction(data, user) {
         const { stopped } = await advanceTravel(until, "camp", lapseFor(until));
         const finished = !stopped && await finishCamp();
         return { ok: true, stopped: !finished };
+      }
+      case "safeRest": {
+        if (!user.isGM) return { ok: false, error: t("SDE.overland.notify.dayGmOnly") };
+        if (!CrawlState.isOverland) return { ok: false, error: t("SDE.overland.notify.notTravelling") };
+        if (game.paused) return { ok: false, error: t("SDE.overland.notify.paused") };
+        if (_state.pending || _state.encounter) return { ok: false, error: t("SDE.overland.notify.pending") };
+        if (_state.camp) return { ok: false, error: t("SDE.overland.notify.restCamping") };
+        const until = nextWake();
+        await syncMembers();
+        // The clock first: a plain clock move rolls no check, and a refused one (another GM's tab burns the lights) leaves everything as it was.
+        const moved = await advanceOffDuty(until - game.time.worldTime, { reason: "rest" });
+        if (!moved.ok) return { ok: false };   // advanceOffDuty has said why
+        // The day closes and the party is sheltered: no check rolls until it moves on.
+        await commit({ ...closeDay(_state).state, sheltered: true });
+        try {
+          await restSafely(_state.members.map((id) => game.actors.get(id)));
+        } catch (err) {
+          console.error(`${MODULE_ID} | Safe rest`, err);
+          return { ok: false, error: t("SDE.overland.notify.restFailed") };
+        }
+        await campLine([t("SDE.overland.rest.done", { time: dateParts(game.time.calendar, game.time.worldTime).time })]);
+        return { ok: true };
       }
       case "fastTravel": {
         if (!user.isGM) return { ok: false, error: t("SDE.overland.notify.fastGmOnly") };

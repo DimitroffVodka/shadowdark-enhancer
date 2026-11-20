@@ -2088,6 +2088,7 @@ o.state();      // a copy of the travel state, plus derived fields:
 //   day, budget, spent,            // when the open day started (worldTime), and its points
 //   pointSeconds,                  // clock seconds per point of cost, fixed at the day's start
 //   weather, checks, pending, foraged,
+//   sheltered,                     // after a Safe rest, until the party's first move that spends hexes: no check rolls
 //   hex: { num, terrain, region, features },  // the travel token's last hex
 //   hexesLeft, climate, stormy, harsh, isNight,  // derived, never stored
 // }
