@@ -19,7 +19,7 @@ import { ICONS }            from "../shared/icons.mjs";
 import { relayToGM, authorizeActorFor, refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
 import { computeLightState, isLightItem } from "./crawl-lights-core.mjs";
 import { canAdvanceTurn, canAdvanceOocTurn, nextTurnWouldRollRound } from "./crawl-turn-core.mjs";
-import { oocOrderComplete, stripShown, stripOptions, tokenMoveOnly } from "./crawl-state-core.mjs";
+import { oocOrderComplete, stripShown, stripOptions } from "./crawl-state-core.mjs";
 import { crawlFree } from "./crawl-free.mjs";
 import { marchOf, stripParty } from "../party/party-movement.mjs";
 import { Party, isParty } from "../party/party.mjs";
@@ -216,6 +216,19 @@ export const OocControls = {
     return true;
   },
 };
+
+// What a token move writes, core's movement bookkeeping included. Kept here, beside the cards it
+// describes: nothing the strip draws reads these, so a card that ever shows one (elevation, the
+// level) must drop it from this set, or that card stops refreshing when the token moves.
+const MOVE_FIELDS = new Set(["_id", "x", "y", "elevation", "level", "rotation", "_movementHistory", "_regions"]);
+
+/**
+ * Does this token update only move the token? The strip skips those: rebuilding it on every drop
+ * hitched the first frames of the move animation, and the feet-left flag write redraws it anyway.
+ * @param {object} changes  the updateToken diff
+ * @returns {boolean}
+ */
+export const tokenMoveOnly = (changes) => Object.keys(changes ?? {}).every((k) => MOVE_FIELDS.has(k));
 
 export const CrawlStrip = {
 
