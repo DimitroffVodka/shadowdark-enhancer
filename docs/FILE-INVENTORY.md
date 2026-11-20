@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-2256 tracked files · ~282,800 lines of code/markup across scripts+templates+styles+test.
+2257 tracked files · ~282,800 lines of code/markup across scripts+templates+styles+test.
 `v0.24.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -232,7 +232,7 @@
 |---|---:|---|
 | `crawl-strip.mjs` | 1739 | The core feature: the top strip. Plain DOM (`#shadowdark-enhancer-strip`), not ApplicationV2. |
 | `crawl-state.mjs` | 516 | Foundry-coupled state singleton — persistence, sockets, hook emission. |
-| `crawl-state-core.mjs` | 428 | Pure reducer/normalizer behind crawl-state. Node-testable. |
+| `crawl-state-core.mjs` | 439 | Pure reducer/normalizer behind crawl-state. Node-testable. |
 | `crawl-lights-core.mjs` | 93 | Pure light-source logic for the strip's flame badges. |
 | `crawl-tracker.mjs` | 347 | The out-of-combat tracker as a real sidebar tab (`AbstractSidebarTab`), registered into `Sidebar.TABS` + `CONFIG.ui` beside Combat. Hidden unless a crawl is running; carries the roll-all / advance / reset controls. |
 | `crawl-tracker-core.mjs` | 138 | Pure view model for the tracker tab: `buildTrackerRows()` (rolled first, unrolled last, holder flagged), `showOocReset()`, and `parseInitiativeInput()` — which treats a blanked box as "no change" rather than the initiative of 0 that `Number("")` yields. Node-testable. |
@@ -240,7 +240,7 @@
 | `hidden-sync.mjs` | 69 | Bidirectional `token.hidden` ↔ `combatant.hidden` sync, GM-only. |
 | `turn-skip.mjs` | 163 | Auto-advances past combatants the strip renders no card for (dead enemies). Active-GM gated. Also drives Chaos Mode: queues each held Chaos round (updateCombat) and replays it under the same lock (#259). |
 | `turn-skip-core.mjs` | 164 | Pure strip-visibility test shared by the strip and the auto-skip, so the two can't drift. |
-| `movement-tracker.mjs` | 833 | Crawl-mode movement budget enforcement + turn-start rollback (`displace` waypoints); its token writes stay out of the undo history, and a Ctrl+Z undo refunds the move it reverts. |
+| `movement-tracker.mjs` | 834 | Crawl-mode movement budget enforcement + turn-start rollback (`displace` waypoints); its token writes stay out of the undo history, and a Ctrl+Z undo refunds the move it reverts. |
 | `crawl-free.mjs` | 9 | `crawlFree(mode)`: whether the crawl counts no feet, rolled order or turn lock, because the world setting says so or a party is marching (one mover). The strip, the tracker tab and the movement tracker all ask it. |
 | `march-controls.mjs` | 57 | The strip's marching order: the 3x3 grid beside the PARTY plate and the march switch under it, drawn from the party, with the click, drag and switch handlers that write the party's own settings. |
 | `movement-calc.mjs` | 88 | Pure per-segment feet-moved math. |

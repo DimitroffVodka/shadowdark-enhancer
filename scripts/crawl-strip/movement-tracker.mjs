@@ -301,8 +301,9 @@ export const MovementTracker = {
               // A refund (an undone move, negative) never gives back more than a full turn.
               const spent = Math.round((moveRemaining - distanceFt) / 5) * 5;
               const newRemaining = distanceFt < 0 ? Math.min(spent, full) : spent;
+              // No queueRender here: the strip's own updateToken hook redraws the card for this flag write,
+              // and a second render a microtask later doubled the strip rebuild as the token starts to move.
               replaceModuleFlag(doc, "moveRemaining", newRemaining, {}, UNRECORDED)
-                .then(() => CrawlStrip.queueRender())
                 .catch(err => console.warn(`${MODULE_ID} | movement deduction failed`, err));
             }
           }

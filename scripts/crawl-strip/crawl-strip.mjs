@@ -19,7 +19,7 @@ import { ICONS }            from "../shared/icons.mjs";
 import { relayToGM, authorizeActorFor, refuseQuery, registerQuery } from "../shared/gm-relay.mjs";
 import { computeLightState, isLightItem } from "./crawl-lights-core.mjs";
 import { canAdvanceTurn, canAdvanceOocTurn, nextTurnWouldRollRound } from "./crawl-turn-core.mjs";
-import { oocOrderComplete, stripShown, stripOptions } from "./crawl-state-core.mjs";
+import { oocOrderComplete, stripShown, stripOptions, tokenMoveOnly } from "./crawl-state-core.mjs";
 import { crawlFree } from "./crawl-free.mjs";
 import { marchOf, stripParty } from "../party/party-movement.mjs";
 import { Party, isParty } from "../party/party.mjs";
@@ -261,7 +261,7 @@ export const CrawlStrip = {
     on("updateActor",   queueIfShown);
     // The Marching order switch and the leader live on the party, which has no card of its own.
     on("updateActor",   actor => { if (isParty(actor)) queue(); });
-    on("updateToken",   td => { if (shown("token-id", td?.id) || shown("actor-id", td?.actorId)) queue(); });
+    on("updateToken",   (td, changes) => { if (!tokenMoveOnly(changes) && (shown("token-id", td?.id) || shown("actor-id", td?.actorId))) queue(); });
     on("createToken",   queue);
     on("deleteToken",   queue);
     on("canvasReady",   queue);

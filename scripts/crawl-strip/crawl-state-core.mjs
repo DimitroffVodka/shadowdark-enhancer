@@ -42,6 +42,17 @@ export const stripOptions = ({ offForAll, offMine, slimForAll, slimMine } = {}) 
   slim: slimForAll === true || slimMine === true,
 });
 
+// What a token move writes, core's movement bookkeeping included. The strip draws none of it.
+const MOVE_FIELDS = new Set(["_id", "x", "y", "elevation", "level", "rotation", "_movementHistory", "_regions"]);
+
+/**
+ * Does this token update only move the token? The strip skips those: rebuilding it on every drop
+ * hitched the first frames of the move animation, and the feet-left flag write redraws it anyway.
+ * @param {object} changes  the updateToken diff
+ * @returns {boolean}
+ */
+export const tokenMoveOnly = (changes) => Object.keys(changes ?? {}).every((k) => MOVE_FIELDS.has(k));
+
 /**
  * Was this persisted value written by a newer client than this one? Such a
  * state is read best-effort and never written back (crawl-state.mjs).
