@@ -21,8 +21,8 @@ export const TRAVEL_DAY_HOURS = 8;
 /** A pushed day has half as many points again, at the same rate (§5.1). */
 export const PUSH = 1.5;
 
-/** What a different party does not inherit from the one before it: the open day, its checks, camp and forage, its hex. */
-const NEW_PARTY_RESETS = ["day", "pushed", "base", "budget", "spent", "pointSeconds", "checks", "pending", "encounter", "camp", "foraged", "boatUuid", "hex", "autoGoal"];
+/** What a different party does not inherit from the one before it: the open day, its checks, camp and forage, its hex, a Safe rest's shelter. */
+const NEW_PARTY_RESETS = ["day", "pushed", "base", "budget", "spent", "pointSeconds", "checks", "pending", "encounter", "camp", "sheltered", "foraged", "boatUuid", "hex", "autoGoal"];
 
 /** @returns {object} a fresh travel state: no token, no day open */
 export function defaultOverlandState() {

@@ -1768,11 +1768,17 @@ export function applyAction(data, user) {
         if (_state.camp) return { ok: false, error: t("SDE.overland.notify.restCamping") };
         const until = nextWake();
         await syncMembers();
-        // The day closes first and the party is sheltered: no check rolls through the night, nor until it moves on.
-        await commit({ ...closeDay(_state).state, sheltered: true });
+        // The clock first: a plain clock move rolls no check, and a refused one (another GM's tab burns the lights) leaves everything as it was.
         const moved = await advanceOffDuty(until - game.time.worldTime, { reason: "rest" });
         if (!moved.ok) return { ok: false };   // advanceOffDuty has said why
-        await restSafely(_state.members.map((id) => game.actors.get(id)));
+        // The day closes and the party is sheltered: no check rolls until it moves on.
+        await commit({ ...closeDay(_state).state, sheltered: true });
+        try {
+          await restSafely(_state.members.map((id) => game.actors.get(id)));
+        } catch (err) {
+          console.error(`${MODULE_ID} | Safe rest`, err);
+          return { ok: false, error: t("SDE.overland.notify.restFailed") };
+        }
         await campLine([t("SDE.overland.rest.done", { time: dateParts(game.time.calendar, game.time.worldTime).time })]);
         return { ok: true };
       }

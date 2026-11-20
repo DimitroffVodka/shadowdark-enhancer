@@ -4464,6 +4464,7 @@
   "SDE.overland.notify.pending": "An encounter stopped the clock. Run it, then press Resume clock on the crawl bar before moving on.",
   "SDE.overland.notify.paused": "The game is paused. Unpause before the clock moves.",
   "SDE.overland.notify.restCamping": "The party is camping. Finish the camp, or press Resume clock, before a safe rest.",
+  "SDE.overland.notify.restFailed": "The night passed and the day ended, but the party's rest failed part-way. Check HP and spells on the sheets; the console has the error.",
   "SDE.overland.notify.pausedGm": "The game is paused. The GM must unpause it before the clock moves.",
   "SDE.overland.notify.campPending": "Camp can't be made yet. The GM has something to settle first.",
   "SDE.overland.notify.encounterGm": "An encounter is waiting. Only a GM can resume the clock past it.",

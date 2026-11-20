@@ -239,7 +239,7 @@ the party token travels.
     on each character you own.
 
   The GM also sees the day's check hours and results, and the Start day,
-  Weather, Resume clock and End travel buttons. Make camp is the GM's and a
+  Safe rest, Weather, Resume clock and End travel buttons. Make camp is the GM's and a
   Party owner's. Players never see the check hours.
 - **Terrain is optional.** A tag from the Hex Tagger, or the terrain Extras
   records on its hex maps, gives each hex its move cost and its encounter
@@ -347,7 +347,8 @@ the party token travels.
   [Encounter panel](Clock-and-Calendar.md#encounters-while-travelling-gm):
   run the encounter, then press **Resume clock** to finish the rest of the move.
   The token can't move on until you do, except by **Displace**. A check whose
-  hour had passed before you started the day is rolled at once.
+  hour had passed before you started the day is rolled at once, unless the
+  party is sheltered after a **Safe rest**.
 
 - **Forage** looks for food. At a normal pace it happens by itself: the day's
   first move rolls it for every traveller, with no one asked to stop. The
@@ -379,6 +380,20 @@ the party token travels.
     rolls these checks. Without Extras, the chat reminds you to call for them.
   - The next day's weather is rolled, and you press **Start day** when the
     party sets out.
+- **Safe rest** is the night at an inn or in town, the GM's, in the Travel
+  panel's GM row:
+  - The clock moves to 06:00 (or sunrise, if that is later) the way the
+    off-duty move does, so carried lights go out rather than burn.
+  - The day ends, and each living member gets the rest a camp gives: HP,
+    stat damage, spells, talents and wands back, or Grinder Mode's rolls
+    when it is on. Nobody eats a ration and there is no watch.
+  - The new day starts at once, as Start day starts it: the dialog only
+    asks when nothing says how many hexes a day is.
+  - The party is then **sheltered**: no encounter check rolls, from a move
+    of the clock or at the day's start, until its first move that spends
+    hexes. The checks that fell due while it stayed in town are passed,
+    not rolled on that move; the ones still ahead roll as usual. A different
+    party starting to travel is not sheltered.
 - **The sky.** Outdoor scenes darken with the clock:
   - Darkness is 0 by day. The fades are soft: it eases between day and
     night over the four hours around sunrise and sunset — from an hour
