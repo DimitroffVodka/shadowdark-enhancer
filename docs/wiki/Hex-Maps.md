@@ -2,9 +2,8 @@
 
 [← Wiki home](index.md)
 
-Turn your map into native exploration and optional Extras authoring data,
-without the module shipping any of the map. Three pieces, each useful on
-its own:
+Turn your map into native exploration and a drawn hex map, without the
+module shipping any of the map. Three pieces, each useful on its own:
 
 1. **Hex key pages** — the [Importer Hub](Importer-Hub.md) files a pasted hex
    key as one journal page per hex, and the keyed summary table (number,
@@ -12,8 +11,9 @@ its own:
    reads the whole key — every region's full write-ups — in one pass.
 2. **The Hex Tagger** — a contact sheet over your map scene where you tag each
    hex's terrain and its river, path or coast features.
-3. **The dataset** — one JSON file (or a direct hand-off to Extras) with the
-   keyed hexes, terrain regions and river/road networks, hex numbers only.
+3. **The drawn map** — a scene the Enhancer draws from those tags, each hex
+   wearing a picture of its terrain, with rivers, roads, beaches and keyed art.
+   See [Drawing a hex map](Drawing-Hex-Maps.md).
 
 Everything is built from your own book text and your own map image in your
 browser. Nothing is uploaded, and nothing from a book ships with the module.
@@ -88,31 +88,18 @@ whose eye control shares the picture with your players. A hex with none, or whos
 is gone (Extras uninstalled), keeps the plain hexagon; no art is uploaded, and the
 players' hover never grows a picture.
 
-**Tile** (a numbered hex on a map Extras painted, with a current Extras): the card
-under Terrain changes which tile the hex is painted with, before you bake.
-**Another tile** draws a different one from the terrain's set, never the tile the hex
-has or one a neighbour wears. **Choose tile** lists the terrain's tiles as pictures,
-the hex's own marked; the **Tiles for** list shows any other terrain's tiles too, so a
-desert-hills tile can go on a grassland hex without changing the hex's terrain. A
-choice is saved in the map's deal, so it survives repainting the same terrain, and ends
-when the hex's terrain moves or you press **Another tile**. It writes at once, not with
-Save cell, and it goes to the painted map: a baked scene draws no Tiles, so the card
-says the change shows in the bake once the painted map is baked again. A hex that
-wears its own art (a keyed location or a settlement) shows no buttons; that art is set with the Tagger's **Tile art**.
+**Tile** (a numbered hex on a map the Enhancer draws): the card under Terrain picks
+which picture of its terrain the hex wears. **Another tile** deals a different one;
+**Choose tile** lists the terrain's pictures, the hex's own marked. A choice shows at
+once, is saved on this scene only, not with Save cell, and lapses when the hex's
+terrain changes. A hex that wears its own art (a keyed location or a settlement)
+shows no buttons; that art is set with the Tagger's **Tile art**. The same card holds
+**Bake map** and **Export image**. See [Drawing a hex map](Drawing-Hex-Maps.md).
 
-**Bake map** (the same card, with a current Extras): bakes the painted map into a new
-scene for play from inside Foundry, so putting your tile choices on the map you play
-on does not need the Scenes sidebar's *Bake map for play* (which only shows while Tile
-Flatten is on) or anyone's console. It puts a plain ground tile under every keyed hex,
-bakes (about a minute, using this computer's graphics, so press it in the browser tab you
-are playing from), takes the ground away again whatever happened, names the new scene
-for the painted map and the minute, and asks whether to make it the active scene. The
-painted map and every earlier baked scene stay as they are. Change the tiles you want
-to change first, with **Another tile** or **Choose tile**, and bake once afterwards: a
-baked scene draws no Tiles, so every change made later waits for the next bake. A bake
-is a copy of the painted map, so it starts without the play on the scene it stands in for: if that scene
-has recorded hexes or tokens the dialog says how many first. Bake before you start
-playing, or keep playing on the scene you have.
+**Hex art** (on a map Shadowdark Extras painted): **Draw with the Enhancer** has the
+Enhancer draw the map from its tags instead, hiding Extras' tiles without changing
+them; **Show Extras' tiles** switches back. See
+[A map Extras already painted](Drawing-Hex-Maps.md#a-map-extras-already-painted).
 
 **Region** (under Terrain, on a numbered hex) is the region the map puts this hex
 in, as the Regions picture and a wandering check read it: the scanned border, the
@@ -321,8 +308,6 @@ only what the map is missing:
   this scene has none, even when its terrain is already complete.
 - **The book's keyed hexes**: their terrain, and a pin on each (Importer Hub,
   Key locations, first).
-- **Shadowdark Extras**, when it's on and every hex has terrain: the hex
-  records go to the map, as **Send to Extras** does.
 - **The Legend**, when there's no terrain to copy: it opens so you can name the
   print's pictures. Apply it, then press **Make this map playable** again for
   the rest.
@@ -415,7 +400,7 @@ blurb from the table.
 
 Each region is filed as its own journal entry in the Journals pack, with one
 page per keyed hex inside it and the region's summary rows stored on the entry
-for the map notes and the dataset. One entry per region keeps the sidebar
+for the map notes and the keyed terrain. One entry per region keeps the sidebar
 readable and still gives every location its own page to pin, link to and edit.
 
 The **Game Master's Guide to the Western Reaches** files 270 keyed hexes across
@@ -525,8 +510,8 @@ keyed locations go on the map as Foundry notes: **Pin on [scene]** in the
 hub right after filing, or **Pin keyed hexes** in the tagger's header with
 the crawl chosen. A book imported per region files more than one crawl, so
 the tagger's hex-key picker also offers **(every crawl)** — one press pins
-every region of the book, and the same choice makes the keyed sheet, the
-terrain answers and the dataset hand-off read all of them together. The
+every region of the book, and the same choice makes the keyed sheet and the
+terrain answers read all of them together. The
 picker lists the crawls of **the map's own book** (its print, or a painted
 copy's size). Books all number their hexes from 0001, so on a map no print
 claims, in a world that has imported several books, **(every crawl)** is not
@@ -563,11 +548,6 @@ for the Western Reaches); a map no print claims, including a painted copy the
 module cannot place, has no region names and no nearest region, and its
 encounter checks use the terrain's table. A Cursed Scroll map shows no region
 names until that book's own key locations are imported.
-
-The API's `hexMaps.importDetails` follows the same rule when it names a scene's
-hexes from a scan it borrowed: if the target scene is made from a print of a
-different book than that scan, it writes no zones and says so in its result
-(`zonesSkipped`).
 
 So once a book's key locations are imported, **every hex knows its region**,
 not just the 270 keyed ones:
@@ -672,10 +652,9 @@ other card keeps its answer.
   nearest examples vote for, gets its river or path from the ink left after
   the terrain's stamp, and lands in the Review queue when unsure.
 
-When it is done the tagger says so: the map is tagged, the dataset is ready,
-and the cells the classifier was unsure about are listed below for as much
-checking as you care to do. Review is optional; **Send to Extras** works at
-any point. The rarely used buttons (re-sample, import, export, a painted
+When it is done the tagger says so: the map is tagged, and the cells the
+classifier was unsure about are listed below for as much checking as you care
+to do. Review is optional; **Build drawn map** works at any point. The rarely used buttons (re-sample, import, export, a painted
 map, the reference tile, Clear) sit under **More**.
 
 Choose the crawl entry first if you have one: keyed hexes then stay out of
@@ -906,7 +885,7 @@ are the ones below, without opening the Hex Tagger:
   The GM normally sees unexplored hexes through a faint veil so the map can be edited; with this on they are solid
   black, as the players see them. It is kept in this browser.
 - **Hide the fog to review the map**: the button beside it (a sun behind a cloud). It takes the veil off completely, so
-  a freshly painted map can be read in full. It is for your screen only: players' fog and what each party has
+  a freshly drawn map can be read in full. It is for your screen only: players' fog and what each party has
   discovered are not touched, and it is kept in this browser. Press it again to bring the veil back.
 - **Reset the fog**: the button after those two (a cloud with a down arrow), on any scene where the module draws the
   fog. It puts hexes back to unexplored, which the Hex Data window only does one hex and one party at a time. The window
@@ -1092,10 +1071,10 @@ Then:
    hexes named in the chosen crawl entry, which doubles as an alignment check
    (they should show a keyed marker); **Review queue** is for the classifier's
    uncertain cells (a later phase).
-5. **Send to Extras**, or **Download dataset** without Shadowdark Extras.
-   Choose the crawl entry filed by the importer to include the keyed hexes and
-   their descriptions; without one only the terrain you tagged goes. **Send to
-   Extras** puts the details on this map (see *Playing on the print itself*).
+5. **Build drawn map**, under **Use this map**, makes a new scene drawn from
+   these tags (see [Drawing a hex map](Drawing-Hex-Maps.md)). Choose the crawl
+   entry filed by the importer first, so the keyed hexes take their terrain
+   from the book.
 
 Tags live on the scene under the module's flags and survive reloads;
 **Clear** removes them and the anchor. Re-sampling never touches tags.
@@ -1145,7 +1124,9 @@ Three more buttons sit in the tagger's header once the scene is sampled.
 - **Import** reads a file of tags into the scene: a CSV with `hex_id` and
   `tags` (or `terrain_tags`) columns, semicolon-separated, with an optional
   `source` column (`gm` or `auto`); or a JSON, either one exported here or a
-  hexcrawl dataset (its regions, keyed hexes and networks become tags). The
+  hexcrawl dataset saved by an earlier version of the module (its regions,
+  keyed hexes and networks become tags). Rows whose hex numbers are not on
+  the map are refused and named, with the map's first and last hex. The
   first tag that is not river, path or coast is the terrain; a row of
   features only, such as a hex that is all river, keeps its first tag as the
   terrain. Imported rows replace the cell's tags; other cells are untouched.
@@ -1154,16 +1135,14 @@ Three more buttons sit in the tagger's header once the scene is sampled.
   with the module.
 - **Export** downloads the scene's tags as JSON, the same shape the scene
   flag holds, so a tagging session can be backed up or moved to another
-  world and imported there. The dataset itself comes from **Build dataset**.
+  world and imported there.
 - **Reference tile** puts this scene's map image on another hex-columns scene
   as one hidden, locked, half-transparent tile, scaled so the print's hex field
   covers that scene's first columns × rows cells (the map size you set). The
   width and height scale separately, so a stretched print lands on a regular
-  grid. Pick the scene Shadowdark Extras painted from your dataset and trace
-  rivers and roads over it; when Extras exposes its hexcrawl builder, **Send
-  to Extras** places the tile on the new scene by itself. Placing it again
-  moves the same tile rather than adding another. The tile sits above the
-  painted terrain, so it stays visible; if the target lowers the wrong
+  grid. Pick a drawn or painted scene of the map and trace rivers and roads
+  over it. Placing it again moves the same tile rather than adding another.
+  The tile sits above the drawn terrain, so it stays visible; if the target lowers the wrong
   columns (odd where the map lowers even, or the reverse) the tagger says so
   and the scene's grid type needs changing.
 
@@ -1173,123 +1152,19 @@ the image's URL.
 
 ## Playing on the print itself
 
-For the whole route from a tagged map to a painted map, step by step, with
-what each button changes and leaves alone, see
-[Making a colour map with Extras](Colour-Map-with-Extras.md).
+The tagged print is a playable map on its own: travel, fog, Hex Data and
+encounters all read its tags, and the publisher's art, your pins and your notes
+stay exactly as they are.
 
-**Send to Extras** puts the hex details on the map you tagged. Shadowdark
-Extras takes the scene on as a hexcrawl, and every tagged hex gets its record:
-terrain, region and zone colour, and for keyed hexes the name, the
-description and the settlement. Nothing is painted, so the publisher's art,
-your pins and your notes stay exactly as they are, and Extras' hover tooltip,
-hex explorer, fog and coordinates work on the print itself. It needs a
-Shadowdark Extras new enough to adopt a map (`hex.adoptHexcrawl`); an older one
-is named, not worked round.
+For a map drawn from the tags instead, see
+[Drawing a hex map](Drawing-Hex-Maps.md): **Build drawn map** makes a new scene
+that shares the print's tags, so a retag on either redraws both.
 
-- Every hex's river, path and coast go too, as features beside its terrain
-  (see *Terrain and features*), so Extras' tooltip shows River, Path and Coast
-  pills on the print.
-- Send again after retagging and the records update in place. A hex's river,
-  path and coast are replaced, so a tag you took off goes (even when you
-  cleared the hex's tags completely) and nothing is listed twice; every other
-  feature on the hex, such as a dungeon you added in Extras, is left alone.
-  A tagged hex's terrain is the tagger's: one whose tags name no ground, such
-  as coast alone, clears the terrain Extras holds for it, whether an earlier
-  send left it or you typed it there. Give the hex its ground in the tagger
-  instead. A hex you never tagged keeps its terrain, and so does one whose
-  tags you cleared completely: set it in Extras, or tag the hex again.
-  Settlements go until they have arrived once, then no more, because Extras
-  keeps what the players have discovered on them and sending them again would
-  reset it.
-- To merge like that, the tagger reads what Extras holds for the map first. If
-  it cannot (other than on the very first send, when Extras holds nothing
-  yet), the details still go but no features do, and the tagger says so:
-  replacing the lists blind would erase discoveries. Send again once the
-  records are in.
-- The tagger reads through Extras' own `getHexRecords` call. An older Extras
-  has none, and the tagger reads its stored records directly instead.
-- An older Extras' **Hex Editor** turned river, path and coast into *dungeon*
-  when a hex was saved there
-  ([shadowdark-extras#157](https://github.com/DimitroffVodka/shadowdark-extras/issues/157),
-  fixed). The next **Send to Extras** puts them back.
-- Extras numbers a map from the scene's top-left cell, so the map's first hex
-  (`0000`, or `0101` on a map numbered from 1) has to be that cell. A map set
-  up through *Hex map from image* already is. If yours is not, the tagger says
-  so before anything is written, instead of putting the details on the wrong
-  hexes.
-- No river or road is painted: the print already shows them.
-
-**Build painted map**, under **Use this map**, is the other way: Extras builds a new
-scene painted from your tags, with its own rivers and roads. You can still lay
-the print over that scene: **Reference tile**, pick the painted scene, and tick
-**Use the print as the map**. The print goes on visible and opaque, stretched
-so its hex field lands exactly on the scene's cells (a print whose hexes are
-taller than regular is squared up in the process). Hide the tile and the
-painted map is back.
-
-The painted scene also takes a copy of the print's tags and region scan the first time the GM opens it, so the
-**Terrain**, **Regions** and **Zones** pictures, the hex numbers and the regions' own encounter columns work there as
-they do on the print. It finds the print by its numbering size and grid, and only when the print's first hex is the
-map's top-left cell (a print numbered from anywhere else would carry Extras' numbers to the wrong hexes) and exactly
-one tagged print fits; with two the same size, nothing is copied. Edits to the print after that are not carried over:
-build the painted map again.
-
-**Update painted map**, also under **Use this map**, fixes a painted map after you
-retag. Correct the hexes the tagger got wrong, press the button, and the tagger
-looks at the painted map it matches (it asks when you have more than one) and
-lists every hex whose terrain you now name differently. Confirm and each of
-those hexes is repainted with the tile for its new terrain, its stored terrain
-is updated, and the beaches around it are redone. Nothing else on the map
-changes: hexes that still agree, their names and descriptions, tokens, pins,
-notes and fog are left alone, which **Build painted map** would not do.
-
-- It only offers painted maps built by **Build painted map**, at this map's size
-  and numbering. The tagged print itself is never repainted.
-- A tile you placed by hand on a listed hex is replaced; that is the point of
-  the correction.
-- A hex whose terrain you cleared in the tagger is skipped: there is nothing to
-  repaint it from.
-- It needs a Shadowdark Extras that can repaint tiles. An older one is told so
-  and nothing is written.
-
-## The dataset
-
-```js
-{
-  version: 1, name, source,
-  grid: { cols, rows, distance: 6, units: "mi", landscape: false, flipX: false, flipY: false,
-          origin: 0,        // only for a map that numbers its first column and row 0
-          rowsLowered: 74 },// only when the lowered columns end one row short
-  terrain: { default: "forest", regions: [ { biome: "mountain", hexes: [1346, ...] } ] },
-  hexes:   [ { num: 2849, name, terrain: "forest", desc, zone,
-               features: [ { id: "settlement-2849", type: "town", name, discovered: false },
-                           { id: "river-2849", type: "river", name: "", discovered: true } ] } ],
-  networks: { river: [1251, ...], road: [4654, ...], spanning: true }
-}
-```
-
-`num` is the published hex number as an integer: the leading digits are the
-column, the last two the row, so 1403 is column 14, row 03. Column and row
-never appear as fields. Numbering starts at 1 unless the map's own first
-column and row are 0, in which case the dataset says so with `grid.origin: 0`
-(the Western Reaches has a hex 0000) and Extras places every number as
-printed. `grid.rowsLowered` is sent only when the lowered columns end one row
-short of the others, so no phantom cells are painted. The downloaded JSON
-preserves this column-major numbering; `grid.landscape: false` is not a
-transposition instruction. A direct Extras hand-off needs Shadowdark Extras
-with `game.shadowdarkExtras.hex.buildHexcrawl` (6.16.0 or later, with the
-origin option for maps numbered from 0); without it the dataset downloads as
-JSON. A hex's river, path and coast features are
-entries in its `features` list, one id per kind (`river-2849`), named by
-Extras from their type and sent discovered; a river tile is terrain `river`
-with no river feature. The summary table's settlement marker (village, town,
-city, city state) goes in the same list as `settlement-<num>`, undiscovered.
-River and path features are also drawn as networks for the painted build: the
-book's **path** becomes Extras' **road** network. Every hex a river or path is
-tagged on goes into its network, so `networks.spanning: true` asks Extras to
-drop the links that would close a loop between neighbouring tagged hexes.
-Terrain goes out as the book's word (`salt flat`, `deep tunnels`); Extras
-keeps that label on the hex record and chooses the painted biome itself.
+You can still lay the print over a drawn scene: **Reference tile**, pick the
+drawn scene, and tick **Use the print as the map**. The print goes on visible and
+opaque, stretched so its hex field lands exactly on the scene's cells (a print
+whose hexes are taller than regular is squared up in the process). Hide the tile
+and the drawn map is back.
 
 ## Troubleshooting
 
@@ -1304,7 +1179,8 @@ keeps that label on the hex record and chooses the painted biome itself.
   outlines running across the map; a hand-drawn or very faint grid is set up
   by hand with the tagger instead.
 - **"Nothing to import"** — the CSV needs `hex_id` and `tags` (or
-  `terrain_tags`) header cells; the JSON must be a tagger export or a dataset.
+  `terrain_tags`) header cells; the JSON must be a tagger export or a dataset
+  saved by an earlier version.
 - **The reference tile's hexes sit half a cell off in every other column** —
   the target scene lowers the other parity of columns; set its grid to
   Hexagonal Columns of the parity the tagger names.

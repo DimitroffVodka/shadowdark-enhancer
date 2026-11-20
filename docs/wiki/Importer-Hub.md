@@ -305,13 +305,10 @@ tables in sequence).
   region, terrain and settlement size. When grabbing that table from a PDF,
   pick **Single column** in the extractor: **Auto-detect** sees the wide table
   as two columns and separates the names from their rows.
-- **Hex crawl hand-off:** After a hex-key commit the hub shows **Hex pages
-  filed** with a **Download dataset** button, or **Send to Extras** when
-  Shadowdark Extras exposes its hexcrawl builder. Either way the module builds
-  one dataset from the filed pages and keyed rows: the keyed hexes with their
-  descriptions, terrain regions, and river and road hex lists, using published
-  hex numbers only. The download is a JSON file built from your own book text;
-  nothing ships with the module.
+- **After a hex-key commit:** the hub shows **Hex pages filed**, with a note on
+  pinning the keyed hexes to a scene and another on drawing the map: tag it in
+  the Hex Tagger and use **Build drawn map** (see
+  [Drawing a hex map](Drawing-Hex-Maps.md)). The hub itself builds no map.
 
 ---
 
@@ -380,12 +377,12 @@ currently in your world packs.
 
 **Hex map from image** takes a map image, finds its hex grid on its own, creates the aligned scene and opens the tagger on it ([Hex Maps](Hex-Maps.md)).
 
-**Hex tagger** opens the [Hex Tagger](Hex-Maps.md) for the active scene: a contact sheet over your hex-map image where you tag terrain and features (river, path, coast), then hand the result to Shadowdark Extras or download it.
+**Hex tagger** opens the [Hex Tagger](Hex-Maps.md) for the active scene: a contact sheet over your hex-map image where you tag terrain and features (river, path, coast), then draw the map from those tags with **Build drawn map**.
 
 **Key locations** reads a book's whole hex key out of your own PDF in one pass.
 Pick the book and it walks the regions, filing each one as its own journal
 entry with a page per keyed hex — the full write-up, not the summary line — and
-the region's summary table on the entry for the map notes and the dataset. The
+the region's summary table on the entry for the map notes and the keyed terrain. The
 Game Master's Guide to the Western Reaches files 270 keyed hexes across 15
 regions this way. Run it again whenever you like: pages are matched by their
 hex number and updated in place, never duplicated.
