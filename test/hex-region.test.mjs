@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { regionSeeds, nearestRegion, knownRegions, regionOf, sceneShift, keyedGround, keyedNames } from "../scripts/hex-map/hex-region.mjs";
+import { regionSeeds, nearestRegion, knownRegions, regionOf, sceneShift, keyedGround, keyedNames, scanSceneFor } from "../scripts/hex-map/hex-region.mjs";
 
 // All fixture content is invented (D1) — no book content, no real region names.
 
@@ -104,4 +104,16 @@ test("a keyed hex stands on the ground its book row names, with the row's coast 
 test("a keyed row's printed name is read by hex number, first row winning, blank names skipped", () => {
   const names = keyedNames([entry("Isles of Varn", [{ num: "5238", name: "The Swamp Ape" }, { num: "0933", name: " " }, { num: "2000" }]), entry("Other", [{ num: "5238", name: "Other" }])]);
   assert.deepEqual([...names], [[5238, "The Swamp Ape"]]);
+});
+
+test("an unscanned scene finds the one scanned print, not the print's drawn copies", () => {
+  const scene = (id, flags) => ({ id, getFlag: (_mod, key) => flags[key] });
+  const print = scene("print", { hexRegions: "r" }), copy = scene("copy", { hexRegions: "r", hexArtSource: "print" });
+  const extras = scene("extras", {}), all = [print, copy, extras];
+  const saved = globalThis.game;
+  globalThis.game = { scenes: { get: (id) => all.find((s) => s.id === id), filter: (fn) => all.filter(fn) } };
+  try {
+    assert.equal(scanSceneFor(extras), print);
+    assert.equal(scanSceneFor(copy), copy, "a scanned copy answers for itself");
+  } finally { globalThis.game = saved; }
 });

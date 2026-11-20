@@ -99,6 +99,9 @@ test("a painted scene finds the one tagged print with its numbering bounds and g
   const a = print(), p = painted();
   assert.equal(printFor(p, [a, p, print({ grid: { type: 5 } })]), a);
   assert.equal(printFor(p, [a, print()]), null, "two prints fit: it cannot pick");
+  const drawn = structuredClone(a);
+  drawn.flags[MOD].hexArtSource = "print";
+  assert.equal(printFor(p, [a, drawn]), a, "a drawn or baked copy of the print is not a second print");
   assert.equal(printFor(p, [p]), null, "no print");
   assert.equal(printFor(painted({ ...bounds, cols: 40 }), [a]), null, "another map's size");
   assert.equal(printFor(painted({ ...bounds, flipX: true }), [a]), null, "mirrored numbering is not the print's");

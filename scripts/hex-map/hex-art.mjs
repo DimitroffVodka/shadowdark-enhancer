@@ -68,8 +68,8 @@ export const extrasPainted = tile => !!tile?.flags?.["shadowdark-extras"]?.paint
 
 export { SOURCE_FLAG };
 /** The print's flags a drawn copy starts with: its tags, regions and keyed art by hex number, and which print it is
- *  (hexMapId), so its keyed pages and book are the print's. */
-const COPIED_FLAGS = [TAGS_FLAG, "hexRegions", ART_FLAG, "hexMapId"];
+ *  (hexMapId), so its keyed pages and book are the print's, and whether the module's fog runs on it (hexFog). */
+const COPIED_FLAGS = [TAGS_FLAG, "hexRegions", ART_FLAG, "hexMapId", "hexFog"];
 
 /** A fresh look (SEED_FLAG): any number but 0, which is the look of a map that never had one. */
 const freshSeed = () => 1 + Math.floor(Math.random() * 0x7ffffffe);
@@ -92,7 +92,9 @@ export async function buildDrawnMap(print) {
   const root = game.scenes.get(flagsOf(print)[SOURCE_FLAG]) ?? print;
   const data = root.toObject();
   const own = data.flags?.[MODULE_ID] ?? {};
-  const flags = { [MODULE_ID]: { ...Object.fromEntries(COPIED_FLAGS.filter(k => k in own).map(k => [k, own[k]])),
+  // Every other package's flags stay (core's legacyHex sizes the grid); Extras' would make the copy a painted map.
+  const { "shadowdark-extras": _extras, ...others } = data.flags ?? {};
+  const flags = { ...others, [MODULE_ID]: { ...Object.fromEntries(COPIED_FLAGS.filter(k => k in own).map(k => [k, own[k]])),
     [DRAW_FLAG]: true, [SOURCE_FLAG]: root.id, [SEED_FLAG]: freshSeed() } };
   const n = sharingTags(root).length;
   for (const key of ["_id", "active", "thumb", "tokens", "tiles", "sort", "folder"]) delete data[key];
@@ -125,14 +127,35 @@ export async function newLook(scene = canvas?.scene) {
   await scene.setFlag(MODULE_ID, SEED_FLAG, freshSeed());
 }
 
-/** Write a scene's tags onto its print and the print's other drawn copies, where they differ (active GM). */
-async function shareTags(scene) {
-  const tags = flagsOf(scene)[TAGS_FLAG], text = JSON.stringify(tags ?? null);
-  for (const other of sharingTags(scene)) {
-    if (other === scene || JSON.stringify(flagsOf(other)[TAGS_FLAG] ?? null) === text) continue;
-    try { await replaceModuleFlag(other, TAGS_FLAG, tags); }
-    catch (error) { console.error(`${MODULE_ID} | sharing hex tags with ${other.name}`, error); }
-  }
+/** Marks the writes shareTags makes, so their echo is never shared again (it would put older tags back). */
+const SHARE_OPTION = "sdeHexTagShare";
+/** What a print and its drawn and baked copies keep the same: the tags, the region scan and its fixes, keyed art. */
+const SHARED_FLAGS = [TAGS_FLAG, "hexRegions", ART_FLAG];
+/** One share at a time per print: the later edit's flags are read when its turn comes, so they land last. */
+const shares = new Map();
+
+/**
+ * Write the shared flags an update of `scene` touched onto its print and the print's other copies, where they differ
+ * (active GM). Only those: an edit of another flag on another copy meanwhile is not put back.
+ */
+function shareTags(scene, keys) {
+  const root = sharingTags(scene)[0]?.id;
+  const run = (shares.get(root) ?? Promise.resolve()).then(async () => {
+    const own = flagsOf(scene);
+    for (const other of sharingTags(scene)) {
+      if (other === scene) continue;
+      const theirs = flagsOf(other), update = {};
+      for (const key of keys) {
+        if (JSON.stringify(own[key] ?? null) === JSON.stringify(theirs[key] ?? null)) continue;
+        update[`flags.${MODULE_ID}.${key}`] = own[key] === undefined ? _del : _replace(own[key]);
+      }
+      if (!Object.keys(update).length) continue;
+      try { await other.update(update, { [SHARE_OPTION]: true }); }
+      catch (error) { console.error(`${MODULE_ID} | sharing hex tags with ${other.name}`, error); }
+    }
+  });
+  shares.set(root, run);
+  run.finally(() => { if (shares.get(root) === run) shares.delete(root); });
 }
 
 /** Every grid cell of the scene and its centre. */
@@ -215,7 +238,7 @@ function managerClass() {
       this.registerHook("canvasPan", () => this.#schedule());
       this.registerHook("updateScene", (scene, changed) => {
         const touched = changed.flags?.[MODULE_ID];
-        const keys = [TAGS_FLAG, ART_FLAG, `-=${ART_FLAG}`, PICK_FLAG, `-=${PICK_FLAG}`, SEED_FLAG];
+        const keys = [TAGS_FLAG, ART_FLAG, PICK_FLAG, SEED_FLAG]; // v14 deletes under the plain key (_del)
         if (scene !== this.scene || !touched || !keys.some(key => key in touched)) return;
         this.#retag();
       });
@@ -249,7 +272,8 @@ function managerClass() {
       for (const key of changedChunks(before, this.#hexes, this.#gridSize, CHUNK)) {
         if (this.#chunks.has(key)) this.#dirty.add(key);
       }
-      this.#refog();
+      // A hex just tagged or given art was not found by the party: no announcement.
+      this.#refog({ announce: false });
       this.stats.retaggedAt = performance.now();
       this.#update();
     }
@@ -259,7 +283,7 @@ function managerClass() {
      * discloses the hex's locations, the GM always, faded where the players can't. Re-renders the chunks under each
      * hex whose answer changed, and announces a find.
      */
-    #refog() {
+    #refog({ announce = true } = {}) {
       const scene = this.scene;
       // Not owned, or the GM switched the veil off for map review: nothing is hidden.
       const veiled = ownsHexFog(scene) && !(game.user.isGM && fogHiddenOn());
@@ -281,7 +305,7 @@ function managerClass() {
         for (const key of chunksOver(tileRect(hex, this.#gridSize), CHUNK)) if (this.#chunks.has(key)) this.#dirty.add(key);
       }
       this.#shown = shown;
-      this.#known = announceFinds(scene, this.#known, seenNow);
+      this.#known = announce ? announceFinds(scene, this.#known, seenNow) : new Set(seenNow.keys());
     }
 
     #schedule() {
@@ -330,11 +354,13 @@ function managerClass() {
         for (const key of this.#queue) for (const src of this.#sources(this.#index.get(key) ?? [])) this.#tile(src);
         let frame = performance.now();
         while (this.#queue.length && !this.#gone) {
-          const key = this.#queue.shift(), res = this.#res;
-          const nums = this.#index.get(key);
+          const key = this.#queue.shift(), res = this.#res, index = this.#index;
+          const nums = index.get(key);
           if (!nums) { const old = this.#chunks.get(key); if (old) this.#drop(key, old); continue; }
           const tiles = new Map(await Promise.all([...this.#sources(nums)].map(async src => [src, await this.#tile(src)])));
           if (this.#gone) return;
+          // Retagged while its pictures loaded: its hexes (and pictures) may have changed, so take it again.
+          if (this.#index !== index) { this.#queue.unshift(key); continue; }
           this.#place(key, this.#render(key, res, nums, tiles), res);
           if (performance.now() - frame > FRAME_BUDGET) { await nextFrame(); frame = performance.now(); }
         }
@@ -426,9 +452,10 @@ export async function setHexArtDrawn(on, scene = canvas?.scene) {
 export function registerHexArt() {
   Hooks.once("setup", () => game.scenes.forEach(claim));
   Hooks.on("createScene", claim);
-  Hooks.on("updateScene", (scene, changed) => {
+  Hooks.on("updateScene", (scene, changed, options) => {
     const touched = changed.flags?.[MODULE_ID] ?? {};
-    if (TAGS_FLAG in touched && game.users.activeGM?.isSelf) shareTags(scene);
+    const shared = SHARED_FLAGS.filter(key => key in touched);
+    if (shared.length && !options?.[SHARE_OPTION] && game.users.activeGM?.isSelf) shareTags(scene, shared);
     if (!(DRAW_FLAG in touched)) return;
     const held = managedHere(scene);
     claim(scene);

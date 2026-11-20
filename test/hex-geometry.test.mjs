@@ -222,6 +222,8 @@ test("extrasOrigin numbers a scene Extras built the way Extras does: its first h
     assert.equal(cellNumber(foundryOffsetToCube({ i: 5, j: 0 }, false), origin).num, null, "past the last row");
   }
   assert.equal(extrasOrigin({ cols: 6, rows: 5, flipX: true }), null);
+  assert.equal(extrasOrigin({ cols: 6, rows: 5, topRows: 1 }), null, "a frame row on top puts the first hex a row down");
+  assert.ok(extrasOrigin({ cols: 6, rows: 5, topRows: 0 }));
   assert.equal(extrasOrigin({ rows: 5 }), null);
   assert.deepEqual(extrasOrigin({ cols: 6, rows: 5, origin: 1, firstRow: 2, rowsLowered: 4 }).bounds, { cols: 6, rows: 5, base: { col: 1, row: 1 }, rowsLowered: 4, firstRow: 1 });
 });

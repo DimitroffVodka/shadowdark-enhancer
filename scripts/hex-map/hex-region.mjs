@@ -395,6 +395,7 @@ export function scanSceneFor(scene) {
   const scanned = (s) => !!s?.getFlag?.(MODULE_ID, REGIONS_FLAG);
   const own = typeof scene === "string" ? scenes?.get?.(scene) : scene;
   if (scanned(own)) return own;
-  const all = scenes?.filter?.(scanned) ?? [];
+  // A drawn or baked copy (hexArtSource) carries its print's scan but is not a second scanned print.
+  const all = scenes?.filter?.((s) => scanned(s) && !s.getFlag?.(MODULE_ID, "hexArtSource")) ?? [];
   return all.length === 1 ? all[0] : null;
 }

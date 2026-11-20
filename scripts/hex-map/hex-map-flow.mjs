@@ -431,7 +431,8 @@ export async function hexMapFromFile(files, { name, mapId = "", firstNum = "0000
   let file = list[0];
   if (!file) return { status: "failed" };
   name ||= file.name.replace(/\.[^.]+$/, "");
-  const have = mapId && game.scenes.find((s) => s.getFlag(MODULE_ID, HEXMAP_FLAG) === mapId);
+  // A drawn or baked copy carries its print's hexMapId (hex-art.mjs) but is not the print.
+  const have = mapId && game.scenes.find((s) => s.getFlag(MODULE_ID, HEXMAP_FLAG) === mapId && !s.getFlag(MODULE_ID, "hexArtSource"));
   if (have) return { status: "already", scene: have };
   const joined = hexPrint(mapId)?.join;
   if (joined) {

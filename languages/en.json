@@ -232,7 +232,6 @@
   "SDE.hexExplorer.tile.keyed": "This hex wears its own art, as a keyed location or a settlement. Change that with the Tagger's tile art.",
   "SDE.hexExplorer.tile.another": "Another tile",
   "SDE.hexExplorer.tile.choose": "Choose tile",
-  "SDE.hexExplorer.tile.tilesOf": "Tiles for",
   "SDE.hexExplorer.tile.none": "This terrain has no tiles.",
   "SDE.hexExplorer.tile.failed": "The tile could not be changed: {error}",
   "SDE.hexExplorer.bake.button": "Bake map",
@@ -7127,5 +7126,7 @@
   "SDE.hexExplorer.export.button": "Export image",
   "SDE.hexExplorer.export.progress": "Drawing {source} as one picture.",
   "SDE.hexExplorer.export.done": "Saved {file}.",
-  "SDE.hexExplorer.export.failed": "The map could not be exported: {error}"
+  "SDE.hexExplorer.export.failed": "The map could not be exported: {error}",
+  "SDE.hexExplorer.bake.missing": "{count} hex pictures would not load ({files}), so nothing was made.",
+  "SDE.hexExplorer.bake.leftover": "The pieces it already wrote are in {path}; you can delete that folder."
 }

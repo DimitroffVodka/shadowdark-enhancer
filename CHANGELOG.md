@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### Added
+
+- **The Enhancer draws hex maps itself.** Tag a map's hexes with terrain in the Hex Tagger and the map wears a picture per hex, straight from the tags, with no Tiles and no other module. Retag a hex and its picture changes at once. Keyed locations show their own art once the fog discloses them.
+- **Drawn versions of one map.** Build drawn map, on the Tagger's Finish card, makes a new scene from a tagged map. Each version deals different pictures of the same terrains, and New look deals them again. The versions keep their tags, region fixes and keyed art in step with the original, both ways.
+- **Bake and Export in Hex Data.** Bake puts a drawn map into a new scene that plays without being drawn live. Export saves the whole map as one picture.
+- **A map Shadowdark Extras painted can be drawn by the Enhancer** from Hex Data, and switched back.
+- **More hex art**: islands, mushroom forests, ice and onyx spike hills, rocky bases and sea spires from Spectralicy's 2MT New Hex Tiles. Credits for every tile are in CREDITS.md.
+
+### Removed
+
+- **Send to Extras.** The Importer Hub and the Hex Tagger no longer hand a map to Shadowdark Extras to paint; the Enhancer draws it. Maps Extras already painted keep working. The API's `hexMaps.handoff`, `hexMaps.importDetails` and `hexMaps.buildDataset` are gone, so the API version is now 2.0.0.
+
 ## [0.23.2] — 2026-11-14
 
 ### Fixed

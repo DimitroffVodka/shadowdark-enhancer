@@ -104,6 +104,7 @@ test("piecesOf: ground north to south, a shown keyed picture straight over its g
   // The GM before the players find it: faded.
   assert.deepEqual(order(new Map([["1", 0.5]])), ["a.webp", "k.webp@0.5", "b.webp", "beach.webp", "river.webp"]);
   assert.equal(piecesOf(["2"], hexes)[2].mirror, true);
+  assert.deepEqual(piecesOf(["gone", "2"], hexes).map((p) => p.src), ["b.webp", "beach.webp", "river.webp"], "a hex erased since the list was taken is skipped");
 });
 
 test("chunks: a rectangle lands in every chunk it touches, and an edge belongs to the next chunk only past it", () => {

@@ -199,7 +199,7 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.tileTarget = { drawn: true, num: record.num, src: ground.src, pool: ground.pool };
     return {
       tileSection: true, tileKeyed: false, tileNote: t("SDE.hexExplorer.tile.drawn"),
-      tilePickerOpen: !!this.tilePick, tileChoices: this.tilePick ? tileChoices(ground.pool, ground.src) : [], tileTerrains: [],
+      tilePickerOpen: !!this.tilePick, tileChoices: this.tilePick ? tileChoices(ground.pool, ground.src) : [],
     };
   }
   /**
@@ -212,7 +212,7 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!game.user?.isGM || !drawsHexArt(source)) return;
     if (!canvas?.app?.renderer) { ui.notifications.warn(t("SDE.hexExplorer.bake.noCanvas")); return; }
     const esc = foundry.utils.escapeHTML;
-    const previous = previousBake(source, bakedCopies(game.scenes, sharingTags(source)[0].id), game.scenes.active);
+    const previous = previousBake(bakedCopies(game.scenes, sharingTags(source)[0]), game.scenes.active);
     const signs = playSigns(previous, scene => { try { return Object.keys(recordJournal(scene)?.flags?.[MODULE_ID]?.hexRecords?.cells ?? {}).length; } catch { return 0; } });
     const warning = signs ? `<p class="ui-note warn">${esc(game.i18n.format("SDE.hexExplorer.bake.played", { scene: previous.name, recorded: signs.recorded, tokens: signs.tokens }))}</p>` : "";
     const go = await foundry.applications.api.DialogV2.confirm({
@@ -229,7 +229,8 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       scene = await bakeDrawnMap(source, { progress: (done, total) => note.update({ pct: done / total, message: game.i18n.format("SDE.hexExplorer.bake.progress", { source: source.name, done, total }) }) });
     } catch (error) {
       console.error(`${MODULE_ID} | Hex Data bake`, error);
-      ui.notifications.error(game.i18n.format("SDE.hexExplorer.bake.failed", { error: error.message }));
+      const left = error.bakePath ? ` ${game.i18n.format("SDE.hexExplorer.bake.leftover", { path: error.bakePath })}` : "";
+      ui.notifications.error(`${game.i18n.format("SDE.hexExplorer.bake.failed", { error: error.message })}${left}`, { permanent: !!left });
       return;
     } finally {
       if (ui.notifications.has(note)) ui.notifications.remove(note);
@@ -399,10 +400,7 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const select = this.element.querySelector(`select[name="${name}"]`), other = this.element.querySelector(`[name="${otherName}"]`);
       select?.addEventListener("change", () => { other.hidden = select.value !== OTHER; if (!other.hidden) other.focus(); });
     }
-    // The picker lists one terrain's tiles at a time; choosing another terrain here shows its tiles for this hex.
     this._wireTileZoom();
-    const tileTerrain = this.element.querySelector('select[name="tileTerrain"]');
-    tileTerrain?.addEventListener("change", () => { this._capture(); this.tilePick = { terrain: tileTerrain.value }; this.render(); });
     const zone = (selector, onDrop) => {
       const el = this.element.querySelector(selector);
       if (!el) return;

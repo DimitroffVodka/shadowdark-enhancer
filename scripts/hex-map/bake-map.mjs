@@ -10,28 +10,30 @@
 
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { SOURCE_FLAG } from "./tile-sets.mjs";
+import { EXTRAS_ID } from "./extras-records.mjs";
 
 /**
- * The Enhancer's baked scenes of a map: those holding a pyramid, made from a scene of the same print.
+ * The baked scenes of a map: the Enhancer's (a pyramid, made from a scene of the same print) and, when the print is a
+ * map Shadowdark Extras painted, Extras' own bakes of it (a pyramid on the same published grid).
  * @param {Iterable<object>} scenes
- * @param {string} rootId  the print's scene id (hex-art.mjs sharingTags)
+ * @param {object} root  the print's scene (hex-art.mjs sharingTags)
  */
-export function bakedCopies(scenes, rootId) {
+export function bakedCopies(scenes, root) {
+  const grid = root?.flags?.[EXTRAS_ID]?.hexcrawl?.grid;
+  const sameGrid = (g) => !!grid && !!g && g.cols === grid.cols && g.rows === grid.rows && (g.origin ?? 1) === (grid.origin ?? 1);
   return [...(scenes ?? [])].filter((scene) => {
-    const own = scene.flags?.[MODULE_ID];
-    return !!own?.bakedPyramid && own[SOURCE_FLAG] === rootId;
+    if (scene === root) return false;
+    const own = scene.flags?.[MODULE_ID], extras = scene.flags?.[EXTRAS_ID];
+    return (!!own?.bakedPyramid && own[SOURCE_FLAG] === root?.id) || (!!extras?.bakedPyramid && sameGrid(extras.hexcrawl?.grid));
   });
 }
 
 /**
- * The baked scene a new bake would stand in for: the one the window is on when it is a bake, else the active one
- * when it is, else the newest of the rest.
- * @param {object} scene   the window's scene
+ * The baked scene a new bake would stand in for: the active one when it is one of them, else the newest.
  * @param {object[]} copies  bakedCopies()
  * @param {object|null} active  game.scenes.active
  */
-export function previousBake(scene, copies, active) {
-  if (copies.some((c) => c.id === scene?.id)) return scene;
+export function previousBake(copies, active) {
   if (active && copies.some((c) => c.id === active.id)) return active;
   return [...copies].sort((a, b) => (b._stats?.modifiedTime ?? 0) - (a._stats?.modifiedTime ?? 0))[0] ?? null;
 }

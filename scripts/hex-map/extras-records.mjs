@@ -9,8 +9,7 @@
  * async and GM-only. hex-adoption reads raw persisted flags once (also with SDX off). With nothing recorded
  * for the scene it finds nothing. Nothing here writes.
  *
- * `extrasHexApi`, `paintedScenesFor` — the painted maps Extras built, for the Hex Data window's tile and
- * bake tools on a map Extras still draws (hex-tile-chooser.mjs).
+ * `paintedScenesFor` — the painted maps Extras built, where Hex Data reads which picture Extras gave a hex.
  *
  * `pinNumber` — native. Which hex a map Note pins, whether the Enhancer or Extras' builder placed it: the
  * hover card, Hex Data and the Quest Log's Jump to pin read it.
@@ -47,12 +46,6 @@ export function extrasRecordsByOffset(sceneId) {
   const stored = globalThis.game?.journal?.getName?.(EXTRAS_HEX_JOURNAL)?.flags?.[EXTRAS_ID]?.hexData?.[sceneId];
   const rows = Object.entries(stored ?? {}).filter(([, record]) => record && typeof record === "object");
   return rows.length ? new Map(rows) : null;
-}
-
-/** Extras' hex API when it mounts the agreed namespace (shadowdark-extras#141), else null. */
-export function extrasHexApi() {
-  const api = globalThis.game?.shadowdarkExtras?.hex;
-  return typeof api?.buildHexcrawl === "function" ? api : null;
 }
 
 /**

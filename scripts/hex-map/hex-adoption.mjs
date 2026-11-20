@@ -140,7 +140,8 @@ export function printFor(painted, scenes) {
   const extras = painted?.flags?.[EXTRAS_ID], layout = extras?.hexcrawl?.grid;
   if (extras?.hexScene !== true || !layout || layout.flipX || layout.flipY || layout.landscape) return null;
   const origin = layout.origin ?? 1;
-  const fits = scenes.filter(s => s !== painted && s.flags?.[EXTRAS_ID]?.hexScene !== true && s.grid?.type === painted.grid?.type
+  // A drawn or baked copy (hexArtSource) carries its print's tags but is not a second print.
+  const fits = scenes.filter(s => s !== painted && s.flags?.[EXTRAS_ID]?.hexScene !== true && !s.flags?.[MODULE_ID]?.hexArtSource && s.grid?.type === painted.grid?.type
     && LAYOUT_KEYS.every(k => s.flags?.[MODULE_ID]?.hexTags?.origin?.bounds && (s.flags[MODULE_ID].hexTags.origin.bounds[k] ?? null) === (layout[k] ?? null))
     // The dataset leaves firstRow out when it equals the origin, and so does Extras' layout: absent means the origin, not null.
     && (s.flags[MODULE_ID].hexTags.origin.bounds.firstRow ?? origin) === (layout.firstRow ?? origin)

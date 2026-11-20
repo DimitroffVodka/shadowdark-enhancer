@@ -166,7 +166,7 @@ const STYLESHEET_REV = "2fdaf5c514f4";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "0718d906081b";
+const BUILD_REV = "04d521028670";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -575,7 +575,9 @@ Hooks.once("init", () => {
     // 1.34.0 — additive: overland.setAutoTravel, the standing automatic journey; the travel state gains auto.
     // 1.35.0 — additive: the automatic journey's saved destination (overland.autoGoal) and Travel > Resume auto.
     // 1.36.0 — additive: overland.travelBlocked, why the party cannot enter a destination today.
-    apiVersion: "1.36.0",
+    // 2.0.0 — breaking: hexMaps.handoff, importDetails and buildDataset removed (no Extras hand-off); additive:
+    //          hexMaps.drawArt, buildDrawn and newLook (the Enhancer draws hex maps itself).
+    apiVersion: "2.0.0",
     // The one travel state per world (scripts/overland/overland.mjs): a copy
     // with hexes left, climate, storm, harshness and night derived; whether
     // travel is on; today's weather roll, the travel day's start, Continue

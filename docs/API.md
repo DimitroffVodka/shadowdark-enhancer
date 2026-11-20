@@ -18,13 +18,13 @@ and Forge & Loot features.
 [`actors`](#actors--western-reaches-boats) · [`bastion`](#bastion--bastions) · [`traps`](#traps--trap-regions) ·
 [`statDamage`](#statdamage--tracked-ability-damage) · [`quests`](#quests--the-quest-log) ·
 [`dying`](#dying--death-timers-and-stabilizing) · [`tempHp`](#temphp--temporary-hit-points) ·
-[`hexMaps`](#hexmaps--hex-map-tagging-and-the-extras-dataset) ·
+[`hexMaps`](#hexmaps--hex-map-tagging-and-drawing) ·
 [`rules`](#rules--western-reaches-rules-data) ·
 [`holidays`](#holidays--when-a-holiday-falls-and-what-it-does-to-carousing) ·
 [`time`](#time--season-day-and-night-sun-moon-and-anchors) ·
 [`overland`](#overland--the-travel-state)
 
-**API version:** `1.36.0` (semver — additive changes bump the minor version,
+**API version:** `2.0.0` (semver — additive changes bump the minor version,
 breaking changes the major; check `apiVersion` before relying on newer keys).
 
 ## Discovery
@@ -370,7 +370,7 @@ it too. Resolves to the `RollTable` document, or `null` when nothing answers.
   record's (`[{ type: "coast", ... }]`). Only `coast` counts: in a region whose
   imported grid prints a Coast column, a coastal hex rolls on it.
 - `zone` is the region name. Left out, it comes from the print's region scan
-  by `num`, as the map overlay and the Extras hand-off read it.
+  by `num`, as the map overlay reads it.
 - `num`, the published hex number, also places the hex in the northern or
   southern half of its region's rows, for grids printed as `N. Ocean` /
   `S. Ocean`. Without it that split cannot be decided.
@@ -1441,7 +1441,7 @@ it never substitutes a sentence of its own and presents it as the book's.
 
 ---
 
-## `hexMaps` — hex map tagging and the Extras dataset
+## `hexMaps` — hex map tagging and drawing
 
 Added in 1.5.0. Nothing from a published map ships with the module; every call
 works on the GM's own scene image and book text.
@@ -1452,9 +1452,9 @@ works on the GM's own scene image and book text.
 | `hexMaps.hasNumbering(scene?)` | any | Since 1.26.0. Whether the scene carries a numbering at all, which is what tells `numberAt`'s `null` for "off the map" from "never numbered". |
 | `hexMaps.fillKeyedGround(scene, { dryRun? })` | GM | Since 1.31.0. Puts one plain terrain Tile under each keyed hex of a painted map that has none, wearing the picture its nearest same-terrain neighbour wears, so a baked map has no hole where a hidden location stands. Creates only; each Tile carries a `keyedGround` flag. `dryRun` plans and writes nothing. The ground under a keyed hex is its row in the scene's own book only (never merged across books, which all number their hexes from 0001); a scene no print claims, or whose book has no crawl imported, infers it from the majority terrain of the hex's neighbours. A Tile already laid by an earlier fill is never changed: to correct one, run `removeKeyedGround` and fill again. Returns `{ keyed, planned, skipped, byTerrain, unfilled, book, created? }`; `book` is the book folder the ground was read from, `null` when none. |
 | `hexMaps.removeKeyedGround(scene)` | GM | Since 1.31.0. Deletes exactly the Tiles `fillKeyedGround` made on the scene, found by that flag. Returns `{ removed }`. |
-| `hexMaps.drawArt(on, scene?)` | GM | Experimental, on the `experimental/hex-painting` branch only. Switches the drawn hex map on or off for a scene (default: the viewed one) by writing the `hexArtDraw` flag. When on, every tagged hex wears its terrain's picture from `assets/hexes/`, drawn from the tag store with no Tile documents, and redraws as its tags change. A baked map is never drawn over; on a map Shadowdark Extras painted, Extras' Tiles are hidden on each client while it is on. |
-| `hexMaps.buildDrawn(scene?)` | GM | Experimental, `experimental/hex-painting` only. Makes a new scene drawn from a tagged scene's tags (default: the viewed one): the same grid, picture and pins, its own look, and the tags shared with the print both ways. Returns the new Scene, or null without a tag anchor. |
-| `hexMaps.newLook(scene?)` | GM | Experimental, `experimental/hex-painting` only. Deals a drawn scene's pictures again (a new `hexArtSeed`); per-hex picks stay. |
+| `hexMaps.drawArt(on, scene?)` | GM | Since 2.0.0. Switches the drawn hex map on or off for a scene (default: the viewed one) by writing the `hexArtDraw` flag. When on, every tagged hex wears its terrain's picture from `assets/hexes/`, drawn from the tag store with no Tile documents, and redraws as its tags change. A baked map is never drawn over; on a map Shadowdark Extras painted, Extras' Tiles are hidden on each client while it is on. |
+| `hexMaps.buildDrawn(scene?)` | GM | Since 2.0.0. Makes a new scene drawn from a tagged scene's tags (default: the viewed one): the same grid, picture and pins, its own look, and the tags, the region scan and keyed art shared with the print both ways. Returns the new Scene, or null without a tag anchor. |
+| `hexMaps.newLook(scene?)` | GM | Since 2.0.0. Deals a drawn scene's pictures again (a new `hexArtSeed`); per-hex picks stay. |
 | `hexMaps.openTagger({ legend, review })` | GM | Open the Hex Tagger on the active hex scene (see the wiki page *Hex Maps*). `legend: true` reads the map and opens the Legend at once; `review: true` reads it and shows the most-likely-wrong sheet. Both default to false. Lazy. |
 | `hexMaps.buildKeyIndex(src)` | GM | Builds or refreshes the master Key Locations journal of an already-imported book (`"GMWR"`, `"CS1"`…) from the region entries filed in the Journals pack: a page per region, a row per keyed hex with a go-to link. Reads no PDF and changes no write-up page. Resolves `{ uuid, regions, rows }`, `uuid: null` when the book has no regions filed. |
 | `hexMaps.regions()` | any | Every numbered hex's region on the active scene, as a `Map` of hex number to region name: the scan's enclosures named from the keyed rows of the scene's own book. Empty for a scene no print claims (no `hexMapId`, no tagged Western Reaches bounds) and for a book whose key locations are not imported. |
@@ -1462,8 +1462,8 @@ works on the GM's own scene image and book text.
 | `hexMaps.goto(num, src?)` | any | Pans the viewed scene to a published hex number, as a hex link in the master journal does; falls back to that number's map pin on any scene. `src` skips a scene that belongs to a different book. Resolves whether the view moved. |
 | `hexMaps.compare(csvText, { sources })` | GM + `hexMapsDevTools` | Score the active scene's tags against a truth CSV (`hex_id` plus `tags` or `terrain_tags`); returns terrain accuracy and river/path precision and recall. Dev check, ships no data. |
 
-The dataset carries published hex numbers only (`num`, column-major: 1403 is
-column 14, row 03); never a column and row pair.
+Hex numbers are published numbers only (`num`, column-major: 1403 is column 14,
+row 03); never a column and row pair.
 
 ---
 
@@ -2514,6 +2514,7 @@ scene's choice changes, and once on load.
   `overland.setPace`; `overland.startDay` reads the method and the pace when they're left out.
   `overland.makeCamp` makes the camp before the night (with Shadowdark Extras' `deferRest` and
   `camping.dawn`) and needs an open travel day, and the state gains `camp` and the held encounter `interrupts`.
+- `2.0.0` removes `hexMaps.handoff`, `hexMaps.importDetails` and `hexMaps.buildDataset`: the Enhancer draws hex maps itself and no longer hands a dataset to Shadowdark Extras. It adds `hexMaps.drawArt`, `hexMaps.buildDrawn` and `hexMaps.newLook`.
 - `1.36.0` adds `overland.travelBlocked({ i, j })`, why the party cannot enter a destination today (`"storm"`, `"weather"`, `"terrain"` or `null`); the automatic journey's day-walking. `"storm"` and `"weather"` are worth retrying at dawn; `"terrain"` is checked first, is permanent and stops the journey.
 - `1.35.0` remembers the automatic journey's destination as `autoGoal` and adds `overland.setAutoGoal` / `overland.resumeAutoTravel`, so a stop at a keyed location or another interruption can be picked up with Travel > Resume auto.
 - `1.34.0` adds `overland.setAutoTravel`, the standing automatic-journey switch; the travel state gains `auto`.

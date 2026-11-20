@@ -193,12 +193,13 @@ export function extrasNumbersAlike(origin, base) {
  * The tag anchor (flags.shadowdark-enhancer.hexTags.origin) for a scene Shadowdark Extras built, read from its layout:
  * Extras puts its first hex at Foundry offset {0, 0} of a HEXODDQ grid, numbered from `origin` (0000 or 0101). The
  * lowered columns are whichever parity makes the Enhancer number every cell as Extras does (extrasNumbersAlike).
- * Null for a layout it can't number the same way: flipped, landscape, or without a size.
+ * Null for a layout it can't number the same way: flipped, landscape, with a frame row on top (topRows: its first
+ * hex sits a row down, which extrasNumbersAlike does not model), or without a size.
  * @param {{cols:number, rows:number, origin?:0|1, firstRow?:number, rowsLowered?:number}} layout  Extras' hexcrawl grid
  * @returns {object|null}
  */
 export function extrasOrigin(layout) {
-  if (!(layout?.cols > 0) || !(layout?.rows > 0) || layout.flipX || layout.flipY || layout.landscape) return null;
+  if (!(layout?.cols > 0) || !(layout?.rows > 0) || layout.flipX || layout.flipY || layout.landscape || layout.topRows) return null;
   const base = layout.origin ?? 1, { q, r } = foundryOffsetToCube({ i: 0, j: 0 }, false);
   const bounds = { cols: layout.cols, rows: layout.rows };
   if (base) bounds.base = { col: base, row: base };

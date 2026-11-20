@@ -7,18 +7,26 @@ const bake = (id, root = "print", modified = 0) => ({ id, name: id, _stats: { mo
 const painted = (id) => ({ id, name: "Western Reaches", flags: { [SDE]: { hexArtSource: "print" } } });
 
 test("a map's baked scenes are the Enhancer's bakes made from a scene of its print", () => {
+  const print = { id: "print", flags: {} };
   const extras = { id: "x", flags: { "shadowdark-extras": { bakedPyramid: {} } } };
   const scenes = [bake("a"), bake("other", "elsewhere"), painted("source"), extras];
-  assert.deepEqual(bakedCopies(scenes, "print").map((s) => s.id), ["a"]);
-  assert.deepEqual(bakedCopies(null, "print"), []);
+  assert.deepEqual(bakedCopies(scenes, print).map((s) => s.id), ["a"]);
+  assert.deepEqual(bakedCopies(null, print), []);
 });
 
-test("the bake a new one stands in for: this window's, else the active one, else the newest", () => {
+test("a print Extras painted also counts the scenes Extras baked of it, on the same published grid", () => {
+  const grid = { cols: 64, rows: 75, origin: 0 };
+  const print = { id: "print", flags: { "shadowdark-extras": { hexScene: true, hexcrawl: { grid } } } };
+  const extrasBake = (id, g) => ({ id, flags: { "shadowdark-extras": { bakedPyramid: {}, hexcrawl: { grid: g } } } });
+  const scenes = [print, bake("a"), extrasBake("same", { ...grid }), extrasBake("other", { ...grid, cols: 40 })];
+  assert.deepEqual(bakedCopies(scenes, print).map((s) => s.id), ["a", "same"]);
+});
+
+test("the bake a new one stands in for: the active one, else the newest", () => {
   const a = bake("a", "print", 10), b = bake("b", "print", 20), copies = [a, b];
-  assert.equal(previousBake(a, copies, b), a, "the window is on a bake");
-  assert.equal(previousBake(painted("source"), copies, a), a, "the active scene is a bake");
-  assert.equal(previousBake(painted("source"), copies, painted("elsewhere")), b, "else the newest");
-  assert.equal(previousBake(painted("source"), [], null), null);
+  assert.equal(previousBake(copies, a), a, "the active scene is a bake");
+  assert.equal(previousBake(copies, painted("elsewhere")), b, "else the newest");
+  assert.equal(previousBake([], null), null);
 });
 
 test("play on the scene being replaced is reported, and nothing is reported when there is none", () => {

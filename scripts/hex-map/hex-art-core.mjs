@@ -122,6 +122,7 @@ export function piecesOf(nums, hexes, shown = new Map()) {
   const pieces = [], covered = new Set();
   for (const num of nums) {
     const hex = hexes.get(num);
+    if (!hex) continue; // erased since the chunk's list was taken
     if (hex.src) pieces.push({ hex, src: hex.src, rotation: 0, mirror: false, alpha: 1 });
     const alpha = hex.keyed ? (shown.get(num) ?? 0) : 0;
     if (alpha > 0) {
@@ -133,7 +134,7 @@ export function piecesOf(nums, hexes, shown = new Map()) {
     for (const num of nums) {
       if (covered.has(num)) continue;
       const hex = hexes.get(num);
-      for (const o of hex.overlays) if (o.layer === layer) pieces.push({ hex, src: o.src, rotation: o.rotation, mirror: o.mirror, alpha: 1 });
+      for (const o of hex?.overlays ?? []) if (o.layer === layer) pieces.push({ hex, src: o.src, rotation: o.rotation, mirror: o.mirror, alpha: 1 });
     }
   }
   return pieces;

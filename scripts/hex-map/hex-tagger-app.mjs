@@ -9,9 +9,8 @@
  * the scene's grid parity. "Build drawn map" makes a new scene drawn from the
  * tags, sharing them with this one (hex-art.mjs, docs/plans/hex-painting.md).
  * Phase 4 adds the side doors (Import a CSV or JSON of tags, Export the tag
- * flag) and the hidden reference tile: the print placed on the painted scene,
- * automatically after an Extras hand-off (the builder's summary carries the
- * scene id) or by hand on any hex-columns scene (reference-tile.mjs). Phase 5
+ * flag) and the hidden reference tile: the print placed by hand on any
+ * hex-columns scene (reference-tile.mjs). Phase 5
  * adds the legend: every cell grouped by glyph (legend.mjs), one card per
  * group to name; the named groups' cores become the hand tags and the rest is
  * classified from them, so the first sheets of hand tagging go away.
@@ -40,7 +39,7 @@ import { L as t } from "../shared/i18n.mjs";
 /** Hex numbers as printed, the first ten and a count of the rest: "1000, 1101, … (+126)". */
 const listNums = (nums) => nums.slice(0, 10).map((n) => String(n).padStart(4, "0")).join(", ") + (nums.length > 10 ? `, … (+${nums.length - 10})` : "");
 import { artAssignments, ART_FLAG } from "./keyed-art.mjs";
-import { buildDrawnMap, newLook, drawsHexArt } from "./hex-art.mjs";
+import { buildDrawnMap, newLook, drawsHexArt, sharingTags } from "./hex-art.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -1838,7 +1837,8 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const ok = await foundry.applications.api.DialogV2.confirm({
       classes: ["sde-ui", "sde-dialog"],
       window: { title: t("SDE.hexMap.clear.title") },
-      content: `<p>${t("SDE.hexMap.clear.confirm", { scene: foundry.utils.escapeHTML(this._scene()?.name ?? "") })}</p>`,
+      // Tags are shared by a print and its drawn copies (hex-art.mjs), so clearing one clears them all: name each.
+      content: `<p>${t("SDE.hexMap.clear.confirm", { scene: sharingTags(this._scene()).map(s => foundry.utils.escapeHTML(s.name)).join(", ") })}</p>`,
       yes: { label: "SDE.hexMap.clear.yes", icon: "fa-solid fa-trash" },
       no: { label: "SDE.hexMap.clear.keep", icon: "fa-solid fa-xmark", default: true },
       rejectClose: false,
