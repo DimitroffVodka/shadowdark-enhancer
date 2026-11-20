@@ -4,7 +4,7 @@
  * Core's TokenRuler.refresh asks _getSegmentStyle / _getWaypointStyle / _getGridHighlightStyle /
  * _getWaypointLabelContext once per segment, waypoint, label and grid square, on every drag step and
  * animation frame. Reading settings and walking the party rosters in each of those calls made the ruler
- * 10-15x slower than core's and dropped FPS while dragging or moving a token in a crawl or combat.
+ * 9-15x slower than core's and dropped FPS while dragging or moving a token in a crawl or combat.
  */
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -84,4 +84,21 @@ test("an untracked token keeps core's styles", () => {
   ruler.refresh({ waypoints: wps });
   assert.equal(ruler._getSegmentStyle(wps[2]).color, undefined);
   assert.equal(ruler._getWaypointLabelContext(wps[2], {}).label, "");
+});
+
+test("each refresh re-reads the state: a cache kept for the ruler's lifetime would go stale", () => {
+  const flag = { moveRemaining: 10 };
+  const ruler = new Ruler({ document: { actorId: "pc", getFlag: (scope, key) => (scope === MODULE_ID ? flag[key] : undefined) }, actor: { system: {} } });
+  const wps = path(4);
+  CrawlState._state = normalizeCrawlState({ ...defaultCrawlState(), mode: "crawl", members: ["pc"] });
+  ruler.refresh({ waypoints: wps });
+  assert.equal(ruler._getSegmentStyle(wps[3]).color, 0xcc2200);
+
+  flag.moveRemaining = 20;  // the move was refunded
+  ruler.refresh({ waypoints: wps });
+  assert.equal(ruler._getSegmentStyle(wps[3]).color, 0x00cc00);
+
+  CrawlState._state = normalizeCrawlState({ ...defaultCrawlState(), mode: "crawl", members: [] });  // removed from the crawl
+  ruler.refresh({ waypoints: wps });
+  assert.equal(ruler._getSegmentStyle(wps[3]).color, undefined);
 });

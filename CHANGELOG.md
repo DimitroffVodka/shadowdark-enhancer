@@ -4,7 +4,7 @@
 
 ### Fixed
 
-- **Dragging and moving tokens no longer drops the frame rate during a crawl or combat.** The movement ruler that shows feet left re-checked the crawl, every party's marching order and every token on the scene for each grid square it coloured, on every frame of a drag or move, which made it more than ten times slower than Foundry's own ruler. It now checks once per redraw and costs about the same as Foundry's.
+- **Dragging and moving tokens no longer drops the frame rate during a crawl or combat.** The movement ruler that shows feet left re-checked the crawl, every party's marching order and every token on the scene for each grid square it coloured, on every frame of a drag or move, which made it 9 to 15 times slower than Foundry's own ruler. It now checks once per redraw and costs about the same as Foundry's.
 
 ## [0.23.3] — 2026-11-18
 

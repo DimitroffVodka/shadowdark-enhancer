@@ -185,7 +185,7 @@ class SDETokenRuler extends foundry.canvas.placeables.tokens.TokenRuler {
   /**
    * Core calls the style hooks below once per segment, waypoint, label and grid square on EVERY refresh (each drag
    * step and each animation frame), and freeCrawl() walks every party roster and scene token. Reading the tracking
-   * state there made this ruler ~10-15x slower than core's and dropped FPS while dragging; read it once per refresh.
+   * state there made this ruler 9-15x slower than core's and dropped FPS while dragging; read it once per refresh.
    */
   _tracked = false;
   _remaining = Infinity;
