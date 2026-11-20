@@ -1804,7 +1804,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return tile;
   }
 
-  /** By hand: pick any other hex-columns scene (the one Extras built from the downloaded dataset, say). */
+  /** By hand: pick any other hex-columns scene (a drawn copy of this print, say). */
   async _onReferenceTile() {
     if (!this._requireCurrentScene()) return;
     const here = this._scene();
