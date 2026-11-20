@@ -157,15 +157,42 @@ function restCampNow(party, camp, interrupted) {
         }
         for (const id of record.rest.resources) {
           const item = actor.items.get(id); if (!item || flag(item, "campRestDay") === camp.day) continue;
-          const extra = {};
-          if (["Spell", "Class Ability"].includes(item.type) && item.system.lost) extra["system.lost"] = false;
-          if (item.type === "Class Ability" && item.system.limitedUses) extra["system.uses.available"] = item.system.uses.max;
-          if (item.type === "Wand" && Array.isArray(item.system.spells)) extra["system.spells"] = item.system.spells.map(s => ({ ...s.toObject?.() ?? s, lost: false }));
-          await replaceModuleFlag(item, "campRestDay", camp.day, extra);
+          await replaceModuleFlag(item, "campRestDay", camp.day, restedItem(item));
         }
         if (cook) await applyCookAfterRest(actor, camp.id, true);
       }
       record.rest.done = true; await saveDay(actor, camp.day, record);
     }
   });
+}
+
+/** What a rest gives back on one item: a lost spell or talent, a talent's uses, a wand's spells. */
+function restedItem(item) {
+  const extra = {};
+  if (["Spell", "Class Ability"].includes(item.type) && item.system.lost) extra["system.lost"] = false;
+  if (item.type === "Class Ability" && item.system.limitedUses) extra["system.uses.available"] = item.system.uses.max;
+  if (item.type === "Wand" && Array.isArray(item.system.spells)) extra["system.spells"] = item.system.spells.map(s => ({ ...s.toObject?.() ?? s, lost: false }));
+  return extra;
+}
+
+/**
+ * Safe rest (an inn, a town): a camp's rest without its ration, watch or interruption. Each living member gets its
+ * HP, stat damage, spells, talents and wands back; with Grinder on, Grinder's rolls instead, as at camp.
+ * ponytail: no progress record as a camp keeps; a failure part-way and a second Safe rest re-rolls Grinder's dice.
+ * @param {Actor[]} actors  the travelling party's members
+ */
+export async function restSafely(actors) {
+  for (const actor of actors) {
+    if (!actor?.system?.attributes?.hp || isMount(actor) || actor.statuses.has("dead")) continue;
+    const grinder = grinderOn(), spells = grinder ? await grinderSpells(actor) : null;
+    const { value, max } = actor.system.attributes.hp;
+    const hp = grinder ? hpAfterGrinder(value, max, await rollGrinderHp(actor) ?? 0) : Math.max(value, max);
+    if (hp !== value) await actor.update({ "system.attributes.hp.value": hp });
+    await StatDamage.heal(actor, grinder ? { perAbility: 1 } : {});
+    for (const item of actor.items.filter(i => ["Spell", "Class Ability", "Wand"].includes(i.type) && (!grinder || i.type !== "Spell" || spells.auto.includes(i.id)))) {
+      const extra = restedItem(item);
+      if (Object.keys(extra).length) await item.update(extra);
+    }
+    if (spells?.pick > 0) void pickLostSpells(actor, spells.lost, spells.pick).catch(error => console.warn(`${MODULE_ID} | Grinder spells`, error));
+  }
 }

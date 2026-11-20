@@ -5,7 +5,7 @@ import {
   pickTravelToken, forageRefusal, OVERLAND_VERSION, cheapestRoute,
   setWeather, weatherHolds, weatherAdvantage, weatherFormula, weatherFromRoll, harshToday, hexCost,
   dayBudget, pointSeconds, openDay, spendMove, priceMove, moveVerdict,
-  dayChecks, dueChecks, markCheck, setPending, setEncounter, partyMethod, setPace,
+  dayChecks, dueChecks, markCheck, passChecks, setPending, setEncounter, partyMethod, setPace,
   forageDC, closeDay, planRations, BOOK_CHECKS, MIN_CHECK_GAP, checkSettings, encounterChance, checkHalf, makeCampState, campEndAt, campLightsOut, interruptRest, walkMs, walkSlices, lapseMs,
 } from "../scripts/overland/overland-state-core.mjs";
 import { rulesApi } from "../scripts/rules-data/rules-data-core.mjs";
@@ -43,7 +43,7 @@ test("starting travel sets the token and members, and resuming keeps an open day
   assert.equal(first.changed, true);
   assert.equal(first.state.tokenUuid, "Scene.s.Token.t");
   assert.deepEqual(first.state.members, ["a", "b"]);
-  const midDay = { ...first.state, day: 1000, budget: 4, spent: 2, foraged: ["a"] };
+  const midDay = { ...first.state, day: 1000, budget: 4, spent: 2, foraged: ["a"], sheltered: true };
   const resumed = startTravel(midDay, { tokenUuid: "Scene.s.Token.t", members: ["a", "b"] });
   assert.equal(resumed.changed, false, "the same party starting again changes nothing");
   assert.equal(resumed.state.day, 1000);
@@ -53,9 +53,11 @@ test("starting travel sets the token and members, and resuming keeps an open day
   assert.equal(newToken.state.day, null, "a different party starts a fresh day");
   assert.deepEqual([newToken.state.budget, newToken.state.spent, newToken.state.foraged, newToken.state.hex], [0, 0, [], null]);
   assert.deepEqual(newToken.state.members, ["a"]);
+  assert.equal(newToken.state.sheltered, false, "a different party does not inherit a Safe rest's shelter");
   const sameActor = startTravel(midDay, { tokenUuid: "Scene.s.Token.u", members: ["a", "b"], sameParty: true });
   assert.equal(sameActor.state.tokenUuid, "Scene.s.Token.u");
   assert.deepEqual([sameActor.state.day, sameActor.state.spent, sameActor.state.foraged], [1000, 2, ["a"]], "the same party's recreated token keeps its day");
+  assert.equal(sameActor.state.sheltered, true, "and its shelter");
 });
 
 test("the travel token's hex is kept, and an equal hex is no change", () => {
@@ -490,4 +492,27 @@ test("camp breaks at dawn, or at this night's last check when that falls later, 
   assert.equal(campEndAt(dawn, [18 * H, 24 * H], nightEnd), dawn);
   // A camp made at 20:00: tonight's 22:00 and 02:00 checks count, the next evening's 18:00 does not.
   assert.equal(campEndAt(30 * H, [22 * H, 26 * H, 42 * H], 30 * H), 30 * H);
+});
+
+test("Safe rest's shelter: checks it passes are dropped, and the first paid move ends it", () => {
+  const checks = [
+    { half: "day", at: 100, chance: 1, rolled: true, hit: false },
+    { half: "day", at: 200, chance: null, rolled: false, hit: null },
+    { half: "night", at: 900, chance: null, rolled: false, hit: null },
+  ];
+  const day = normalizeOverlandState({ ...openDay(defaultOverlandState(), { now: 0, method: "walking", pushed: false, base: 4, checks }).state, sheltered: true });
+  assert.equal(day.sheltered, true);
+  // A clock move in town to 500: the 200 check is passed, the rolled one kept, the night one still ahead.
+  assert.deepEqual(passChecks(day, 500).state.checks.map((c) => c.at), [100, 900]);
+  // Standing in place (no cost) is not travelling: still sheltered, nothing dropped.
+  const stay = spendMove(day, { cost: 0, hex: null, now: 500 }).state;
+  assert.equal(stay.sheltered, true);
+  assert.equal(stay.checks.length, 3);
+  // The first paid move at 500: shelter ends, what fell due in town is passed, the rest roll as usual.
+  const out = spendMove(day, { cost: 1, hex: null, now: 500 }).state;
+  assert.equal(out.sheltered, false);
+  assert.equal(out.spent, 1);
+  assert.deepEqual(out.checks.map((c) => c.at), [100, 900]);
+  // An unsheltered day keeps every check for catch-up, as before.
+  assert.equal(spendMove({ ...day, sheltered: false }, { cost: 1, hex: null, now: 500 }).state.checks.length, 3);
 });

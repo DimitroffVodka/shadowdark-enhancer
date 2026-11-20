@@ -146,3 +146,12 @@ test("Make camp shows for an owner of the travelling party, and not for a player
   assert.equal(camp({ mayCamp: true, model: { ...view().model, dayOpen: false } }), false, "no camp before the day starts");
   assert.ok(travelPanel(view({ see: 5, mayCamp: true })).includes('data-action="makeCamp"'), "the Traveling step offers it too");
 });
+
+test("Safe rest is the GM's, beside Start a new day; a player's panel has neither", () => {
+  const gm = travelPanel(view({ gm: true }));
+  assert.ok(gm.includes('data-action="safeRest"'));
+  assert.ok(gm.indexOf('data-action="safeRest"') > gm.indexOf("SDE.travel.newDay"));
+  const player = travelPanel(view());
+  assert.ok(!player.includes('data-action="safeRest"'));
+  assert.ok(!player.includes("SDE.travel.newDay"));
+});

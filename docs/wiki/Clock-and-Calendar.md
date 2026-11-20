@@ -64,7 +64,9 @@ through. Going back never burns anything.
 
 While travelling, every move forward rolls the day's encounter checks it
 passes, at their hours, as a move across the map does; a hit stops the clock
-there, and the steps wait until the encounter is continued.
+there, and the steps wait until the encounter is continued. After a
+[Safe rest](Crawl-Strip-and-Crawl-Bar.md) the party is sheltered: until it
+moves on, the checks a move of the clock passes are passed, not rolled.
 
 ### Walking a hex takes its time
 

@@ -91,6 +91,7 @@ export function travelPanel(v) {
       ${pending ? key("resume", t("SDE.overland.resume"), { cls: "sde-hud-primary", hint: t("SDE.overland.resumeHint") }) : ""}
       <span class="sde-hud-fl sde-hud-small">${esc(t("SDE.travel.gm"))}</span>
       ${key("startDay", t("SDE.travel.newDay"), { cls: "sde-hud-sm sde-hud-ghost", hint: t("SDE.overland.startDayHint") })}
+      ${key("safeRest", t("SDE.travel.safeRest"), { cls: "sde-hud-sm sde-hud-ghost", hint: t("SDE.travel.safeRestHint") })}
       ${autoKey}
       ${resumeAuto}
       <span class="sde-hud-grow"></span>
