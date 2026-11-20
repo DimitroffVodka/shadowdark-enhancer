@@ -40,7 +40,7 @@ import {
 import {
   overlandState, weatherNow, weatherName, methodName, rollWeather, startDayFromParty, setTravelPace, partyReading, makeCamp,
   endOverland, resumeHeld, forage, startOverland, advanceClock, checkNow, encounterSettings, ENCOUNTER_SETTINGS, OVERLAND_CHANGED, autoForageEnabled,
-  setAutoTravel, openCampChoices,
+  setAutoTravel, openCampChoices, safeRest,
 } from "./overland.mjs";
 import { Party, isNativeParty } from "../party/party.mjs";
 import { barModel, itemTouchesBar, redrawStamp, hhmm, weatherSwitch } from "./overland-bar-core.mjs";
@@ -1066,6 +1066,7 @@ export const TravelBar = {
       case "rollWeather": return warn(await rollWeather());
       case "reroll": return warn(await rollWeather({ reroll: true }));
       case "startDay": return warn(await startDayFromParty());
+      case "safeRest": return warn(await safeRest());
       case "pace": {
         const reply = await setTravelPace(id);
         if (reply?.ok && reply.changed) ui.notifications.info(t(reply.today ? (id === "push" ? "SDE.travel.speed.pushNow" : "SDE.travel.speed.normalNow")

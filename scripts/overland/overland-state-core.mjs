@@ -47,6 +47,7 @@ export function defaultOverlandState() {
     pending: null,        // {until, reason}: an advance stopped by a hit, waiting for Resume clock (#232)
     encounter: null,      // what a quiet check that hit drew, for the GMs' panel until Resume clock (#257)
     camp: null,           // tonight's camp (#257): {party, interrupted, ate, until, lightsOut}: the uuid of the Extras party actor keeping its rest for the dawn, or null; when a creature woke it; the rations were eaten at camp; when it breaks; its lights are out
+    sheltered: false,     // after a Safe rest, until the party moves: no encounter check rolls, the ones that fall due are passed
     foraged: [],          // actor ids that foraged today (#233)
     hex: null,            // {num, terrain, region, features}: the travel token's last hex
   };
@@ -161,6 +162,7 @@ export function normalizeOverlandState(value) {
     pending: pendingOf(value.pending),
     encounter: encounterOf(value.encounter),
     camp: campOf(value.camp),
+    sheltered: value.sheltered === true,
     foraged: ids(value.foraged),
     // A map with no numbering (Extras' records, #298) has a hex with a terrain and no number.
     hex: hex && (Number.isInteger(hex.num) || str(hex.terrain))
@@ -303,10 +305,20 @@ export function setEncounter(state, encounter) {
   return { state: next, changed: JSON.stringify(next.encounter) !== JSON.stringify(state.encounter) };
 }
 
-/** The travel token moved: `cost` points spent, and it stands in `hex` now. */
-export function spendMove(state, { cost, hex }) {
-  const next = normalizeOverlandState({ ...state, spent: state.spent + cost, hex: hex ?? state.hex });
+/**
+ * The travel token moved: `cost` points spent, and it stands in `hex` now. A paid move ends a Safe rest's shelter:
+ * the checks that fell due in town by `now` are passed, not caught up, and the ones still ahead roll as usual.
+ */
+export function spendMove(state, { cost, hex, now = null }) {
+  const from = state.sheltered && cost > 0 && now !== null ? passChecks(state, now).state : state;
+  const next = normalizeOverlandState({ ...from, spent: state.spent + cost, hex: hex ?? state.hex, sheltered: state.sheltered && !(cost > 0) });
   return { state: next, changed: cost > 0 || JSON.stringify(next.hex) !== JSON.stringify(state.hex) };
+}
+
+/** Sheltered (Safe rest), the unrolled checks due by `at` are passed: dropped, never rolled. */
+export function passChecks(state, at) {
+  const checks = state.checks.filter((c) => c.rolled || c.at > at);
+  return { state: normalizeOverlandState({ ...state, checks }), changed: checks.length !== state.checks.length };
 }
 
 // ── Decisions ──────────────────────────────────────────────────────────────
