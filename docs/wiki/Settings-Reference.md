@@ -184,7 +184,7 @@ modes are on. [Modes of Play](Modes-of-Play.md) explains how each mode plays.
 | **Out-of-combat movement budget (ft)** | `90` | Default budget per crawl round. Resets on **Next Round**. |
 | **Enforce out-of-combat movement budget** | **off** | On: refuses moves exceeding crawl budget. Off: flags red, but allows move. |
 | **Enforce combat movement budget** | **off** | On: refuses combat moves past remaining movement. Off relies on player honesty. |
-| **Free movement crawl** | **off** | Dungeon crawl outside combat: no feet, crawl initiative or lock; the GM ends each round with Next Round. Combat and hex travel are unchanged. |
+| **Free movement crawl** | **off** | Dungeon crawl outside combat: no feet, crawl initiative or lock; the GM ends each round with Next Round. Hex travel is unchanged; combat keeps feet unless **Free movement combat** is on. |
 | **Free movement combat** | **off** | Combat: no feet. No movement budget, ruler colours or feet left on the crawl strip. Turn order is unchanged, and Lock movement out of turn still applies when on. |
 | **Lock movement out of turn** | **off** | Restricts player moves to active turns (in combat or ordered crawl). GMs and unrostered tokens are never locked. |
 

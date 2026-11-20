@@ -15,7 +15,7 @@ const { normalizeCrawlState } = await import("../scripts/crawl-strip/crawl-state
 
 CrawlStrip.queueRender = () => {};
 
-function boot({ combatFree }) {
+function boot({ combatFree, enforce = false }) {
   const hooks = {};
   globalThis.Hooks = { on: (name, fn) => { (hooks[name] ??= []).push(fn); return 1; } };
   globalThis.CONFIG = { Token: {}, queries: {} };
@@ -23,9 +23,10 @@ function boot({ combatFree }) {
   globalThis.canvas = { tokens: { placeables: [], get: () => null }, interface: { grid: { highlight: { children: [] } } } };
   globalThis.game = {
     userId: "u1", user: { isGM: true }, combat: null, actors: [], scenes: { active: null }, folders: [],
-    settings: { get: (_m, key) => ({ combatMovementDefault: 30, combatFreeMovement: combatFree })[key] ?? false },
-    i18n: { localize: (s) => s },
+    settings: { get: (_m, key) => ({ combatMovementDefault: 30, combatFreeMovement: combatFree, combatEnforceBudget: enforce })[key] ?? false },
+    i18n: { localize: (s) => s, format: (s) => s },
   };
+  globalThis.ui = { notifications: { warn: () => {}, info: () => {} } };
   CrawlState._state = normalizeCrawlState({ mode: "combat", active: true, members: ["a1"] });
   MovementTracker._pendingDeduct = {};
   MovementTracker._clearTimers = {};
@@ -62,4 +63,13 @@ test("with Free movement combat on, a combat move writes no feet and the ruler c
   const updateToken = boot({ combatFree: true });
   assert.equal((await drop(updateToken)).length, 0, "no feet-left flag written");
   assert.equal(rulerTracked(), false, "the ruler keeps core's styles");
+});
+
+test("Enforce combat movement budget refuses an over-budget move only while feet are tracked", () => {
+  // The real decision the preUpdateToken hook returns: 20 ft asked, 10 ft left.
+  const doc = { id: "t1", actorId: "a1", parent: { id: "s1" }, actor: { system: {} }, getFlag: () => 10 };
+  boot({ combatFree: false, enforce: true });
+  assert.strictEqual(MovementTracker._onPreUpdate(doc, { x: 500 }, "u1", 20), false, "refused while tracked");
+  boot({ combatFree: true, enforce: true });
+  assert.notStrictEqual(MovementTracker._onPreUpdate(doc, { x: 500 }, "u1", 20), false, "allowed with Free movement combat on");
 });
