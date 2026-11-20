@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **No more hitch when you drop a token during a crawl or combat.** The crawl strip rebuilt itself three times as the token started to move: once for the move, which it does not show, and twice for the new feet left. It now rebuilds once.
+
 ## [0.24.0] — 2026-11-20
 
 ### Added

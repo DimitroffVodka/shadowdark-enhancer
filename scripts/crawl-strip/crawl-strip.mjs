@@ -217,6 +217,19 @@ export const OocControls = {
   },
 };
 
+// What a token move writes, core's movement bookkeeping included. Kept here, beside the cards it
+// describes: nothing the strip draws reads these, so a card that ever shows one (elevation, the
+// level) must drop it from this set, or that card stops refreshing when the token moves.
+const MOVE_FIELDS = new Set(["_id", "x", "y", "elevation", "level", "rotation", "_movementHistory", "_regions"]);
+
+/**
+ * Does this token update only move the token? The strip skips those: rebuilding it on every drop
+ * hitched the first frames of the move animation, and the feet-left flag write redraws it anyway.
+ * @param {object} changes  the updateToken diff
+ * @returns {boolean}
+ */
+export const tokenMoveOnly = (changes) => Object.keys(changes ?? {}).every((k) => MOVE_FIELDS.has(k));
+
 export const CrawlStrip = {
 
   _el:             null,
@@ -261,7 +274,7 @@ export const CrawlStrip = {
     on("updateActor",   queueIfShown);
     // The Marching order switch and the leader live on the party, which has no card of its own.
     on("updateActor",   actor => { if (isParty(actor)) queue(); });
-    on("updateToken",   td => { if (shown("token-id", td?.id) || shown("actor-id", td?.actorId)) queue(); });
+    on("updateToken",   (td, changes) => { if (!tokenMoveOnly(changes) && (shown("token-id", td?.id) || shown("actor-id", td?.actorId))) queue(); });
     on("createToken",   queue);
     on("deleteToken",   queue);
     on("canvasReady",   queue);
