@@ -166,7 +166,7 @@ class SDETokenRuler extends foundry.canvas.placeables.tokens.TokenRuler {
   }
 
   _colorForFt(ft) {
-    const r = this._moveRemaining;
+    const r = this._remaining;
     return ft <= r ? 0x00cc00 : 0xcc2200;  // green: within budget, red: over
   }
 
@@ -182,8 +182,24 @@ class SDETokenRuler extends foundry.canvas.placeables.tokens.TokenRuler {
 
   // ── refresh ────────────────────────────────────────────────────────────
 
-  /** No custom bookkeeping needed — style methods walk the linked list. */
+  /**
+   * Core calls the style hooks below once per segment, waypoint, label and grid square on EVERY refresh (each drag
+   * step and each animation frame), and freeCrawl() walks every party roster and scene token. Reading the tracking
+   * state there made this ruler 9-15x slower than core's and dropped FPS while dragging; read it once per refresh,
+   * on the first style call, so a refresh with no path to style (history cleared) reads nothing.
+   */
+  _snapshot = null;
+  _snap() {
+    if (!this._snapshot) {
+      const tracked = this._isTracked;
+      this._snapshot = { tracked, remaining: tracked ? this._moveRemaining : Infinity };
+    }
+    return this._snapshot;
+  }
+  get _tracked()   { return this._snap().tracked; }
+  get _remaining() { return this._snap().remaining; }
   refresh(args) {
+    this._snapshot = null;
     super.refresh(args);
   }
 
@@ -191,22 +207,22 @@ class SDETokenRuler extends foundry.canvas.placeables.tokens.TokenRuler {
 
   _getSegmentStyle(waypoint) {
     const base = super._getSegmentStyle(waypoint);
-    if (!this._isTracked) return base;
+    if (!this._tracked) return base;
     base.color = this._colorForFt(this._cumulativeAt(waypoint));
     return base;
   }
 
   _getWaypointStyle(waypoint) {
     const base = super._getWaypointStyle(waypoint);
-    if (!this._isTracked) return base;
+    if (!this._tracked) return base;
     base.color = this._colorForFt(this._cumulativeAt(waypoint));
     return base;
   }
 
   _getGridHighlightStyle(waypoint, offset) {
     const base = super._getGridHighlightStyle(waypoint, offset);
-    if (!this._isTracked) return base;
-    if (this._cumulativeAt(waypoint) > this._moveRemaining) {
+    if (!this._tracked) return base;
+    if (this._cumulativeAt(waypoint) > this._remaining) {
       base.color = 0xcc2200;
       base.alpha = Math.min(1, (base.alpha ?? 0.25) * 1.5);
     }
@@ -215,8 +231,8 @@ class SDETokenRuler extends foundry.canvas.placeables.tokens.TokenRuler {
 
   _getWaypointLabelContext(waypoint, state) {
     const base = super._getWaypointLabelContext(waypoint, state);
-    if (!this._isTracked || !base) return base;
-    const after = this._moveRemaining - this._cumulativeAt(waypoint);
+    if (!this._tracked || !base) return base;
+    const after = this._remaining - this._cumulativeAt(waypoint);
     const tag   = game.i18n.format(after < 0 ? "SDE.crawlStrip.movement.over" : "SDE.crawlStrip.movement.left", { n: after });
     base.label  = base.label ? `${base.label} (${tag})` : tag;
     return base;

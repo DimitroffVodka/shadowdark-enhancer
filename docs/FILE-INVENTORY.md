@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-2255 tracked files · ~282,700 lines of code/markup across scripts+templates+styles+test.
+2256 tracked files · ~282,800 lines of code/markup across scripts+templates+styles+test.
 `v0.23.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -240,7 +240,7 @@
 | `hidden-sync.mjs` | 69 | Bidirectional `token.hidden` ↔ `combatant.hidden` sync, GM-only. |
 | `turn-skip.mjs` | 163 | Auto-advances past combatants the strip renders no card for (dead enemies). Active-GM gated. Also drives Chaos Mode: queues each held Chaos round (updateCombat) and replays it under the same lock (#259). |
 | `turn-skip-core.mjs` | 164 | Pure strip-visibility test shared by the strip and the auto-skip, so the two can't drift. |
-| `movement-tracker.mjs` | 817 | Crawl-mode movement budget enforcement + turn-start rollback (`displace` waypoints); its token writes stay out of the undo history, and a Ctrl+Z undo refunds the move it reverts. |
+| `movement-tracker.mjs` | 833 | Crawl-mode movement budget enforcement + turn-start rollback (`displace` waypoints); its token writes stay out of the undo history, and a Ctrl+Z undo refunds the move it reverts. |
 | `crawl-free.mjs` | 9 | `crawlFree(mode)`: whether the crawl counts no feet, rolled order or turn lock, because the world setting says so or a party is marching (one mover). The strip, the tracker tab and the movement tracker all ask it. |
 | `march-controls.mjs` | 57 | The strip's marching order: the 3x3 grid beside the PARTY plate and the march switch under it, drawn from the party, with the click, drag and switch handlers that write the party's own settings. |
 | `movement-calc.mjs` | 88 | Pure per-segment feet-moved math. |
