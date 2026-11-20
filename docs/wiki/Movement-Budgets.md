@@ -86,6 +86,7 @@ Configure strict movement rules under **Configure Settings → Shadowdark Enhanc
 | **Enforce combat movement budget** | Off | Refuses combat moves exceeding remaining movement |
 | **Lock movement out of turn** | Off | Only the token holding the active turn may move |
 | **Free movement crawl** | Off | Dungeon crawl only: no feet, no crawl initiative, no lock; the GM ends each round |
+| **Free movement combat** | Off | Combat only: no feet; turn order and the out-of-turn lock are unchanged |
 
 ### Free movement crawl
 
@@ -95,8 +96,8 @@ round counter: the movement pill, the initiative dice and order arrows are
 hidden, tokens are never measured against a budget or refused, and nobody is
 locked out of turn. The GM presses **Next Round** when the round is over, and
 that still advances torches, light and the wandering-encounter check. When
-combat starts, feet, initiative and the lock apply as usual. Hex travel is not
-affected.
+combat starts, initiative and the lock apply as usual, and so do feet unless
+[Free movement combat](#free-movement-combat) is on. Hex travel is not affected.
 
 A party in **Marching order** gets the same treatment without the setting: while
 its switch on the [Party sheet](Party.md#formation-deploy-and-follow) is on and
@@ -104,8 +105,17 @@ its leader and at least one follower are on the scene, out of combat, one person
 is moving everyone, so there are no feet to spend and no turns to take. The
 strip says so (see
 [Marching order in the strip](Crawl-Strip-and-Crawl-Bar.md#marching-order-in-the-strip)),
-and the followers' automatic steps are never charged to them. Combat applies feet
-and initiative as usual.
+and the followers' automatic steps are never charged to them. Combat applies
+initiative as usual, and feet unless [Free movement combat](#free-movement-combat) is on.
+
+### Free movement combat
+
+Turn this on for a table that judges range by eye in combat. The ruler measures
+in Foundry's own colours, moves are never charged, counted or refused, and the
+[Crawl Strip](Crawl-Strip-and-Crawl-Bar.md) shows no feet left on any card.
+Initiative and turn order work as usual, and **Lock movement out of turn** still
+keeps players to their own turn when it is on. Turn this and **Free movement
+crawl** both on to drop feet everywhere.
 
 ### How out-of-turn locking works
 

@@ -20,7 +20,7 @@ import { relayToGM, authorizeActorFor, refuseQuery, registerQuery } from "../sha
 import { computeLightState, isLightItem } from "./crawl-lights-core.mjs";
 import { canAdvanceTurn, canAdvanceOocTurn, nextTurnWouldRollRound } from "./crawl-turn-core.mjs";
 import { oocOrderComplete, stripShown, stripOptions } from "./crawl-state-core.mjs";
-import { crawlFree } from "./crawl-free.mjs";
+import { crawlFree, freeMovement } from "./crawl-free.mjs";
 import { marchOf, stripParty } from "../party/party-movement.mjs";
 import { Party, isParty } from "../party/party.mjs";
 import { luckCount } from "../party/party-sheet-core.mjs";
@@ -698,6 +698,8 @@ export const CrawlStrip = {
     // round counter (crawlFree; combat is exempt). A marching party is one too:
     // one person moves everyone, so the strip says who leads instead.
     const freeCrawl = crawlFree(state.mode);
+    // No feet pill when movement is untracked: a free crawl, or combat with "Free movement combat" on.
+    const noFeet = freeMovement(state.mode);
     const march = !inCombat ? marchOf() : null;
     // The grid is the marker, and the switch beside the PARTY plate turns marching on and off without the Party sheet.
     const marchParty = inCombat ? null : (march?.party ?? stripParty(state.members));
@@ -832,9 +834,9 @@ export const CrawlStrip = {
           pills = `
         <div class="sde-strip-pills">
           <div class="sde-strip-pill ${luckClass}" data-actor-id="${m.actorId ?? ""}" ${luckClickable} title="${luckTitle}">${ICONS.shamrock}${data.luck}</div>
-          ${freeCrawl ? "" : `<div class="sde-strip-pill ${moveClass}">${ICONS.walking}${data.moveRemaining}/${data.activeSpeed}${slim ? "" : "ft"}</div>`}
+          ${noFeet ? "" : `<div class="sde-strip-pill ${moveClass}">${ICONS.walking}${data.moveRemaining}/${data.activeSpeed}${slim ? "" : "ft"}</div>`}
         </div>`;
-        } else if (m.type === "npc" && inCombat && !concealStats) {
+        } else if (m.type === "npc" && inCombat && !concealStats && !noFeet) {
           pills = `
         <div class="sde-strip-pills">
           <div class="sde-strip-pill ${moveClass}">${ICONS.walking}${data.moveRemaining}/${data.activeSpeed}${slim ? "" : "ft"}</div>

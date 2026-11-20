@@ -90,6 +90,18 @@ export function registerSettings() {
     },
   });
 
+  game.settings.register(MODULE_ID, "combatFreeMovement", {
+    name: "SDE.settings.combatFreeMovement.name",
+    hint: "SDE.settings.combatFreeMovement.hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: false,
+    onChange: () => {
+      import("../crawl-strip/crawl-strip.mjs").then(m => m.CrawlStrip.queueRender());
+    },
+  });
+
   game.settings.register(MODULE_ID, "oocEnforceBudget", {
     name: "SDE.settings.oocEnforceBudget.name",
     hint: "SDE.settings.oocEnforceBudget.hint",

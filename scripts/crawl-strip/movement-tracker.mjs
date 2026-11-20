@@ -34,7 +34,7 @@
 import { MODULE_ID }  from "../shared/module-id.mjs";
 import { CrawlState, isActiveGM } from "./crawl-state.mjs";
 import { hasOocRoll } from "./crawl-state-core.mjs";
-import { crawlFree } from "./crawl-free.mjs";
+import { crawlFree, freeMovement } from "./crawl-free.mjs";
 import { CrawlStrip } from "./crawl-strip.mjs";
 import { ICONS }      from "../shared/icons.mjs";
 import { segmentFeet } from "./movement-calc.mjs";
@@ -62,6 +62,8 @@ function updateFeet(doc, changes) {
 
 /** The "Free movement crawl" setting applies now: no budget, ruler colours or lock out of combat. */
 const freeCrawl = () => crawlFree(CrawlState.mode);
+/** No feet are tracked now: a free movement crawl, or combat with "Free movement combat" on. The lock is separate. */
+const freeMove = () => freeMovement(CrawlState.mode);
 
 // ── Shared speed helpers ────────────────────────────────────────────────────
 
@@ -143,7 +145,7 @@ class SDETokenRuler extends foundry.canvas.placeables.tokens.TokenRuler {
   }
 
   get _isTracked() {
-    if (!CrawlState.isActive || freeCrawl()) return false;
+    if (!CrawlState.isActive || freeMove()) return false;
     const doc = this.token?.document;
     if (!doc) return false;
     return CrawlState.members.includes(doc.actorId);
@@ -287,7 +289,7 @@ export const MovementTracker = {
           const inCombat = CrawlState.mode === "combat";
           // In combat we also track tokens that aren't crawl members
           // (combatants get added to the combat tracker, not the crawl roster).
-          const tracked  = (isMember && !freeCrawl()) || inCombat;
+          const tracked  = (isMember || inCombat) && !freeMove();
           if (actor && tracked) {
             const distanceFt = this._pendingDeduct[doc.id] ?? 0;
             delete this._pendingDeduct[doc.id];
@@ -524,7 +526,7 @@ export const MovementTracker = {
     const enforce = inCombat
       ? game.settings.get(MODULE_ID, "combatEnforceBudget")
       : game.settings.get(MODULE_ID, "oocEnforceBudget");
-    if (!enforce || freeCrawl()) return;
+    if (!enforce || freeMove()) return;
 
     const stored = doc.getFlag(MODULE_ID, "moveRemaining");
     const moveRemaining = (typeof stored === "number") ? stored : _getBaseSpeed(actor, doc);

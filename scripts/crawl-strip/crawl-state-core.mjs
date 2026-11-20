@@ -169,6 +169,18 @@ export function freeCrawlActive(enabled, mode) {
 }
 
 /**
+ * Does the "Free movement combat" setting apply right now? In combat only: no
+ * feet budget, ruler colours, deduction or enforcement, for tables that judge
+ * range by eye. Turn order and the out-of-turn lock (its own setting) stay.
+ * @param {boolean} enabled  The `combatFreeMovement` setting.
+ * @param {string}  mode     CrawlState.mode; only "combat" applies.
+ * @returns {boolean}
+ */
+export function freeCombatActive(enabled, mode) {
+  return Boolean(enabled) && mode === "combat";
+}
+
+/**
  * Is the out-of-combat order COMPLETE — every crawl member has rolled?
  * An incomplete order is not an order: the OoC lock, the advance button and
  * the holder highlight all engage only once this holds (an empty roster is

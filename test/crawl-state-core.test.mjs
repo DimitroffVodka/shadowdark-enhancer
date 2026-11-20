@@ -24,6 +24,7 @@ import {
   hasOocRoll,
   oocOrderComplete,
   freeCrawlActive,
+  freeCombatActive,
   startOverland,
   overlandToCrawl,
   endOverland,
@@ -728,4 +729,12 @@ test("freeCrawlActive: the setting shapes the crawl only, never combat", () => {
   assert.equal(freeCrawlActive(true, "combat"), false);
   assert.equal(freeCrawlActive(false, "crawl"), false);
   assert.equal(freeCrawlActive(undefined, "crawl"), false);
+});
+
+test("freeCombatActive: the combat setting shapes combat only, never the crawl", () => {
+  assert.equal(freeCombatActive(true, "combat"), true);
+  assert.equal(freeCombatActive(true, "crawl"), false);
+  assert.equal(freeCombatActive(true, "overland"), false);
+  assert.equal(freeCombatActive(false, "combat"), false);
+  assert.equal(freeCombatActive(undefined, "combat"), false);
 });
