@@ -392,6 +392,8 @@ the party token travels.
   - The day ends, and each living member gets the rest a camp gives: HP,
     stat damage, spells, talents and wands back, or Grinder Mode's rolls
     when it is on. Nobody eats a ration and there is no watch.
+  - A camp whose tasks were rolled but whose night never came goes back to
+    setup with the same choices, as Start over does in the camp window.
   - The new day starts at once, as Start day starts it: the dialog only
     asks when nothing says how many hexes a day is.
   - The party is then **sheltered**: no encounter check rolls, from a move

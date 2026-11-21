@@ -1,5 +1,5 @@
 // Audit fixture: Camping, embedded in the Party sheet's Travel tab exactly as PartyApp embeds it.
-// state = setup | fuel | results   (GM view)
+// state = setup | fuel | awaiting | results   (GM view)
 import { renderTemplate, inParty, asActivity } from "./_audit-embed.mjs";
 const names = ["Creeg Greythorn", "Elbin Grizzlegut", "Iraga Draguul", "Jorbin Ironhelm", "Martin Rast"];
 const sel = (items) => items;
@@ -19,14 +19,14 @@ const rowFor = (name, i, setup, results) => {
     result: results ? { total: 9 + i, dc: 12, disadvantage: i === 1, success: i !== 2, amount: i === 0 ? 3 : 0, status: i !== 2 ? "Success" : "Failure", effect: ["Saved", "Pending", "No benefit", "Cook saved; requires eligible fed full rest", "Saved"][i] } : null,
   };
 };
-const ctxFor = (state, setup, fuel, results) => ({
+const ctxFor = (state, setup, fuel, results, awaiting = state === "awaiting") => ({
     embedded: true, title: "The Lantern Guild", manager: true, setup, fuel, isGM: true, error: state === "setup" ? "Martin Rast chose Entertain but has not picked a recipient." : null,
-    phase: { setup: "Choose tasks and participation", fuel: "Choose torch fallback; tasks stay locked", results: "Night complete; review saved results" }[state], fire: "Fire lit", hasResults: results,
-    awaitingRest: false, complete: results, shortageWarning: false, canNight: false, canResolve: setup, canResume: !setup && !fuel,
+    phase: { setup: "Choose tasks and participation", fuel: "Choose torch fallback; tasks stay locked", results: "Night complete; review saved results", awaiting: "Task results ready; nutrition and rest pending" }[state], fire: "Fire lit", hasResults: results || awaiting,
+    awaitingRest: awaiting, complete: results, shortageWarning: false, canNight: awaiting, canStartOver: awaiting, canResolve: setup, canResume: !setup && !fuel && !awaiting,
     fuelChoices: [["none", "No fire"], ["wood", "Firewood task; offer torches on failure"], ["torches", "Existing torches"]].map(([value, label]) => ({ value, label, selected: value === "torches" })),
     available: 9, canFuel: true, deductions: [{ name: "Creeg Greythorn", item: "Torch", quantity: 2 }, { name: "Jorbin Ironhelm", item: "Torch", quantity: 1 }],
     mounts: [["Dusty", "Mule"], ["Biscuit", "Pony"]].map(([name], i) => ({ uuid: "Actor." + name, name, partyRations: false, foodEditable: setup, meal: { fed: i === 0, own: i === 0 ? 2 : 0, shortfall: i, con: 9 }, foodStatus: i === 0 ? "Fed" : "Unfed", deathWarning: i === 1 })),
-    rows: names.map((n, i) => rowFor(n, i, setup, results)),
+    rows: names.map((n, i) => rowFor(n, i, setup, results || awaiting)),
 });
 export const context = (state) => {
   const setup = state === "setup", fuel = state === "fuel", results = state === "results";

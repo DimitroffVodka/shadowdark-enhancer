@@ -51,8 +51,9 @@ export function campArtFor(terrain) {
 export function campTransition(prev, camp, state) {
   const stage = normalizeStage(prev);
   if (camp && camp.phase !== "complete") {
-    // A picture raised by hand before this party's camp began is adopted by it, so the camp's end drops it.
-    const adopt = camp.id && stage.shown && stage.place === "camp" && stage.campId === "" && stage.partyId === str(state?.partyId);
+    // A picture raised by hand before this party's camp began is adopted by it, so the camp's end drops it; so is one
+    // the camp it replaced held (Start over gives the camp a new id, #594).
+    const adopt = camp.id && stage.shown && stage.place === "camp" && stage.campId !== str(camp.id) && stage.partyId === str(state?.partyId);
     return adopt ? { ...stage, campId: str(camp.id) } : null;
   }
   // Only the party whose camp this is may drop it; several parties share the one stage.
