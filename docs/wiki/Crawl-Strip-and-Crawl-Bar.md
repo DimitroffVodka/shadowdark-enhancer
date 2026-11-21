@@ -553,6 +553,23 @@ combatant's turn manually.
 
 ---
 
+### Big fights
+
+When more cards are on the strip than fit at a readable size, the strip stops shrinking them and shows the run of cards around the one acting. The cut ends fade with a count of the cards past them (+4), and the mouse wheel over the strip moves the run one card at a time. A new turn brings it back to the active card. The slim strip at the top still wraps onto a second line instead.
+
+### Position, art and size
+
+**Crawl strip position for me** puts the strip across the top or as a column down the left or right side. In a column the round buttons and the PARTY plate sit above the cards and the hover menu opens beside a card. **Crawl strip art for me** picks token art or the character sheet's portrait, and **Crawl strip size for me** scales the whole strip. The GM can set position and art for everyone, which wins over each player's choice.
+
+### Turns in combat
+
+- **Up next:** the player whose character acts next gets a banner, and the next token on the map wears an UP NEXT tag. Dead monsters whose turns are skipped are never announced.
+- **Pan to each turn for me:** Never, My turns (your own characters; for the GM, the monsters) or Every turn you can see.
+- **Combat splash screen:** when a combat starts, every screen shows both sides in turn order for a few seconds, the same monster on the same initiative counted once. Click it to close it.
+- **Roll monster initiative automatically**, **Focus mode for players** and **Hide monsters until seen** are the GM's, under Combat in the Crawl Strip settings. See [Settings Reference](Settings-Reference.md#crawl-strip).
+
+---
+
 ## The action menu
 
 Cards you own display an action tab strip underneath. Hovering a tab opens a

@@ -65,6 +65,9 @@ import { StatRiders } from "./stat-damage/stat-riders.mjs";
 import { CrawlBar }      from "./crawl-bar/crawl-bar.mjs";
 import { registerHiddenSync } from "./crawl-strip/hidden-sync.mjs";
 import { registerTurnSkip } from "./crawl-strip/turn-skip.mjs";
+import { registerTurnCallouts } from "./crawl-strip/turn-callouts.mjs";
+import { registerVsScreen } from "./crawl-strip/vs-screen.mjs";
+import { registerCombatTableOptions } from "./crawl-strip/combat-table-options.mjs";
 import { MovementTracker } from "./crawl-strip/movement-tracker.mjs";
 import { registerMountedTokens } from "./mounted/mounted-tokens.mjs";
 import { EncounterCheck } from "./encounter/encounter-check.mjs";
@@ -150,7 +153,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "2fdaf5c514f4";
+const STYLESHEET_REV = "932fd2388061";
 
 // The same problem for the SCRIPTS, which cannot be solved the same way: their
 // URLs come from the manifest, which Foundry validates as real package paths,
@@ -165,7 +168,7 @@ const STYLESHEET_REV = "2fdaf5c514f4";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "91b0083f974b";
+const BUILD_REV = "97c8e2d7eeec";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -1243,6 +1246,10 @@ Hooks.once("ready", () => {
   refreshTracker();
   registerHiddenSync();
   registerTurnSkip();
+  // Up next, pan to turn, the combat splash and the GM's combat table options (ideas from Roll Call).
+  registerTurnCallouts();
+  registerVsScreen();
+  registerCombatTableOptions();
   // Seed the char-builder Name/Trinket table sources from the legacy boolean
   // settings (one-shot, GM-only). Fire-and-forget — errors log inside.
   ClassAbilityUses.init();

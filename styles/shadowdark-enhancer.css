@@ -6232,3 +6232,121 @@ body.sde-table-up #shadowdark-enhancer-strip, body.sde-table-up #shadowdark-enha
 .hxf-modes .ui-btn.on { background: var(--ui-btn-bg); border-color: var(--ui-btn-bg); color: var(--ui-btn-fg); }
 .hxf input[type="range"] { width: 100%; }
 .hxf-whose { margin: 0; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CRAWL STRIP: groups, crowded window, side columns, size, combat callouts
+   (ideas from Roll Call's combat dock, github.com/Sayshal/roll-call, MIT)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Size for me: zoom keeps the layout honest, so the strip takes the space it shows. */
+.sde-strip-inner { zoom: var(--sde-strip-scale, 1); }
+
+/* A crowded strip shows a window of cards; the cut ends fade and say how many are past them. */
+.sde-strip-card-wrap.sde-strip-out { display: none; }
+.sde-strip-card-wrap.sde-strip-fade-start > .sde-strip-member { mask-image: linear-gradient(to right, transparent 0, #000 55%); }
+.sde-strip-card-wrap.sde-strip-fade-end > .sde-strip-member { mask-image: linear-gradient(to left, transparent 0, #000 55%); }
+.sde-strip-card-wrap[data-more-before]::before,
+.sde-strip-card-wrap[data-more-after]::after {
+  position: absolute; top: 50%; transform: translateY(-50%); z-index: 4;
+  padding: 1px 5px; background: #000; border: 1px solid var(--sde-bar-border); border-radius: 2px;
+  color: var(--sde-bar-text); font: 600 12px/1.3 "Montserrat-SemiBold", var(--font-sans, sans-serif); pointer-events: none;
+}
+.sde-strip-card-wrap[data-more-before]::before { content: attr(data-more-before); left: 2px; }
+.sde-strip-card-wrap[data-more-after]::after { content: attr(data-more-after); right: 2px; }
+
+/* Down a side: the strip becomes a column, its plates turn into rows above the cards. */
+#shadowdark-enhancer-strip[data-edge="left"].sde-strip-visible,
+#shadowdark-enhancer-strip[data-edge="right"].sde-strip-visible { flex-direction: column; justify-content: flex-start; }
+#shadowdark-enhancer-strip[data-edge="left"] .sde-strip-inner,
+#shadowdark-enhancer-strip[data-edge="right"] .sde-strip-inner,
+#shadowdark-enhancer-strip[data-edge="left"] .sde-strip-group,
+#shadowdark-enhancer-strip[data-edge="right"] .sde-strip-group,
+#shadowdark-enhancer-strip[data-edge="left"] .sde-strip-members,
+#shadowdark-enhancer-strip[data-edge="right"] .sde-strip-members { flex-direction: column; align-items: stretch; }
+#shadowdark-enhancer-strip[data-edge="left"] .sde-strip-members,
+#shadowdark-enhancer-strip[data-edge="right"] .sde-strip-members { align-items: center; }
+#shadowdark-enhancer-strip[data-edge="left"] .sde-strip-label-col,
+#shadowdark-enhancer-strip[data-edge="right"] .sde-strip-label-col { flex-direction: row; justify-content: center; border-right: none; border-bottom: 2px solid; }
+#shadowdark-enhancer-strip[data-edge="left"] .sde-strip-group-label,
+#shadowdark-enhancer-strip[data-edge="right"] .sde-strip-group-label { writing-mode: horizontal-tb; transform: none; padding: 4px 8px; font-size: 1.1em; flex: 0 1 auto; }
+#shadowdark-enhancer-strip[data-edge="left"] .sde-strip-combat-controls,
+#shadowdark-enhancer-strip[data-edge="right"] .sde-strip-combat-controls { flex-direction: row; width: auto; min-width: 0; padding: 0 2px; border-right: none; border-bottom: 2px solid var(--sde-bar-border); }
+#shadowdark-enhancer-strip[data-edge="left"] .sde-strip-march,
+#shadowdark-enhancer-strip[data-edge="right"] .sde-strip-march { align-self: center; border-right: none; border-bottom: 2px solid var(--sde-march-gold); }
+#shadowdark-enhancer-strip[data-edge="left"] .sde-strip-card-wrap.sde-strip-fade-start > .sde-strip-member,
+#shadowdark-enhancer-strip[data-edge="right"] .sde-strip-card-wrap.sde-strip-fade-start > .sde-strip-member { mask-image: linear-gradient(to bottom, transparent 0, #000 55%); }
+#shadowdark-enhancer-strip[data-edge="left"] .sde-strip-card-wrap.sde-strip-fade-end > .sde-strip-member,
+#shadowdark-enhancer-strip[data-edge="right"] .sde-strip-card-wrap.sde-strip-fade-end > .sde-strip-member { mask-image: linear-gradient(to top, transparent 0, #000 55%); }
+/* The hover tabs open beside the card, not over the card below it. */
+#shadowdark-enhancer-strip[data-edge="left"] .sde-strip-action-tabs { top: 0; left: 100%; width: max-content; flex-direction: column; }
+#shadowdark-enhancer-strip[data-edge="right"] .sde-strip-action-tabs { top: 0; left: auto; right: 100%; width: max-content; flex-direction: column; }
+
+/* Up next banner: the kit's card on the page ground, a white blackletter title, a silver selection bar.
+   Slides in under the top edge, holds, fades; its animation's end removes it. */
+.sde-callout-banner.sde-ui {
+  /* Below the strip when it runs along the top (the strip sets --sde-strip-height). */
+  position: fixed; top: max(14vh, calc(var(--sde-strip-height, 0px) + 16px)); left: 50%; z-index: 1000;
+  display: flex; align-items: center; gap: 12px; padding: 10px 20px 10px 12px;
+  background: var(--ui-panel); border: 1px solid var(--ui-line); border-radius: var(--ui-r2);
+  box-shadow: inset 3px 0 0 var(--ui-frame), var(--ui-shadow);
+  color: var(--ui-body); font-family: var(--ui-font); cursor: pointer;
+  animation: sde-callout 4s ease-in-out forwards;
+}
+.sde-callout-banner img { width: 48px; height: 48px; object-fit: cover; border: 1px solid var(--ui-frame); border-radius: 2px; }
+.sde-callout-title { font: 400 26px/1.1 var(--ui-title); color: var(--ui-text); }
+.sde-callout-sub { font: 500 13px/1.4 var(--ui-font); color: var(--ui-muted); }
+@keyframes sde-callout {
+  0% { opacity: 0; transform: translate(-50%, -24px); }
+  10%, 85% { opacity: 1; transform: translate(-50%, 0); }
+  100% { opacity: 0; transform: translate(-50%, 0); }
+}
+
+/* Combat splash: two columns of the kit's rows either side of a blackletter VS. The party's rows carry
+   the silver selection bar, the enemy's the crimson of the health bar. Tiles arrive one after another. */
+.sde-vs.sde-ui {
+  position: fixed; inset: 0; z-index: 1000;
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 28px; padding: 6vh 6vw;
+  background: rgba(0, 0, 0, 0.75); border: 0; font-family: var(--ui-font); cursor: pointer;
+  animation: sde-vs-in 0.3s ease-out;
+}
+.sde-vs.sde-vs-leaving { opacity: 0; transition: opacity 0.3s; }
+.sde-vs-side { display: flex; flex-direction: column; gap: 6px; max-height: 88vh; overflow: hidden; }
+.sde-vs-allies { align-items: flex-end; }
+.sde-vs-enemies { align-items: flex-start; }
+.sde-vs-tile {
+  display: flex; align-items: center; gap: 12px; width: min(400px, 36vw); padding: 6px 12px 6px 6px;
+  background: var(--ui-panel); border: 1px solid var(--ui-line); border-radius: var(--ui-r2);
+  animation: sde-vs-tile 0.35s ease-out both; animation-delay: calc(var(--sde-vs-i) * 70ms + 150ms);
+}
+.sde-vs-allies .sde-vs-tile { box-shadow: inset 3px 0 0 var(--ui-frame); }
+.sde-vs-enemies .sde-vs-tile { flex-direction: row-reverse; padding: 6px 6px 6px 12px; box-shadow: inset -3px 0 0 var(--ui-danger); }
+.sde-vs-tile img { width: 48px; height: 48px; object-fit: cover; flex-shrink: 0; border: 1px solid var(--ui-frame); border-radius: 2px; }
+.sde-vs-name { flex: 1; min-width: 0; font: 400 22px/1.15 var(--ui-title); color: var(--ui-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sde-vs-enemies .sde-vs-name { text-align: right; }
+.sde-vs-count { font: 600 13px var(--ui-head); color: var(--ui-muted); }
+.sde-vs-init { min-width: 34px; padding: 1px 6px; text-align: center; font: 700 16px/1.4 var(--ui-head); color: var(--ui-text); border: 1px solid var(--ui-frame); border-radius: 2px; }
+/* Montserrat, not the blackletter: a blackletter V reads as a U. */
+.sde-vs-mark { font: 700 clamp(48px, 8vw, 104px)/1 var(--ui-head); letter-spacing: 0.06em; color: var(--ui-text); }
+@keyframes sde-vs-in { from { opacity: 0; } }
+@keyframes sde-vs-tile { from { opacity: 0; transform: translateY(12px); } }
+@media (prefers-reduced-motion: reduce) {
+  .sde-vs, .sde-vs-tile { animation: none; }
+  .sde-callout-banner.sde-ui { animation-name: sde-callout-still; }
+  @keyframes sde-callout-still { 0%, 85% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, 0); } }
+}
+
+/* Focus mode: what a player doesn't see while a combat runs on their scene. */
+body.sde-focus #scene-navigation,
+body.sde-focus #players,
+body.sde-focus #sidebar-tabs [data-tab="combat"] { display: none !important; }
+/* A crowded strip's narrow cards: smaller pill text so movement still reads in full. */
+#shadowdark-enhancer-strip.sde-strip-narrow .sde-strip-pills { gap: 1px; }
+#shadowdark-enhancer-strip.sde-strip-narrow .sde-strip-pill { font-size: 9px; padding-left: 2px; padding-right: 2px; gap: 1px; }
+/* A side column's cut ends are its top and bottom, so the +N counts sit there too. */
+#shadowdark-enhancer-strip[data-edge="left"] .sde-strip-card-wrap[data-more-before]::before,
+#shadowdark-enhancer-strip[data-edge="right"] .sde-strip-card-wrap[data-more-before]::before { top: 2px; left: 50%; right: auto; transform: translateX(-50%); }
+#shadowdark-enhancer-strip[data-edge="left"] .sde-strip-card-wrap[data-more-after]::after,
+#shadowdark-enhancer-strip[data-edge="right"] .sde-strip-card-wrap[data-more-after]::after { top: auto; bottom: 2px; left: 50%; right: auto; transform: translateX(-50%); }
+/* The marching order grid fits the column's 110px cards. */
+#shadowdark-enhancer-strip[data-edge="left"] .sde-strip-march,
+#shadowdark-enhancer-strip[data-edge="right"] .sde-strip-march { grid-template-columns: repeat(3, 30px); grid-auto-rows: 30px; gap: 2px; padding: 4px; }

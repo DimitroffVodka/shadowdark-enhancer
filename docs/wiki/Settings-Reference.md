@@ -201,6 +201,24 @@ See [Movement Budgets](Movement-Budgets.md).
 | **Slim crawl strip for me** | off | Everyone, in the Crawl Strip settings (kept per browser). Shows the slim strip described above on this computer only. Either this or the GM's switch above turns slim on. |
 | **Tab font for me** | Old Newspaper | Everyone, in the Crawl Strip settings (kept per browser). The face for tab labels in the Party sheet and the other Enhancer windows: Old Newspaper, Montserrat (plainest) or large Blackletter. |
 | **Warn when shadowdark-crawl-helper is enabled** | on | Non-blocking notice at world load if Crawl Helper is active. |
+| **Crawl strip position for everyone** | Each user picks | GM. Top, Left side or Right side on every screen. Each user picks leaves it to each player's own setting below. |
+| **Crawl strip position for me** | Top | Everyone (kept per browser). The strip across the top, or as a column down the left or right side. In a column the PARTY plate and the round buttons sit above the cards, and the hover menu opens beside a card. The GM's position for everyone wins when set. |
+| **Crawl strip art for everyone** | Each user picks | GM. Token art or portrait art on every card for everyone. |
+| **Crawl strip art for me** | Token art | Everyone (kept per browser). Each card shows the token's art or the character sheet's portrait. A card falls back to whichever exists. The GM's choice for everyone wins when set. |
+| **Crawl strip size for me** | 1 | Everyone (kept per browser). Scales the whole strip from 0.6 to 1.5. |
+| **Pan to each turn for me** | Never | Everyone (kept per browser). In combat, moves your view to the token whose turn starts: Never, My turns (your own characters; for the GM, the monsters) or Every turn you can see. |
+
+A strip with more combatants than fit at a readable size shows the run of cards around the active one instead of shrinking them further. The cut ends fade with a count of the cards past them, and the mouse wheel over the strip moves the run one card at a time. A new turn brings it back to the active card. The slim strip at the top still wraps onto a second line as before.
+
+#### Combat (in the Crawl Strip settings)
+
+| Setting | Default | What it does |
+|---|---|---|
+| **Up next alert** | on | GM. In combat, a banner tells a player when their character is up next, and the next token on the map wears an UP NEXT tag. "Next" skips the turns the strip skips (dead monsters), and players never get a tag on a hidden combatant. |
+| **Combat splash screen** | on | GM. When a combat starts, every screen shows both sides in turn order for a few seconds, the same monster on the same initiative counted once with ×N. Click it to close it early. Each player sees only what their strip shows them. |
+| **Roll monster initiative automatically** | off | GM. A monster added to a combat rolls its own initiative as a GM-only roll. Player characters still roll their own. |
+| **Focus mode for players** | off | GM. While a combat runs on the scene a player is looking at, they don't see the scene navigation, the player list or the combat tab. The GM's screen is unchanged. |
+| **Hide monsters until seen** | off | GM. A monster joins combat hidden from the players' strip and tracker, and shows the moment one of their tokens can see its token. Its token stays on the map so it can be seen. A monster already in view when it joins, or when the fight starts, shows at once. A monster you hid by hand is never revealed by this option, and showing or hiding one by hand takes it out of this option's hands. The reveal is worked out on the player's computer, so this hides monsters for drama; it does not stop a player who changes their own browser. |
 
 ### Overland
 

@@ -27,6 +27,7 @@ import { luckCount } from "../party/party-sheet-core.mjs";
 import { marchGridHTML, marchButtonHTML, bindMarchControls } from "./march-controls.mjs";
 import { combatantEntry, isHiddenFromStrip, isTurnless, commanderCombatant } from "./turn-skip-core.mjs";
 import { showOocReset } from "./crawl-tracker-core.mjs";
+import { STRIP_ART, STRIP_EDGES, cardWindow, pickStripChoice } from "./strip-layout-core.mjs";
 import { dyingState, badgeHTML as dyingBadgeHTML, openMenu as openDyingMenu } from "../dying/dying.mjs";
 import {
   buildTabStripHTML,
@@ -35,6 +36,27 @@ import {
 } from "./npc-action-menu.mjs";
 
 const STRIP_ID = "shadowdark-enhancer-strip";
+
+/**
+ * This user's strip edge, card art and size; the GM's choice for everyone wins.
+ * @returns {{edge: string, art: string, scale: number}}
+ */
+export function stripLayout() {
+  const get = (key) => game.settings.get(MODULE_ID, key);
+  return {
+    edge: pickStripChoice(get("crawlStripEdgeForAll"), get("crawlStripEdge"), STRIP_EDGES, "top"),
+    art: pickStripChoice(get("crawlStripArtForAll"), get("crawlStripArt"), STRIP_ART, "token"),
+    scale: Number(get("crawlStripScale")) || 1,
+  };
+}
+
+/** A card's picture: the token's art or the actor's portrait, falling back to whichever exists. */
+const cardArt = (art, tokenDoc, actor) => (art === "portrait" ? actor?.img : tokenDoc?.texture?.src)
+  || tokenDoc?.texture?.src || actor?.img || "icons/svg/mystery-man.svg";
+
+/** Below this a full card can't be read, so a crowded strip shows a window of cards instead (px, before scale). */
+const READABLE_W = 72;
+const READABLE_H = 88;
 
 /**
  * The authenticated player→GM channel for luck-token gifts, namespaced per
@@ -552,10 +574,29 @@ export const CrawlStrip = {
         ? sidebar.getBoundingClientRect().left - ifaceRect.left
         : ifaceRect.width;
 
-      this._el.style.left  = leftEdge + "px";
-      this._el.style.width = (rightEdge - leftEdge) + "px";
+      const edge = this._el.getAttribute?.("data-edge") ?? "top";
+      if (edge === "top") {
+        Object.assign(this._el.style, { left: leftEdge + "px", right: "", width: (rightEdge - leftEdge) + "px", height: "" });
+      } else {
+        // A side column runs from the top down to whatever sits at the bottom (Crawl Bar, hotbar).
+        const tops = ["shadowdark-enhancer-bar", "hotbar"]
+          .map((id) => document.getElementById(id)?.getBoundingClientRect().top)
+          .filter((t) => t > ifaceRect.top);
+        const bottom = Math.min(ifaceRect.bottom, ...tops) - ifaceRect.top;
+        Object.assign(this._el.style, edge === "left"
+          ? { left: leftEdge + "px", right: "", width: "", height: bottom + "px" }
+          : { left: "", right: (ifaceRect.width - rightEdge) + "px", width: "", height: bottom + "px" });
+      }
       this._sizeCards();
     };
+    this._updateBounds = updateBounds;
+    // Wheel over a crowded strip moves its window of cards one card per step.
+    strip.addEventListener("wheel", (ev) => {
+      if (!this._el?.querySelector(".sde-strip-out")) return;
+      ev.preventDefault();
+      this._windowShift = (this._windowShift ?? 0) + Math.sign(ev.deltaY || ev.deltaX);
+      this._sizeCards();
+    }, { passive: false });
     this._resizeListener = updateBounds;
     window.addEventListener("resize", updateBounds);
     this._hookIds.push(["collapseSidebar", Hooks.on("collapseSidebar", () => setTimeout(updateBounds, 350))]);
@@ -576,6 +617,7 @@ export const CrawlStrip = {
     if (mode === "off") return { heroes: [], npcs: [], inCombat: false };
 
     const inCombat = mode === "combat" && !!game.combat;
+    const { art } = stripLayout();
 
     if (!inCombat) {
       // Crawl mode — opt-in member list (Add Tokens drives this). Membership is
@@ -606,7 +648,7 @@ export const CrawlStrip = {
       const heroes = entries.map(({ actorId, actor, tokenDoc }) => ({
         id:      `member-${actorId}`,
         name:    tokenDoc?.name ?? actor.name ?? game.i18n.localize("SDE.crawlStrip.tokenFallback"),
-        img:     tokenDoc?.texture?.src ?? actor.img ?? "icons/svg/mystery-man.svg",
+        img:     cardArt(art, tokenDoc, actor),
         type:    "player",
         actorId,
         tokenId: tokenDoc?.id ?? null,
@@ -644,7 +686,7 @@ export const CrawlStrip = {
       const card = {
         id:        `combatant-${c.id}`,
         name:      tokenDoc?.name ?? actor.name,
-        img:       tokenDoc?.texture?.src ?? actor.img,
+        img:       cardArt(art, tokenDoc, actor),
         type:      isPlayer ? "player" : "npc",
         actorId:   actor.id,
         tokenId:   tokenDoc?.id ?? c.tokenId,
@@ -684,6 +726,9 @@ export const CrawlStrip = {
     }
 
     this._el.classList.add("sde-strip-visible");
+    const layout = stripLayout();
+    this._el.setAttribute?.("data-edge", layout.edge);
+    this._el.style?.setProperty?.("--sde-strip-scale", String(layout.scale));
     document.body.classList.add("sde-strip-active");
     document.body.classList.toggle("sde-strip-paused", state.mode === "combat");
 
@@ -856,6 +901,7 @@ export const CrawlStrip = {
       // Marching: the leader's card says so; the others follow, so they carry no turn of their own.
       const leads = !!march && m.actorId === march.leader.id;
       const leadsTip = leads ? esc(game.i18n.format("SDE.crawlStrip.marchLeads", { name: march.leader.name })) : "";
+
 
       const cardHTML = `
         <div class="sde-strip-member ${isActivePhase ? "sde-strip-active" : "sde-strip-dim"} ${isTurn ? "sde-strip-is-turn" : ""} ${leads ? "sde-strip-leads" : ""} ${isDefeated ? "sde-strip-defeated" : ""} ${isHidden ? "sde-strip-hidden" : ""} sde-strip-type-${m.type}${slim ? ` sde-strip-fill ${hpClass}` : ""}"
@@ -1030,12 +1076,15 @@ export const CrawlStrip = {
 
     this._bindEvents();
     bindMarchControls(this._el);
-    this._sizeCards();
+    // The edge may have changed with this render, so place the strip again (it sizes the cards too).
+    if (this._updateBounds) this._updateBounds();
+    else this._sizeCards();
     bindActionMenuEvents(this._el);
     requestAnimationFrame(() => {
       if (!this._el) return;
-      const h = this._el.getBoundingClientRect().height ?? 0;
-      if (h > 0) document.documentElement.style.setProperty("--sde-strip-height", Math.ceil(h) + "px");
+      // Only a strip along the top takes height off the screen; a side column takes none.
+      const h = layout.edge === "top" ? (this._el.getBoundingClientRect().height ?? 0) : 0;
+      if (h > 0 || layout.edge !== "top") document.documentElement.style.setProperty("--sde-strip-height", Math.ceil(h) + "px");
     });
   },
 
@@ -1073,7 +1122,12 @@ export const CrawlStrip = {
 
   _sizeCards() {
     if (!this._el) return;
-    const available = this._el.getBoundingClientRect().width;
+    const edgeAttr = this._el.getAttribute?.("data-edge");
+    const vertical = edgeAttr === "left" || edgeAttr === "right";
+    const scale = Number(this._el.style?.getPropertyValue?.("--sde-strip-scale")) || 1;
+    // Cards are sized in the strip's own pixels; the scale's zoom then grows or shrinks them on screen.
+    const box = this._el.getBoundingClientRect();
+    const available = (vertical ? box.height : box.width) / scale;
     if (available < 10) return;
 
     // The slim GM card is just its name: it keeps its own width and takes no
@@ -1082,9 +1136,16 @@ export const CrawlStrip = {
     const all   = [...this._el.querySelectorAll(".sde-strip-member")];
     const cards = slim ? all.filter(c => !c.classList.contains("sde-strip-type-gm")) : all;
     if (!cards.length) return;
+    const wraps = [...this._el.querySelectorAll(".sde-strip-members > .sde-strip-card-wrap")];
+    for (const w of wraps) {
+      w.classList.remove("sde-strip-out", "sde-strip-fade-start", "sde-strip-fade-end");
+      delete w.dataset.moreBefore;
+      delete w.dataset.moreAfter;
+    }
 
     const n      = cards.length;
     const gap    = 2;
+    if (vertical) return this._sizeColumn({ available, slim, cards, wraps, gap });
     // Slim cards are the same width at most, shrink the same way, and stop at
     // the narrowest that still holds a row of text: past that the row wraps.
     // They are as tall as their rows, so only the width is set.
@@ -1100,13 +1161,74 @@ export const CrawlStrip = {
     const maxH   = 130;
 
     const idealW = (available - reserved - gap * (n - 1)) / n;
-    const cardW  = Math.min(maxW, Math.max(minW, Math.floor(idealW)));
+    // A full card narrower than READABLE_W can't be read: stop there and show
+    // the window of cards around the active one instead (slim wraps a line).
+    const crowded = !slim && idealW < READABLE_W;
+    const cardW  = crowded ? READABLE_W : Math.min(maxW, Math.max(minW, Math.floor(idealW)));
     const cardH  = Math.round(cardW * (maxH / maxW));
 
     cards.forEach(c => {
       c.style.width  = cardW + "px";
       if (!slim) c.style.height = cardH + "px";
     });
+    // A narrow full card shrinks its pill text so "30/30ft" still fits.
+    this._el.classList?.toggle("sde-strip-narrow", !slim && cardW < 96);
+    if (crowded) this._applyWindow(wraps, Math.floor((available - reserved + gap) / (cardW + gap)));
+    else this._windowShift = 0;
+  },
+
+  /**
+   * Size the cards of a strip standing down a side of the screen. Full cards
+   * keep the full width and share the height down to READABLE_H; slim cards
+   * keep the full width and their own height. Either way, cards that don't fit go behind the window.
+   */
+  _sizeColumn({ available, slim, cards, wraps, gap }) {
+    const tall = (el) => el?.offsetHeight ?? 0;
+    const maxW = 110;
+    const maxH = 130;
+    const chrome = tall(this._el.querySelector(".sde-strip-combat-controls"))
+      + tall(this._el.querySelector(".sde-strip-label-col"))
+      + tall(this._el.querySelector(".sde-strip-march")) + 16;
+    let each;
+    if (slim) {
+      cards.forEach((c) => { c.style.width = maxW + "px"; c.style.height = ""; });
+      each = Math.max(...wraps.map(tall)) + gap;
+    } else {
+      const idealH = (available - chrome - gap * (cards.length - 1)) / cards.length;
+      const cardH = Math.min(maxH, Math.max(READABLE_H, Math.floor(idealH)));
+      // A column is short of height, not width: every card keeps the full width, so names and pills fit.
+      cards.forEach((c) => { c.style.height = cardH + "px"; c.style.width = maxW + "px"; });
+      each = cardH + gap;
+    }
+    this._el.classList?.remove("sde-strip-narrow");
+    const fit = Math.floor((available - chrome + gap) / each);
+    if (fit < wraps.length) this._applyWindow(wraps, fit);
+    else this._windowShift = 0;
+  },
+
+  /**
+   * Show only the run of cards that fits, around the active card, and mark the
+   * cut ends with how many are hidden past them. The wheel moves the run
+   * (mount); a new turn brings it back to the active card.
+   */
+  _applyWindow(wraps, fit) {
+    const turnKey = `${CrawlState.mode}:${game.combat?.round}:${game.combat?.turn}:${CrawlState.oocTurn}`;
+    if (this._windowTurn !== turnKey) {
+      this._windowTurn = turnKey;
+      this._windowShift = 0;
+    }
+    const active = wraps.findIndex((w) => w.querySelector(".sde-strip-is-turn"));
+    const { from, to, shift } = cardWindow({ count: wraps.length, fit, active, shift: this._windowShift ?? 0 });
+    this._windowShift = shift;
+    wraps.forEach((w, i) => w.classList.toggle("sde-strip-out", i < from || i > to));
+    if (from > 0) {
+      wraps[from].classList.add("sde-strip-fade-start");
+      wraps[from].dataset.moreBefore = `+${from}`;
+    }
+    if (to < wraps.length - 1) {
+      wraps[to].classList.add("sde-strip-fade-end");
+      wraps[to].dataset.moreAfter = `+${wraps.length - 1 - to}`;
+    }
   },
 
   /**

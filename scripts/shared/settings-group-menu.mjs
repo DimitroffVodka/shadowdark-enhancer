@@ -47,7 +47,7 @@ export class SettingsGroupMenu extends HandlebarsApplicationMixin(ApplicationV2)
       mode: !!s.mode,
       switchLabel: s.mode && s.label ? `${s.label}Switch` : null,
       entries: s.entries.map((e) => this._entry(e)).filter(Boolean),
-    }));
+    })).filter((s) => s.entries.length); // a section of GM-only settings is empty for a player
     return { rootId: this.id, sections };
   }
 

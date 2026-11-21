@@ -130,9 +130,14 @@ export const SETTING_GROUPS = [
     everyone: true,
     sections: [{
       entries: [
-        "crawlStripOffForAll", "crawlStripSlimForAll", "gmAvatarImage", "warnIfCrawlHelperEnabled",
-        "crawlStripDisabled", "crawlStripSlim", "tabFont",
+        "crawlStripOffForAll", "crawlStripSlimForAll", "crawlStripEdgeForAll", "crawlStripArtForAll",
+        "gmAvatarImage", "warnIfCrawlHelperEnabled",
+        "crawlStripDisabled", "crawlStripSlim", "crawlStripEdge", "crawlStripArt", "crawlStripScale",
+        "crawlStripPanToTurn", "tabFont",
       ],
+    }, {
+      label: "SDE.settings.crawlStripMenu.combat",
+      entries: ["combatUpNext", "combatVsScreen", "combatAutoRollNpcInit", "combatFocusMode", "combatHideUntilSeen"],
     }],
   },
   {

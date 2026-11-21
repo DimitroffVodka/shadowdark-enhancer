@@ -5,6 +5,11 @@
 ### Added
 
 - **Free movement combat.** A new setting under Movement turns off feet in combat for tables that judge range by eye. The ruler measures in Foundry's own colours, moves are never charged or refused, and the crawl strip shows no feet left. Initiative and turn order are unchanged, and Lock movement out of turn still applies when it is on. With Free movement crawl also on, movement is untracked everywhere.
+- **Big fights stay readable.** When more combatants are on the strip than fit at a readable size, it shows the cards around the one acting, fades the cut ends with how many are past them, and scrolls with the mouse wheel.
+- **The crawl strip can stand down the left or right side**, show token art or portraits, and be made bigger or smaller. Each player picks for their own screen in the Crawl Strip settings; the GM can set position and art for everyone.
+- **Up next.** In combat, a player gets a banner when their character is up next, and the next token on the map wears an UP NEXT tag. Each user can also have their view pan to each turn.
+- **Combat splash screen.** When a combat starts, every screen shows both sides in turn order for a few seconds. On by default; the GM can turn it off.
+- **Three more GM options for combat**, all off by default: roll monster initiative automatically, focus mode for players (no scene navigation, player list or combat tab while a combat runs), and hide monsters until a player's token can see them.
 
 ### Fixed
 
