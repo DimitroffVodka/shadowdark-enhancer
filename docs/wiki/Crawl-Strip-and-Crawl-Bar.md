@@ -107,6 +107,10 @@ while you drag) and drop it on **Encounter**.
 | **Add Tokens** | Adds selected tokens to combat tracker |
 | **Delete Encounter** | Deletes the combat and throws the fight away: no Hunter XP, no loot drops, no Session Recap entry |
 
+Only a combat on the active scene puts the strip in combat. A fight left on another map does not:
+the strip returns to the crawl or travel when the table moves away from it, and back into combat
+when the table returns.
+
 In combat, the strip displays one card per combatant in initiative order:
 
 ![The crawl strip in combat mode](images/crawl-strip-combat.png)

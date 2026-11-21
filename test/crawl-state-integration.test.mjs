@@ -30,7 +30,7 @@ const SOCKET = `module.${MODULE_ID}`;
  * Build a fresh fake game/Hooks environment and install it on globalThis.
  * Mirrors the setup()/restore() pattern in loading-dialog-guard.test.mjs.
  */
-function setup({ users = [], activeGMId = null, crawlState, combats = [] } = {}) {
+function setup({ users = [], activeGMId = null, crawlState, combats = [], activeSceneId = null } = {}) {
   const settingsStore = { [SETTING_KEY]: crawlState };
   const socketListeners = [];   // { event, cb }
   const hooksMap = new Map();   // event -> cb[]
@@ -51,6 +51,7 @@ function setup({ users = [], activeGMId = null, crawlState, combats = [] } = {})
   const fakeGame = {
     user: null,
     combats: combatsCollection,
+    scenes: { active: activeSceneId ? { id: activeSceneId } : null },
     users: {
       get: (id) => usersById.get(id),
       activeGM: activeGMId ? usersById.get(activeGMId) : null,
@@ -88,6 +89,7 @@ function setup({ users = [], activeGMId = null, crawlState, combats = [] } = {})
     game: fakeGame, Hooks: fakeHooks, settingsStore, socketListeners, emitted, settingsSetCalls,
     setActiveGM: (id) => { fakeGame.users.activeGM = id ? usersById.get(id) : null; },
     setCombats: (arr) => { combatsArr = arr.slice(); },
+    setActiveScene: (id) => { fakeGame.scenes.active = id ? { id } : null; },
     restore: () => Object.assign(globalThis, prev),
   };
 }
@@ -235,6 +237,61 @@ test("priorMode is persisted in the world setting and survives a reload + active
     assert.equal(CrawlState._state.priorMode, "off"); // consumed/reset
     await flush();
   } finally { env2.restore(); }
+});
+
+// ── 3b. Combat mode follows the active scene's combat ──────────────────────
+
+// Foundry's tracker shows only the viewed scene's combat. A fight left on another map used to hold the strip in
+// combat with an empty tracker on the map the table had moved to.
+test("a combat left on another scene does not hold the strip in combat", async () => {
+  const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
+  const env = setup({
+    users: [GM_A], activeGMId: GM_A.id, activeSceneId: "hexMap",
+    crawlState: { _v: STATE_VERSION, mode: "combat", crawlTurn: 0, oocInitiative: {}, oocTurn: null, members: [], priorMode: "crawl" },
+    combats: [{ id: "c1", scene: { id: "warren" } }],
+  });
+  try {
+    env.game.user = GM_A;
+    CrawlState.init();
+    assert.equal(CrawlState.mode, "crawl");
+    await flush();
+  } finally { env.restore(); }
+});
+
+test("combat mode enters and leaves as the active scene moves to and from its fight", async () => {
+  const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
+  const env = setup({
+    users: [GM_A], activeGMId: GM_A.id, activeSceneId: "hexMap",
+    crawlState: { _v: STATE_VERSION, mode: "crawl", crawlTurn: 0, oocInitiative: {}, oocTurn: null, members: [], priorMode: "off" },
+  });
+  try {
+    env.game.user = GM_A;
+    CrawlState.init();
+
+    // A combat made on a scene the table is not on leaves the strip alone.
+    const fight = { id: "c1", scene: { id: "warren" }, flags: {} };
+    env.setCombats([fight]);
+    env.Hooks.callAll("createCombat", fight);
+    assert.equal(CrawlState.mode, "crawl");
+
+    env.setActiveScene("warren");
+    env.Hooks.callAll("updateScene", { id: "warren" }, { active: true });
+    assert.equal(CrawlState.mode, "combat");
+    assert.equal(CrawlState._state.priorMode, "crawl");
+
+    env.setActiveScene("hexMap");
+    env.Hooks.callAll("updateScene", { id: "hexMap" }, { active: true });
+    assert.equal(CrawlState.mode, "crawl");
+
+    // Deleting a fight while the only other one is on another scene leaves combat mode.
+    env.setActiveScene("warren");
+    env.Hooks.callAll("updateScene", { id: "warren" }, { active: true });
+    assert.equal(CrawlState.mode, "combat");
+    env.setCombats([{ id: "c2", scene: { id: "elsewhere" } }]);
+    env.Hooks.callAll("deleteCombat", fight);
+    assert.equal(CrawlState.mode, "crawl");
+    await flush();
+  } finally { env.restore(); }
 });
 
 // ── 4. Public mutators: any GM, non-GM denied ───────────────────────────────

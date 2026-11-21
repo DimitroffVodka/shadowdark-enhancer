@@ -9,6 +9,7 @@
 ### Fixed
 
 - **No more hitch when you drop a token during a crawl or combat.** The crawl strip rebuilt itself three times as the token started to move: once for the move, which it does not show, and twice for the new feet left. It now rebuilds once.
+- **A fight left on another map no longer keeps the crawl strip in combat.** The strip went into combat when a combat existed on any scene, but Foundry's tracker shows only the combat of the scene you are on. Moving the table to another map without ending the fight left the strip stuck in combat with an empty tracker. Now only a combat on the active scene counts. The strip goes back to the crawl or travel when the table moves away from the fight, and back into combat when it returns.
 
 ## [0.24.0] — 2026-11-20
 
