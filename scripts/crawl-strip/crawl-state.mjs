@@ -178,9 +178,12 @@ export const CrawlState = {
       if (combatHere(combat?.id)) return;
       const { state, changed } = _exitCombatMode(this._state);
       if (!changed) return;
-      void this._commit(state).catch((error) => {
-        console.error(`${MODULE_ID} | failed to restore crawl mode after combat`, error);
-      });
+      void this._commit(state)
+        // A fight entered from travel restores travel; on a scene that is not a hex map that is a crawl.
+        .then(followActiveScene)
+        .catch((error) => {
+          console.error(`${MODULE_ID} | failed to restore crawl mode after combat`, error);
+        });
     });
 
     // If the user started combat BEFORE rolling initiative (common mis-step),
@@ -239,9 +242,12 @@ export const CrawlState = {
     const anyCombat = combatHere();
     if (anyCombat && this._state.mode !== "combat") {
       const { state, changed } = _enterCombatMode(this._state);
-      if (changed) void this._commit(state).catch((error) => {
-        console.error(`${MODULE_ID} | failed to reconcile crawl mode → combat`, error);
-      });
+      // A combat made on another scene skipped the enrolment at createCombat; it starts counting here.
+      if (changed) void this._commit(state)
+        .then(() => this._enrollCrawlMembersInCombat(game.combats.find((c) => combatCountsHere(c))))
+        .catch((error) => {
+          console.error(`${MODULE_ID} | failed to reconcile crawl mode → combat`, error);
+        });
     } else if (!anyCombat && this._state.mode === "combat") {
       const { state, changed } = _exitCombatMode(this._state);
       if (changed) void this._commit(state).catch((error) => {

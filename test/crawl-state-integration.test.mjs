@@ -46,6 +46,7 @@ function setup({ users = [], activeGMId = null, crawlState, combats = [], active
   const combatsCollection = {
     get size() { return combatsArr.length; },
     some: (fn) => combatsArr.some(fn),
+    find: (fn) => combatsArr.find(fn),
   };
 
   const fakeGame = {
@@ -291,6 +292,94 @@ test("combat mode enters and leaves as the active scene moves to and from its fi
     env.Hooks.callAll("deleteCombat", fight);
     assert.equal(CrawlState.mode, "crawl");
     await flush();
+  } finally { env.restore(); }
+});
+
+// Core's tracker "+" and the token HUD's combat toggle make a combat tied to no scene, and core's tracker shows it on
+// every scene, so the strip counts it on every scene too.
+test("a combat tied to no scene puts the strip in combat whatever scene is active", async () => {
+  const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
+  const crawling = { _v: STATE_VERSION, mode: "crawl", crawlTurn: 0, oocInitiative: {}, oocTurn: null, members: [], priorMode: "off" };
+  const env = setup({ users: [GM_A], activeGMId: GM_A.id, activeSceneId: "hexMap", crawlState: crawling });
+  try {
+    env.game.user = GM_A;
+    CrawlState.init();
+    const loose = { id: "c1", scene: null, flags: {} };
+    env.setCombats([loose]);
+    env.Hooks.callAll("createCombat", loose);
+    assert.equal(CrawlState.mode, "combat");
+    await flush();
+  } finally { env.restore(); }
+
+  // The same on load, through the reconcile.
+  const env2 = setup({
+    users: [GM_A], activeGMId: GM_A.id, activeSceneId: "hexMap", crawlState: crawling,
+    combats: [{ id: "c1", scene: null }],
+  });
+  try {
+    env2.game.user = GM_A;
+    CrawlState.init();
+    assert.equal(CrawlState.mode, "combat");
+    await flush();
+  } finally { env2.restore(); }
+});
+
+// A fight walked into from travel and ended where it was fought: the exit restores travel, but a dungeon is a crawl.
+test("ending a fight entered from travel, on a scene that is not a hex map, leaves a crawl", async () => {
+  const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
+  const { MovementTracker } = await import("../scripts/crawl-strip/movement-tracker.mjs");
+  // The crawl's anchors are the movement tracker's business, and need a canvas.
+  const capture = MovementTracker.captureCrawlAnchors;
+  MovementTracker.captureCrawlAnchors = async () => {};
+  const fight = { id: "c1", scene: { id: "dungeon" }, flags: {} };
+  const env = setup({
+    users: [GM_A], activeGMId: GM_A.id, activeSceneId: "dungeon",
+    crawlState: { _v: STATE_VERSION, mode: "combat", crawlTurn: 0, oocInitiative: {}, oocTurn: null, members: [], priorMode: "overland" },
+    combats: [fight],
+  });
+  try {
+    env.game.user = GM_A;
+    CrawlState.init();
+    assert.equal(CrawlState.mode, "combat");
+    env.setCombats([]);
+    env.Hooks.callAll("deleteCombat", fight);
+    await flush();
+    assert.equal(CrawlState.mode, "crawl");
+  } finally { env.restore(); MovementTracker.captureCrawlAnchors = capture; }
+});
+
+// A combat made on a scene the table is not on enters combat only when that scene becomes active; the crawl's
+// members are enrolled then, as they would have been had the combat been made on the active scene.
+test("a combat that starts counting when its scene becomes active enrols the crawl's members", async () => {
+  const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
+  const env = setup({
+    users: [GM_A], activeGMId: GM_A.id, activeSceneId: "hexMap",
+    crawlState: { _v: STATE_VERSION, mode: "crawl", crawlTurn: 0, oocInitiative: {}, oocTurn: null, members: ["a1"], priorMode: "off" },
+  });
+  env.game.actors = { get: (id) => (id === "a1" ? { id, type: "Player" } : undefined) };
+  const created = [];
+  const tokens = [{ id: "tokA", actorId: "a1", hidden: false }];
+  const fight = {
+    id: "c1", flags: {},
+    scene: { id: "warren", tokens: { find: (fn) => tokens.find(fn) } },
+    combatants: { map: (fn) => [].map(fn), filter: (fn) => [].filter(fn) },
+    createEmbeddedDocuments: async (_type, rows) => { created.push(...rows); return rows.map((r) => ({ id: `cb-${r.tokenId}`, tokenId: r.tokenId })); },
+    deleteEmbeddedDocuments: async () => [],
+  };
+  try {
+    env.game.user = GM_A;
+    CrawlState.init();
+    env.setCombats([fight]);
+    env.Hooks.callAll("createCombat", fight);
+    await flush();
+    assert.equal(CrawlState.mode, "crawl");
+    assert.equal(created.length, 0);
+
+    env.setActiveScene("warren");
+    env.Hooks.callAll("updateScene", { id: "warren" }, { active: true });
+    assert.equal(CrawlState.mode, "combat");
+    await flush();
+    assert.deepEqual(created.map((r) => r.tokenId), ["tokA"]);
   } finally { env.restore(); }
 });
 
