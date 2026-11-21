@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-2266 tracked files · ~284,300 lines of code/markup across scripts+templates+styles+test.
+2268 tracked files · ~284,500 lines of code/markup across scripts+templates+styles+test.
 `v0.24.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -230,7 +230,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `crawl-strip.mjs` | 1876 | The core feature: the top strip. Plain DOM (`#shadowdark-enhancer-strip`), not ApplicationV2. |
+| `crawl-strip.mjs` | 1870 | The core feature: the top strip. Plain DOM (`#shadowdark-enhancer-strip`), not ApplicationV2. |
 | `crawl-state.mjs` | 534 | Foundry-coupled state singleton — persistence, sockets, hook emission. |
 | `crawl-state-core.mjs` | 440 | Pure reducer/normalizer behind crawl-state. Node-testable. |
 | `crawl-lights-core.mjs` | 93 | Pure light-source logic for the strip's flame badges. |
@@ -245,12 +245,12 @@
 | `march-controls.mjs` | 57 | The strip's marching order: the 3x3 grid beside the PARTY plate and the march switch under it, drawn from the party, with the click, drag and switch handlers that write the party's own settings. |
 | `movement-calc.mjs` | 88 | Pure per-segment feet-moved math. |
 | `npc-action-menu.mjs` | 633 | Per-combatant hover action HUD. |
-| `combat-options-core.mjs` | 34 | Pure rules behind Hide monsters until seen: `shouldAutoHide` (a fresh monster only, never one already hidden by hand) and `mayRevealFor` (a reveal report is plausible only when the monster's token is on the map and the reporting player has a token there that could see it). |
-| `combat-table-options.mjs` | 137 | Three GM options for combat: roll monster initiative automatically, focus mode for players, and hide monsters until a player's token sees them (with its reveal relay). |
+| `combat-options-core.mjs` | 39 | Pure rules behind Hide monsters until seen: `shouldAutoHide` (a fresh monster only, never one already hidden by hand) and `mayRevealFor` (a reveal report is plausible only when the monster's token is on the map and the reporting player has a token there that could see it). |
+| `combat-table-options.mjs` | 143 | Three GM options for combat: roll monster initiative automatically, focus mode for players, and hide monsters until a player's token sees them (with its reveal relay). |
 | `crawl-turn-core.mjs` | 121 | Pure turn-advance authorization for the crawl strip: `canAdvanceTurn()` (a GM always may; a player only when they own the current combatant and the advance would not roll the round) and `nextTurnWouldRollRound()`, mirroring `Combat#nextTurn`'s real wrap rules. |
 | `movement-lock-core.mjs` | 78 | Pure `shouldBlockMovement()` gate for the out-of-turn movement lock — blocks only a non-current combatant of a started combat, matched by (sceneId, tokenId). GMs, non-combatants, non-positional updates, and everything out of combat pass through. |
-| `strip-layout-core.mjs` | 92 | Pure rules for the strip's layout: the GM-forced or own edge and card art, runs of the same monster that share a card, the window of cards a crowded strip shows, the next turn that can act, and the combat splash's tiles. |
-| `turn-callouts.mjs` | 151 | Combat turn callouts: pan to the turn that starts (per user), the Up next banner for the player who acts next, and the UP NEXT tag on the next token. |
+| `strip-layout-core.mjs` | 108 | Pure rules for the strip's layout: the GM-forced or own edge and card art, runs of the same monster that share a card, the window of cards a crowded strip shows, the next turn that can act, and the combat splash's tiles. |
+| `turn-callouts.mjs` | 166 | Combat turn callouts: pan to the turn that starts (per user), the Up next banner for the player who acts next, and the UP NEXT tag on the next token. |
 | `vs-screen.mjs` | 74 | The combat splash shown on every screen when a combat starts: both sides in turn order, the same monster counted once, drawn from what each user's strip shows. |
 
 ### 3.4 `scripts/crawl-bar/`

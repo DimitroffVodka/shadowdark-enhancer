@@ -9,10 +9,14 @@ test("shouldAutoHide: a fresh monster with the option on is auto-hidden", () => 
   assert.equal(shouldAutoHide(fresh), true);
 });
 
+test("shouldAutoHide: Foundry's Add to Combat copies hidden: false, which is still auto-hidden", () => {
+  assert.equal(shouldAutoHide({ ...fresh, dataHidden: false }), true);
+});
+
 test("shouldAutoHide: a monster the GM hid by hand is never flagged for auto-reveal", () => {
   assert.equal(shouldAutoHide({ ...fresh, sourceHidden: true }), false, "hidden-sync stamped _source");
   assert.equal(shouldAutoHide({ ...fresh, tokenHidden: true }), false, "its token is hidden");
-  assert.equal(shouldAutoHide({ ...fresh, dataHidden: false }), false, "the create data says");
+  assert.equal(shouldAutoHide({ ...fresh, dataHidden: true }), false, "the create data says hidden");
 });
 
 test("shouldAutoHide: off, or a player character, never", () => {

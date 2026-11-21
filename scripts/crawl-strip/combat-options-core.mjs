@@ -6,14 +6,19 @@
 /**
  * Should a combatant being created start hidden and flagged for auto-reveal?
  * Only a monster, only with the option on, and never one that is already
- * hidden some other way: the create data says so, hidden-sync stamped the
+ * hidden some other way: the create data says hidden, hidden-sync stamped the
  * source (it writes `_source`, not the create data), or its token is hidden.
  * A monster the GM hid by hand stays the GM's to reveal.
+ *
+ * `hidden: false` in the create data is NOT a choice to show it: Foundry's own
+ * Add to Combat (TokenDocument.createCombatants) copies `hidden: token.hidden`
+ * into every combatant, so an ordinary token arrives as `false`. Only `true`
+ * holds a monster back from auto-hide; there is no separate force-visible.
  * @param {{enabled: boolean, monster: boolean, dataHidden: (boolean|undefined), sourceHidden: boolean, tokenHidden: boolean}} f
  * @returns {boolean}
  */
 export function shouldAutoHide({ enabled, monster, dataHidden, sourceHidden, tokenHidden }) {
-  return Boolean(enabled) && Boolean(monster) && dataHidden === undefined && !sourceHidden && !tokenHidden;
+  return Boolean(enabled) && Boolean(monster) && dataHidden !== true && !sourceHidden && !tokenHidden;
 }
 
 /**

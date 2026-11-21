@@ -96,11 +96,16 @@ function drawMarker() {
   token.addChild(marker);
 }
 
-/** A banner that slides in at the top of the screen and removes itself when its animation ends. */
-export function showBanner(title, subtitle, img, waited = 0) {
+/**
+ * A banner that slides in at the top of the screen and removes itself when its animation ends.
+ * `stillValid`, when given, is asked again just before showing: a banner held
+ * back by the splash is dropped if what it announces is no longer true.
+ */
+export function showBanner(title, subtitle, img, { stillValid = null, waited = 0 } = {}) {
+  if (stillValid && !stillValid()) return;
   // The first turn's banner would land on the combat splash: wait for it to close (it lasts about 7 s).
   if (document.querySelector(".sde-vs") && waited < 10000) {
-    setTimeout(() => showBanner(title, subtitle, img, waited + 250), 250);
+    setTimeout(() => showBanner(title, subtitle, img, { stillValid, waited: waited + 250 }), 250);
     return;
   }
   document.querySelector(".sde-callout-banner")?.remove();
@@ -135,8 +140,13 @@ function onTurnChange(combat) {
   const subtitle = known(current)
     ? game.i18n.format("SDE.combat.upNextFor", { name: next.name, current: current.name })
     : next.name;
+  // Only while the same combat is on the same turn with the same combatant next: a
+  // banner held back by the splash must not announce a turn that has already begun.
+  const turnKey = `${combat.id}:${combat.round}:${combat.turn}`;
+  const stillValid = () => game.combat === combat && `${combat.id}:${combat.round}:${combat.turn}` === turnKey
+    && nextCombatant(combat) === next;
   // After this hook pass, so a combat splash opened by the same turn change is already up to wait for.
-  queueMicrotask(() => showBanner(game.i18n.localize("SDE.combat.upNext"), subtitle, next.img));
+  queueMicrotask(() => showBanner(game.i18n.localize("SDE.combat.upNext"), subtitle, next.img, { stillValid }));
 }
 
 export function registerTurnCallouts() {
@@ -148,4 +158,9 @@ export function registerTurnCallouts() {
   Hooks.on("refreshToken", (token, flags) => {
     if (flags.refreshSize && marker?.parent === token) { clearMarker(); redraw(); }
   });
+  // Switching Up next alert draws or clears the tag at once, not at the next turn
+  // (its first save creates the Setting document, later saves update it).
+  for (const hook of ["createSetting", "updateSetting"]) {
+    Hooks.on(hook, (s) => { if (s.key === `${MODULE_ID}.combatUpNext`) redraw(); });
+  }
 }

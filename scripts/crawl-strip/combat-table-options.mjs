@@ -53,6 +53,9 @@ function updateFocus() {
 
 // ─── Hide until seen ────────────────────────────────────────────────────────
 
+// Ids sent and awaiting the GM, or answered by the GM: not sent again. A report
+// the GM never answered (no GM, a dropped tab, a refusal) is released, so the
+// next trigger while the monster is still flagged and in view sends it again.
 const reported = new Set();
 
 /** Player side: tell the GM which auto-hidden monsters this client can now see. */
@@ -63,8 +66,11 @@ function reportSeen() {
   const seen = combat.combatants.filter((c) => c.hidden && c.getFlag(MODULE_ID, AUTO_HIDDEN)
     && !reported.has(c.id) && c.token?.object?.isVisible);
   if (!seen.length || !game.users.activeGM) return;
-  for (const c of seen) reported.add(c.id);
-  void queryActiveGM(REVEAL_QUERY, { combatId: combat.id, combatantIds: seen.map((c) => c.id) });
+  const ids = seen.map((c) => c.id);
+  for (const id of ids) reported.add(id);
+  void queryActiveGM(REVEAL_QUERY, { combatId: combat.id, combatantIds: ids }).then((reply) => {
+    if (!reply?.ok) for (const id of ids) reported.delete(id);
+  });
 }
 
 /**

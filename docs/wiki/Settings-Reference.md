@@ -19,7 +19,8 @@ button, **Edit Rules Data**, opens the Western Reaches rules tables (see
 [Rules data](#rules-data) below).
 
 The windows are GM-only except Crawl Strip, which every user can open: a player
-sees only the two switches kept for their own computer there.
+sees only the settings kept for their own computer there (strip off, slim, position,
+card art, size, pan to each turn and tab font), not the GM's combat options.
 
 ### Hex coordinates (per user)
 

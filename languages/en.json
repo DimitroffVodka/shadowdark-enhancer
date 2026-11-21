@@ -591,7 +591,7 @@
   "SDE.settings.movementMenu.hint": "Movement budgets in and out of combat.",
   "SDE.settings.movementMenu.label": "Configure",
   "SDE.settings.crawlStripMenu.name": "Crawl Strip",
-  "SDE.settings.crawlStripMenu.hint": "Turn the strip off or slim it on this computer. The GM can also do either for everyone, and sets the GM's portrait and the crawl-helper warning.",
+  "SDE.settings.crawlStripMenu.hint": "How the strip looks on this computer: off, slim, its position, card art, size and panning to each turn. The GM can set several of these for everyone, and also sets the GM's portrait, the crawl-helper warning and the combat options.",
   "SDE.settings.crawlStripMenu.label": "Configure",
   "SDE.settings.crawlStripMenu.combat": "Combat",
   "SDE.settings.clockBar.name": "Clock bar",

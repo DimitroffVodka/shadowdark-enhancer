@@ -26,6 +26,22 @@ export function pickStripChoice(forAll, mine, allowed, fallback) {
 }
 
 /**
+ * Inline insets for the strip's wrapper. Along the top it spans the gap
+ * between the scene navigation and the sidebar; a side column runs from the
+ * top down `height` px. The right column sets `left: auto` explicitly: an empty
+ * value would fall back to the stylesheet's `left: 0`, and with a right inset
+ * too the wrapper would stretch across the screen and draw its column on the left.
+ * @param {string} edge  "top" | "left" | "right"
+ * @param {{leftEdge: number, rightEdge: number, ifaceWidth: number, height: number}} b
+ * @returns {{left: string, right: string, width: string, height: string}}
+ */
+export function stripBoxStyle(edge, { leftEdge, rightEdge, ifaceWidth, height }) {
+  if (edge === "left") return { left: `${leftEdge}px`, right: "", width: "", height: `${height}px` };
+  if (edge === "right") return { left: "auto", right: `${ifaceWidth - rightEdge}px`, width: "", height: `${height}px` };
+  return { left: `${leftEdge}px`, right: "", width: `${rightEdge - leftEdge}px`, height: "" };
+}
+
+/**
  * Which cards a crowded strip shows: as many as fit, starting one before the
  * active card when three fit (so the last mover stays in view), moved by the
  * mouse wheel. `shift` comes back clamped, so the caller can keep it.

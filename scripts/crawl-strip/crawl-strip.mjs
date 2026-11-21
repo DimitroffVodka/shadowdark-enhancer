@@ -27,7 +27,7 @@ import { luckCount } from "../party/party-sheet-core.mjs";
 import { marchGridHTML, marchButtonHTML, bindMarchControls } from "./march-controls.mjs";
 import { combatantEntry, isHiddenFromStrip, isTurnless, commanderCombatant } from "./turn-skip-core.mjs";
 import { showOocReset } from "./crawl-tracker-core.mjs";
-import { STRIP_ART, STRIP_EDGES, cardWindow, pickStripChoice } from "./strip-layout-core.mjs";
+import { STRIP_ART, STRIP_EDGES, cardWindow, pickStripChoice, stripBoxStyle } from "./strip-layout-core.mjs";
 import { dyingState, badgeHTML as dyingBadgeHTML, openMenu as openDyingMenu } from "../dying/dying.mjs";
 import {
   buildTabStripHTML,
@@ -575,18 +575,12 @@ export const CrawlStrip = {
         : ifaceRect.width;
 
       const edge = this._el.getAttribute?.("data-edge") ?? "top";
-      if (edge === "top") {
-        Object.assign(this._el.style, { left: leftEdge + "px", right: "", width: (rightEdge - leftEdge) + "px", height: "" });
-      } else {
-        // A side column runs from the top down to whatever sits at the bottom (Crawl Bar, hotbar).
-        const tops = ["shadowdark-enhancer-bar", "hotbar"]
-          .map((id) => document.getElementById(id)?.getBoundingClientRect().top)
-          .filter((t) => t > ifaceRect.top);
-        const bottom = Math.min(ifaceRect.bottom, ...tops) - ifaceRect.top;
-        Object.assign(this._el.style, edge === "left"
-          ? { left: leftEdge + "px", right: "", width: "", height: bottom + "px" }
-          : { left: "", right: (ifaceRect.width - rightEdge) + "px", width: "", height: bottom + "px" });
-      }
+      // A side column runs from the top down to whatever sits at the bottom (Crawl Bar, hotbar).
+      const tops = edge === "top" ? [] : ["shadowdark-enhancer-bar", "hotbar"]
+        .map((id) => document.getElementById(id)?.getBoundingClientRect().top)
+        .filter((t) => t > ifaceRect.top);
+      const height = Math.min(ifaceRect.bottom, ...tops) - ifaceRect.top;
+      Object.assign(this._el.style, stripBoxStyle(edge, { leftEdge, rightEdge, ifaceWidth: ifaceRect.width, height }));
       this._sizeCards();
     };
     this._updateBounds = updateBounds;
