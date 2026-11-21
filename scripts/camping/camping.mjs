@@ -180,7 +180,12 @@ async function perform(party, action, data, user) {
   if (!isNativeParty(party)) invalid();
   const manager = own(party, user); let camp = campOf(party);
   if (action === "begin") {
-    if (!manager) invalid(); if (camp && camp.phase !== "complete") return camp;
+    if (!manager) invalid();
+    // Tasks rolled but no night to pass them in (no Overland day, #594): a GM may start over. The rolls are dropped,
+    // what they already gave stays, and the fire goes out. A camp that has eaten owes its rest, so it cannot.
+    const restart = user.isGM && camp?.phase === "awaitingRest" && !camp.foodCommitted;
+    if (camp && camp.phase !== "complete" && !restart) return camp;
+    if (restart) await douseFire(camp);
     // IDs, not dotted UUIDs, key saved result/effect maps: Foundry expands dotted object keys.
     const participants = Party.members(party, { charactersOnly: true }).map(uuid => ({ uuid, actorId: actorOf(uuid).id, confirmed: true, participate: true, task: "", ability: null, craft: "torch", watchHalf: "first" }));
     const mounts = Party.members(party).filter(uuid => isMount(actorOf(uuid))).map(uuid => ({ uuid, actorId: actorOf(uuid).id }));
@@ -267,6 +272,11 @@ async function queued(party, work) {
   const previous = queues.get(party.id) ?? Promise.resolve();
   const run = previous.catch(() => {}).then(work);
   queues.set(party.id, run); try { return await run; } finally { if (queues.get(party.id) === run) queues.delete(party.id); }
+}
+/** Safe rest (an inn, a town) ends a camp still waiting for its night (#594): back to setup with its choices, as Start over does. */
+export function closeWaitingCamp(party, user) {
+  // begin itself leaves an eaten camp, and any camp for a non-GM, as it is.
+  return queued(party, async () => { if (campOf(party)?.phase === "awaitingRest") await perform(party, "begin", {}, user); });
 }
 export function requestCamp(party, action, data = {}) {
   const payload = { ...data, partyId: party.id, action };
@@ -421,13 +431,17 @@ async function finishCampNightNow(party, camp, interrupted) {
   await reportCampNight(party, camp);
   return { completed: true };
 }
+/** Removes the camp's own fire light, never another light. */
+async function douseFire(camp) {
+  const light = camp.fire?.lit ? game.scenes.get(camp.anchor?.sceneId)?.lights.get(camp.fire.lightId) : null;
+  if (light?.flags?.[MODULE_ID]?.campFire?.campId === camp.id) await light.delete();
+}
 export async function refreshCampFires() {
   if (!isActiveGM()) return;
   for (const party of game.actors.contents.filter(isNativeParty)) {
     await queued(party, async () => {
       const camp = campOf(party); if (!camp?.fire?.lit || fireAlive(camp.fire, game.time.worldTime, nearFire(party, camp), secondsPerHour(game.time.calendar))) return;
-      const scene = game.scenes.get(camp.anchor.sceneId), light = scene?.lights.get(camp.fire.lightId);
-      if (light?.flags?.[MODULE_ID]?.campFire?.campId === camp.id) await light.delete();
+      await douseFire(camp);
       await save(party, { ...camp, fire: { ...camp.fire, lit: false } });
     });
   }

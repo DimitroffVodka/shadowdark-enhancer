@@ -60,7 +60,7 @@ import { PARTY_FLAG, extrasParties, joinExtras, placePartyToken, wearPartyHex } 
 import { Party, isNativeParty, isLegacyParty } from "../party/party.mjs";
 import { chooseParty } from "./party-choice.mjs";
 import { isPartyDeployed } from "../party/party-movement.mjs";
-import { prepareCampNight, autoCampNight, finishCampNight, campOf, requestCamp } from "../camping/camping.mjs";
+import { prepareCampNight, autoCampNight, finishCampNight, campOf, requestCamp, closeWaitingCamp } from "../camping/camping.mjs";
 import { restSafely } from "../camping/camping-nutrition.mjs";
 import { ownsHexFog, revealParty } from "../hex-map/hex-fog.mjs";
 import { weatherCard } from "../shared/chat-cards.mjs";
@@ -1779,6 +1779,9 @@ export function applyAction(data, user) {
           console.error(`${MODULE_ID} | Safe rest`, err);
           return { ok: false, error: t("SDE.overland.notify.restFailed") };
         }
+        // A camp left waiting for its night is over once the party sleeps indoors; the rest itself already happened.
+        const party = travelParty();
+        if (isNativeParty(party)) await closeWaitingCamp(party, user).catch((err) => console.warn(`${MODULE_ID} | Safe rest: the waiting camp stays`, err));
         await campLine([t("SDE.overland.rest.done", { time: dateParts(game.time.calendar, game.time.worldTime).time })]);
         return { ok: true };
       }

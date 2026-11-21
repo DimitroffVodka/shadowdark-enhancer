@@ -95,3 +95,10 @@ test("showCamp writes the camp picture, tied to a running camp only", () => {
   assert.equal(showCamp(null, { ...args, partyId: 5 }).partyId, "");
 });
 
+// #594: Start over gives the party's camp a new id; the picture it showed must still drop when that camp ends.
+test("a camp started over takes the shown picture over from the camp it replaced", () => {
+  const taken = campTransition(GOOD, setup("c2"), S);
+  assert.deepEqual(taken, { ...GOOD, campId: "c2" });
+  assert.deepEqual(campTransition(taken, { id: "c2", phase: "complete" }, S), { ...GOOD, campId: "c2", shown: false });
+  assert.equal(campTransition(GOOD, setup("c2"), { partyId: "p2" }), null, "another party's camp never takes it");
+});
