@@ -172,6 +172,125 @@ export function registerSettings() {
     onChange: redrawStrip,
   });
 
+  // Where the strip sits and which art its cards use: a pair each, like slim.
+  // The GM's value (blank = each user picks) wins over the user's own.
+  const stripEdges = { top: "SDE.crawlStrip.edge.top", left: "SDE.crawlStrip.edge.left", right: "SDE.crawlStrip.edge.right" };
+  const stripArts = { token: "SDE.crawlStrip.art.token", portrait: "SDE.crawlStrip.art.portrait" };
+  game.settings.register(MODULE_ID, "crawlStripEdgeForAll", {
+    name: "SDE.settings.crawlStripEdgeForAll.name",
+    hint: "SDE.settings.crawlStripEdgeForAll.hint",
+    scope: "world",
+    config: false,
+    type: String,
+    choices: { "": "SDE.crawlStrip.eachUserPicks", ...stripEdges },
+    default: "",
+    onChange: redrawStrip,
+  });
+
+  game.settings.register(MODULE_ID, "crawlStripEdge", {
+    name: "SDE.settings.crawlStripEdge.name",
+    hint: "SDE.settings.crawlStripEdge.hint",
+    scope: "client",
+    config: false,
+    type: String,
+    choices: stripEdges,
+    default: "top",
+    onChange: redrawStrip,
+  });
+
+  game.settings.register(MODULE_ID, "crawlStripArtForAll", {
+    name: "SDE.settings.crawlStripArtForAll.name",
+    hint: "SDE.settings.crawlStripArtForAll.hint",
+    scope: "world",
+    config: false,
+    type: String,
+    choices: { "": "SDE.crawlStrip.eachUserPicks", ...stripArts },
+    default: "",
+    onChange: redrawStrip,
+  });
+
+  game.settings.register(MODULE_ID, "crawlStripArt", {
+    name: "SDE.settings.crawlStripArt.name",
+    hint: "SDE.settings.crawlStripArt.hint",
+    scope: "client",
+    config: false,
+    type: String,
+    choices: stripArts,
+    default: "token",
+    onChange: redrawStrip,
+  });
+
+  game.settings.register(MODULE_ID, "crawlStripScale", {
+    name: "SDE.settings.crawlStripScale.name",
+    hint: "SDE.settings.crawlStripScale.hint",
+    scope: "client",
+    config: false,
+    type: Number,
+    range: { min: 0.6, max: 1.5, step: 0.05 },
+    default: 1,
+    onChange: redrawStrip,
+  });
+
+  game.settings.register(MODULE_ID, "crawlStripPanToTurn", {
+    name: "SDE.settings.crawlStripPanToTurn.name",
+    hint: "SDE.settings.crawlStripPanToTurn.hint",
+    scope: "client",
+    config: false,
+    type: String,
+    choices: {
+      off: "SDE.settings.crawlStripPanToTurn.off",
+      mine: "SDE.settings.crawlStripPanToTurn.mine",
+      all: "SDE.settings.crawlStripPanToTurn.all",
+    },
+    default: "off",
+  });
+
+  // Combat extras (ideas from Roll Call's dock); each is the GM's, for the whole table.
+  game.settings.register(MODULE_ID, "combatUpNext", {
+    name: "SDE.settings.combatUpNext.name",
+    hint: "SDE.settings.combatUpNext.hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: true,
+  });
+
+  game.settings.register(MODULE_ID, "combatVsScreen", {
+    name: "SDE.settings.combatVsScreen.name",
+    hint: "SDE.settings.combatVsScreen.hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: true,
+  });
+
+  game.settings.register(MODULE_ID, "combatAutoRollNpcInit", {
+    name: "SDE.settings.combatAutoRollNpcInit.name",
+    hint: "SDE.settings.combatAutoRollNpcInit.hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: false,
+  });
+
+  game.settings.register(MODULE_ID, "combatFocusMode", {
+    name: "SDE.settings.combatFocusMode.name",
+    hint: "SDE.settings.combatFocusMode.hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: false,
+  });
+
+  game.settings.register(MODULE_ID, "combatHideUntilSeen", {
+    name: "SDE.settings.combatHideUntilSeen.name",
+    hint: "SDE.settings.combatHideUntilSeen.hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: false,
+  });
+
   game.settings.register(MODULE_ID, "crawlStripDisabled", {
     name: "SDE.settings.crawlStripDisabled.name",
     hint: "SDE.settings.crawlStripDisabled.hint",

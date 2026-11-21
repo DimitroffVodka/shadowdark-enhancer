@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-2259 tracked files · ~283,300 lines of code/markup across scripts+templates+styles+test.
+2268 tracked files · ~284,500 lines of code/markup across scripts+templates+styles+test.
 `v0.24.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 1559 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 1566 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 172 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 271 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 | `scavenger/scavenger-core.mjs` | 171 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
@@ -198,7 +198,7 @@
 | `curated-icon-maps/sea-wolf-plunder-icons.mjs` | 40 | The N3 §5.1/D4 Sea Wolf Plunder map: exactly 20 CS3 p68 source-qualified item phrases and reviewed native Foundry `icons/**.webp` paths, keyed without each row's terminal gp price. |
 | `curated-icon-maps/weapon-icons.mjs` | 47 | N3's 37 reviewed Foundry-native weapon icons, keyed by source-agnostic normalized final Item name and registered through the A4 discovery seam. |
 | `attack-card.mjs` | 107 | Reading a Shadowdark attack card — was it an attack at all (a targeted spell is not), did it land, who was it aimed at, who swung. Shared by Parry and Taunt so the two can never disagree about the target (they once did, silently). |
-| `settings.mjs` | 1206 | All `game.settings.register` calls + migration-safe defaults. |
+| `settings.mjs` | 1325 | All `game.settings.register` calls + migration-safe defaults. |
 | `icons.mjs` | 102 | Centralized icon registry — FontAwesome snippets and vendored SVG references. |
 | `i18n.mjs` | 19 | `L(key, data)`: one string from `languages/en.json`, localized, or formatted when there is data; the key itself before Foundry's i18n is mounted and in node tests. The one copy of the helper some 60 files used to define for themselves (as `L` or `t`). |
 | `compendium-suite.mjs` | 471 | Find-or-create layer for managed world packs, ownership, sidebar folders, and source folders. |
@@ -219,7 +219,7 @@
 | `module-flags.mjs` | 163 | What this module owns on a document's flags, and what survives a wholesale replacement (pure). `replaceDocument` updates with `recursive: false`, which is right for `system` and wrong for `flags`: a creation payload knows only the bookkeeping ITS pipeline stamps, so replacing the object outright deletes every other pipeline's — including `monsterSpell.libraryId`, the only handle the Monster Spell planner has on a generated spell, whose loss makes the next refresh create a duplicate (A8/#93). `preservedModuleFlags` starts from the stored flags: a namespace the payload never mentions survives whole (another package's automation, `core`), and a namespace both carry is merged key by key — keys the payload declares win, keys it never mentions survive — for this module's and every other package's alike. `replacementFlags` then answers the two replace branches SEPARATELY, because they are not symmetric — an update keeps the document, so a payload declaring no flags correctly omits the key and the stored object is never touched, while a recreate DELETES the original and must therefore carry those blocks itself or lose them (the defect that quietly recreated a Monster Spell without its `libraryId` on any forced fallback or type mismatch). Also carries `isGeneratedMonsterSpell`, read from the library's own `monsterSpell.generated` marker and never from the A7/D6 `flags[MODULE_ID].generated` replace-always marker — the two contracts share the managed Items pack and mean opposite things. Foundry-free, node-tested. |
 | `property-note.mjs` | 194 | Stamps and preserves the "no core Shadowdark property" note on imported gear (pure). Also owns which description survives a REPLACE: the GM's own text beats importer output, and importer output is the empty placeholder, the note alone, or — since A8 — a description that merely echoes the document's name, which is exactly what `buildItemData`'s Spell path writes when a paste brings no prose. |
 | `scene-thumb.mjs` | 26 | Gives a scene a thumbnail when it has none: Foundry only makes one when a canvas is up at creation, so scenes built headless come out blank in the scene directory and Adventure compendium. Never throws. |
-| `setting-groups.mjs` | 204 | Feature groups for Configure Settings — which settings, nested editors, other packages' settings and notes each pop-out shows, in display order, incl. the Modes of Play boxes. Pure data; the docs-contract test imports it. |
+| `setting-groups.mjs` | 209 | Feature groups for Configure Settings — which settings, nested editors, other packages' settings and notes each pop-out shows, in display order, incl. the Modes of Play boxes. Pure data; the docs-contract test imports it. |
 | `settings-group-menu.mjs` | 214 | The per-feature settings pop-out (ApplicationV2): builds a DataField per setting the way SettingsConfig does (other packages' settings too), renders nested editor buttons, notes and Modes of Play switches, saves on submit, and mints one registerMenu class per group. |
 | `temp-hp-core.mjs` | 48 | Temporary hit points (pure): one pool per actor, `{ value, expires }`, that damage spends before HP so `hp.value` is never raised past `hp.max`. Reads a pool at a time (expired or malformed is 0), spends damage from it, applies the no-stacking rule (a grant replaces the pool only when larger), and finds the Cook surplus the old meal left above the maximum. Foundry-free, node-tested. |
 | `temp-hp.mjs` | 68 | Temporary hit points on the client: the `tempHp` flag (`of`, `set`, `grant`), the wrapper that puts the pool in front of `ActorSD#applyDamage` so only the overflow reaches the system's clamp, and the sweep that retires an expired pool and moves an old Cook surplus into it once. Healing and an actor with no pool take the system's path untouched. |
@@ -230,7 +230,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `crawl-strip.mjs` | 1754 | The core feature: the top strip. Plain DOM (`#shadowdark-enhancer-strip`), not ApplicationV2. |
+| `crawl-strip.mjs` | 1870 | The core feature: the top strip. Plain DOM (`#shadowdark-enhancer-strip`), not ApplicationV2. |
 | `crawl-state.mjs` | 534 | Foundry-coupled state singleton — persistence, sockets, hook emission. |
 | `crawl-state-core.mjs` | 440 | Pure reducer/normalizer behind crawl-state. Node-testable. |
 | `crawl-lights-core.mjs` | 93 | Pure light-source logic for the strip's flame badges. |
@@ -245,8 +245,13 @@
 | `march-controls.mjs` | 57 | The strip's marching order: the 3x3 grid beside the PARTY plate and the march switch under it, drawn from the party, with the click, drag and switch handlers that write the party's own settings. |
 | `movement-calc.mjs` | 88 | Pure per-segment feet-moved math. |
 | `npc-action-menu.mjs` | 633 | Per-combatant hover action HUD. |
+| `combat-options-core.mjs` | 39 | Pure rules behind Hide monsters until seen: `shouldAutoHide` (a fresh monster only, never one already hidden by hand) and `mayRevealFor` (a reveal report is plausible only when the monster's token is on the map and the reporting player has a token there that could see it). |
+| `combat-table-options.mjs` | 143 | Three GM options for combat: roll monster initiative automatically, focus mode for players, and hide monsters until a player's token sees them (with its reveal relay). |
 | `crawl-turn-core.mjs` | 121 | Pure turn-advance authorization for the crawl strip: `canAdvanceTurn()` (a GM always may; a player only when they own the current combatant and the advance would not roll the round) and `nextTurnWouldRollRound()`, mirroring `Combat#nextTurn`'s real wrap rules. |
 | `movement-lock-core.mjs` | 78 | Pure `shouldBlockMovement()` gate for the out-of-turn movement lock — blocks only a non-current combatant of a started combat, matched by (sceneId, tokenId). GMs, non-combatants, non-positional updates, and everything out of combat pass through. |
+| `strip-layout-core.mjs` | 108 | Pure rules for the strip's layout: the GM-forced or own edge and card art, runs of the same monster that share a card, the window of cards a crowded strip shows, the next turn that can act, and the combat splash's tiles. |
+| `turn-callouts.mjs` | 166 | Combat turn callouts: pan to the turn that starts (per user), the Up next banner for the player who acts next, and the UP NEXT tag on the next token. |
+| `vs-screen.mjs` | 74 | The combat splash shown on every screen when a combat starts: both sides in turn order, the same monster counted once, drawn from what each user's strip shows. |
 
 ### 3.4 `scripts/crawl-bar/`
 
