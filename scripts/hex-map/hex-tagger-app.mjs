@@ -1189,7 +1189,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       baseline: baseline?.checked >= 20 ? baseline : null, noCrawl: this._entries.length > 0 && !this._entryUuid,
       sceneName: scene?.name ?? t("SDE.hexMap.label.noScene"), sampled, cellCount: this._cells.length, numberedCount: total,
       summary, origin, anchorNum: origin ? String(origin.num).padStart(4, "0") : "", originText: origin ? t("SDE.hexMap.label.originGrid", { i: origin.i, j: origin.j }) : "",
-      boundsCols: origin?.bounds?.cols ?? "", boundsRows: origin?.bounds?.rows ?? "", skipTopRow: framesTopRow(origin?.bounds),
+      boundsCols: origin?.bounds?.cols ?? "", boundsRows: origin?.bounds?.rows ?? "", skipTopRow: framesTopRow(origin?.bounds, { exact: !!scene?.flags?.["shadowdark-extras"]?.hexcrawl?.grid }),
       mode: this._mode, modes: [["random", "SDE.hexMap.mode.random"], ["keyed", "SDE.hexMap.mode.keyed"], ["review", "SDE.hexMap.mode.review"]]
         .map(([v, k]) => ({ value: v, label: t(k), selected: v === this._mode })),
       entries: this._entries.map((e) => ({ uuid: e.uuid, name: e.name, selected: e.uuid === this._entryUuid })),

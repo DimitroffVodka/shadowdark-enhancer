@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { bakedCopies, previousBake, playSigns, bakedName } from "../scripts/hex-map/bake-map.mjs";
+import { bakedCopies, previousBake, playSigns, bakedName, withoutPlay } from "../scripts/hex-map/bake-map.mjs";
 
 const SDE = "shadowdark-enhancer";
 const bake = (id, root = "print", modified = 0) => ({ id, name: id, _stats: { modifiedTime: modified }, flags: { [SDE]: { bakedPyramid: { base: `worlds/w/baked-maps/${id}` }, hexArtSource: root } } });
@@ -39,4 +39,15 @@ test("play on the scene being replaced is reported, and nothing is reported when
 
 test("the new scene is named for the painted map and the minute", () => {
   assert.equal(bakedName({ name: "Western Reaches" }, new Date(2026, 9, 14, 9, 5)), "Western Reaches (baked 2026-10-14 09:05)");
+});
+
+test("a bake starts without the drawn map's tokens or Extras' reveals and spent rolls; the rest of Extras' flags stay", () => {
+  const data = {
+    tokens: [{ _id: "party" }],
+    flags: { "shadowdark-extras": { hexcrawl: { grid: { cols: 3 } }, hexFogRevealed: ["0-0"], hexFogDiscovery: { a: 1 }, hexRolledCells: ["0-0"] } },
+  };
+  assert.equal(withoutPlay(data), data);
+  assert.deepEqual(data.tokens, []);
+  assert.deepEqual(data.flags["shadowdark-extras"], { hexcrawl: { grid: { cols: 3 } } });
+  assert.deepEqual(withoutPlay({ tokens: [], flags: {} }).flags, {});
 });

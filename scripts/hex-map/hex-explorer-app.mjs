@@ -212,7 +212,8 @@ export class HexExplorerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!game.user?.isGM || !drawsHexArt(source)) return;
     if (!canvas?.app?.renderer) { ui.notifications.warn(t("SDE.hexExplorer.bake.noCanvas")); return; }
     const esc = foundry.utils.escapeHTML;
-    const previous = previousBake(bakedCopies(game.scenes, sharingTags(source)[0]), game.scenes.active);
+    // The scene this bake stands in for: an earlier bake, or on a first bake the drawn map itself.
+    const previous = previousBake(bakedCopies(game.scenes, sharingTags(source)[0]), game.scenes.active) ?? source;
     const signs = playSigns(previous, scene => { try { return Object.keys(recordJournal(scene)?.flags?.[MODULE_ID]?.hexRecords?.cells ?? {}).length; } catch { return 0; } });
     const warning = signs ? `<p class="ui-note warn">${esc(game.i18n.format("SDE.hexExplorer.bake.played", { scene: previous.name, recorded: signs.recorded, tokens: signs.tokens }))}</p>` : "";
     const go = await foundry.applications.api.DialogV2.confirm({

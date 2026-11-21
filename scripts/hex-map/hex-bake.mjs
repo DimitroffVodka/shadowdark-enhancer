@@ -21,7 +21,7 @@ import { piecesOf, tileRect, keyedSprites, drawOrder } from "./hex-art-core.mjs"
 import { readHexes, hexManifest, loadTile, tileWidth, sharingTags, extrasPainted, DRAW_FLAG, SOURCE_FLAG } from "./hex-art.mjs";
 import { PICK_FLAG } from "./tile-sets.mjs";
 import { RECORD_FLAG } from "./hex-records.mjs";
-import { bakedName } from "./bake-map.mjs";
+import { bakedName, withoutPlay } from "./bake-map.mjs";
 
 const TILE = 1024;
 /** ETC1S quality as Foundry's dev gave it; effort 1, not 3: five times slower in a browser for 0.3 dB. */
@@ -132,7 +132,7 @@ async function save(dir, name, bytes) {
  * Its hex records start empty, as any new scene's.
  */
 function createCopy(source, id, hexes, pyramid) {
-  const data = source.toObject();
+  const data = withoutPlay(source.toObject());
   data._id = id;
   data.name = bakedName(source);
   data.active = false;

@@ -51,6 +51,21 @@ export function playSigns(scene, recordedCells) {
   return tokens || recorded ? { tokens, recorded } : null;
 }
 
+/** Extras' per-scene play: fog reveals, discovery and first-arrival rolls. Adoption reads them into a new scene's records. */
+const EXTRAS_PLAY = ["hexFogRevealed", "hexFogDiscovery", "hexRolledCells"];
+
+/**
+ * The drawn map's scene data without its play, so the bake starts fresh as playSigns warns: no tokens, and none of
+ * Extras' reveals or spent rolls, which adoption would otherwise import into the bake's records. Changes `data`.
+ * @param {object} data  source.toObject()
+ */
+export function withoutPlay(data) {
+  data.tokens = [];
+  const extras = data.flags?.[EXTRAS_ID];
+  if (extras) for (const key of EXTRAS_PLAY) delete extras[key];
+  return data;
+}
+
 /** The new scene's name: the drawn map's, "(baked)", and the minute, so two bakes are told apart. */
 export function bakedName(source, now = new Date()) {
   const pad = (n) => String(n).padStart(2, "0");

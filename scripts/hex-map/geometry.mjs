@@ -229,11 +229,14 @@ export const hexDistance = (a, b) =>
  * cells ended up painted as regions.
  *
  * Only a DEFAULT. A stored firstRow of 0 on a map with that shape means the GM
- * unticked it, and is left alone.
+ * unticked it, and is left alone. `exact`: the rows are known, not guessed from a
+ * picture (a scene Shadowdark Extras laid out, whose numbering extrasOrigin copies
+ * and leaves firstRow out of when the top row is there), so only a stored 1 ticks it.
  */
-export function framesTopRow(bounds) {
+export function framesTopRow(bounds, { exact = false } = {}) {
   if (!bounds) return false;
   if (bounds.firstRow !== undefined) return bounds.firstRow === 1;
+  if (exact) return false;
   return Number.isInteger(bounds.rowsLowered) && Number.isInteger(bounds.rows) && bounds.rowsLowered === bounds.rows - 1;
 }
 

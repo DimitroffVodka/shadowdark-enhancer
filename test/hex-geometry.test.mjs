@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { offsetToCube, cubeToOffset, numberFor, cellNumber, onMap, withAnchorNumber, boundsFromRow, framesTopRow, neighbours, foundryOffsetToCube, extrasNumbersAlike, mapRange } from "../scripts/hex-map/geometry.mjs";
+import { offsetToCube, cubeToOffset, numberFor, cellNumber, onMap, withAnchorNumber, boundsFromRow, framesTopRow, neighbours, foundryOffsetToCube, extrasNumbersAlike, mapRange, extrasOrigin } from "../scripts/hex-map/geometry.mjs";
 
 test("cube round trip under both shift rules", () => {
   for (const shifted of ["odd", "even"]) for (let col = 0; col < 5; col++) for (let row = 0; row < 5; row++) {
@@ -226,4 +226,14 @@ test("extrasOrigin numbers a scene Extras built the way Extras does: its first h
   assert.ok(extrasOrigin({ cols: 6, rows: 5, topRows: 0 }));
   assert.equal(extrasOrigin({ rows: 5 }), null);
   assert.deepEqual(extrasOrigin({ cols: 6, rows: 5, origin: 1, firstRow: 2, rowsLowered: 4 }).bounds, { cols: 6, rows: 5, base: { col: 1, row: 1 }, rowsLowered: 4, firstRow: 1 });
+});
+
+test("a scene Extras laid out never guesses a frame row: Apply in the Tagger keeps its top row", () => {
+  // Extras leaves firstRow out when the raised columns start at the top; its lowered columns end a row short.
+  const bounds = extrasOrigin({ cols: 3, rows: 3, rowsLowered: 2 }).bounds;
+  assert.equal(bounds.firstRow, undefined);
+  assert.equal(framesTopRow(bounds), true, "the guess for a map read from a picture");
+  assert.equal(framesTopRow(bounds, { exact: true }), false);
+  // A frame row Extras did record still ticks the box.
+  assert.equal(framesTopRow(extrasOrigin({ cols: 3, rows: 3, rowsLowered: 2, firstRow: 2 })?.bounds ?? { firstRow: 1 }, { exact: true }), true);
 });
