@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-2259 tracked files · ~283,100 lines of code/markup across scripts+templates+styles+test.
+2259 tracked files · ~283,300 lines of code/markup across scripts+templates+styles+test.
 `v0.24.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -231,7 +231,7 @@
 | File | Lines | Description |
 |---|---:|---|
 | `crawl-strip.mjs` | 1754 | The core feature: the top strip. Plain DOM (`#shadowdark-enhancer-strip`), not ApplicationV2. |
-| `crawl-state.mjs` | 516 | Foundry-coupled state singleton — persistence, sockets, hook emission. |
+| `crawl-state.mjs` | 534 | Foundry-coupled state singleton — persistence, sockets, hook emission. |
 | `crawl-state-core.mjs` | 440 | Pure reducer/normalizer behind crawl-state. Node-testable. |
 | `crawl-lights-core.mjs` | 93 | Pure light-source logic for the strip's flame badges. |
 | `crawl-tracker.mjs` | 347 | The out-of-combat tracker as a real sidebar tab (`AbstractSidebarTab`), registered into `Sidebar.TABS` + `CONFIG.ui` beside Combat. Hidden unless a crawl is running; carries the roll-all / advance / reset controls. |

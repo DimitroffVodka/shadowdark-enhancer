@@ -57,6 +57,14 @@ const SOCKET = `module.${MODULE_ID}`;
  */
 export { isActiveGM };
 
+/**
+ * A combat counts for the strip when it is on the table's active scene or tied
+ * to no scene. Foundry's tracker shows only the viewed scene's combat, so a fight
+ * left behind on another map must not hold the strip in combat with an empty tracker.
+ */
+const combatCountsHere = (combat) => !combat?.scene || combat.scene.id === game.scenes?.active?.id;
+const combatHere = (exceptId) => game.combats?.some((c) => c.id !== exceptId && combatCountsHere(c)) ?? false;
+
 export const CrawlState = {
   _state: defaultCrawlState(),
 
@@ -125,7 +133,7 @@ export const CrawlState = {
     // client-local memory) so a reload or active-GM handoff mid-combat still
     // restores the correct mode on exit.
     const doEnterCombatMode = (combat) => {
-      if (!isActiveGM()) return;
+      if (!isActiveGM() || !combatCountsHere(combat)) return;
       const { state, changed } = _enterCombatMode(this._state);
       if (!changed) return;
       void this._commit(state)
@@ -151,24 +159,31 @@ export const CrawlState = {
       void this.overlandToCrawl().catch((error) => console.error(`${MODULE_ID} | travel back to crawl`, error));
     };
     Hooks.on("canvasReady", followActiveScene);
-    Hooks.on("updateScene", (scene, changes) => { if (changes.active) followActiveScene(); });
+    Hooks.on("updateScene", (scene, changes) => {
+      if (!("active" in changes)) return;
+      // A new active scene can bring its own fight, or leave one behind.
+      this._reconcileCombatMode();
+      if (changes.active) followActiveScene();
+    });
     Hooks.on("createCombat", doEnterCombatMode);
     Hooks.on("combatStart",   doEnterCombatMode);
 
     Hooks.on("deleteCombat", (combat) => {
       if (!isActiveGM()) return;
-      // Only LEAVE combat mode when no combat remains. Deleting one combat
+      // Only LEAVE combat mode when no combat remains on the active scene. Deleting one combat
       // while another still exists (a second encounter, or a stray/throwaway
       // combat) must not drop the strip back to crawl while a live fight is
       // still on the tracker. deleteCombat fires post-removal, so game.combats
       // no longer holds the deleted one; the id guard is belt-and-suspenders.
-      const stillInCombat = game.combats.some(c => c.id !== combat?.id);
-      if (stillInCombat) return;
+      if (combatHere(combat?.id)) return;
       const { state, changed } = _exitCombatMode(this._state);
       if (!changed) return;
-      void this._commit(state).catch((error) => {
-        console.error(`${MODULE_ID} | failed to restore crawl mode after combat`, error);
-      });
+      void this._commit(state)
+        // A fight entered from travel restores travel; on a scene that is not a hex map that is a crawl.
+        .then(followActiveScene)
+        .catch((error) => {
+          console.error(`${MODULE_ID} | failed to restore crawl mode after combat`, error);
+        });
     });
 
     // If the user started combat BEFORE rolling initiative (common mis-step),
@@ -212,24 +227,27 @@ export const CrawlState = {
     // inconsistent by a crash, a stray combat deletion, or a mid-combat
     // active-GM handoff would otherwise persist across reloads. Reconcile the
     // mode to the ground truth of game.combats (consistent with the
-    // create/delete guards: any combat present ⇒ combat mode).
+    // create/delete guards: a combat on the active scene ⇒ combat mode).
     this._reconcileCombatMode();
   },
 
   /**
    * Bring the persisted mode into agreement with whether a combat actually
-   * exists. Active-GM gated (single writer). A combat present while mode isn't
-   * "combat" ⇒ enter combat (preserving the pre-combat mode as priorMode);
-   * mode "combat" with no combat at all ⇒ exit (restore priorMode).
+   * exists on the active scene (or unlinked). Active-GM gated (single writer).
+   * Such a combat while mode isn't "combat" ⇒ enter combat (preserving the
+   * pre-combat mode as priorMode); mode "combat" without one ⇒ exit (restore priorMode).
    */
   _reconcileCombatMode() {
     if (!isActiveGM()) return;
-    const anyCombat = (game.combats?.size ?? 0) > 0;
+    const anyCombat = combatHere();
     if (anyCombat && this._state.mode !== "combat") {
       const { state, changed } = _enterCombatMode(this._state);
-      if (changed) void this._commit(state).catch((error) => {
-        console.error(`${MODULE_ID} | failed to reconcile crawl mode → combat`, error);
-      });
+      // A combat made on another scene skipped the enrolment at createCombat; it starts counting here.
+      if (changed) void this._commit(state)
+        .then(() => this._enrollCrawlMembersInCombat(game.combats.find((c) => combatCountsHere(c))))
+        .catch((error) => {
+          console.error(`${MODULE_ID} | failed to reconcile crawl mode → combat`, error);
+        });
     } else if (!anyCombat && this._state.mode === "combat") {
       const { state, changed } = _exitCombatMode(this._state);
       if (changed) void this._commit(state).catch((error) => {
