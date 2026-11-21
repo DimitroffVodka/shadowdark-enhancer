@@ -273,6 +273,11 @@ async function queued(party, work) {
   const run = previous.catch(() => {}).then(work);
   queues.set(party.id, run); try { return await run; } finally { if (queues.get(party.id) === run) queues.delete(party.id); }
 }
+/** Safe rest (an inn, a town) ends a camp still waiting for its night (#594): back to setup with its choices, as Start over does. */
+export function closeWaitingCamp(party, user) {
+  // begin itself refuses an eaten camp and a non-GM.
+  return queued(party, async () => { if (campOf(party)?.phase === "awaitingRest") await perform(party, "begin", {}, user); });
+}
 export function requestCamp(party, action, data = {}) {
   const payload = { ...data, partyId: party.id, action };
   return isActiveGM() ? handleCamp(payload, game.user) : queryActiveGM(QUERY, payload);

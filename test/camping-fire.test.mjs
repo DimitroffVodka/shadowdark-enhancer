@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { handleCamp, refreshCampFires } from "../scripts/camping/camping.mjs";
+import { handleCamp, refreshCampFires, closeWaitingCamp } from "../scripts/camping/camping.mjs";
+import { readFile } from "node:fs/promises";
 const M = "shadowdark-enhancer";
 test("begin anchors the camp at committed coordinates during token animation", async () => {
   const pc = { id: "pc", uuid: "Actor.pc", type: "Player", system: { isPC: true } };
@@ -149,4 +150,30 @@ test("a GM starts over a rolled camp whose night never came: same choices, rolls
   assert.equal(flags[M].camping.participants[0].task, "craft", "the choices carry over");
   assert.equal(flags[M].camping.fuel, "torches");
   assert.equal(lights.size, 0, "the old camp's fire light is removed");
+});
+// #594: a night at an inn ends a camp still waiting for its night, the way Start over does; anything else is left alone.
+test("Safe rest closes a camp waiting for its night back to setup, and leaves every other camp as it is", async () => {
+  const { party, flags, user, lights } = torchCamp(3);
+  delete globalThis.canvas;
+  assert.equal((await handleCamp({ partyId: party.id, action: "resolve" }, user)).ok, true);
+  for (const light of lights.values()) light.delete = async () => { lights.delete(light._id); };
+  const rolled = flags[M].camping;
+  for (const camp of [{ ...rolled, foodCommitted: true }, { ...rolled, phase: "setup" }, { ...rolled, phase: "complete" }, null]) {
+    flags[M].camping = camp;
+    await closeWaitingCamp(party, user);
+    assert.deepEqual(flags[M].camping, camp, camp?.phase ?? "no camp");
+  }
+  flags[M].camping = rolled;
+  await closeWaitingCamp(party, { id: "player", isGM: false });
+  assert.equal(flags[M].camping.phase, "awaitingRest", "only a GM's Safe rest closes it");
+  await closeWaitingCamp(party, user);
+  assert.equal(flags[M].camping.phase, "setup");
+  assert.deepEqual(flags[M].camping.results, {});
+  assert.equal(flags[M].camping.participants[0].task, "craft", "the choices carry over to the next camp");
+  assert.equal(lights.size, 0, "the camp's fire is out");
+});
+test("Safe rest calls closeWaitingCamp for the travel party after the rest", async () => {
+  const src = await readFile(new URL("../scripts/overland/overland.mjs", import.meta.url), "utf8");
+  const body = src.slice(src.indexOf('case "safeRest"'), src.indexOf('case "fastTravel"'));
+  assert.ok(body.indexOf("closeWaitingCamp(") > body.indexOf("restSafely("), "the camp closes after the rest, not before");
 });

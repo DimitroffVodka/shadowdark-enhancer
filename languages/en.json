@@ -4718,7 +4718,7 @@
   "SDE.travel.autoOn": "Auto travel is on: the party crosses days by itself, camps at each day's end and starts the next dawn. It stops for encounters, or when a camp needs a decision.",
   "SDE.travel.newDay": "Start a new day",
   "SDE.travel.safeRest": "Safe rest",
-  "SDE.travel.safeRestHint": "A night somewhere safe, such as an inn: the day ends, the party rests (HP, stat damage, spells and talents come back), and the clock moves to the next morning with its lights out. No rations are eaten, and no encounter check rolls until the party moves on. Then the new day starts.",
+  "SDE.travel.safeRestHint": "A night somewhere safe, such as an inn: the day ends, the party rests (HP, stat damage, spells and talents come back), and the clock moves to the next morning with its lights out. No rations are eaten, and no encounter check rolls until the party moves on. A camp whose tasks were rolled but whose night never came goes back to setup with the same choices. Then the new day starts.",
   "SDE.travel.noDay": "Not until the day starts: it opens at travel start, and after a camp Start day opens it in step 1 (or auto travel opens it at dawn).",
   "SDE.travel.weather.about": "Rolled at dawn: a d6, where 1 is stormy and 6 is excellent, which gives the next roll advantage.",
   "SDE.travel.weather.rolled": "rolled {roll}",
