@@ -66,7 +66,7 @@
 | `camping/camping-cook.mjs` | 14 | Post-eligible-rest Cook seam and active-benefit-scoped native damage/healing/expiry compatibility. |
 | `camping/camping-core.mjs` | 142 | Pure PC task choices, lock, exact shared-first torch cost and scoped Cook surplus/expiry rules. |
 | `camping/camping-nutrition.mjs` | 198 | Actor/day whole-meal accounting, personal-first then automatic Party rations, per-effect starvation and eligible normal-rest receipts across parties/reloads. |
-| `camping/camping.mjs` | 441 | Authenticated owner-choice camp task relay, persistent results/rewards, nearby-PC fire and deferred native nutrition/rest seams for Overland nights. |
+| `camping/camping.mjs` | 450 | Authenticated owner-choice camp task relay, persistent results/rewards, nearby-PC fire and deferred native nutrition/rest seams for Overland nights. |
 | `camping/grinder-core.mjs` | 64 | Pure Grinder Mode rules: hit dice formulas, HP after the roll, which lost spells a 1d4 covers and the player's pick, and the part of a hit past 0 HP. |
 | `camping/grinder.mjs` | 185 | Grinder Mode on the client: its settings, the one-time take-over of Extras' Grinder values, the hit dice and 1d4 rolls, the player's spell pick (owner, then GM), and the applyDamage wrapper that turns damage past 0 HP into CON damage. |
 | `carousing/carousing-app.mjs` | 84 | Carousing controller hosted inline in Party Travel, with GM table/manual-place setup, each PC owner's own-spend choices, persistent results and independent history. |

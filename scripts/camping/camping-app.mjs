@@ -67,7 +67,7 @@ export class CampingApp extends HandlebarsApplicationMixin(ApplicationV2) {
       stormHuntNote: stormHunt ? t("SDE.camping.stormHuntNote") : null,
       phase: t(CAMP_LABELS.phase[camp.phase]), fire: t(camp.fire?.lit ? "SDE.camping.fireLit" : "SDE.camping.noFire"), hasResults: Object.keys(camp.results).length > 0,
       awaitingRest: camp.phase === "awaitingRest", complete: camp.phase === "complete", shortageWarning: unfed.length > 0, unfedNames: unfed.length ? game.i18n.format("SDE.camping.shortageNames", { names: unfed.join(", ") }) : null,
-      canNight: manager && camp.phase === "awaitingRest", canResolve: manager && setup && !planning, canCancel: manager && setup, canResume: manager && (camp.phase === "complete" ? !game.messages.has(camp.reportId) : !setup && !fuel && camp.phase !== "awaitingRest"),
+      canNight: manager && camp.phase === "awaitingRest", canResolve: manager && setup && !planning, canCancel: manager && setup, canStartOver: game.user.isGM && camp.phase === "awaitingRest" && !camp.foodCommitted, canResume: manager && (camp.phase === "complete" ? !game.messages.has(camp.reportId) : !setup && !fuel && camp.phase !== "awaitingRest"),
       torchShortage: camp.fuelShort !== undefined && !camp.fire?.lit ? game.i18n.format("SDE.camping.torchShortage", { available: camp.fuelShort }) : null,
       fuelChoices: ["none", "wood", "torches"].map(value => ({ value, label: t(CAMP_LABELS.fuel[value]), selected: camp.fuel === value })),
       available: plan.available, canFuel: manager && plan.ok,

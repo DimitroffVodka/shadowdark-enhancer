@@ -128,3 +128,25 @@ test("Existing torches with fewer than three goes on without a fire at Lock", as
   assert.equal(item.system.quantity, 2);
   assert.equal(flags[M].camping.fuelShort, 2, "the shortage is kept for the window to say");
 });
+// #594: tasks rolled outside an Overland day had no night to pass, and the window offered no way back to setup.
+test("a GM starts over a rolled camp whose night never came: same choices, rolls dropped, its fire out", async () => {
+  const { party, flags, user, lights } = torchCamp(3);
+  delete globalThis.canvas;
+  assert.equal((await handleCamp({ partyId: party.id, action: "resolve" }, user)).ok, true);
+  assert.equal(flags[M].camping.phase, "awaitingRest");
+  for (const light of lights.values()) light.delete = async () => { lights.delete(light._id); };
+  const owner = { id: "player", isGM: false };
+  await handleCamp({ partyId: party.id, action: "begin" }, owner);
+  assert.equal(flags[M].camping.phase, "awaitingRest", "a player owner cannot drop rolls to roll again");
+  flags[M].camping = { ...flags[M].camping, foodCommitted: true };
+  await handleCamp({ partyId: party.id, action: "begin" }, user);
+  assert.equal(flags[M].camping.phase, "awaitingRest", "a camp that has eaten owes its rest");
+  flags[M].camping = { ...flags[M].camping, foodCommitted: false };
+  const reply = await handleCamp({ partyId: party.id, action: "begin" }, user);
+  assert.equal(reply.ok, true, reply.error);
+  assert.equal(flags[M].camping.phase, "setup");
+  assert.deepEqual(flags[M].camping.results, {});
+  assert.equal(flags[M].camping.participants[0].task, "craft", "the choices carry over");
+  assert.equal(flags[M].camping.fuel, "torches");
+  assert.equal(lights.size, 0, "the old camp's fire light is removed");
+});
