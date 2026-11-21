@@ -275,7 +275,7 @@ async function queued(party, work) {
 }
 /** Safe rest (an inn, a town) ends a camp still waiting for its night (#594): back to setup with its choices, as Start over does. */
 export function closeWaitingCamp(party, user) {
-  // begin itself refuses an eaten camp and a non-GM.
+  // begin itself leaves an eaten camp, and any camp for a non-GM, as it is.
   return queued(party, async () => { if (campOf(party)?.phase === "awaitingRest") await perform(party, "begin", {}, user); });
 }
 export function requestCamp(party, action, data = {}) {
