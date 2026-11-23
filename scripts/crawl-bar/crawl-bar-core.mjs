@@ -111,6 +111,8 @@ export function toolsSections({ mode, hasBastion = false }) {
         e("lootGen", "forge", "SDE.crawlBar.toolsMenu.loot"),
         e("magicForge", "hammer", "SDE.crawlBar.toolsMenu.magicItems"),
         e("merchant", "merchant", "SDE.crawlBar.toolsMenu.merchant"),
+        // Travel has its own Safe rest in the Travel panel, which also closes the travel day.
+        ...(mode === "overland" ? [] : [e("safeRest", "bed", "SDE.travel.safeRest", "SDE.crawlBar.toolsMenu.safeRestTip")]),
         ...(mode === "crawl" ? [e("resetOocInit", "diceD20", "SDE.crawlBar.addTokensMenu.resetInit")] : []),
       ],
     },

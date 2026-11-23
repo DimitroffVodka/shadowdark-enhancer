@@ -79,7 +79,7 @@ the camp waits for **Pass night**, which needs an active Overland day. With no
 day to pass it in, or to change the tasks, the GM presses **Start over**: back
 to setup with the same choices, the rolls dropped, anything they already gave
 kept, and the campfire out. A camp that has already eaten waits for its rest.
-Safe rest in the Travel panel does the same to a waiting camp. After commitment there is
+Safe rest, from the Travel panel or the party token, does the same to a waiting camp. After commitment there is
 no automatic refund. Resume completes outstanding tasks/effects/food/rest only;
 a missing summary is retried without repeating rewards or time. Overland owns
 night time, weather and encounters; the task executor does not advance the

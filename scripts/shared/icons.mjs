@@ -74,6 +74,7 @@ export const ICONS = {
   sunrise:     `<i class="fas fa-sun"></i>`,
   forage:      `<i class="fas fa-seedling"></i>`,
   camp:        `<i class="fas fa-campground"></i>`,
+  bed:         `<i class="fas fa-bed"></i>`,
   flying:      `<i class="fas fa-dove"></i>`,
   swimming:    `<i class="fas fa-person-swimming"></i>`,
   climbing:    `<i class="fas fa-hands-holding"></i>`,

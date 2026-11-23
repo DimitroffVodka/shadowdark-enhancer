@@ -177,3 +177,10 @@ test("Safe rest calls closeWaitingCamp for the travel party after the rest", asy
   const body = src.slice(src.indexOf('case "safeRest"'), src.indexOf('case "fastTravel"'));
   assert.ok(body.indexOf("closeWaitingCamp(") > body.indexOf("restSafely("), "the camp closes after the rest, not before");
 });
+test("Safe rest off the hex map closes the given party's waiting camp after the rest too (PR 597 review)", async () => {
+  const src = await readFile(new URL("../scripts/overland/overland.mjs", import.meta.url), "utf8");
+  const start = src.indexOf("export async function safeRestHere(");
+  const body = src.slice(start, src.indexOf("\n}\n", start));
+  assert.ok(start > 0 && body.includes("closeWaitingCamp(party"), "the party the HUD button was given is the one closed");
+  assert.ok(body.indexOf("closeWaitingCamp(") > body.indexOf("restSafely("), "the camp closes after the rest, not before");
+});

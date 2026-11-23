@@ -1299,6 +1299,30 @@ export async function safeRest() {
 }
 
 /**
+ * Safe rest off the hex map (a town, an inn in a dungeon scene), from the party token's HUD or the clock bar's Tools:
+ * the same night as the Travel panel's, with no travel day to close. The clock moves to the next waking morning with
+ * the lights out, then the party's characters rest. While travelling it is the Travel panel's Safe rest.
+ * @param {Actor|null} [party]  whose members rest; without one (Tools), every player-owned character, as membersFor reads it
+ * @returns {Promise<{ok:boolean, error?:string}|null>}
+ */
+export async function safeRestHere(party = null) {
+  if (CrawlState.isOverland) return safeRest();
+  // advanceOffDuty refuses a player, and warns for itself on every refusal.
+  const moved = await advanceOffDuty(nextWake() - game.time.worldTime, { reason: "rest" });
+  if (!moved.ok) return { ok: false };
+  try {
+    await restSafely(membersFor(party?.id).map((id) => game.actors.get(id)));
+  } catch (err) {
+    console.error(`${MODULE_ID} | Safe rest`, err);
+    return { ok: false, error: t("SDE.crawlBar.rest.failed") };
+  }
+  // As the Travel panel's: a camp left waiting for its night (made while travelling, then travel ended) is over.
+  if (isNativeParty(party)) await closeWaitingCamp(party, game.user).catch((err) => console.warn(`${MODULE_ID} | Safe rest: the waiting camp stays`, err));
+  await campLine([t("SDE.crawlBar.rest.done", { time: dateParts(game.time.calendar, game.time.worldTime).time })]);
+  return { ok: true };
+}
+
+/**
  * The native or provider party the persisted travel token stands for, or null (route.mjs's day-walking
  * and camp read it too).
  */
