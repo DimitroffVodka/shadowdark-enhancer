@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- **Safe rest works off the hex map.** In town or anywhere else that isn't overland travel, the GM can press the bed button on the party token's HUD (or Safe rest in the clock bar's Tools menu): the night passes to the next morning with the lights out and the party rests, with no rations eaten. While travelling, the Travel panel's Safe rest is unchanged.
+
 ## [0.25.0] — 2026-11-21
 
 ### Added

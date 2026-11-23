@@ -17,7 +17,7 @@ import { esc }             from "../shared/esc.mjs";
 import { BUTTONS, barItems, overlandBadge, toolsSections } from "./crawl-bar-core.mjs";
 import {
   startOverland, endOverland, rollWeather, weatherNow, weatherName, startDayFromParty, resumeHeld, overlandState, OVERLAND_CHANGED,
-  makeCamp,
+  makeCamp, safeRestHere,
 } from "../overland/overland.mjs";
 import { TravelBar }       from "../overland/overland-bar.mjs";
 import { battleItem }      from "../overland/encounter-panel.mjs";
@@ -458,6 +458,13 @@ export const CrawlBar = {
 
       case "makeCamp": {
         const reply = await makeCamp();
+        if (!reply?.ok && reply?.error) ui.notifications.warn(reply.error);
+        this.render();
+        break;
+      }
+
+      case "safeRest": {
+        const reply = await safeRestHere();
         if (!reply?.ok && reply?.error) ui.notifications.warn(reply.error);
         this.render();
         break;

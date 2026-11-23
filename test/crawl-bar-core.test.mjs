@@ -95,7 +95,7 @@ test("Tools: sections in order, 'This travel day' only while travelling", () => 
 
 test("Tools: the table, between-sessions and set-up entries", () => {
   const [table, between, setup] = toolsSections({ mode: "off" });
-  assert.deepEqual(table.entries.map((e) => e.action), ["encounter", "battleMap", "rollTables", "lootGen", "magicForge", "merchant"]);
+  assert.deepEqual(table.entries.map((e) => e.action), ["encounter", "battleMap", "rollTables", "lootGen", "magicForge", "merchant", "safeRest"]);
   assert.deepEqual(between.entries.map((e) => e.action), ["partyXp", "downtime", "carousing", "training", "renown", "rumors", "recap", "pitFighting"]);
   assert.deepEqual(setup.entries.map((e) => e.action), ["importer"]);
 });
@@ -105,6 +105,12 @@ test("Tools: Bastions only once the world has one; Reset initiative only in a cr
   assert.ok(entries({ mode: "off", hasBastion: true }).includes("bastions"));
   assert.ok(entries({ mode: "crawl" }).includes("resetOocInit"));
   assert.ok(!entries({ mode: "off" }).includes("resetOocInit") && !entries({ mode: "overland" }).includes("resetOocInit"));
+});
+
+test("Tools: Safe rest off the hex map, but not while travelling (the Travel panel has its own)", () => {
+  assert.ok(entries({ mode: "off" }).includes("safeRest"));
+  assert.ok(entries({ mode: "crawl" }).includes("safeRest"));
+  assert.ok(!entries({ mode: "overland" }).includes("safeRest"));
 });
 
 test("Tools: no entry is listed twice, and every one has a label and an icon", () => {

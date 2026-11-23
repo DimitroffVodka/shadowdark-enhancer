@@ -83,11 +83,20 @@ the button.
 | Section | Entries |
 |---|---|
 | **This travel day** (overland travel only) | Start day, Roll weather, Start a crawl |
-| **At the table** | **Encounter** (opens the [Encounter Roller](Random-Encounters.md); the button beside it, or a right-click, opens the encounter menu: check, threshold, frequency, tables by terrain), [Battle map](Encounter-Battle-Maps.md) (a battle map with the party only, no encounter needed), Roll tables, [Loot](Loot-and-Treasure.md), [Magic items](Magic-Item-Forge.md), [Merchant](Merchant-Shop.md), and in a crawl **Reset Initiative** |
+| **At the table** | **Encounter** (opens the [Encounter Roller](Random-Encounters.md); the button beside it, or a right-click, opens the encounter menu: check, threshold, frequency, tables by terrain), [Battle map](Encounter-Battle-Maps.md) (a battle map with the party only, no encounter needed), Roll tables, [Loot](Loot-and-Treasure.md), [Magic items](Magic-Item-Forge.md), [Merchant](Merchant-Shop.md), **Safe rest** when not travelling (below), and in a crawl **Reset Initiative** |
 | **Between sessions** | [Party XP](Party-XP.md), [Downtime](Downtime.md), [Carousing](Carousing.md), [Training](Regional-Training.md), [Renown](Renown.md), [Rumors](Rumors.md), [Recap](Session-Recap.md), [Pit fighting](Pit-Fighting.md) |
 | **Set up** | [Importer](Importer-Hub.md), and Bastions once the world has one |
 
 ![The Tools panel](images/crawl-bar-tools.png)
+
+**Safe rest** in Tools, or the bed button on the party token's HUD, is the
+night at an inn for a town or any scene that is not overland travel; no hex
+map or travel day is needed. The clock moves to the next 06:00 (or sunrise, if
+later) with carried lights out, and the party token's members (from Tools,
+every player-owned character) get the rest a camp gives: HP, stat damage, spells,
+talents and wands back, or Grinder Mode's rolls when it is on. Nobody eats a
+ration. While travelling, the party token's button is the Travel panel's Safe
+rest (below), which also ends the travel day.
 
 You can still **drag a RollTable from the sidebar onto Encounter** to set it as
 your active random encounter table: drag it over **Tools** (the panel opens

@@ -104,8 +104,11 @@ travels on a hex map, and the one Deploy, Recall and the HUD act on.
 - **Linked only.** Deploy and Recall need a *linked* Party token on the scene.
   Without one they say so rather than guess; drag the Party actor onto the scene.
 - **HUD.** Selecting it shows **Open Party** (for anyone with that Party)
-  and, for a Party OWNER, **Import/Export Members**. The second is greyed out
-  in combat.
+  and, for a Party OWNER, **Import/Export Members**. The GM also gets
+  **Safe rest** (the bed): a night at an inn for this party's members,
+  anywhere, no hex map needed (see
+  [Safe rest](Crawl-Strip-and-Crawl-Bar.md#tools)). Both are greyed out in
+  combat.
 - **Hex maps.** It carries no light and no sight there; see
   [Hex Maps](Hex-Maps.md) and
   [which token travels](Crawl-Strip-and-Crawl-Bar.md).

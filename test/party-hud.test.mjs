@@ -38,6 +38,25 @@ test("one owner HUD entry, visible combat reason, observer/NPC absence and unrel
   party.testUserPermission = () => true; party.flags = {};
   const npc = new Element(); hooks.get("renderTokenHUD")(hud, npc); assert.equal(npc.children.length, 0);
 });
+test("the GM also gets Safe rest on the party token, greyed out in combat; a player owner does not", () => {
+  const hooks = new Map();
+  globalThis.Hooks = { on: (name, fn) => hooks.set(name, fn) };
+  globalThis.HTMLElement = Element;
+  globalThis.document = { createElement: () => new Element() };
+  globalThis.game = { user: { isGM: true }, i18n: { localize: k => k }, combats: { contents: [] } };
+  registerPartyHUD();
+  const party = { type: "NPC", flags: { [MOD]: { party: true } }, testUserPermission: () => true };
+  const hud = { object: { actor: party, document: { parent: { id: "s" } } } };
+  const root = new Element(); hooks.get("renderTokenHUD")(hud, root);
+  assert.deepEqual(root.children.map(c => c.className), ["control-icon sde-party-movement", "control-icon sde-party-rest"]);
+  assert.equal(root.children[1].title, "SDE.party.rest.tip"); assert.equal(root.children[1].disabled, false);
+  globalThis.game.combats.contents = [{ started: true, scene: { id: "s" } }];
+  const fight = new Element(); hooks.get("renderTokenHUD")(hud, fight);
+  assert.equal(fight.children[1].disabled, true); assert.equal(fight.children[1].title, "SDE.party.rest.combat");
+  globalThis.game.user.isGM = false; globalThis.game.combats.contents = [];
+  const player = new Element(); hooks.get("renderTokenHUD")(hud, player);
+  assert.ok(!player.children.some(c => c.className.includes("sde-party-rest")));
+});
 function fixture() {
   const member = { id: "pc", uuid: "Actor.pc", type: "Player", name: "PC", testUserPermission: () => true };
   const party = { id: "p", uuid: "Actor.p", type: "NPC", flags: { [MOD]: { party: true, partyData: { members: [member.uuid], followLeader: false } } }, testUserPermission: u => u.id === "owner" || u.isGM };
