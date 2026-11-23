@@ -1316,6 +1316,8 @@ export async function safeRestHere(party = null) {
     console.error(`${MODULE_ID} | Safe rest`, err);
     return { ok: false, error: t("SDE.crawlBar.rest.failed") };
   }
+  // As the Travel panel's: a camp left waiting for its night (made while travelling, then travel ended) is over.
+  if (isNativeParty(party)) await closeWaitingCamp(party, game.user).catch((err) => console.warn(`${MODULE_ID} | Safe rest: the waiting camp stays`, err));
   await campLine([t("SDE.crawlBar.rest.done", { time: dateParts(game.time.calendar, game.time.worldTime).time })]);
   return { ok: true };
 }
