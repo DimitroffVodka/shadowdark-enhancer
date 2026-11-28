@@ -6,6 +6,10 @@
 
 - **Safe rest works off the hex map.** In town or anywhere else that isn't overland travel, the GM can press the bed button on the party token's HUD (or Safe rest in the clock bar's Tools menu): the night passes to the next morning with the lights out and the party rests, with no rations eaten. While travelling, the Travel panel's Safe rest is unchanged.
 
+### Fixed
+
+- **The book importer is ready for Foundry 14.371.** That build moves its PDF reader to a newer version, which broke two things the importer relies on: closing a book picked from your computer failed, and every bold heading lost its bold marking without any error. Both now work on the old reader and the new one.
+
 ## [0.25.0] — 2026-11-21
 
 ### Added

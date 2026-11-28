@@ -55,7 +55,7 @@ async function withPage(page, fn) {
     const items = (await pdfPage.getTextContent()).items;
     return await fn(pdfPage, items);
   } finally {
-    await doc.destroy();
+    await doc.loadingTask.destroy();
   }
 }
 
