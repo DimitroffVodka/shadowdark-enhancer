@@ -19,6 +19,6 @@
     "@eslint/js": "^9.13.0",
     "eslint": "^9.13.0",
     "globals": "^15.11.0",
-    "pdfjs-dist": "4.0.379"
+    "pdfjs-dist": "6.5.438"
   }
 }

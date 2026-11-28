@@ -8,8 +8,8 @@
 
 | | Minimum | Verified |
 |---|---|---|
-| Foundry VTT | v14 | **v14.370** |
-| Shadowdark RPG system | v3.6.2 | **v4.1.0** |
+| Foundry VTT | v14 | **v14.371** |
+| Shadowdark RPG system | v3.6.2 | **v4.1.2** |
 
 **Recommended, not required:** [shadowdark-extras](https://github.com/DimitroffVodka/shadowdark-extras)
 (verified 6.10.45). It automates imported spells: creature-type gating,
