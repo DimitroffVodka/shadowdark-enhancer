@@ -2,10 +2,16 @@
 
 ## [Unreleased]
 
+## [0.26.0] — 2026-11-28
+
 ### Added
 
 - **Safe rest works off the hex map.** In town or anywhere else that isn't overland travel, the GM can press the bed button on the party token's HUD (or Safe rest in the clock bar's Tools menu): the night passes to the next morning with the lights out and the party rests, with no rations eaten. While travelling, the Travel panel's Safe rest is unchanged.
 - **Give the rumor you mean.** The Give Rumors dialog can now give rumors you pick off the rumor tables, or a rumor you write yourself, as well as a random draw. Picked rumors are marked given, so a random draw skips them; both go on the Rumors Heard journal, the Session Recap and the Hidden quest drafts like any other, and touch no trouble. A new **Post them to chat** tick box lets you record rumors without a chat card. Macros get `rumors.tell` and `rumors.pick` (API 1.37.0). (#598)
+
+### Changed
+
+- **Verified on Foundry 14.371 and Shadowdark 4.1.2.** Foundry 14.364-14.370 and Shadowdark 4.1.0 keep working.
 
 ### Fixed
 
