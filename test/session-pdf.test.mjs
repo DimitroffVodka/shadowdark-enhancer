@@ -15,6 +15,7 @@ import {
   useSessionPdf, hasSessionPdf, sessionPdfFile, sessionPdfPath, isSessionPdf, forgetSessionPdfs, onTheForge,
 } from "../scripts/importer/session-pdf.mjs";
 import { extractPdfText, releaseLocalPdfs, _internals } from "../scripts/importer/pdf-text-extract.mjs";
+import { BOLD_OPEN, BOLD_CLOSE } from "../scripts/importer/pdf-text-utils.mjs";
 
 const stubGlobals = ({ journal } = {}) => {
   const saved = { game: globalThis.game, foundry: globalThis.foundry, fetch: globalThis.fetch };
@@ -143,4 +144,13 @@ test("the same file read again is not parsed again", async () => {
   const first = await _internals._docCache.get("session-pdf:CS1");
   await extractPdfText(sessionPdfPath("CS1"), { pages: [1] });
   assert.equal(await _internals._docCache.get("session-pdf:CS1"), first);
+});
+
+test("a run set in a bold face comes back bracketed as bold, and a plain one does not", async () => {
+  // Opened with the extractor's own getDocument options: pdf.js 5+ drops the font name _tagBold reads without them.
+  const pdf = writePdf([{ runs: [{ x: 50, y: 700, text: "Ferns crowd", bold: true }, { x: 50, y: 680, text: "the flooded steps" }] }]);
+  useSessionPdf("CS1", new File([pdf], "bold.pdf", { type: "application/pdf" }));
+  const { text } = await extractPdfText(sessionPdfPath("CS1"), { pages: [1], markBold: true });
+  assert.ok(text.includes(`${BOLD_OPEN}Ferns crowd${BOLD_CLOSE}`), JSON.stringify(text));
+  assert.ok(!text.includes(`${BOLD_OPEN}the flooded`), JSON.stringify(text));
 });
