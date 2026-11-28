@@ -25,3 +25,10 @@ jobs:
 
       - name: Inventory up to date
         run: npm run inventory:check
+
+      # Foundry 14.371 bundles PDF.js 6.5.438; the pin stays on the verified build's 4.0.379.
+      # On 6.x only, the bold test fails if the extractor stops passing fontExtraProperties.
+      - name: PDF suites on PDF.js 6.5.438
+        run: |
+          npm install --no-save pdfjs-dist@6.5.438
+          node --test test/session-pdf.test.mjs test/pdf-extract-synth.test.mjs test/importer-read-whole-book.test.mjs
