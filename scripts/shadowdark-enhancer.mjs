@@ -168,7 +168,7 @@ const STYLESHEET_REV = "932fd2388061";
 // stale); module.json carries the same hash and is fetched fresh at runtime. A
 // mismatch is a stale cache by construction — it cannot be anything else. Both
 // stamps are written by `npm run inventory` and gated by `inventory:check`.
-const BUILD_REV = "799b0381a4cc";
+const BUILD_REV = "86bfdf3da779";
 
 /**
  * Tell the user when their browser is running an old build of this module, and
@@ -575,7 +575,8 @@ Hooks.once("init", () => {
     // 1.34.0 — additive: overland.setAutoTravel, the standing automatic journey; the travel state gains auto.
     // 1.35.0 — additive: the automatic journey's saved destination (overland.autoGoal) and Travel > Resume auto.
     // 1.36.0 — additive: overland.travelBlocked, why the party cannot enter a destination today.
-    apiVersion: "1.36.0",
+    // 1.37.0 — additive: rumors.tell and rumors.pick, and give's announce (#598).
+    apiVersion: "1.37.0",
     // The one travel state per world (scripts/overland/overland.mjs): a copy
     // with hexes left, climate, storm, harshness and night derived; whether
     // travel is on; today's weather roll, the travel day's start, Continue
@@ -1120,8 +1121,11 @@ Hooks.once("init", () => {
     },
     // 1.24.0 — additive: rumors (#190). Give rumors (GM) and read the Rumors
     // Heard ledger (anyone; Shadowdark Extras' party sheet calls heard() bare).
+    // 1.37.0 — additive: tell() and pick(), a rumor the GM wrote or rows the GM chose (#598).
     rumors: {
       give: (opts) => Rumors.give(opts),
+      tell: (opts) => Rumors.tell(opts),
+      pick: (opts) => Rumors.pick(opts),
       heard: (opts) => Rumors.heard(opts),
     },
     // 1.7.0 — additive: the Quest Log. One world journal per quest; reads are
