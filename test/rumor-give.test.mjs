@@ -27,9 +27,13 @@ globalThis.game = {
 const { Rumors } = await import("../scripts/rumors/rumors.mjs");
 const { Troubles } = await import("../scripts/troubles/troubles.mjs");
 const { SessionRecap } = await import("../scripts/session-recap/session-recap.mjs");
+const { Quests } = await import("../scripts/quests/quests.mjs");
 
-/** A world ledger that keeps what is written to it: `game.journal` finds it once created. */
-function freshLedger() {
+/** Every ledger and table write, in order. */
+const writes = [];
+
+/** A world ledger that keeps what is written to it: `game.journal` finds it once created; `seed` pages make it exist already. */
+function freshLedger(seed = []) {
   const pages = [];
   const entry = {
     getFlag: (_s, k) => (k === "rumorLedger" ? true : undefined),
@@ -38,17 +42,22 @@ function freshLedger() {
       get: (id) => pages.find((p) => p.id === id),
     }),
     async createEmbeddedDocuments(_type, data) {
+      writes.push("ledger");
       for (const d of data) {
         const page = { id: `p${pages.length}`, uuid: `JournalEntry.l.JournalEntryPage.p${pages.length}`, sort: d.sort, name: d.name, flags: structuredClone(d.flags) };
         page.getFlag = (s, k) => page.flags[s]?.[k];
+        page.update = async (u) => { page.flags[M].rumorPage = u[`flags.${M}.rumorPage`]; };
         pages.push(page);
       }
     },
     async updateEmbeddedDocuments(_type, data) {
+      writes.push("ledger");
       for (const d of data) pages.find((p) => p.id === d._id).flags[M].rumorPage = d[`flags.${M}.rumorPage`];
     },
   };
-  let made = false;
+  let made = seed.length > 0;
+  if (made) void entry.createEmbeddedDocuments("JournalEntryPage", seed.map(([region, rumors]) => ({ name: region ?? "General", flags: { [M]: { rumorPage: { region, rumors } } } })));
+  writes.length = 0;
   globalThis.game.journal = { find: (fn) => (made && fn(entry) ? entry : null) };
   globalThis.JournalEntry = { create: async () => { made = true; return entry; } };
   return entry;
@@ -56,22 +65,42 @@ function freshLedger() {
 
 const rumorsOn = (entry) => entry.pages.flatMap((p) => p.flags[M].rumorPage.rumors);
 
-/** A rumor table in the world: `rows` are [id, text, drawn?]; records the rows marked drawn. */
+/** A rumor table (the world's, or in `pack`): `rows` are [id, text, drawn?]; records the rows marked drawn. */
 function table(name, rows, { pack = null, locked = false } = {}) {
-  const tb = { name, pack, compendium: pack ? { locked } : null, marked: [] };
+  const tb = { name, uuid: `${pack ? `Compendium.${pack}.` : ""}RollTable.${name}`, pack, compendium: pack ? { locked } : null, marked: [] };
   const results = rows.map(([id, text, drawn = false], i) => ({
     id, uuid: `RollTable.${name}.TableResult.${id}`, documentName: "TableResult", parent: tb, name: text, range: [i + 1, i + 1], drawn,
   }));
   tb.results = { contents: results };
   tb.updateEmbeddedDocuments = async (_type, data) => {
+    writes.push("drawn");
     for (const { _id } of data) { tb.marked.push(_id); results.find((r) => r.id === _id).drawn = true; }
   };
   return tb;
 }
 
+/** The tables a draw sees: `world` in the sidebar, `packed` in the module's sde-tables pack. */
+function serve({ world = [], packed = [] } = {}) {
+  globalThis.game.tables = world;
+  globalThis.game.packs = packed.length ? [{
+    collection: "world.sde-tables", metadata: { packageType: "world", label: "x" },
+    index: Object.assign(packed.map((tb) => ({ _id: tb.name, name: tb.name })), { size: packed.length }),
+    getDocument: async (id) => packed.find((tb) => tb.name === id),
+  }] : [];
+  const rows = [...world, ...packed].flatMap((tb) => tb.results.contents);
+  globalThis.fromUuid = async (u) => rows.find((r) => r.uuid === u) ?? null;
+  return rows;
+}
+
+const quests = [];
+
 const chats = [], discovered = [], recaps = [];
 beforeEach(() => {
-  chats.length = 0; discovered.length = 0; recaps.length = 0; warnings.length = 0;
+  chats.length = 0; discovered.length = 0; recaps.length = 0; warnings.length = 0; quests.length = 0;
+  serve();
+  globalThis.game.settings = { get: () => false, register() {} };
+  Quests.get = () => null;
+  Quests.create = async (data) => { quests.push(data); return { uuid: `JournalEntry.q${quests.length}`, ...data }; };
   globalThis.ChatMessage = { create: async (d) => chats.push(d) };
   Troubles.discover = async (id) => discovered.push(id);
   Troubles.undiscovered = async () => [{ id: "tr1", uuid: "Trouble.tr1", region: "Sablewood", settlement: { name: "Hollowmere" }, type: "Plague", stage: "s", symptoms: {} }];
@@ -117,9 +146,9 @@ test("pick gives the chosen rows, marks them drawn, and takes each rumor's regio
   const entry = freshLedger();
   const regional = table("Sablewood Rumors", [["a", "Wolves walk upright."], ["b", "The ford is cursed."]]);
   const general = table("Rumors in the Reaches", [["g", "A comet was seen."]]);
-  const rows = { [regional.results.contents[1].uuid]: regional.results.contents[1], [general.results.contents[0].uuid]: general.results.contents[0] };
-  globalThis.fromUuid = async (u) => rows[u] ?? null;
-  const out = await Rumors.pick({ results: Object.keys(rows), heardBy: ["Bram"], announce: false });
+  serve({ world: [regional, general] });
+  const chosen = [regional.results.contents[1].uuid, general.results.contents[0].uuid];
+  const out = await Rumors.pick({ results: chosen, heardBy: ["Bram"], announce: false });
   assert.deepEqual(out.map((r) => [r.text, r.region]), [["The ford is cursed.", "Sablewood"], ["A comet was seen.", null]]);
   assert.deepEqual(regional.marked, ["b"]);
   assert.deepEqual(general.marked, ["g"]);
@@ -133,8 +162,7 @@ test("pick skips a row already given and one off a rumor table, and says how man
   freshLedger();
   const regional = table("Sablewood Rumors", [["a", "Wolves walk upright.", true], ["b", "The ford is cursed."]]);
   const other = table("Sablewood Encounters", [["x", "Two bears."]]);
-  const all = [...regional.results.contents, ...other.results.contents];
-  globalThis.fromUuid = async (u) => all.find((r) => r.uuid === u) ?? null;
+  const all = serve({ world: [regional, other] });
   const out = await Rumors.pick({ results: [...all.map((r) => r.uuid), "RollTable.gone.TableResult.z"], heardBy: [] });
   assert.deepEqual(out.map((r) => r.text), ["The ford is cursed."]);
   assert.deepEqual(regional.marked, ["b"]);
@@ -144,12 +172,9 @@ test("pick skips a row already given and one off a rumor table, and says how man
 
 test("pick refuses a row in a locked compendium, and an empty choice", async () => {
   const entry = freshLedger();
-  globalThis.game.packs = [{ collection: `world.sde-tables`, metadata: { packageType: "world", label: "x" } }];
   const locked = table("Rumors in the Reaches", [["g", "A comet was seen."]], { pack: "world.sde-tables", locked: true });
-  globalThis.fromUuid = async () => locked.results.contents[0];
-  try {
-    assert.equal(await Rumors.pick({ results: [locked.results.contents[0].uuid], heardBy: [] }), null);
-  } finally { globalThis.game.packs = []; }
+  serve({ packed: [locked] });
+  assert.equal(await Rumors.pick({ results: [locked.results.contents[0].uuid], heardBy: [] }), null);
   assert.deepEqual(locked.marked, []);
   assert.deepEqual(await Rumors.pick({ results: [], heardBy: [] }), []);
   assert.deepEqual(warnings, ["SDE.rumors.notify.locked", "SDE.rumors.notify.noneChosen"]);
@@ -169,11 +194,9 @@ test("tell and pick are the GM's", async () => {
 test("give with announce: false still gives the troubles and rows, without a chat card", async () => {
   const entry = freshLedger();
   const general = table("Rumors in the Reaches", [["g", "A comet was seen."]]);
-  globalThis.game.tables = [general];
-  try {
-    const out = await Rumors.give({ count: 2, region: null, heardBy: [], announce: false });
-    assert.equal(out.length, 2);
-  } finally { globalThis.game.tables = []; }
+  serve({ world: [general] });
+  const out = await Rumors.give({ count: 2, region: null, heardBy: [], announce: false });
+  assert.equal(out.length, 2);
   assert.deepEqual(discovered, ["tr1"]);
   assert.deepEqual(general.marked, ["g"]);
   assert.equal(rumorsOn(entry).length, 2);
@@ -184,7 +207,70 @@ test("give still announces by default", async () => {
   freshLedger();
   Troubles.undiscovered = async () => [];
   const general = table("Rumors in the Reaches", [["g", "A comet was seen."]]);
-  globalThis.game.tables = [general];
-  try { await Rumors.give({ count: 1, region: null, heardBy: [] }); } finally { globalThis.game.tables = []; }
+  serve({ world: [general] });
+  await Rumors.give({ count: 1, region: null, heardBy: [] });
   assert.equal(chats.length, 1);
+});
+
+// A rumor already on the ledger from range 1 of the general table, whose row a re-import replaced.
+const givenBefore = [[null, [{ id: "r0", text: "Old.", real: 1, source: { table: "Rumors in the Reaches", resultId: "old", range: [1, 1] } }]]];
+
+test("give still marks the row a re-import recreated, after writing the ledger", async () => {
+  freshLedger(givenBefore);
+  Troubles.undiscovered = async () => [];
+  const general = table("Rumors in the Reaches", [["new", "Old, again."], ["g2", "A comet was seen."]]);
+  serve({ world: [general] });
+  const out = await Rumors.give({ count: 1, region: null, heardBy: [] });
+  assert.deepEqual(out.map((r) => r.text), ["A comet was seen."]);
+  assert.deepEqual(general.marked, ["g2", "new"]);
+  assert.deepEqual(writes, ["ledger", "drawn"], "the ledger first: a failure after it never loses a rumor");
+});
+
+test("pick skips the row a re-import recreated for a rumor already given", async () => {
+  freshLedger(givenBefore);
+  const general = table("Rumors in the Reaches", [["new", "Old, again."], ["g2", "A comet was seen."]]);
+  serve({ world: [general] });
+  const out = await Rumors.pick({ results: general.results.contents.map((r) => r.uuid), heardBy: [] });
+  assert.deepEqual(out.map((r) => r.text), ["A comet was seen."]);
+  assert.deepEqual(general.marked, ["g2"]);
+  assert.deepEqual(warnings, ["SDE.rumors.notify.skipped"]);
+});
+
+test("pick takes only the table a draw gives from: not a world copy behind the pack's", async () => {
+  freshLedger();
+  const packed = table("Sablewood Rumors", [["p1", "Pack row 1."], ["p2", "Pack row 2."]], { pack: "world.sde-tables" });
+  const copy = table("Sablewood Rumors", [["w1", "World row 1."]]);
+  serve({ world: [copy], packed: [packed] });
+  const out = await Rumors.pick({ results: [copy.results.contents[0].uuid, packed.results.contents[1].uuid], heardBy: [] });
+  assert.deepEqual(out.map((r) => r.text), ["Pack row 2."]);
+  assert.deepEqual(copy.marked, []);
+  assert.deepEqual(packed.marked, ["p2"]);
+  assert.deepEqual(warnings, ["SDE.rumors.notify.skipped"]);
+  // The pack's row 1 is still there to give: the skipped copy left nothing on the ledger to shadow it.
+  Troubles.undiscovered = async () => [];
+  await Rumors.give({ count: 1, region: "Sablewood", heardBy: [] });
+  assert.deepEqual(packed.marked, ["p2", "p1"]);
+});
+
+test("tell files the rumor under the region as its table spells it", async () => {
+  const entry = freshLedger();
+  serve({ world: [table("Sablewood Rumors", [["a", "Wolves walk upright."]])] });
+  const [rumor] = await Rumors.tell({ text: "The tanner buys pelts.", region: "sablewood", heardBy: [] });
+  assert.equal(rumor.region, "Sablewood");
+  assert.equal(entry.pages[0].name, "Sablewood");
+  const [elsewhere] = await Rumors.tell({ text: "A homebrew place.", region: "Gloomhollow", heardBy: [] });
+  assert.equal(elsewhere.region, "Gloomhollow", "a region with no table keeps the GM's spelling");
+});
+
+test("with quest drafting on, a written and a picked rumor each get a Hidden quest", async () => {
+  const entry = freshLedger();
+  globalThis.game.settings = { get: () => true, register() {} };
+  const general = table("Rumors in the Reaches", [["g", "A comet was seen."]]);
+  serve({ world: [general] });
+  await Rumors.tell({ text: "The tanner buys pelts.", region: null, heardBy: [] });
+  await Rumors.pick({ results: [general.results.contents[0].uuid], heardBy: [] });
+  assert.deepEqual(quests.map((q) => [q.description, q.status, q.source.kind]), [
+    ["The tanner buys pelts.", "hidden", "rumor"], ["A comet was seen.", "hidden", "rumor"],
+  ]);
+  assert.deepEqual(entry.pages[0].flags[M].rumorPage.rumors.map((r) => r.questUuid), ["JournalEntry.q1", "JournalEntry.q2"]);
 });

@@ -175,9 +175,6 @@ const rowsOf = (table) => (table
   ? core.rowsLeft(table.results.contents.map((r) => ({ id: r.id, uuid: r.uuid, range: [...r.range], drawn: r.drawn, text: core.plainRow(r.name || r.description) })), givenFrom(table.name))
   : { available: [], stale: [] });
 
-/** A table the generator gives from: one in the world, or in the module's pack. */
-const fromModule = (table) => !table.pack || table.pack === findSuitePack("sde-tables")?.collection;
-
 // ── Giving rumors ───────────────────────────────────────────────────────────
 
 /** When, and who heard: what every rumor given at once shares. */
@@ -283,19 +280,28 @@ async function runTell({ text, region, heardBy, announce } = {}) {
 
 /**
  * Rows the GM picked off the rumor tables, by TableResult UUID, given as a draw
- * would give them and marked drawn (GM). A row already given, or not on a rumor
- * table the generator gives from, is skipped with a warning. Returns the rumors
+ * would give them and marked drawn (GM). A row already given, or not on the
+ * table a draw gives from for its region (a world copy behind the pack's is
+ * not), is skipped with a warning. Returns the rumors
  * given, [] when none could be, or null when a table's compendium is locked.
  */
 async function runPick({ results, heardBy, announce } = {}) {
   const uuids = [...new Set(Array.isArray(results) ? results : [results].filter(Boolean))];
   if (!uuids.length) { ui.notifications.warn(t("SDE.rumors.notify.noneChosen")); return []; }
   const rows = await Promise.all(uuids.map((u) => Promise.resolve().then(() => fromUuid(u)).catch(() => null)));
+  // The table each region's draws come from: a row off a shadowed copy would
+  // land on the ledger under the served table's name and pass as a re-import.
+  const tables = await rumorTables();
+  const served = async (table) => {
+    const region = core.rumorTableRegion(table.name);
+    const ref = tables.get(region === null ? "" : regionKey(region));
+    return !!ref && (await ref.load())?.uuid === table.uuid;
+  };
   const stamp = stampNow(heardBy);
   const rumors = [], drawn = new Map(), left = new Map();
   for (const row of rows) {
     const table = row?.documentName === "TableResult" ? row.parent : null;
-    if (!table || !core.isRumorTable(table.name) || !fromModule(table)) continue;
+    if (!table || !core.isRumorTable(table.name) || !(await served(table))) continue;
     if (table.compendium?.locked) { ui.notifications.warn(t("SDE.rumors.notify.locked", { table: table.name })); return null; }
     if (!left.has(table)) left.set(table, new Map(rowsOf(table).available.map((r) => [r.id, r])));
     const open = left.get(table).get(row.id);
@@ -340,7 +346,7 @@ export async function askAndGive() {
   const heard = new Set(defaultHeardBy());
   const pcs = game.actors.filter((a) => a.type === "Player" && a.hasPlayerOwner);
   const pending = (await Troubles.undiscovered()).length;
-  const choices = await tableChoices(tables, here);
+  const choices = await tableChoices(tables, here).catch((err) => { console.warn(`${MODULE_ID} | rumors: listing the tables`, err); return []; });
   const option = (value, label, selected) => `<option value="${esc(value)}" ${selected ? "selected" : ""}>${esc(label)}</option>`;
   const range = ([lo, hi]) => (lo === hi ? `${lo}` : `${lo}–${hi}`);
   const rowsHtml = choices.length
@@ -493,7 +499,7 @@ function installRumorDraws() {
       const out = await prev.apply(this, args);
       try {
         // The tables rumorTables() gives from: the module's pack, or the world's.
-        const eligible = fromModule(this) && !this.compendium?.locked;
+        const eligible = this.pack ? this.pack === findSuitePack("sde-tables")?.collection && !this.compendium?.locked : true;
         if (game.user?.isGM && eligible && core.isRumorTable(this.name)) {
           const rows = core.drawnRows(this, out);
           if (rows.length) await this.updateEmbeddedDocuments("TableResult", rows.map((r) => ({ _id: r.id, drawn: true })));

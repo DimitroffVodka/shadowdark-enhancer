@@ -42,7 +42,8 @@ A random draw then:
 2. **Then the tables, in turn:** the region's table, then Rumors in the
    Reaches, and so on. When one has nothing left, the rest come from the
    other.
-3. The rumors go on the ledger, into one chat card for everyone, and into the
+3. The rumors go on the ledger, into one chat card for everyone (unless
+   **Post them to chat** is unticked), and into the
    [Session Recap](Session-Recap.md) while a session is running.
 
 Rumors you pick or write skip the troubles: they give only what you chose.

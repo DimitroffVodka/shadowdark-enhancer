@@ -24,7 +24,7 @@ and Forge & Loot features.
 [`time`](#time--season-day-and-night-sun-moon-and-anchors) ·
 [`overland`](#overland--the-travel-state)
 
-**API version:** `1.36.0` (semver — additive changes bump the minor version,
+**API version:** `1.37.0` (semver — additive changes bump the minor version,
 breaking changes the major; check `apiVersion` before relying on newer keys).
 
 ## Discovery
@@ -1686,9 +1686,9 @@ api.rumors.heard({ region: "Sablewood" });                 // one region's; null
   It touches no trouble and no table.
 - `pick({ results, heardBy, announce })` (1.37.0) is the GM's: the rows named
   by their TableResult UUIDs, given as a draw gives them and marked `drawn`.
-  The rumor's region is its table's. A row already given, or not on a rumor
-  table the generator gives from (the module's pack, or the world's), is
-  skipped with a warning. Resolves like `give`: the rumors given, `[]` when
+  The rumor's region is its table's. A row already given, or not on the table
+  `give` draws from for that region (the module pack's before a world copy of
+  the same name), is skipped with a warning. Resolves like `give`: the rumors given, `[]` when
   none could be, `null` when a table's compendium is locked. No trouble is
   given.
 - `heard({ region })` is anyone's and never throws: `[]` without a ledger. It
