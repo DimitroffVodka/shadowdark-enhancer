@@ -355,6 +355,14 @@ test("the dialog says the tables couldn't be listed, not that every rumor was gi
   assert.doesNotMatch(content, /SDE\.rumors\.dialog\.noRows/);
 });
 
+test("with no rumor tables the pick list says there are none, not that every rumor was given", async () => {
+  freshLedger();
+  serve();
+  const { content } = await openDialog();
+  assert.match(content, /SDE\.rumors\.notify\.noTables/);
+  assert.doesNotMatch(content, /SDE\.rumors\.dialog\.noRows/);
+});
+
 test("a written rumor's region can be one with no rumor table", async () => {
   freshLedger();
   serve({ world: [table("Sablewood Rumors", [["a", "Wolves walk upright."]])] });

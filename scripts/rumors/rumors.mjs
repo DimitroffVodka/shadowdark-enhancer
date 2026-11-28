@@ -385,7 +385,7 @@ export async function askAndGive() {
   const range = ([lo, hi]) => (lo === hi ? `${lo}` : `${lo}–${hi}`);
   const hint = (key) => `<p class="hint">${esc(t(key))}</p>`;
   const rowsHtml = !choices ? hint("SDE.rumors.dialog.listFailed")
-    : !choices.length ? hint("SDE.rumors.dialog.noRows")
+    : !choices.length ? hint(tables.size ? "SDE.rumors.dialog.noRows" : "SDE.rumors.notify.noTables")
     : (choices.some((c) => c.locked) ? hint("SDE.rumors.dialog.locked") : "") + choices.map((c, i) => `<details ${i === 0 || !c.region || (here && sameRegion(c.region, here)) ? "open" : ""}><summary>${esc(c.region ?? t("SDE.rumors.ledger.general"))} (${c.rows.length})</summary>
         ${c.rows.map((r) => `<label class="checkbox"><input type="checkbox" name="result" value="${esc(r.uuid)}" ${c.locked ? "disabled" : ""}> <span><b>${esc(range(r.range))}</b> ${esc(r.text)}</span></label>`).join("")}</details>`).join("");
   const content = `
