@@ -35,6 +35,8 @@ import { t as tr } from "./importer-hub-shared.mjs";
 
 /** Cached ESM import of Foundry's bundled PDF.js (loaded once per session). */
 let _pdfjs = null;
+/** pdf.js 5+ keeps a font's real name ("Montserrat-Bold", read by _tagBold) only with fontExtraProperties. */
+const DOC_OPTIONS = { fontExtraProperties: true };
 /** Our own PDFWorker, bound to a Worker we spawned (see _lib). */
 let _worker = null;
 /** Rejects if that Worker never comes up; raced against every document open. */
@@ -78,7 +80,7 @@ async function _openSessionDoc(path) {
   await _closeSessionDocs();
   const p = _lib().then(async (pdfjs) => {
     const data = new Uint8Array(await file.arrayBuffer());
-    return Promise.race([pdfjs.getDocument({ data, worker: _worker }).promise, _workerFailed]);
+    return Promise.race([pdfjs.getDocument({ data, worker: _worker, ...DOC_OPTIONS }).promise, _workerFailed]);
   });
   _docCache.set(path, p);
   _sessionFiles.set(path, file);
@@ -97,7 +99,7 @@ async function _closeSessionDocs() {
     if (!isSessionPdf(key)) continue;
     _docCache.delete(key);
     _sessionFiles.delete(key);
-    await p.then((doc) => doc.destroy(), () => {});
+    await p.then((doc) => doc.loadingTask.destroy(), () => {});   // pdf.js 6 dropped doc.destroy()
   }
 }
 
@@ -113,7 +115,7 @@ async function _openDoc(filePath) {
   const route = fileRoute(filePath);
   if (_docCache.has(route)) return _docCache.get(route);
   const p = _lib().then((pdfjs) => Promise.race([
-    pdfjs.getDocument({ url: route, worker: _worker }).promise,
+    pdfjs.getDocument({ url: route, worker: _worker, ...DOC_OPTIONS }).promise,
     _workerFailed,
   ]));
   _docCache.set(route, p);
