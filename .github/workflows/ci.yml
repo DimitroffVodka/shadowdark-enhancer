@@ -28,6 +28,11 @@ jobs:
 
       # Foundry 14.371 bundles PDF.js 6.5.438; the pin stays on the verified build's 4.0.379.
       # On 6.x only, the bold test fails if the extractor stops passing fontExtraProperties.
+      # 6.x's build calls Promise.try, which Node 22 lacks (Foundry's Chromium has it): Node 24 for this step.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+
       - name: PDF suites on PDF.js 6.5.438
         run: |
           npm install --no-save pdfjs-dist@6.5.438
