@@ -24,8 +24,8 @@ The rumor tables from the GM Guide, imported through the Importer Hub:
 | Give | What you fill in |
 |---|---|
 | **A random draw** | **How many** (2 by default) and the **Region**: the party's region, when the party token stands on a scanned hex map or the party is travelling (else the last hex it travelled to). **General** gives only Rumors in the Reaches. |
-| **Rumors I pick from the tables** | Tick the rumors not yet given, listed by table: Rumors in the Reaches and the party's region open first. |
-| **A rumor I write** | The rumor's text and the **Region** whose page it goes on (**General** for the General page). Use it for your own adventures, or for what an NPC told the party. |
+| **Rumors I pick from the tables** | Tick the rumors not yet given, listed by table: Rumors in the Reaches and the party's region open first. Rumors on a locked compendium are shown but can't be ticked; unlock it to give them. |
+| **A rumor I write** | The rumor's text and the **Region** whose page it goes on. Pick a region that has a rumor table, or type any name, your own homebrew region included; leave it empty for the General page. Use it for your own adventures, or for what an NPC told the party. |
 
 For all three:
 
@@ -66,6 +66,11 @@ been given (the drawn rows) and what is left.
 - **Re-importing** a rumor table makes its rows new. Rows already given from
   it still count as given; the generator matches them by the ledger. Those
   rows stay given even after a Reset.
+- **A table that won't take the change.** If a rumor goes on the Rumors Heard
+  journal but its table refuses to mark it drawn, you're told so, and it
+  still counts as given: no draw or pick gives it again, and the next rumor
+  given from that table marks it. Like a re-imported row, it stays given
+  even after a Reset.
 - The tables are the ones in the module's compendium; a copy of one in your
   world's Roll Tables is a separate pool.
 - When the tables run out, it gives what it can and says so.

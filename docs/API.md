@@ -1681,16 +1681,20 @@ api.rumors.heard({ region: "Sablewood" });                 // one region's; null
     a rumor table in the module's pack is marked too.
   - `announce` (1.37.0): `false` records the rumors without the chat card.
 - `tell({ text, region, heardBy, announce })` (1.37.0) is the GM's: one rumor
-  on no table. `region`, `heardBy` and `announce` as `give`'s. It resolves to
-  `[rumor]` in `heard()`'s shape, or `null` (with a warning) for empty text.
-  It touches no trouble and no table.
+  on no table. `region`, `heardBy` and `announce` as `give`'s, except that any
+  region name is taken, with or without a rumor table (spelled as its table
+  spells it when it has one); a blank one, or the General page's own name, is
+  the General page. It resolves to `[rumor]` in `heard()`'s shape, or `null`
+  (with a warning) for empty text. It touches no trouble and no table.
 - `pick({ results, heardBy, announce })` (1.37.0) is the GM's: the rows named
   by their TableResult UUIDs, given as a draw gives them and marked `drawn`.
   The rumor's region is its table's. A row already given, or not on the table
   `give` draws from for that region (the module pack's before a world copy of
-  the same name), is skipped with a warning. Resolves like `give`: the rumors given, `[]` when
-  none could be, `null` when a table's compendium is locked. No trouble is
-  given.
+  the same name), is skipped with a warning. Resolves like `give`: the rumors
+  given, `[]` when none could be, `null` when a table's compendium is locked.
+  No trouble is given. A rumor whose table refuses the `drawn` write is
+  flagged `source.unmarked` on the ledger and still counts as given; `give` and
+  `pick` warn and finish recording.
 - `heard({ region })` is anyone's and never throws: `[]` without a ledger. It
   returns, synchronously (awaiting it is harmless),
 

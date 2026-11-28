@@ -19,12 +19,12 @@ globalThis.ui = { notifications: { warn: (m) => warnings.push(m), info() {} } };
 globalThis.CONFIG = { Dice: { randomUniform: () => 0.5 } };
 globalThis.CONST = { DOCUMENT_OWNERSHIP_LEVELS: { OBSERVER: 2 }, SORT_INTEGER_DENSITY: 100000 };
 globalThis.game = {
-  user: { isGM: true }, i18n: { lang: "en", localize: (k) => k, format: (k) => k },
+  user: { isGM: true }, i18n: { lang: "en", localize: (k) => ({ "SDE.rumors.ledger.general": "General" })[k] ?? k, format: (k) => k },
   settings: { get: () => false, register() {} }, journal: { find: () => null },
-  time: { worldTime: 0, calendar: { timeToComponents: () => ({ dayOfWeek: 0, dayOfMonth: 0, month: 0, year: 1300, hour: 8, minute: 0 }) } }, packs: [], tables: [], actors: [], users: [],
+  scenes: { active: null }, time: { worldTime: 0, calendar: { timeToComponents: () => ({ dayOfWeek: 0, dayOfMonth: 0, month: 0, year: 1300, hour: 8, minute: 0 }) } }, packs: [], tables: [], actors: [], users: [],
 };
 
-const { Rumors } = await import("../scripts/rumors/rumors.mjs");
+const { Rumors, askAndGive } = await import("../scripts/rumors/rumors.mjs");
 const { Troubles } = await import("../scripts/troubles/troubles.mjs");
 const { SessionRecap } = await import("../scripts/session-recap/session-recap.mjs");
 const { Quests } = await import("../scripts/quests/quests.mjs");
@@ -273,4 +273,101 @@ test("with quest drafting on, a written and a picked rumor each get a Hidden que
     ["The tanner buys pelts.", "hidden", "rumor"], ["A comet was seen.", "hidden", "rumor"],
   ]);
   assert.deepEqual(entry.pages[0].flags[M].rumorPage.rumors.map((r) => r.questUuid), ["JournalEntry.q1", "JournalEntry.q2"]);
+});
+
+// ── Review round 2 (#600) ────────────────────────────────────────────────────
+
+test("a pick whose second table refuses the drawn write still records both, and a retry adds nothing", async () => {
+  const entry = freshLedger();
+  globalThis.game.settings = { get: () => true, register() {} };
+  Troubles.undiscovered = async () => [];
+  const regional = table("Sablewood Rumors", [["a", "Wolves walk upright."]]);
+  const general = table("Rumors in the Reaches", [["g", "A comet was seen."], ["g2", "The ferryman takes teeth."]]);
+  serve({ world: [regional, general] });
+  const refuse = general.updateEmbeddedDocuments;
+  general.updateEmbeddedDocuments = async () => { throw new Error("the table refused"); };
+  const chosen = [regional.results.contents[0].uuid, general.results.contents[0].uuid];
+  const quiet = console.error;
+  console.error = () => {};
+  let out;
+  try { out = await Rumors.pick({ results: chosen, heardBy: [] }); } finally { console.error = quiet; }
+  assert.deepEqual(out.map((r) => r.text), ["Wolves walk upright.", "A comet was seen."], "both were heard");
+  assert.deepEqual(recaps.map((r) => r.text), ["Wolves walk upright.", "A comet was seen."], "both reach the recap");
+  assert.equal(quests.length, 2, "both get their Hidden quest");
+  assert.deepEqual(regional.marked, ["a"]);
+  assert.ok(warnings.includes("SDE.rumors.notify.unmarked"));
+  // The same pick again: nothing new on the ledger.
+  warnings.length = 0;
+  assert.deepEqual(await Rumors.pick({ results: chosen, heardBy: [] }), []);
+  assert.equal(rumorsOn(entry).length, 2);
+  // Once the table takes writes again, a draw skips the row and marks it drawn.
+  general.updateEmbeddedDocuments = refuse;
+  const [drawn] = await Rumors.give({ count: 1, region: null, heardBy: [] });
+  assert.equal(drawn.text, "The ferryman takes teeth.");
+  assert.deepEqual(general.marked.sort(), ["g", "g2"]);
+});
+
+test("a blank region, or the General page's own name, files a written rumor on the General page", async () => {
+  const entry = freshLedger();
+  for (const region of ["   ", "General", "general"]) await Rumors.tell({ text: `Said with ${JSON.stringify(region)}.`, region, heardBy: [] });
+  assert.equal(entry.pages.length, 1);
+  assert.equal(entry.pages[0].flags[M].rumorPage.region, null);
+  assert.equal(rumorsOn(entry).length, 3);
+  assert.ok(rumorsOn(entry).every((r) => r.region === null), "heard({ region: null }) finds all three");
+});
+
+test("give with a blank region draws the general table once, not twice", async () => {
+  freshLedger();
+  Troubles.undiscovered = async () => [];
+  const general = table("Rumors in the Reaches", [["g1", "Comet A."], ["g2", "Comet B."]]);
+  serve({ world: [general] });
+  const out = await Rumors.give({ count: 2, region: "   ", heardBy: [] });
+  assert.deepEqual(out.map((r) => r.text).sort(), ["Comet A.", "Comet B."]);
+});
+
+/** Opens the dialog with DialogV2.prompt captured; returns its config. */
+async function openDialog() {
+  let config = null;
+  globalThis.foundry.applications.api.DialogV2.prompt = async (c) => { config = c; return null; };
+  globalThis.game.actors = Object.assign([], { filter: () => [] });
+  await askAndGive();
+  return config;
+}
+
+test("the dialog shows rows on a locked compendium as unavailable, with why", async () => {
+  freshLedger();
+  serve({ packed: [table("Rumors in the Reaches", [["g", "A comet was seen."]], { pack: "world.sde-tables", locked: true })] });
+  const { content } = await openDialog();
+  assert.match(content, /name="result"[^>]*disabled/);
+  assert.match(content, /SDE\.rumors\.dialog\.locked/);
+});
+
+test("the dialog says the tables couldn't be listed, not that every rumor was given", async () => {
+  freshLedger();
+  const general = table("Rumors in the Reaches", [["g", "A comet was seen."]]);
+  serve({ packed: [general] });
+  globalThis.game.packs[0].getDocument = async () => { throw new Error("stale index"); };
+  const quiet = console.warn;
+  console.warn = () => {};
+  let content;
+  try { ({ content } = await openDialog()); } finally { console.warn = quiet; }
+  assert.match(content, /SDE\.rumors\.dialog\.listFailed/);
+  assert.doesNotMatch(content, /SDE\.rumors\.dialog\.noRows/);
+});
+
+test("a written rumor's region can be one with no rumor table", async () => {
+  freshLedger();
+  serve({ world: [table("Sablewood Rumors", [["a", "Wolves walk upright."]])] });
+  const config = await openDialog();
+  assert.match(config.content, /name="customRegion"[^>]*list=/);
+  const field = (value) => ({ value });
+  const form = {
+    elements: { mode: field("custom"), text: field("A homebrew rumor."), customRegion: field("  Gloomhollow "), region: field("Sablewood"), count: field("2"), announce: { checked: true } },
+    querySelectorAll: () => [],
+  };
+  const picked = config.ok.callback(null, { form });
+  assert.equal(picked.mode, "custom");
+  assert.equal(picked.region, "Gloomhollow");
+  form.elements.customRegion = field("   ");
+  assert.equal(config.ok.callback(null, { form }).region, null, "left empty: the General page");
 });

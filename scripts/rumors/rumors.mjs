@@ -170,6 +170,22 @@ function givenFrom(tableName) {
     .map((r) => r.source).filter((s) => s?.table === tableName);
 }
 
+/**
+ * Flag the ledger's rumors from `[table name, row id]` rows a table would not
+ * mark drawn: rowsLeft counts them as given, so no draw or pick repeats them,
+ * and the next give from that table marks them.
+ */
+async function flagUnmarked(rows) {
+  const want = new Set(rows.map(([table, id]) => `${table}|${id}`));
+  const hit = (r) => r.source?.resultId && want.has(`${r.source.table}|${r.source.resultId}`);
+  for (const page of ledger()?.pages.contents ?? []) {
+    const flag = pageFlag(page);
+    if (!flag?.rumors?.some(hit)) continue;
+    const rumors = flag.rumors.map((r) => (hit(r) ? { ...r, source: { ...r.source, unmarked: true } } : r));
+    await page.update({ [`flags.${MODULE_ID}.${PAGE_FLAG}`]: _replace({ ...flag, rumors }) });
+  }
+}
+
 /** A table's rows still there to give, and those a re-import made new (rowsLeft). */
 const rowsOf = (table) => (table
   ? core.rowsLeft(table.results.contents.map((r) => ({ id: r.id, uuid: r.uuid, range: [...r.range], drawn: r.drawn, text: core.plainRow(r.name || r.description) })), givenFrom(table.name))
@@ -192,12 +208,25 @@ function stampNow(heardBy) {
  */
 async function record(rumors, { drawn = [], troubles = [], announce = true } = {}) {
   await writeLedger(rumors);
-  for (const [table, ids] of drawn) {
-    if (table && ids.length) await table.updateEmbeddedDocuments("TableResult", ids.map((_id) => ({ _id, drawn: true })));
-  }
-  for (const tr of troubles) await Troubles.discover(tr.id);
-
   const safely = (what, fn) => Promise.resolve().then(fn).catch((err) => console.error(`${MODULE_ID} | rumors: ${what}`, err));
+  // The rumors are heard once on the ledger: a table that refuses its drawn
+  // write gets its rows flagged there instead, and the follow-ups still run.
+  const unmarked = [];
+  for (const [table, ids] of drawn) {
+    if (!table || !ids.length) continue;
+    try {
+      await table.updateEmbeddedDocuments("TableResult", ids.map((_id) => ({ _id, drawn: true })));
+    } catch (err) {
+      console.error(`${MODULE_ID} | rumors: marking rows drawn on ${table.name}`, err);
+      unmarked.push(...ids.map((id) => [table.name, id]));
+    }
+  }
+  if (unmarked.length) {
+    ui.notifications.warn(t("SDE.rumors.notify.unmarked"));
+    await safely("flagging rows left undrawn", () => flagUnmarked(unmarked));
+  }
+  for (const tr of troubles) await safely("discovering a trouble", () => Troubles.discover(tr.id));
+
   await safely("quests", () => draftGiven(rumors));
   await safely("recap", () => SessionRecap.logRumors(rumors.map(core.heardView)));
   if (announce !== false) {
@@ -221,7 +250,8 @@ async function record(rumors, { drawn = [], troubles = [], announce = true } = {
 async function runGive({ count = 1, region, heardBy, announce } = {}) {
   const n = Math.min(MAX_COUNT, Math.max(1, Math.trunc(Number(count)) || 1));
   const tables = await rumorTables();
-  const wanted = region === undefined ? await partyRegion() : (region || null);
+  // A blank region keys as the general table: drawing it as "regional" too would give a row twice.
+  const wanted = region === undefined ? await partyRegion() : (regionKey(region) ? region : null);
   const regionalRef = wanted ? tables.get(regionKey(wanted)) ?? null : null;
   const generalRef = tables.get("") ?? null;
   if (!tables.size) ui.notifications.warn(t("SDE.rumors.notify.noTables"));
@@ -272,9 +302,12 @@ async function runGive({ count = 1, region, heardBy, announce } = {}) {
 async function runTell({ text, region, heardBy, announce } = {}) {
   const said = String(text ?? "").trim();
   if (!said) { ui.notifications.warn(t("SDE.rumors.notify.noText")); return null; }
-  const wanted = region === undefined ? await partyRegion() : (region || null);
-  // The region as its rumor table spells it, so the ledger page is the table's.
-  const spelled = wanted ? (await rumorTables()).get(regionKey(wanted))?.region ?? wanted : null;
+  const wanted = region === undefined ? await partyRegion() : region;
+  // The page from the key: blank, or the General page's own name, is the General
+  // page; a region with a table is spelled as its table spells it.
+  const key = regionKey(wanted);
+  const general = !key || key === regionKey(t("SDE.rumors.ledger.general"));
+  const spelled = general ? null : (await rumorTables()).get(key)?.region ?? String(wanted).trim();
   return record([{ id: foundry.utils.randomID(), text: said, region: spelled, source: { custom: true }, ...stampNow(heardBy) }], { announce });
 }
 
@@ -326,8 +359,9 @@ async function runPick({ results, heardBy, announce } = {}) {
 async function tableChoices(tables, here) {
   const out = [];
   for (const ref of tables.values()) {
-    const rows = rowsOf(await ref.load()).available;
-    if (rows.length) out.push({ region: ref.region, rows });
+    const table = await ref.load();
+    const rows = rowsOf(table).available;
+    if (rows.length) out.push({ region: ref.region, rows, locked: !!table.compendium?.locked });
   }
   const rank = (c) => (!c.region ? 0 : here && sameRegion(c.region, here) ? 1 : 2);
   return out.sort((a, b) => rank(a) - rank(b) || String(a.region).localeCompare(String(b.region)));
@@ -346,20 +380,24 @@ export async function askAndGive() {
   const heard = new Set(defaultHeardBy());
   const pcs = game.actors.filter((a) => a.type === "Player" && a.hasPlayerOwner);
   const pending = (await Troubles.undiscovered()).length;
-  const choices = await tableChoices(tables, here).catch((err) => { console.warn(`${MODULE_ID} | rumors: listing the tables`, err); return []; });
+  const choices = await tableChoices(tables, here).catch((err) => { console.warn(`${MODULE_ID} | rumors: listing the tables`, err); return null; });
   const option = (value, label, selected) => `<option value="${esc(value)}" ${selected ? "selected" : ""}>${esc(label)}</option>`;
   const range = ([lo, hi]) => (lo === hi ? `${lo}` : `${lo}–${hi}`);
-  const rowsHtml = choices.length
-    ? choices.map((c, i) => `<details ${i === 0 || !c.region || (here && sameRegion(c.region, here)) ? "open" : ""}><summary>${esc(c.region ?? t("SDE.rumors.ledger.general"))} (${c.rows.length})</summary>
-        ${c.rows.map((r) => `<label class="checkbox"><input type="checkbox" name="result" value="${esc(r.uuid)}"> <span><b>${esc(range(r.range))}</b> ${esc(r.text)}</span></label>`).join("")}</details>`).join("")
-    : `<p class="hint">${esc(t("SDE.rumors.dialog.noRows"))}</p>`;
+  const hint = (key) => `<p class="hint">${esc(t(key))}</p>`;
+  const rowsHtml = !choices ? hint("SDE.rumors.dialog.listFailed")
+    : !choices.length ? hint("SDE.rumors.dialog.noRows")
+    : (choices.some((c) => c.locked) ? hint("SDE.rumors.dialog.locked") : "") + choices.map((c, i) => `<details ${i === 0 || !c.region || (here && sameRegion(c.region, here)) ? "open" : ""}><summary>${esc(c.region ?? t("SDE.rumors.ledger.general"))} (${c.rows.length})</summary>
+        ${c.rows.map((r) => `<label class="checkbox"><input type="checkbox" name="result" value="${esc(r.uuid)}" ${c.locked ? "disabled" : ""}> <span><b>${esc(range(r.range))}</b> ${esc(r.text)}</span></label>`).join("")}</details>`).join("");
   const content = `
     <div class="form-group"><label>${esc(t("SDE.rumors.dialog.mode"))}</label>
       <select name="mode">${option("random", t("SDE.rumors.dialog.modes.random"), true)}${option("pick", t("SDE.rumors.dialog.modes.pick"))}${option("custom", t("SDE.rumors.dialog.modes.custom"))}</select></div>
     <div class="form-group" data-mode="random"><label>${esc(t("SDE.rumors.dialog.count"))}</label>
       <input type="number" name="count" min="1" max="${MAX_COUNT}" step="1" value="2" autofocus></div>
-    <div class="form-group" data-mode="random custom"><label>${esc(t("SDE.rumors.dialog.region"))}</label>
+    <div class="form-group" data-mode="random"><label>${esc(t("SDE.rumors.dialog.region"))}</label>
       <select name="region">${option("", t("SDE.rumors.dialog.generalOnly"), !here)}${regions.map((r) => option(r, r, here && sameRegion(r, here))).join("")}</select></div>
+    <div class="form-group" data-mode="custom"><label>${esc(t("SDE.rumors.dialog.region"))}</label>
+      <input type="text" name="customRegion" list="sde-rumor-regions" value="${esc(here ?? "")}" placeholder="${esc(t("SDE.rumors.ledger.general"))}">
+      <datalist id="sde-rumor-regions">${regions.map((r) => `<option value="${esc(r)}"></option>`).join("")}</datalist></div>
     <div class="form-group stacked" data-mode="custom"><label>${esc(t("SDE.rumors.dialog.text"))}</label>
       <textarea name="text" rows="4"></textarea></div>
     <fieldset data-mode="pick"><legend>${esc(t("SDE.rumors.dialog.pick"))}</legend>
@@ -389,7 +427,7 @@ export async function askAndGive() {
           heardBy: [...button.form.querySelectorAll('input[name="heardBy"]:checked')].map((i) => i.value),
           announce: f.announce.checked,
         };
-        if (f.mode.value === "custom") return { ...common, mode: "custom", text: f.text.value, region: f.region.value || null };
+        if (f.mode.value === "custom") return { ...common, mode: "custom", text: f.text.value, region: f.customRegion.value.trim() || null };
         if (f.mode.value === "pick") return { ...common, mode: "pick", results: [...button.form.querySelectorAll('input[name="result"]:checked')].map((i) => i.value) };
         return { ...common, mode: "random", count: Number(f.count.value) || 1, region: f.region.value || null };
       },

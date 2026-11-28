@@ -73,15 +73,15 @@ export function pickRows(rows, n, rng = Math.random) {
  * The rows of a table still there to give: not drawn, and not a row a re-import
  * recreated. A re-import makes every row new (a new id, never drawn); a rumor
  * already given from the same range of the same table, whose row id is gone,
- * still counts as given.
+ * still counts as given; so does one the table would not mark drawn (`unmarked`).
  * @param {Array<{id:string, range:[number,number], drawn:boolean}>} results
- * @param {Array<{resultId:string, range:[number,number]}>} given  ledger rumors from this table
+ * @param {Array<{resultId:string, range:[number,number], unmarked?:boolean}>} given  ledger rumors from this table
  * @returns {{available:object[], stale:object[]}} `stale`: undrawn rows to mark drawn
  */
 export function rowsLeft(results, given = []) {
   const ids = new Set(results.map((r) => r.id));
   const key = (range) => `${range?.[0]}-${range?.[1]}`;
-  const lost = new Set(given.filter((g) => g.resultId && !ids.has(g.resultId) && g.range).map((g) => key(g.range)));
+  const lost = new Set(given.filter((g) => g.resultId && (g.unmarked || !ids.has(g.resultId)) && g.range).map((g) => key(g.range)));
   const available = [], stale = [];
   for (const r of results) {
     if (r.drawn) continue;

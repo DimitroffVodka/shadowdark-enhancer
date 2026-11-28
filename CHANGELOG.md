@@ -9,6 +9,7 @@
 
 ### Fixed
 
+- **Rumors are never given twice by a hiccup.** A macro giving rumors for a blank region no longer gives the same Rumors in the Reaches row twice. And if a rumor table refuses to mark a rumor drawn, the rumor still reaches the Session Recap and its quest, and is never given again.
 - **The book importer is ready for Foundry 14.371.** That build moves its PDF reader to a newer version, which broke two things the importer relies on: closing a book picked from your computer failed, and every bold heading lost its bold marking without any error. Both now work on the old reader and the new one.
 
 ## [0.25.0] — 2026-11-21
