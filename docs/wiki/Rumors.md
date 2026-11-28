@@ -19,15 +19,22 @@ The rumor tables from the GM Guide, imported through the Importer Hub:
 
 ## Giving rumors
 
-**Crawl Bar → Tools → Rumors** (GM only) asks:
+**Crawl Bar → Tools → Rumors** (GM only) asks how to give them:
+
+| Give | What you fill in |
+|---|---|
+| **A random draw** | **How many** (2 by default) and the **Region**: the party's region, when the party token stands on a scanned hex map or the party is travelling (else the last hex it travelled to). **General** gives only Rumors in the Reaches. |
+| **Rumors I pick from the tables** | Tick the rumors not yet given, listed by table: Rumors in the Reaches and the party's region open first. |
+| **A rumor I write** | The rumor's text and the **Region** whose page it goes on (**General** for the General page). Use it for your own adventures, or for what an NPC told the party. |
+
+For all three:
 
 | Field | What it does |
 |---|---|
-| **How many** | Rumors to give (2 by default). |
-| **Region** | The party's region, when the party token stands on a scanned hex map or the party is travelling (else the last hex it travelled to). **None** gives only Rumors in the Reaches. |
 | **Heard by** | The characters who hear them. Ticked: your players' own characters who are online, else the player characters on the active scene, else every player character. |
+| **Post them to chat** | Ticked, the rumors go into one chat card for everyone. Untick it to record rumors the players already heard at the table. |
 
-Then:
+A random draw then:
 
 1. **Troubles first.** Troubles the party hasn't heard of are given before
    any table rumor, oldest first, and marked heard. The book says the party
@@ -37,6 +44,11 @@ Then:
    other.
 3. The rumors go on the ledger, into one chat card for everyone, and into the
    [Session Recap](Session-Recap.md) while a session is running.
+
+Rumors you pick or write skip the troubles: they give only what you chose.
+They go on the ledger, the chat card and the Session Recap the same way, and
+a rumor you pick is marked given on its table, so a random draw never gives
+it again.
 
 ---
 
@@ -90,6 +102,7 @@ and the real date it was heard, and who heard it, newest first.
 
 ## For macros and modules
 
-`game.shadowdarkEnhancer.rumors.give({ count, region, heardBy })` and
+`game.shadowdarkEnhancer.rumors.give({ count, region, heardBy })`,
+`rumors.tell({ text, region })`, `rumors.pick({ results })` and
 `rumors.heard({ region })`; the hook `shadowdark-enhancer.rumorsChanged`.
 See `docs/API.md`.

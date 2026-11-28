@@ -1655,6 +1655,8 @@ const api = game.shadowdarkEnhancer;
 await api.rumors.give({ count: 3 });                       // GM: the party's region, the characters present
 await api.rumors.give({ count: 2, region: "Sablewood", heardBy: ["Aria", "Bram"] });
 await api.rumors.give({ count: 1, region: null });         // Rumors in the Reaches only
+await api.rumors.tell({ text: "The old mill is haunted.", region: "Sablewood" });  // GM: one the GM wrote
+await api.rumors.pick({ results: [resultUuid], announce: false });               // GM: rows chosen, no chat card
 api.rumors.heard();                                        // everything heard, newest first
 api.rumors.heard({ region: "Sablewood" });                 // one region's; null: the general page's
 ```
@@ -1677,6 +1679,18 @@ api.rumors.heard({ region: "Sablewood" });                 // one region's; null
   - A row given is marked `drawn` on its table, which the generator skips.
     Core Foundry marks nothing drawn on a compendium table; a GM's own draw of
     a rumor table in the module's pack is marked too.
+  - `announce` (1.37.0): `false` records the rumors without the chat card.
+- `tell({ text, region, heardBy, announce })` (1.37.0) is the GM's: one rumor
+  on no table. `region`, `heardBy` and `announce` as `give`'s. It resolves to
+  `[rumor]` in `heard()`'s shape, or `null` (with a warning) for empty text.
+  It touches no trouble and no table.
+- `pick({ results, heardBy, announce })` (1.37.0) is the GM's: the rows named
+  by their TableResult UUIDs, given as a draw gives them and marked `drawn`.
+  The rumor's region is its table's. A row already given, or not on a rumor
+  table the generator gives from (the module's pack, or the world's), is
+  skipped with a warning. Resolves like `give`: the rumors given, `[]` when
+  none could be, `null` when a table's compendium is locked. No trouble is
+  given.
 - `heard({ region })` is anyone's and never throws: `[]` without a ledger. It
   returns, synchronously (awaiting it is harmless),
 
@@ -2515,6 +2529,7 @@ scene's choice changes, and once on load.
   `overland.setPace`; `overland.startDay` reads the method and the pace when they're left out.
   `overland.makeCamp` makes the camp before the night (with Shadowdark Extras' `deferRest` and
   `camping.dawn`) and needs an open travel day, and the state gains `camp` and the held encounter `interrupts`.
+- `1.37.0` adds `rumors.tell` and `rumors.pick` (a rumor the GM wrote, rows the GM chose), and `announce` on `give`.
 - `1.36.0` adds `overland.travelBlocked({ i, j })`, why the party cannot enter a destination today (`"storm"`, `"weather"`, `"terrain"` or `null`); the automatic journey's day-walking. `"storm"` and `"weather"` are worth retrying at dawn; `"terrain"` is checked first, is permanent and stops the journey.
 - `1.35.0` remembers the automatic journey's destination as `autoGoal` and adds `overland.setAutoGoal` / `overland.resumeAutoTravel`, so a stop at a keyed location or another interruption can be picked up with Travel > Resume auto.
 - `1.34.0` adds `overland.setAutoTravel`, the standing automatic-journey switch; the travel state gains `auto`.

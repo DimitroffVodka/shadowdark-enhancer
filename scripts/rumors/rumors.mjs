@@ -3,7 +3,8 @@
  *
  * The GM gives rumors: troubles the party hasn't heard of first (the Trouble
  * tracker, #193), then rows of the region's rumor table and the general
- * "Rumors in the Reaches" in turn. A row given once is never given again,
+ * "Rumors in the Reaches" in turn. Or, without a draw, rows the GM picks off
+ * the tables, or a rumor the GM writes (#598); those touch no trouble. A row given once is never given again,
  * anywhere in the world: it is marked drawn on the imported table, which the
  * GM can reset from its sheet. Core Foundry marks nothing drawn on a table in
  * a compendium pack, and every imported table is in the module's, so the
@@ -169,7 +170,47 @@ function givenFrom(tableName) {
     .map((r) => r.source).filter((s) => s?.table === tableName);
 }
 
+/** A table's rows still there to give, and those a re-import made new (rowsLeft). */
+const rowsOf = (table) => (table
+  ? core.rowsLeft(table.results.contents.map((r) => ({ id: r.id, uuid: r.uuid, range: [...r.range], drawn: r.drawn, text: core.plainRow(r.name || r.description) })), givenFrom(table.name))
+  : { available: [], stale: [] });
+
+/** A table the generator gives from: one in the world, or in the module's pack. */
+const fromModule = (table) => !table.pack || table.pack === findSuitePack("sde-tables")?.collection;
+
 // ── Giving rumors ───────────────────────────────────────────────────────────
+
+/** When, and who heard: what every rumor given at once shares. */
+function stampNow(heardBy) {
+  const worldTime = game.time.worldTime;
+  return { worldTime, gameTime: formatTime(worldTime), real: Date.now(), heardBy: heardBy ? [...heardBy] : defaultHeardBy(), questUuid: null };
+}
+
+/**
+ * Record rumors already picked: the ledger first, then their rows marked drawn
+ * and their troubles heard, then quests, the recap and, unless `announce` is
+ * false, the chat card. A failure after the ledger can only let a row come up
+ * again, never lose a rumor.
+ * @param {Array<[object, string[]]>} drawn  rows to mark drawn, per table
+ */
+async function record(rumors, { drawn = [], troubles = [], announce = true } = {}) {
+  await writeLedger(rumors);
+  for (const [table, ids] of drawn) {
+    if (table && ids.length) await table.updateEmbeddedDocuments("TableResult", ids.map((_id) => ({ _id, drawn: true })));
+  }
+  for (const tr of troubles) await Troubles.discover(tr.id);
+
+  const safely = (what, fn) => Promise.resolve().then(fn).catch((err) => console.error(`${MODULE_ID} | rumors: ${what}`, err));
+  await safely("quests", () => draftGiven(rumors));
+  await safely("recap", () => SessionRecap.logRumors(rumors.map(core.heardView)));
+  if (announce !== false) {
+    await safely("chat", () => ChatMessage.create({
+      content: rumorsCard({ title: t("SDE.rumors.chat.title"), rumors: rumors.map((r) => r.text) }),
+      speaker: { alias: t("SDE.rumors.title") },
+    }));
+  }
+  return rumors.map(core.heardView);
+}
 
 /**
  * Give `count` rumors (GM). Unheard troubles first, then the region's table and
@@ -180,7 +221,7 @@ function givenFrom(tableName) {
  * Nothing is written until every rumor is picked, and then the ledger first:
  * a failure after it can only let a row come up again, never lose a rumor.
  */
-async function runGive({ count = 1, region, heardBy } = {}) {
+async function runGive({ count = 1, region, heardBy, announce } = {}) {
   const n = Math.min(MAX_COUNT, Math.max(1, Math.trunc(Number(count)) || 1));
   const tables = await rumorTables();
   const wanted = region === undefined ? await partyRegion() : (region || null);
@@ -195,17 +236,12 @@ async function runGive({ count = 1, region, heardBy } = {}) {
     if (table?.compendium?.locked) { ui.notifications.warn(t("SDE.rumors.notify.locked", { table: table.name })); return null; }
   }
 
-  const worldTime = game.time.worldTime;
-  const stamp = { worldTime, gameTime: formatTime(worldTime), real: Date.now(), heardBy: heardBy ? [...heardBy] : defaultHeardBy(), questUuid: null };
+  const stamp = stampNow(heardBy);
   const troubles = (await Troubles.undiscovered()).slice(0, n);
   const rumors = troubles.map((tr) => ({
     id: foundry.utils.randomID(), text: core.troubleRumorText(tr, t), region: tr.region, source: { trouble: tr.uuid }, ...stamp,
   }));
 
-  // Table rows still there to give, and those a re-import made new.
-  const rowsOf = (table) => (table
-    ? core.rowsLeft(table.results.contents.map((r) => ({ id: r.id, range: [...r.range], drawn: r.drawn, text: core.plainRow(r.name || r.description) })), givenFrom(table.name))
-    : { available: [], stale: [] });
   const left = { regional: rowsOf(regional), general: rowsOf(general) };
   const plan = core.planDraws(n - rumors.length, { regional: left.regional.available.length, general: left.general.available.length });
   const rng = () => CONFIG.Dice.randomUniform();
@@ -227,24 +263,75 @@ async function runGive({ count = 1, region, heardBy } = {}) {
   if (!rumors.length) { if (tables.size) ui.notifications.warn(t("SDE.rumors.notify.noneLeft")); return []; }
   if (rumors.length < n && tables.size) ui.notifications.warn(t("SDE.rumors.notify.short", { given: rumors.length, count: n }));
 
-  await writeLedger(rumors);
-  for (const [from, table] of [["regional", regional], ["general", general]]) {
-    const ids = [...picked[from], ...left[from].stale].map((r) => r.id);
-    if (table && ids.length) await table.updateEmbeddedDocuments("TableResult", ids.map((_id) => ({ _id, drawn: true })));
-  }
-  for (const tr of troubles) await Troubles.discover(tr.id);
-
-  const safely = (what, fn) => Promise.resolve().then(fn).catch((err) => console.error(`${MODULE_ID} | rumors: ${what}`, err));
-  await safely("quests", () => draftGiven(rumors));
-  await safely("recap", () => SessionRecap.logRumors(rumors.map(core.heardView)));
-  await safely("chat", () => ChatMessage.create({
-    content: rumorsCard({ title: t("SDE.rumors.chat.title"), rumors: rumors.map((r) => r.text) }),
-    speaker: { alias: t("SDE.rumors.title") },
-  }));
-  return rumors.map(core.heardView);
+  const drawn = [["regional", regional], ["general", general]].map(([from, table]) => [table, [...picked[from], ...left[from].stale].map((r) => r.id)]);
+  return record(rumors, { drawn, troubles, announce });
 }
 
-/** Ask the GM how many, from where and who heard them, then give them (the crawl bar's Give rumors…). */
+/**
+ * A rumor the GM wrote, on no table (GM). `region` as give's: left out, the
+ * party's; null, the general page. Returns it as heard() shows it, or null
+ * with no text.
+ */
+async function runTell({ text, region, heardBy, announce } = {}) {
+  const said = String(text ?? "").trim();
+  if (!said) { ui.notifications.warn(t("SDE.rumors.notify.noText")); return null; }
+  const wanted = region === undefined ? await partyRegion() : (region || null);
+  // The region as its rumor table spells it, so the ledger page is the table's.
+  const spelled = wanted ? (await rumorTables()).get(regionKey(wanted))?.region ?? wanted : null;
+  return record([{ id: foundry.utils.randomID(), text: said, region: spelled, source: { custom: true }, ...stampNow(heardBy) }], { announce });
+}
+
+/**
+ * Rows the GM picked off the rumor tables, by TableResult UUID, given as a draw
+ * would give them and marked drawn (GM). A row already given, or not on a rumor
+ * table the generator gives from, is skipped with a warning. Returns the rumors
+ * given, [] when none could be, or null when a table's compendium is locked.
+ */
+async function runPick({ results, heardBy, announce } = {}) {
+  const uuids = [...new Set(Array.isArray(results) ? results : [results].filter(Boolean))];
+  if (!uuids.length) { ui.notifications.warn(t("SDE.rumors.notify.noneChosen")); return []; }
+  const rows = await Promise.all(uuids.map((u) => Promise.resolve().then(() => fromUuid(u)).catch(() => null)));
+  const stamp = stampNow(heardBy);
+  const rumors = [], drawn = new Map(), left = new Map();
+  for (const row of rows) {
+    const table = row?.documentName === "TableResult" ? row.parent : null;
+    if (!table || !core.isRumorTable(table.name) || !fromModule(table)) continue;
+    if (table.compendium?.locked) { ui.notifications.warn(t("SDE.rumors.notify.locked", { table: table.name })); return null; }
+    if (!left.has(table)) left.set(table, new Map(rowsOf(table).available.map((r) => [r.id, r])));
+    const open = left.get(table).get(row.id);
+    if (!open) continue;
+    left.get(table).delete(row.id);
+    if (!drawn.has(table)) drawn.set(table, []);
+    drawn.get(table).push(row.id);
+    rumors.push({
+      id: foundry.utils.randomID(), text: open.text, region: core.rumorTableRegion(table.name),
+      source: { table: table.name, resultId: open.id, range: open.range }, ...stamp,
+    });
+  }
+  if (rumors.length < uuids.length) ui.notifications.warn(t("SDE.rumors.notify.skipped", { n: uuids.length - rumors.length }));
+  if (!rumors.length) return [];
+  return record(rumors, { drawn: [...drawn], announce });
+}
+
+/**
+ * Every rumor table with rows still there to give, as the dialog lists them:
+ * the general table first, then the party's region, then the rest by name.
+ */
+async function tableChoices(tables, here) {
+  const out = [];
+  for (const ref of tables.values()) {
+    const rows = rowsOf(await ref.load()).available;
+    if (rows.length) out.push({ region: ref.region, rows });
+  }
+  const rank = (c) => (!c.region ? 0 : here && sameRegion(c.region, here) ? 1 : 2);
+  return out.sort((a, b) => rank(a) - rank(b) || String(a.region).localeCompare(String(b.region)));
+}
+
+/**
+ * Ask the GM how to give rumors, then give them (the crawl bar's Give rumors…):
+ * a random draw (how many, from where), rows picked off the tables, or a rumor
+ * the GM writes; who heard them and whether chat hears of it, for all three.
+ */
 export async function askAndGive() {
   if (!game.user.isGM) return null;
   const tables = await rumorTables();
@@ -253,30 +340,59 @@ export async function askAndGive() {
   const heard = new Set(defaultHeardBy());
   const pcs = game.actors.filter((a) => a.type === "Player" && a.hasPlayerOwner);
   const pending = (await Troubles.undiscovered()).length;
+  const choices = await tableChoices(tables, here);
   const option = (value, label, selected) => `<option value="${esc(value)}" ${selected ? "selected" : ""}>${esc(label)}</option>`;
+  const range = ([lo, hi]) => (lo === hi ? `${lo}` : `${lo}–${hi}`);
+  const rowsHtml = choices.length
+    ? choices.map((c, i) => `<details ${i === 0 || !c.region || (here && sameRegion(c.region, here)) ? "open" : ""}><summary>${esc(c.region ?? t("SDE.rumors.ledger.general"))} (${c.rows.length})</summary>
+        ${c.rows.map((r) => `<label class="checkbox"><input type="checkbox" name="result" value="${esc(r.uuid)}"> <span><b>${esc(range(r.range))}</b> ${esc(r.text)}</span></label>`).join("")}</details>`).join("")
+    : `<p class="hint">${esc(t("SDE.rumors.dialog.noRows"))}</p>`;
   const content = `
-    <div class="form-group"><label>${esc(t("SDE.rumors.dialog.count"))}</label>
+    <div class="form-group"><label>${esc(t("SDE.rumors.dialog.mode"))}</label>
+      <select name="mode">${option("random", t("SDE.rumors.dialog.modes.random"), true)}${option("pick", t("SDE.rumors.dialog.modes.pick"))}${option("custom", t("SDE.rumors.dialog.modes.custom"))}</select></div>
+    <div class="form-group" data-mode="random"><label>${esc(t("SDE.rumors.dialog.count"))}</label>
       <input type="number" name="count" min="1" max="${MAX_COUNT}" step="1" value="2" autofocus></div>
-    <div class="form-group"><label>${esc(t("SDE.rumors.dialog.region"))}</label>
+    <div class="form-group" data-mode="random custom"><label>${esc(t("SDE.rumors.dialog.region"))}</label>
       <select name="region">${option("", t("SDE.rumors.dialog.generalOnly"), !here)}${regions.map((r) => option(r, r, here && sameRegion(r, here))).join("")}</select></div>
+    <div class="form-group stacked" data-mode="custom"><label>${esc(t("SDE.rumors.dialog.text"))}</label>
+      <textarea name="text" rows="4"></textarea></div>
+    <fieldset data-mode="pick"><legend>${esc(t("SDE.rumors.dialog.pick"))}</legend>
+      <div style="max-height:18rem;overflow-y:auto">${rowsHtml}</div></fieldset>
     <fieldset><legend>${esc(t("SDE.rumors.dialog.heardBy"))}</legend>
       ${pcs.map((a) => `<label class="checkbox"><input type="checkbox" name="heardBy" value="${esc(a.name)}" ${heard.has(a.name) ? "checked" : ""}> ${esc(a.name)}</label>`).join("")}</fieldset>
-    ${pending ? `<p class="hint">${esc(t("SDE.rumors.dialog.troubles", { n: pending }))}</p>` : ""}`;
+    <label class="checkbox"><input type="checkbox" name="announce" checked> ${esc(t("SDE.rumors.dialog.announce"))}</label>
+    ${pending ? `<p class="hint" data-mode="random">${esc(t("SDE.rumors.dialog.troubles", { n: pending }))}</p>` : ""}`;
   const opts = await foundry.applications.api.DialogV2.prompt({
     classes: ["sde-ui", "sde-dialog"],
     window: { title: "SDE.rumors.dialog.title" },
     content,
+    // Show only the fields the chosen way of giving reads.
+    render: (_event, dialog) => {
+      const form = dialog.element.querySelector("form");
+      const show = () => {
+        for (const el of form.querySelectorAll("[data-mode]")) el.style.display = el.dataset.mode.split(" ").includes(form.elements.mode.value) ? "" : "none";
+      };
+      form.elements.mode.addEventListener("change", show);
+      show();
+    },
     ok: {
       label: "SDE.rumors.dialog.give",
-      callback: (_event, button) => ({
-        count: Number(button.form.elements.count.value) || 1,
-        region: button.form.elements.region.value || null,
-        heardBy: [...button.form.querySelectorAll('input[name="heardBy"]:checked')].map((i) => i.value),
-      }),
+      callback: (_event, button) => {
+        const f = button.form.elements;
+        const common = {
+          heardBy: [...button.form.querySelectorAll('input[name="heardBy"]:checked')].map((i) => i.value),
+          announce: f.announce.checked,
+        };
+        if (f.mode.value === "custom") return { ...common, mode: "custom", text: f.text.value, region: f.region.value || null };
+        if (f.mode.value === "pick") return { ...common, mode: "pick", results: [...button.form.querySelectorAll('input[name="result"]:checked')].map((i) => i.value) };
+        return { ...common, mode: "random", count: Number(f.count.value) || 1, region: f.region.value || null };
+      },
     },
     rejectClose: false,
   });
-  return opts ? Rumors.give(opts) : null;
+  if (!opts) return null;
+  const { mode, ...rest } = opts;
+  return mode === "custom" ? Rumors.tell(rest) : mode === "pick" ? Rumors.pick(rest) : Rumors.give(rest);
 }
 
 // ── Promote to quest ────────────────────────────────────────────────────────
@@ -377,7 +493,7 @@ function installRumorDraws() {
       const out = await prev.apply(this, args);
       try {
         // The tables rumorTables() gives from: the module's pack, or the world's.
-        const eligible = this.pack ? this.pack === findSuitePack("sde-tables")?.collection && !this.compendium?.locked : true;
+        const eligible = fromModule(this) && !this.compendium?.locked;
         if (game.user?.isGM && eligible && core.isRumorTable(this.name)) {
           const rows = core.drawnRows(this, out);
           if (rows.length) await this.updateEmbeddedDocuments("TableResult", rows.map((r) => ({ _id: r.id, drawn: true })));
@@ -396,12 +512,30 @@ function installRumorDraws() {
 export const Rumors = {
   /**
    * Give rumors (GM). See runGive.
-   * @param {{count?:number, region?:string|null, heardBy?:string[]}} [opts]
+   * @param {{count?:number, region?:string|null, heardBy?:string[], announce?:boolean}} [opts]
    * @returns {Promise<Array<{text:string, region:string|null, heardAt:{world:number|null, real:number}, heardBy:string[]}>|null>}
    */
   give(opts = {}) {
     if (!game.user.isGM) { ui.notifications.warn(t("SDE.rumors.notify.gmOnly")); return Promise.resolve(null); }
     return enqueue(() => runGive(opts));
+  },
+
+  /**
+   * Give a rumor the GM wrote, on no table (GM). See runTell.
+   * @param {{text:string, region?:string|null, heardBy?:string[], announce?:boolean}} opts
+   */
+  tell(opts = {}) {
+    if (!game.user.isGM) { ui.notifications.warn(t("SDE.rumors.notify.gmOnly")); return Promise.resolve(null); }
+    return enqueue(() => runTell(opts));
+  },
+
+  /**
+   * Give rows picked off the rumor tables, by TableResult UUID (GM). See runPick.
+   * @param {{results:string[], heardBy?:string[], announce?:boolean}} opts
+   */
+  pick(opts = {}) {
+    if (!game.user.isGM) { ui.notifications.warn(t("SDE.rumors.notify.gmOnly")); return Promise.resolve(null); }
+    return enqueue(() => runPick(opts));
   },
 
   /**
