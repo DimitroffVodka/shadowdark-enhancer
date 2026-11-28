@@ -15,10 +15,10 @@
  * say "pdf.js changed"; only when the claims hold does a failing extractor
  * assertion mean "our code broke".
  *
- * pdfjs-dist is pinned to 4.0.379, the pdf.js Foundry 14.364-14.370 bundles
- * (@foundryvtt/pdfjs 4.0.379-1). Move the pin when the Foundry build that
- * module.json verifies moves pdf.js; 14.371 bundles 6.5.438, which CI also
- * runs these suites on.
+ * pdfjs-dist is pinned to 6.5.438, the pdf.js Foundry 14.371 bundles
+ * (@foundryvtt/pdfjs 6.5.438-1). Move the pin when the Foundry build that
+ * module.json verifies moves pdf.js. 14.364-14.370 bundle 4.0.379, which CI
+ * also runs these suites on.
  *
  * Invented text only: no line here comes from a Shadowdark book.
  */

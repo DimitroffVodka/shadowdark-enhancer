@@ -10,9 +10,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # pdfjs-dist 6.x (Foundry 14.371's pdf.js) uses Promise.try and Uint8Array#toHex, which
+      # Node 22 and 24 lack; Node 26 is the LTS line Foundry 14.371's notes name.
       - uses: actions/setup-node@v7
         with:
-          node-version: "22"
+          node-version: "26"
 
       - name: Install dev dependencies
         run: npm install
@@ -26,15 +28,9 @@ jobs:
       - name: Inventory up to date
         run: npm run inventory:check
 
-      # Foundry 14.371 bundles PDF.js 6.5.438; the pin stays on the verified build's 4.0.379.
-      # On 6.x only, the bold test fails if the extractor stops passing fontExtraProperties.
-      # 6.x's build uses Promise.try (not in Node 22) and Uint8Array#toHex (not in Node 24); Foundry's
-      # Chromium has both. Node 26 runs it, and is the LTS line Foundry 14.371's notes name.
-      - uses: actions/setup-node@v7
-        with:
-          node-version: "26"
-
-      - name: PDF suites on PDF.js 6.5.438
+      # The pin follows the verified build (14.371, PDF.js 6.5.438). module.json still allows
+      # 14.364-14.370, which bundle 4.0.379, so the PDF suites run on that version too.
+      - name: PDF suites on PDF.js 4.0.379
         run: |
-          npm install --no-save pdfjs-dist@6.5.438
+          npm install --no-save pdfjs-dist@4.0.379
           node --test test/session-pdf.test.mjs test/pdf-extract-synth.test.mjs test/importer-read-whole-book.test.mjs
